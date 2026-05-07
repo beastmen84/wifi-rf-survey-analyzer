@@ -105,6 +105,7 @@ class WifiHeatmapApp:
         self.live_zoom_level = 1.0
         self.live_scale_payload = None
         self.points_table_resize_after_id = None
+        self.alias_table_resize_after_id = None
 
         self.status_var = tk.StringVar(value=self.tr("active_survey", name=self.session_display_name()))
         self.csv_var = tk.StringVar(value=self.session_display_name())
@@ -700,12 +701,12 @@ class WifiHeatmapApp:
 
     def open_ap_alias_dialog(self):
         dialog = self.create_modal_dialog(self.tr("ap_aliases_title"))
-        dialog.geometry("1360x760")
-        dialog.minsize(1180, 680)
+        dialog.geometry("1560x780")
+        dialog.minsize(1320, 700)
 
         frame = ttk.Frame(dialog, padding=12)
         frame.pack(fill=tk.BOTH, expand=True)
-        ttk.Label(frame, text=self.tr("ap_aliases_hint"), wraplength=1260, style="ReadableMuted.TLabel").pack(anchor="w", pady=(0, 10))
+        ttk.Label(frame, text=self.tr("ap_aliases_hint"), wraplength=1460, style="ReadableMuted.TLabel").pack(anchor="w", pady=(0, 10))
 
         groups = self.get_detected_ap_groups()
         aliases = self.session.get_ap_aliases()
@@ -728,12 +729,12 @@ class WifiHeatmapApp:
         table_frame = ttk.Frame(frame)
         table_frame.pack(fill=tk.BOTH, expand=True)
         tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=16)
-        tree.column("status", width=36, anchor="center", stretch=False)
-        tree.column("group", width=270, anchor="w")
-        tree.column("alias", width=260, anchor="w")
-        tree.column("bssids", width=360, anchor="w")
-        tree.column("ssids", width=320, anchor="w")
-        tree.column("channels", width=110, anchor="center")
+        tree.column("status", width=42, minwidth=36, anchor="center", stretch=False)
+        tree.column("group", width=300, minwidth=220, anchor="w", stretch=True)
+        tree.column("alias", width=260, minwidth=180, anchor="w", stretch=True)
+        tree.column("bssids", width=430, minwidth=260, anchor="w", stretch=True)
+        tree.column("ssids", width=340, minwidth=220, anchor="w", stretch=True)
+        tree.column("channels", width=120, minwidth=90, anchor="center", stretch=False)
         tree.tag_configure("aliased", background="#e9f7ef")
         scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=tree.yview)
         tree.configure(yscrollcommand=scrollbar.set)
@@ -827,6 +828,15 @@ class WifiHeatmapApp:
         tree.heading("channels", text=self.tr("ap_alias_channels"), command=lambda: sort_by_column("channels"))
         search_entry.bind("<KeyRelease>", lambda _event: render_alias_rows())
 
+        def schedule_alias_table_resize(_event=None):
+            if self.alias_table_resize_after_id is not None:
+                self.root.after_cancel(self.alias_table_resize_after_id)
+
+            self.alias_table_resize_after_id = self.root.after(
+                50,
+                lambda: self.adjust_alias_table_columns(tree, columns)
+            )
+
         def set_alias(group_key, value):
             value = value.strip()
             if value:
@@ -889,7 +899,10 @@ class WifiHeatmapApp:
             dialog.destroy()
 
         tree.bind("<Double-1>", begin_alias_edit)
+        table_frame.bind("<Configure>", schedule_alias_table_resize)
+        tree.bind("<Configure>", schedule_alias_table_resize, add="+")
         render_alias_rows()
+        schedule_alias_table_resize()
         buttons = ttk.Frame(frame)
         buttons.pack(fill=tk.X, pady=(12, 0))
         ttk.Button(buttons, text=self.tr("cancel"), command=dialog.destroy, bootstyle=SECONDARY).pack(side=tk.RIGHT)
@@ -944,6 +957,76 @@ class WifiHeatmapApp:
                     aliases[group_key] = legacy_alias
                     aliases.pop(legacy_group_key, None)
                     break
+
+    def adjust_alias_table_columns(self, tree, columns):
+        self.alias_table_resize_after_id = None
+
+        if not tree.winfo_exists():
+            return
+
+        body_font = self.get_treeview_font("Treeview")
+        heading_font = self.get_treeview_font("Treeview.Heading")
+        min_widths = {
+            "status": 38,
+            "group": 220,
+            "alias": 180,
+            "bssids": 260,
+            "ssids": 220,
+            "channels": 92
+        }
+        max_widths = {
+            "status": 46,
+            "group": 420,
+            "alias": 360,
+            "bssids": 620,
+            "ssids": 440,
+            "channels": 140
+        }
+        measured = {}
+
+        for column in columns:
+            heading = tree.heading(column).get("text", "")
+            measured[column] = max(min_widths[column], heading_font.measure(str(heading)) + 28)
+
+        for item in tree.get_children():
+            values = tree.item(item, "values")
+            for column, value in zip(columns, values):
+                measured[column] = max(measured[column], body_font.measure(str(value)) + 34)
+
+        fixed_columns = ("status", "channels")
+        flexible_columns = ("group", "alias", "bssids", "ssids")
+        widths = {
+            column: min(max(measured[column], min_widths[column]), max_widths[column])
+            for column in columns
+        }
+        available_width = max(0, tree.winfo_width() - 8)
+        fixed_total = sum(widths[column] for column in fixed_columns)
+        flexible_min_total = sum(min_widths[column] for column in flexible_columns)
+        flexible_available = max(flexible_min_total, available_width - fixed_total)
+        desired_flexible_total = sum(widths[column] for column in flexible_columns)
+
+        if desired_flexible_total > flexible_available:
+            scale = flexible_available / desired_flexible_total
+            for column in flexible_columns:
+                widths[column] = max(min_widths[column], int(widths[column] * scale))
+        elif desired_flexible_total < flexible_available:
+            extra = flexible_available - desired_flexible_total
+            priority = ("bssids", "ssids", "group", "alias")
+            for column in priority:
+                room = max_widths[column] - widths[column]
+                added = min(room, extra)
+                widths[column] += added
+                extra -= added
+                if extra <= 0:
+                    break
+
+        for column in columns:
+            tree.column(
+                column,
+                width=widths[column],
+                minwidth=min_widths[column],
+                stretch=column in flexible_columns
+            )
 
     def channel_sort_key(self, channel):
         try:
