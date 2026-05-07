@@ -1,206 +1,217 @@
 # WiFi Heatmap
 
-A Python desktop application for real-world Wi‑Fi heatmap surveying and visualization.
+A Python desktop application for real-world Wi-Fi heatmap surveying and RF visualization.
 
-The project focuses on practical RF analysis using live Wi‑Fi measurements collected directly from real environments rather than simulations.
+The project focuses on practical analysis from live Wi-Fi measurements collected directly in real environments. It is intended as a transparent, customizable alternative to closed survey tools, with emphasis on scan reliability, AP behavior, and map readability.
 
-It supports:
+## Current Features
 
-- Interactive floorplan-based surveys
-- Multi-band Wi‑Fi scanning
-- Live heatmap rendering
-- Real-time map updates while surveying
-- 2.4 GHz and 5 GHz analysis
-- Interference visualization
-- AP grouping and filtering
-- CSV-based survey persistence
-- Exportable rendered heatmaps
+### Survey Workflow
 
-The application is designed as an experimentation-driven RF visualization tool inspired by professional Wi‑Fi survey software while remaining lightweight, transparent, and fully customizable.
+- Start a new survey or open an existing CSV survey.
+- Load a floorplan image or PDF.
+- Store the floorplan path in survey metadata so reopening the CSV reloads the map automatically.
+- Place measurement points directly on the floorplan.
+- Delete the selected point or the last point.
+- Pan, zoom, and fit the floorplan.
+- Save on demand, with dirty-state tracking and save prompt on close.
+- Export generated maps in the same folder as the saved survey CSV.
 
----
+### User Interface
 
-# Current Features
+- ttkbootstrap-based desktop UI.
+- Start screen with new/open/exit actions and visual mouse shortcut help.
+- Main UI split into survey and live map tabs.
+- Toolbar controls for saving, opening CSV, AP aliases, scale calibration, help, map generation, theme, and language.
+- English and Italian language selector.
+- Theme selector.
+- Help dialog with workflow, live map, heatmap, and scan guidance.
+- Centered modal dialogs.
 
-## Interactive Survey Workflow
+### Wi-Fi Scanning
 
-- Load custom floorplans/maps
-- Place measurement points directly on the map
-- Store exact coordinates for each scan
-- Open and continue existing surveys
-- Multi-language UI support
-- Optimized desktop UI with scalable layout
+- Automatic scan backend selection.
+- lswifi support with fallback behavior.
+- Multiple scan attempts per point.
+- Delay between scan attempts to reduce partial WLAN scan results.
+- Aggregation by BSSID and channel.
+- Median, min, max, and sample list for RSSI values.
+- Confidence fields per measurement.
+- Suspicious scan warning when a new scan sees far fewer networks than the previous good scan.
+- Capture selection dialog with "all networks", single SSID selection, and remembered choice.
 
----
+Collected fields include:
 
-# Live Heatmap System
-
-The application already includes a live rendering pipeline.
-
-Heatmaps update dynamically while measurements are collected, allowing immediate visualization of:
-
-- Coverage evolution
-- Weak zones
-- Signal transitions
-- Interference areas
-- AP dominance
-
-The live rendering engine includes:
-
-- Cached rendering
-- Incremental updates
-- Distance masking
-- Signal interpolation
-- Spatial smoothing
-- Adaptive transparency
-- Real-time point overlays
-
----
-
-# Wi‑Fi Scanning
-
-The scanner performs multiple scans per survey point to reduce inconsistent detections.
-
-Collected information includes:
-
+- timestamp
+- x/y coordinates
 - SSID
 - BSSID
-- Signal strength (RSSI / dBm)
-- Channel
-- Band
-- Channel width
-- PHY type
+- signal percent
+- signal dBm
+- median/max/min dBm
+- raw signal samples
+- samples seen / total
+- scan confidence
+- channel
+- channel width
+- radio / PHY type
 
-Networks are handled using BSSID-aware logic rather than relying only on SSID names.
+### Data Storage
 
-This is especially important for:
+Survey data is stored in a readable CSV file with metadata comments at the top.
 
-- Dual-band environments
-- Enterprise Wi‑Fi deployments
-- Mesh systems
-- Multi-AP installations
+Metadata can include:
 
----
+- floorplan path
+- remembered capture filter
+- AP aliases
+- scale calibration (`px_per_meter`)
+- app creation fields
 
-# Heatmap Types
+Older CSV files are migrated on load by adding missing fields where possible.
 
-## Signal Heatmaps
+### AP Aliases
 
-Separate rendering for:
+- Dedicated AP alias dialog.
+- Search and sortable columns.
+- Inline alias editing.
+- Alias state persisted in CSV metadata.
+- Aliases are used in tooltips, legends, AP channel maps, dominant AP maps, and interference analysis where available.
 
-- 2.4 GHz
-- 5 GHz
-- Combined analysis
+### Scale Calibration
 
-Features include:
+- Toolbar action to calibrate the map scale.
+- Select two known points on the floorplan and enter the real distance in meters.
+- Stores `px_per_meter` in the survey metadata.
+- Distance controls switch from pixels to meters when a survey is calibrated.
+- The calibrated distance is used by live maps and generated PNG maps.
 
-- Interpolation
-- Signal smoothing
-- Configurable rendering
-- Distance-aware masking
-- Adjustable color scales
-- Signal threshold filtering
+## Live Map System
 
----
+The application includes a live rendering pipeline that updates while measurements are collected.
 
-## Interference Heatmaps
+Live map types:
 
-The application also supports interference-oriented visualization.
+- Signal coverage
+- AP interference
+- AP channels
+- Dominant AP / roaming view
 
-Interference analysis includes:
+Live map features:
 
-- Risk calculation
-- Spatial interpolation
-- Visual interference scoring
-- Band-specific interference mapping
+- Separate survey and live map tabs.
+- Auto-update and manual refresh.
+- Live zoom and pan.
+- AP group filter for signal and channel views.
+- Band selection.
+- Interference mode selection.
+- Smoothing, interpolation, aggregation, color scale, usability threshold, and max distance controls where relevant.
+- Mouseover tooltips for point details.
+- Missing-data markers.
+- Horizontal scale/legend area based on the active map type.
+- Background rendering for heavier live maps.
+- Grid caching and result caching.
 
----
+## Generated Map Types
 
-# Rendering Engine
+### Signal Coverage
 
-The rendering pipeline is built around:
+- 2.4 GHz, 5 GHz, or combined view.
+- Interpolation.
+- Smoothing.
+- Distance-aware masking.
+- Adjustable color scale.
+- Optional threshold filter for usable coverage.
+- Export to PNG.
+
+### AP Interference
+
+- Band-specific interference maps.
+- Intra-SSID or all-SSID analysis.
+- Channel overlap awareness.
+- Channel width support where available.
+- Risk percentage visualization.
+- Worst-point summary dialog.
+- CSV report export.
+- Reference table below the generated map for highlighted points.
+
+### AP Channels
+
+- Real-point map without interpolation.
+- Points colored by AP/channel.
+- Channel-width labels where available.
+- Reference table for labels.
+- AP aliases supported.
+
+### Dominant AP / Roaming
+
+- Real-point map showing the strongest AP group at each measurement point.
+- Roaming overlap detection.
+- Reference table for labels.
+- AP aliases supported.
+
+## Rendering Engine
+
+The rendering pipeline uses:
 
 - NumPy
 - Pandas
+- SciPy
 - Matplotlib
-- PIL
+- Pillow
 
 The renderer includes:
 
+- High-resolution interpolation grid
 - Grid caching
 - Result caching
-- Bilinear rendering
 - Distance alpha masking
-- Heatmap smoothing
-- Point collapsing/aggregation
+- Spatial smoothing
+- Point collapsing / aggregation
 - Live image payload generation
+- Background worker rendering for live continuous maps
 
----
+## Real RF Challenges Addressed
 
-# Data Storage
+The project explicitly handles or exposes several practical Wi-Fi survey problems:
 
-Survey data is stored in CSV format.
+- Inconsistent scan results from Windows WLAN scans.
+- Missing AP detections.
+- Beacon timing issues.
+- Dual-band ambiguity.
+- Multi-BSSID / multi-SSID enterprise deployments.
+- Guest SSIDs sharing the same physical AP/channel.
+- Spatial interpolation artifacts.
+- Channel overlap and channel width uncertainty.
+- Temporal RSSI fluctuations.
+- Dense point labeling readability.
 
-This allows:
-
-- Reproducibility
-- Debugging
-- Offline analysis
-- External processing
-- Future algorithm improvements
-
-The project intentionally keeps the measurement format transparent and inspectable.
-
----
-
-# Real RF Challenges Explored
-
-The project intentionally investigates difficult real-world Wi‑Fi surveying problems such as:
-
-- Inconsistent scan results
-- Missing AP detections
-- Beacon timing issues
-- Dual-band ambiguity
-- Spatial interpolation artifacts
-- Driver limitations on Windows
-- Temporal RSSI fluctuations
-
-Rather than hiding these problems, the project aims to expose and progressively improve their handling.
-
----
-
-# Technologies Used
+## Technologies Used
 
 - Python
 - Tkinter
 - ttkbootstrap
-- NumPy
-- Pandas
-- Matplotlib
+- PyMuPDF
 - Pillow
-- Windows WLAN APIs / LSWiFi-related tooling
+- Pandas
+- NumPy
+- SciPy
+- Matplotlib
+- lswifi
+- PyInstaller
 
----
-
-# Installation
-
-## Clone Repository
+## Installation
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/wifi_heatmap.git
 cd wifi_heatmap
-```
-
-## Create Virtual Environment
-
-```bash
 python -m venv .venv
 ```
 
 ### Windows
 
 ```bash
-.venv\\Scripts\\activate
+.venv\Scripts\activate
 ```
 
 ### Linux / macOS
@@ -209,77 +220,74 @@ python -m venv .venv
 source .venv/bin/activate
 ```
 
-## Install Dependencies
+### Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
-
-# Running the Application
+## Running the Application
 
 ```bash
 python wifi_heatmap.py
 ```
 
----
+## Building the Executable
 
-# Typical Workflow
+```bash
+python -m PyInstaller -y WifiHeatmap.spec
+```
 
-1. Load a floorplan image
-2. Move through the environment
-3. Click measurement positions on the map
-4. Perform Wi‑Fi scans
-5. Watch the live heatmaps update
-6. Analyze signal/interference distribution
-7. Export final maps
+The Windows build output is generated under:
 
----
+```text
+dist/WifiHeatmap/WifiHeatmap.exe
+```
 
-# Example Use Cases
+## Typical Workflow
 
-- Office Wi‑Fi analysis
+1. Start a new survey or open an existing CSV.
+2. Load the floorplan.
+3. Optionally calibrate the scale if a known real distance is available.
+4. Move through the environment.
+5. Right-click the measurement positions on the map.
+6. Save the survey.
+7. Use the live map tab while collecting data.
+8. Generate final PNG maps and CSV reports.
+
+## Example Use Cases
+
+- Office Wi-Fi analysis
 - AP placement validation
 - Dead-zone identification
 - 2.4 GHz vs 5 GHz comparison
+- Channel overlap analysis
+- Roaming / dominant AP analysis
 - Educational RF analysis
-- Wireless experimentation
 - Home network optimization
 
----
-
-# Planned Improvements
+## Planned Improvements
 
 Future development may include:
 
-- Confidence scoring per measurement
-- Median/variance-based aggregation
-- Advanced RF statistics
-- Enhanced AP visualization
-- Internal floorplan editor
-- Improved interpolation controls
-- Scan diagnostics tools
-- Additional live analytics
+- Richer live-map defaults shared with the PNG generation dialog.
+- More advanced RF statistics and quality indicators.
+- Better scan diagnostics and troubleshooting guidance.
+- Configurable AP grouping rules beyond the current automatic grouping.
+- Optional project/session settings file.
+- More performance tuning for very large surveys.
+- Internal floorplan annotation tools.
 
----
+## Project Philosophy
 
-# Project Philosophy
-
-Most professional Wi‑Fi survey tools are:
-
-- Expensive
-- Closed-source
-- Difficult to customize
+Most professional Wi-Fi survey tools are expensive, closed-source, and difficult to customize.
 
 This project explores how far a transparent Python-based solution can go while remaining understandable and adaptable.
 
-The goal is not just generating pretty heatmaps, but understanding the underlying RF behavior and scan reliability challenges.
+The goal is not only generating good-looking heatmaps, but understanding the underlying RF behavior and scan reliability challenges.
 
----
-
-# Author
+## Author
 
 Davide Marchi
 
-Experimental Wi‑Fi heatmapping and RF visualization project focused on real-world environments and practical wireless analysis.
+Experimental Wi-Fi heatmapping and RF visualization project focused on real-world environments and practical wireless analysis.
