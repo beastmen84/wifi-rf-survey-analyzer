@@ -1191,18 +1191,18 @@ class WifiHeatmapApp:
         body_font = self.get_treeview_font("Treeview")
         heading_font = self.get_treeview_font("Treeview.Heading")
         min_widths = {
-            "index": 42,
-            "x": 54,
-            "y": 54,
-            "best": 82,
+            "index": 48,
+            "x": 60,
+            "y": 60,
+            "best": 96,
             "ssid": 180,
             "rows": 58
         }
         max_fixed_widths = {
-            "index": 58,
-            "x": 78,
-            "y": 78,
-            "best": 100,
+            "index": 64,
+            "x": 84,
+            "y": 84,
+            "best": 122,
             "rows": 76
         }
         columns = getattr(self, "points_table_columns", ("index", "x", "y", "best", "ssid", "rows"))
