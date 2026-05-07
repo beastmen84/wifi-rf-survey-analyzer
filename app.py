@@ -122,6 +122,7 @@ class WifiHeatmapApp:
         self.ssid_var = tk.StringVar(value="")
         self.band_var = tk.StringVar(value="all")
         self.map_type_var = tk.StringVar(value="signal")
+        self.live_map_type_choice_var = tk.StringVar()
         self.interference_mode_var = tk.StringVar(value="intra_ssid")
         self.interpolation_var = tk.StringVar(value="rbf")
         self.aggregation_var = tk.StringVar(value="max")
@@ -407,10 +408,7 @@ class WifiHeatmapApp:
             self.live_map_type_label.configure(text=self.tr("map_type"))
             self.live_auto_update_check.configure(text=self.tr("live_auto_update"))
             self.live_update_button.configure(text=self.tr("live_update_now"))
-            self.live_map_type_buttons["signal"].configure(text=self.tr("map_type_signal"))
-            self.live_map_type_buttons["interference"].configure(text=self.tr("map_type_interference"))
-            self.live_map_type_buttons["channel"].configure(text=self.tr("map_type_channel"))
-            self.live_map_type_buttons["dominant"].configure(text=self.tr("map_type_dominant"))
+            self.refresh_live_map_type_options()
             self.live_interference_mode_label.configure(text=self.tr("interference_mode"))
             self.update_distance_labels()
             self.live_usable_check.configure(text=self.tr("usable_only"))
@@ -528,22 +526,15 @@ class WifiHeatmapApp:
 
         self.live_map_type_label = ttk.Label(controls, text=self.tr("map_type"))
         self.live_map_type_label.pack(side=tk.LEFT, padx=(0, 6))
-        self.live_map_type_buttons = {}
-        for text, value in (
-            (self.tr("map_type_signal"), "signal"),
-            (self.tr("map_type_interference"), "interference"),
-            (self.tr("map_type_channel"), "channel"),
-            (self.tr("map_type_dominant"), "dominant"),
-        ):
-            button = ttk.Radiobutton(
-                controls,
-                text=text,
-                value=value,
-                variable=self.map_type_var,
-                command=self.on_live_config_changed
-            )
-            button.pack(side=tk.LEFT, padx=(0, 6))
-            self.live_map_type_buttons[value] = button
+        self.live_map_type_combo = ttk.Combobox(
+            controls,
+            textvariable=self.live_map_type_choice_var,
+            state="readonly",
+            width=20
+        )
+        self.live_map_type_combo.pack(side=tk.LEFT, padx=(0, 12))
+        self.live_map_type_combo.bind("<<ComboboxSelected>>", self.on_live_map_type_selected)
+        self.refresh_live_map_type_options()
 
         self.live_auto_update_var = tk.BooleanVar(value=True)
         self.live_auto_update_check = ttk.Checkbutton(
@@ -970,6 +961,41 @@ class WifiHeatmapApp:
             (group_key, self.format_ap_label(bssid, group_key))
             for group_key, bssid in sorted(groups.items(), key=lambda item: self.format_ap_label(item[1], item[0]).lower())
         ]
+
+    def get_live_map_type_options(self):
+        return [
+            ("signal", self.tr("map_type_signal")),
+            ("interference", self.tr("map_type_interference")),
+            ("channel", self.tr("map_type_channel")),
+            ("dominant", self.tr("map_type_dominant")),
+        ]
+
+    def refresh_live_map_type_options(self):
+        if not hasattr(self, "live_map_type_combo"):
+            return
+
+        options = self.get_live_map_type_options()
+        self.live_map_type_label_map = {label: value for value, label in options}
+        self.live_map_type_value_map = {value: label for value, label in options}
+        self.live_map_type_combo["values"] = [label for _value, label in options]
+        self.sync_live_map_type_choice()
+
+    def sync_live_map_type_choice(self):
+        if not hasattr(self, "live_map_type_choice_var"):
+            return
+
+        label = getattr(self, "live_map_type_value_map", {}).get(self.map_type_var.get())
+        if label:
+            self.live_map_type_choice_var.set(label)
+
+    def on_live_map_type_selected(self, _event=None):
+        selected_label = self.live_map_type_choice_var.get()
+        selected_value = getattr(self, "live_map_type_label_map", {}).get(selected_label)
+
+        if selected_value:
+            self.map_type_var.set(selected_value)
+
+        self.on_live_config_changed()
 
     def refresh_live_ap_filter_options(self, config=None):
         if not hasattr(self, "live_ap_filter_combo"):
@@ -3784,6 +3810,7 @@ class WifiHeatmapApp:
         self.ssid_var.set(config.ssid)
         self.band_var.set(config.band)
         self.map_type_var.set(config.map_type)
+        self.sync_live_map_type_choice()
         self.interference_mode_var.set(config.interference_mode)
         self.interpolation_var.set(config.interpolation)
         self.aggregation_var.set(config.aggregation)
