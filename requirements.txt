@@ -1,0 +1,8 @@
+pymupdf
+pillow
+pandas
+numpy
+matplotlib
+scipy
+lswifi
+ttkbootstrap
