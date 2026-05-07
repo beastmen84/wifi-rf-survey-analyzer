@@ -36,6 +36,7 @@ from heatmap_tools import (
     get_dominant_ap_points,
     get_interference_data_quality,
     get_ap_group_key,
+    get_ap_group_display_key,
     interpolate_signal_grid,
     smooth_heatmap_grid,
 )
@@ -699,15 +700,16 @@ class WifiHeatmapApp:
 
     def open_ap_alias_dialog(self):
         dialog = self.create_modal_dialog(self.tr("ap_aliases_title"))
-        dialog.geometry("1180x700")
-        dialog.minsize(1040, 640)
+        dialog.geometry("1360x760")
+        dialog.minsize(1180, 680)
 
         frame = ttk.Frame(dialog, padding=12)
         frame.pack(fill=tk.BOTH, expand=True)
-        ttk.Label(frame, text=self.tr("ap_aliases_hint"), wraplength=1080, style="ReadableMuted.TLabel").pack(anchor="w", pady=(0, 10))
+        ttk.Label(frame, text=self.tr("ap_aliases_hint"), wraplength=1260, style="ReadableMuted.TLabel").pack(anchor="w", pady=(0, 10))
 
         groups = self.get_detected_ap_groups()
         aliases = self.session.get_ap_aliases()
+        self.migrate_aliases_to_current_ap_groups(groups, aliases)
 
         if not groups:
             ttk.Label(frame, text=self.tr("ap_aliases_empty"), bootstyle=WARNING).pack(anchor="w")
@@ -727,10 +729,10 @@ class WifiHeatmapApp:
         table_frame.pack(fill=tk.BOTH, expand=True)
         tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=16)
         tree.column("status", width=36, anchor="center", stretch=False)
-        tree.column("group", width=150, anchor="w")
+        tree.column("group", width=270, anchor="w")
         tree.column("alias", width=260, anchor="w")
-        tree.column("bssids", width=300, anchor="w")
-        tree.column("ssids", width=260, anchor="w")
+        tree.column("bssids", width=360, anchor="w")
+        tree.column("ssids", width=320, anchor="w")
         tree.column("channels", width=110, anchor="center")
         tree.tag_configure("aliased", background="#e9f7ef")
         scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=tree.yview)
@@ -747,7 +749,7 @@ class WifiHeatmapApp:
             alias = aliases.get(group["ap_group"], "")
             return (
                 "✓" if alias else "",
-                group["ap_group"],
+                ", ".join(group["display_groups"]),
                 alias,
                 ", ".join(group["bssids"]),
                 ", ".join(group["ssids"]),
@@ -761,6 +763,7 @@ class WifiHeatmapApp:
             alias = aliases.get(group["ap_group"], "")
             haystack = " ".join([
                 group["ap_group"],
+                " ".join(group["display_groups"]),
                 alias,
                 " ".join(group["bssids"]),
                 " ".join(group["ssids"]),
@@ -780,7 +783,7 @@ class WifiHeatmapApp:
                 return " ".join(group["ssids"]).lower()
             if column == "channels":
                 return [self.channel_sort_key(channel) for channel in group["channels"]]
-            return group["ap_group"].lower()
+            return " ".join(group["display_groups"]).lower()
 
         def render_alias_rows():
             close_alias_editor(False)
@@ -905,10 +908,12 @@ class WifiHeatmapApp:
             group_key = get_ap_group_key(bssid)
             group = groups.setdefault(group_key, {
                 "ap_group": group_key,
+                "display_groups": set(),
                 "bssids": set(),
                 "ssids": set(),
                 "channels": set(),
             })
+            group["display_groups"].add(get_ap_group_display_key(bssid))
             group["bssids"].add(bssid)
             if row.get("ssid"):
                 group["ssids"].add(row["ssid"])
@@ -919,12 +924,26 @@ class WifiHeatmapApp:
         for group in groups.values():
             result.append({
                 "ap_group": group["ap_group"],
+                "display_groups": sorted(group["display_groups"]),
                 "bssids": sorted(group["bssids"]),
                 "ssids": sorted(group["ssids"]),
                 "channels": sorted(group["channels"], key=self.channel_sort_key),
             })
 
-        return sorted(result, key=lambda item: item["ap_group"])
+        return sorted(result, key=lambda item: " ".join(item["display_groups"]))
+
+    def migrate_aliases_to_current_ap_groups(self, groups, aliases):
+        for group in groups:
+            group_key = group["ap_group"]
+            if group_key in aliases:
+                continue
+
+            for legacy_group_key in group.get("display_groups", []):
+                legacy_alias = aliases.get(legacy_group_key)
+                if legacy_alias:
+                    aliases[group_key] = legacy_alias
+                    aliases.pop(legacy_group_key, None)
+                    break
 
     def channel_sort_key(self, channel):
         try:

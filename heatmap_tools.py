@@ -127,6 +127,15 @@ def get_ap_group_key(bssid):
     parts = str(bssid or "").lower().split(":")
 
     if len(parts) == 6:
+        return ":".join(parts[1:5])
+
+    return str(bssid or "").lower()
+
+
+def get_ap_group_display_key(bssid):
+    parts = str(bssid or "").lower().split(":")
+
+    if len(parts) == 6:
         return ":".join(parts[:5])
 
     return str(bssid or "").lower()
