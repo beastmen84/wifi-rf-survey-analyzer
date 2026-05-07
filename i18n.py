@@ -6,6 +6,9 @@ TRANSLATIONS = {
     "it": {
         "app_title": "Wi-Fi Heatmap Survey",
         "copyright": "© Davide Marchi",
+        "loading_app": "Caricamento componenti...",
+        "loading_app_ready": "Pronto",
+        "loading_app_error": "Errore durante il caricamento dell'app.",
         "start_subtitle": "Rilievi Wi-Fi su pianta, heatmap e controllo punti",
         "new_survey": "Nuovo rilievo",
         "open_existing_survey": "Apri rilievo esistente",
@@ -340,6 +343,9 @@ TRANSLATIONS = {
     "en": {
         "app_title": "Wi-Fi Heatmap Survey",
         "copyright": "© Davide Marchi",
+        "loading_app": "Loading components...",
+        "loading_app_ready": "Ready",
+        "loading_app_error": "Error while loading the app.",
         "start_subtitle": "Wi-Fi surveys on floor plans, heatmaps, and point checks",
         "new_survey": "New survey",
         "open_existing_survey": "Open existing survey",

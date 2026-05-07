@@ -16,6 +16,8 @@ class StartScreen:
         self.language_var = tk.StringVar(value="IT")
         self.app_class = None
         self.app_preload_error = None
+        self.app_preload_done = False
+        self.app_preload_started = False
 
         language_frame = ttk.Frame(root, padding=self.scaled_pair(8, 8))
         language_frame.place(relx=1.0, rely=0.0, anchor=tk.NE)
@@ -99,12 +101,28 @@ class StartScreen:
             label.pack(side=tk.LEFT, padx=(self.scale_int(10), 0))
             self.start_step_labels.append(label)
 
+        self.loading_frame = ttk.Frame(self.frame)
+        self.loading_frame.pack(fill=tk.X, pady=(self.scale_int(18), 0))
+        self.loading_label = ttk.Label(
+            self.loading_frame,
+            font=self.font(9),
+            bootstyle=SECONDARY
+        )
+        self.loading_label.pack(anchor=tk.CENTER, pady=(0, self.scale_int(6)))
+        self.loading_bar = ttk.Progressbar(
+            self.loading_frame,
+            mode="indeterminate",
+            length=self.scale_int(360)
+        )
+        self.loading_bar.pack(anchor=tk.CENTER)
+
         self.copyright_label = ttk.Label(
             self.frame,
             font=self.font(9),
             bootstyle=SECONDARY
         )
         self.copyright_label.pack(pady=(self.scale_int(18), 0))
+        self.set_start_actions_state(tk.DISABLED)
         self.apply_language()
         self.root.after(100, self.start_app_preload)
 
@@ -177,6 +195,17 @@ class StartScreen:
         self.new_button.configure(text=translate(language, "new_survey"))
         self.open_button.configure(text=translate(language, "open_existing_survey"))
         self.exit_button.configure(text=translate(language, "exit"))
+        if self.app_preload_error is not None:
+            loading_key = "loading_app_error"
+        elif self.app_preload_done:
+            loading_key = "loading_app_ready"
+        else:
+            loading_key = "loading_app"
+        self.loading_label.configure(text=translate(language, loading_key))
+
+    def set_start_actions_state(self, state):
+        self.new_button.configure(state=state)
+        self.open_button.configure(state=state)
 
     def start_new_survey(self):
         self.start_app(None)
@@ -188,7 +217,13 @@ class StartScreen:
             self.start_app(csv_file)
 
     def start_app_preload(self):
+        if self.app_preload_started:
+            return
+
+        self.app_preload_started = True
+        self.loading_bar.start(12)
         threading.Thread(target=self.preload_app_class, daemon=True).start()
+        self.root.after(100, self.check_app_preload)
 
     def preload_app_class(self):
         try:
@@ -196,6 +231,22 @@ class StartScreen:
             self.app_class = WifiHeatmapApp
         except Exception as exc:
             self.app_preload_error = exc
+        finally:
+            self.app_preload_done = True
+
+    def check_app_preload(self):
+        if not self.app_preload_done:
+            self.root.after(100, self.check_app_preload)
+            return
+
+        self.loading_bar.stop()
+
+        if self.app_preload_error is not None:
+            self.loading_label.configure(text=translate(self.language, "loading_app_error"))
+            return
+
+        self.loading_label.configure(text=translate(self.language, "loading_app_ready"))
+        self.set_start_actions_state(tk.NORMAL)
 
     def get_app_class(self):
         if self.app_class is not None:
