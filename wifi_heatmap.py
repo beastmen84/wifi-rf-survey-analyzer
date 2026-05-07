@@ -1,9 +1,9 @@
+import threading
 import tkinter as tk
 import tkinter.font as tkfont
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import PRIMARY, SECONDARY
 
-from app import WifiHeatmapApp
 from i18n import SUPPORTED_LANGUAGES, translate
 from mouse_icons import create_shortcut_icon
 from ui_dialogs import open_existing_survey_file
@@ -14,6 +14,8 @@ class StartScreen:
         self.root = root
         self.ui_scale = self.get_start_screen_scale()
         self.language_var = tk.StringVar(value="IT")
+        self.app_class = None
+        self.app_preload_error = None
 
         language_frame = ttk.Frame(root, padding=self.scaled_pair(8, 8))
         language_frame.place(relx=1.0, rely=0.0, anchor=tk.NE)
@@ -104,6 +106,7 @@ class StartScreen:
         )
         self.copyright_label.pack(pady=(self.scale_int(18), 0))
         self.apply_language()
+        self.root.after(100, self.start_app_preload)
 
     def get_start_screen_scale(self):
         screen_width = self.root.winfo_screenwidth()
@@ -184,10 +187,29 @@ class StartScreen:
         if csv_file:
             self.start_app(csv_file)
 
+    def start_app_preload(self):
+        threading.Thread(target=self.preload_app_class, daemon=True).start()
+
+    def preload_app_class(self):
+        try:
+            from app import WifiHeatmapApp
+            self.app_class = WifiHeatmapApp
+        except Exception as exc:
+            self.app_preload_error = exc
+
+    def get_app_class(self):
+        if self.app_class is not None:
+            return self.app_class
+
+        from app import WifiHeatmapApp
+        self.app_class = WifiHeatmapApp
+        return self.app_class
+
     def start_app(self, csv_file):
+        app_class = self.get_app_class()
         self.frame.destroy()
         self.language_combo.master.destroy()
-        WifiHeatmapApp(self.root, csv_file, self.language)
+        app_class(self.root, csv_file, self.language)
 
 
 def main():
