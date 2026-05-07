@@ -1,165 +1,190 @@
 # WiFi Heatmap
 
-A desktop application for creating Wi‑Fi heatmaps from real-world signal measurements.
+A Python desktop application for real-world Wi‑Fi heatmap surveying and visualization.
 
-The project is focused on practical indoor wireless analysis and was developed around real survey scenarios rather than synthetic simulations.
+The project focuses on practical RF analysis using live Wi‑Fi measurements collected directly from real environments rather than simulations.
 
-It allows the user to:
+It supports:
 
-- Load a floorplan/map image
-- Place measurement points directly on the map
-- Scan nearby Wi‑Fi networks
-- Generate separate heatmaps for:
-  - 2.4 GHz
-  - 5 GHz
-  - Combined networks
-- Export generated maps as PNG images
-- Analyze signal coverage spatially
-- Compare multiple APs and bands
+- Interactive floorplan-based surveys
+- Multi-band Wi‑Fi scanning
+- Live heatmap rendering
+- Real-time map updates while surveying
+- 2.4 GHz and 5 GHz analysis
+- Interference visualization
+- AP grouping and filtering
+- CSV-based survey persistence
+- Exportable rendered heatmaps
 
-The application is designed with extensibility in mind and is progressively evolving toward more advanced RF analysis features.
+The application is designed as an experimentation-driven RF visualization tool inspired by professional Wi‑Fi survey software while remaining lightweight, transparent, and fully customizable.
 
 ---
 
-# Features
+# Current Features
 
-## Current Features
+## Interactive Survey Workflow
 
-### Interactive Floorplan Mapping
-- Load custom maps/floorplans
-- Click directly on the image to place survey points
-- Visual feedback for measurement positions
-- Coordinate-based point storage
+- Load custom floorplans/maps
+- Place measurement points directly on the map
+- Store exact coordinates for each scan
+- Open and continue existing surveys
+- Multi-language UI support
+- Optimized desktop UI with scalable layout
 
-### Wi‑Fi Scanning
-- Multiple scan attempts per measurement point
-- Aggregation of scan results
-- Detection of:
-  - SSID
-  - BSSID
-  - Channel
-  - Band
-  - RSSI / Signal strength
-  - Channel width
-  - PHY type
+---
 
-### Heatmap Generation
-Generate dedicated heatmaps for:
+# Live Heatmap System
 
-- 2.4 GHz only
-- 5 GHz only
-- Combined view
+The application already includes a live rendering pipeline.
 
-Includes:
+Heatmaps update dynamically while measurements are collected, allowing immediate visualization of:
 
+- Coverage evolution
+- Weak zones
+- Signal transitions
+- Interference areas
+- AP dominance
+
+The live rendering engine includes:
+
+- Cached rendering
+- Incremental updates
+- Distance masking
 - Signal interpolation
-- Gradient coloring
-- Adjustable rendering
-- PNG export
+- Spatial smoothing
+- Adaptive transparency
+- Real-time point overlays
 
-### CSV Data Storage
-Measurements are stored in CSV format for:
+---
+
+# Wi‑Fi Scanning
+
+The scanner performs multiple scans per survey point to reduce inconsistent detections.
+
+Collected information includes:
+
+- SSID
+- BSSID
+- Signal strength (RSSI / dBm)
+- Channel
+- Band
+- Channel width
+- PHY type
+
+Networks are handled using BSSID-aware logic rather than relying only on SSID names.
+
+This is especially important for:
+
+- Dual-band environments
+- Enterprise Wi‑Fi deployments
+- Mesh systems
+- Multi-AP installations
+
+---
+
+# Heatmap Types
+
+## Signal Heatmaps
+
+Separate rendering for:
+
+- 2.4 GHz
+- 5 GHz
+- Combined analysis
+
+Features include:
+
+- Interpolation
+- Signal smoothing
+- Configurable rendering
+- Distance-aware masking
+- Adjustable color scales
+- Signal threshold filtering
+
+---
+
+## Interference Heatmaps
+
+The application also supports interference-oriented visualization.
+
+Interference analysis includes:
+
+- Risk calculation
+- Spatial interpolation
+- Visual interference scoring
+- Band-specific interference mapping
+
+---
+
+# Rendering Engine
+
+The rendering pipeline is built around:
+
+- NumPy
+- Pandas
+- Matplotlib
+- PIL
+
+The renderer includes:
+
+- Grid caching
+- Result caching
+- Bilinear rendering
+- Distance alpha masking
+- Heatmap smoothing
+- Point collapsing/aggregation
+- Live image payload generation
+
+---
+
+# Data Storage
+
+Survey data is stored in CSV format.
+
+This allows:
 
 - Reproducibility
 - Debugging
-- External analysis
-- Future processing improvements
+- Offline analysis
+- External processing
+- Future algorithm improvements
 
-### Multi-Scan Aggregation Logic
-The scanner performs multiple scans per point and merges results to reduce inconsistent readings.
-
-Networks are distinguished using:
-
-- BSSID
-- Channel
-- SSID
-
-rather than relying only on SSID names.
+The project intentionally keeps the measurement format transparent and inspectable.
 
 ---
 
-# Project Goals
+# Real RF Challenges Explored
 
-This project started as a practical tool for visualizing Wi‑Fi coverage in office environments.
+The project intentionally investigates difficult real-world Wi‑Fi surveying problems such as:
 
-The long-term objective is to progressively move toward more advanced RF survey capabilities similar to professional tools while remaining lightweight and understandable.
+- Inconsistent scan results
+- Missing AP detections
+- Beacon timing issues
+- Dual-band ambiguity
+- Spatial interpolation artifacts
+- Driver limitations on Windows
+- Temporal RSSI fluctuations
 
-Planned improvements include:
-
-- Scan confidence scoring
-- Median-based signal aggregation
-- Measurement quality diagnostics
-- Real-time preview tabs
-- Advanced interpolation
-- Spatial smoothing
-- Missing-band detection
-- Interactive floorplan editor
-- AP visualization tools
-- Live heatmap updates during measurements
-
----
-
-# Why This Project Exists
-
-Most professional Wi‑Fi survey tools are:
-
-- Expensive
-- Closed-source
-- Complex
-- Hard to customize
-
-This project explores how far a custom Python-based solution can go using:
-
-- Real Wi‑Fi scans
-- Open logic
-- Flexible rendering
-- Transparent processing
-
-while still remaining practical for real environments.
-
----
-
-# Technical Notes
-
-## Wi‑Fi Scanning Limitations
-
-Wi‑Fi scanning on Windows is inherently imperfect.
-
-Even with advanced libraries, scan results can vary because of:
-
-- Driver behavior
-- Beacon timing
-- Dual-band handling
-- WLAN API limitations
-- Temporal fluctuations
-- Roaming logic
-
-The project therefore focuses heavily on:
-
-- Multiple scan attempts
-- Data aggregation
-- Signal consistency
-- Future confidence scoring
-
-rather than trusting single-scan results.
+Rather than hiding these problems, the project aims to expose and progressively improve their handling.
 
 ---
 
 # Technologies Used
 
 - Python
-- PyQt / GUI framework
+- Tkinter
+- ttkbootstrap
 - NumPy
 - Pandas
 - Matplotlib
 - Pillow
-- Wi‑Fi scanning libraries (LSWiFi / Windows WLAN APIs)
+- Windows WLAN APIs / LSWiFi-related tooling
 
 ---
 
 # Installation
 
-## Clone the Repository
+## Clone Repository
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/wifi_heatmap.git
@@ -200,82 +225,56 @@ python wifi_heatmap.py
 
 ---
 
-# Basic Workflow
+# Typical Workflow
 
 1. Load a floorplan image
-2. Select your current physical position
-3. Perform Wi‑Fi scans
-4. Add measurement points
-5. Repeat across the environment
-6. Generate heatmaps
-7. Export results
+2. Move through the environment
+3. Click measurement positions on the map
+4. Perform Wi‑Fi scans
+5. Watch the live heatmaps update
+6. Analyze signal/interference distribution
+7. Export final maps
 
 ---
 
 # Example Use Cases
 
 - Office Wi‑Fi analysis
-- Home coverage optimization
-- AP placement testing
-- Dead zone detection
+- AP placement validation
+- Dead-zone identification
 - 2.4 GHz vs 5 GHz comparison
-- Educational RF experiments
-- Heatmap visualization research
+- Educational RF analysis
+- Wireless experimentation
+- Home network optimization
 
 ---
 
-# Current Challenges
+# Planned Improvements
 
-The project intentionally explores several difficult aspects of Wi‑Fi surveying:
+Future development may include:
 
-- Inconsistent scans
-- Missing AP detections
-- Temporal RSSI variation
-- Dual-band ambiguity
-- Spatial interpolation accuracy
-- Windows WLAN limitations
-
-These are active development areas.
-
----
-
-# Future Ideas
-
-## Real-Time Heatmap Preview
-Live updating heatmaps while taking measurements.
-
-## Internal Map Editor
-Ability to create floorplans directly inside the application.
-
-## Confidence Visualization
-Visual representation of scan reliability.
-
-## AP Tracking
-Visualize individual access points separately.
-
-## Advanced RF Metrics
-Potential future support for:
-
-- Noise estimation
-- SNR visualization
-- Stability metrics
-- Variance maps
+- Confidence scoring per measurement
+- Median/variance-based aggregation
+- Advanced RF statistics
+- Enhanced AP visualization
+- Internal floorplan editor
+- Improved interpolation controls
+- Scan diagnostics tools
+- Additional live analytics
 
 ---
 
-# Contributing
+# Project Philosophy
 
-Contributions, ideas, and RF experimentation feedback are welcome.
+Most professional Wi‑Fi survey tools are:
 
-This project is heavily experimentation-driven and practical feedback from real environments is extremely valuable.
+- Expensive
+- Closed-source
+- Difficult to customize
 
----
+This project explores how far a transparent Python-based solution can go while remaining understandable and adaptable.
 
-# License
-
-This project is currently private / experimental.
-
-Add your preferred license here if the repository becomes public.
+The goal is not just generating pretty heatmaps, but understanding the underlying RF behavior and scan reliability challenges.
 
 ---
 
@@ -283,4 +282,4 @@ Add your preferred license here if the repository becomes public.
 
 Davide Marchi
 
-Developed as a practical and experimental Wi‑Fi heatmapping project focused on real-world environments and RF behavior analysis.
+Experimental Wi‑Fi heatmapping and RF visualization project focused on real-world environments and practical wireless analysis.
