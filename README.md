@@ -195,7 +195,7 @@ pip install -r requirements.txt
 # Running the Application
 
 ```bash
-python main.py
+python wifi_heatmap.py
 ```
 
 ---
