@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 import tkinter as tk
+from tkinter import font as tkfont
 from tkinter import filedialog, messagebox, simpledialog
 from datetime import datetime
 
@@ -102,6 +103,7 @@ class WifiHeatmapApp:
         self.live_tooltip_point = None
         self.live_zoom_level = 1.0
         self.live_scale_payload = None
+        self.points_table_resize_after_id = None
 
         self.status_var = tk.StringVar(value=self.tr("active_survey", name=self.session_display_name()))
         self.csv_var = tk.StringVar(value=self.session_display_name())
@@ -437,6 +439,7 @@ class WifiHeatmapApp:
             self.points_table_group.configure(text=self.tr("detected_points"))
             self.points_table.heading("best", text=self.tr("best_dbm"))
             self.points_table.heading("rows", text=self.tr("rows"))
+            self.schedule_points_table_resize()
             self.focus_point_button.configure(text=self.tr("go_to_point"))
             self.delete_selected_button.configure(text=self.tr("delete_selected"))
             self.delete_last_button.configure(text=self.tr("delete_last"))
@@ -1100,6 +1103,7 @@ class WifiHeatmapApp:
         table_frame.pack(fill=tk.X)
 
         columns = ("index", "x", "y", "best", "ssid", "rows")
+        self.points_table_columns = columns
         self.points_table = ttk.Treeview(
             table_frame,
             columns=columns,
@@ -1127,7 +1131,14 @@ class WifiHeatmapApp:
 
         for column in columns:
             self.points_table.heading(column, text=headings[column])
-            self.points_table.column(column, width=widths[column], anchor="center")
+            anchor = "w" if column == "ssid" else "center"
+            self.points_table.column(
+                column,
+                width=widths[column],
+                minwidth=widths[column],
+                anchor=anchor,
+                stretch=(column == "ssid")
+            )
 
         self.points_table.tag_configure("odd", background="#f7f9fb")
         self.points_table.tag_configure("even", background="#ffffff")
@@ -1149,6 +1160,79 @@ class WifiHeatmapApp:
         table_frame.grid_columnconfigure(0, weight=1)
         self.points_table.bind("<<TreeviewSelect>>", self.on_point_table_select)
         self.points_table.bind("<Double-1>", lambda _event: self.focus_selected_point())
+        table_frame.bind("<Configure>", self.schedule_points_table_resize)
+        self.points_table.bind("<Configure>", self.schedule_points_table_resize, add="+")
+
+    def get_treeview_font(self, style_name):
+        font_name = ttk.Style().lookup(style_name, "font")
+        if font_name:
+            try:
+                return tkfont.nametofont(font_name)
+            except tk.TclError:
+                return tkfont.Font(font=font_name)
+
+        return tkfont.nametofont("TkDefaultFont")
+
+    def schedule_points_table_resize(self, _event=None):
+        if not hasattr(self, "points_table"):
+            return
+
+        if self.points_table_resize_after_id is not None:
+            self.root.after_cancel(self.points_table_resize_after_id)
+
+        self.points_table_resize_after_id = self.root.after(50, self.adjust_points_table_columns)
+
+    def adjust_points_table_columns(self):
+        self.points_table_resize_after_id = None
+
+        if not hasattr(self, "points_table") or not self.points_table.winfo_exists():
+            return
+
+        body_font = self.get_treeview_font("Treeview")
+        heading_font = self.get_treeview_font("Treeview.Heading")
+        min_widths = {
+            "index": 42,
+            "x": 54,
+            "y": 54,
+            "best": 82,
+            "ssid": 180,
+            "rows": 58
+        }
+        max_fixed_widths = {
+            "index": 58,
+            "x": 78,
+            "y": 78,
+            "best": 100,
+            "rows": 76
+        }
+        columns = getattr(self, "points_table_columns", ("index", "x", "y", "best", "ssid", "rows"))
+        measured = {}
+
+        for column in columns:
+            heading = self.points_table.heading(column).get("text", "")
+            measured[column] = max(min_widths[column], heading_font.measure(str(heading)) + 26)
+
+        for item in self.points_table.get_children():
+            values = self.points_table.item(item, "values")
+            for column, value in zip(columns, values):
+                padding = 36 if column == "ssid" else 24
+                measured[column] = max(measured[column], body_font.measure(str(value)) + padding)
+
+        fixed_widths = {
+            column: min(measured[column], max_fixed_widths[column])
+            for column in columns
+            if column != "ssid"
+        }
+        available_width = max(0, self.points_table.winfo_width() - 8)
+        fixed_total = sum(fixed_widths.values())
+        ssid_width = max(min_widths["ssid"], available_width - fixed_total)
+        ssid_width = max(ssid_width, min(measured["ssid"], available_width - fixed_total))
+
+        for column in columns:
+            if column == "ssid":
+                self.points_table.column(column, width=max(min_widths["ssid"], ssid_width), minwidth=120, stretch=True)
+            else:
+                self.points_table.column(column, width=fixed_widths[column], minwidth=min_widths[column], stretch=False)
 
     def load_plan(self):
         file_path = filedialog.askopenfilename(
@@ -1697,6 +1781,8 @@ class WifiHeatmapApp:
                 ),
                 tags=(row_tag,)
             )
+
+        self.schedule_points_table_resize()
 
     def focus_selected_point(self):
         selected_items = self.points_table.selection()
