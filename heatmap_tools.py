@@ -127,6 +127,16 @@ def get_ap_group_key(bssid):
     parts = str(bssid or "").lower().split(":")
 
     if len(parts) == 6:
+        last_prefix = parts[5][:1] or parts[5]
+        return f"{':'.join(parts[1:5])}:{last_prefix}*"
+
+    return str(bssid or "").lower()
+
+
+def get_ap_group_legacy_key(bssid):
+    parts = str(bssid or "").lower().split(":")
+
+    if len(parts) == 6:
         return ":".join(parts[1:5])
 
     return str(bssid or "").lower()
@@ -136,7 +146,8 @@ def get_ap_group_display_key(bssid):
     parts = str(bssid or "").lower().split(":")
 
     if len(parts) == 6:
-        return ":".join(parts[:5])
+        last_prefix = parts[5][:1] or parts[5]
+        return f"{':'.join(parts[:5])}:{last_prefix}*"
 
     return str(bssid or "").lower()
 

@@ -37,6 +37,7 @@ from heatmap_tools import (
     get_interference_data_quality,
     get_ap_group_key,
     get_ap_group_display_key,
+    get_ap_group_legacy_key,
     interpolate_signal_grid,
     smooth_heatmap_grid,
 )
@@ -922,11 +923,13 @@ class WifiHeatmapApp:
             group = groups.setdefault(group_key, {
                 "ap_group": group_key,
                 "display_groups": set(),
+                "legacy_groups": set(),
                 "bssids": set(),
                 "ssids": set(),
                 "channels": set(),
             })
             group["display_groups"].add(get_ap_group_display_key(bssid))
+            group["legacy_groups"].add(get_ap_group_legacy_key(bssid))
             group["bssids"].add(bssid)
             if row.get("ssid"):
                 group["ssids"].add(row["ssid"])
@@ -938,6 +941,7 @@ class WifiHeatmapApp:
             result.append({
                 "ap_group": group["ap_group"],
                 "display_groups": sorted(group["display_groups"]),
+                "legacy_groups": sorted(group["legacy_groups"]),
                 "bssids": sorted(group["bssids"]),
                 "ssids": sorted(group["ssids"]),
                 "channels": sorted(group["channels"], key=self.channel_sort_key),
@@ -946,17 +950,28 @@ class WifiHeatmapApp:
         return sorted(result, key=lambda item: " ".join(item["display_groups"]))
 
     def migrate_aliases_to_current_ap_groups(self, groups, aliases):
+        obsolete_alias_keys = set()
+        current_group_keys = {group["ap_group"] for group in groups}
+
         for group in groups:
             group_key = group["ap_group"]
             if group_key in aliases:
                 continue
 
-            for legacy_group_key in group.get("display_groups", []):
+            legacy_candidates = [
+                *group.get("display_groups", []),
+                *group.get("legacy_groups", []),
+            ]
+            for legacy_group_key in legacy_candidates:
                 legacy_alias = aliases.get(legacy_group_key)
                 if legacy_alias:
                     aliases[group_key] = legacy_alias
-                    aliases.pop(legacy_group_key, None)
+                    if legacy_group_key not in current_group_keys:
+                        obsolete_alias_keys.add(legacy_group_key)
                     break
+
+        for alias_key in obsolete_alias_keys:
+            aliases.pop(alias_key, None)
 
     def adjust_alias_table_columns(self, tree, columns):
         self.alias_table_resize_after_id = None
