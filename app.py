@@ -2151,7 +2151,7 @@ class WifiHeatmapApp:
             return
 
         quality = self.point_quality_by_item.get(item_id)
-        if not quality:
+        if not quality or not self.should_show_quality_tooltip(quality):
             self.hide_point_tooltip()
             return
 
@@ -2164,6 +2164,17 @@ class WifiHeatmapApp:
         self.tooltip_window.wm_overrideredirect(True)
         self.build_structured_tooltip(self.tooltip_window, self.build_quality_tooltip(quality))
         self.position_tooltip_window(self.tooltip_window, event)
+
+    def should_show_quality_tooltip(self, quality):
+        breakdown = quality.get("breakdown", [])
+        if len(breakdown) > 1:
+            return True
+
+        if not breakdown:
+            return False
+
+        item = breakdown[0]
+        return item.get("status") in {QUALITY_LOW_CONFIDENCE, QUALITY_UNSTABLE_SIGNAL}
 
     def build_quality_tooltip(self, quality):
         rows = [(self.tr("quality"), self.format_point_quality(quality.get("status")))]
