@@ -61,6 +61,7 @@ from mouse_icons import create_shortcut_icon
 from quality_engine import (
     QUALITY_GOOD,
     QUALITY_LOW_CONFIDENCE,
+    QUALITY_MISSING_RELEVANT,
     QUALITY_SPARSE_DATA,
     QUALITY_UNSTABLE_SIGNAL,
     evaluate_point_quality,
@@ -2105,7 +2106,11 @@ class WifiHeatmapApp:
             self.points_table.delete(item)
 
         point_summaries = self.session.get_point_summaries()
-        quality_by_point_id = evaluate_point_quality(self.session.rows, self.session.raw_scan_rows)
+        quality_by_point_id = evaluate_point_quality(
+            self.session.rows,
+            self.session.raw_scan_rows,
+            relevant_ssids=self.relevant_ssids
+        )
         total_points = len(point_summaries)
 
         for index, point in enumerate(reversed(point_summaries), start=1):
@@ -2134,6 +2139,7 @@ class WifiHeatmapApp:
     def format_point_quality(self, status):
         return {
             QUALITY_GOOD: self.tr("quality_good"),
+            QUALITY_MISSING_RELEVANT: self.tr("quality_missing_relevant"),
             QUALITY_LOW_CONFIDENCE: self.tr("quality_low_confidence"),
             QUALITY_UNSTABLE_SIGNAL: self.tr("quality_unstable_signal"),
             QUALITY_SPARSE_DATA: self.tr("quality_sparse_data"),
