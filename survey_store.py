@@ -249,7 +249,10 @@ def validate_survey_file(csv_file):
         raise SurveyFormatError("raw_scan_file")
 
     metadata = read_survey_metadata(csv_file)
-    if metadata.get("app") != APP_ID:
+    if (
+        metadata.get("app") != APP_ID
+        or metadata.get("schema_version") != SURVEY_SCHEMA_VERSION
+    ):
         raise SurveyFormatError("invalid_survey_format")
 
     header = read_csv_header(csv_file)

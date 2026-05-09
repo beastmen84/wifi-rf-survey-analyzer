@@ -1,4 +1,3 @@
-CSV_PREFIX = "wifi_survey"
 APP_ID = "wifi_heatmap"
 SURVEY_SCHEMA_VERSION = "2"
 RAW_DATA_FILE_METADATA_KEY = "raw_data_file"
