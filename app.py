@@ -21,9 +21,11 @@ import matplotlib.pyplot as plt
 from ap_groups import (
     build_detected_ap_groups,
     build_dominant_ap_group_labels as build_ap_group_labels,
+    build_default_manual_groups,
     format_ap_label as format_ap_group_label,
     format_short_bssid,
     get_ap_group_key,
+    merge_new_bssids_into_manual_groups,
 )
 from constants import (
     HEATMAP_GRID_SIZE,
@@ -772,16 +774,43 @@ class WifiHeatmapApp:
         self.status_var.set(self.tr("theme_applied", theme=theme_name))
 
     def open_ap_alias_dialog(self):
-        dialog = self.create_modal_dialog(self.tr("ap_aliases_title"))
+        dialog = self.create_modal_dialog(self.tr("ap_groups_title"))
         dialog.geometry("1560x780")
         dialog.minsize(1320, 700)
 
         frame = ttk.Frame(dialog, padding=12)
         frame.pack(fill=tk.BOTH, expand=True)
-        ttk.Label(frame, text=self.tr("ap_aliases_hint"), wraplength=1460, style="ReadableMuted.TLabel").pack(anchor="w", pady=(0, 10))
+        ttk.Label(frame, text=self.tr("ap_groups_hint"), wraplength=1460, style="ReadableMuted.TLabel").pack(anchor="w", pady=(0, 10))
 
-        groups = self.get_detected_ap_groups()
+        detected_groups = self.get_detected_ap_groups()
         aliases = self.session.get_ap_aliases()
+        saved_groups = self.session.get_ap_groups()
+        groups = (
+            merge_new_bssids_into_manual_groups(saved_groups, self.session.rows)
+            if saved_groups
+            else build_default_manual_groups(self.session.rows)
+        )
+        detected_by_bssid = {
+            bssid: detected_group
+            for detected_group in detected_groups
+            for bssid in detected_group["bssids"]
+        }
+
+        for group in groups:
+            group["alias"] = group.get("alias") or aliases.get(group["group_id"], "")
+            seen_ssids = set()
+            seen_channels = set()
+            display_groups = set()
+            for bssid in group.get("bssids", []):
+                detected_group = detected_by_bssid.get(bssid)
+                if not detected_group:
+                    continue
+                seen_ssids.update(detected_group["ssids"])
+                seen_channels.update(detected_group["channels"])
+                display_groups.update(detected_group["display_groups"])
+            group["ssids"] = sorted(seen_ssids)
+            group["channels"] = sorted(seen_channels, key=self.channel_sort_key)
+            group["display_groups"] = sorted(display_groups) or [group["group_id"]]
 
         if not groups:
             ttk.Label(frame, text=self.tr("ap_aliases_empty"), bootstyle=WARNING).pack(anchor="w")
@@ -796,7 +825,7 @@ class WifiHeatmapApp:
         search_entry = ttk.Entry(search_frame, textvariable=search_var, width=42)
         search_entry.pack(side=tk.LEFT, padx=(8, 0), fill=tk.X, expand=True)
 
-        columns = ("status", "group", "alias", "bssids", "ssids", "channels")
+        columns = ("status", "group", "alias", "bssids", "ssids", "channels", "locked")
         table_frame = ttk.Frame(frame)
         table_frame.pack(fill=tk.BOTH, expand=True)
         tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=16)
@@ -806,6 +835,7 @@ class WifiHeatmapApp:
         tree.column("bssids", width=430, minwidth=260, anchor="w", stretch=True)
         tree.column("ssids", width=340, minwidth=220, anchor="w", stretch=True)
         tree.column("channels", width=120, minwidth=90, anchor="center", stretch=False)
+        tree.column("locked", width=110, minwidth=90, anchor="center", stretch=False)
         tree.tag_configure("aliased", background="#e9f7ef")
         scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=tree.yview)
         tree.configure(yscrollcommand=scrollbar.set)
@@ -818,23 +848,24 @@ class WifiHeatmapApp:
         sort_state = {"column": "ssids", "reverse": False}
 
         def get_group_display_values(group):
-            alias = aliases.get(group["ap_group"], "")
+            alias = group.get("alias", "")
             return (
-                "✓" if alias else "",
+                "OK" if alias else "",
                 ", ".join(group["display_groups"]),
                 alias,
                 ", ".join(group["bssids"]),
                 ", ".join(group["ssids"]),
                 ", ".join(group["channels"]),
+                self.tr("yes") if group.get("locked") else self.tr("no"),
             )
 
         def group_matches_search(group, query):
             if not query:
                 return True
 
-            alias = aliases.get(group["ap_group"], "")
+            alias = group.get("alias", "")
             haystack = " ".join([
-                group["ap_group"],
+                group["group_id"],
                 " ".join(group["display_groups"]),
                 alias,
                 " ".join(group["bssids"]),
@@ -844,7 +875,7 @@ class WifiHeatmapApp:
             return query.lower() in haystack
 
         def sort_value(group, column):
-            alias = aliases.get(group["ap_group"], "")
+            alias = group.get("alias", "")
             if column == "status":
                 return 0 if alias else 1
             if column == "alias":
@@ -855,6 +886,8 @@ class WifiHeatmapApp:
                 return " ".join(group["ssids"]).lower()
             if column == "channels":
                 return [self.channel_sort_key(channel) for channel in group["channels"]]
+            if column == "locked":
+                return 0 if group.get("locked") else 1
             return " ".join(group["display_groups"]).lower()
 
         def render_alias_rows():
@@ -871,12 +904,11 @@ class WifiHeatmapApp:
             )
             tree.delete(*tree.get_children())
             for group in visible_groups:
-                alias = aliases.get(group["ap_group"], "")
                 tree.insert(
                     "",
                     tk.END,
-                    iid=group["ap_group"],
-                    tags=("aliased",) if alias else (),
+                    iid=group["group_id"],
+                    tags=("aliased",) if group.get("alias") else (),
                     values=get_group_display_values(group)
                 )
 
@@ -897,6 +929,7 @@ class WifiHeatmapApp:
         tree.heading("bssids", text=self.tr("ap_alias_bssids"), command=lambda: sort_by_column("bssids"))
         tree.heading("ssids", text=self.tr("ap_alias_ssids"), command=lambda: sort_by_column("ssids"))
         tree.heading("channels", text=self.tr("ap_alias_channels"), command=lambda: sort_by_column("channels"))
+        tree.heading("locked", text=self.tr("ap_group_locked"), command=lambda: sort_by_column("locked"))
         search_entry.bind("<KeyRelease>", lambda _event: render_alias_rows())
 
         def schedule_alias_table_resize(_event=None):
@@ -910,14 +943,16 @@ class WifiHeatmapApp:
 
         def set_alias(group_key, value):
             value = value.strip()
-            if value:
-                aliases[group_key] = value
-            else:
-                aliases.pop(group_key, None)
+            for group in groups:
+                if group["group_id"] == group_key:
+                    group["alias"] = value
+                    group["locked"] = True
+                    break
 
             current_values = list(tree.item(group_key, "values"))
-            current_values[0] = "✓" if value else ""
+            current_values[0] = "OK" if value else ""
             current_values[2] = value
+            current_values[6] = self.tr("yes")
             tree.item(group_key, values=current_values)
             tree.item(group_key, tags=("aliased",) if value else ())
 
@@ -949,7 +984,8 @@ class WifiHeatmapApp:
 
             x, y, width, height = bbox
             entry = ttk.Entry(tree)
-            entry.insert(0, aliases.get(group_key, ""))
+            group = next((item for item in groups if item["group_id"] == group_key), {})
+            entry.insert(0, group.get("alias", ""))
             entry.place(x=x, y=max(0, y - 1), width=width, height=height + 6)
             entry.focus_set()
             entry.select_range(0, tk.END)
@@ -961,12 +997,18 @@ class WifiHeatmapApp:
 
         def save_aliases():
             close_alias_editor(True)
+            aliases = {
+                group["group_id"]: group.get("alias", "")
+                for group in groups
+                if group.get("alias", "").strip()
+            }
             aliases_changed = self.session.set_ap_aliases(aliases)
-            if aliases_changed:
+            groups_changed = self.session.set_ap_groups(groups)
+            if aliases_changed or groups_changed:
                 self.session.dirty = True
             self.refresh_session_labels()
             self.schedule_live_update(force=True)
-            self.status_var.set(self.tr("ap_alias_saved"))
+            self.status_var.set(self.tr("ap_groups_saved"))
             dialog.destroy()
 
         tree.bind("<Double-1>", begin_alias_edit)
@@ -998,7 +1040,8 @@ class WifiHeatmapApp:
             "alias": 180,
             "bssids": 260,
             "ssids": 220,
-            "channels": 92
+            "channels": 92,
+            "locked": 90,
         }
         max_widths = {
             "status": 46,
@@ -1006,7 +1049,8 @@ class WifiHeatmapApp:
             "alias": 360,
             "bssids": 620,
             "ssids": 440,
-            "channels": 140
+            "channels": 140,
+            "locked": 120,
         }
         measured = {}
 
@@ -1019,7 +1063,7 @@ class WifiHeatmapApp:
             for column, value in zip(columns, values):
                 measured[column] = max(measured[column], body_font.measure(str(value)) + 34)
 
-        fixed_columns = ("status", "channels")
+        fixed_columns = ("status", "channels", "locked")
         flexible_columns = ("group", "alias", "bssids", "ssids")
         widths = {
             column: min(max(measured[column], min_widths[column]), max_widths[column])

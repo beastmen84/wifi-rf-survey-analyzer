@@ -12,6 +12,7 @@ from constants import (
     SURVEY_FIELDNAMES,
     SURVEY_SCHEMA_VERSION,
 )
+from ap_groups import AP_GROUPS_METADATA_KEY
 
 
 class SurveyFormatError(ValueError):
@@ -180,6 +181,41 @@ class SurveySession:
         serialized_aliases = json.dumps(clean_aliases, ensure_ascii=False, sort_keys=True)
         changed = self.metadata.get("ap_aliases") != serialized_aliases
         self.update_metadata({"ap_aliases": serialized_aliases})
+        return changed
+
+    def get_ap_groups(self):
+        try:
+            groups = json.loads(self.metadata.get(AP_GROUPS_METADATA_KEY, "[]"))
+        except json.JSONDecodeError:
+            groups = []
+
+        return groups if isinstance(groups, list) else []
+
+    def set_ap_groups(self, groups):
+        clean_groups = []
+        for group in groups:
+            if not isinstance(group, dict):
+                continue
+
+            group_id = str(group.get("group_id", "")).strip()
+            bssids = [
+                str(bssid).strip().lower()
+                for bssid in group.get("bssids", [])
+                if str(bssid).strip()
+            ]
+            if not group_id or not bssids:
+                continue
+
+            clean_groups.append({
+                "group_id": group_id,
+                "alias": str(group.get("alias", "")).strip(),
+                "bssids": sorted(set(bssids)),
+                "locked": bool(group.get("locked", False)),
+            })
+
+        serialized_groups = json.dumps(clean_groups, ensure_ascii=False, sort_keys=True)
+        changed = self.metadata.get(AP_GROUPS_METADATA_KEY) != serialized_groups
+        self.update_metadata({AP_GROUPS_METADATA_KEY: serialized_groups})
         return changed
 
     def to_dataframe(self):
