@@ -2603,16 +2603,16 @@ class WifiHeatmapApp:
         if not items:
             return
 
-        title_font = tkfont.Font(family="Segoe UI", size=10, weight="bold")
-        body_font = tkfont.Font(family="Segoe UI", size=9)
-        highlight_font = tkfont.Font(family="Segoe UI", size=9, weight="bold")
-        marker_size = 12
-        row_height = 23
-        padding_x = 12
-        padding_y = 10
-        title_height = 24
-        column_gap = 20
-        marker_gap = 8
+        title_font = tkfont.Font(family="Segoe UI", size=11, weight="bold")
+        body_font = tkfont.Font(family="Segoe UI", size=10)
+        highlight_font = tkfont.Font(family="Segoe UI", size=10, weight="bold")
+        marker_size = 14
+        row_height = 29
+        padding_x = 16
+        padding_y = 14
+        title_height = 38
+        column_gap = 24
+        marker_gap = 10
         visible_left = self.live_canvas.canvasx(0)
         visible_top = self.live_canvas.canvasy(0)
         visible_width = max(1, self.live_canvas.winfo_width())
@@ -2659,6 +2659,15 @@ class WifiHeatmapApp:
             font=title_font,
             tags=("live_overlay_legend",)
         )
+        self.live_canvas.create_line(
+            x0 + padding_x,
+            y0 + padding_y + title_height - 12,
+            x1 - padding_x,
+            y0 + padding_y + title_height - 12,
+            fill="#d7dde3",
+            width=1,
+            tags=("live_overlay_legend",)
+        )
 
         column_x = x0 + padding_x
         start_y = y0 + padding_y + title_height
@@ -2668,7 +2677,7 @@ class WifiHeatmapApp:
                 color = item.get("color", "#7f8c8d")
                 label = str(item.get("label", ""))
                 is_highlighted = label and label == self.live_hover_legend_label
-                marker_y = y + 4
+                marker_y = y + 5
                 row_x0 = column_x - 4
                 row_y0 = y - 2
                 row_x1 = column_x + column_widths[column_index] + 4
@@ -3027,7 +3036,11 @@ class WifiHeatmapApp:
     def format_ap_label(self, bssid, ap_group=None):
         aliases = self.session.get_ap_aliases()
         group_key = ap_group or get_ap_group_key(bssid)
-        alias = aliases.get(group_key)
+        alias = (
+            aliases.get(group_key)
+            or aliases.get(get_ap_group_display_key(bssid))
+            or aliases.get(get_ap_group_legacy_key(bssid))
+        )
         short_bssid = self.format_short_bssid(bssid)
 
         if alias:
