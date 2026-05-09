@@ -2610,7 +2610,7 @@ class WifiHeatmapApp:
         row_height = 29
         padding_x = 16
         padding_y = 14
-        title_height = 38
+        title_height = 46
         column_gap = 24
         marker_gap = 10
         visible_left = self.live_canvas.canvasx(0)
@@ -2661,9 +2661,9 @@ class WifiHeatmapApp:
         )
         self.live_canvas.create_line(
             x0 + padding_x,
-            y0 + padding_y + title_height - 12,
+            y0 + padding_y + title_height - 16,
             x1 - padding_x,
-            y0 + padding_y + title_height - 12,
+            y0 + padding_y + title_height - 16,
             fill="#d7dde3",
             width=1,
             tags=("live_overlay_legend",)
