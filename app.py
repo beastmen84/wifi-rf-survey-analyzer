@@ -348,6 +348,13 @@ class WifiHeatmapApp:
         style = ttk.Style()
         colors = style.colors
         is_dark_theme = str(style.theme_use()).lower() in DARK_THEMES
+        self.is_dark_theme = is_dark_theme
+        self.readable_text_color = "#d7dde3" if is_dark_theme else "#2f3640"
+        self.readable_muted_color = "#d7dde3" if is_dark_theme else "#495057"
+        self.live_overlay_bg = "#2f3640" if is_dark_theme else "#ffffff"
+        self.live_overlay_border = "#d7dde3" if is_dark_theme else "#2c3e50"
+        self.live_overlay_highlight = "#415161" if is_dark_theme else "#e8f4ff"
+        self.live_overlay_separator = "#6c757d" if is_dark_theme else "#d7dde3"
         muted_foreground = "#d7dde3" if is_dark_theme else "#495057"
         style.configure(
             "Main.TNotebook",
@@ -2658,10 +2665,10 @@ class WifiHeatmapApp:
 
         for column_items in columns:
             text_width = max(
-                body_font.measure(str(item.get("label", "")))
+                highlight_font.measure(str(item.get("label", "")))
                 for item in column_items
             )
-            column_widths.append(marker_size + marker_gap + text_width)
+            column_widths.append(marker_size + marker_gap + text_width + 10)
 
         title_width = title_font.measure(str(payload.get("title", "")))
         content_width = sum(column_widths) + column_gap * max(0, len(columns) - 1)
@@ -2679,8 +2686,8 @@ class WifiHeatmapApp:
             y0,
             x1,
             y1,
-            fill="#ffffff",
-            outline="#2c3e50",
+            fill=getattr(self, "live_overlay_bg", "#ffffff"),
+            outline=getattr(self, "live_overlay_border", "#2c3e50"),
             width=1,
             tags=("live_overlay_legend",)
         )
@@ -2689,7 +2696,7 @@ class WifiHeatmapApp:
             y0 + padding_y,
             text=payload.get("title", ""),
             anchor="nw",
-            fill="#2c3e50",
+            fill=getattr(self, "readable_text_color", "#2c3e50"),
             font=title_font,
             tags=("live_overlay_legend",)
         )
@@ -2698,7 +2705,7 @@ class WifiHeatmapApp:
             y0 + padding_y + title_height - 16,
             x1 - padding_x,
             y0 + padding_y + title_height - 16,
-            fill="#d7dde3",
+            fill=getattr(self, "live_overlay_separator", "#d7dde3"),
             width=1,
             tags=("live_overlay_legend",)
         )
@@ -2722,7 +2729,7 @@ class WifiHeatmapApp:
                         row_y0,
                         row_x1,
                         row_y1,
-                        fill="#e8f4ff",
+                        fill=getattr(self, "live_overlay_highlight", "#e8f4ff"),
                         outline="#3498db",
                         width=1,
                         tags=("live_overlay_legend",)
@@ -2745,7 +2752,7 @@ class WifiHeatmapApp:
                         column_x + marker_size,
                         marker_y + marker_size,
                         fill=color,
-                        outline="#2f3640",
+                        outline=getattr(self, "readable_text_color", "#2f3640"),
                         width=2 if is_highlighted else 1,
                         tags=("live_overlay_legend",)
                     )
@@ -2754,7 +2761,7 @@ class WifiHeatmapApp:
                     y,
                     text=label,
                     anchor="nw",
-                    fill="#2f3640",
+                    fill=getattr(self, "readable_text_color", "#2f3640"),
                     font=highlight_font if is_highlighted else body_font,
                     tags=("live_overlay_legend",)
                 )
@@ -2959,7 +2966,7 @@ class WifiHeatmapApp:
                 bar_y + bar_height + 18,
                 text=text,
                 anchor=anchor,
-                fill="#2f3640",
+                fill=getattr(self, "readable_text_color", "#2f3640"),
                 font=("Segoe UI", 8)
             )
 
@@ -2997,7 +3004,7 @@ class WifiHeatmapApp:
                         y + 6,
                         text=f"+{remaining}",
                         anchor="w",
-                        fill="#2f3640",
+                        fill=getattr(self, "readable_text_color", "#2f3640"),
                         font=("Segoe UI", 8)
                     )
                     break
@@ -3007,7 +3014,7 @@ class WifiHeatmapApp:
             if item.get("outline_only"):
                 self.live_scale_canvas.create_oval(x, y, x + marker_size, y + marker_size, fill="", outline=color, width=2)
             else:
-                self.live_scale_canvas.create_oval(x, y, x + marker_size, y + marker_size, fill=color, outline="#2f3640", width=1)
+                self.live_scale_canvas.create_oval(x, y, x + marker_size, y + marker_size, fill=color, outline=getattr(self, "readable_text_color", "#2f3640"), width=1)
 
             label_x = x + marker_size + marker_to_text_gap
             self.live_scale_canvas.create_text(
@@ -3015,7 +3022,7 @@ class WifiHeatmapApp:
                 y + 6,
                 text=label,
                 anchor="w",
-                fill="#2f3640",
+                fill=getattr(self, "readable_text_color", "#2f3640"),
                 font=("Segoe UI", 8)
             )
             x += item_width
