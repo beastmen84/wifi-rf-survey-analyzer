@@ -2478,7 +2478,7 @@ class WifiHeatmapApp:
                 legend_items.append({
                     "label": label,
                     "color": point.get("color", "#7f8c8d"),
-                    "sort_key": point.get("legend_sort_key", (99, label.lower()))
+                    "sort_key": point.get("legend_sort_key", (99, label.lower())) + (label.casefold(),)
                 })
         legend_items.sort(key=lambda item: item.get("sort_key", (99, item.get("label", "").lower())))
         self.live_scale_payload = {

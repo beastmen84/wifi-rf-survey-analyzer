@@ -43,6 +43,7 @@ CHANNEL_SEQUENCE_5 = [
     149, 153, 157, 161,
     165, 169, 173, 177
 ]
+CHANNEL_COLOR_SEQUENCE = CHANNEL_SEQUENCE_24 + CHANNEL_SEQUENCE_5
 
 
 def get_indexed_color(value, palette=CATEGORICAL_PALETTE):
@@ -60,13 +61,8 @@ def get_channel_color(channel, band):
     except (TypeError, ValueError):
         return "#7f8c8d"
 
-    if band == "2.4":
-        if channel_number in CHANNEL_SEQUENCE_24:
-            return CATEGORICAL_PALETTE[CHANNEL_SEQUENCE_24.index(channel_number) % len(CATEGORICAL_PALETTE)]
-        return get_indexed_color(channel_number)
-
-    if channel_number in CHANNEL_SEQUENCE_5:
-        return CATEGORICAL_PALETTE[CHANNEL_SEQUENCE_5.index(channel_number) % len(CATEGORICAL_PALETTE)]
+    if channel_number in CHANNEL_COLOR_SEQUENCE:
+        return CATEGORICAL_PALETTE[CHANNEL_COLOR_SEQUENCE.index(channel_number) % len(CATEGORICAL_PALETTE)]
 
     return get_indexed_color(channel_number)
 
@@ -167,7 +163,13 @@ def get_channel_sort_key(channel, band):
     except (TypeError, ValueError):
         return (99, str(channel))
 
-    sequence = CHANNEL_SEQUENCE_24 if band == "2.4" else CHANNEL_SEQUENCE_5
+    if band == "2.4":
+        sequence = CHANNEL_SEQUENCE_24
+    elif band == "5":
+        sequence = CHANNEL_SEQUENCE_5
+    else:
+        sequence = CHANNEL_COLOR_SEQUENCE
+
     if channel_number in sequence:
         return (0, sequence.index(channel_number))
 
