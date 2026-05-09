@@ -57,6 +57,13 @@ from map_rendering import (
     get_limited_bssid_color_map,
 )
 from mouse_icons import create_shortcut_icon
+from quality_engine import (
+    QUALITY_GOOD,
+    QUALITY_LOW_CONFIDENCE,
+    QUALITY_SPARSE_DATA,
+    QUALITY_UNSTABLE_SIGNAL,
+    evaluate_point_quality,
+)
 from survey_store import (
     format_point_id,
     SurveySession,
@@ -464,6 +471,7 @@ class WifiHeatmapApp:
             self.legend_group.configure(text=self.tr("points_legend"))
             self.points_table_group.configure(text=self.tr("detected_points"))
             self.points_table.heading("best", text=self.tr("best_dbm"))
+            self.points_table.heading("quality", text=self.tr("quality"))
             self.points_table.heading("rows", text=self.tr("rows"))
             self.schedule_points_table_resize()
             self.focus_point_button.configure(text=self.tr("go_to_point"))
@@ -1275,7 +1283,7 @@ class WifiHeatmapApp:
         table_frame = ttk.Frame(self.points_table_group, padding=6)
         table_frame.pack(fill=tk.X)
 
-        columns = ("index", "x", "y", "best", "ssid", "rows")
+        columns = ("index", "x", "y", "best", "quality", "ssid", "rows")
         self.points_table_columns = columns
         self.points_table = ttk.Treeview(
             table_frame,
@@ -1290,6 +1298,7 @@ class WifiHeatmapApp:
             "x": "X",
             "y": "Y",
             "best": self.tr("best_dbm"),
+            "quality": self.tr("quality"),
             "ssid": "SSID",
             "rows": self.tr("rows")
         }
@@ -1298,6 +1307,7 @@ class WifiHeatmapApp:
             "x": 70,
             "y": 70,
             "best": 80,
+            "quality": 92,
             "ssid": 260,
             "rows": 60
         }
@@ -1368,6 +1378,7 @@ class WifiHeatmapApp:
             "x": 60,
             "y": 60,
             "best": 96,
+            "quality": 90,
             "ssid": 180,
             "rows": 58
         }
@@ -1376,9 +1387,10 @@ class WifiHeatmapApp:
             "x": 84,
             "y": 84,
             "best": 122,
+            "quality": 124,
             "rows": 76
         }
-        columns = getattr(self, "points_table_columns", ("index", "x", "y", "best", "ssid", "rows"))
+        columns = getattr(self, "points_table_columns", ("index", "x", "y", "best", "quality", "ssid", "rows"))
         measured = {}
 
         for column in columns:
@@ -1945,11 +1957,13 @@ class WifiHeatmapApp:
             self.points_table.delete(item)
 
         point_summaries = self.session.get_point_summaries()
+        quality_by_point_id = evaluate_point_quality(self.session.rows, self.session.raw_scan_rows)
         total_points = len(point_summaries)
 
         for index, point in enumerate(reversed(point_summaries), start=1):
             survey_number = total_points - index + 1
             item_id = format_point_id(point["timestamp"], point["x"], point["y"])
+            quality = quality_by_point_id.get(point.get("point_id", ""), {})
             row_tag = "even" if index % 2 == 0 else "odd"
             self.points_table.insert(
                 "",
@@ -1960,6 +1974,7 @@ class WifiHeatmapApp:
                     point["x"],
                     point["y"],
                     f"{point['best_signal_dbm']:.1f}",
+                    self.format_point_quality(quality.get("status")),
                     ", ".join(point["ssids"]),
                     point["row_count"]
                 ),
@@ -1967,6 +1982,14 @@ class WifiHeatmapApp:
             )
 
         self.schedule_points_table_resize()
+
+    def format_point_quality(self, status):
+        return {
+            QUALITY_GOOD: self.tr("quality_good"),
+            QUALITY_LOW_CONFIDENCE: self.tr("quality_low_confidence"),
+            QUALITY_UNSTABLE_SIGNAL: self.tr("quality_unstable_signal"),
+            QUALITY_SPARSE_DATA: self.tr("quality_sparse_data"),
+        }.get(status, "-")
 
     def focus_selected_point(self):
         selected_items = self.points_table.selection()

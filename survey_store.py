@@ -340,6 +340,7 @@ def get_survey_points_from_rows(rows):
         key = (timestamp, x, y)
         if key not in points or signal_dbm > points[key]["signal_dbm"]:
             points[key] = {
+                "point_id": row.get("point_id", ""),
                 "timestamp": timestamp,
                 "x": x,
                 "y": y,
@@ -372,6 +373,7 @@ def get_survey_point_summaries_from_rows(rows):
         point = points.setdefault(
             key,
             {
+                "point_id": row.get("point_id", ""),
                 "timestamp": timestamp,
                 "x": x,
                 "y": y,
