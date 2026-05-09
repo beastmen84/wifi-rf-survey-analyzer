@@ -5,7 +5,13 @@ from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
-from constants import RAW_SCAN_FIELDNAMES, SURVEY_FIELDNAMES
+from constants import (
+    APP_ID,
+    RAW_DATA_FILE_METADATA_KEY,
+    RAW_SCAN_FIELDNAMES,
+    SURVEY_FIELDNAMES,
+    SURVEY_SCHEMA_VERSION,
+)
 
 
 class SurveyFormatError(ValueError):
@@ -15,10 +21,7 @@ class SurveyFormatError(ValueError):
 class SurveySession:
     def __init__(self, csv_file=None):
         self.csv_file = csv_file
-        self.metadata = {
-            "app": "wifi_heatmap",
-            "created_at": datetime.now().isoformat(timespec="seconds")
-        }
+        self.metadata = build_default_metadata()
         self.rows = []
         self.raw_scan_rows = []
         self.dirty = False
@@ -191,19 +194,34 @@ class SurveySession:
         if not self.csv_file:
             raise ValueError("Percorso CSV non impostato")
 
-        self.metadata["raw_data_file"] = os.path.basename(build_raw_scan_file_path(self.csv_file))
+        self.metadata.update({
+            "app": APP_ID,
+            "schema_version": SURVEY_SCHEMA_VERSION,
+        })
+        self.metadata[RAW_DATA_FILE_METADATA_KEY] = os.path.basename(
+            build_raw_scan_file_path(self.csv_file, self.metadata)
+        )
         write_survey_file(self.csv_file, self.metadata, self.rows)
-        write_raw_scan_file(self.csv_file, self.raw_scan_rows)
+        write_raw_scan_file(self.csv_file, self.raw_scan_rows, self.metadata)
         self.dirty = False
         return self.csv_file
 
 
 def initialize_survey_file(csv_file):
+    metadata = build_default_metadata(csv_file)
+    write_survey_file(csv_file, metadata, [])
+
+
+def build_default_metadata(csv_file=None):
     metadata = {
-        "app": "wifi_heatmap",
+        "app": APP_ID,
+        "schema_version": SURVEY_SCHEMA_VERSION,
         "created_at": datetime.now().isoformat(timespec="seconds")
     }
-    write_survey_file(csv_file, metadata, [])
+    if csv_file:
+        metadata[RAW_DATA_FILE_METADATA_KEY] = build_default_raw_data_filename(csv_file)
+
+    return metadata
 
 
 def build_new_point_id():
@@ -211,30 +229,40 @@ def build_new_point_id():
     return f"p_{timestamp}_{uuid4().hex[:8]}"
 
 
-def build_raw_scan_file_path(csv_file):
+def build_default_raw_data_filename(csv_file):
     path = Path(csv_file)
-    raw_data_file = read_survey_metadata(csv_file).get("raw_data_file") if os.path.exists(csv_file) else ""
+    return f"{path.stem}_raw_data.scan"
+
+
+def build_raw_scan_file_path(csv_file, metadata=None):
+    path = Path(csv_file)
+    metadata = metadata if metadata is not None else read_survey_metadata(csv_file)
+    raw_data_file = metadata.get(RAW_DATA_FILE_METADATA_KEY, "")
     if raw_data_file:
         return str(path.with_name(raw_data_file))
 
-    return str(path.with_name(f"{path.stem}_raw_data.scan"))
+    return str(path.with_name(build_default_raw_data_filename(csv_file)))
 
 
 def is_raw_scan_file(csv_file):
     path = Path(csv_file)
-    return path.name.endswith("_raw_data.scan") or path.stem.endswith("_raw_scans")
+    return path.name.endswith("_raw_data.scan")
 
 
 def validate_survey_file(csv_file):
     if is_raw_scan_file(csv_file):
         raise SurveyFormatError("raw_scan_file")
 
+    metadata = read_survey_metadata(csv_file)
+    if metadata.get("app") != APP_ID:
+        raise SurveyFormatError("invalid_survey_format")
+
     header = read_csv_header(csv_file)
     missing_fields = [field for field in SURVEY_FIELDNAMES if field not in header]
     if missing_fields:
         raise SurveyFormatError("invalid_survey_format")
 
-    raw_scan_file = build_raw_scan_file_path(csv_file)
+    raw_scan_file = build_raw_scan_file_path(csv_file, metadata)
     if os.path.exists(raw_scan_file):
         raw_header = read_csv_header(raw_scan_file)
         missing_raw_fields = [field for field in RAW_SCAN_FIELDNAMES if field not in raw_header]
@@ -295,7 +323,8 @@ def read_survey_rows(csv_file):
 
 
 def read_raw_scan_rows(csv_file):
-    raw_scan_file = build_raw_scan_file_path(csv_file)
+    metadata = read_survey_metadata(csv_file)
+    raw_scan_file = build_raw_scan_file_path(csv_file, metadata)
     if not os.path.exists(raw_scan_file):
         return []
 
@@ -314,8 +343,8 @@ def write_survey_file(csv_file, metadata, rows):
         writer.writerows(rows)
 
 
-def write_raw_scan_file(csv_file, rows):
-    raw_scan_file = build_raw_scan_file_path(csv_file)
+def write_raw_scan_file(csv_file, rows, metadata=None):
+    raw_scan_file = build_raw_scan_file_path(csv_file, metadata)
     with open(raw_scan_file, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=RAW_SCAN_FIELDNAMES, extrasaction="ignore")
         writer.writeheader()
