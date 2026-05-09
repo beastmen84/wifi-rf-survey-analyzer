@@ -53,6 +53,7 @@ from map_rendering import (
     build_dominant_ap_legend_handles,
     build_interference_legend_handles,
     get_channel_color,
+    get_channel_sort_key,
     get_limited_bssid_color_map,
 )
 from mouse_icons import create_shortcut_icon
@@ -2463,6 +2464,7 @@ class WifiHeatmapApp:
                 "outline": "black",
                 "outline_width": 1,
                 "legend_label": self.format_live_channel_legend_label(row),
+                "legend_sort_key": get_channel_sort_key(row["channel"], config.band),
                 "tooltip": self.format_live_channel_tooltip(row, config)
             }
             for _index, row in channel_df.iterrows()
@@ -2473,7 +2475,12 @@ class WifiHeatmapApp:
         for point in self.live_point_infos:
             label = point.get("legend_label", "")
             if label and label not in [item["label"] for item in legend_items]:
-                legend_items.append({"label": label, "color": point.get("color", "#7f8c8d")})
+                legend_items.append({
+                    "label": label,
+                    "color": point.get("color", "#7f8c8d"),
+                    "sort_key": point.get("legend_sort_key", (99, label.lower()))
+                })
+        legend_items.sort(key=lambda item: item.get("sort_key", (99, item.get("label", "").lower())))
         self.live_scale_payload = {
             "kind": "swatches",
             "title": self.tr("map_type_channel"),
@@ -2504,6 +2511,7 @@ class WifiHeatmapApp:
             label = point.get("legend_label", "")
             if label and label not in [item["label"] for item in legend_items]:
                 legend_items.append({"label": label, "color": point.get("color", "#7f8c8d")})
+        legend_items.sort(key=lambda item: item.get("label", "").casefold())
         if any(point.get("outline") == "#f1c40f" for point in self.live_point_infos):
             legend_items.append({"label": self.tr("dominant_map_roaming_overlap"), "color": "#f1c40f", "outline_only": True})
         self.live_scale_payload = {
