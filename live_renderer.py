@@ -10,13 +10,13 @@ import pandas as pd
 from PIL import Image
 
 from constants import HEATMAP_GRID_SIZE
+from ap_groups import get_ap_group_key
 from heatmap_tools import (
     apply_distance_mask,
     apply_signal_threshold,
     calculate_interference_points,
     collapse_heatmap_points,
     filter_by_band,
-    get_ap_group_key,
     get_distance_alpha,
     interpolate_signal_grid,
     smooth_heatmap_grid,

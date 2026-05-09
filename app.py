@@ -18,6 +18,13 @@ import matplotlib
 matplotlib.use("Agg", force=True)
 import matplotlib.pyplot as plt
 
+from ap_groups import (
+    build_detected_ap_groups,
+    build_dominant_ap_group_labels as build_ap_group_labels,
+    format_ap_label as format_ap_group_label,
+    format_short_bssid,
+    get_ap_group_key,
+)
 from constants import (
     HEATMAP_GRID_SIZE,
     HEATMAP_SMOOTHING_SIGMA,
@@ -36,8 +43,6 @@ from heatmap_tools import (
     get_distance_alpha,
     get_dominant_ap_points,
     get_interference_data_quality,
-    get_ap_group_key,
-    get_ap_group_display_key,
     interpolate_signal_grid,
     smooth_heatmap_grid,
 )
@@ -977,39 +982,7 @@ class WifiHeatmapApp:
         self.center_dialog(dialog)
 
     def get_detected_ap_groups(self):
-        groups = {}
-
-        for row in self.session.rows:
-            bssid = row.get("bssid", "")
-            if not bssid:
-                continue
-
-            group_key = get_ap_group_key(bssid)
-            group = groups.setdefault(group_key, {
-                "ap_group": group_key,
-                "display_groups": set(),
-                "bssids": set(),
-                "ssids": set(),
-                "channels": set(),
-            })
-            group["display_groups"].add(get_ap_group_display_key(bssid))
-            group["bssids"].add(bssid)
-            if row.get("ssid"):
-                group["ssids"].add(row["ssid"])
-            if row.get("channel"):
-                group["channels"].add(str(row["channel"]))
-
-        result = []
-        for group in groups.values():
-            result.append({
-                "ap_group": group["ap_group"],
-                "display_groups": sorted(group["display_groups"]),
-                "bssids": sorted(group["bssids"]),
-                "ssids": sorted(group["ssids"]),
-                "channels": sorted(group["channels"], key=self.channel_sort_key),
-            })
-
-        return sorted(result, key=lambda item: " ".join(item["display_groups"]))
+        return build_detected_ap_groups(self.session.rows, self.channel_sort_key)
 
     def adjust_alias_table_columns(self, tree, columns):
         self.alias_table_resize_after_id = None
@@ -3313,59 +3286,13 @@ class WifiHeatmapApp:
         return f"{text[:13]}..."
 
     def format_short_bssid(self, bssid):
-        if not bssid:
-            return "-"
-
-        parts = str(bssid).split(":")
-        if len(parts) >= 3:
-            return ":".join(parts[-3:])
-
-        return str(bssid)
+        return format_short_bssid(bssid)
 
     def format_ap_label(self, bssid, ap_group=None):
-        aliases = self.session.get_ap_aliases()
-        group_key = ap_group or get_ap_group_key(bssid)
-        alias = (
-            aliases.get(group_key)
-            or aliases.get(get_ap_group_display_key(bssid))
-        )
-        short_bssid = self.format_short_bssid(bssid)
-
-        if alias:
-            return f"{alias} ({short_bssid})"
-
-        return short_bssid
+        return format_ap_group_label(bssid, self.session.get_ap_aliases(), ap_group)
 
     def build_dominant_ap_group_labels(self, dominant_df):
-        labels = {}
-        if dominant_df.empty or "dominant_ap_group" not in dominant_df.columns:
-            return labels
-
-        aliases = self.session.get_ap_aliases()
-        for ap_group, group_df in dominant_df.groupby("dominant_ap_group", dropna=False):
-            bssids = [
-                str(bssid)
-                for bssid in group_df.get("dominant_bssid", pd.Series(dtype=str)).dropna().unique()
-                if str(bssid)
-            ]
-            if not bssids:
-                labels[ap_group] = str(ap_group or "-")
-                continue
-
-            alias = (
-                aliases.get(ap_group)
-                or aliases.get(get_ap_group_display_key(bssids[0]))
-            )
-            short_bssids = sorted({self.format_short_bssid(bssid) for bssid in bssids})
-
-            if alias:
-                labels[ap_group] = f"{alias} ({', '.join(short_bssids)})"
-            elif len(short_bssids) == 1:
-                labels[ap_group] = self.format_ap_label(bssids[0], ap_group)
-            else:
-                labels[ap_group] = ", ".join(short_bssids)
-
-        return labels
+        return build_ap_group_labels(dominant_df, self.session.get_ap_aliases())
 
     def format_live_signal_tooltip(self, row, config, raw_rows):
         signal = self.format_report_value(row.get("signal_dbm", ""), suffix=" dBm")

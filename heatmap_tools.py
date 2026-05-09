@@ -3,6 +3,7 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 from scipy.interpolate import RBFInterpolator, griddata
 
+from ap_groups import get_ap_group_key
 from i18n import translate
 
 
@@ -121,26 +122,6 @@ def get_dominant_ap_points(df, ssid, band):
         })
 
     return pd.DataFrame(dominant_rows).sort_values("timestamp") if dominant_rows else pd.DataFrame()
-
-
-def get_ap_group_key(bssid):
-    parts = str(bssid or "").lower().split(":")
-
-    if len(parts) == 6:
-        last_prefix = parts[5][:1] or parts[5]
-        return f"{':'.join(parts[1:5])}:{last_prefix}*"
-
-    return str(bssid or "").lower()
-
-
-def get_ap_group_display_key(bssid):
-    parts = str(bssid or "").lower().split(":")
-
-    if len(parts) == 6:
-        last_prefix = parts[5][:1] or parts[5]
-        return f"{':'.join(parts[:5])}:{last_prefix}*"
-
-    return str(bssid or "").lower()
 
 
 def calculate_interference_points(df, ssid, band, mode="intra_ssid", include_details=False):
