@@ -103,6 +103,7 @@ class WifiHeatmapApp:
         self.live_image_transform = None
         self.live_tooltip_window = None
         self.live_tooltip_point = None
+        self.live_hover_legend_label = None
         self.live_zoom_level = 1.0
         self.live_scale_payload = None
         self.points_table_resize_after_id = None
@@ -2415,7 +2416,7 @@ class WifiHeatmapApp:
                 "y": float(row["y"]),
                 "color": get_channel_color(row["channel"], config.band),
                 "outline": "black",
-                "legend_label": f"CH {self.format_report_value(row.get('channel', ''))}",
+                "legend_label": self.format_live_channel_legend_label(row),
                 "tooltip": self.format_live_channel_tooltip(row, config)
             }
             for _index, row in channel_df.iterrows()
@@ -2587,6 +2588,11 @@ class WifiHeatmapApp:
                 width=point.get("outline_width", max(2, int(2 * self.live_zoom_level)))
             )
 
+    def format_live_channel_legend_label(self, row):
+        channel = self.format_report_value(row.get("channel", ""))
+        ap_label = self.format_ap_label(row.get("bssid", ""))
+        return f"CH {channel} - {ap_label}"
+
     def draw_live_overlay_legend(self):
         self.live_canvas.delete("live_overlay_legend")
         payload = self.live_scale_payload
@@ -2597,15 +2603,16 @@ class WifiHeatmapApp:
         if not items:
             return
 
-        title_font = tkfont.Font(family="Segoe UI", size=9, weight="bold")
-        body_font = tkfont.Font(family="Segoe UI", size=8)
-        marker_size = 10
-        row_height = 19
-        padding_x = 10
-        padding_y = 8
-        title_height = 18
-        column_gap = 18
-        marker_gap = 7
+        title_font = tkfont.Font(family="Segoe UI", size=10, weight="bold")
+        body_font = tkfont.Font(family="Segoe UI", size=9)
+        highlight_font = tkfont.Font(family="Segoe UI", size=9, weight="bold")
+        marker_size = 12
+        row_height = 23
+        padding_x = 12
+        padding_y = 10
+        title_height = 24
+        column_gap = 20
+        marker_gap = 8
         visible_left = self.live_canvas.canvasx(0)
         visible_top = self.live_canvas.canvasy(0)
         visible_width = max(1, self.live_canvas.winfo_width())
@@ -2659,7 +2666,24 @@ class WifiHeatmapApp:
             y = start_y
             for item in column_items:
                 color = item.get("color", "#7f8c8d")
-                marker_y = y + 3
+                label = str(item.get("label", ""))
+                is_highlighted = label and label == self.live_hover_legend_label
+                marker_y = y + 4
+                row_x0 = column_x - 4
+                row_y0 = y - 2
+                row_x1 = column_x + column_widths[column_index] + 4
+                row_y1 = y + row_height - 2
+                if is_highlighted:
+                    self.live_canvas.create_rectangle(
+                        row_x0,
+                        row_y0,
+                        row_x1,
+                        row_y1,
+                        fill="#e8f4ff",
+                        outline="#3498db",
+                        width=1,
+                        tags=("live_overlay_legend",)
+                    )
                 if item.get("outline_only"):
                     self.live_canvas.create_oval(
                         column_x,
@@ -2668,7 +2692,7 @@ class WifiHeatmapApp:
                         marker_y + marker_size,
                         fill="",
                         outline=color,
-                        width=2,
+                        width=3 if is_highlighted else 2,
                         tags=("live_overlay_legend",)
                     )
                 else:
@@ -2679,16 +2703,16 @@ class WifiHeatmapApp:
                         marker_y + marker_size,
                         fill=color,
                         outline="#2f3640",
-                        width=1,
+                        width=2 if is_highlighted else 1,
                         tags=("live_overlay_legend",)
                     )
                 self.live_canvas.create_text(
                     column_x + marker_size + marker_gap,
                     y,
-                    text=str(item.get("label", "")),
+                    text=label,
                     anchor="nw",
                     fill="#2f3640",
-                    font=body_font,
+                    font=highlight_font if is_highlighted else body_font,
                     tags=("live_overlay_legend",)
                 )
                 y += row_height
@@ -2709,6 +2733,7 @@ class WifiHeatmapApp:
             return
 
         self.show_live_tooltip(event, point)
+        self.highlight_live_legend_item(point.get("legend_label"))
 
     def find_live_point_at(self, canvas_x, canvas_y):
         if not self.live_image_transform:
@@ -2742,6 +2767,14 @@ class WifiHeatmapApp:
             self.live_tooltip_window.destroy()
             self.live_tooltip_window = None
         self.live_tooltip_point = None
+        self.highlight_live_legend_item(None)
+
+    def highlight_live_legend_item(self, legend_label):
+        if self.live_hover_legend_label == legend_label:
+            return
+
+        self.live_hover_legend_label = legend_label
+        self.draw_live_overlay_legend()
 
     def build_structured_tooltip(self, parent, tooltip):
         if isinstance(tooltip, str):
