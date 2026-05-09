@@ -1615,7 +1615,7 @@ class WifiHeatmapApp:
             self.update_last_scan_panel(scanned_networks, [], x, y, ssid_filter)
             return
 
-        timestamp = self.session.add_points(x, y, networks)
+        timestamp = self.session.add_points(x, y, networks, raw_networks=scanned_networks)
 
         best_signal = max(net["signal_dbm"] for net in networks)
         marker_id = self.create_point_marker(x, y, best_signal)

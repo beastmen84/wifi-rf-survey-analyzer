@@ -1,9 +1,12 @@
 import csv
+import hashlib
 import json
 import os
 from datetime import datetime
+from pathlib import Path
+from uuid import uuid4
 
-from constants import SURVEY_FIELDNAMES
+from constants import RAW_SCAN_FIELDNAMES, SURVEY_FIELDNAMES
 
 
 class SurveySession:
@@ -14,11 +17,13 @@ class SurveySession:
             "created_at": datetime.now().isoformat(timespec="seconds")
         }
         self.rows = []
+        self.raw_scan_rows = []
         self.dirty = False
 
         if csv_file and os.path.exists(csv_file):
             self.metadata.update(read_survey_metadata(csv_file))
             self.rows = read_survey_rows(csv_file)
+            self.raw_scan_rows = read_raw_scan_rows(csv_file)
             self.migrate_loaded_data()
 
     @property
@@ -52,14 +57,30 @@ class SurveySession:
                     row[field] = ""
                     changed = True
 
+            if not row.get("point_id"):
+                row["point_id"] = build_legacy_point_id(
+                    row.get("timestamp", ""),
+                    row.get("x", ""),
+                    row.get("y", "")
+                )
+                changed = True
+
+        for row in self.raw_scan_rows:
+            for field in RAW_SCAN_FIELDNAMES:
+                if field not in row:
+                    row[field] = ""
+                    changed = True
+
         if changed:
             self.dirty = True
 
-    def add_points(self, x, y, networks):
+    def add_points(self, x, y, networks, raw_networks=None):
         timestamp = datetime.now().isoformat(timespec="seconds")
+        point_id = build_new_point_id()
 
         for net in networks:
             self.rows.append({
+                "point_id": point_id,
                 "timestamp": timestamp,
                 "x": x,
                 "y": y,
@@ -79,12 +100,35 @@ class SurveySession:
                 "radio": net["radio"]
             })
 
+        for net in raw_networks or networks:
+            self.add_raw_scan_rows(point_id, timestamp, x, y, net)
+
         self.dirty = True
         return timestamp
+
+    def add_raw_scan_rows(self, point_id, timestamp, x, y, network):
+        raw_samples = network.get("raw_samples") or []
+        for sample in raw_samples:
+            self.raw_scan_rows.append({
+                "point_id": point_id,
+                "scan_attempt": sample.get("scan_attempt", ""),
+                "timestamp": timestamp,
+                "x": x,
+                "y": y,
+                "ssid": sample.get("ssid", ""),
+                "bssid": sample.get("bssid", ""),
+                "signal_percent": sample.get("signal_percent", ""),
+                "signal_dbm": sample.get("signal_dbm", ""),
+                "channel": sample.get("channel", ""),
+                "channel_width_mhz": sample.get("channel_width_mhz", ""),
+                "radio": sample.get("radio", ""),
+                "backend": sample.get("backend", "")
+            })
 
     def delete_point(self, timestamp, x, y):
         kept_rows = []
         removed_rows = 0
+        removed_point_ids = set()
 
         for row in self.rows:
             try:
@@ -101,12 +145,19 @@ class SurveySession:
             )
 
             if is_same_point:
+                if row.get("point_id"):
+                    removed_point_ids.add(row.get("point_id"))
                 removed_rows += 1
             else:
                 kept_rows.append(row)
 
         if removed_rows:
             self.rows = kept_rows
+            self.raw_scan_rows = [
+                row
+                for row in self.raw_scan_rows
+                if row.get("point_id") not in removed_point_ids
+            ]
             self.dirty = True
 
         return removed_rows
@@ -166,6 +217,7 @@ class SurveySession:
             raise ValueError("Percorso CSV non impostato")
 
         write_survey_file(self.csv_file, self.metadata, self.rows)
+        write_raw_scan_file(self.csv_file, self.raw_scan_rows)
         self.dirty = False
         return self.csv_file
 
@@ -176,6 +228,24 @@ def initialize_survey_file(csv_file):
         "created_at": datetime.now().isoformat(timespec="seconds")
     }
     write_survey_file(csv_file, metadata, [])
+
+
+def build_new_point_id():
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    return f"p_{timestamp}_{uuid4().hex[:8]}"
+
+
+def build_legacy_point_id(timestamp, x, y):
+    source = f"{timestamp}|{x}|{y}"
+    digest = hashlib.sha1(source.encode("utf-8", errors="ignore")).hexdigest()[:12]
+    return f"legacy_{digest}"
+
+
+def build_raw_scan_file_path(csv_file):
+    path = Path(csv_file)
+    return str(path.with_name(f"{path.stem}_raw_scans.csv"))
+
+
 def read_survey_metadata(csv_file):
     metadata = {}
 
@@ -212,14 +282,36 @@ def read_survey_rows(csv_file):
 
     reader = csv.DictReader(data_lines)
     return list(reader)
+
+
+def read_raw_scan_rows(csv_file):
+    raw_scan_file = build_raw_scan_file_path(csv_file)
+    if not os.path.exists(raw_scan_file):
+        return []
+
+    with open(raw_scan_file, "r", newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        return list(reader)
+
+
 def write_survey_file(csv_file, metadata, rows):
     with open(csv_file, "w", newline="", encoding="utf-8") as f:
         for key, value in metadata.items():
             f.write(f"# {key}={value}\n")
 
-        writer = csv.DictWriter(f, fieldnames=SURVEY_FIELDNAMES)
+        writer = csv.DictWriter(f, fieldnames=SURVEY_FIELDNAMES, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
+
+
+def write_raw_scan_file(csv_file, rows):
+    raw_scan_file = build_raw_scan_file_path(csv_file)
+    with open(raw_scan_file, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=RAW_SCAN_FIELDNAMES, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def update_survey_metadata(csv_file, updates):
     metadata = read_survey_metadata(csv_file)
     metadata.update(updates)
@@ -314,6 +406,7 @@ def format_point_id(timestamp, x, y):
 def save_points(csv_file, x, y, networks):
     file_exists = os.path.exists(csv_file)
     timestamp = datetime.now().isoformat(timespec="seconds")
+    point_id = build_new_point_id()
 
     if not file_exists:
         initialize_survey_file(csv_file)
@@ -326,6 +419,7 @@ def save_points(csv_file, x, y, networks):
 
         for net in networks:
             writer.writerow({
+                "point_id": point_id,
                 "timestamp": timestamp,
                 "x": x,
                 "y": y,
@@ -355,6 +449,7 @@ def delete_points_from_csv(csv_file, timestamp, x, y):
 
     kept_rows = []
     removed_rows = 0
+    removed_point_ids = set()
 
     for row in rows:
         try:
@@ -371,10 +466,20 @@ def delete_points_from_csv(csv_file, timestamp, x, y):
         )
 
         if is_same_point:
+            if row.get("point_id"):
+                removed_point_ids.add(row.get("point_id"))
             removed_rows += 1
         else:
             kept_rows.append(row)
 
     write_survey_file(csv_file, metadata, kept_rows)
+
+    if removed_point_ids:
+        raw_rows = [
+            row
+            for row in read_raw_scan_rows(csv_file)
+            if row.get("point_id") not in removed_point_ids
+        ]
+        write_raw_scan_file(csv_file, raw_rows)
 
     return removed_rows

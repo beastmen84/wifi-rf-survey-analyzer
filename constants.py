@@ -7,6 +7,7 @@ WIFI_SCAN_DELAY_SECONDS = 1.5
 MIN_GOOD_SCAN_NETWORKS = 4
 SUSPICIOUS_SCAN_RATIO = 0.5
 SURVEY_FIELDNAMES = [
+    "point_id",
     "timestamp",
     "x",
     "y",
@@ -24,4 +25,20 @@ SURVEY_FIELDNAMES = [
     "channel",
     "channel_width_mhz",
     "radio"
+]
+
+RAW_SCAN_FIELDNAMES = [
+    "point_id",
+    "scan_attempt",
+    "timestamp",
+    "x",
+    "y",
+    "ssid",
+    "bssid",
+    "signal_percent",
+    "signal_dbm",
+    "channel",
+    "channel_width_mhz",
+    "radio",
+    "backend"
 ]

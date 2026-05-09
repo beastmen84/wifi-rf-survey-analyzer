@@ -62,7 +62,7 @@ def scan_wifi_netsh():
                 encoding="utf-8",
                 errors="ignore"
             )
-            scans.extend(parse_netsh_output(result.stdout))
+            scans.extend(annotate_raw_scan_samples(parse_netsh_output(result.stdout), attempt + 1, "netsh"))
 
             if attempt < WIFI_SCAN_ATTEMPTS - 1:
                 time.sleep(WIFI_SCAN_DELAY_SECONDS)
@@ -95,7 +95,7 @@ def scan_wifi_lswifi(show_errors=True):
                     interface,
                     False
                 )
-                scans.extend(parse_lswifi_bss_list(bss_list))
+                scans.extend(annotate_raw_scan_samples(parse_lswifi_bss_list(bss_list), attempt + 1, "lswifi"))
 
         return merge_wifi_scans(scans, WIFI_SCAN_ATTEMPTS * interface_count)
 
@@ -103,6 +103,14 @@ def scan_wifi_lswifi(show_errors=True):
         if show_errors:
             messagebox.showerror("Errore scan Wi-Fi lswifi", str(e))
         return []
+
+
+def annotate_raw_scan_samples(networks, scan_attempt, backend):
+    for network in networks:
+        network["scan_attempt"] = scan_attempt
+        network["backend"] = backend
+
+    return networks
 
 
 def lswifi_value(value, default=""):
@@ -227,7 +235,8 @@ def merge_wifi_scans(networks, samples_total=1):
             "scan_confidence": round(scan_confidence, 3),
             "channel": representative.get("channel", ""),
             "channel_width_mhz": most_common_non_empty(samples, "channel_width_mhz"),
-            "radio": most_common_non_empty(samples, "radio")
+            "radio": most_common_non_empty(samples, "radio"),
+            "raw_samples": samples
         })
 
     return aggregated_networks
