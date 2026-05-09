@@ -39,30 +39,34 @@ def evaluate_single_point(rows, raw_rows, relevant_ssids=None):
 
     relevant_ssids = normalize_ssids(relevant_ssids or get_relevant_ssids_from_rows(rows))
     quality_rows = get_quality_rows(rows, relevant_ssids)
-    missing_relevant = sorted(relevant_ssids - normalize_ssids(row.get("ssid") for row in rows))
+    breakdown = build_quality_breakdown(rows, raw_rows, relevant_ssids)
+    missing_relevant = sorted(
+        item["ssid"]
+        for item in breakdown
+        if item["status"] == QUALITY_MISSING_RELEVANT
+    )
     if missing_relevant:
-        return build_quality_result(QUALITY_MISSING_RELEVANT, missing_relevant=missing_relevant)
+        return build_quality_result(
+            QUALITY_MISSING_RELEVANT,
+            missing_relevant=missing_relevant,
+            breakdown=breakdown
+        )
 
     if not quality_rows:
-        return build_quality_result(QUALITY_SPARSE_DATA)
+        return build_quality_result(QUALITY_SPARSE_DATA, breakdown=breakdown)
 
-    confidence_values = parse_float_values(row.get("scan_confidence") for row in quality_rows)
-    if confidence_values:
-        min_confidence = min(confidence_values)
-        avg_confidence = sum(confidence_values) / len(confidence_values)
-        if min_confidence < 0.25 or avg_confidence < 0.45:
-            return build_quality_result(QUALITY_LOW_CONFIDENCE)
+    if any(item["status"] == QUALITY_LOW_CONFIDENCE for item in breakdown):
+        return build_quality_result(QUALITY_LOW_CONFIDENCE, breakdown=breakdown)
 
-    dominant_ranges = get_unstable_dominant_signal_ranges(quality_rows, raw_rows, relevant_ssids)
-    if dominant_ranges:
-        return build_quality_result(QUALITY_UNSTABLE_SIGNAL)
+    if any(item["status"] == QUALITY_UNSTABLE_SIGNAL for item in breakdown):
+        return build_quality_result(QUALITY_UNSTABLE_SIGNAL, breakdown=breakdown)
 
     raw_sample_count = len(raw_rows)
     aggregate_sample_count = sum(parse_int(row.get("samples_seen"), default=1) for row in quality_rows)
     if raw_sample_count < 3 and aggregate_sample_count < 3:
-        return build_quality_result(QUALITY_SPARSE_DATA)
+        return build_quality_result(QUALITY_SPARSE_DATA, breakdown=breakdown)
 
-    return build_quality_result(QUALITY_GOOD)
+    return build_quality_result(QUALITY_GOOD, breakdown=breakdown)
 
 
 def build_quality_result(status, **details):
@@ -90,6 +94,81 @@ def get_relevant_ssids_from_rows(rows):
     }
 
 
+def build_quality_breakdown(rows, raw_rows, relevant_ssids):
+    if not relevant_ssids:
+        return []
+
+    rows_by_ssid = group_rows_by_ssid(rows)
+    ranges_by_key = get_signal_ranges_by_key(rows, raw_rows, relevant_ssids)
+    breakdown = []
+
+    for ssid in sorted(relevant_ssids):
+        ssid_rows = rows_by_ssid.get(ssid, [])
+        if not ssid_rows:
+            breakdown.append({
+                "ssid": ssid,
+                "status": QUALITY_MISSING_RELEVANT,
+                "message": "missing"
+            })
+            continue
+
+        confidence_values = parse_float_values(row.get("scan_confidence") for row in ssid_rows)
+        min_confidence = min(confidence_values) if confidence_values else None
+        avg_confidence = sum(confidence_values) / len(confidence_values) if confidence_values else None
+        if min_confidence is not None and (min_confidence < 0.25 or avg_confidence < 0.45):
+            breakdown.append({
+                "ssid": ssid,
+                "status": QUALITY_LOW_CONFIDENCE,
+                "message": "low_confidence",
+                "min_confidence": min_confidence,
+                "avg_confidence": avg_confidence
+            })
+            continue
+
+        unstable_range = get_unstable_range_for_ssid(ssid_rows, ranges_by_key)
+        if unstable_range is not None:
+            breakdown.append({
+                "ssid": ssid,
+                "status": QUALITY_UNSTABLE_SIGNAL,
+                "message": "unstable",
+                "range_db": unstable_range
+            })
+            continue
+
+        breakdown.append({
+            "ssid": ssid,
+            "status": QUALITY_GOOD,
+            "message": "good"
+        })
+
+    return breakdown
+
+
+def get_unstable_range_for_ssid(rows, ranges_by_key):
+    scored_rows = [
+        (parse_float(row.get("signal_dbm")), row)
+        for row in rows
+        if parse_float(row.get("signal_dbm")) is not None
+    ]
+    if not scored_rows:
+        return None
+
+    best_signal = max(signal for signal, _row in scored_rows)
+    strong_candidate_keys = {
+        network_key(row)
+        for signal, row in scored_rows
+        if best_signal - signal <= 5
+    }
+    strong_ranges = [
+        ranges_by_key.get(key, 0)
+        for key in strong_candidate_keys
+    ]
+    if strong_ranges and min(strong_ranges) >= 12:
+        return max(strong_ranges)
+
+    return None
+
+
 def get_signal_ranges(rows, raw_rows, relevant_ssids=None):
     raw_ranges = get_raw_signal_ranges(raw_rows, relevant_ssids)
     if raw_ranges:
@@ -110,26 +189,9 @@ def get_unstable_dominant_signal_ranges(rows, raw_rows, relevant_ssids=None):
     unstable_ranges = []
 
     for candidate_rows in group_rows_by_ssid(rows).values():
-        scored_rows = [
-            (parse_float(row.get("signal_dbm")), row)
-            for row in candidate_rows
-            if parse_float(row.get("signal_dbm")) is not None
-        ]
-        if not scored_rows:
-            continue
-
-        best_signal = max(signal for signal, _row in scored_rows)
-        strong_candidate_keys = {
-            network_key(row)
-            for signal, row in scored_rows
-            if best_signal - signal <= 5
-        }
-        strong_ranges = [
-            ranges_by_key.get(key, 0)
-            for key in strong_candidate_keys
-        ]
-        if strong_ranges and min(strong_ranges) >= 12:
-            unstable_ranges.append(max(strong_ranges))
+        unstable_range = get_unstable_range_for_ssid(candidate_rows, ranges_by_key)
+        if unstable_range is not None:
+            unstable_ranges.append(unstable_range)
 
     return unstable_ranges
 

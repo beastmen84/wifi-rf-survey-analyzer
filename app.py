@@ -122,6 +122,7 @@ class WifiHeatmapApp:
         self.live_zoom_level = 1.0
         self.live_scale_payload = None
         self.points_table_resize_after_id = None
+        self.point_quality_by_item = {}
         self.alias_table_resize_after_id = None
 
         self.status_var = tk.StringVar(value=self.tr("active_survey", name=self.session_display_name()))
@@ -1376,6 +1377,8 @@ class WifiHeatmapApp:
         table_frame.grid_columnconfigure(0, weight=1)
         self.points_table.bind("<<TreeviewSelect>>", self.on_point_table_select)
         self.points_table.bind("<Double-1>", lambda _event: self.focus_selected_point())
+        self.points_table.bind("<Motion>", self.on_points_table_motion)
+        self.points_table.bind("<Leave>", lambda _event: self.hide_point_tooltip())
         table_frame.bind("<Configure>", self.schedule_points_table_resize)
         self.points_table.bind("<Configure>", self.schedule_points_table_resize, add="+")
 
@@ -2102,6 +2105,7 @@ class WifiHeatmapApp:
         if not hasattr(self, "points_table"):
             return
 
+        self.point_quality_by_item = {}
         for item in self.points_table.get_children():
             self.points_table.delete(item)
 
@@ -2117,6 +2121,7 @@ class WifiHeatmapApp:
             survey_number = total_points - index + 1
             item_id = format_point_id(point["timestamp"], point["x"], point["y"])
             quality = quality_by_point_id.get(point.get("point_id", ""), {})
+            self.point_quality_by_item[item_id] = quality
             row_tag = "even" if index % 2 == 0 else "odd"
             self.points_table.insert(
                 "",
@@ -2135,6 +2140,57 @@ class WifiHeatmapApp:
             )
 
         self.schedule_points_table_resize()
+
+    def on_points_table_motion(self, event):
+        region = self.points_table.identify_region(event.x, event.y)
+        column_id = self.points_table.identify_column(event.x)
+        item_id = self.points_table.identify_row(event.y)
+
+        if region != "cell" or column_id != "#5" or not item_id:
+            self.hide_point_tooltip()
+            return
+
+        quality = self.point_quality_by_item.get(item_id)
+        if not quality:
+            self.hide_point_tooltip()
+            return
+
+        if getattr(self, "point_quality_tooltip_item", None) == item_id:
+            return
+
+        self.hide_point_tooltip()
+        self.point_quality_tooltip_item = item_id
+        self.tooltip_window = tk.Toplevel(self.root)
+        self.tooltip_window.wm_overrideredirect(True)
+        self.build_structured_tooltip(self.tooltip_window, self.build_quality_tooltip(quality))
+        self.position_tooltip_window(self.tooltip_window, event)
+
+    def build_quality_tooltip(self, quality):
+        rows = [(self.tr("quality"), self.format_point_quality(quality.get("status")))]
+        for item in quality.get("breakdown", []):
+            rows.append((item.get("ssid", "-"), self.format_quality_breakdown_item(item)))
+
+        return {
+            "title": self.tr("quality_breakdown_title"),
+            "accent": "#34495e",
+            "rows": rows
+        }
+
+    def format_quality_breakdown_item(self, item):
+        status = item.get("status")
+        if status == QUALITY_GOOD:
+            return self.tr("quality_good")
+        if status == QUALITY_MISSING_RELEVANT:
+            return self.tr("quality_missing_relevant")
+        if status == QUALITY_LOW_CONFIDENCE:
+            confidence = item.get("min_confidence")
+            suffix = f" ({confidence:.2f})" if isinstance(confidence, float) else ""
+            return f"{self.tr('quality_low_confidence')}{suffix}"
+        if status == QUALITY_UNSTABLE_SIGNAL:
+            range_db = item.get("range_db")
+            suffix = f" ({range_db:.1f} dB)" if isinstance(range_db, float) else ""
+            return f"{self.tr('quality_unstable_signal')}{suffix}"
+        return self.format_point_quality(status)
 
     def format_point_quality(self, status):
         return {
@@ -2274,6 +2330,7 @@ class WifiHeatmapApp:
         if self.tooltip_window is not None:
             self.tooltip_window.destroy()
             self.tooltip_window = None
+        self.point_quality_tooltip_item = None
 
     def create_point_marker(self, x, y, signal_dbm):
         sx = x * self.zoom_level
