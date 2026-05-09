@@ -191,6 +191,7 @@ class SurveySession:
         if not self.csv_file:
             raise ValueError("Percorso CSV non impostato")
 
+        self.metadata["raw_data_file"] = os.path.basename(build_raw_scan_file_path(self.csv_file))
         write_survey_file(self.csv_file, self.metadata, self.rows)
         write_raw_scan_file(self.csv_file, self.raw_scan_rows)
         self.dirty = False
@@ -212,11 +213,16 @@ def build_new_point_id():
 
 def build_raw_scan_file_path(csv_file):
     path = Path(csv_file)
-    return str(path.with_name(f"{path.stem}_raw_scans.csv"))
+    raw_data_file = read_survey_metadata(csv_file).get("raw_data_file") if os.path.exists(csv_file) else ""
+    if raw_data_file:
+        return str(path.with_name(raw_data_file))
+
+    return str(path.with_name(f"{path.stem}_raw_data.scan"))
 
 
 def is_raw_scan_file(csv_file):
-    return Path(csv_file).stem.endswith("_raw_scans")
+    path = Path(csv_file)
+    return path.name.endswith("_raw_data.scan") or path.stem.endswith("_raw_scans")
 
 
 def validate_survey_file(csv_file):
