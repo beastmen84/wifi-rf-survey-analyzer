@@ -667,6 +667,7 @@ class WifiHeatmapApp:
         self.live_canvas.bind("<ButtonRelease-1>", self.end_live_map_drag)
         self.live_canvas.bind("<Control-MouseWheel>", self.on_live_ctrl_mousewheel)
 
+        self.live_scale_parent = parent
         self.live_scale_frame = ttk.Frame(parent, padding=(8, 4, 8, 4))
         self.live_scale_frame.pack(side=tk.BOTTOM, fill=tk.X)
         self.live_scale_title_var = tk.StringVar(value="")
@@ -2502,6 +2503,7 @@ class WifiHeatmapApp:
             self.live_canvas.xview_moveto(0)
             self.live_canvas.yview_moveto(0)
         self.draw_live_point_markers()
+        self.draw_live_overlay_legend()
         if update_scale:
             self.update_live_scale_bar()
 
@@ -2534,6 +2536,7 @@ class WifiHeatmapApp:
 
     def drag_live_map(self, event):
         self.live_canvas.scan_dragto(event.x, event.y, gain=1)
+        self.draw_live_overlay_legend()
 
     def end_live_map_drag(self, _event):
         self.live_canvas.config(cursor="")
@@ -2583,6 +2586,114 @@ class WifiHeatmapApp:
                 outline=point.get("outline", "white"),
                 width=point.get("outline_width", max(2, int(2 * self.live_zoom_level)))
             )
+
+    def draw_live_overlay_legend(self):
+        self.live_canvas.delete("live_overlay_legend")
+        payload = self.live_scale_payload
+        if not payload or payload.get("kind") != "swatches":
+            return
+
+        items = payload.get("items", [])
+        if not items:
+            return
+
+        title_font = tkfont.Font(family="Segoe UI", size=9, weight="bold")
+        body_font = tkfont.Font(family="Segoe UI", size=8)
+        marker_size = 10
+        row_height = 19
+        padding_x = 10
+        padding_y = 8
+        title_height = 18
+        column_gap = 18
+        marker_gap = 7
+        visible_left = self.live_canvas.canvasx(0)
+        visible_top = self.live_canvas.canvasy(0)
+        visible_width = max(1, self.live_canvas.winfo_width())
+        visible_height = max(1, self.live_canvas.winfo_height())
+        max_box_height = max(80, visible_height - 28)
+        max_rows = max(1, int((max_box_height - title_height - padding_y * 2) / row_height))
+        columns = [items[index:index + max_rows] for index in range(0, len(items), max_rows)]
+        column_widths = []
+
+        for column_items in columns:
+            text_width = max(
+                body_font.measure(str(item.get("label", "")))
+                for item in column_items
+            )
+            column_widths.append(marker_size + marker_gap + text_width)
+
+        title_width = title_font.measure(str(payload.get("title", "")))
+        content_width = sum(column_widths) + column_gap * max(0, len(columns) - 1)
+        box_width = max(title_width, content_width) + padding_x * 2
+        box_height = title_height + padding_y * 2 + row_height * min(max_rows, len(items))
+        right = visible_left + visible_width - 12
+        bottom = visible_top + visible_height - 12
+        x0 = max(visible_left + 8, right - box_width)
+        y0 = max(visible_top + 8, bottom - box_height)
+        x1 = x0 + box_width
+        y1 = y0 + box_height
+
+        self.live_canvas.create_rectangle(
+            x0,
+            y0,
+            x1,
+            y1,
+            fill="#ffffff",
+            outline="#2c3e50",
+            width=1,
+            tags=("live_overlay_legend",)
+        )
+        self.live_canvas.create_text(
+            x0 + padding_x,
+            y0 + padding_y,
+            text=payload.get("title", ""),
+            anchor="nw",
+            fill="#2c3e50",
+            font=title_font,
+            tags=("live_overlay_legend",)
+        )
+
+        column_x = x0 + padding_x
+        start_y = y0 + padding_y + title_height
+        for column_index, column_items in enumerate(columns):
+            y = start_y
+            for item in column_items:
+                color = item.get("color", "#7f8c8d")
+                marker_y = y + 3
+                if item.get("outline_only"):
+                    self.live_canvas.create_oval(
+                        column_x,
+                        marker_y,
+                        column_x + marker_size,
+                        marker_y + marker_size,
+                        fill="",
+                        outline=color,
+                        width=2,
+                        tags=("live_overlay_legend",)
+                    )
+                else:
+                    self.live_canvas.create_oval(
+                        column_x,
+                        marker_y,
+                        column_x + marker_size,
+                        marker_y + marker_size,
+                        fill=color,
+                        outline="#2f3640",
+                        width=1,
+                        tags=("live_overlay_legend",)
+                    )
+                self.live_canvas.create_text(
+                    column_x + marker_size + marker_gap,
+                    y,
+                    text=str(item.get("label", "")),
+                    anchor="nw",
+                    fill="#2f3640",
+                    font=body_font,
+                    tags=("live_overlay_legend",)
+                )
+                y += row_height
+
+            column_x += column_widths[column_index] + column_gap
 
     def on_live_canvas_motion(self, event):
         point = self.find_live_point_at(
@@ -2696,13 +2807,27 @@ class WifiHeatmapApp:
             return
 
         payload = self.live_scale_payload
-        if not payload:
+        if not payload or payload.get("kind") != "gradient":
+            self.set_live_scale_frame_visible(False)
             self.live_scale_title_var.set("")
             self.live_scale_canvas.delete("all")
             return
 
+        self.set_live_scale_frame_visible(True)
         self.live_scale_title_var.set(payload.get("title", ""))
         self.redraw_live_scale_bar()
+
+    def set_live_scale_frame_visible(self, visible):
+        if visible:
+            if not self.live_scale_frame.winfo_ismapped():
+                pack_options = {"side": tk.BOTTOM, "fill": tk.X}
+                if hasattr(self, "live_status_label") and self.live_status_label.winfo_ismapped():
+                    pack_options["before"] = self.live_status_label
+                self.live_scale_frame.pack(**pack_options)
+            return
+
+        if self.live_scale_frame.winfo_ismapped():
+            self.live_scale_frame.pack_forget()
 
     def redraw_live_scale_bar(self):
         if not hasattr(self, "live_scale_canvas"):
@@ -2710,13 +2835,11 @@ class WifiHeatmapApp:
 
         payload = self.live_scale_payload
         self.live_scale_canvas.delete("all")
-        if not payload:
+        if not payload or payload.get("kind") != "gradient":
             return
 
         if payload.get("kind") == "gradient":
             self.draw_live_gradient_scale(payload)
-        elif payload.get("kind") == "swatches":
-            self.draw_live_swatch_scale(payload)
 
     def draw_live_gradient_scale(self, payload):
         if int(self.live_scale_canvas.cget("height")) != 52:
