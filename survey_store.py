@@ -74,9 +74,14 @@ class SurveySession:
         if changed:
             self.dirty = True
 
-    def add_points(self, x, y, networks, raw_networks=None):
+    def add_points(self, x, y, networks, raw_networks=None, relevant_ssids=None):
         timestamp = datetime.now().isoformat(timespec="seconds")
         point_id = build_new_point_id()
+        relevant_ssids = {
+            str(ssid).lower()
+            for ssid in (relevant_ssids or [])
+            if str(ssid).strip()
+        }
 
         for net in networks:
             self.rows.append({
@@ -97,7 +102,8 @@ class SurveySession:
                 "scan_confidence": net.get("scan_confidence", ""),
                 "channel": net["channel"],
                 "channel_width_mhz": net.get("channel_width_mhz", ""),
-                "radio": net["radio"]
+                "radio": net["radio"],
+                "is_relevant": "1" if str(net.get("ssid", "")).lower() in relevant_ssids else "0"
             })
 
         for net in raw_networks or networks:
@@ -438,7 +444,8 @@ def save_points(csv_file, x, y, networks):
                 "scan_confidence": net.get("scan_confidence", ""),
                 "channel": net["channel"],
                 "channel_width_mhz": net.get("channel_width_mhz", ""),
-                "radio": net["radio"]
+                "radio": net["radio"],
+                "is_relevant": "0"
             })
 
     return timestamp

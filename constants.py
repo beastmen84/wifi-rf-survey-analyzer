@@ -24,7 +24,8 @@ SURVEY_FIELDNAMES = [
     "scan_confidence",
     "channel",
     "channel_width_mhz",
-    "radio"
+    "radio",
+    "is_relevant",
 ]
 
 RAW_SCAN_FIELDNAMES = [

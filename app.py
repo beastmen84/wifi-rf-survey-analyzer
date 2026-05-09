@@ -1,4 +1,5 @@
 import os
+import json
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 import tkinter as tk
@@ -68,12 +69,14 @@ from survey_store import (
     format_point_id,
     SurveySession,
 )
-from ui_dialogs import ask_capture_ssid_filter, open_existing_survey_file, save_survey_file_as
+from ui_dialogs import open_existing_survey_file, save_survey_file_as
 from utils import sanitize_filename, signal_to_color
 from wifi_scanner import get_connected_ssid, scan_wifi
 
 CAPTURE_FILTER_ALL_TOKEN = "__ALL__"
 CAPTURE_FILTER_METADATA_KEY = "capture_filter"
+RELEVANT_SSIDS_METADATA_KEY = "relevant_ssids"
+KNOWN_SSIDS_METADATA_KEY = "known_ssids"
 AVAILABLE_THEMES = ("flatly", "cosmo", "darkly", "superhero")
 DARK_THEMES = {"darkly", "superhero"}
 
@@ -96,7 +99,8 @@ class WifiHeatmapApp:
         self.zoom_level = 1.0
         self.last_good_scan = []
         self.last_scan_backend_used = "-"
-        self.remembered_capture_filter = self.load_remembered_capture_filter()
+        self.relevant_ssids = self.load_relevant_ssids()
+        self.known_ssids = self.load_known_ssids()
         self.selected_point_id = None
         self.highlight_item_id = None
         self.tooltip_window = None
@@ -317,32 +321,60 @@ class WifiHeatmapApp:
 
         return self.tr("unsaved_survey")
 
-    def load_remembered_capture_filter(self):
-        value = self.session.metadata.get(CAPTURE_FILTER_METADATA_KEY)
-
-        if value == CAPTURE_FILTER_ALL_TOKEN:
-            return ""
-
+    def load_relevant_ssids(self):
+        value = self.session.metadata.get(RELEVANT_SSIDS_METADATA_KEY)
         if value:
-            return value
+            try:
+                ssids = json.loads(value)
+            except json.JSONDecodeError:
+                ssids = []
 
-        return None
+            if isinstance(ssids, list):
+                return {
+                    str(ssid)
+                    for ssid in ssids
+                    if str(ssid).strip()
+                }
+
+        legacy_value = self.session.metadata.get(CAPTURE_FILTER_METADATA_KEY)
+        if legacy_value and legacy_value != CAPTURE_FILTER_ALL_TOKEN:
+            return {legacy_value}
+
+        return set()
+
+    def load_known_ssids(self):
+        value = self.session.metadata.get(KNOWN_SSIDS_METADATA_KEY)
+        if value:
+            try:
+                ssids = json.loads(value)
+            except json.JSONDecodeError:
+                ssids = []
+
+            if isinstance(ssids, list):
+                return {
+                    str(ssid)
+                    for ssid in ssids
+                    if str(ssid).strip()
+                }
+
+        return set(self.relevant_ssids)
+
+    def save_known_ssids(self):
+        serialized = json.dumps(sorted(self.known_ssids), ensure_ascii=False)
+        self.session.update_metadata({KNOWN_SSIDS_METADATA_KEY: serialized})
 
     def update_saved_network_label(self):
-        if self.remembered_capture_filter is None:
-            self.saved_network_var.set(self.tr("saved_network_none"))
+        if not self.relevant_ssids:
+            self.saved_network_var.set(self.tr("relevant_networks_none"))
             if hasattr(self, "forget_saved_network_button"):
-                self.forget_saved_network_button.configure(state=tk.DISABLED, bootstyle=SECONDARY)
+                button_state = tk.NORMAL if self.known_ssids else tk.DISABLED
+                self.forget_saved_network_button.configure(state=button_state, bootstyle=SECONDARY)
             return
 
         if hasattr(self, "forget_saved_network_button"):
             self.forget_saved_network_button.configure(state=tk.NORMAL, bootstyle=DANGER)
 
-        if self.remembered_capture_filter == "":
-            self.saved_network_var.set(self.tr("saved_network_all"))
-            return
-
-        self.saved_network_var.set(self.remembered_capture_filter)
+        self.saved_network_var.set(", ".join(sorted(self.relevant_ssids)))
 
     def refresh_session_labels(self):
         suffix = " *" if self.session.dirty else ""
@@ -1596,11 +1628,19 @@ class WifiHeatmapApp:
         self.create_survey_point(x, y)
 
     def create_survey_point(self, x, y):
-        self.set_busy(True, self.tr("scanning", x=x, y=y))
-        try:
-            networks = self.scan_wifi_with_quality_check(x, y)
-        finally:
-            self.set_busy(False)
+        while True:
+            self.set_busy(True, self.tr("scanning", x=x, y=y))
+            try:
+                networks = self.scan_wifi_with_quality_check(x, y)
+            finally:
+                self.set_busy(False)
+
+            action = self.validate_relevant_networks(networks)
+            if action == "retry":
+                continue
+            if action == "cancel":
+                networks = None
+            break
 
         if networks is None:
             self.update_last_scan_panel([], [], x, y, "annullato")
@@ -1613,21 +1653,13 @@ class WifiHeatmapApp:
 
         self.remember_good_scan(networks)
         scanned_networks = networks
-        ssid_filter = self.get_capture_ssid_filter(networks)
-
-        if ssid_filter is None:
-            self.update_last_scan_panel(scanned_networks, [], x, y, self.tr("cancelled"))
-            return
-
-        if ssid_filter:
-            networks = [n for n in networks if n["ssid"].lower() == ssid_filter.lower()]
-
-        if not networks:
-            messagebox.showwarning(self.tr("warning"), self.tr("no_matching_ssid"))
-            self.update_last_scan_panel(scanned_networks, [], x, y, ssid_filter)
-            return
-
-        timestamp = self.session.add_points(x, y, networks, raw_networks=scanned_networks)
+        timestamp = self.session.add_points(
+            x,
+            y,
+            networks,
+            raw_networks=scanned_networks,
+            relevant_ssids=self.relevant_ssids
+        )
 
         best_signal = max(net["signal_dbm"] for net in networks)
         marker_id = self.create_point_marker(x, y, best_signal)
@@ -1640,79 +1672,207 @@ class WifiHeatmapApp:
         })
         self.refresh_points_state()
         self.refresh_ssid_options()
-        self.update_last_scan_panel(scanned_networks, networks, x, y, ssid_filter)
+        self.update_last_scan_panel(scanned_networks, networks, x, y, self.format_relevant_networks_label())
         self.refresh_session_labels()
         self.schedule_live_update()
         self.status_var.set(self.tr("point_saved", x=x, y=y, count=len(networks)))
 
-    def get_capture_ssid_filter(self, networks):
-        available_ssids = {
-            network["ssid"].lower()
+    def validate_relevant_networks(self, networks):
+        if networks is None:
+            return "cancel"
+
+        detected_ssids = self.get_detected_ssids(networks)
+        if not detected_ssids:
+            return "keep"
+
+        if not self.relevant_ssids:
+            selected = self.ask_relevant_networks(
+                detected_ssids,
+                title=self.tr("relevant_networks_title"),
+                message=self.tr("relevant_networks_first_message"),
+                default_connected=True
+            )
+            if selected is None:
+                return "cancel"
+            self.set_relevant_ssids(selected)
+            self.known_ssids |= detected_ssids
+            self.save_known_ssids()
+            return "keep"
+
+        missing_ssids = sorted(self.relevant_ssids - detected_ssids)
+        if missing_ssids:
+            return self.ask_missing_relevant_networks_action(missing_ssids)
+
+        new_ssids = sorted(detected_ssids - self.known_ssids)
+        if new_ssids:
+            selected = self.ask_relevant_networks(
+                new_ssids,
+                title=self.tr("new_relevant_networks_title"),
+                message=self.tr("new_relevant_networks_message"),
+                default_connected=False
+            )
+            if selected is None:
+                return "cancel"
+            if selected:
+                self.set_relevant_ssids(self.relevant_ssids | selected)
+            self.known_ssids |= detected_ssids
+            self.save_known_ssids()
+
+        return "keep"
+
+    def get_detected_ssids(self, networks):
+        return {
+            str(network.get("ssid", "")).strip()
             for network in networks
-            if network.get("ssid")
+            if str(network.get("ssid", "")).strip()
         }
 
-        if self.remembered_capture_filter is not None:
-            if self.remembered_capture_filter == "":
-                return ""
-
-            if self.remembered_capture_filter.lower() in available_ssids:
-                return self.remembered_capture_filter
-
-            select_another = messagebox.askokcancel(
-                self.tr("remembered_network_missing_title"),
-                self.tr("remembered_network_missing", ssid=self.remembered_capture_filter),
-                parent=self.root
-            )
-
-            if not select_another:
-                return None
-
-        dialog_result = ask_capture_ssid_filter(
-            self.root,
-            networks,
-            connected_ssid=get_connected_ssid(),
-            remembered_choice=self.remembered_capture_filter,
-            language=self.language
-        )
-
-        ssid_filter = dialog_result["value"]
-
-        if ssid_filter is None:
-            return None
-
-        if dialog_result["remember"]:
-            self.remembered_capture_filter = ssid_filter
-            self.save_remembered_capture_filter()
-        else:
-            self.remembered_capture_filter = None
-            self.clear_remembered_capture_filter()
-
-        return ssid_filter
-
-    def save_remembered_capture_filter(self):
-        metadata_value = (
-            CAPTURE_FILTER_ALL_TOKEN
-            if self.remembered_capture_filter == ""
-            else self.remembered_capture_filter
-        )
-        self.session.update_metadata({CAPTURE_FILTER_METADATA_KEY: metadata_value})
+    def set_relevant_ssids(self, ssids):
+        self.relevant_ssids = {
+            str(ssid).strip()
+            for ssid in ssids
+            if str(ssid).strip()
+        }
+        serialized = json.dumps(sorted(self.relevant_ssids), ensure_ascii=False)
+        self.session.update_metadata({RELEVANT_SSIDS_METADATA_KEY: serialized})
+        self.known_ssids |= self.relevant_ssids
+        self.session.metadata.pop(CAPTURE_FILTER_METADATA_KEY, None)
         self.update_saved_network_label()
         self.refresh_session_labels()
 
-    def clear_remembered_capture_filter(self):
-        if CAPTURE_FILTER_METADATA_KEY not in self.session.metadata:
+    def clear_relevant_ssids(self):
+        changed = False
+        if RELEVANT_SSIDS_METADATA_KEY in self.session.metadata:
+            self.session.metadata.pop(RELEVANT_SSIDS_METADATA_KEY, None)
+            changed = True
+        if KNOWN_SSIDS_METADATA_KEY in self.session.metadata:
+            self.session.metadata.pop(KNOWN_SSIDS_METADATA_KEY, None)
+            changed = True
+        if CAPTURE_FILTER_METADATA_KEY in self.session.metadata:
+            self.session.metadata.pop(CAPTURE_FILTER_METADATA_KEY, None)
+            changed = True
+
+        self.relevant_ssids = set()
+        self.known_ssids = set()
+        if not changed:
             self.update_saved_network_label()
             return
 
-        self.session.metadata.pop(CAPTURE_FILTER_METADATA_KEY, None)
         self.session.dirty = True
         self.update_saved_network_label()
         self.refresh_session_labels()
 
     def forget_saved_network(self):
-        self.remembered_capture_filter = None
-        self.clear_remembered_capture_filter()
+        self.clear_relevant_ssids()
+
+    def format_relevant_networks_label(self):
+        if not self.relevant_ssids:
+            return self.tr("relevant_networks_none")
+        return ", ".join(sorted(self.relevant_ssids))
+
+    def ask_relevant_networks(self, ssids, title, message, default_connected=False):
+        dialog = self.create_modal_dialog(title)
+        result = {"value": None}
+
+        frame = ttk.Frame(dialog, padding=18)
+        frame.pack(fill=tk.BOTH, expand=True)
+
+        ttk.Label(
+            frame,
+            text=title,
+            font=("TkDefaultFont", 12, "bold")
+        ).pack(anchor="w")
+        ttk.Label(
+            frame,
+            text=message,
+            wraplength=520,
+            justify=tk.LEFT
+        ).pack(anchor="w", pady=(8, 12))
+
+        connected_ssid = get_connected_ssid() if default_connected else None
+        choices = {}
+        for ssid in sorted(ssids, key=str.casefold):
+            default_value = bool(connected_ssid and ssid.lower() == connected_ssid.lower())
+            var = tk.BooleanVar(value=default_value)
+            choices[ssid] = var
+            label = ssid
+            if default_value:
+                label = self.tr("connected_ssid_option", ssid=ssid)
+            ttk.Checkbutton(frame, text=label, variable=var).pack(anchor="w", pady=1)
+
+        buttons = ttk.Frame(frame)
+        buttons.pack(fill=tk.X, pady=(16, 0))
+
+        def confirm():
+            result["value"] = {
+                ssid
+                for ssid, var in choices.items()
+                if var.get()
+            }
+            dialog.destroy()
+
+        def cancel():
+            result["value"] = None
+            dialog.destroy()
+
+        ttk.Button(buttons, text=self.tr("cancel"), command=cancel, bootstyle=SECONDARY).pack(side=tk.RIGHT)
+        ttk.Button(buttons, text=self.tr("save"), command=confirm, bootstyle=PRIMARY).pack(side=tk.RIGHT, padx=(0, 8))
+        dialog.bind("<Return>", lambda _event: confirm())
+        dialog.bind("<Escape>", lambda _event: cancel())
+        self.center_dialog(dialog)
+        self.root.wait_window(dialog)
+        return result["value"]
+
+    def ask_missing_relevant_networks_action(self, missing_ssids):
+        dialog = self.create_modal_dialog(self.tr("missing_relevant_networks_title"))
+        result = {"action": "cancel"}
+
+        frame = ttk.Frame(dialog, padding=18)
+        frame.pack(fill=tk.BOTH, expand=True)
+
+        ttk.Label(
+            frame,
+            text=self.tr("missing_relevant_networks_title"),
+            font=("TkDefaultFont", 12, "bold"),
+            bootstyle=WARNING
+        ).pack(anchor="w")
+        ttk.Label(
+            frame,
+            text=self.tr("missing_relevant_networks_message", ssids=", ".join(missing_ssids)),
+            wraplength=520,
+            justify=tk.LEFT
+        ).pack(anchor="w", pady=(10, 0))
+
+        buttons = ttk.Frame(frame)
+        buttons.pack(fill=tk.X, pady=(18, 0))
+
+        def choose(action):
+            result["action"] = action
+            dialog.destroy()
+
+        ttk.Button(
+            buttons,
+            text=self.tr("cancel_point"),
+            command=lambda: choose("cancel"),
+            bootstyle=DANGER
+        ).pack(side=tk.RIGHT)
+        ttk.Button(
+            buttons,
+            text=self.tr("retry_scan"),
+            command=lambda: choose("retry"),
+            bootstyle=WARNING
+        ).pack(side=tk.RIGHT, padx=(0, 8))
+        ttk.Button(
+            buttons,
+            text=self.tr("keep_scan"),
+            command=lambda: choose("keep"),
+            bootstyle=PRIMARY
+        ).pack(side=tk.RIGHT, padx=(0, 8))
+
+        dialog.bind("<Escape>", lambda _event: choose("cancel"))
+        self.center_dialog(dialog)
+        self.root.wait_window(dialog)
+        return result["action"]
 
     def delete_last_point(self):
         if not self.point_markers:
@@ -1780,9 +1940,9 @@ class WifiHeatmapApp:
             f"x={x}, y={y} | visti={len(scanned_networks)} | salvati={len(saved_networks)} | "
             f"SSID={len(saved_ssids)}"
         )
-        self.scan_filter_var.set(f"{self.tr('filter')}: {filter_label}")
+        self.scan_filter_var.set(f"{self.tr('saved_network')}: {filter_label}")
         self.scan_backend_used_var.set(self.tr("backend_used", backend=self.last_scan_backend_used))
-        self.update_scan_quality(len(scanned_networks))
+        self.update_scan_quality(scanned_networks)
 
         if not saved_networks:
             self.best_scan_var.set(f"{self.tr('best')}: -")
@@ -1806,20 +1966,20 @@ class WifiHeatmapApp:
 
         return f" | {self.tr('confidence')}: {samples_seen}/{samples_total}"
 
-    def update_scan_quality(self, scanned_count):
+    def update_scan_quality(self, scanned_networks):
+        scanned_count = len(scanned_networks)
         if scanned_count == 0:
             self.scan_quality_var.set(self.tr("scan_quality_no_data"))
             self.scan_quality_label.configure(bootstyle=DANGER)
             return
 
-        if len(self.last_good_scan) >= MIN_GOOD_SCAN_NETWORKS and scanned_count < len(self.last_good_scan) * SUSPICIOUS_SCAN_RATIO:
-            self.scan_quality_var.set(self.tr("scan_quality_suspicious"))
+        detected_ssids = self.get_detected_ssids(scanned_networks)
+        missing_relevant = sorted(self.relevant_ssids - detected_ssids)
+        if missing_relevant:
+            self.scan_quality_var.set(
+                self.tr("scan_quality_missing_relevant", ssids=", ".join(missing_relevant))
+            )
             self.scan_quality_label.configure(bootstyle=DANGER)
-            return
-
-        if len(self.last_good_scan) >= MIN_GOOD_SCAN_NETWORKS and scanned_count < len(self.last_good_scan):
-            self.scan_quality_var.set(self.tr("scan_quality_reduced"))
-            self.scan_quality_label.configure(bootstyle=WARNING)
             return
 
         self.scan_quality_var.set(self.tr("scan_quality_good"))
@@ -1828,18 +1988,6 @@ class WifiHeatmapApp:
     def scan_wifi_with_quality_check(self, x, y):
         networks, backend_used = scan_wifi(self.scan_backend_var.get())
         self.last_scan_backend_used = backend_used
-
-        while self.is_suspicious_scan(networks):
-            action = self.ask_suspicious_scan_action(networks)
-
-            if action == "retry":
-                self.set_busy(True, self.tr("retrying_scan", x=x, y=y))
-                networks, backend_used = scan_wifi(self.scan_backend_var.get())
-                self.last_scan_backend_used = backend_used
-                self.set_busy(False)
-                continue
-
-            return networks if action == "keep" else None
 
         return networks
 
@@ -4465,7 +4613,8 @@ class WifiHeatmapApp:
         self.highlight_item_id = None
         self.last_good_scan = []
         self.last_scan_backend_used = "-"
-        self.remembered_capture_filter = self.load_remembered_capture_filter()
+        self.relevant_ssids = self.load_relevant_ssids()
+        self.known_ssids = self.load_known_ssids()
         self.live_preview_image = None
         self.live_preview_tk_image = None
         self.live_point_infos = []
