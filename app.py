@@ -2850,8 +2850,16 @@ class WifiHeatmapApp:
         height = window.winfo_reqheight()
         screen_width = window.winfo_screenwidth()
         screen_height = window.winfo_screenheight()
-        x = min(event.x_root + offset, max(0, screen_width - width - offset))
-        y = min(event.y_root + offset, max(0, screen_height - height - offset))
+        if event.x_root + offset + width <= screen_width:
+            x = event.x_root + offset
+        else:
+            x = max(offset, event.x_root - width - offset)
+
+        if event.y_root + offset + height <= screen_height:
+            y = event.y_root + offset
+        else:
+            y = max(offset, event.y_root - height - offset)
+
         window.wm_geometry(f"+{x}+{y}")
 
     def build_structured_tooltip(self, parent, tooltip):
@@ -3183,8 +3191,8 @@ class WifiHeatmapApp:
             "rows": [
                 ("SSID", config.ssid),
                 ("x/y", f"{self.format_report_value(row.get('x', ''))}, {self.format_report_value(row.get('y', ''))}"),
-                ("AP", ap_label),
-                ("Canale", f"CH {self.format_report_value(row.get('channel', ''))}{width_label}"),
+                (self.tr("reference_ap"), ap_label),
+                (self.tr("reference_channel"), f"CH {self.format_report_value(row.get('channel', ''))}{width_label}"),
                 (self.tr("best"), self.format_report_value(row.get("signal_dbm", ""), suffix=" dBm")),
                 (self.tr("confidence"), self.format_row_confidence(row)),
             ]
@@ -3200,12 +3208,12 @@ class WifiHeatmapApp:
             "rows": [
                 ("SSID", config.ssid),
                 ("x/y", f"{self.format_report_value(row.get('x', ''))}, {self.format_report_value(row.get('y', ''))}"),
-                ("AP", dominant),
-                ("Canale", f"CH {self.format_report_value(row.get('dominant_channel', ''))}"),
+                (self.tr("reference_ap"), dominant),
+                (self.tr("reference_channel"), f"CH {self.format_report_value(row.get('dominant_channel', ''))}"),
                 (self.tr("best"), self.format_report_value(row.get("dominant_signal_dbm", ""), suffix=" dBm")),
                 (self.tr("confidence"), self.format_named_confidence(row, "dominant")),
-                ("Secondo", second),
-                ("Conf. secondo", self.format_named_confidence(row, "second")),
+                (self.tr("second_ap"), second),
+                (self.tr("second_confidence"), self.format_named_confidence(row, "second")),
                 ("Delta", delta),
             ]
         }
@@ -3234,10 +3242,10 @@ class WifiHeatmapApp:
                 ("x/y", f"{self.format_report_value(row.get('x', ''))}, {self.format_report_value(row.get('y', ''))}"),
                 (self.tr("band"), format_band_label(config.band, self.language)),
                 (self.tr("reference_risk"), risk),
-                ("Servente", serving),
+                (self.tr("serving_ap"), serving),
                 (self.tr("confidence"), self.format_named_confidence(row, "serving")),
-                ("Interferente", interferer),
-                ("Conf. interferente", self.format_named_confidence(row, "strongest_interferer")),
+                (self.tr("interfering_ap"), interferer),
+                (self.tr("interferer_confidence"), self.format_named_confidence(row, "strongest_interferer")),
             ]
         }
 
