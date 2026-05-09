@@ -1,6 +1,7 @@
 import threading
 import tkinter as tk
 import tkinter.font as tkfont
+from tkinter import messagebox
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import PRIMARY, SECONDARY
 
@@ -258,9 +259,29 @@ class StartScreen:
 
     def start_app(self, csv_file):
         app_class = self.get_app_class()
+        try:
+            app = app_class(self.root, csv_file, self.language)
+        except Exception as exc:
+            if exc.__class__.__name__ == "SurveyFormatError":
+                self.show_start_error(str(exc))
+                return
+            raise
+
         self.frame.destroy()
         self.language_combo.master.destroy()
-        app_class(self.root, csv_file, self.language)
+        return app
+
+    def show_start_error(self, error_key):
+        message_key = {
+            "raw_scan_file": "raw_scan_file_selected",
+            "invalid_raw_scan_format": "invalid_raw_scan_format",
+            "missing_survey_file": "invalid_survey_format",
+        }.get(error_key, "invalid_survey_format")
+        messagebox.showerror(
+            translate(self.language, "invalid_survey_title"),
+            translate(self.language, message_key),
+            parent=self.root
+        )
 
 
 def main():

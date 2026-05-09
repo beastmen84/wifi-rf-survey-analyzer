@@ -69,13 +69,12 @@ from quality_engine import (
 from survey_store import (
     format_point_id,
     SurveySession,
+    SurveyFormatError,
 )
 from ui_dialogs import open_existing_survey_file, save_survey_file_as
 from utils import sanitize_filename, signal_to_color
 from wifi_scanner import get_connected_ssid, scan_wifi
 
-CAPTURE_FILTER_ALL_TOKEN = "__ALL__"
-CAPTURE_FILTER_METADATA_KEY = "capture_filter"
 RELEVANT_SSIDS_METADATA_KEY = "relevant_ssids"
 KNOWN_SSIDS_METADATA_KEY = "known_ssids"
 AVAILABLE_THEMES = ("flatly", "cosmo", "darkly", "superhero")
@@ -337,10 +336,6 @@ class WifiHeatmapApp:
                     for ssid in ssids
                     if str(ssid).strip()
                 }
-
-        legacy_value = self.session.metadata.get(CAPTURE_FILTER_METADATA_KEY)
-        if legacy_value and legacy_value != CAPTURE_FILTER_ALL_TOKEN:
-            return {legacy_value}
 
         return set()
 
@@ -1740,7 +1735,6 @@ class WifiHeatmapApp:
         serialized = json.dumps(sorted(self.relevant_ssids), ensure_ascii=False)
         self.session.update_metadata({RELEVANT_SSIDS_METADATA_KEY: serialized})
         self.known_ssids |= self.relevant_ssids
-        self.session.metadata.pop(CAPTURE_FILTER_METADATA_KEY, None)
         self.update_saved_network_label()
         self.refresh_session_labels()
 
@@ -1752,10 +1746,6 @@ class WifiHeatmapApp:
         if KNOWN_SSIDS_METADATA_KEY in self.session.metadata:
             self.session.metadata.pop(KNOWN_SSIDS_METADATA_KEY, None)
             changed = True
-        if CAPTURE_FILTER_METADATA_KEY in self.session.metadata:
-            self.session.metadata.pop(CAPTURE_FILTER_METADATA_KEY, None)
-            changed = True
-
         self.relevant_ssids = set()
         self.known_ssids = set()
         if not changed:
@@ -4655,7 +4645,10 @@ class WifiHeatmapApp:
         if not csv_file:
             return
 
-        self.load_survey_session(csv_file)
+        try:
+            self.load_survey_session(csv_file)
+        except SurveyFormatError as exc:
+            self.show_survey_format_error(exc)
 
     def confirm_switch_survey(self):
         if not self.session.dirty:
@@ -4709,6 +4702,19 @@ class WifiHeatmapApp:
         self.update_saved_network_label()
         self.refresh_session_labels()
         self.load_saved_plan()
+
+    def show_survey_format_error(self, error):
+        key = str(error)
+        message_key = {
+            "raw_scan_file": "raw_scan_file_selected",
+            "invalid_raw_scan_format": "invalid_raw_scan_format",
+            "missing_survey_file": "invalid_survey_format",
+        }.get(key, "invalid_survey_format")
+        messagebox.showerror(
+            self.tr("invalid_survey_title"),
+            self.tr(message_key),
+            parent=self.root
+        )
 
     def save_survey(self):
         csv_file = self.session.csv_file
