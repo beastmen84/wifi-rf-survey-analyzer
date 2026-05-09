@@ -67,6 +67,7 @@ from wifi_scanner import get_connected_ssid, scan_wifi
 CAPTURE_FILTER_ALL_TOKEN = "__ALL__"
 CAPTURE_FILTER_METADATA_KEY = "capture_filter"
 AVAILABLE_THEMES = ("flatly", "cosmo", "darkly", "superhero")
+DARK_THEMES = {"darkly", "superhero"}
 
 
 class WifiHeatmapApp:
@@ -346,6 +347,8 @@ class WifiHeatmapApp:
     def configure_app_styles(self):
         style = ttk.Style()
         colors = style.colors
+        is_dark_theme = str(style.theme_use()).lower() in DARK_THEMES
+        muted_foreground = "#d7dde3" if is_dark_theme else "#495057"
         style.configure(
             "Main.TNotebook",
             background=colors.bg,
@@ -377,7 +380,7 @@ class WifiHeatmapApp:
         )
         style.configure(
             "ReadableMuted.TLabel",
-            foreground="#495057",
+            foreground=muted_foreground,
             background=colors.bg
         )
 
@@ -712,6 +715,7 @@ class WifiHeatmapApp:
 
         ttk.Style().theme_use(theme_name)
         self.configure_app_styles()
+        self.root.update_idletasks()
         self.status_var.set(self.tr("theme_applied", theme=theme_name))
 
     def open_ap_alias_dialog(self):
