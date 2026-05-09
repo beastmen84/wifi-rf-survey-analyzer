@@ -53,8 +53,8 @@ def evaluate_single_point(rows, raw_rows, relevant_ssids=None):
         if min_confidence < 0.25 or avg_confidence < 0.45:
             return build_quality_result(QUALITY_LOW_CONFIDENCE)
 
-    ranges = get_signal_ranges(quality_rows, raw_rows, relevant_ssids)
-    if ranges and max(ranges) >= 12:
+    dominant_ranges = get_unstable_dominant_signal_ranges(quality_rows, raw_rows, relevant_ssids)
+    if dominant_ranges:
         return build_quality_result(QUALITY_UNSTABLE_SIGNAL)
 
     raw_sample_count = len(raw_rows)
@@ -105,7 +105,62 @@ def get_signal_ranges(rows, raw_rows, relevant_ssids=None):
     return ranges
 
 
-def get_raw_signal_ranges(raw_rows, relevant_ssids=None):
+def get_unstable_dominant_signal_ranges(rows, raw_rows, relevant_ssids=None):
+    ranges_by_key = get_signal_ranges_by_key(rows, raw_rows, relevant_ssids)
+    unstable_ranges = []
+
+    for candidate_rows in group_rows_by_ssid(rows).values():
+        scored_rows = [
+            (parse_float(row.get("signal_dbm")), row)
+            for row in candidate_rows
+            if parse_float(row.get("signal_dbm")) is not None
+        ]
+        if not scored_rows:
+            continue
+
+        best_signal = max(signal for signal, _row in scored_rows)
+        strong_candidate_keys = {
+            network_key(row)
+            for signal, row in scored_rows
+            if best_signal - signal <= 5
+        }
+        strong_ranges = [
+            ranges_by_key.get(key, 0)
+            for key in strong_candidate_keys
+        ]
+        if strong_ranges and min(strong_ranges) >= 12:
+            unstable_ranges.append(max(strong_ranges))
+
+    return unstable_ranges
+
+
+def group_rows_by_ssid(rows):
+    grouped = defaultdict(list)
+
+    for row in rows:
+        ssid = normalize_ssid(row.get("ssid"))
+        if ssid:
+            grouped[ssid].append(row)
+
+    return grouped
+
+
+def get_signal_ranges_by_key(rows, raw_rows, relevant_ssids=None):
+    ranges = get_raw_signal_ranges_by_key(raw_rows, relevant_ssids)
+    if ranges:
+        return ranges
+
+    ranges = {}
+    for row in rows:
+        min_dbm = parse_float(row.get("signal_min_dbm"))
+        max_dbm = parse_float(row.get("signal_max_dbm"))
+        if min_dbm is not None and max_dbm is not None:
+            ranges[network_key(row)] = max_dbm - min_dbm
+
+    return ranges
+
+
+def get_raw_signal_ranges_by_key(raw_rows, relevant_ssids=None):
     by_network = defaultdict(list)
     relevant_ssids = normalize_ssids(relevant_ssids or [])
 
@@ -113,11 +168,30 @@ def get_raw_signal_ranges(raw_rows, relevant_ssids=None):
         if relevant_ssids and normalize_ssid(row.get("ssid")) not in relevant_ssids:
             continue
 
-        key = (
-            str(row.get("ssid", "")),
-            str(row.get("bssid", "")),
-            str(row.get("channel", ""))
-        )
+        signal_dbm = parse_float(row.get("signal_dbm"))
+        if signal_dbm is not None:
+            by_network[network_key(row)].append(signal_dbm)
+
+    return {
+        key: max(values) - min(values)
+        for key, values in by_network.items()
+        if len(values) >= 2
+    }
+
+
+def get_raw_signal_ranges(raw_rows, relevant_ssids=None, allowed_keys=None):
+    by_network = defaultdict(list)
+    relevant_ssids = normalize_ssids(relevant_ssids or [])
+    allowed_keys = set(allowed_keys or [])
+
+    for row in raw_rows:
+        if relevant_ssids and normalize_ssid(row.get("ssid")) not in relevant_ssids:
+            continue
+
+        key = network_key(row)
+        if allowed_keys and key not in allowed_keys:
+            continue
+
         signal_dbm = parse_float(row.get("signal_dbm"))
         if signal_dbm is not None:
             by_network[key].append(signal_dbm)
@@ -127,6 +201,14 @@ def get_raw_signal_ranges(raw_rows, relevant_ssids=None):
         for values in by_network.values()
         if len(values) >= 2
     ]
+
+
+def network_key(row):
+    return (
+        normalize_ssid(row.get("ssid")),
+        str(row.get("bssid", "")).strip().lower(),
+        str(row.get("channel", "")).strip()
+    )
 
 
 def normalize_ssids(values):
