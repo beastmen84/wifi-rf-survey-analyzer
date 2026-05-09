@@ -1909,7 +1909,11 @@ class WifiHeatmapApp:
         for item in self.points_table.get_children():
             self.points_table.delete(item)
 
-        for index, point in enumerate(self.session.get_point_summaries(), start=1):
+        point_summaries = self.session.get_point_summaries()
+        total_points = len(point_summaries)
+
+        for index, point in enumerate(reversed(point_summaries), start=1):
+            survey_number = total_points - index + 1
             item_id = format_point_id(point["timestamp"], point["x"], point["y"])
             row_tag = "even" if index % 2 == 0 else "odd"
             self.points_table.insert(
@@ -1917,7 +1921,7 @@ class WifiHeatmapApp:
                 tk.END,
                 iid=item_id,
                 values=(
-                    index,
+                    survey_number,
                     point["x"],
                     point["y"],
                     f"{point['best_signal_dbm']:.1f}",
