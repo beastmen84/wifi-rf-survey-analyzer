@@ -3220,6 +3220,12 @@ class WifiHeatmapApp:
 
     def format_live_interference_tooltip(self, row, config):
         risk = self.format_report_value(row.get("risk", ""), suffix="%")
+        serving_width = self.format_report_value(row.get("serving_channel_width_mhz", ""), suffix=" MHz")
+        interferer_width = self.format_report_value(
+            row.get("strongest_interferer_channel_width_mhz", ""),
+            suffix=" MHz"
+        )
+        width_label = self.format_interference_width_label(serving_width, interferer_width)
         serving = self.format_interference_endpoint(
             row.get("serving_ssid", config.ssid),
             row.get("serving_bssid", "-"),
@@ -3240,7 +3246,7 @@ class WifiHeatmapApp:
             "rows": [
                 ("SSID", config.ssid),
                 ("x/y", f"{self.format_report_value(row.get('x', ''))}, {self.format_report_value(row.get('y', ''))}"),
-                (self.tr("band"), format_band_label(config.band, self.language)),
+                (self.tr("channel_width"), width_label),
                 (self.tr("reference_risk"), risk),
                 (self.tr("serving_ap"), serving),
                 (self.tr("confidence"), self.format_named_confidence(row, "serving")),
@@ -3248,6 +3254,13 @@ class WifiHeatmapApp:
                 (self.tr("interferer_confidence"), self.format_named_confidence(row, "strongest_interferer")),
             ]
         }
+
+    def format_interference_width_label(self, serving_width, interferer_width):
+        if serving_width == "-" and interferer_width == "-":
+            return "-"
+        if serving_width == interferer_width:
+            return serving_width
+        return f"{self.tr('serving_ap')}: {serving_width} | {self.tr('interfering_ap')}: {interferer_width}"
 
     def format_interference_endpoint(self, ssid, bssid, ap_group, channel, signal_dbm):
         ssid_label = ssid or "-"
