@@ -66,6 +66,7 @@ from wifi_scanner import get_connected_ssid, scan_wifi
 
 CAPTURE_FILTER_ALL_TOKEN = "__ALL__"
 CAPTURE_FILTER_METADATA_KEY = "capture_filter"
+AVAILABLE_THEMES = ("flatly", "cosmo", "darkly", "superhero")
 
 
 class WifiHeatmapApp:
@@ -699,7 +700,9 @@ class WifiHeatmapApp:
         )
 
     def get_available_themes(self):
-        return sorted(ttk.Style().theme_names())
+        installed_themes = set(ttk.Style().theme_names())
+        themes = [theme for theme in AVAILABLE_THEMES if theme in installed_themes]
+        return themes or ["flatly"]
 
     def apply_selected_theme(self):
         theme_name = self.theme_var.get()
