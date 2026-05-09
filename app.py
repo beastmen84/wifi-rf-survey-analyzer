@@ -390,6 +390,9 @@ class WifiHeatmapApp:
             foreground=muted_foreground,
             background=colors.bg
         )
+        if hasattr(self, "live_scale_canvas"):
+            self.live_scale_canvas.configure(background=colors.bg)
+            self.redraw_live_scale_bar()
 
     def update_footer_info(self):
         self.footer_info_var.set(
@@ -723,6 +726,7 @@ class WifiHeatmapApp:
         ttk.Style().theme_use(theme_name)
         self.configure_app_styles()
         self.root.update_idletasks()
+        self.update_live_scale_bar()
         self.status_var.set(self.tr("theme_applied", theme=theme_name))
 
     def open_ap_alias_dialog(self):
