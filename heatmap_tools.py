@@ -353,20 +353,66 @@ def channel_width_overlap_weight(base_channel, other_channel, base_width_mhz, ot
     if not base_width or not other_width:
         return None
 
-    try:
-        base_frequency = 5000 + (float(base_channel) * 5)
-        other_frequency = 5000 + (float(other_channel) * 5)
-    except (TypeError, ValueError):
+    base_range = get_5ghz_channel_frequency_range(base_channel, base_width)
+    other_range = get_5ghz_channel_frequency_range(other_channel, other_width)
+    if not base_range or not other_range:
         return None
 
-    distance_mhz = abs(base_frequency - other_frequency)
-    half_sum = (base_width / 2) + (other_width / 2)
-    overlap_mhz = max(0.0, half_sum - distance_mhz)
+    overlap_mhz = min(base_range[1], other_range[1]) - max(base_range[0], other_range[0])
 
     if overlap_mhz <= 0:
         return 0.0
 
     return min(1.0, overlap_mhz / min(base_width, other_width))
+
+
+def get_5ghz_channel_frequency_range(channel, width_mhz):
+    try:
+        primary_channel = int(float(channel))
+    except (TypeError, ValueError):
+        return None
+
+    width = int(round(width_mhz))
+    if width <= 20:
+        return channel_group_frequency_range([primary_channel])
+
+    for group in get_5ghz_channel_groups(width):
+        if primary_channel in group:
+            return channel_group_frequency_range(group)
+
+    return None
+
+
+def get_5ghz_channel_groups(width_mhz):
+    if width_mhz <= 40:
+        return [
+            [36, 40], [44, 48],
+            [52, 56], [60, 64],
+            [100, 104], [108, 112], [116, 120], [124, 128],
+            [132, 136], [140, 144],
+            [149, 153], [157, 161],
+            [165, 169], [173, 177],
+        ]
+
+    if width_mhz <= 80:
+        return [
+            [36, 40, 44, 48],
+            [52, 56, 60, 64],
+            [100, 104, 108, 112],
+            [116, 120, 124, 128],
+            [132, 136, 140, 144],
+            [149, 153, 157, 161],
+        ]
+
+    return [
+        [36, 40, 44, 48, 52, 56, 60, 64],
+        [100, 104, 108, 112, 116, 120, 124, 128],
+    ]
+
+
+def channel_group_frequency_range(channels):
+    centers = [5000 + (channel * 5) for channel in channels]
+    return min(centers) - 10, max(centers) + 10
 
 
 def normalize_width_mhz(value):
