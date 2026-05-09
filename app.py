@@ -2461,6 +2461,7 @@ class WifiHeatmapApp:
                 "y": float(row["y"]),
                 "color": get_channel_color(row["channel"], config.band),
                 "outline": "black",
+                "outline_width": 1,
                 "legend_label": self.format_live_channel_legend_label(row),
                 "tooltip": self.format_live_channel_tooltip(row, config)
             }
@@ -2493,7 +2494,7 @@ class WifiHeatmapApp:
                 "y": float(row["y"]),
                 "color": color_map.get(row["dominant_ap_group"], "#7f8c8d"),
                 "outline": "#f1c40f" if row.get("roaming_overlap") else "black",
-                "outline_width": 2,
+                "outline_width": 1,
                 "legend_label": self.format_ap_label(row.get("dominant_bssid", ""), row.get("dominant_ap_group", "")),
                 "tooltip": self.format_live_dominant_tooltip(row, config)
             }
@@ -2630,7 +2631,7 @@ class WifiHeatmapApp:
                 sy + marker_radius,
                 fill=point.get("color", "#111111"),
                 outline=point.get("outline", "white"),
-                width=point.get("outline_width", max(2, int(2 * self.live_zoom_level)))
+                width=point.get("outline_width", 1)
             )
 
     def format_live_channel_legend_label(self, row):
