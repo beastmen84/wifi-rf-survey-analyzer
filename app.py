@@ -1453,8 +1453,15 @@ class WifiHeatmapApp:
         if self.handle_scale_calibration_click(event):
             return "break"
 
+        if not self.is_point_marker_at(event.x, event.y):
+            self.clear_point_selection()
+
         self.canvas.scan_mark(event.x, event.y)
         self.canvas.config(cursor="fleur")
+
+    def is_point_marker_at(self, x, y):
+        nearby_items = self.canvas.find_overlapping(x - 2, y - 2, x + 2, y + 2)
+        return any("point_marker" in self.canvas.gettags(item) for item in nearby_items)
 
     def drag_map(self, event):
         if self.scale_calibration_points:
@@ -1995,6 +2002,12 @@ class WifiHeatmapApp:
         self.selected_point_id = format_point_id(timestamp, x, y)
         self.redraw_point_highlight()
 
+    def clear_point_selection(self):
+        self.selected_point_id = None
+        self.clear_point_highlight()
+        if hasattr(self, "points_table"):
+            self.points_table.selection_remove(self.points_table.selection())
+
     def redraw_point_highlight(self):
         self.clear_point_highlight()
 
@@ -2068,7 +2081,8 @@ class WifiHeatmapApp:
             sy + radius,
             fill=signal_to_color(signal_dbm),
             outline="white",
-            width=2
+            width=2,
+            tags=("point_marker",)
         )
         self.canvas.tag_bind(item_id, "<Enter>", lambda event, px=x, py=y: self.show_point_tooltip(event, px, py))
         self.canvas.tag_bind(item_id, "<Leave>", lambda _event: self.hide_point_tooltip())
