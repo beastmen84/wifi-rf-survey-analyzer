@@ -1,24 +1,30 @@
 import pandas as pd
 
+AP_GROUPS_METADATA_KEY = "ap_groups"
+
+
+def normalize_bssid(bssid):
+    return str(bssid or "").strip().lower()
+
 
 def get_ap_group_key(bssid):
-    parts = str(bssid or "").lower().split(":")
+    parts = normalize_bssid(bssid).split(":")
 
     if len(parts) == 6:
         last_prefix = parts[5][:1] or parts[5]
         return f"{':'.join(parts[1:5])}:{last_prefix}*"
 
-    return str(bssid or "").lower()
+    return normalize_bssid(bssid)
 
 
 def get_ap_group_display_key(bssid):
-    parts = str(bssid or "").lower().split(":")
+    parts = normalize_bssid(bssid).split(":")
 
     if len(parts) == 6:
         last_prefix = parts[5][:1] or parts[5]
         return f"{':'.join(parts[:5])}:{last_prefix}*"
 
-    return str(bssid or "").lower()
+    return normalize_bssid(bssid)
 
 
 def format_short_bssid(bssid):
@@ -82,6 +88,86 @@ def build_detected_ap_groups(rows, channel_sort_key=None):
         })
 
     return sorted(result, key=lambda item: " ".join(item["display_groups"]))
+
+
+def build_manual_ap_group(group_id, bssids, alias="", locked=True):
+    clean_bssids = sorted({
+        normalize_bssid(bssid)
+        for bssid in bssids
+        if normalize_bssid(bssid)
+    })
+    if not group_id:
+        group_id = clean_bssids[0] if clean_bssids else ""
+
+    return {
+        "group_id": str(group_id),
+        "alias": str(alias or "").strip(),
+        "bssids": clean_bssids,
+        "locked": bool(locked),
+    }
+
+
+def build_default_manual_groups(rows):
+    groups = []
+    for detected_group in build_detected_ap_groups(rows):
+        groups.append(build_manual_ap_group(
+            detected_group["ap_group"],
+            detected_group["bssids"],
+            locked=False,
+        ))
+
+    return groups
+
+
+def merge_new_bssids_into_manual_groups(manual_groups, rows):
+    assigned_bssids = {
+        normalize_bssid(bssid)
+        for group in manual_groups
+        for bssid in group.get("bssids", [])
+        if normalize_bssid(bssid)
+    }
+    merged_groups = [
+        build_manual_ap_group(
+            group.get("group_id", ""),
+            group.get("bssids", []),
+            alias=group.get("alias", ""),
+            locked=group.get("locked", True),
+        )
+        for group in manual_groups
+    ]
+
+    for detected_group in build_default_manual_groups(rows):
+        new_bssids = [
+            bssid
+            for bssid in detected_group["bssids"]
+            if bssid not in assigned_bssids
+        ]
+        if not new_bssids:
+            continue
+
+        merged_groups.append(build_manual_ap_group(
+            detected_group["group_id"],
+            new_bssids,
+            locked=False,
+        ))
+        assigned_bssids.update(new_bssids)
+
+    return merged_groups
+
+
+def build_bssid_to_manual_group_map(manual_groups):
+    mapping = {}
+    for group in manual_groups:
+        group_id = str(group.get("group_id", ""))
+        if not group_id:
+            continue
+
+        for bssid in group.get("bssids", []):
+            clean_bssid = normalize_bssid(bssid)
+            if clean_bssid:
+                mapping[clean_bssid] = group_id
+
+    return mapping
 
 
 def build_dominant_ap_group_labels(dominant_df, aliases):
