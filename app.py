@@ -2076,7 +2076,6 @@ class WifiHeatmapApp:
         self.hide_point_tooltip()
         self.tooltip_window = tk.Toplevel(self.root)
         self.tooltip_window.wm_overrideredirect(True)
-        self.tooltip_window.wm_geometry(f"+{event.x_root + 12}+{event.y_root + 12}")
 
         self.build_structured_tooltip(
             self.tooltip_window,
@@ -2092,6 +2091,7 @@ class WifiHeatmapApp:
                 ]
             }
         )
+        self.position_tooltip_window(self.tooltip_window, event)
 
     def hide_point_tooltip(self):
         if self.tooltip_window is not None:
@@ -2826,8 +2826,8 @@ class WifiHeatmapApp:
         self.live_tooltip_point = point
         self.live_tooltip_window = tk.Toplevel(self.root)
         self.live_tooltip_window.wm_overrideredirect(True)
-        self.live_tooltip_window.wm_geometry(f"+{event.x_root + 12}+{event.y_root + 12}")
         self.build_structured_tooltip(self.live_tooltip_window, point.get("tooltip") or point.get("text", ""))
+        self.position_tooltip_window(self.live_tooltip_window, event)
 
     def hide_live_tooltip(self):
         if self.live_tooltip_window is not None:
@@ -2843,6 +2843,17 @@ class WifiHeatmapApp:
         self.live_hover_legend_label = legend_label
         self.draw_live_overlay_legend()
 
+    def position_tooltip_window(self, window, event):
+        window.update_idletasks()
+        offset = 12
+        width = window.winfo_reqwidth()
+        height = window.winfo_reqheight()
+        screen_width = window.winfo_screenwidth()
+        screen_height = window.winfo_screenheight()
+        x = min(event.x_root + offset, max(0, screen_width - width - offset))
+        y = min(event.y_root + offset, max(0, screen_height - height - offset))
+        window.wm_geometry(f"+{x}+{y}")
+
     def build_structured_tooltip(self, parent, tooltip):
         if isinstance(tooltip, str):
             tooltip = {
@@ -2854,8 +2865,17 @@ class WifiHeatmapApp:
         bg = "#f8f9fa"
         border = "#2c3e50"
         accent = tooltip.get("accent") or border
+        key_font = tkfont.Font(family="Segoe UI", size=8, weight="bold")
+        value_font = tkfont.Font(family="Segoe UI", size=8)
         frame = tk.Frame(parent, background=bg, highlightbackground=border, highlightthickness=1, padx=0, pady=0)
         frame.pack()
+
+        rows = tooltip.get("rows", [])
+        screen_limit = max(360, parent.winfo_screenwidth() - 220)
+        measured_value_width = max(
+            [value_font.measure(str(value)) for _key, value in rows] or [360]
+        )
+        value_wraplength = min(screen_limit, max(360, measured_value_width + 18))
 
         title = tooltip.get("title", "")
         if title:
@@ -2872,7 +2892,6 @@ class WifiHeatmapApp:
                 anchor="w"
             ).pack(fill=tk.X)
 
-        rows = tooltip.get("rows", [])
         start_row = 1 if title else 0
         for index, (key, value) in enumerate(rows, start=start_row):
             row_bg = "#ffffff" if index % 2 == start_row % 2 else "#f1f3f5"
@@ -2882,7 +2901,7 @@ class WifiHeatmapApp:
                     text=str(key),
                     background=row_bg,
                     foreground="#495057",
-                    font=("Segoe UI", 8, "bold"),
+                    font=key_font,
                     anchor="w",
                     padx=8,
                     pady=3
@@ -2892,10 +2911,10 @@ class WifiHeatmapApp:
                 text=str(value),
                 background=row_bg,
                 foreground="#111111",
-                font=("Segoe UI", 8),
+                font=value_font,
                 anchor="w",
                 justify=tk.LEFT,
-                wraplength=360,
+                wraplength=value_wraplength,
                 padx=8,
                 pady=3
             ).grid(row=index, column=1 if key else 0, columnspan=1 if key else 2, sticky="nw")
@@ -3213,6 +3232,7 @@ class WifiHeatmapApp:
             "rows": [
                 ("SSID", config.ssid),
                 ("x/y", f"{self.format_report_value(row.get('x', ''))}, {self.format_report_value(row.get('y', ''))}"),
+                (self.tr("band"), format_band_label(config.band, self.language)),
                 (self.tr("reference_risk"), risk),
                 ("Servente", serving),
                 (self.tr("confidence"), self.format_named_confidence(row, "serving")),
