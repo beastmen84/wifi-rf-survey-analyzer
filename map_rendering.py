@@ -4,23 +4,54 @@ MAX_REFERENCE_ROWS = 10
 MAX_LEGEND_ITEMS = 8
 OTHER_AP_COLOR = "#6c757d"
 
-AP_PALETTE = [
-    "#0072B2",
-    "#D55E00",
-    "#009E73",
-    "#CC79A7",
-    "#56B4E9",
-    "#E69F00",
-    "#332288",
-    "#88CCEE",
-    "#882255",
-    "#44AA99",
-    "#117733",
-    "#AA4499",
-    "#999933",
-    "#661100",
-    "#6699CC",
+CATEGORICAL_PALETTE = [
+    "#0072B2",  # blue
+    "#D55E00",  # vermillion
+    "#009E73",  # green
+    "#CC79A7",  # purple
+    "#E69F00",  # orange
+    "#56B4E9",  # sky blue
+    "#882255",  # wine
+    "#44AA99",  # teal
+    "#AA4499",  # magenta
+    "#117733",  # dark green
+    "#332288",  # indigo
+    "#DDCC77",  # ochre
+    "#88CCEE",  # light cyan
+    "#CC6677",  # rose
+    "#999933",  # olive
+    "#661100",  # brown
+    "#6699CC",  # steel blue
+    "#AA4466",  # raspberry
+    "#4477AA",  # muted blue
+    "#228833",  # vivid green
+    "#EE6677",  # coral
+    "#BBBB44",  # yellow green
+    "#66CCEE",  # cyan
+    "#AA3377",  # fuchsia
 ]
+
+AP_PALETTE = CATEGORICAL_PALETTE
+
+CHANNEL_SEQUENCE_24 = [1, 6, 11, 2, 3, 4, 5, 7, 8, 9, 10, 12, 13, 14]
+CHANNEL_SEQUENCE_5 = [
+    36, 40, 44, 48,
+    52, 56, 60, 64,
+    100, 104, 108, 112,
+    116, 120, 124, 128,
+    132, 136, 140, 144,
+    149, 153, 157, 161,
+    165, 169, 173, 177
+]
+
+
+def get_indexed_color(value, palette=CATEGORICAL_PALETTE):
+    try:
+        index = int(value)
+    except (TypeError, ValueError):
+        index = sum(ord(char) for char in str(value))
+
+    return palette[index % len(palette)]
 
 
 def get_channel_color(channel, band):
@@ -30,23 +61,14 @@ def get_channel_color(channel, band):
         return "#7f8c8d"
 
     if band == "2.4":
-        return {
-            1: "#18bc9c",
-            6: "#3498db",
-            11: "#9b59b6"
-        }.get(channel_number, "#f39c12")
+        if channel_number in CHANNEL_SEQUENCE_24:
+            return CATEGORICAL_PALETTE[CHANNEL_SEQUENCE_24.index(channel_number) % len(CATEGORICAL_PALETTE)]
+        return get_indexed_color(channel_number)
 
-    palette = [
-        "#18bc9c",
-        "#3498db",
-        "#9b59b6",
-        "#e74c3c",
-        "#f39c12",
-        "#2ecc71",
-        "#34495e",
-        "#d35400"
-    ]
-    return palette[channel_number % len(palette)]
+    if channel_number in CHANNEL_SEQUENCE_5:
+        return CATEGORICAL_PALETTE[CHANNEL_SEQUENCE_5.index(channel_number) % len(CATEGORICAL_PALETTE)]
+
+    return get_indexed_color(channel_number)
 
 
 def get_channel_band_prefix(channel):
@@ -117,19 +139,11 @@ def create_marker_legend_handle(label, color):
 
 
 def build_channel_legend_handles(channel_df, band, intermediate_label, format_value, other_label="Altri"):
-    if band == "2.4":
-        handles = [
-            create_marker_legend_handle("CH 1", "#18bc9c"),
-            create_marker_legend_handle("CH 6", "#3498db"),
-            create_marker_legend_handle("CH 11", "#9b59b6"),
-        ]
-        channels = {int(float(channel)) for channel in channel_df["channel"].dropna()}
-        if channels - {1, 6, 11}:
-            handles.append(create_marker_legend_handle(intermediate_label, "#f39c12"))
-        return handles
-
     handles = []
-    channels = sorted(channel_df["channel"].dropna().unique())
+    channels = sorted(
+        channel_df["channel"].dropna().unique(),
+        key=lambda channel: get_channel_sort_key(channel, band)
+    )
     visible_channels = channels[:MAX_LEGEND_ITEMS]
     for channel in visible_channels:
         channel_label = format_value(channel)
@@ -145,6 +159,19 @@ def build_channel_legend_handles(channel_df, band, intermediate_label, format_va
         handles.append(create_marker_legend_handle(other_label, "#7f8c8d"))
 
     return handles
+
+
+def get_channel_sort_key(channel, band):
+    try:
+        channel_number = int(float(channel))
+    except (TypeError, ValueError):
+        return (99, str(channel))
+
+    sequence = CHANNEL_SEQUENCE_24 if band == "2.4" else CHANNEL_SEQUENCE_5
+    if channel_number in sequence:
+        return (0, sequence.index(channel_number))
+
+    return (1, channel_number)
 
 
 def build_interference_legend_handles(low_label, medium_label, high_label):
