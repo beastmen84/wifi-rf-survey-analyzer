@@ -182,7 +182,8 @@ def build_interference_legend_handles(low_label, medium_label, high_label):
     ]
 
 
-def build_dominant_ap_legend_handles(dominant_df, color_map, roaming_label, other_label="Altri"):
+def build_dominant_ap_legend_handles(dominant_df, color_map, roaming_label, other_label="Altri", group_labels=None):
+    group_labels = group_labels or {}
     handles = []
     visible_groups = [
         ap_group
@@ -192,7 +193,7 @@ def build_dominant_ap_legend_handles(dominant_df, color_map, roaming_label, othe
     for ap_group in visible_groups[:MAX_LEGEND_ITEMS]:
         handles.append(
             create_marker_legend_handle(
-                get_ap_group_suffix(ap_group),
+                group_labels.get(ap_group, get_ap_group_suffix(ap_group)),
                 color_map.get(ap_group, "#7f8c8d")
             )
         )

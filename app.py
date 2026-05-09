@@ -2494,6 +2494,7 @@ class WifiHeatmapApp:
             return False
 
         color_map, _visible_ap_groups, _hidden_ap_count = get_limited_bssid_color_map(dominant_df)
+        group_labels = self.build_dominant_ap_group_labels(dominant_df)
         legend_items = []
         self.live_point_infos = [
             {
@@ -2502,7 +2503,10 @@ class WifiHeatmapApp:
                 "color": color_map.get(row["dominant_ap_group"], "#7f8c8d"),
                 "outline": "#f1c40f" if row.get("roaming_overlap") else "black",
                 "outline_width": 1,
-                "legend_label": self.format_ap_label(row.get("dominant_bssid", ""), row.get("dominant_ap_group", "")),
+                "legend_label": group_labels.get(
+                    row.get("dominant_ap_group", ""),
+                    self.format_ap_label(row.get("dominant_bssid", ""), row.get("dominant_ap_group", ""))
+                ),
                 "tooltip": self.format_live_dominant_tooltip(row, config)
             }
             for _index, row in dominant_df.iterrows()
@@ -3101,6 +3105,38 @@ class WifiHeatmapApp:
             return f"{alias} ({short_bssid})"
 
         return short_bssid
+
+    def build_dominant_ap_group_labels(self, dominant_df):
+        labels = {}
+        if dominant_df.empty or "dominant_ap_group" not in dominant_df.columns:
+            return labels
+
+        aliases = self.session.get_ap_aliases()
+        for ap_group, group_df in dominant_df.groupby("dominant_ap_group", dropna=False):
+            bssids = [
+                str(bssid)
+                for bssid in group_df.get("dominant_bssid", pd.Series(dtype=str)).dropna().unique()
+                if str(bssid)
+            ]
+            if not bssids:
+                labels[ap_group] = str(ap_group or "-")
+                continue
+
+            alias = (
+                aliases.get(ap_group)
+                or aliases.get(get_ap_group_display_key(bssids[0]))
+                or aliases.get(get_ap_group_legacy_key(bssids[0]))
+            )
+            short_bssids = sorted({self.format_short_bssid(bssid) for bssid in bssids})
+
+            if alias:
+                labels[ap_group] = f"{alias} ({', '.join(short_bssids)})"
+            elif len(short_bssids) == 1:
+                labels[ap_group] = self.format_ap_label(bssids[0], ap_group)
+            else:
+                labels[ap_group] = ", ".join(short_bssids)
+
+        return labels
 
     def format_live_signal_tooltip(self, row, config, raw_rows):
         signal = self.format_report_value(row.get("signal_dbm", ""), suffix=" dBm")
@@ -3800,7 +3836,8 @@ class WifiHeatmapApp:
                 dominant_df,
                 color_map,
                 self.tr("dominant_map_roaming_overlap"),
-                other_label=self.tr("legend_other")
+                other_label=self.tr("legend_other"),
+                group_labels=self.build_dominant_ap_group_labels(dominant_df)
             ),
             title=self.tr("dominant_map_legend_title"),
             loc="lower right",
