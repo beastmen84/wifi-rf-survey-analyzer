@@ -207,11 +207,6 @@ class SurveySession:
         return self.csv_file
 
 
-def initialize_survey_file(csv_file):
-    metadata = build_default_metadata(csv_file)
-    write_survey_file(csv_file, metadata, [])
-
-
 def build_default_metadata(csv_file=None):
     metadata = {
         "app": APP_ID,

@@ -1493,9 +1493,7 @@ class WifiHeatmapApp:
         self.refresh_ssid_options()
         self.schedule_live_update()
 
-        if self.session.dirty and not save_metadata:
-            self.status_var.set(self.tr("survey_format_migrated"))
-        elif loaded_points:
+        if loaded_points:
             self.status_var.set(
                 self.tr("map_loaded_points", count=loaded_points, name=self.session_display_name())
             )
