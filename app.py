@@ -60,7 +60,7 @@ from survey_store import (
     format_point_id,
     SurveySession,
 )
-from ui_dialogs import ask_capture_ssid_filter, save_survey_file_as
+from ui_dialogs import ask_capture_ssid_filter, open_existing_survey_file, save_survey_file_as
 from utils import sanitize_filename, signal_to_color
 from wifi_scanner import get_connected_ssid, scan_wifi
 
@@ -144,6 +144,11 @@ class WifiHeatmapApp:
 
         self.toolbar_title = ttk.Label(toolbar, text="Wi-Fi Heatmap", font=("Segoe UI", 11, "bold"), bootstyle=PRIMARY)
         self.toolbar_title.pack(side=tk.LEFT, padx=(0, 12))
+        self.new_survey_button = ttk.Button(toolbar, command=self.new_survey, bootstyle=SECONDARY)
+        self.new_survey_button.pack(side=tk.LEFT, padx=(0, 6))
+        self.open_survey_button = ttk.Button(toolbar, command=self.open_survey, bootstyle=SECONDARY)
+        self.open_survey_button.pack(side=tk.LEFT, padx=(0, 6))
+        ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=6)
         self.load_plan_button = ttk.Button(toolbar, command=self.load_plan, bootstyle=PRIMARY)
         self.load_plan_button.pack(side=tk.LEFT, padx=(0, 6))
         self.save_button = ttk.Button(toolbar, command=self.save_survey, bootstyle=PRIMARY)
@@ -333,6 +338,8 @@ class WifiHeatmapApp:
         suffix = " *" if self.session.dirty else ""
         display_name = self.session_display_name()
         self.csv_var.set(f"{display_name}{suffix}")
+        if hasattr(self, "save_button"):
+            self.save_button.configure(bootstyle=WARNING if self.session.dirty else PRIMARY)
         self.update_footer_info()
 
     def configure_app_styles(self):
@@ -392,6 +399,8 @@ class WifiHeatmapApp:
 
     def apply_language(self):
         self.root.title(self.tr("app_title"))
+        self.new_survey_button.configure(text=self.tr("new_survey"))
+        self.open_survey_button.configure(text=self.tr("open_existing_survey"))
         self.load_plan_button.configure(text=self.tr("load_plan"))
         self.generate_button.configure(text=self.tr("generate_heatmap"))
         self.open_csv_button.configure(text=self.tr("open_csv"))
@@ -4281,6 +4290,75 @@ class WifiHeatmapApp:
         else:
             messagebox.showwarning(self.tr("warning"), self.tr("csv_not_saved"))
 
+    def new_survey(self):
+        if not self.confirm_switch_survey():
+            return
+
+        self.load_survey_session(None)
+        self.status_var.set(self.tr("active_survey", name=self.session_display_name()))
+
+    def open_survey(self):
+        if not self.confirm_switch_survey():
+            return
+
+        csv_file = open_existing_survey_file(self.root)
+        if not csv_file:
+            return
+
+        self.load_survey_session(csv_file)
+
+    def confirm_switch_survey(self):
+        if not self.session.dirty:
+            return True
+
+        choice = messagebox.askyesnocancel(
+            self.tr("unsaved_changes_title"),
+            self.tr("unsaved_changes"),
+            parent=self.root
+        )
+
+        if choice is None:
+            return False
+
+        if choice:
+            return self.save_survey()
+
+        return True
+
+    def load_survey_session(self, csv_file):
+        self.session = SurveySession(csv_file)
+        self.csv_file = self.session.csv_file
+        self.image_path = None
+        self.bg_image = None
+        self.tk_image = None
+        self.canvas_image = None
+        self.point_markers.clear()
+        self.selected_point_id = None
+        self.highlight_item_id = None
+        self.last_good_scan = []
+        self.last_scan_backend_used = "-"
+        self.remembered_capture_filter = self.load_remembered_capture_filter()
+        self.live_preview_image = None
+        self.live_preview_tk_image = None
+        self.live_point_infos = []
+        self.live_scale_payload = None
+        self.live_image_transform = None
+        self.canvas.delete("all")
+        self.live_canvas.delete("all")
+        self.update_live_scale_bar()
+        self.map_var.set(self.tr("no_map"))
+        self.last_scan_var.set(self.tr("no_scan"))
+        self.best_scan_var.set("-")
+        self.scan_filter_var.set("-")
+        self.scan_quality_var.set(self.tr("scan_quality_empty"))
+        self.scan_backend_used_var.set(self.tr("backend_used_empty"))
+        self.live_status_var.set(self.tr("live_preview_empty"))
+        self.refresh_points_state()
+        self.refresh_ssid_options()
+        self.update_saved_network_label()
+        self.refresh_session_labels()
+        self.load_saved_plan()
+
     def save_survey(self):
         csv_file = self.session.csv_file
 
@@ -4297,23 +4375,8 @@ class WifiHeatmapApp:
         return True
 
     def on_close(self):
-        if not self.session.dirty:
-            self.shutdown_live_preview_worker()
-            self.root.destroy()
+        if not self.confirm_switch_survey():
             return
-
-        choice = messagebox.askyesnocancel(
-            self.tr("unsaved_changes_title"),
-            self.tr("unsaved_changes"),
-            parent=self.root
-        )
-
-        if choice is None:
-            return
-
-        if choice:
-            if not self.save_survey():
-                return
 
         self.shutdown_live_preview_worker()
         self.root.destroy()
