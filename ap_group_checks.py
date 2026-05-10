@@ -1,3 +1,5 @@
+"""Validation checks for AP group definitions and survey consistency."""
+
 from collections import defaultdict
 
 from ap_groups import (

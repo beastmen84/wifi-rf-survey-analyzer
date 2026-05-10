@@ -1,3 +1,5 @@
+"""Central translation table for the Italian and English Qt interfaces."""
+
 DEFAULT_LANGUAGE = "en"
 SUPPORTED_LANGUAGES = ("IT", "EN")
 
@@ -47,6 +49,12 @@ TRANSLATIONS = {
         "ui_scale": "Scala UI",
         "ui_scale_auto": "Auto ({percent}%)",
         "ui_scale_saved_restart": "Scala UI salvata. L'effetto completo sarà visibile alla prossima apertura dell'app.",
+        "ui_scale_restart_title": "Riavvio richiesto",
+        "ui_scale_restart_message": "Per applicare la scala UI {scale} serve riavviare l'app.\n\nVuoi salvare la scelta e riavviare ora?",
+        "save_and_restart": "Salva e riavvia",
+        "settings_save_failed": "Impossibile salvare le impostazioni.",
+        "restart_failed": "Impossibile riavviare l'applicazione.",
+        "restart_blocked_busy": "Attendi il termine della scansione o dell'aggiornamento mappa prima di cambiare scala UI.",
         "active_survey": "Rilievo attivo: {name}",
         "survey_tab": "Rilievo",
         "live_map_tab": "Mappa live",
@@ -557,6 +565,12 @@ TRANSLATIONS = {
         "ui_scale": "UI scale",
         "ui_scale_auto": "Auto ({percent}%)",
         "ui_scale_saved_restart": "UI scale saved. The full effect will be visible the next time the app starts.",
+        "ui_scale_restart_title": "Restart required",
+        "ui_scale_restart_message": "Applying UI scale {scale} requires restarting the app.\n\nSave this choice and restart now?",
+        "save_and_restart": "Save and restart",
+        "settings_save_failed": "Unable to save settings.",
+        "restart_failed": "Unable to restart the application.",
+        "restart_blocked_busy": "Wait for the current scan or live map update to finish before changing UI scale.",
         "active_survey": "Active survey: {name}",
         "survey_tab": "Survey",
         "live_map_tab": "Live map",

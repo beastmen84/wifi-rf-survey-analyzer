@@ -1,3 +1,5 @@
+"""Survey CSV and raw scan sidecar persistence layer."""
+
 import csv
 import json
 import os

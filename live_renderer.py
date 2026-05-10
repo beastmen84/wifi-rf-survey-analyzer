@@ -1,3 +1,5 @@
+"""Background renderer for interactive live map previews."""
+
 from io import BytesIO
 from threading import Lock
 

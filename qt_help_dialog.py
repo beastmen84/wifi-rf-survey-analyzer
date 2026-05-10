@@ -1,3 +1,5 @@
+"""Qt help dialog content and layout."""
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QTextBrowser, QTabWidget, QVBoxLayout, QWidget
 

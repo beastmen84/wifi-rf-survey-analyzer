@@ -1,3 +1,5 @@
+"""Shared constants for survey files, scan attempts, and map rendering."""
+
 APP_ID = "wifi_heatmap"
 SURVEY_SCHEMA_VERSION = "2"
 RAW_DATA_FILE_METADATA_KEY = "raw_data_file"

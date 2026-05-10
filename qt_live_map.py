@@ -1,3 +1,5 @@
+"""Qt live map scene, tooltips, marker rendering, and render worker."""
+
 import html
 from io import BytesIO
 

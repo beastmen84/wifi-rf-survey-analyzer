@@ -1,3 +1,5 @@
+"""Qt graphics view used for floor plans, survey points, and AP markers."""
+
 from pathlib import Path
 import math
 

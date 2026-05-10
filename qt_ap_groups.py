@@ -1,3 +1,5 @@
+"""Qt AP Group Manager dialog and related editing workflows."""
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,

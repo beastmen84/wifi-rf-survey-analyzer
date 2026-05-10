@@ -1,3 +1,5 @@
+"""Checks that compare AP group metadata with observed scan data."""
+
 import re
 
 from ap_groups import (

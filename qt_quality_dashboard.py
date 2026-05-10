@@ -1,3 +1,5 @@
+"""Qt quality dashboard for point-level scan diagnostics."""
+
 from collections import Counter
 
 from PySide6.QtCore import Qt

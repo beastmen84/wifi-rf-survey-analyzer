@@ -1,5 +1,6 @@
 import unittest
 
+from app_restart import build_restart_command
 from ap_groups import (
     build_bssid_to_manual_group_map,
     build_manual_ap_group,
@@ -136,6 +137,26 @@ class UiScalingTests(unittest.TestCase):
         self.assertEqual(diagnostics["auto_percent"], 125)
         self.assertEqual(diagnostics["effective_scale"], 0.8)
         self.assertEqual(diagnostics["screen"], "2560x1600")
+
+
+class AppRestartTests(unittest.TestCase):
+    def test_restart_command_uses_python_script_in_source_mode(self):
+        command = build_restart_command(
+            executable="python.exe",
+            argv=["main.py", "--debug"],
+            frozen=False,
+        )
+
+        self.assertEqual(command, ["python.exe", "main.py", "--debug"])
+
+    def test_restart_command_uses_executable_only_in_frozen_mode(self):
+        command = build_restart_command(
+            executable="wifi_heatmap.exe",
+            argv=["wifi_heatmap.exe", "--debug"],
+            frozen=True,
+        )
+
+        self.assertEqual(command, ["wifi_heatmap.exe", "--debug"])
 
 
 class ApMetadataTests(unittest.TestCase):

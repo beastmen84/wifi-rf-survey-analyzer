@@ -1,3 +1,5 @@
+"""Main Qt workspace window for surveying, live maps, and analysis tools."""
+
 import json
 import os
 import sys
@@ -38,6 +40,7 @@ except ModuleNotFoundError as exc:
 
 from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_language, translate
 from app_logging import configure_logging, log_event, log_exception, log_unhandled_exception
+from app_restart import start_replacement_process
 from app_settings import get_saved_theme, get_saved_ui_scale, save_theme, save_ui_scale
 from ap_groups import (
     build_ap_group_role_map,
@@ -109,6 +112,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.points_overlay_resize_active = False
         self.points_overlay_resize_start_y = 0
         self.points_overlay_resize_start_height = 0
+        self.restart_requested = False
 
         self.setWindowTitle(self.tr("app_title"))
         self.resize(self.spx(1400), self.spx(900))
@@ -1165,17 +1169,49 @@ class WifiHeatmapQtApp(QMainWindow):
         if mode == self.ui_scale_mode:
             return
 
-        self.ui_scale_mode = mode
-        self.ui_scale = resolve_ui_scale(mode)
-        save_ui_scale(mode)
+        if self.scan_in_progress or self.live_rendering:
+            QMessageBox.warning(self, self.tr("warning"), self.tr("restart_blocked_busy"))
+            return
+        if not self.confirm_ui_scale_restart(mode):
+            return
+        if not self.confirm_switch_survey():
+            return
+        if not save_ui_scale(mode):
+            QMessageBox.warning(self, self.tr("warning"), self.tr("settings_save_failed"))
+            return
+
         log_event(
-            f"workspace ui scale changed {format_ui_scale_diagnostics(ui_scale_diagnostics(mode))}",
+            f"workspace ui scale saved for restart {format_ui_scale_diagnostics(ui_scale_diagnostics(mode))}",
             logger_name="ui",
         )
-        self.apply_styles()
-        self.resize_points_table_columns()
-        self.position_points_overlay()
-        self.status.showMessage(self.tr("ui_scale_saved_restart"), 7000)
+        try:
+            start_replacement_process()
+        except OSError as exc:
+            log_exception("workspace restart failed after ui scale change", exc, logger_name="ui")
+            QMessageBox.warning(self, self.tr("warning"), self.tr("restart_failed"))
+            return
+
+        self.restart_requested = True
+        QApplication.instance().quit()
+
+    def confirm_ui_scale_restart(self, mode):
+        message_box = QMessageBox(self)
+        message_box.setIcon(QMessageBox.Icon.Question)
+        message_box.setWindowTitle(self.tr("ui_scale_restart_title"))
+        message_box.setText(
+            self.tr("ui_scale_restart_message", scale=self.ui_scale_label_for_mode(mode))
+        )
+        save_button = message_box.addButton(
+            self.tr("save_and_restart"),
+            QMessageBox.ButtonRole.AcceptRole,
+        )
+        message_box.addButton(self.tr("cancel"), QMessageBox.ButtonRole.RejectRole)
+        message_box.setDefaultButton(save_button)
+        message_box.exec()
+        return message_box.clickedButton() == save_button
+
+    def ui_scale_label_for_mode(self, mode):
+        return dict(self.ui_scale_items()).get(mode, f"{mode}%")
 
     def open_settings_menu(self):
         dialog = QDialog(self)
@@ -1803,6 +1839,10 @@ class WifiHeatmapQtApp(QMainWindow):
         return False
 
     def closeEvent(self, event):
+        if self.restart_requested:
+            event.accept()
+            return
+
         if self.scan_in_progress:
             x, y = self.pending_scan_point or ("-", "-")
             self.status.showMessage(self.tr("scanning", x=x, y=y))

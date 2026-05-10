@@ -1,3 +1,5 @@
+"""Data preparation and numerical map-generation helpers."""
+
 import pandas as pd
 import numpy as np
 from scipy.ndimage import gaussian_filter

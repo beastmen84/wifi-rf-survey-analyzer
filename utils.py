@@ -1,3 +1,5 @@
+"""Small utility helpers shared across scan parsing and map generation."""
+
 import re
 
 

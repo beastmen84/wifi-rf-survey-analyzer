@@ -1,3 +1,5 @@
+"""Point quality evaluation based on relevant SSIDs and scan confidence."""
+
 from collections import defaultdict
 
 

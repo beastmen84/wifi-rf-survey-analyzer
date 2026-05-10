@@ -1,3 +1,5 @@
+"""Color palettes and theme ordering for the Qt interface."""
+
 QT_THEME_OPTIONS = ("light", "soft", "dark", "contrast")
 
 QT_THEMES = {

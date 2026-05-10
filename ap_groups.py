@@ -1,3 +1,5 @@
+"""AP grouping, aliasing, role, and metadata helpers."""
+
 import pandas as pd
 
 AP_GROUPS_METADATA_KEY = "ap_groups"

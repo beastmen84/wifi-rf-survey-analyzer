@@ -1,3 +1,5 @@
+"""Distance-based AP position analysis for dominant AP maps."""
+
 import math
 
 

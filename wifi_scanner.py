@@ -1,3 +1,5 @@
+"""Wi-Fi scan backends and normalization of observed networks."""
+
 import re
 import subprocess
 import sys

@@ -71,6 +71,7 @@ Core logic/data:
 - `map_config.py`: current map settings.
 - `constants.py`: schema/version/config constants.
 - `app_logging.py`: unified Qt logging setup and compatibility wrappers.
+- `app_restart.py`: source/exe restart command helpers used by UI scale changes.
 
 Docs:
 
@@ -598,6 +599,17 @@ Language:
   UI scale, plus theme changes; tests now cover device-pixel-ratio resolution
   detection, resolution buckets, relative scale percentages, and diagnostics
   formatting.
+- UI scale changes now require an explicit restart confirmation. The Settings
+  popup shows `Save and restart` / `Cancel`; the selected scale is saved only
+  after confirmation, a replacement process is launched through
+  `app_restart.py`, and the current app exits. In the workspace, scale changes
+  are blocked while a Wi-Fi scan or live map render is active, and unsaved
+  survey changes still go through the normal save/discard/cancel prompt before
+  restart.
+- Added module docstrings to all top-level Python modules that were missing
+  them. This is intentionally lightweight documentation so future refactors can
+  identify each file's responsibility without adding noisy per-handler comments.
+  Tests now also cover source-mode and frozen-exe restart command construction.
 
 Recent commits:
 

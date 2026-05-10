@@ -1,3 +1,5 @@
+"""Qt startup screen and lazy workspace loader for the Wi-Fi survey app."""
+
 import sys
 from pathlib import Path
 
@@ -23,6 +25,7 @@ except ModuleNotFoundError as exc:
     raise SystemExit(1) from exc
 
 from app_logging import configure_logging, log_event, log_exception, log_unhandled_exception
+from app_restart import start_replacement_process
 from app_settings import get_saved_theme, get_saved_ui_scale, save_theme, save_ui_scale
 from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_language, translate
 from qt_theme import QT_THEME_OPTIONS, QT_THEMES
@@ -410,16 +413,44 @@ class StartWindow(QMainWindow):
         if mode == self.ui_scale_mode:
             return
 
-        self.ui_scale_mode = mode
-        self.ui_scale = resolve_ui_scale(mode)
-        save_ui_scale(mode)
+        if not self.confirm_ui_scale_restart(mode):
+            return
+        if not save_ui_scale(mode):
+            QMessageBox.warning(self, self.tr("warning"), self.tr("settings_save_failed"))
+            return
+
         log_event(
-            f"startup ui scale changed {format_ui_scale_diagnostics(ui_scale_diagnostics(mode))}",
+            f"startup ui scale saved for restart {format_ui_scale_diagnostics(ui_scale_diagnostics(mode))}",
             logger_name="ui",
         )
-        self.setMinimumSize(self.spx(1100), self.spx(720))
-        self.apply_styles()
-        self.ready_note.setText(self.tr("ui_scale_saved_restart"))
+        try:
+            start_replacement_process()
+        except OSError as exc:
+            log_exception("startup restart failed after ui scale change", exc, logger_name="ui")
+            QMessageBox.warning(self, self.tr("warning"), self.tr("restart_failed"))
+            return
+
+        self.close_after_load = True
+        QApplication.instance().quit()
+
+    def confirm_ui_scale_restart(self, mode):
+        message_box = QMessageBox(self)
+        message_box.setIcon(QMessageBox.Icon.Question)
+        message_box.setWindowTitle(self.tr("ui_scale_restart_title"))
+        message_box.setText(
+            self.tr("ui_scale_restart_message", scale=self.ui_scale_label_for_mode(mode))
+        )
+        save_button = message_box.addButton(
+            self.tr("save_and_restart"),
+            QMessageBox.ButtonRole.AcceptRole,
+        )
+        message_box.addButton(self.tr("cancel"), QMessageBox.ButtonRole.RejectRole)
+        message_box.setDefaultButton(save_button)
+        message_box.exec()
+        return message_box.clickedButton() == save_button
+
+    def ui_scale_label_for_mode(self, mode):
+        return dict(self.ui_scale_items()).get(mode, f"{mode}%")
 
     def open_settings_menu(self):
         dialog = QDialog(self)

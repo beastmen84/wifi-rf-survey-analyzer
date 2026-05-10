@@ -1,3 +1,5 @@
+"""Matplotlib drawing helpers shared by static map exports."""
+
 from matplotlib.lines import Line2D
 
 MAX_REFERENCE_ROWS = 10

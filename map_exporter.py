@@ -1,3 +1,5 @@
+"""PNG and report export workflow for generated Wi-Fi maps."""
+
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path

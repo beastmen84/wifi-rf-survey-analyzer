@@ -1,3 +1,5 @@
+"""Qt dialogs and worker used while adding a measured survey point."""
+
 from PySide6.QtCore import QObject, Signal, Slot
 from PySide6.QtWidgets import (
     QCheckBox,
