@@ -1607,6 +1607,7 @@ class WifiHeatmapQtApp(QMainWindow):
 
         self.floorplan_view.set_points(self.session.get_point_summaries())
         self.floorplan_view.set_ap_groups(self.session.get_ap_groups())
+        QTimer.singleShot(0, self.floorplan_view.fit_to_view)
         self.refresh_session_labels()
         point_count = len(self.session.get_point_summaries())
         if point_count:

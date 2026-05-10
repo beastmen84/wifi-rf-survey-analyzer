@@ -550,6 +550,8 @@ Language:
   rows.
 - Removed the extra current-cell focus rectangle from the floating measurements
   table so only the full selected row is visually highlighted.
+- Added automatic floorplan fit after every plan load, covering both explicit
+  `Load plan` usage and loading the map associated with an existing survey.
 
 Recent commits:
 
