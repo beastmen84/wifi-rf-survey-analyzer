@@ -10,17 +10,29 @@ from ap_groups import (
     build_default_manual_groups,
     build_detected_ap_groups,
     merge_new_bssids_into_manual_groups,
+    normalize_ap_metadata,
     normalize_ap_role,
 )
 
 
-AP_GROUP_COLUMNS = ("status", "group", "alias", "role", "position", "bssids", "ssids", "channels", "locked")
+AP_GROUP_COLUMNS = (
+    "status",
+    "group",
+    "alias",
+    "role",
+    "position",
+    "metadata",
+    "bssids",
+    "ssids",
+    "channels",
+    "locked",
+)
 
 
 def open_ap_group_manager(app):
     dialog = app.create_modal_dialog(app.tr("ap_groups_title"))
-    dialog.geometry("1680x800")
-    dialog.minsize(1440, 720)
+    dialog.geometry("1780x820")
+    dialog.minsize(1500, 740)
 
     frame = ttk.Frame(dialog, padding=12)
     frame.pack(fill=tk.BOTH, expand=True)
@@ -48,6 +60,7 @@ def open_ap_group_manager(app):
     def refresh_group_details(group):
         group["alias"] = group.get("alias") or aliases.get(group["group_id"], "")
         group["role"] = normalize_ap_role(group.get("role", AP_ROLE_INTERNAL))
+        group["metadata"] = normalize_ap_metadata(group.get("metadata"))
         seen_ssids = set()
         seen_channels = set()
         display_groups = set()
@@ -80,6 +93,8 @@ def open_ap_group_manager(app):
             group["group_id"]: {
                 "alias": group.get("alias", ""),
                 "role": normalize_ap_role(group.get("role")),
+                "position": group.get("position"),
+                "metadata": normalize_ap_metadata(group.get("metadata")),
             }
             for group in groups
         }
@@ -88,6 +103,10 @@ def open_ap_group_manager(app):
             saved_state = state_by_group.get(group["group_id"], {})
             group["alias"] = saved_state.get("alias") or aliases.get(group["group_id"], "")
             group["role"] = saved_state.get("role", AP_ROLE_INTERNAL)
+            if saved_state.get("position"):
+                group["position"] = saved_state["position"]
+            if saved_state.get("metadata"):
+                group["metadata"] = saved_state["metadata"]
             group["locked"] = False
         refresh_all_group_details()
         render_alias_rows()
@@ -115,6 +134,7 @@ def open_ap_group_manager(app):
     tree.column("alias", width=230, minwidth=170, anchor="w", stretch=True)
     tree.column("role", width=140, minwidth=110, anchor="center", stretch=False)
     tree.column("position", width=120, minwidth=100, anchor="center", stretch=False)
+    tree.column("metadata", width=200, minwidth=140, anchor="w", stretch=True)
     tree.column("bssids", width=390, minwidth=250, anchor="w", stretch=True)
     tree.column("ssids", width=320, minwidth=210, anchor="w", stretch=True)
     tree.column("channels", width=120, minwidth=90, anchor="center", stretch=False)
@@ -136,6 +156,22 @@ def open_ap_group_manager(app):
 
         return f"{', '.join(clean_values[:limit])} (+{len(clean_values) - limit})"
 
+    def format_metadata_preview(metadata):
+        metadata = normalize_ap_metadata(metadata)
+        vendor_model = " ".join(
+            value
+            for value in (metadata.get("vendor"), metadata.get("model"))
+            if value
+        )
+        if vendor_model:
+            return vendor_model
+
+        for field in ("mounting", "expected_bands", "expected_channels", "notes"):
+            if metadata.get(field):
+                return metadata[field]
+
+        return "-"
+
     def get_group_display_values(group):
         alias = group.get("alias", "")
         role = normalize_ap_role(group.get("role"))
@@ -147,6 +183,7 @@ def open_ap_group_manager(app):
             alias,
             app.tr(f"ap_group_role_{role}"),
             position_label,
+            format_metadata_preview(group.get("metadata")),
             format_list_preview(group["bssids"]),
             ", ".join(group["ssids"]),
             ", ".join(group["channels"]),
@@ -159,6 +196,7 @@ def open_ap_group_manager(app):
 
         alias = group.get("alias", "")
         role = normalize_ap_role(group.get("role"))
+        metadata = normalize_ap_metadata(group.get("metadata"))
         position = group.get("position") or {}
         position_text = f"{position.get('x', '')} {position.get('y', '')}" if position else ""
         haystack = " ".join([
@@ -167,6 +205,7 @@ def open_ap_group_manager(app):
             alias,
             role,
             app.tr(f"ap_group_role_{role}"),
+            " ".join(metadata.values()),
             position_text,
             " ".join(group["bssids"]),
             " ".join(group["ssids"]),
@@ -185,6 +224,8 @@ def open_ap_group_manager(app):
         if column == "position":
             position = group.get("position") or {}
             return (position.get("x", 999999), position.get("y", 999999))
+        if column == "metadata":
+            return format_metadata_preview(group.get("metadata")).lower()
         if column == "bssids":
             return " ".join(group["bssids"]).lower()
         if column == "ssids":
@@ -263,6 +304,7 @@ def open_ap_group_manager(app):
     tree.heading("alias", text=app.tr("ap_alias_value"), command=lambda: sort_by_column("alias"))
     tree.heading("role", text=app.tr("ap_group_role"), command=lambda: sort_by_column("role"))
     tree.heading("position", text=app.tr("ap_group_position"), command=lambda: sort_by_column("position"))
+    tree.heading("metadata", text=app.tr("ap_group_metadata"), command=lambda: sort_by_column("metadata"))
     tree.heading("bssids", text=app.tr("ap_alias_bssids"), command=lambda: sort_by_column("bssids"))
     tree.heading("ssids", text=app.tr("ap_alias_ssids"), command=lambda: sort_by_column("ssids"))
     tree.heading("channels", text=app.tr("ap_alias_channels"), command=lambda: sort_by_column("channels"))
@@ -280,17 +322,16 @@ def open_ap_group_manager(app):
 
     def set_alias(group_key, value):
         value = value.strip()
+        target_group = None
         for group in groups:
             if group["group_id"] == group_key:
                 group["alias"] = value
                 group["locked"] = True
+                target_group = group
                 break
 
-        current_values = list(tree.item(group_key, "values"))
-        current_values[0] = "OK" if value else ""
-        current_values[2] = value
-        current_values[8] = app.tr("yes")
-        tree.item(group_key, values=current_values)
+        if target_group:
+            tree.item(group_key, values=get_group_display_values(target_group))
         tree.item(group_key, tags=("aliased",) if value else ())
         update_alias_action_state()
 
@@ -331,16 +372,16 @@ def open_ap_group_manager(app):
 
     def set_role(group_key, role):
         role = normalize_ap_role(role)
+        target_group = None
         for group in groups:
             if group["group_id"] == group_key:
                 group["role"] = role
                 group["locked"] = True
+                target_group = group
                 break
 
-        current_values = list(tree.item(group_key, "values"))
-        current_values[3] = app.tr(f"ap_group_role_{role}")
-        current_values[8] = app.tr("yes")
-        tree.item(group_key, values=current_values)
+        if target_group:
+            tree.item(group_key, values=get_group_display_values(target_group))
 
     def prompt_role_for_selected_group():
         group_key = get_selected_group_key()
@@ -381,6 +422,96 @@ def open_ap_group_manager(app):
         ttk.Button(buttons, text=app.tr("save"), command=apply_role, bootstyle=PRIMARY).pack(side=tk.RIGHT, padx=(0, 8))
         role_dialog.bind("<Escape>", lambda _event: role_dialog.destroy())
         app.center_dialog(role_dialog)
+
+    def open_metadata_dialog_for_selected_group():
+        group_key = get_selected_group_key()
+        if not group_key:
+            return
+
+        group = get_group_by_key(group_key)
+        if group is None:
+            return
+
+        metadata = normalize_ap_metadata(group.get("metadata"))
+        metadata_dialog = app.create_modal_dialog(app.tr("ap_group_metadata_title"))
+        metadata_dialog.geometry("760x620")
+        metadata_dialog.minsize(720, 560)
+
+        content = ttk.Frame(metadata_dialog, padding=16)
+        content.pack(fill=tk.BOTH, expand=True)
+        ttk.Label(
+            content,
+            text=app.tr("ap_group_metadata_hint"),
+            wraplength=700,
+            style="ReadableMuted.TLabel"
+        ).pack(anchor="w", pady=(0, 12))
+
+        form = ttk.Frame(content)
+        form.pack(fill=tk.BOTH, expand=True)
+        form.grid_columnconfigure(1, weight=1)
+
+        fields = ("vendor", "model", "mounting", "expected_bands", "expected_channels")
+        field_vars = {}
+        for row, field in enumerate(fields):
+            ttk.Label(form, text=app.tr(f"ap_group_metadata_{field}")).grid(
+                row=row,
+                column=0,
+                sticky="w",
+                padx=(0, 12),
+                pady=6
+            )
+            field_vars[field] = tk.StringVar(value=metadata.get(field, ""))
+            ttk.Entry(form, textvariable=field_vars[field]).grid(
+                row=row,
+                column=1,
+                sticky="ew",
+                pady=6
+            )
+
+        notes_row = len(fields)
+        ttk.Label(form, text=app.tr("ap_group_metadata_notes")).grid(
+            row=notes_row,
+            column=0,
+            sticky="nw",
+            padx=(0, 12),
+            pady=(10, 0)
+        )
+        notes_text = tk.Text(
+            form,
+            height=8,
+            wrap="word",
+            undo=True,
+            background=getattr(app, "live_overlay_bg", "#ffffff"),
+            foreground=getattr(app, "readable_text_color", "#000000"),
+            insertbackground=getattr(app, "readable_text_color", "#000000"),
+            highlightbackground=getattr(app, "live_overlay_separator", "#d7dde3"),
+            highlightthickness=1,
+            relief="solid",
+            borderwidth=1,
+        )
+        notes_text.insert("1.0", metadata.get("notes", ""))
+        notes_text.grid(row=notes_row, column=1, sticky="nsew", pady=(10, 0))
+        form.grid_rowconfigure(notes_row, weight=1)
+
+        def apply_metadata():
+            values = {
+                field: field_vars[field].get()
+                for field in fields
+            }
+            values["notes"] = notes_text.get("1.0", "end").strip()
+            group["metadata"] = normalize_ap_metadata(values)
+            group["locked"] = True
+            tree.item(group_key, values=get_group_display_values(group))
+            tree.item(group_key, tags=("aliased",) if group.get("alias") else ())
+            schedule_alias_table_resize()
+            metadata_dialog.destroy()
+
+        buttons = ttk.Frame(content)
+        buttons.pack(fill=tk.X, pady=(14, 0))
+        ttk.Button(buttons, text=app.tr("cancel"), command=metadata_dialog.destroy, bootstyle=SECONDARY).pack(side=tk.RIGHT)
+        ttk.Button(buttons, text=app.tr("save"), command=apply_metadata, bootstyle=PRIMARY).pack(side=tk.RIGHT, padx=(0, 8))
+        metadata_dialog.bind("<Escape>", lambda _event: metadata_dialog.destroy())
+        app.center_dialog(metadata_dialog)
 
     def open_bssid_group_dialog(group_key):
         group = get_group_by_key(group_key)
@@ -598,6 +729,12 @@ def open_ap_group_manager(app):
         command=prompt_role_for_selected_group,
         bootstyle=SECONDARY
     ).pack(side=tk.LEFT, padx=(8, 0))
+    ttk.Button(
+        buttons,
+        text=app.tr("ap_group_metadata"),
+        command=open_metadata_dialog_for_selected_group,
+        bootstyle=SECONDARY
+    ).pack(side=tk.LEFT, padx=(8, 0))
     ttk.Separator(buttons, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=(12, 8))
     ttk.Button(
         buttons,
@@ -625,6 +762,7 @@ def adjust_ap_group_table_columns(app, tree, columns):
         "alias": 180,
         "role": 110,
         "position": 100,
+        "metadata": 150,
         "bssids": 260,
         "ssids": 220,
         "channels": 92,
@@ -636,6 +774,7 @@ def adjust_ap_group_table_columns(app, tree, columns):
         "alias": 360,
         "role": 160,
         "position": 130,
+        "metadata": 360,
         "bssids": 620,
         "ssids": 440,
         "channels": 140,
@@ -653,7 +792,7 @@ def adjust_ap_group_table_columns(app, tree, columns):
             measured[column] = max(measured[column], body_font.measure(str(value)) + 34)
 
     fixed_columns = ("status", "role", "position", "channels", "locked")
-    flexible_columns = ("group", "alias", "bssids", "ssids")
+    flexible_columns = ("group", "alias", "metadata", "bssids", "ssids")
     widths = {
         column: min(max(measured[column], min_widths[column]), max_widths[column])
         for column in columns
@@ -670,7 +809,7 @@ def adjust_ap_group_table_columns(app, tree, columns):
             widths[column] = max(min_widths[column], int(widths[column] * scale))
     elif desired_flexible_total < flexible_available:
         extra = flexible_available - desired_flexible_total
-        priority = ("bssids", "ssids", "group", "alias")
+        priority = ("bssids", "ssids", "group", "alias", "metadata")
         for column in priority:
             room = max_widths[column] - widths[column]
             added = min(room, extra)

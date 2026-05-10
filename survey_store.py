@@ -12,7 +12,12 @@ from constants import (
     SURVEY_FIELDNAMES,
     SURVEY_SCHEMA_VERSION,
 )
-from ap_groups import AP_GROUPS_METADATA_KEY, normalize_ap_position, normalize_ap_role
+from ap_groups import (
+    AP_GROUPS_METADATA_KEY,
+    normalize_ap_metadata,
+    normalize_ap_position,
+    normalize_ap_role,
+)
 
 
 class SurveyFormatError(ValueError):
@@ -235,6 +240,10 @@ class SurveySession:
             position = normalize_ap_position(group.get("position"))
             if position:
                 clean_group["position"] = position
+
+            metadata = normalize_ap_metadata(group.get("metadata"))
+            if metadata:
+                clean_group["metadata"] = metadata
 
             clean_groups.append(clean_group)
 

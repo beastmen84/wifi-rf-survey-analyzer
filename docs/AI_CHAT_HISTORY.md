@@ -223,6 +223,13 @@ Implemented:
   - right click on floor plan to store position;
   - saved in AP group metadata;
   - dirty state updated.
+- AP metadata:
+  - vendor;
+  - model;
+  - mounting type;
+  - expected bands;
+  - expected channels;
+  - notes.
 - Reset to automatic grouping.
 - AP Group Manager is intentionally not perfect visually in ttkbootstrap; later
   PySide6 could improve complex table behavior.
@@ -340,6 +347,9 @@ Language:
   - excluded test AP count;
   - AP position warning count;
   - point issues for suspicious dominant AP physical position.
+- Added lightweight AP metadata editing in AP Group Manager. Metadata is saved
+  inside AP group survey metadata and currently acts as descriptive V2 input,
+  without changing map calculations yet.
 
 Recent commits:
 
@@ -361,11 +371,11 @@ Recent commits:
 
 Good next steps, in likely order:
 
-1. Add more AP metadata fields only when clearly useful:
-   vendor, model, mounting type, expected channels/bands, notes.
-2. Improve AP Group Manager workflows:
+1. Improve AP Group Manager workflows:
    better manual split/merge UX, clearer locked/manual status, possible conflict
    detection when automatic grouping suggests suspicious merges.
+2. Decide how AP metadata should influence V2 analysis, for example expected
+   bands/channels checks or mounting-aware warnings.
 3. Improve live map performance only if user sees real lag on large surveys.
 4. Rework Help structure later, after the feature set stabilizes.
 5. Consider PySide6 migration only after core logic is sufficiently separated.

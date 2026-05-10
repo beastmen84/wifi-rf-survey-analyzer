@@ -1,6 +1,14 @@
 import pandas as pd
 
 AP_GROUPS_METADATA_KEY = "ap_groups"
+AP_METADATA_FIELDS = (
+    "vendor",
+    "model",
+    "mounting",
+    "expected_bands",
+    "expected_channels",
+    "notes",
+)
 AP_ROLE_INTERNAL = "internal"
 AP_ROLE_EXTERNAL = "external"
 AP_ROLE_INTERFERER = "interferer"
@@ -118,7 +126,26 @@ def normalize_ap_role(value):
     return role if role in AP_ROLE_CHOICES else AP_ROLE_INTERNAL
 
 
-def build_manual_ap_group(group_id, bssids, alias="", locked=True, position=None, role=AP_ROLE_INTERNAL):
+def normalize_ap_metadata(value):
+    if not isinstance(value, dict):
+        return {}
+
+    return {
+        field: str(value.get(field, "")).strip()
+        for field in AP_METADATA_FIELDS
+        if str(value.get(field, "")).strip()
+    }
+
+
+def build_manual_ap_group(
+    group_id,
+    bssids,
+    alias="",
+    locked=True,
+    position=None,
+    role=AP_ROLE_INTERNAL,
+    metadata=None,
+):
     clean_bssids = sorted({
         normalize_bssid(bssid)
         for bssid in bssids
@@ -138,6 +165,10 @@ def build_manual_ap_group(group_id, bssids, alias="", locked=True, position=None
     clean_position = normalize_ap_position(position)
     if clean_position:
         group["position"] = clean_position
+
+    clean_metadata = normalize_ap_metadata(metadata)
+    if clean_metadata:
+        group["metadata"] = clean_metadata
 
     return group
 
@@ -169,6 +200,7 @@ def merge_new_bssids_into_manual_groups(manual_groups, rows):
             locked=group.get("locked", True),
             position=group.get("position"),
             role=group.get("role", AP_ROLE_INTERNAL),
+            metadata=group.get("metadata"),
         )
         for group in manual_groups
     ]
