@@ -3917,6 +3917,9 @@ class WifiHeatmapApp(ModalDialogMixin):
             )
             return False
 
+        dominant_df = self.add_ap_position_report_columns(dominant_df)
+        dominant_df["ap_position_has_warning"] = dominant_df["ap_position_warnings"].astype(str).str.len() > 0
+
         bg = np.array(self.bg_image)
         fig, ax = plt.subplots(figsize=(14, 8))
         ax.imshow(bg)
@@ -3934,15 +3937,29 @@ class WifiHeatmapApp(ModalDialogMixin):
             1.3 if row.get("roaming_overlap") else 0.45
             for _index, row in dominant_df.iterrows()
         ]
-        ax.scatter(
-            dominant_df["x"].values,
-            dominant_df["y"].values,
-            c=colors,
-            s=36,
-            edgecolors=edge_colors,
-            linewidths=line_widths,
-            zorder=3
-        )
+        warning_mask = dominant_df["ap_position_has_warning"]
+        if (~warning_mask).any():
+            ax.scatter(
+                dominant_df.loc[~warning_mask, "x"].values,
+                dominant_df.loc[~warning_mask, "y"].values,
+                c=[color for color, is_warning in zip(colors, warning_mask) if not is_warning],
+                s=36,
+                edgecolors=[color for color, is_warning in zip(edge_colors, warning_mask) if not is_warning],
+                linewidths=[width for width, is_warning in zip(line_widths, warning_mask) if not is_warning],
+                marker="o",
+                zorder=3
+            )
+        if warning_mask.any():
+            ax.scatter(
+                dominant_df.loc[warning_mask, "x"].values,
+                dominant_df.loc[warning_mask, "y"].values,
+                c=[color for color, is_warning in zip(colors, warning_mask) if is_warning],
+                s=44,
+                edgecolors=[color for color, is_warning in zip(edge_colors, warning_mask) if is_warning],
+                linewidths=[width for width, is_warning in zip(line_widths, warning_mask) if is_warning],
+                marker="^",
+                zorder=3
+            )
         references = annotate_dominant_ap_references(
             ax,
             dominant_df,
@@ -3962,7 +3979,8 @@ class WifiHeatmapApp(ModalDialogMixin):
                 color_map,
                 self.tr("dominant_map_roaming_overlap"),
                 other_label=self.tr("legend_other"),
-                group_labels=self.build_dominant_ap_group_labels(dominant_df)
+                group_labels=self.build_dominant_ap_group_labels(dominant_df),
+                position_warning_label=self.tr("ap_position_warning_legend")
             ),
             title=self.tr("dominant_map_legend_title"),
             loc="lower right",

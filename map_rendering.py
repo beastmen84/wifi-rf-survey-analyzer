@@ -184,7 +184,14 @@ def build_interference_legend_handles(low_label, medium_label, high_label):
     ]
 
 
-def build_dominant_ap_legend_handles(dominant_df, color_map, roaming_label, other_label="Altri", group_labels=None):
+def build_dominant_ap_legend_handles(
+    dominant_df,
+    color_map,
+    roaming_label,
+    other_label="Altri",
+    group_labels=None,
+    position_warning_label=None
+):
     group_labels = group_labels or {}
     handles = []
     visible_groups = [
@@ -215,6 +222,20 @@ def build_dominant_ap_legend_handles(dominant_df, color_map, roaming_label, othe
                 markeredgecolor="#f1c40f",
                 markeredgewidth=2,
                 markersize=6
+            )
+        )
+
+    if position_warning_label and dominant_df.get("ap_position_has_warning", []).any():
+        handles.append(
+            Line2D(
+                [0],
+                [0],
+                marker="^",
+                color="w",
+                label=position_warning_label,
+                markerfacecolor="#d62728",
+                markeredgecolor="black",
+                markersize=7
             )
         )
 
