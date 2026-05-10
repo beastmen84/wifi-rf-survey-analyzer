@@ -659,6 +659,11 @@ Language:
 - The AP metadata channel picker now sizes itself from the number of channels in
   the selected band, so the 2.4 GHz picker is compact while the 5 GHz picker can
   remain larger for its longer channel list.
+- Dialog placement is now centralized through a Qt event filter in
+  `qt_windowing.py`. Every top-level `QDialog`, including custom dialogs and
+  standard message/input boxes, is centered on first show relative to its parent
+  window or the active screen. The filter is installed by both `main.py` and the
+  direct `qt_app.py` entry point.
 
 Recent commits:
 

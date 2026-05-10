@@ -66,6 +66,7 @@ from qt_map_generation import MapGenerationDialog
 from qt_point_workflow import MissingRelevantNetworksDialog, RelevantNetworksDialog, WifiScanWorker
 from qt_quality_dashboard import open_qt_quality_dashboard
 from qt_theme import QT_THEME_OPTIONS, QT_THEMES
+from qt_windowing import install_dialog_centering
 from survey_store import SurveyFormatError, SurveySession
 from ui_scaling import (
     UI_SCALE_OPTIONS,
@@ -2663,6 +2664,7 @@ def main():
     log_event("qt app start", logger_name="main")
     install_exception_logging()
     app = QApplication(sys.argv)
+    install_dialog_centering(app)
     window = WifiHeatmapQtApp()
     window.showMaximized()
     sys.exit(app.exec())

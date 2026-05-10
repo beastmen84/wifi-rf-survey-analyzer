@@ -29,6 +29,7 @@ from app_restart import start_replacement_process
 from app_settings import get_saved_theme, get_saved_ui_scale, save_theme, save_ui_scale
 from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_language, translate
 from qt_theme import QT_THEME_OPTIONS, QT_THEMES
+from qt_windowing import install_dialog_centering
 from ui_scaling import (
     UI_SCALE_OPTIONS,
     detect_auto_ui_scale_percent,
@@ -632,6 +633,7 @@ def main():
     install_exception_logging()
     log_event("qt launcher start", logger_name="startup")
     app = QApplication(sys.argv)
+    install_dialog_centering(app)
     app.setApplicationName("Wi-Fi RF Survey Analyzer")
     window = StartWindow()
     window.showMaximized()
