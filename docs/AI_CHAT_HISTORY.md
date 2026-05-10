@@ -414,6 +414,7 @@ Language:
 
 Recent commits:
 
+- `d3cf068` Add Qt discrete live maps.
 - `58d4a3a` Add Qt live map preview.
 - `ce08bea` Add AI chat continuity notes.
 - `7dfb5be` Hide test AP groups from map analysis.
