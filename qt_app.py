@@ -5,7 +5,6 @@ from pathlib import Path
 
 try:
     from PySide6.QtCore import Qt, QThread, QTimer
-    from PySide6.QtGui import QAction
     from PySide6.QtWidgets import (
         QAbstractItemView,
         QApplication,
@@ -30,7 +29,6 @@ try:
         QTableWidget,
         QTableWidgetItem,
         QTabWidget,
-        QToolBar,
         QVBoxLayout,
         QWidget,
     )
@@ -193,69 +191,10 @@ class WifiHeatmapQtApp(QMainWindow):
         page = QWidget()
         layout = QVBoxLayout(page)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
-        self.toolbar = QToolBar()
-        self.toolbar.setMovable(False)
-        self.toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        self.addToolBar(self.toolbar)
-
-        self.new_action = QAction(self)
-        self.open_action = QAction(self)
-        self.save_action = QAction(self)
-        self.load_plan_action = QAction(self)
-        self.zoom_out_action = QAction("-", self)
-        self.zoom_in_action = QAction("+", self)
-        self.fit_action = QAction(self)
-        self.calibrate_action = QAction(self)
-        self.ap_groups_action = QAction(self)
-        self.quality_action = QAction(self)
-        self.help_action = QAction(self)
-        self.generate_action = QAction(self)
-        self.new_action.triggered.connect(self.new_survey)
-        self.open_action.triggered.connect(lambda _checked=False: self.open_survey())
-        self.save_action.triggered.connect(self.save_survey)
-        self.load_plan_action.triggered.connect(self.load_plan)
-        self.zoom_out_action.triggered.connect(self.zoom_out)
-        self.zoom_in_action.triggered.connect(self.zoom_in)
-        self.fit_action.triggered.connect(self.fit_floorplan)
-        self.calibrate_action.triggered.connect(self.start_scale_calibration)
-        self.ap_groups_action.triggered.connect(self.open_ap_group_manager)
-        self.quality_action.triggered.connect(self.open_quality_dashboard)
-        self.help_action.triggered.connect(self.open_help_dialog)
-        self.generate_action.triggered.connect(self.open_generate_map_dialog)
-
-        for action in (
-            self.new_action,
-            self.open_action,
-            self.save_action,
-            self.load_plan_action,
-        ):
-            self.toolbar.addAction(action)
-        self.save_tool_button = self.toolbar.widgetForAction(self.save_action)
-        if self.save_tool_button is not None:
-            self.save_tool_button.setObjectName("toolbarButton")
-        self.toolbar.addSeparator()
-        for action in (self.zoom_out_action, self.zoom_in_action, self.fit_action, self.calibrate_action):
-            self.toolbar.addAction(action)
-        self.toolbar.addSeparator()
-        for action in (self.ap_groups_action, self.quality_action, self.help_action, self.generate_action):
-            self.toolbar.addAction(action)
-
-        self.toolbar.addSeparator()
-        self.toolbar.addWidget(QLabel("  "))
-        self.workspace_theme_label = QLabel()
-        self.workspace_theme_combo = QComboBox()
-        self.workspace_theme_combo.currentIndexChanged.connect(self.change_theme)
-        self.toolbar.addWidget(self.workspace_theme_label)
-        self.toolbar.addWidget(self.workspace_theme_combo)
-        self.toolbar.addSeparator()
-        self.workspace_language_label = QLabel()
-        self.workspace_language_combo = QComboBox()
-        self.workspace_language_combo.addItems(SUPPORTED_LANGUAGES)
-        self.workspace_language_combo.setCurrentText(self.language.upper())
-        self.workspace_language_combo.currentTextChanged.connect(self.change_language)
-        self.toolbar.addWidget(self.workspace_language_label)
-        self.toolbar.addWidget(self.workspace_language_combo)
+        self.app_bar = self.build_app_bar()
+        layout.addWidget(self.app_bar)
 
         self.tabs = QTabWidget()
         self.tabs.addTab(self.build_survey_tab(), "")
@@ -274,6 +213,123 @@ class WifiHeatmapQtApp(QMainWindow):
 
         return page
 
+    def build_app_bar(self):
+        bar = QFrame()
+        bar.setObjectName("appBar")
+        layout = QHBoxLayout(bar)
+        layout.setContentsMargins(14, 10, 14, 10)
+        layout.setSpacing(10)
+
+        project_section, self.project_section_label, project_row = self.build_app_bar_section()
+        self.new_workspace_button = self.create_app_bar_button(self.new_survey)
+        self.open_workspace_button = self.create_app_bar_button(lambda: self.open_survey())
+        self.save_workspace_button = self.create_app_bar_button(self.save_survey)
+        self.load_plan_button = self.create_app_bar_button(self.load_plan)
+        self.save_tool_button = self.save_workspace_button
+        for button in (
+            self.new_workspace_button,
+            self.open_workspace_button,
+            self.save_workspace_button,
+            self.load_plan_button,
+        ):
+            project_row.addWidget(button)
+        layout.addWidget(project_section)
+
+        view_section, self.view_section_label, view_row = self.build_app_bar_section()
+        self.zoom_out_button = self.create_app_bar_button(self.zoom_out, "appBarIconButton")
+        self.zoom_in_button = self.create_app_bar_button(self.zoom_in, "appBarIconButton")
+        self.fit_view_button = self.create_app_bar_button(self.fit_floorplan)
+        self.calibrate_button = self.create_app_bar_button(self.start_scale_calibration)
+        for button in (
+            self.zoom_out_button,
+            self.zoom_in_button,
+            self.fit_view_button,
+            self.calibrate_button,
+        ):
+            view_row.addWidget(button)
+        layout.addWidget(view_section)
+
+        analysis_section, self.analysis_section_label, analysis_row = self.build_app_bar_section()
+        self.ap_groups_button = self.create_app_bar_button(self.open_ap_group_manager)
+        self.quality_button = self.create_app_bar_button(self.open_quality_dashboard)
+        self.help_button = self.create_app_bar_button(self.open_help_dialog)
+        self.generate_map_button = self.create_app_bar_button(
+            self.open_generate_map_dialog,
+            "primaryAppBarButton",
+        )
+        for button in (
+            self.ap_groups_button,
+            self.quality_button,
+            self.help_button,
+            self.generate_map_button,
+        ):
+            analysis_row.addWidget(button)
+        layout.addWidget(analysis_section, 1)
+
+        settings_section, self.settings_section_label, settings_row = self.build_app_bar_section()
+        self.workspace_theme_label = QLabel()
+        self.workspace_theme_label.setObjectName("appBarInlineLabel")
+        self.workspace_theme_combo = QComboBox()
+        self.workspace_theme_combo.currentIndexChanged.connect(self.change_theme)
+        self.workspace_language_label = QLabel()
+        self.workspace_language_label.setObjectName("appBarInlineLabel")
+        self.workspace_language_combo = QComboBox()
+        self.workspace_language_combo.addItems(SUPPORTED_LANGUAGES)
+        self.workspace_language_combo.setCurrentText(self.language.upper())
+        self.workspace_language_combo.currentTextChanged.connect(self.change_language)
+        for widget in (
+            self.workspace_theme_label,
+            self.workspace_theme_combo,
+            self.workspace_language_label,
+            self.workspace_language_combo,
+        ):
+            settings_row.addWidget(widget)
+        layout.addWidget(settings_section)
+
+        return bar
+
+    def build_app_bar_section(self):
+        section = QFrame()
+        section.setObjectName("appBarSection")
+        outer = QVBoxLayout(section)
+        outer.setContentsMargins(10, 7, 10, 8)
+        outer.setSpacing(5)
+
+        title = QLabel()
+        title.setObjectName("appBarSectionTitle")
+        row = QHBoxLayout()
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(6)
+
+        outer.addWidget(title)
+        outer.addLayout(row)
+        return section, title, row
+
+    def create_app_bar_button(self, callback, object_name="appBarButton"):
+        button = QPushButton()
+        button.setObjectName(object_name)
+        button.clicked.connect(lambda _checked=False: callback())
+        return button
+
+    def create_summary_card(self, title_key):
+        card = QFrame()
+        card.setObjectName("summaryCard")
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(12, 9, 12, 10)
+        layout.setSpacing(4)
+
+        title = QLabel()
+        title.setObjectName("summaryCardTitle")
+        value = QLabel()
+        value.setObjectName("summaryCardValue")
+        value.setWordWrap(True)
+        value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+
+        layout.addWidget(title)
+        layout.addWidget(value, 1)
+        self.summary_title_bindings.append((title, title_key))
+        return card, value, layout
+
     def build_survey_tab(self):
         tab = QWidget()
         layout = QVBoxLayout(tab)
@@ -282,31 +338,33 @@ class WifiHeatmapQtApp(QMainWindow):
 
         summary = QFrame()
         summary.setObjectName("summaryPanel")
+        self.summary_title_bindings = []
         grid = QGridLayout(summary)
-        grid.setContentsMargins(16, 14, 16, 14)
-        grid.setHorizontalSpacing(24)
-        grid.setVerticalSpacing(8)
+        grid.setContentsMargins(12, 12, 12, 12)
+        grid.setHorizontalSpacing(10)
+        grid.setVerticalSpacing(10)
 
-        self.csv_label = QLabel()
-        self.map_label = QLabel()
-        self.points_label = QLabel()
-        self.raw_rows_label = QLabel()
-        self.ap_groups_label = QLabel()
-        self.relevant_label = QLabel()
+        csv_card, self.csv_label, _csv_layout = self.create_summary_card("qt_csv")
+        map_card, self.map_label, _map_layout = self.create_summary_card("map")
+        points_card, self.points_label, _points_layout = self.create_summary_card("qt_points")
+        raw_card, self.raw_rows_label, _raw_layout = self.create_summary_card("qt_raw_rows")
+        ap_card, self.ap_groups_label, _ap_layout = self.create_summary_card("ap_groups_title")
+        relevant_card, self.relevant_label, relevant_layout = self.create_summary_card("saved_network")
         self.clear_relevant_button = QPushButton()
         self.clear_relevant_button.setObjectName("compactButton")
-        self.clear_relevant_button.setMaximumWidth(180)
+        self.clear_relevant_button.setMaximumWidth(170)
         self.clear_relevant_button.clicked.connect(self.clear_relevant_ssids)
-        for row, label in enumerate((
-            self.csv_label,
-            self.map_label,
-            self.points_label,
-            self.raw_rows_label,
-            self.ap_groups_label,
-            self.relevant_label,
+        relevant_layout.addWidget(self.clear_relevant_button, 0, Qt.AlignmentFlag.AlignLeft)
+        for index, card in enumerate((
+            csv_card,
+            map_card,
+            points_card,
+            raw_card,
+            ap_card,
+            relevant_card,
         )):
-            grid.addWidget(label, row // 2, row % 2)
-        grid.addWidget(self.clear_relevant_button, 3, 0)
+            grid.addWidget(card, index // 3, index % 3)
+            grid.setColumnStretch(index % 3, 1)
         layout.addWidget(summary)
 
         splitter = QSplitter(Qt.Orientation.Vertical)
@@ -482,6 +540,21 @@ class WifiHeatmapQtApp(QMainWindow):
                 border: 1px solid {palette["border"]};
                 border-radius: 6px;
             }}
+            QFrame#summaryCard {{
+                background: {palette["panel_alt"]};
+                border: 1px solid {palette["border"]};
+                border-radius: 6px;
+            }}
+            QLabel#summaryCardTitle {{
+                color: {palette["muted"]};
+                font-size: 8.5pt;
+                font-weight: 700;
+            }}
+            QLabel#summaryCardValue {{
+                color: {palette["title"]};
+                font-size: 10.5pt;
+                font-weight: 600;
+            }}
             QLabel#startTitle {{
                 font-size: 25pt;
                 font-weight: 700;
@@ -540,6 +613,52 @@ class WifiHeatmapQtApp(QMainWindow):
                 min-width: 0;
                 padding: 5px 8px;
             }}
+            QFrame#appBar {{
+                background: {palette["toolbar"]};
+                border-bottom: 1px solid {palette["border"]};
+            }}
+            QFrame#appBarSection {{
+                background: {palette["panel"]};
+                border: 1px solid {palette["border"]};
+                border-radius: 6px;
+            }}
+            QLabel#appBarSectionTitle {{
+                color: {palette["muted"]};
+                font-size: 8.5pt;
+                font-weight: 700;
+            }}
+            QLabel#appBarInlineLabel {{
+                color: {palette["muted"]};
+                font-size: 9pt;
+                font-weight: 600;
+            }}
+            QPushButton#appBarButton, QPushButton#appBarIconButton, QPushButton#primaryAppBarButton, QPushButton#dirtySaveButton {{
+                min-width: 0;
+                padding: 6px 10px;
+                border-radius: 5px;
+                font-weight: 600;
+            }}
+            QPushButton#appBarIconButton {{
+                min-width: 30px;
+                max-width: 34px;
+                padding: 6px 0;
+                font-size: 12pt;
+            }}
+            QPushButton#primaryAppBarButton {{
+                background: {palette["metric_info"]};
+                color: {palette["save_dirty_text"]};
+                border: 1px solid {palette["metric_info"]};
+            }}
+            QPushButton#primaryAppBarButton:disabled {{
+                background: {palette["button_bg"]};
+                color: {palette["muted"]};
+                border: 1px solid {palette["border"]};
+            }}
+            QPushButton#dirtySaveButton {{
+                background: {palette["save_dirty_bg"]};
+                color: {palette["save_dirty_text"]};
+                border: 1px solid {palette["save_dirty_border"]};
+            }}
             QToolButton {{
                 background: {palette["button_bg"]};
                 color: {palette["text"]};
@@ -556,12 +675,6 @@ class WifiHeatmapQtApp(QMainWindow):
                 color: {palette["save_dirty_text"]};
                 border: 1px solid {palette["save_dirty_border"]};
                 font-weight: 600;
-            }}
-            QToolBar {{
-                background: {palette["toolbar"]};
-                border-bottom: 1px solid {palette["border"]};
-                spacing: 8px;
-                padding: 6px;
             }}
             QComboBox {{
                 background: {palette["button_bg"]};
@@ -638,6 +751,12 @@ class WifiHeatmapQtApp(QMainWindow):
         self.start_language_label.setText(self.tr("language"))
         self.workspace_theme_label.setText(self.tr("theme"))
         self.workspace_language_label.setText(self.tr("language"))
+        self.project_section_label.setText(self.tr("toolbar_project"))
+        self.view_section_label.setText(self.tr("toolbar_view"))
+        self.analysis_section_label.setText(self.tr("toolbar_analysis"))
+        self.settings_section_label.setText(self.tr("toolbar_settings"))
+        for title_label, title_key in self.summary_title_bindings:
+            title_label.setText(self.tr(title_key))
         self.start_title.setText(self.tr("app_title"))
         self.start_subtitle.setText(self.tr("start_subtitle"))
         self.start_hint_title.setText(self.tr("qt_start_hint_title"))
@@ -646,16 +765,18 @@ class WifiHeatmapQtApp(QMainWindow):
         self.new_button.setText(self.tr("new_survey"))
         self.open_button.setText(self.tr("open_existing_survey"))
         self.exit_button.setText(self.tr("exit"))
-        self.new_action.setText(self.tr("new_survey"))
-        self.open_action.setText(self.tr("open_existing_survey"))
-        self.save_action.setText(self.tr("save"))
-        self.load_plan_action.setText(self.tr("load_plan"))
-        self.fit_action.setText(self.tr("fit"))
-        self.calibrate_action.setText(self.tr("calibrate_scale"))
-        self.ap_groups_action.setText(self.tr("ap_groups_title"))
-        self.quality_action.setText(self.tr("quality_dashboard_title"))
-        self.help_action.setText(self.tr("help"))
-        self.generate_action.setText(self.tr("generate_heatmap"))
+        self.new_workspace_button.setText(self.tr("new_survey"))
+        self.open_workspace_button.setText(self.tr("open_existing_survey"))
+        self.save_workspace_button.setText(self.tr("save"))
+        self.load_plan_button.setText(self.tr("load_plan"))
+        self.zoom_out_button.setText("-")
+        self.zoom_in_button.setText("+")
+        self.fit_view_button.setText(self.tr("fit"))
+        self.calibrate_button.setText(self.tr("calibrate_scale"))
+        self.ap_groups_button.setText(self.tr("ap_groups_title"))
+        self.quality_button.setText(self.tr("quality_dashboard_title"))
+        self.help_button.setText(self.tr("help"))
+        self.generate_map_button.setText(self.tr("generate_heatmap"))
         self.focus_point_button.setText(self.tr("go_to_point"))
         self.delete_selected_button.setText(self.tr("delete_selected"))
         self.delete_last_button.setText(self.tr("delete_last"))
@@ -1070,12 +1191,10 @@ class WifiHeatmapQtApp(QMainWindow):
 
     def show_start_page(self):
         self.stack.setCurrentWidget(self.start_page)
-        self.toolbar.setVisible(False)
         self.status.clearMessage()
 
     def show_workspace_page(self):
         self.stack.setCurrentWidget(self.workspace_page)
-        self.toolbar.setVisible(True)
         self.refresh_session_labels()
         self.refresh_points_table()
         self.maybe_update_live_preview()
@@ -1902,12 +2021,12 @@ class WifiHeatmapQtApp(QMainWindow):
             )
             dirty_suffix = " *" if self.session.dirty else ""
 
-        self.csv_label.setText(f"{self.tr('qt_csv')}: {csv_name}{dirty_suffix}")
-        self.map_label.setText(f"{self.tr('map')}: {map_name}")
-        self.points_label.setText(f"{self.tr('qt_points')}: {point_count}")
-        self.raw_rows_label.setText(f"{self.tr('qt_raw_rows')}: {raw_count}")
-        self.ap_groups_label.setText(f"{self.tr('ap_groups_title')}: {ap_group_count}")
-        self.relevant_label.setText(f"{self.tr('saved_network')}: {relevant_label}")
+        self.csv_label.setText(f"{csv_name}{dirty_suffix}")
+        self.map_label.setText(map_name)
+        self.points_label.setText(str(point_count))
+        self.raw_rows_label.setText(str(raw_count))
+        self.ap_groups_label.setText(str(ap_group_count))
+        self.relevant_label.setText(relevant_label)
         self.footer_label.setText(
             self.tr(
                 "footer_survey_info",
@@ -1917,36 +2036,36 @@ class WifiHeatmapQtApp(QMainWindow):
                 last=last_point,
             )
         )
-        self.new_action.setEnabled(not self.scan_in_progress)
-        self.open_action.setEnabled(not self.scan_in_progress)
+        self.new_workspace_button.setEnabled(not self.scan_in_progress)
+        self.open_workspace_button.setEnabled(not self.scan_in_progress)
         can_use_session = self.session is not None and not self.scan_in_progress
-        self.save_action.setEnabled(can_use_session)
-        self.load_plan_action.setEnabled(can_use_session)
-        self.ap_groups_action.setEnabled(can_use_session)
-        self.quality_action.setEnabled(can_use_session)
-        self.help_action.setEnabled(True)
-        self.generate_action.setEnabled(can_use_session)
+        self.save_workspace_button.setEnabled(can_use_session)
+        self.load_plan_button.setEnabled(can_use_session)
+        self.ap_groups_button.setEnabled(can_use_session)
+        self.quality_button.setEnabled(can_use_session)
+        self.help_button.setEnabled(True)
+        self.generate_map_button.setEnabled(can_use_session)
         self.clear_relevant_button.setEnabled(
             can_use_session and bool(self.relevant_ssids or self.known_ssids)
         )
         has_map = self.floorplan_view.has_floorplan()
-        self.zoom_in_action.setEnabled(has_map and not self.scan_in_progress)
-        self.zoom_out_action.setEnabled(has_map and not self.scan_in_progress)
-        self.fit_action.setEnabled(has_map and not self.scan_in_progress)
-        self.calibrate_action.setEnabled(has_map and not self.scan_in_progress)
+        self.zoom_in_button.setEnabled(has_map and not self.scan_in_progress)
+        self.zoom_out_button.setEnabled(has_map and not self.scan_in_progress)
+        self.fit_view_button.setEnabled(has_map and not self.scan_in_progress)
+        self.calibrate_button.setEnabled(has_map and not self.scan_in_progress)
         self.update_save_action_state()
         self.refresh_live_controls()
         self.update_point_action_state()
 
     def update_save_action_state(self):
         is_dirty = bool(self.session is not None and self.session.dirty)
-        self.save_action.setToolTip(
+        self.save_workspace_button.setToolTip(
             self.tr("save_dirty_tooltip") if is_dirty else self.tr("save_clean_tooltip")
         )
         if self.save_tool_button is None:
             return
 
-        self.save_tool_button.setObjectName("dirtySaveButton" if is_dirty else "toolbarButton")
+        self.save_tool_button.setObjectName("dirtySaveButton" if is_dirty else "appBarButton")
         self.save_tool_button.style().unpolish(self.save_tool_button)
         self.save_tool_button.style().polish(self.save_tool_button)
         self.save_tool_button.update()

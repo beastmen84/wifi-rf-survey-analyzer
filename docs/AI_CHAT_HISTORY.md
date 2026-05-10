@@ -485,6 +485,13 @@ Language:
   name is `Wi-Fi RF Survey Analyzer`, startup copy now references RF analysis,
   relevant networks, roaming, AP groups and quality, and the green badge was
   removed entirely.
+- Started the main Qt GUI redesign after the startup page pass. Replaced the
+  native `QToolBar/QAction` command strip with a custom in-page app bar split
+  into Project, View, Analysis and Settings sections, preserving the existing
+  command behavior while making spacing, colors and hierarchy easier to refine.
+  The Survey tab summary area was also changed from plain label rows into
+  compact status cards for CSV, map, points, raw scans, AP groups and relevant
+  networks.
 
 Recent commits:
 
