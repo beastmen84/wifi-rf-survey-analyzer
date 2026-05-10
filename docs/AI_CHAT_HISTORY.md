@@ -518,6 +518,9 @@ Language:
   visual area.
 - Styled Qt combo-box arrows to use the active theme accent color, matching the
   `Generate heatmap` primary action color across themes.
+- Adjusted the combo-box styling after visual testing: the right dropdown
+  segment now takes the theme accent color and uses an explicit white SVG arrow
+  (`images/combo_arrow_white.svg`) instead of relying on a fragile CSS triangle.
 
 Recent commits:
 

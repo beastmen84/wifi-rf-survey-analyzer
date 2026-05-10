@@ -653,6 +653,7 @@ class WifiHeatmapQtApp(QMainWindow):
 
     def apply_styles(self):
         palette = QT_THEMES.get(self.theme, QT_THEMES["light"])
+        combo_arrow_icon = (Path(__file__).resolve().parent / "images" / "combo_arrow_white.svg").as_posix()
         self.setStyleSheet(
             f"""
             QMainWindow, QWidget {{
@@ -878,18 +879,15 @@ class WifiHeatmapQtApp(QMainWindow):
                 subcontrol-origin: padding;
                 subcontrol-position: top right;
                 width: 22px;
-                border-left: 1px solid {palette["border"]};
+                border-left: 1px solid {palette["metric_info"]};
                 border-top-right-radius: 4px;
                 border-bottom-right-radius: 4px;
-                background: transparent;
+                background: {palette["metric_info"]};
             }}
             QComboBox::down-arrow {{
-                width: 0;
-                height: 0;
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-top: 6px solid {palette["metric_info"]};
-                margin-right: 6px;
+                image: url("{combo_arrow_icon}");
+                width: 10px;
+                height: 6px;
             }}
             QComboBox QAbstractItemView {{
                 background: {palette["panel"]};
