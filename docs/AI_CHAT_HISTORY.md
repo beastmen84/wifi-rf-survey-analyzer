@@ -512,6 +512,10 @@ Language:
   sections by making labels and checkboxes transparent over their parent
   surfaces. The Sand Blue palette was cooled further toward neutral
   gray/blue surfaces so beige is no longer dominant in the main theme.
+- Reduced the Survey summary strip again by moving the `Clear relevant` action
+  into the top-right of the relevant-networks card, tightening card padding,
+  and narrowing numeric summary cards. This preserves the floorplan as the main
+  visual area.
 
 Recent commits:
 

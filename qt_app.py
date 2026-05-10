@@ -316,12 +316,12 @@ class WifiHeatmapQtApp(QMainWindow):
         button.clicked.connect(lambda _checked=False: callback())
         return button
 
-    def create_summary_card(self, title_key, compact=False):
+    def create_summary_card(self, title_key, compact=False, action_widget=None):
         card = QFrame()
         card.setObjectName("summaryCardCompact" if compact else "summaryCard")
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(8, 5, 8, 6)
-        layout.setSpacing(2)
+        layout.setContentsMargins(7, 4, 7, 5)
+        layout.setSpacing(1)
 
         title = QLabel()
         title.setObjectName("summaryCardTitle")
@@ -330,7 +330,16 @@ class WifiHeatmapQtApp(QMainWindow):
         value.setWordWrap(True)
         value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
 
-        layout.addWidget(title)
+        if action_widget is None:
+            layout.addWidget(title)
+        else:
+            title_row = QHBoxLayout()
+            title_row.setContentsMargins(0, 0, 0, 0)
+            title_row.setSpacing(4)
+            title_row.addWidget(title)
+            title_row.addStretch(1)
+            title_row.addWidget(action_widget)
+            layout.addLayout(title_row)
         layout.addWidget(value, 1)
         self.summary_title_bindings.append((title, title_key))
         return card, value, layout
@@ -349,19 +358,21 @@ class WifiHeatmapQtApp(QMainWindow):
         grid.setHorizontalSpacing(6)
         grid.setVerticalSpacing(6)
 
+        self.clear_relevant_button = QPushButton()
+        self.clear_relevant_button.setObjectName("summaryActionButton")
+        self.clear_relevant_button.setMaximumWidth(118)
+        self.clear_relevant_button.clicked.connect(self.clear_relevant_ssids)
         csv_card, self.csv_label, _csv_layout = self.create_summary_card("qt_csv")
         map_card, self.map_label, _map_layout = self.create_summary_card("map")
         points_card, self.points_label, _points_layout = self.create_summary_card("qt_points", compact=True)
         raw_card, self.raw_rows_label, _raw_layout = self.create_summary_card("qt_raw_rows", compact=True)
         ap_card, self.ap_groups_label, _ap_layout = self.create_summary_card("summary_ap_groups", compact=True)
-        relevant_card, self.relevant_label, relevant_layout = self.create_summary_card("saved_network")
+        relevant_card, self.relevant_label, _relevant_layout = self.create_summary_card(
+            "saved_network",
+            action_widget=self.clear_relevant_button,
+        )
         for card in (points_card, raw_card, ap_card):
-            card.setMaximumWidth(128)
-        self.clear_relevant_button = QPushButton()
-        self.clear_relevant_button.setObjectName("compactButton")
-        self.clear_relevant_button.setMaximumWidth(170)
-        self.clear_relevant_button.clicked.connect(self.clear_relevant_ssids)
-        relevant_layout.addWidget(self.clear_relevant_button, 0, Qt.AlignmentFlag.AlignLeft)
+            card.setMaximumWidth(112)
         for index, card in enumerate((
             csv_card,
             map_card,
@@ -785,6 +796,13 @@ class WifiHeatmapQtApp(QMainWindow):
             QPushButton#compactButton {{
                 min-width: 0;
                 padding: 5px 8px;
+            }}
+            QPushButton#summaryActionButton {{
+                min-width: 0;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 8pt;
+                font-weight: 600;
             }}
             QFrame#appBar {{
                 background: {palette["toolbar"]};
