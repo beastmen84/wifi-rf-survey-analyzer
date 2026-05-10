@@ -49,6 +49,8 @@ Core UI:
 - `app.py`: main application. Still large, but several areas have been extracted.
 - `main.py`: current Qt shell/prototype; it should progressively absorb real
   workflows instead of adding more complex GUI to `app.py`.
+- `qt_floorplan.py`: Qt floorplan viewer with image/PDF loading, pan/zoom and
+  point marker overlay.
 - `ap_group_dialog.py`: AP Group Manager.
 - `survey_quality_dialog.py`: survey quality dashboard.
 - `modal_dialogs.py`: shared modal dialog behavior.
@@ -376,6 +378,10 @@ Language:
   start page, language selector, survey open/new/save, floorplan path metadata,
   survey/live tabs and point summary table. Added PySide6 to requirements and
   kept `wifi_heatmap.py` as the legacy fallback during migration.
+- Added the first real Qt survey viewer functionality in `main.py`:
+  QGraphicsView floorplan loading for images/PDFs, saved floorplan restore from
+  survey metadata, point marker overlay, pan/zoom controls, Ctrl+wheel zoom and
+  fit-to-window. The reusable viewer lives in `qt_floorplan.py`.
 
 Recent commits:
 
@@ -399,8 +405,8 @@ Good next steps, in likely order:
 
 1. Improve AP Group Manager workflows:
    better manual split/merge UX, especially for larger BSSID lists.
-2. Build out the PySide6 shell in `main.py`, starting with floorplan viewer
-   pan/zoom and then AP Group Manager.
+2. Continue PySide6 migration in `main.py`, with AP Group Manager as the next
+   major workflow to move.
 3. Add lightweight tests around AP groups, quality and interference before
    larger V2 refactors.
 4. Decide whether mounting metadata should influence AP position warnings or

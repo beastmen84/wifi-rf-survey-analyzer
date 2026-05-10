@@ -384,8 +384,9 @@ Current first step:
 
 - `main.py` is the new PySide6 entry point;
 - `wifi_heatmap.py` remains the legacy Tkinter entry point during migration;
-- `main.py` starts with project/session shell behavior and should progressively
-  absorb the real workflows.
+- `main.py` already starts with project/session shell behavior and the first
+  Qt survey viewer pieces: floorplan loading, saved map restore, point marker
+  overlay, pan/zoom and fit-to-window.
 
 Recommended migration sequence:
 
@@ -403,14 +404,14 @@ Recommended migration sequence:
 
 Near-term:
 
-1. Build out the PySide6 shell in `main.py`.
-2. Move floorplan viewer pan/zoom and point table to Qt.
-3. Move AP Group Manager to Qt, using proper table/filter/edit widgets.
+1. Move AP Group Manager to Qt, using proper table/filter/edit widgets.
+2. Move point creation/scanning workflow to Qt.
+3. Move live map workflow to Qt.
 4. Add lightweight tests for AP groups, quality and interference.
 
 Medium-term:
 
-5. Move live map and quality dashboard workflows to Qt.
+5. Move quality dashboard workflow to Qt.
 6. Expand survey quality recommendations.
 7. Improve generated reporting.
 8. Use AP metadata more deeply in diagnostics.

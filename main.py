@@ -18,6 +18,7 @@ try:
         QMainWindow,
         QMessageBox,
         QPushButton,
+        QSplitter,
         QStackedWidget,
         QStatusBar,
         QTableWidget,
@@ -32,6 +33,7 @@ except ModuleNotFoundError as exc:
     raise SystemExit(1) from exc
 
 from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_language, translate
+from qt_floorplan import FloorplanView
 from survey_store import SurveyFormatError, SurveySession
 
 
@@ -147,6 +149,9 @@ class WifiHeatmapQtApp(QMainWindow):
         self.open_action = QAction(self)
         self.save_action = QAction(self)
         self.load_plan_action = QAction(self)
+        self.zoom_out_action = QAction("-", self)
+        self.zoom_in_action = QAction("+", self)
+        self.fit_action = QAction(self)
         self.ap_groups_action = QAction(self)
         self.quality_action = QAction(self)
         self.generate_action = QAction(self)
@@ -154,6 +159,9 @@ class WifiHeatmapQtApp(QMainWindow):
         self.open_action.triggered.connect(self.open_survey)
         self.save_action.triggered.connect(self.save_survey)
         self.load_plan_action.triggered.connect(self.load_plan)
+        self.zoom_out_action.triggered.connect(self.zoom_out)
+        self.zoom_in_action.triggered.connect(self.zoom_in)
+        self.fit_action.triggered.connect(self.fit_floorplan)
         self.ap_groups_action.triggered.connect(self.show_not_migrated_message)
         self.quality_action.triggered.connect(self.show_not_migrated_message)
         self.generate_action.triggered.connect(self.show_not_migrated_message)
@@ -164,6 +172,9 @@ class WifiHeatmapQtApp(QMainWindow):
             self.save_action,
             self.load_plan_action,
         ):
+            self.toolbar.addAction(action)
+        self.toolbar.addSeparator()
+        for action in (self.zoom_out_action, self.zoom_in_action, self.fit_action):
             self.toolbar.addAction(action)
         self.toolbar.addSeparator()
         for action in (self.ap_groups_action, self.quality_action, self.generate_action):
@@ -223,13 +234,21 @@ class WifiHeatmapQtApp(QMainWindow):
             grid.addWidget(label, row // 2, row % 2)
         layout.addWidget(summary)
 
+        splitter = QSplitter(Qt.Orientation.Vertical)
+
+        self.floorplan_view = FloorplanView()
+        splitter.addWidget(self.floorplan_view)
+
         self.points_table = QTableWidget(0, 6)
         self.points_table.setAlternatingRowColors(True)
         self.points_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.points_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.points_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.points_table.horizontalHeader().setStretchLastSection(True)
-        layout.addWidget(self.points_table, 1)
+        splitter.addWidget(self.points_table)
+        splitter.setStretchFactor(0, 4)
+        splitter.setStretchFactor(1, 1)
+        layout.addWidget(splitter, 1)
         return tab
 
     def build_live_tab(self):
@@ -326,6 +345,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.open_action.setText(self.tr("open_existing_survey"))
         self.save_action.setText(self.tr("save"))
         self.load_plan_action.setText(self.tr("load_plan"))
+        self.fit_action.setText(self.tr("fit"))
         self.ap_groups_action.setText(self.tr("ap_groups_title"))
         self.quality_action.setText(self.tr("quality_dashboard_title"))
         self.generate_action.setText(self.tr("generate_heatmap"))
@@ -372,6 +392,7 @@ class WifiHeatmapQtApp(QMainWindow):
         if not self.confirm_switch_survey():
             return
         self.session = SurveySession()
+        self.floorplan_view.clear_floorplan()
         self.show_workspace_page()
 
     def open_survey(self):
@@ -394,6 +415,7 @@ class WifiHeatmapQtApp(QMainWindow):
             return
 
         self.show_workspace_page()
+        self.load_saved_plan()
         self.status.showMessage(self.tr("active_survey", name=self.session_display_name()))
 
     def save_survey(self):
@@ -433,9 +455,65 @@ class WifiHeatmapQtApp(QMainWindow):
         if not file_path:
             return
 
-        self.session.update_metadata({"map_file": os.path.abspath(file_path)})
+        self.load_plan_file(file_path, save_metadata=True)
+
+    def load_saved_plan(self):
+        if self.session is None:
+            return
+
+        map_file = self.session.metadata.get("map_file", "")
+        if not map_file:
+            self.floorplan_view.clear_floorplan()
+            return
+
+        if os.path.exists(map_file):
+            self.load_plan_file(map_file, save_metadata=False)
+            return
+
+        QMessageBox.warning(
+            self,
+            self.tr("map_not_found_title"),
+            self.tr("map_not_found", path=map_file),
+        )
+
+    def load_plan_file(self, file_path, save_metadata=False):
+        if self.session is None:
+            return
+
+        try:
+            self.floorplan_view.load_floorplan(file_path)
+        except Exception as exc:
+            QMessageBox.warning(
+                self,
+                self.tr("warning"),
+                str(exc),
+            )
+            return
+
+        if save_metadata:
+            self.session.update_metadata({"map_file": os.path.abspath(file_path)})
+
+        self.floorplan_view.set_points(self.session.get_point_summaries())
         self.refresh_session_labels()
-        self.status.showMessage(self.tr("map_loaded", name=self.session_display_name()))
+        point_count = len(self.session.get_point_summaries())
+        if point_count:
+            self.status.showMessage(
+                self.tr("map_loaded_points", count=point_count, name=self.session_display_name())
+            )
+        else:
+            self.status.showMessage(self.tr("map_loaded", name=self.session_display_name()))
+
+    def zoom_in(self):
+        self.floorplan_view.zoom_in()
+        self.status.showMessage(self.tr("zoom", zoom=self.floorplan_view.zoom_level))
+
+    def zoom_out(self):
+        self.floorplan_view.zoom_out()
+        self.status.showMessage(self.tr("zoom", zoom=self.floorplan_view.zoom_level))
+
+    def fit_floorplan(self):
+        self.floorplan_view.fit_to_view()
+        self.status.showMessage(self.tr("zoom", zoom=self.floorplan_view.zoom_level))
 
     def confirm_switch_survey(self):
         if self.session is None or not self.session.dirty:
@@ -523,6 +601,10 @@ class WifiHeatmapQtApp(QMainWindow):
         )
         self.save_action.setEnabled(self.session is not None)
         self.load_plan_action.setEnabled(self.session is not None)
+        has_map = self.floorplan_view.has_floorplan()
+        self.zoom_in_action.setEnabled(has_map)
+        self.zoom_out_action.setEnabled(has_map)
+        self.fit_action.setEnabled(has_map)
 
     def refresh_points_table(self):
         self.points_table.setRowCount(0)
@@ -530,6 +612,7 @@ class WifiHeatmapQtApp(QMainWindow):
             return
 
         summaries = list(reversed(self.session.get_point_summaries()))
+        self.floorplan_view.set_points(summaries)
         self.points_table.setRowCount(len(summaries))
         for row_index, point in enumerate(summaries):
             values = [
