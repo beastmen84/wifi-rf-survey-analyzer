@@ -5,6 +5,7 @@ from tkinter import messagebox
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import DANGER, PRIMARY, SECONDARY, SUCCESS, WARNING
 
+from ap_metadata_checks import build_ap_metadata_warnings
 from ap_groups import AP_ROLE_TEST, normalize_ap_role
 from quality_engine import (
     QUALITY_GOOD,
@@ -41,12 +42,17 @@ def open_survey_quality_dashboard(app):
         relevant_ssids=app.relevant_ssids
     )
     ap_position_by_point = build_ap_position_quality_by_point(app)
+    ap_metadata_warnings = build_ap_metadata_warnings(
+        app.session.rows,
+        app.session.get_ap_groups(),
+        app.channel_sort_key,
+    )
     rows = build_dashboard_rows(app, point_summaries, quality_by_point_id, ap_position_by_point)
-    summary = build_summary(app, rows)
+    summary = build_summary(app, rows, ap_metadata_warnings)
 
     dialog = app.create_modal_dialog(app.tr("quality_dashboard_title"))
-    dialog.geometry("1320x760")
-    dialog.minsize(1120, 680)
+    dialog.geometry("1420x800")
+    dialog.minsize(1180, 700)
     dialog.resizable(True, True)
 
     frame = ttk.Frame(dialog, padding=12)
@@ -87,14 +93,23 @@ def build_summary_panel(app, parent, summary):
             summary["ap_missing_positions"],
             WARNING if summary["ap_missing_positions"] else SUCCESS
         ),
+        (
+            "quality_dashboard_metric_ap_metadata_warnings",
+            summary["ap_metadata_warnings"],
+            WARNING if summary["ap_metadata_warnings"] else SUCCESS
+        ),
     ]
 
-    for column, (label_key, value, bootstyle) in enumerate(metrics):
+    columns_per_row = 5
+    for index, (label_key, value, bootstyle) in enumerate(metrics):
+        row = index // columns_per_row
+        column = index % columns_per_row
         create_metric_box(panel, app.tr(label_key), value, bootstyle).grid(
-            row=0,
+            row=row,
             column=column,
             sticky="nsew",
-            padx=(0, 8 if column < len(metrics) - 1 else 0)
+            padx=(0, 8 if column < columns_per_row - 1 else 0),
+            pady=(0, 8 if row == 0 else 0),
         )
         panel.grid_columnconfigure(column, weight=1)
 
@@ -117,6 +132,16 @@ def build_summary_panel(app, parent, summary):
             ap_warnings=summary["ap_position_warnings"],
             missing_positions=summary["ap_missing_positions"],
             missing_list=summary["missing_position_labels"]
+        ),
+        style="ReadableMuted.TLabel",
+        wraplength=1240
+    ).pack(anchor="w", pady=(2, 0))
+    ttk.Label(
+        details,
+        text=app.tr(
+            "quality_dashboard_ap_metadata_context",
+            warnings=summary["ap_metadata_warnings"],
+            warning_list=summary["ap_metadata_warning_labels"],
         ),
         style="ReadableMuted.TLabel",
         wraplength=1240
@@ -324,7 +349,8 @@ def build_dashboard_rows(app, point_summaries, quality_by_point_id, ap_position_
     return rows
 
 
-def build_summary(app, rows):
+def build_summary(app, rows, ap_metadata_warnings=None):
+    ap_metadata_warnings = ap_metadata_warnings or []
     status_counts = Counter(row["status"] for row in rows)
     ap_groups = app.session.get_ap_groups()
     visible_ap_groups = [
@@ -348,6 +374,7 @@ def build_summary(app, rows):
         )
     if not missing_position_labels:
         missing_position_labels = app.tr("quality_dashboard_missing_positions_none")
+    ap_metadata_warning_labels = format_ap_metadata_warning_labels(app, ap_metadata_warnings)
 
     return {
         "total_points": len(rows),
@@ -362,7 +389,52 @@ def build_summary(app, rows):
         "relevant_networks": relevant_networks,
         "ap_positions": f"{positioned_count}/{len(visible_ap_groups)}" if visible_ap_groups else "0/0",
         "test_aps": test_ap_count,
+        "ap_metadata_warnings": len(ap_metadata_warnings),
+        "ap_metadata_warning_labels": ap_metadata_warning_labels,
     }
+
+
+def format_ap_metadata_warning_labels(app, warnings):
+    if not warnings:
+        return app.tr("quality_dashboard_missing_positions_none")
+
+    labels = [
+        format_ap_metadata_warning(app, warning)
+        for warning in warnings[:3]
+    ]
+    if len(warnings) > 3:
+        labels.append(app.tr("quality_dashboard_more_issues", count=len(warnings) - 3))
+
+    return "; ".join(labels)
+
+
+def format_ap_metadata_warning(app, warning):
+    ap_label = app.get_ap_group_display_name(warning.get("group_id", ""))
+    parts = []
+    unexpected_channels = warning.get("unexpected_channels", [])
+    unexpected_bands = warning.get("unexpected_bands", [])
+    if unexpected_channels:
+        parts.append(app.tr(
+            "quality_dashboard_ap_metadata_channels",
+            channels=", ".join(unexpected_channels),
+            expected=", ".join(warning.get("expected_channels", [])) or "-"
+        ))
+    if unexpected_bands:
+        parts.append(app.tr(
+            "quality_dashboard_ap_metadata_bands",
+            bands=", ".join(format_band_label(band) for band in unexpected_bands),
+            expected=", ".join(format_band_label(band) for band in warning.get("expected_bands", [])) or "-"
+        ))
+
+    return f"{ap_label}: {', '.join(parts)}" if parts else ap_label
+
+
+def format_band_label(band):
+    if str(band) == "2.4":
+        return "2.4 GHz"
+    if str(band) in {"5", "6"}:
+        return f"{band} GHz"
+    return str(band)
 
 
 def build_ap_position_quality_by_point(app):

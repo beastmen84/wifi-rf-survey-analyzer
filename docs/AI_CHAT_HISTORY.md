@@ -350,6 +350,9 @@ Language:
 - Added lightweight AP metadata editing in AP Group Manager. Metadata is saved
   inside AP group survey metadata and currently acts as descriptive V2 input,
   without changing map calculations yet.
+- Added AP metadata consistency checks in the Survey Quality Dashboard:
+  expected bands/channels from AP group metadata are compared with observed
+  channels, and mismatches are reported as AP configuration warnings.
 
 Recent commits:
 
@@ -374,8 +377,8 @@ Good next steps, in likely order:
 1. Improve AP Group Manager workflows:
    better manual split/merge UX, clearer locked/manual status, possible conflict
    detection when automatic grouping suggests suspicious merges.
-2. Decide how AP metadata should influence V2 analysis, for example expected
-   bands/channels checks or mounting-aware warnings.
+2. Decide whether mounting metadata should influence AP position warnings or
+   remain documentation only.
 3. Improve live map performance only if user sees real lag on large surveys.
 4. Rework Help structure later, after the feature set stabilizes.
 5. Consider PySide6 migration only after core logic is sufficiently separated.
