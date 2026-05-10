@@ -75,6 +75,17 @@ EXPECTED_CHANNEL_GROUPS = (
     ("ap_group_metadata_channel_group_5_high", ("149", "153", "157", "161", "165")),
 )
 
+EXPECTED_CHANNEL_GROUPS_BY_BAND = {
+    "2.4": EXPECTED_CHANNEL_GROUPS[:1],
+    "5": EXPECTED_CHANNEL_GROUPS[1:],
+    "6": (),
+}
+
+EXPECTED_CHANNELS_BY_BAND = {
+    band: tuple(channel for _title_key, channels in groups for channel in channels)
+    for band, groups in EXPECTED_CHANNEL_GROUPS_BY_BAND.items()
+}
+
 
 def open_qt_ap_group_manager(parent):
     dialog = APGroupManagerDialog(parent)
@@ -813,13 +824,23 @@ class MetadataDialog(QDialog):
         self.metadata = normalize_ap_metadata(group.get("metadata"))
         self.field_edits = {}
         self.band_checks = {}
-        self.channel_checks = {}
+        self.channel_buttons = {}
+        self.band_summary_labels = {}
+        self.selected_channels_by_band = self.initial_selected_channels_by_band()
 
         self.setWindowTitle(manager.tr("ap_group_metadata_title"))
-        self.resize(widget_px(self, 1120), widget_px(self, 820))
-        self.setMinimumSize(widget_px(self, 980), widget_px(self, 760))
+        self.resize(widget_px(self, 980), widget_px(self, 620))
+        self.setMinimumSize(widget_px(self, 860), widget_px(self, 560))
         self.setStyleSheet(manager.styleSheet())
         self.build_ui()
+
+    def initial_selected_channels_by_band(self):
+        selected = {band: set() for band, _label in EXPECTED_BAND_OPTIONS}
+        for channel in parse_expected_channels(self.metadata.get("expected_channels", "")):
+            band = infer_band_from_channel(channel)
+            if band in selected:
+                selected[band].add(channel)
+        return selected
 
     def build_ui(self):
         outer = QVBoxLayout(self)
@@ -847,8 +868,7 @@ class MetadataDialog(QDialog):
             form.addWidget(edit, 1, column)
         content_layout.addLayout(form)
 
-        self.build_band_section(content_layout)
-        self.build_channel_section(content_layout)
+        self.build_band_channel_section(content_layout)
 
         content_layout.addWidget(QLabel(self.manager.tr("ap_group_metadata_notes")))
         self.notes_edit = QTextEdit()
@@ -871,81 +891,107 @@ class MetadataDialog(QDialog):
         buttons.addWidget(cancel_button)
         outer.addLayout(buttons)
 
-    def build_band_section(self, parent_layout):
+    def build_band_channel_section(self, parent_layout):
         selected_bands = parse_expected_bands(self.metadata.get("expected_bands", ""))
-        band_box = QGroupBox(self.manager.tr("ap_group_metadata_expected_bands"))
-        band_layout = QHBoxLayout(band_box)
-        band_layout.setContentsMargins(widget_px(self, 10), widget_px(self, 10), widget_px(self, 10), widget_px(self, 10))
-        band_layout.setSpacing(widget_px(self, 12))
-        for band_value, band_label in EXPECTED_BAND_OPTIONS:
-            checkbox = QCheckBox(band_label)
-            checkbox.setChecked(band_value in selected_bands)
-            checkbox.setMinimumWidth(widget_px(self, 92))
-            self.band_checks[band_value] = checkbox
-            band_layout.addWidget(checkbox)
-        band_layout.addStretch(1)
-        parent_layout.addWidget(band_box)
+        selected_bands.update(
+            band for band, channels in self.selected_channels_by_band.items() if channels
+        )
 
-    def build_channel_section(self, parent_layout):
-        selected_channels = parse_expected_channels(self.metadata.get("expected_channels", ""))
-        section = QGroupBox(self.manager.tr("ap_group_metadata_expected_channels"))
+        section = QGroupBox(self.manager.tr("ap_group_metadata_expected_bands"))
         section_layout = QGridLayout(section)
         section_layout.setContentsMargins(widget_px(self, 10), widget_px(self, 10), widget_px(self, 10), widget_px(self, 10))
-        section_layout.setHorizontalSpacing(widget_px(self, 10))
-        section_layout.setVerticalSpacing(widget_px(self, 10))
+        section_layout.setHorizontalSpacing(widget_px(self, 12))
+        section_layout.setVerticalSpacing(widget_px(self, 8))
+        section_layout.addWidget(self.header_label("ap_group_metadata_band"), 0, 0)
+        section_layout.addWidget(self.header_label("ap_group_metadata_channels"), 0, 1)
+        section_layout.addWidget(self.header_label("ap_group_metadata_selected_channels"), 0, 2)
+        section_layout.setColumnStretch(2, 1)
 
-        for index, (title_key, channels) in enumerate(EXPECTED_CHANNEL_GROUPS):
-            group_box = QGroupBox(self.manager.tr(title_key))
-            group_layout = QGridLayout(group_box)
-            group_layout.setContentsMargins(widget_px(self, 10), widget_px(self, 10), widget_px(self, 10), widget_px(self, 10))
-            group_layout.setHorizontalSpacing(widget_px(self, 12))
-            group_layout.setVerticalSpacing(widget_px(self, 6))
-            for column in range(4):
-                group_layout.setColumnMinimumWidth(column, widget_px(self, 74))
-            for channel_index, channel in enumerate(channels):
-                checkbox = QCheckBox(f"CH {channel}")
-                checkbox.setChecked(channel in selected_channels)
-                checkbox.setMinimumWidth(widget_px(self, 74))
-                self.channel_checks[channel] = checkbox
-                group_layout.addWidget(
-                    checkbox,
-                    channel_index // 4,
-                    channel_index % 4,
-                    alignment=Qt.AlignmentFlag.AlignLeft,
-                )
+        for row, (band_value, band_label) in enumerate(EXPECTED_BAND_OPTIONS, start=1):
+            checkbox = QCheckBox(band_label)
+            checkbox.setChecked(band_value in selected_bands)
+            checkbox.stateChanged.connect(lambda _state, band=band_value: self.update_band_row_state(band))
+            self.band_checks[band_value] = checkbox
+            section_layout.addWidget(checkbox, row, 0)
 
-            action_row = QHBoxLayout()
-            action_row.setSpacing(widget_px(self, 8))
-            select_button = QPushButton(self.manager.tr("ap_group_metadata_select_all"))
-            clear_button = QPushButton(self.manager.tr("ap_group_metadata_clear"))
-            for button in (select_button, clear_button):
-                button.setObjectName("apDialogActionButton")
-                self.manager.prepare_action_button(button)
-                button.setMaximumWidth(widget_px(self, 118))
-            select_button.clicked.connect(lambda _checked=False, values=channels: self.set_channel_group(values, True))
-            clear_button.clicked.connect(lambda _checked=False, values=channels: self.set_channel_group(values, False))
-            action_row.addWidget(select_button)
-            action_row.addWidget(clear_button)
-            action_row.addStretch(1)
-            group_layout.addLayout(action_row, (len(channels) + 3) // 4, 0, 1, 4)
-            group_layout.setColumnStretch(4, 1)
+            button = QPushButton(self.manager.tr("ap_group_metadata_edit_channels"))
+            button.setObjectName("apDialogActionButton")
+            self.manager.prepare_action_button(button)
+            button.setMinimumWidth(widget_px(self, 120))
+            button.clicked.connect(lambda _checked=False, band=band_value: self.open_channel_picker(band))
+            self.channel_buttons[band_value] = button
+            section_layout.addWidget(button, row, 1)
 
-            section_layout.addWidget(group_box, index // 2, index % 2)
+            summary = QLabel()
+            summary.setObjectName("apDialogHint")
+            summary.setWordWrap(True)
+            self.band_summary_labels[band_value] = summary
+            section_layout.addWidget(summary, row, 2)
+
+        self.update_all_band_row_states()
 
         parent_layout.addWidget(section)
 
-    def set_channel_group(self, channels, enabled):
-        for channel in channels:
-            checkbox = self.channel_checks.get(channel)
-            if checkbox is not None:
-                checkbox.setChecked(enabled)
+    def header_label(self, key):
+        label = QLabel(self.manager.tr(key))
+        label.setObjectName("apDialogLabel")
+        return label
+
+    def update_all_band_row_states(self):
+        for band_value, _label in EXPECTED_BAND_OPTIONS:
+            self.update_band_row_state(band_value)
+
+    def update_band_row_state(self, band):
+        is_checked = self.band_checks[band].isChecked()
+        available_channels = EXPECTED_CHANNELS_BY_BAND.get(band, ())
+        button = self.channel_buttons[band]
+        button.setEnabled(is_checked and bool(available_channels))
+        self.band_summary_labels[band].setText(self.channel_summary_text(band))
+
+    def channel_summary_text(self, band):
+        if not self.band_checks[band].isChecked():
+            return self.manager.tr("ap_group_metadata_band_disabled")
+
+        available_channels = EXPECTED_CHANNELS_BY_BAND.get(band, ())
+        if not available_channels:
+            return self.manager.tr("ap_group_metadata_channels_unavailable")
+
+        channels = sort_channels(
+            self.selected_channels_by_band.get(band, set()),
+            self.manager.app.channel_sort_key,
+        )
+        if not channels:
+            return self.manager.tr("ap_group_metadata_no_channels")
+
+        return ", ".join(f"CH {channel}" for channel in channels)
+
+    def open_channel_picker(self, band):
+        if not self.band_checks[band].isChecked():
+            return
+
+        channels = EXPECTED_CHANNELS_BY_BAND.get(band, ())
+        if not channels:
+            return
+
+        dialog = ChannelSelectionDialog(
+            self,
+            band,
+            channels,
+            self.selected_channels_by_band.get(band, set()),
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        self.selected_channels_by_band[band] = set(dialog.selected_channels())
+        self.update_band_row_state(band)
 
     def metadata_values(self):
         expected_channels = sort_channels(
             [
                 channel
-                for channel, checkbox in self.channel_checks.items()
-                if checkbox.isChecked()
+                for band, band_channels in self.selected_channels_by_band.items()
+                if self.band_checks[band].isChecked()
+                for channel in band_channels
             ],
             self.manager.app.channel_sort_key,
         )
@@ -967,6 +1013,82 @@ class MetadataDialog(QDialog):
         values["expected_channels"] = ", ".join(expected_channels)
         values["notes"] = self.notes_edit.toPlainText().strip()
         return normalize_ap_metadata(values)
+
+
+class ChannelSelectionDialog(QDialog):
+    def __init__(self, metadata_dialog, band, channels, selected_channels):
+        super().__init__(metadata_dialog)
+        self.metadata_dialog = metadata_dialog
+        self.manager = metadata_dialog.manager
+        self.band = band
+        self.channels = tuple(channels)
+        self.channel_checks = {}
+        self.setWindowTitle(
+            self.manager.tr(
+                "ap_group_metadata_channel_picker_title",
+                band=format_band_label(band),
+            )
+        )
+        self.resize(widget_px(self, 520), widget_px(self, 380))
+        self.setMinimumSize(widget_px(self, 440), widget_px(self, 300))
+        self.setStyleSheet(self.manager.styleSheet())
+        self.build_ui(set(selected_channels))
+
+    def build_ui(self, selected_channels):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(widget_px(self, 12), widget_px(self, 12), widget_px(self, 12), widget_px(self, 12))
+        layout.setSpacing(widget_px(self, 8))
+
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(widget_px(self, 12))
+        grid.setVerticalSpacing(widget_px(self, 6))
+        columns = 4
+        for index, channel in enumerate(self.channels):
+            checkbox = QCheckBox(f"CH {channel}")
+            checkbox.setChecked(channel in selected_channels)
+            checkbox.setMinimumWidth(widget_px(self, 84))
+            self.channel_checks[channel] = checkbox
+            grid.addWidget(checkbox, index // columns, index % columns)
+        layout.addLayout(grid, 1)
+
+        action_row = QHBoxLayout()
+        action_row.setSpacing(widget_px(self, 8))
+        select_button = QPushButton(self.manager.tr("ap_group_metadata_select_all"))
+        clear_button = QPushButton(self.manager.tr("ap_group_metadata_clear"))
+        for button in (select_button, clear_button):
+            button.setObjectName("apDialogActionButton")
+            self.manager.prepare_action_button(button)
+        select_button.clicked.connect(lambda _checked=False: self.set_all_channels(True))
+        clear_button.clicked.connect(lambda _checked=False: self.set_all_channels(False))
+        action_row.addWidget(select_button)
+        action_row.addWidget(clear_button)
+        action_row.addStretch(1)
+        layout.addLayout(action_row)
+
+        buttons = QHBoxLayout()
+        buttons.addStretch(1)
+        save_button = QPushButton(self.manager.tr("save"))
+        cancel_button = QPushButton(self.manager.tr("cancel"))
+        save_button.setObjectName("apDialogPrimaryButton")
+        cancel_button.setObjectName("apDialogActionButton")
+        self.manager.prepare_action_button(save_button)
+        self.manager.prepare_action_button(cancel_button)
+        save_button.clicked.connect(self.accept)
+        cancel_button.clicked.connect(self.reject)
+        buttons.addWidget(save_button)
+        buttons.addWidget(cancel_button)
+        layout.addLayout(buttons)
+
+    def set_all_channels(self, enabled):
+        for checkbox in self.channel_checks.values():
+            checkbox.setChecked(enabled)
+
+    def selected_channels(self):
+        return [
+            channel
+            for channel, checkbox in self.channel_checks.items()
+            if checkbox.isChecked()
+        ]
 
 
 class BssidSelectionDialog(QDialog):

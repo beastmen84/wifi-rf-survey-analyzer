@@ -646,6 +646,12 @@ Language:
 - AP Group Manager table sizing now treats Alias as the primary flexible column:
   utility columns remain compact, while Alias stretches into the remaining table
   width instead of staying narrow when there is unused space.
+- AP Group metadata channel editing was redesigned to save vertical space. The
+  dialog now shows one row per expected band with a band checkbox, a channel
+  picker button enabled only for selected bands with known channel lists, and a
+  right-side summary of active channels. The picker opens a compact checkbox
+  dialog for that band's channels and still writes the same `expected_bands` and
+  `expected_channels` metadata fields.
 
 Recent commits:
 
