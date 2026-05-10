@@ -37,13 +37,16 @@ script and has evolved toward a V2 "RF analysis platform":
 - manage AP groups, aliases, roles, and physical AP positions;
 - evaluate scan/survey quality.
 
-Entry point:
+Entry points:
 
-- `main.py`: PySide6 V2 entry point.
+- `main.py`: lightweight PySide6 launcher/start screen. It imports the heavier
+  workspace module asynchronously and enables new/open actions after loading.
+- `qt_app.py`: main Qt workspace window and workflow logic.
 
 Core UI:
 
-- `main.py`: current Qt application shell and workflow coordinator.
+- `main.py`: startup screen and async workspace loader.
+- `qt_app.py`: current Qt application shell and workflow coordinator.
 - `qt_floorplan.py`: Qt floorplan viewer with image/PDF loading, pan/zoom and
   point marker overlay.
 - `qt_ap_groups.py`: Qt AP Group Manager for group table/search, alias edits,
@@ -469,6 +472,11 @@ Language:
 - Performed a follow-up cleanup after retiring Tk: removed the unused live-map
   placeholder translation key, renamed the start-screen badge key away from
   migration wording, and removed `ttkbootstrap` from PyInstaller excludes.
+- Reworked Qt startup structure: moved the full workspace window from
+  `main.py` to `qt_app.py`, made `main.py` a lightweight launcher with a
+  redesigned start screen, disabled survey actions until the workspace module is
+  loaded, and added an indeterminate startup progress bar backed by a Qt worker
+  thread. Runtime `.log` files are ignored by git.
 
 Recent commits:
 

@@ -383,9 +383,12 @@ PySide6 is the target UI stack for:
 
 Current state:
 
-- `main.py` is the PySide6 entry point;
+- `main.py` is the lightweight PySide6 launcher/start screen;
+- `qt_app.py` contains the main Qt workspace window and workflow logic;
 - the legacy Tkinter entry point and legacy Tk dialogs have been removed;
-- `main.py` includes project/session shell behavior, floorplan loading, saved
+- the launcher shows immediately and imports the heavier workspace module in a
+  background Qt worker before enabling new/open actions;
+- `qt_app.py` includes project/session shell behavior, floorplan loading, saved
   map restore, point marker overlay, pan/zoom and fit-to-window.
 - `qt_ap_groups.py` contains the first Qt AP Group Manager migration: group
   table/search, alias/role edits, metadata editing, BSSID split, conflict

@@ -19,7 +19,7 @@ The project focuses on practical analysis from live Wi-Fi measurements collected
 
 ### User Interface
 
-- PySide6 UI in `main.py`.
+- PySide6 UI with a lightweight launcher in `main.py` and the main workspace in `qt_app.py`.
 - Start screen with new/open/exit actions and visual mouse shortcut help.
 - Main UI split into survey and live map tabs.
 - Toolbar controls for saving, opening CSV, AP aliases, scale calibration, help, map generation, theme, and language.
@@ -232,6 +232,9 @@ The application entry point is:
 ```bash
 python main.py
 ```
+
+`main.py` shows the startup screen quickly and loads the heavier Qt workspace
+components in the background before enabling the survey actions.
 
 ## Building the Executable
 
