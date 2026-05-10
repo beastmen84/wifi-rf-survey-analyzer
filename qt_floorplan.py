@@ -320,13 +320,16 @@ class FloorplanView(QGraphicsView):
             event.accept()
             return
 
-        if self.pending_ap_position_group_id and event.button() == Qt.MouseButton.RightButton:
-            point = self.mapToScene(event.position().toPoint())
-            group_id = self.pending_ap_position_group_id
-            self.pending_ap_position_group_id = ""
-            self.pending_ap_position_label = ""
-            self.viewport().unsetCursor()
-            self.apPositionPicked.emit(group_id, int(round(point.x())), int(round(point.y())))
+        if self.pending_ap_position_group_id:
+            if event.button() == Qt.MouseButton.RightButton:
+                point = self.mapToScene(event.position().toPoint())
+                group_id = self.pending_ap_position_group_id
+                self.pending_ap_position_group_id = ""
+                self.pending_ap_position_label = ""
+                self.viewport().unsetCursor()
+                self.apPositionPicked.emit(group_id, int(round(point.x())), int(round(point.y())))
+            else:
+                self.viewport().setCursor(Qt.CursorShape.CrossCursor)
             event.accept()
             return
 

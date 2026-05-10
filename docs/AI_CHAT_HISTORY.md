@@ -626,6 +626,13 @@ Language:
   with the tallest multi-line cell. Tooltips were narrowed to content columns
   where they are useful, removing unnecessary tooltips from compact columns
   such as role, channel, and management.
+- AP Group Manager follow-up cleanup: the Alias column now receives the
+  remaining table width while utility columns auto-fit within compact bounds;
+  Duplicate/Split now uses real `QCheckBox` widgets instead of native list-item
+  check indicators so checkbox visibility follows the app theme; the metadata
+  dialog was tightened with compact field layout, smaller spacing, and bounded
+  All/None buttons; AP placement ignores left-click drag while waiting for the
+  required right-click map position.
 
 Recent commits:
 

@@ -6,7 +6,6 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
-    QFormLayout,
     QFrame,
     QGridLayout,
     QGroupBox,
@@ -261,6 +260,61 @@ class APGroupManagerDialog(QDialog):
                 border-radius: {s(5)}px;
                 padding: {s(6)}px {s(8)}px;
             }}
+            QListWidget {{
+                background: {palette["panel"]};
+                color: {palette["text"]};
+                border: 1px solid {palette["border"]};
+                border-radius: {s(5)}px;
+                padding: {s(4)}px;
+            }}
+            QListWidget::item {{
+                padding: {s(3)}px;
+            }}
+            QScrollArea {{
+                background: {palette["bg"]};
+                border: 0;
+            }}
+            QGroupBox {{
+                color: {palette["text"]};
+                border: 1px solid {palette["border"]};
+                border-radius: {s(5)}px;
+                margin-top: {s(9)}px;
+                padding: {s(8)}px {s(8)}px {s(6)}px {s(8)}px;
+                font-weight: 600;
+            }}
+            QGroupBox::title {{
+                subcontrol-origin: margin;
+                left: {s(8)}px;
+                padding: 0 {s(4)}px;
+                background: {palette["bg"]};
+            }}
+            QTextEdit {{
+                background: {palette["panel"]};
+                color: {palette["text"]};
+                border: 1px solid {palette["border"]};
+                border-radius: {s(5)}px;
+                padding: {s(6)}px;
+            }}
+            QCheckBox {{
+                color: {palette["text"]};
+                spacing: {s(9)}px;
+                padding: {s(3)}px {s(2)}px;
+                background: transparent;
+            }}
+            QCheckBox::indicator {{
+                width: {s(18)}px;
+                height: {s(18)}px;
+                border-radius: {s(4)}px;
+                border: 1px solid {palette["border"]};
+                background: {palette["panel"]};
+            }}
+            QCheckBox::indicator:hover {{
+                border: 1px solid {palette["metric_info"]};
+            }}
+            QCheckBox::indicator:checked {{
+                background: {palette["metric_info"]};
+                border: 1px solid {palette["metric_info"]};
+            }}
             QTableWidget {{
                 background: {palette["panel"]};
                 alternate-background-color: {palette["panel_alt"]};
@@ -330,24 +384,43 @@ class APGroupManagerDialog(QDialog):
         header = self.table.horizontalHeader()
         header.setStretchLastSection(False)
         header.setMinimumSectionSize(widget_px(self, 34))
-        stretch_columns = {1, 6, 7}
         for column in range(self.table.columnCount()):
-            mode = QHeaderView.ResizeMode.Stretch if column in stretch_columns else QHeaderView.ResizeMode.Fixed
-            header.setSectionResizeMode(column, mode)
+            header.setSectionResizeMode(column, QHeaderView.ResizeMode.Fixed)
         self.apply_table_column_widths()
 
     def apply_table_column_widths(self):
-        widths = {
-            0: 34,
-            2: 118,
-            3: 102,
-            4: 104,
-            5: 126,
-            8: 104,
-            9: 142,
+        if self.table.columnCount() == 0:
+            return
+
+        self.table.resizeColumnsToContents()
+        fixed_limits = {
+            0: (34, 42),
+            1: (150, 240),
+            3: (84, 110),
+            4: (86, 112),
+            5: (92, 150),
+            6: (180, 300),
+            7: (190, 320),
+            8: (82, 112),
+            9: (116, 150),
         }
+        widths = {}
+        for column, (minimum, maximum) in fixed_limits.items():
+            content_width = self.table.columnWidth(column) + widget_px(self, 12)
+            widths[column] = max(widget_px(self, minimum), min(content_width, widget_px(self, maximum)))
+
+        viewport_width = max(0, self.table.viewport().width() - widget_px(self, 4))
+        reserved_width = sum(widths.values())
+        alias_content_width = self.table.columnWidth(2) + widget_px(self, 20)
+        widths[2] = max(widget_px(self, 180), alias_content_width, viewport_width - reserved_width)
+
         for column, width in widths.items():
-            self.table.setColumnWidth(column, widget_px(self, width))
+            self.table.setColumnWidth(column, width)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, "table"):
+            self.apply_table_column_widths()
 
     def refresh_group_details(self, group):
         group["alias"] = group.get("alias") or self.aliases.get(group["group_id"], "")
@@ -745,16 +818,18 @@ class MetadataDialog(QDialog):
         self.channel_checks = {}
 
         self.setWindowTitle(manager.tr("ap_group_metadata_title"))
-        self.resize(widget_px(self, 1040), widget_px(self, 760))
-        self.setMinimumSize(widget_px(self, 900), widget_px(self, 660))
+        self.resize(widget_px(self, 1060), widget_px(self, 680))
+        self.setMinimumSize(widget_px(self, 840), widget_px(self, 560))
+        self.setStyleSheet(manager.styleSheet())
         self.build_ui()
 
     def build_ui(self):
         outer = QVBoxLayout(self)
-        outer.setContentsMargins(widget_px(self, 14), widget_px(self, 14), widget_px(self, 14), widget_px(self, 14))
-        outer.setSpacing(widget_px(self, 10))
+        outer.setContentsMargins(widget_px(self, 12), widget_px(self, 12), widget_px(self, 12), widget_px(self, 12))
+        outer.setSpacing(widget_px(self, 8))
 
         hint = QLabel(self.manager.tr("ap_group_metadata_hint"))
+        hint.setObjectName("apDialogHint")
         hint.setWordWrap(True)
         outer.addWidget(hint)
 
@@ -762,14 +837,19 @@ class MetadataDialog(QDialog):
         scroll.setWidgetResizable(True)
         content = QWidget()
         content_layout = QVBoxLayout(content)
-        content_layout.setSpacing(widget_px(self, 14))
+        content_layout.setContentsMargins(widget_px(self, 4), widget_px(self, 4), widget_px(self, 4), widget_px(self, 4))
+        content_layout.setSpacing(widget_px(self, 8))
 
-        form = QFormLayout()
-        form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
-        for field in ("vendor", "model", "mounting"):
+        form = QGridLayout()
+        form.setHorizontalSpacing(widget_px(self, 10))
+        form.setVerticalSpacing(widget_px(self, 4))
+        for column, field in enumerate(("vendor", "model", "mounting")):
+            label = QLabel(self.manager.tr(f"ap_group_metadata_{field}"))
+            label.setObjectName("apDialogLabel")
             edit = QLineEdit(self.metadata.get(field, ""))
             self.field_edits[field] = edit
-            form.addRow(self.manager.tr(f"ap_group_metadata_{field}"), edit)
+            form.addWidget(label, 0, column)
+            form.addWidget(edit, 1, column)
         content_layout.addLayout(form)
 
         self.build_band_section(content_layout)
@@ -778,7 +858,7 @@ class MetadataDialog(QDialog):
         content_layout.addWidget(QLabel(self.manager.tr("ap_group_metadata_notes")))
         self.notes_edit = QTextEdit()
         self.notes_edit.setPlainText(self.metadata.get("notes", ""))
-        self.notes_edit.setMinimumHeight(widget_px(self, 130))
+        self.notes_edit.setMinimumHeight(widget_px(self, 84))
         content_layout.addWidget(self.notes_edit)
         scroll.setWidget(content)
         outer.addWidget(scroll, 1)
@@ -787,6 +867,10 @@ class MetadataDialog(QDialog):
         buttons.addStretch(1)
         save_button = QPushButton(self.manager.tr("save"))
         cancel_button = QPushButton(self.manager.tr("cancel"))
+        save_button.setObjectName("apDialogPrimaryButton")
+        cancel_button.setObjectName("apDialogActionButton")
+        self.manager.prepare_action_button(save_button)
+        self.manager.prepare_action_button(cancel_button)
         save_button.clicked.connect(self.accept)
         cancel_button.clicked.connect(self.reject)
         buttons.addWidget(save_button)
@@ -797,6 +881,8 @@ class MetadataDialog(QDialog):
         selected_bands = parse_expected_bands(self.metadata.get("expected_bands", ""))
         band_box = QGroupBox(self.manager.tr("ap_group_metadata_expected_bands"))
         band_layout = QHBoxLayout(band_box)
+        band_layout.setContentsMargins(widget_px(self, 10), widget_px(self, 8), widget_px(self, 10), widget_px(self, 8))
+        band_layout.setSpacing(widget_px(self, 14))
         for band_value, band_label in EXPECTED_BAND_OPTIONS:
             checkbox = QCheckBox(band_label)
             checkbox.setChecked(band_value in selected_bands)
@@ -809,27 +895,42 @@ class MetadataDialog(QDialog):
         selected_channels = parse_expected_channels(self.metadata.get("expected_channels", ""))
         section = QGroupBox(self.manager.tr("ap_group_metadata_expected_channels"))
         section_layout = QGridLayout(section)
-        section_layout.setHorizontalSpacing(widget_px(self, 12))
-        section_layout.setVerticalSpacing(widget_px(self, 12))
+        section_layout.setContentsMargins(widget_px(self, 10), widget_px(self, 10), widget_px(self, 10), widget_px(self, 10))
+        section_layout.setHorizontalSpacing(widget_px(self, 8))
+        section_layout.setVerticalSpacing(widget_px(self, 8))
 
         for index, (title_key, channels) in enumerate(EXPECTED_CHANNEL_GROUPS):
             group_box = QGroupBox(self.manager.tr(title_key))
             group_layout = QGridLayout(group_box)
+            group_layout.setContentsMargins(widget_px(self, 10), widget_px(self, 8), widget_px(self, 10), widget_px(self, 8))
+            group_layout.setHorizontalSpacing(widget_px(self, 10))
+            group_layout.setVerticalSpacing(widget_px(self, 5))
             for channel_index, channel in enumerate(channels):
                 checkbox = QCheckBox(f"CH {channel}")
                 checkbox.setChecked(channel in selected_channels)
                 self.channel_checks[channel] = checkbox
-                group_layout.addWidget(checkbox, channel_index // 4, channel_index % 4)
+                group_layout.addWidget(
+                    checkbox,
+                    channel_index // 4,
+                    channel_index % 4,
+                    alignment=Qt.AlignmentFlag.AlignLeft,
+                )
 
             action_row = QHBoxLayout()
+            action_row.setSpacing(widget_px(self, 8))
             select_button = QPushButton(self.manager.tr("ap_group_metadata_select_all"))
             clear_button = QPushButton(self.manager.tr("ap_group_metadata_clear"))
+            for button in (select_button, clear_button):
+                button.setObjectName("apDialogActionButton")
+                self.manager.prepare_action_button(button)
+                button.setMaximumWidth(widget_px(self, 118))
             select_button.clicked.connect(lambda _checked=False, values=channels: self.set_channel_group(values, True))
             clear_button.clicked.connect(lambda _checked=False, values=channels: self.set_channel_group(values, False))
             action_row.addWidget(select_button)
             action_row.addWidget(clear_button)
             action_row.addStretch(1)
             group_layout.addLayout(action_row, (len(channels) + 3) // 4, 0, 1, 4)
+            group_layout.setColumnStretch(4, 1)
 
             section_layout.addWidget(group_box, index // 2, index % 2)
 
@@ -883,6 +984,7 @@ class BssidSelectionDialog(QDialog):
         self.setWindowTitle(manager.tr("ap_group_bssid_title"))
         self.resize(widget_px(self, 980), widget_px(self, 700))
         self.setMinimumSize(widget_px(self, 850), widget_px(self, 580))
+        self.setStyleSheet(manager.styleSheet())
         self.build_ui()
         self.render_items()
 
@@ -904,7 +1006,6 @@ class BssidSelectionDialog(QDialog):
         layout.addLayout(search_row)
 
         self.list_widget = QListWidget()
-        self.list_widget.itemChanged.connect(self.update_checked_state)
         layout.addWidget(self.list_widget, 1)
 
         buttons = QHBoxLayout()
@@ -934,19 +1035,20 @@ class BssidSelectionDialog(QDialog):
             label = self.build_bssid_label(bssid)
             if query and query not in label.lower():
                 continue
-            item = QListWidgetItem(label)
-            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-            item.setCheckState(
-                Qt.CheckState.Checked
-                if self.checked_by_bssid.get(normalize_bssid(bssid), False)
-                else Qt.CheckState.Unchecked
+            clean_bssid = normalize_bssid(bssid)
+            checkbox = QCheckBox(label)
+            checkbox.setChecked(self.checked_by_bssid.get(clean_bssid, False))
+            checkbox.toggled.connect(
+                lambda checked, selected_bssid=clean_bssid: self.set_bssid_checked(selected_bssid, checked)
             )
-            item.setData(Qt.ItemDataRole.UserRole, normalize_bssid(bssid))
+            item = QListWidgetItem()
+            item.setData(Qt.ItemDataRole.UserRole, clean_bssid)
+            item.setSizeHint(checkbox.sizeHint())
             self.list_widget.addItem(item)
+            self.list_widget.setItemWidget(item, checkbox)
 
-    def update_checked_state(self, item):
-        bssid = item.data(Qt.ItemDataRole.UserRole)
-        self.checked_by_bssid[bssid] = item.checkState() == Qt.CheckState.Checked
+    def set_bssid_checked(self, bssid, checked):
+        self.checked_by_bssid[bssid] = bool(checked)
 
     def build_bssid_label(self, bssid):
         detected_group = self.detected_by_bssid.get(bssid, {})
