@@ -5,6 +5,7 @@ from tkinter import messagebox
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import DANGER, PRIMARY, SECONDARY, SUCCESS, WARNING
 
+from ap_groups import AP_ROLE_TEST, normalize_ap_role
 from quality_engine import (
     QUALITY_GOOD,
     QUALITY_LOW_CONFIDENCE,
@@ -39,7 +40,8 @@ def open_survey_quality_dashboard(app):
         app.session.raw_scan_rows,
         relevant_ssids=app.relevant_ssids
     )
-    rows = build_dashboard_rows(app, point_summaries, quality_by_point_id)
+    ap_position_by_point = build_ap_position_quality_by_point(app)
+    rows = build_dashboard_rows(app, point_summaries, quality_by_point_id, ap_position_by_point)
     summary = build_summary(app, rows)
 
     dialog = app.create_modal_dialog(app.tr("quality_dashboard_title"))
@@ -75,6 +77,16 @@ def build_summary_panel(app, parent, summary):
         ("quality_dashboard_metric_missing", summary["missing_relevant"], DANGER if summary["missing_relevant"] else SUCCESS),
         ("quality_dashboard_metric_low_confidence", summary["low_confidence"], WARNING if summary["low_confidence"] else SUCCESS),
         ("quality_dashboard_metric_unstable", summary["unstable"], WARNING if summary["unstable"] else SUCCESS),
+        (
+            "quality_dashboard_metric_ap_position_warnings",
+            summary["ap_position_warnings"],
+            WARNING if summary["ap_position_warnings"] else SUCCESS
+        ),
+        (
+            "quality_dashboard_metric_ap_missing_positions",
+            summary["ap_missing_positions"],
+            WARNING if summary["ap_missing_positions"] else SUCCESS
+        ),
     ]
 
     for column, (label_key, value, bootstyle) in enumerate(metrics):
@@ -93,10 +105,22 @@ def build_summary_panel(app, parent, summary):
         text=app.tr(
             "quality_dashboard_context",
             relevant=summary["relevant_networks"],
-            ap_positions=summary["ap_positions"]
+            ap_positions=summary["ap_positions"],
+            test_aps=summary["test_aps"]
         ),
         style="ReadableMuted.TLabel"
     ).pack(anchor="w")
+    ttk.Label(
+        details,
+        text=app.tr(
+            "quality_dashboard_ap_context",
+            ap_warnings=summary["ap_position_warnings"],
+            missing_positions=summary["ap_missing_positions"],
+            missing_list=summary["missing_position_labels"]
+        ),
+        style="ReadableMuted.TLabel",
+        wraplength=1240
+    ).pack(anchor="w", pady=(2, 0))
 
 
 def create_metric_box(parent, label, value, bootstyle):
@@ -190,7 +214,7 @@ def build_details_panel(app, parent, rows):
         visible_rows = [
             row
             for row in rows
-            if not show_issues_only.get() or row["status"] != QUALITY_GOOD
+            if not show_issues_only.get() or row["needs_review"]
         ]
         for row in visible_rows:
             item_id = row["item_id"]
@@ -210,7 +234,7 @@ def build_details_panel(app, parent, rows):
                     row["ssids"],
                     row["issue"],
                 ),
-                tags=(QUALITY_SEVERITY.get(row["status"], "warning"),)
+                tags=(row["severity"],)
             )
         visible_count_var.set(app.tr("quality_dashboard_visible_count", shown=len(visible_rows), total=len(rows)))
         focus_button.configure(state=tk.NORMAL if visible_rows else tk.DISABLED)
@@ -258,15 +282,25 @@ def focus_selected_dashboard_point(app, tree, row_by_item):
     app.root.after(80, focus_point)
 
 
-def build_dashboard_rows(app, point_summaries, quality_by_point_id):
+def build_dashboard_rows(app, point_summaries, quality_by_point_id, ap_position_by_point=None):
     total_points = len(point_summaries)
     rows = []
+    ap_position_by_point = ap_position_by_point or {}
 
     for index, point in enumerate(reversed(point_summaries), start=1):
         survey_number = total_points - index + 1
         quality = quality_by_point_id.get(point.get("point_id", ""), {})
         status = quality.get("status", QUALITY_SPARSE_DATA)
         point_table_item_id = format_point_id(point["timestamp"], point["x"], point["y"])
+        ap_position = ap_position_by_point.get(point_key(point))
+        ap_position_issue = format_ap_position_issue(app, ap_position)
+        issue = format_quality_issue(app, quality)
+        if ap_position_issue:
+            issue = join_issues(issue, ap_position_issue, app.tr("quality_dashboard_no_issue"))
+        needs_review = status != QUALITY_GOOD or bool(ap_position_issue)
+        severity = QUALITY_SEVERITY.get(status, "warning")
+        if ap_position_issue and status == QUALITY_GOOD:
+            severity = "warning"
         rows.append({
             "item_id": f"{point.get('point_id') or survey_number}|{point_table_item_id}",
             "point_table_item_id": point_table_item_id,
@@ -277,11 +311,14 @@ def build_dashboard_rows(app, point_summaries, quality_by_point_id):
             "y": point["y"],
             "quality": app.format_point_quality(status),
             "status": status,
+            "needs_review": needs_review,
+            "severity": severity,
+            "ap_position_warning_count": len(ap_position.get("warnings", [])) if ap_position else 0,
             "confidence": format_point_confidence(app.session.rows, point.get("point_id", ""), app.relevant_ssids),
             "best": f"{point['best_signal_dbm']:.1f}",
             "row_count": point["row_count"],
             "ssids": ", ".join(point["ssids"]),
-            "issue": format_quality_issue(app, quality),
+            "issue": issue,
         })
 
     return rows
@@ -290,19 +327,141 @@ def build_dashboard_rows(app, point_summaries, quality_by_point_id):
 def build_summary(app, rows):
     status_counts = Counter(row["status"] for row in rows)
     ap_groups = app.session.get_ap_groups()
-    positioned_count = sum(1 for group in ap_groups if group.get("position"))
+    visible_ap_groups = [
+        group
+        for group in ap_groups
+        if normalize_ap_role(group.get("role")) != AP_ROLE_TEST
+    ]
+    test_ap_count = len(ap_groups) - len(visible_ap_groups)
+    positioned_count = sum(1 for group in visible_ap_groups if group.get("position"))
+    missing_position_groups = [group for group in visible_ap_groups if not group.get("position")]
     relevant_networks = ", ".join(sorted(app.relevant_ssids)) if app.relevant_ssids else app.tr("relevant_networks_none")
+    missing_position_labels = ", ".join(
+        app.get_ap_group_display_name(group.get("group_id", ""))
+        for group in missing_position_groups[:4]
+    )
+    if len(missing_position_groups) > 4:
+        missing_position_labels = app.tr(
+            "quality_dashboard_missing_positions_more",
+            names=missing_position_labels,
+            count=len(missing_position_groups) - 4
+        )
+    if not missing_position_labels:
+        missing_position_labels = app.tr("quality_dashboard_missing_positions_none")
 
     return {
         "total_points": len(rows),
-        "good_points": status_counts.get(QUALITY_GOOD, 0),
-        "review_points": len(rows) - status_counts.get(QUALITY_GOOD, 0),
+        "good_points": sum(1 for row in rows if not row["needs_review"]),
+        "review_points": sum(1 for row in rows if row["needs_review"]),
         "missing_relevant": status_counts.get(QUALITY_MISSING_RELEVANT, 0),
         "low_confidence": status_counts.get(QUALITY_LOW_CONFIDENCE, 0),
         "unstable": status_counts.get(QUALITY_UNSTABLE_SIGNAL, 0),
+        "ap_position_warnings": sum(1 for row in rows if row.get("ap_position_warning_count", 0) > 0),
+        "ap_missing_positions": len(missing_position_groups),
+        "missing_position_labels": missing_position_labels,
         "relevant_networks": relevant_networks,
-        "ap_positions": f"{positioned_count}/{len(ap_groups)}" if ap_groups else "0/0",
+        "ap_positions": f"{positioned_count}/{len(visible_ap_groups)}" if visible_ap_groups else "0/0",
+        "test_aps": test_ap_count,
     }
+
+
+def build_ap_position_quality_by_point(app):
+    if not app.session.get_ap_groups():
+        return {}
+
+    role_map = app.get_current_ap_group_roles()
+    relevant_ssids = {normalize_ssid(ssid) for ssid in app.relevant_ssids or [] if normalize_ssid(ssid)}
+    best_by_point = {}
+
+    for row in app.session.rows:
+        if not row_is_relevant_for_position(row, relevant_ssids):
+            continue
+
+        bssid = row.get("bssid", "")
+        group_id = app.resolve_ap_group_key(bssid)
+        if role_map.get(group_id) == AP_ROLE_TEST:
+            continue
+
+        signal_dbm = parse_float(row.get("signal_dbm"))
+        if signal_dbm is None:
+            continue
+
+        key = row_point_key(row)
+        current = best_by_point.get(key)
+        if current and signal_dbm <= current["dominant_signal_dbm"]:
+            continue
+
+        best_by_point[key] = {
+            "timestamp": row.get("timestamp", ""),
+            "x": row.get("x", ""),
+            "y": row.get("y", ""),
+            "dominant_ap_group": group_id,
+            "dominant_bssid": bssid,
+            "dominant_signal_dbm": signal_dbm,
+        }
+
+    result = {}
+    for key, dominant_row in best_by_point.items():
+        analysis = app.analyze_dominant_ap_position_for_row(dominant_row)
+        warnings = analysis.get("warnings", [])
+        if not warnings:
+            continue
+
+        result[key] = {
+            "analysis": analysis,
+            "dominant_ap_group": dominant_row.get("dominant_ap_group", ""),
+            "dominant_bssid": dominant_row.get("dominant_bssid", ""),
+            "warnings": warnings,
+        }
+
+    return result
+
+
+def row_is_relevant_for_position(row, relevant_ssids):
+    if not relevant_ssids:
+        return True
+
+    return normalize_ssid(row.get("ssid")) in relevant_ssids or is_truthy(row.get("is_relevant"))
+
+
+def row_point_key(row):
+    if row.get("point_id"):
+        return row.get("point_id")
+
+    return format_point_id(row.get("timestamp", ""), row.get("x", ""), row.get("y", ""))
+
+
+def point_key(point):
+    if point.get("point_id"):
+        return point.get("point_id")
+
+    return format_point_id(point.get("timestamp", ""), point.get("x", ""), point.get("y", ""))
+
+
+def format_ap_position_issue(app, ap_position):
+    if not ap_position:
+        return ""
+
+    warning_labels = [
+        app.tr(app.ap_position_warning_translation_key(warning))
+        for warning in ap_position.get("warnings", [])
+    ]
+    if not warning_labels:
+        return ""
+
+    ap_label = app.get_ap_group_display_name(ap_position.get("dominant_ap_group", ""))
+    return app.tr(
+        "quality_dashboard_ap_position_issue",
+        ap=ap_label,
+        warning="; ".join(warning_labels)
+    )
+
+
+def join_issues(current_issue, extra_issue, no_issue_label):
+    if not current_issue or current_issue == no_issue_label:
+        return extra_issue
+
+    return f"{current_issue}; {extra_issue}"
 
 
 def format_quality_issue(app, quality):

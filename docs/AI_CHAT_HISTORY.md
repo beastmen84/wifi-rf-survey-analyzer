@@ -335,9 +335,15 @@ Language:
   - live AP group filter.
 - Added role information to live channel/dominant tooltips and dominant report.
 - Added this continuity file because the original chat became very long.
+- Extended Survey Quality Dashboard with AP positioning awareness:
+  - visible/non-test AP position counts;
+  - excluded test AP count;
+  - AP position warning count;
+  - point issues for suspicious dominant AP physical position.
 
-Recent commits at the time this file was created:
+Recent commits:
 
+- `ce08bea` Add AI chat continuity notes.
 - `7dfb5be` Hide test AP groups from map analysis.
 - `1d35a5d` Use AP roles in interference analysis.
 - `dad858e` Add AP group roles.
@@ -355,17 +361,14 @@ Recent commits at the time this file was created:
 
 Good next steps, in likely order:
 
-1. Use AP group roles/positions in the Survey Quality Dashboard.
-   Example: show AP groups without position, test groups hidden, unexpected
-   dominant warnings aggregated per AP.
-2. Add more AP metadata fields only when clearly useful:
+1. Add more AP metadata fields only when clearly useful:
    vendor, model, mounting type, expected channels/bands, notes.
-3. Improve AP Group Manager workflows:
+2. Improve AP Group Manager workflows:
    better manual split/merge UX, clearer locked/manual status, possible conflict
    detection when automatic grouping suggests suspicious merges.
-4. Improve live map performance only if user sees real lag on large surveys.
-5. Rework Help structure later, after the feature set stabilizes.
-6. Consider PySide6 migration only after core logic is sufficiently separated.
+3. Improve live map performance only if user sees real lag on large surveys.
+4. Rework Help structure later, after the feature set stabilizes.
+5. Consider PySide6 migration only after core logic is sufficiently separated.
 
 ## Verification Patterns Used
 
@@ -384,4 +387,3 @@ Recent tests checked that:
 - the visible AP becomes dominant/serving;
 - test APs are counted as ignored in interference;
 - role columns are preserved in outputs.
-
