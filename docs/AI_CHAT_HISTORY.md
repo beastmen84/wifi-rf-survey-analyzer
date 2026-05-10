@@ -394,6 +394,11 @@ Language:
   bands/channels and notes; AP positioning now saves current groups, closes the
   manager, and lets the user right-click the Qt floorplan to store physical AP
   position markers.
+- Added first-pass Qt point creation/scanning: right-clicking the Qt floorplan
+  starts an Auto Wi-Fi scan in a background Qt thread, saves all detected
+  networks through `SurveySession.add_points`, manages relevant SSID prompts in
+  Qt, and keeps point quality/delete/focus controls in the Qt points table.
+  `qt_point_workflow.py` now contains the scan worker and point-related dialogs.
 
 Recent commits:
 
@@ -415,9 +420,9 @@ Recent commits:
 
 Good next steps, in likely order:
 
-1. Continue PySide6 migration in `main.py`, with point creation/scanning as the
-   next major workflow to move.
-2. Add lightweight tests around AP groups, quality and interference before
+1. Continue PySide6 migration with the live map tab as the next major workflow
+   to move.
+2. Add lightweight tests around AP groups, quality and point scanning before
    larger V2 refactors.
 3. Decide whether mounting metadata should influence AP position warnings or
    remain documentation only.

@@ -390,6 +390,12 @@ Current first step:
 - `qt_ap_groups.py` contains the first Qt AP Group Manager migration: group
   table/search, alias/role edits, metadata editing, BSSID split, conflict
   details, AP positioning from the Qt floorplan and save behavior are available.
+- Qt point creation/scanning is also available in first-pass form: right-click
+  on the Qt floorplan starts an Auto scan in a background Qt thread, relevant
+  SSID prompts are Qt dialogs, all detected networks are saved, and the Qt
+  points table includes quality/focus/delete controls.
+- `qt_point_workflow.py` contains the Qt scan worker and relevant/missing
+  network dialogs.
 
 Recommended migration sequence:
 
@@ -407,16 +413,16 @@ Recommended migration sequence:
 
 Near-term:
 
-1. Move point creation/scanning workflow to Qt.
-2. Move live map workflow to Qt.
-3. Add lightweight tests for AP groups, quality and interference.
+1. Move live map workflow to Qt.
+2. Move quality dashboard workflow to Qt.
+3. Add lightweight tests for AP groups, quality, point scanning and
+   interference.
 
 Medium-term:
 
-4. Move quality dashboard workflow to Qt.
-5. Expand survey quality recommendations.
-6. Improve generated reporting.
-8. Use AP metadata more deeply in diagnostics.
+4. Expand survey quality recommendations.
+5. Improve generated reporting.
+6. Use AP metadata more deeply in diagnostics.
 
 Long-term:
 

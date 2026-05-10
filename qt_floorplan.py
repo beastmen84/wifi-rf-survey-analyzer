@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 
 
 class FloorplanView(QGraphicsView):
+    surveyPointRequested = Signal(int, int)
     apPositionPicked = Signal(str, int, int)
     apPositionCancelled = Signal()
 
@@ -198,6 +199,12 @@ class FloorplanView(QGraphicsView):
             event.accept()
             return
 
+        if self.has_floorplan() and event.button() == Qt.MouseButton.RightButton:
+            point = self.mapToScene(event.position().toPoint())
+            self.surveyPointRequested.emit(int(round(point.x())), int(round(point.y())))
+            event.accept()
+            return
+
         super().mousePressEvent(event)
 
     def keyPressEvent(self, event):
@@ -206,6 +213,12 @@ class FloorplanView(QGraphicsView):
             return
 
         super().keyPressEvent(event)
+
+    def focus_on(self, x, y):
+        if not self.has_floorplan():
+            return
+
+        self.centerOn(float(x), float(y))
 
 
 def load_floorplan_pixmap(file_path):

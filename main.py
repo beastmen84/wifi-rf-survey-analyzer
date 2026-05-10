@@ -1,14 +1,16 @@
+import json
 import os
 import sys
 from pathlib import Path
 
 try:
-    from PySide6.QtCore import Qt
+    from PySide6.QtCore import Qt, QThread
     from PySide6.QtGui import QAction
     from PySide6.QtWidgets import (
         QAbstractItemView,
         QApplication,
         QComboBox,
+        QDialog,
         QFileDialog,
         QFrame,
         QGridLayout,
@@ -33,9 +35,23 @@ except ModuleNotFoundError as exc:
     raise SystemExit(1) from exc
 
 from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_language, translate
+from quality_engine import (
+    QUALITY_GOOD,
+    QUALITY_LOW_CONFIDENCE,
+    QUALITY_MISSING_RELEVANT,
+    QUALITY_SPARSE_DATA,
+    QUALITY_UNSTABLE_SIGNAL,
+    evaluate_point_quality,
+)
 from qt_ap_groups import open_qt_ap_group_manager
 from qt_floorplan import FloorplanView
+from qt_point_workflow import MissingRelevantNetworksDialog, RelevantNetworksDialog, WifiScanWorker
 from survey_store import SurveyFormatError, SurveySession
+from wifi_scanner import get_connected_ssid
+
+
+RELEVANT_SSIDS_METADATA_KEY = "relevant_ssids"
+KNOWN_SSIDS_METADATA_KEY = "known_ssids"
 
 
 class WifiHeatmapQtApp(QMainWindow):
@@ -43,6 +59,13 @@ class WifiHeatmapQtApp(QMainWindow):
         super().__init__()
         self.language = DEFAULT_LANGUAGE
         self.session = None
+        self.relevant_ssids = set()
+        self.known_ssids = set()
+        self.scan_thread = None
+        self.scan_worker = None
+        self.scan_in_progress = False
+        self.pending_scan_point = None
+        self.last_scan_backend_used = "-"
 
         self.setWindowTitle(self.tr("app_title"))
         self.resize(1400, 900)
@@ -225,12 +248,14 @@ class WifiHeatmapQtApp(QMainWindow):
         self.points_label = QLabel()
         self.raw_rows_label = QLabel()
         self.ap_groups_label = QLabel()
+        self.relevant_label = QLabel()
         for row, label in enumerate((
             self.csv_label,
             self.map_label,
             self.points_label,
             self.raw_rows_label,
             self.ap_groups_label,
+            self.relevant_label,
         )):
             grid.addWidget(label, row // 2, row % 2)
         layout.addWidget(summary)
@@ -239,17 +264,40 @@ class WifiHeatmapQtApp(QMainWindow):
 
         self.floorplan_view = FloorplanView()
         self.floorplan_view.ap_tooltip_formatter = self.format_ap_position_tooltip
+        self.floorplan_view.surveyPointRequested.connect(self.create_point_from_floorplan)
         self.floorplan_view.apPositionPicked.connect(self.save_ap_position)
         self.floorplan_view.apPositionCancelled.connect(self.cancel_ap_positioning)
         splitter.addWidget(self.floorplan_view)
 
-        self.points_table = QTableWidget(0, 6)
+        table_panel = QWidget()
+        table_layout = QVBoxLayout(table_panel)
+        table_layout.setContentsMargins(0, 0, 0, 0)
+        table_layout.setSpacing(8)
+
+        self.points_table = QTableWidget(0, 8)
         self.points_table.setAlternatingRowColors(True)
         self.points_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.points_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.points_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.points_table.horizontalHeader().setStretchLastSection(True)
-        splitter.addWidget(self.points_table)
+        self.points_table.itemSelectionChanged.connect(self.update_point_action_state)
+        self.points_table.itemDoubleClicked.connect(lambda _item: self.focus_selected_point())
+        table_layout.addWidget(self.points_table)
+
+        point_buttons = QHBoxLayout()
+        self.focus_point_button = QPushButton()
+        self.delete_selected_button = QPushButton()
+        self.delete_last_button = QPushButton()
+        self.focus_point_button.clicked.connect(self.focus_selected_point)
+        self.delete_selected_button.clicked.connect(self.delete_selected_point)
+        self.delete_last_button.clicked.connect(self.delete_last_point)
+        point_buttons.addWidget(self.focus_point_button)
+        point_buttons.addWidget(self.delete_selected_button)
+        point_buttons.addWidget(self.delete_last_button)
+        point_buttons.addStretch(1)
+        table_layout.addLayout(point_buttons)
+
+        splitter.addWidget(table_panel)
         splitter.setStretchFactor(0, 4)
         splitter.setStretchFactor(1, 1)
         layout.addWidget(splitter, 1)
@@ -353,6 +401,9 @@ class WifiHeatmapQtApp(QMainWindow):
         self.ap_groups_action.setText(self.tr("ap_groups_title"))
         self.quality_action.setText(self.tr("quality_dashboard_title"))
         self.generate_action.setText(self.tr("generate_heatmap"))
+        self.focus_point_button.setText(self.tr("go_to_point"))
+        self.delete_selected_button.setText(self.tr("delete_selected"))
+        self.delete_last_button.setText(self.tr("delete_last"))
         self.tabs.setTabText(0, self.tr("survey_tab"))
         self.tabs.setTabText(1, self.tr("live_map_tab"))
         self.live_title.setText(self.tr("qt_live_placeholder_title"))
@@ -361,8 +412,10 @@ class WifiHeatmapQtApp(QMainWindow):
             "#",
             "X",
             "Y",
-            self.tr("qt_table_networks"),
             self.tr("qt_table_best_dbm"),
+            self.tr("quality"),
+            self.tr("qt_table_networks"),
+            self.tr("rows"),
             self.tr("qt_table_timestamp"),
         ])
         self.refresh_session_labels()
@@ -398,6 +451,7 @@ class WifiHeatmapQtApp(QMainWindow):
         if not self.confirm_switch_survey():
             return
         self.session = SurveySession()
+        self.load_session_ssid_state()
         self.floorplan_view.clear_floorplan()
         self.show_workspace_page()
 
@@ -420,6 +474,7 @@ class WifiHeatmapQtApp(QMainWindow):
             self.show_survey_format_error(str(exc))
             return
 
+        self.load_session_ssid_state()
         self.show_workspace_page()
         self.load_saved_plan()
         self.status.showMessage(self.tr("active_survey", name=self.session_display_name()))
@@ -544,6 +599,12 @@ class WifiHeatmapQtApp(QMainWindow):
         return False
 
     def closeEvent(self, event):
+        if self.scan_in_progress:
+            x, y = self.pending_scan_point or ("-", "-")
+            self.status.showMessage(self.tr("scanning", x=x, y=y))
+            event.ignore()
+            return
+
         if self.confirm_switch_survey():
             event.accept()
         else:
@@ -567,6 +628,193 @@ class WifiHeatmapQtApp(QMainWindow):
             self.tr("qt_not_migrated_title"),
             self.tr("qt_not_migrated_message"),
         )
+
+    def load_session_ssid_state(self):
+        self.relevant_ssids = self.load_relevant_ssids()
+        self.known_ssids = self.load_known_ssids()
+
+    def load_relevant_ssids(self):
+        if self.session is None:
+            return set()
+
+        return load_json_string_set(self.session.metadata.get(RELEVANT_SSIDS_METADATA_KEY))
+
+    def load_known_ssids(self):
+        if self.session is None:
+            return set(self.relevant_ssids)
+
+        known = load_json_string_set(self.session.metadata.get(KNOWN_SSIDS_METADATA_KEY))
+        return known or set(self.relevant_ssids)
+
+    def save_known_ssids(self):
+        if self.session is None:
+            return
+
+        serialized = json.dumps(sorted(self.known_ssids), ensure_ascii=False)
+        self.session.update_metadata({KNOWN_SSIDS_METADATA_KEY: serialized})
+
+    def set_relevant_ssids(self, ssids):
+        if self.session is None:
+            return
+
+        self.relevant_ssids = {
+            str(ssid).strip()
+            for ssid in ssids
+            if str(ssid).strip()
+        }
+        serialized = json.dumps(sorted(self.relevant_ssids), ensure_ascii=False)
+        self.session.update_metadata({RELEVANT_SSIDS_METADATA_KEY: serialized})
+        self.known_ssids |= self.relevant_ssids
+        self.refresh_session_labels()
+
+    def create_point_from_floorplan(self, x, y):
+        if self.session is None:
+            self.new_survey()
+            if self.session is None:
+                return
+
+        if not self.floorplan_view.has_floorplan():
+            QMessageBox.warning(self, self.tr("warning"), self.tr("load_plan_first"))
+            return
+
+        if self.scan_in_progress:
+            return
+
+        self.start_wifi_scan(x, y)
+
+    def start_wifi_scan(self, x, y):
+        self.pending_scan_point = (int(x), int(y))
+        self.set_scan_busy(True, self.tr("scanning", x=int(x), y=int(y)))
+
+        thread = QThread(self)
+        worker = WifiScanWorker("auto")
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.finished.connect(self.finish_wifi_scan)
+        worker.finished.connect(thread.quit)
+        worker.finished.connect(worker.deleteLater)
+        worker.failed.connect(self.fail_wifi_scan)
+        worker.failed.connect(thread.quit)
+        worker.failed.connect(worker.deleteLater)
+        thread.finished.connect(thread.deleteLater)
+        self.scan_thread = thread
+        self.scan_worker = worker
+        thread.start()
+
+    def finish_wifi_scan(self, networks, backend_used):
+        x, y = self.pending_scan_point or (None, None)
+        self.scan_thread = None
+        self.scan_worker = None
+        self.set_scan_busy(False)
+        self.last_scan_backend_used = backend_used
+
+        if x is None or y is None:
+            return
+
+        action = self.validate_relevant_networks(networks)
+        if action == "retry":
+            self.start_wifi_scan(x, y)
+            return
+        if action == "cancel":
+            self.pending_scan_point = None
+            self.status.showMessage(self.tr("cancelled"))
+            return
+
+        self.pending_scan_point = None
+        self.save_survey_point(x, y, networks)
+
+    def fail_wifi_scan(self, message):
+        self.scan_thread = None
+        self.scan_worker = None
+        self.set_scan_busy(False)
+        self.pending_scan_point = None
+        QMessageBox.critical(self, self.tr("error"), message)
+
+    def set_scan_busy(self, is_busy, message=None):
+        self.scan_in_progress = is_busy
+        if is_busy:
+            QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        else:
+            if QApplication.overrideCursor() is not None:
+                QApplication.restoreOverrideCursor()
+
+        if message:
+            self.status.showMessage(message)
+        self.refresh_session_labels()
+
+    def validate_relevant_networks(self, networks):
+        detected_ssids = self.get_detected_ssids(networks)
+        if not detected_ssids:
+            return "keep"
+
+        if not self.relevant_ssids and not self.known_ssids:
+            dialog = RelevantNetworksDialog(
+                self,
+                detected_ssids,
+                self.tr("relevant_networks_title"),
+                self.tr("relevant_networks_first_message"),
+                connected_ssid=get_connected_ssid(),
+            )
+            if dialog.exec() != QDialog.DialogCode.Accepted:
+                return "cancel"
+
+            self.set_relevant_ssids(dialog.selected_ssids())
+            self.known_ssids |= detected_ssids
+            self.save_known_ssids()
+            return "keep"
+
+        missing_ssids = sorted(self.relevant_ssids - detected_ssids, key=str.casefold)
+        if self.relevant_ssids and missing_ssids:
+            dialog = MissingRelevantNetworksDialog(self, missing_ssids)
+            if dialog.exec() != QDialog.DialogCode.Accepted:
+                return "cancel"
+            return dialog.action
+
+        new_ssids = sorted(detected_ssids - self.known_ssids, key=str.casefold)
+        if new_ssids:
+            dialog = RelevantNetworksDialog(
+                self,
+                new_ssids,
+                self.tr("new_relevant_networks_title"),
+                self.tr("new_relevant_networks_message"),
+            )
+            if dialog.exec() != QDialog.DialogCode.Accepted:
+                return "cancel"
+
+            selected = dialog.selected_ssids()
+            if selected:
+                self.set_relevant_ssids(self.relevant_ssids | selected)
+            self.known_ssids |= detected_ssids
+            self.save_known_ssids()
+
+        return "keep"
+
+    def get_detected_ssids(self, networks):
+        return {
+            str(network.get("ssid", "")).strip()
+            for network in networks or []
+            if str(network.get("ssid", "")).strip()
+        }
+
+    def save_survey_point(self, x, y, networks):
+        if self.session is None:
+            return
+
+        if not networks:
+            QMessageBox.critical(self, self.tr("error"), self.tr("no_networks_found"))
+            return
+
+        timestamp = self.session.add_points(
+            x,
+            y,
+            networks,
+            raw_networks=networks,
+            relevant_ssids=self.relevant_ssids,
+        )
+        self.refresh_session_labels()
+        self.refresh_points_table()
+        self.status.showMessage(self.tr("point_saved", x=x, y=y, count=len(networks)))
+        self.points_table.selectRow(0)
 
     def open_ap_group_manager(self):
         if self.session is None:
@@ -641,6 +889,68 @@ class WifiHeatmapQtApp(QMainWindow):
             f"{self.tr('ap_alias_bssids')}: {', '.join(group.get('bssids', [])) or '-'}",
         ])
 
+    def current_selected_point(self):
+        selected = self.points_table.selectedItems()
+        if not selected:
+            return None
+
+        row = selected[0].row()
+        item = self.points_table.item(row, 0)
+        return item.data(Qt.ItemDataRole.UserRole) if item else None
+
+    def update_point_action_state(self):
+        has_point = bool(self.current_selected_point())
+        has_any_point = bool(self.session and self.session.get_point_summaries())
+        self.focus_point_button.setEnabled(has_point)
+        self.delete_selected_button.setEnabled(has_point)
+        self.delete_last_button.setEnabled(has_any_point)
+
+    def focus_selected_point(self):
+        point = self.current_selected_point()
+        if not point:
+            QMessageBox.warning(self, self.tr("warning"), self.tr("select_point"))
+            return
+
+        self.floorplan_view.focus_on(point["x"], point["y"])
+
+    def delete_selected_point(self):
+        point = self.current_selected_point()
+        if not point:
+            QMessageBox.warning(self, self.tr("warning"), self.tr("select_point"))
+            return
+
+        self.delete_point(point)
+
+    def delete_last_point(self):
+        if self.session is None:
+            return
+
+        points = self.session.get_point_summaries()
+        if not points:
+            QMessageBox.warning(self, self.tr("warning"), self.tr("no_point_to_delete"))
+            return
+
+        point = points[-1]
+        removed_rows = self.delete_point(point, refresh=False)
+        self.refresh_session_labels()
+        self.refresh_points_table()
+        self.status.showMessage(
+            self.tr("last_point_deleted", x=point["x"], y=point["y"], rows=removed_rows)
+        )
+
+    def delete_point(self, point, refresh=True):
+        if self.session is None:
+            return 0
+
+        removed_rows = self.session.delete_point(point["timestamp"], int(point["x"]), int(point["y"]))
+        if refresh:
+            self.refresh_session_labels()
+            self.refresh_points_table()
+            self.status.showMessage(
+                self.tr("point_deleted", x=point["x"], y=point["y"], rows=removed_rows)
+            )
+        return removed_rows
+
     def session_display_name(self):
         if self.session is None:
             return self.tr("unsaved_survey")
@@ -661,14 +971,27 @@ class WifiHeatmapQtApp(QMainWindow):
             point_count = 0
             raw_count = 0
             ap_group_count = 0
+            relevant_label = self.tr("relevant_networks_none")
+            last_point = "-"
             dirty_suffix = ""
         else:
             csv_name = self.session_display_name()
             map_file = self.session.metadata.get("map_file", "")
             map_name = os.path.basename(map_file) if map_file else self.tr("no_map")
-            point_count = len(self.session.get_point_summaries())
+            point_summaries = self.session.get_point_summaries()
+            point_count = len(point_summaries)
             raw_count = len(self.session.raw_scan_rows)
             ap_group_count = len(self.session.get_ap_groups())
+            relevant_label = (
+                ", ".join(sorted(self.relevant_ssids, key=str.casefold))
+                if self.relevant_ssids
+                else self.tr("relevant_networks_none")
+            )
+            last_point = (
+                f"x={point_summaries[-1]['x']}, y={point_summaries[-1]['y']}"
+                if point_summaries
+                else "-"
+            )
             dirty_suffix = " *" if self.session.dirty else ""
 
         self.csv_label.setText(f"{self.tr('qt_csv')}: {csv_name}{dirty_suffix}")
@@ -676,47 +999,107 @@ class WifiHeatmapQtApp(QMainWindow):
         self.points_label.setText(f"{self.tr('qt_points')}: {point_count}")
         self.raw_rows_label.setText(f"{self.tr('qt_raw_rows')}: {raw_count}")
         self.ap_groups_label.setText(f"{self.tr('ap_groups_title')}: {ap_group_count}")
+        self.relevant_label.setText(f"{self.tr('saved_network')}: {relevant_label}")
         self.footer_label.setText(
             self.tr(
                 "footer_survey_info",
                 csv=f"{csv_name}{dirty_suffix}",
                 map=map_name,
                 points=point_count,
-                last="-",
+                last=last_point,
             )
         )
-        self.save_action.setEnabled(self.session is not None)
-        self.load_plan_action.setEnabled(self.session is not None)
-        self.ap_groups_action.setEnabled(self.session is not None)
-        self.quality_action.setEnabled(self.session is not None)
-        self.generate_action.setEnabled(self.session is not None)
+        self.new_action.setEnabled(not self.scan_in_progress)
+        self.open_action.setEnabled(not self.scan_in_progress)
+        can_use_session = self.session is not None and not self.scan_in_progress
+        self.save_action.setEnabled(can_use_session)
+        self.load_plan_action.setEnabled(can_use_session)
+        self.ap_groups_action.setEnabled(can_use_session)
+        self.quality_action.setEnabled(can_use_session)
+        self.generate_action.setEnabled(can_use_session)
         has_map = self.floorplan_view.has_floorplan()
-        self.zoom_in_action.setEnabled(has_map)
-        self.zoom_out_action.setEnabled(has_map)
-        self.fit_action.setEnabled(has_map)
+        self.zoom_in_action.setEnabled(has_map and not self.scan_in_progress)
+        self.zoom_out_action.setEnabled(has_map and not self.scan_in_progress)
+        self.fit_action.setEnabled(has_map and not self.scan_in_progress)
+        self.update_point_action_state()
 
     def refresh_points_table(self):
         self.points_table.setRowCount(0)
         if self.session is None:
+            self.update_point_action_state()
             return
 
         summaries = list(reversed(self.session.get_point_summaries()))
+        quality_by_point_id = evaluate_point_quality(
+            self.session.rows,
+            self.session.raw_scan_rows,
+            relevant_ssids=self.relevant_ssids,
+        )
         self.floorplan_view.set_points(summaries)
         self.floorplan_view.set_ap_groups(self.session.get_ap_groups())
         self.points_table.setRowCount(len(summaries))
         for row_index, point in enumerate(summaries):
+            quality = quality_by_point_id.get(point.get("point_id", ""), {})
             values = [
                 str(len(summaries) - row_index),
                 str(point.get("x", "")),
                 str(point.get("y", "")),
-                ", ".join(point.get("ssids", [])),
                 f"{point.get('best_signal_dbm', '')}",
+                self.format_point_quality(quality.get("status")),
+                ", ".join(point.get("ssids", [])),
+                str(point.get("row_count", "")),
                 str(point.get("timestamp", "")),
             ]
             for column_index, value in enumerate(values):
                 item = QTableWidgetItem(value)
                 item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
+                if column_index == 0:
+                    item.setData(Qt.ItemDataRole.UserRole, point)
+                if column_index == 4 and self.should_show_quality_tooltip(quality):
+                    item.setToolTip(self.build_quality_tooltip_text(quality))
                 self.points_table.setItem(row_index, column_index, item)
+        self.update_point_action_state()
+
+    def format_point_quality(self, status):
+        return {
+            QUALITY_GOOD: self.tr("quality_good"),
+            QUALITY_MISSING_RELEVANT: self.tr("quality_missing_relevant"),
+            QUALITY_LOW_CONFIDENCE: self.tr("quality_low_confidence"),
+            QUALITY_UNSTABLE_SIGNAL: self.tr("quality_unstable_signal"),
+            QUALITY_SPARSE_DATA: self.tr("quality_sparse_data"),
+        }.get(status, "-")
+
+    def should_show_quality_tooltip(self, quality):
+        breakdown = quality.get("breakdown", []) if quality else []
+        if len(breakdown) > 1:
+            return True
+        if not breakdown:
+            return False
+
+        return breakdown[0].get("status") in {QUALITY_LOW_CONFIDENCE, QUALITY_UNSTABLE_SIGNAL}
+
+    def build_quality_tooltip_text(self, quality):
+        lines = [self.tr("quality_breakdown_title")]
+        lines.append(f"{self.tr('quality')}: {self.format_point_quality(quality.get('status'))}")
+        for item in quality.get("breakdown", []):
+            lines.append(f"{item.get('ssid', '-')}: {self.format_quality_breakdown_item(item)}")
+        return "\n".join(lines)
+
+    def format_quality_breakdown_item(self, item):
+        status = item.get("status")
+        if status == QUALITY_GOOD:
+            return self.tr("quality_good")
+        if status == QUALITY_MISSING_RELEVANT:
+            return self.tr("quality_missing_relevant")
+        if status == QUALITY_LOW_CONFIDENCE:
+            confidence = item.get("min_confidence")
+            suffix = f" ({confidence:.2f})" if isinstance(confidence, float) else ""
+            return f"{self.tr('quality_low_confidence')}{suffix}"
+        if status == QUALITY_UNSTABLE_SIGNAL:
+            range_db = item.get("range_db")
+            suffix = f" ({range_db:.1f} dB)" if isinstance(range_db, float) else ""
+            return f"{self.tr('quality_unstable_signal')}{suffix}"
+        return self.format_point_quality(status)
 
 
 def main():
@@ -724,6 +1107,25 @@ def main():
     window = WifiHeatmapQtApp()
     window.showMaximized()
     sys.exit(app.exec())
+
+
+def load_json_string_set(value):
+    if not value:
+        return set()
+
+    try:
+        values = json.loads(value)
+    except json.JSONDecodeError:
+        return set()
+
+    if not isinstance(values, list):
+        return set()
+
+    return {
+        str(item).strip()
+        for item in values
+        if str(item).strip()
+    }
 
 
 if __name__ == "__main__":

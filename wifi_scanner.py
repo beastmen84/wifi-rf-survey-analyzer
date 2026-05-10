@@ -9,18 +9,18 @@ from constants import WIFI_SCAN_ATTEMPTS, WIFI_SCAN_DELAY_SECONDS
 from utils import dbm_to_percent, percent_to_dbm
 
 
-def scan_wifi(backend="auto"):
+def scan_wifi(backend="auto", show_errors=True):
     if backend == "lswifi":
-        return scan_wifi_lswifi(), "lswifi"
+        return scan_wifi_lswifi(show_errors=show_errors), "lswifi"
 
     if backend == "netsh":
-        return scan_wifi_netsh(), "netsh"
+        return scan_wifi_netsh(show_errors=show_errors), "netsh"
 
     networks = scan_wifi_lswifi(show_errors=False)
     if networks:
         return networks, "lswifi"
 
-    return scan_wifi_netsh(), "netsh fallback"
+    return scan_wifi_netsh(show_errors=show_errors), "netsh fallback"
 
 
 def get_connected_ssid():
@@ -50,7 +50,7 @@ def get_connected_ssid():
     return None
 
 
-def scan_wifi_netsh():
+def scan_wifi_netsh(show_errors=True):
     try:
         scans = []
 
@@ -70,7 +70,8 @@ def scan_wifi_netsh():
         return merge_wifi_scans(scans, WIFI_SCAN_ATTEMPTS)
 
     except Exception as e:
-        messagebox.showerror("Errore scan Wi-Fi", str(e))
+        if show_errors:
+            messagebox.showerror("Errore scan Wi-Fi", str(e))
         return []
 
 
