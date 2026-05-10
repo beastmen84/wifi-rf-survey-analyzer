@@ -556,6 +556,9 @@ Language:
   calibration points. While calibration is active, normal left-drag map panning
   is temporarily disabled and the cursor stays as a crosshair until calibration
   completes or is cancelled.
+- Improved the Qt survey point tooltip formatting: it now shows a clear title,
+  position, best signal with relevant/all scope, row counts, timestamp and
+  detected SSIDs as a short list for quicker reading.
 
 Recent commits:
 

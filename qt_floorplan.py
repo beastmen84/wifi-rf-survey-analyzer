@@ -413,12 +413,24 @@ def point_color(signal_dbm):
 
 
 def format_point_tooltip(point):
-    ssids = ", ".join(point.get("ssids", [])) or "-"
+    ssids = [str(ssid) for ssid in point.get("ssids", []) if str(ssid)]
+    ssid_text = "\n".join(f"  - {ssid}" for ssid in ssids) if ssids else "  -"
+    signal_scope = str(point.get("signal_scope", "all"))
+    scope_label = "relevant networks" if signal_scope == "relevant" else "all networks"
+    row_count = point.get("row_count", "-")
+    relevant_count = point.get("relevant_row_count", 0)
+    relevant_line = f"Relevant rows: {relevant_count}/{row_count}" if relevant_count else f"Rows: {row_count}"
+
     return (
-        f"x={point.get('x', '-')}, y={point.get('y', '-')}\n"
-        f"dBm: {point.get('best_signal_dbm', '-')}\n"
-        f"SSID: {ssids}\n"
-        f"{point.get('timestamp', '')}"
+        "Survey point\n"
+        "-------------\n"
+        f"Position: x={point.get('x', '-')}, y={point.get('y', '-')}\n"
+        f"Best signal: {point.get('best_signal_dbm', '-')} dBm ({scope_label})\n"
+        f"{relevant_line}\n"
+        f"Time: {point.get('timestamp', '-')}\n"
+        "\n"
+        "Detected SSID:\n"
+        f"{ssid_text}"
     )
 
 
