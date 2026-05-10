@@ -66,7 +66,7 @@ from qt_map_generation import MapGenerationDialog
 from qt_point_workflow import MissingRelevantNetworksDialog, RelevantNetworksDialog, WifiScanWorker
 from qt_quality_dashboard import open_qt_quality_dashboard
 from qt_theme import QT_THEME_OPTIONS, QT_THEMES
-from qt_windowing import install_dialog_centering
+from qt_windowing import SKIP_CENTERING_PROPERTY, install_dialog_centering
 from survey_store import SurveyFormatError, SurveySession
 from ui_scaling import (
     UI_SCALE_OPTIONS,
@@ -1248,6 +1248,7 @@ class WifiHeatmapQtApp(QMainWindow):
     def open_settings_menu(self):
         dialog = QDialog(self)
         dialog.setObjectName("settingsMenuPanel")
+        dialog.setProperty(SKIP_CENTERING_PROPERTY, True)
         dialog.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
         layout = QVBoxLayout(dialog)
         layout.setContentsMargins(self.spx(12), self.spx(10), self.spx(12), self.spx(10))

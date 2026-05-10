@@ -664,6 +664,11 @@ Language:
   standard message/input boxes, is centered on first show relative to its parent
   window or the active screen. The filter is installed by both `main.py` and the
   direct `qt_app.py` entry point.
+- Settings popup panels intentionally opt out of global dialog centering through
+  `SKIP_CENTERING_PROPERTY`, because they should remain anchored below their
+  toolbar/start-screen buttons. AP Group Split table checkbox cell containers
+  are explicitly transparent so they inherit the table row color instead of
+  showing a stale panel-colored square.
 
 Recent commits:
 

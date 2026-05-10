@@ -332,6 +332,9 @@ class APGroupManagerDialog(QDialog):
                 border: 0;
                 border-bottom: 1px solid {palette["border"]};
             }}
+            QWidget#apTableCheckboxContainer {{
+                background: transparent;
+            }}
             QHeaderView::section {{
                 background: {palette["header"]};
                 color: {palette["text"]};
@@ -1180,6 +1183,8 @@ class BssidSelectionDialog(QDialog):
             self.table.insertRow(row)
 
             checkbox_container = QWidget()
+            checkbox_container.setObjectName("apTableCheckboxContainer")
+            checkbox_container.setAutoFillBackground(False)
             checkbox_layout = QHBoxLayout(checkbox_container)
             checkbox_layout.setContentsMargins(0, 0, 0, 0)
             checkbox_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)

@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QApplication, QDialog
 
 
 CENTERED_PROPERTY = "_wifi_heatmap_centered_once"
+SKIP_CENTERING_PROPERTY = "_wifi_heatmap_skip_centering"
 
 
 class DialogCenteringFilter(QObject):
@@ -16,6 +17,7 @@ class DialogCenteringFilter(QObject):
             event.type() == QEvent.Type.Show
             and isinstance(obj, QDialog)
             and obj.isWindow()
+            and not obj.property(SKIP_CENTERING_PROPERTY)
             and not obj.property(CENTERED_PROPERTY)
         ):
             obj.setProperty(CENTERED_PROPERTY, True)
