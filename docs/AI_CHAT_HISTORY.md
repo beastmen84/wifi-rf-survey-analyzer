@@ -718,6 +718,8 @@ Language:
 - Survey Quality top area was reorganized: the nine numeric metrics are shown
   as a compact 3x3 grid on the left, while the context details are shown as a
   label/value panel on the right instead of long pipe-separated sentences.
+  The right panel intentionally avoids duplicating metric counts already present
+  in the boxes and keeps only operational details/lists.
 
 Recent commits:
 

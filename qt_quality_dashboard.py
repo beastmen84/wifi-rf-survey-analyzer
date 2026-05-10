@@ -249,34 +249,24 @@ class QualityDashboardDialog(QDialog):
         self.add_context_row(
             grid,
             3,
-            "quality_dashboard_context_position_warnings",
-            summary["ap_position_warnings"],
-        )
-        self.add_context_row(
-            grid,
-            4,
             "quality_dashboard_context_missing_positions",
-            summary["ap_missing_positions"],
             summary["missing_position_labels"],
         )
         self.add_context_row(
             grid,
-            5,
+            4,
             "quality_dashboard_context_config_warnings",
-            summary["ap_metadata_warnings"],
             summary["ap_metadata_warning_labels"],
         )
         grid.setColumnStretch(0, 0)
         grid.setColumnStretch(1, 1)
         return panel
 
-    def add_context_row(self, grid, row, label_key, value, detail=None):
+    def add_context_row(self, grid, row, label_key, value):
         label = QLabel(self.app.tr(label_key))
         label.setObjectName("mutedText")
         label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
         value_label = QLabel(str(value))
-        if detail:
-            value_label.setText(f"{value}\n{detail}")
         value_label.setWordWrap(True)
         value_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         value_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
