@@ -1,8 +1,13 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QCheckBox,
     QComboBox,
     QDialog,
+    QFormLayout,
+    QFrame,
+    QGridLayout,
+    QGroupBox,
     QHBoxLayout,
     QInputDialog,
     QLabel,
@@ -11,13 +16,22 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QTableWidget,
     QTableWidgetItem,
     QTextEdit,
     QVBoxLayout,
+    QWidget,
 )
 
 from ap_group_checks import build_ap_group_conflicts
+from ap_metadata_checks import (
+    infer_band_from_channel,
+    parse_expected_bands,
+    parse_expected_channels,
+    sort_bands,
+    sort_channels,
+)
 from ap_groups import (
     AP_ROLE_CHOICES,
     AP_ROLE_INTERNAL,
@@ -41,6 +55,21 @@ AP_GROUP_COLUMNS = (
     "ssids",
     "channels",
     "locked",
+)
+
+EXPECTED_BAND_OPTIONS = (
+    ("2.4", "2.4 GHz"),
+    ("5", "5 GHz"),
+    ("6", "6 GHz"),
+)
+
+EXPECTED_CHANNEL_GROUPS = (
+    ("ap_group_metadata_channel_group_24", tuple(str(channel) for channel in range(1, 14))),
+    ("ap_group_metadata_channel_group_5_low", ("36", "40", "44", "48", "52", "56", "60", "64")),
+    ("ap_group_metadata_channel_group_5_dfs", (
+        "100", "104", "108", "112", "116", "120", "124", "128", "132", "136", "140", "144"
+    )),
+    ("ap_group_metadata_channel_group_5_high", ("149", "153", "157", "161", "165")),
 )
 
 
@@ -133,6 +162,8 @@ class APGroupManagerDialog(QDialog):
         self.alias_button = QPushButton(self.tr("ap_group_set_alias"))
         self.delete_alias_button = QPushButton(self.tr("ap_group_delete_alias"))
         self.role_button = QPushButton(self.tr("ap_group_set_role"))
+        self.metadata_button = QPushButton(self.tr("ap_group_metadata"))
+        self.position_button = QPushButton(self.tr("ap_group_set_position"))
         self.save_button = QPushButton(self.tr("save"))
         self.cancel_button = QPushButton(self.tr("cancel"))
 
@@ -142,6 +173,8 @@ class APGroupManagerDialog(QDialog):
         self.alias_button.clicked.connect(self.prompt_alias_for_selected_group)
         self.delete_alias_button.clicked.connect(self.delete_alias_for_selected_group)
         self.role_button.clicked.connect(self.prompt_role_for_selected_group)
+        self.metadata_button.clicked.connect(self.open_metadata_dialog_for_selected_group)
+        self.position_button.clicked.connect(self.start_positioning_for_selected_group)
         self.save_button.clicked.connect(self.save_groups)
         self.cancel_button.clicked.connect(self.reject)
 
@@ -152,8 +185,14 @@ class APGroupManagerDialog(QDialog):
             self.alias_button,
             self.delete_alias_button,
             self.role_button,
+            self.metadata_button,
         ):
             button_row.addWidget(button)
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.VLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        button_row.addWidget(separator)
+        button_row.addWidget(self.position_button)
         button_row.addStretch(1)
         button_row.addWidget(self.save_button)
         button_row.addWidget(self.cancel_button)
@@ -317,6 +356,8 @@ class APGroupManagerDialog(QDialog):
         self.split_button.setEnabled(has_group)
         self.alias_button.setEnabled(has_group)
         self.role_button.setEnabled(has_group)
+        self.metadata_button.setEnabled(has_group)
+        self.position_button.setEnabled(has_group)
         self.delete_alias_button.setEnabled(bool(group and group.get("alias")))
         self.conflict_button.setEnabled(bool(group and self.group_conflicts_by_id.get(group["group_id"])))
 
@@ -376,6 +417,34 @@ class APGroupManagerDialog(QDialog):
         group["locked"] = True
         self.refresh_all_group_details()
         self.render_rows()
+
+    def open_metadata_dialog_for_selected_group(self):
+        group = self.require_selected_group()
+        if group is None:
+            return
+
+        dialog = MetadataDialog(self, group)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        group["metadata"] = dialog.metadata_values()
+        group["locked"] = True
+        self.refresh_all_group_details()
+        self.render_rows()
+
+    def start_positioning_for_selected_group(self):
+        group = self.require_selected_group()
+        if group is None:
+            return
+
+        if not self.app.floorplan_view.has_floorplan():
+            QMessageBox.warning(self, self.tr("warning"), self.tr("load_plan_first"))
+            return
+
+        group_id = group["group_id"]
+        self.persist_groups()
+        self.accept()
+        self.app.start_ap_positioning(group_id)
 
     def reset_groups_to_auto(self):
         response = QMessageBox.question(
@@ -478,7 +547,7 @@ class APGroupManagerDialog(QDialog):
                 focus_bssids=self.collect_conflict_bssids(conflicts),
             )
 
-    def save_groups(self):
+    def persist_groups(self):
         aliases = {
             group["group_id"]: group.get("alias", "")
             for group in self.groups
@@ -488,6 +557,10 @@ class APGroupManagerDialog(QDialog):
         groups_changed = self.session.set_ap_groups(self.groups)
         if aliases_changed or groups_changed:
             self.session.dirty = True
+        return aliases_changed or groups_changed
+
+    def save_groups(self):
+        self.persist_groups()
         self.accept()
 
     def format_group_conflict_summary(self, conflict):
@@ -496,6 +569,142 @@ class APGroupManagerDialog(QDialog):
             band=format_band_label(conflict.get("band", "")),
             channels=", ".join(conflict.get("channels", [])),
         )
+
+
+class MetadataDialog(QDialog):
+    def __init__(self, manager, group):
+        super().__init__(manager)
+        self.manager = manager
+        self.group = group
+        self.metadata = normalize_ap_metadata(group.get("metadata"))
+        self.field_edits = {}
+        self.band_checks = {}
+        self.channel_checks = {}
+
+        self.setWindowTitle(manager.tr("ap_group_metadata_title"))
+        self.resize(1040, 760)
+        self.setMinimumSize(900, 660)
+        self.build_ui()
+
+    def build_ui(self):
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(14, 14, 14, 14)
+        outer.setSpacing(10)
+
+        hint = QLabel(self.manager.tr("ap_group_metadata_hint"))
+        hint.setWordWrap(True)
+        outer.addWidget(hint)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        content = QWidget()
+        content_layout = QVBoxLayout(content)
+        content_layout.setSpacing(14)
+
+        form = QFormLayout()
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+        for field in ("vendor", "model", "mounting"):
+            edit = QLineEdit(self.metadata.get(field, ""))
+            self.field_edits[field] = edit
+            form.addRow(self.manager.tr(f"ap_group_metadata_{field}"), edit)
+        content_layout.addLayout(form)
+
+        self.build_band_section(content_layout)
+        self.build_channel_section(content_layout)
+
+        content_layout.addWidget(QLabel(self.manager.tr("ap_group_metadata_notes")))
+        self.notes_edit = QTextEdit()
+        self.notes_edit.setPlainText(self.metadata.get("notes", ""))
+        self.notes_edit.setMinimumHeight(130)
+        content_layout.addWidget(self.notes_edit)
+        scroll.setWidget(content)
+        outer.addWidget(scroll, 1)
+
+        buttons = QHBoxLayout()
+        buttons.addStretch(1)
+        save_button = QPushButton(self.manager.tr("save"))
+        cancel_button = QPushButton(self.manager.tr("cancel"))
+        save_button.clicked.connect(self.accept)
+        cancel_button.clicked.connect(self.reject)
+        buttons.addWidget(save_button)
+        buttons.addWidget(cancel_button)
+        outer.addLayout(buttons)
+
+    def build_band_section(self, parent_layout):
+        selected_bands = parse_expected_bands(self.metadata.get("expected_bands", ""))
+        band_box = QGroupBox(self.manager.tr("ap_group_metadata_expected_bands"))
+        band_layout = QHBoxLayout(band_box)
+        for band_value, band_label in EXPECTED_BAND_OPTIONS:
+            checkbox = QCheckBox(band_label)
+            checkbox.setChecked(band_value in selected_bands)
+            self.band_checks[band_value] = checkbox
+            band_layout.addWidget(checkbox)
+        band_layout.addStretch(1)
+        parent_layout.addWidget(band_box)
+
+    def build_channel_section(self, parent_layout):
+        selected_channels = parse_expected_channels(self.metadata.get("expected_channels", ""))
+        section = QGroupBox(self.manager.tr("ap_group_metadata_expected_channels"))
+        section_layout = QGridLayout(section)
+        section_layout.setHorizontalSpacing(12)
+        section_layout.setVerticalSpacing(12)
+
+        for index, (title_key, channels) in enumerate(EXPECTED_CHANNEL_GROUPS):
+            group_box = QGroupBox(self.manager.tr(title_key))
+            group_layout = QGridLayout(group_box)
+            for channel_index, channel in enumerate(channels):
+                checkbox = QCheckBox(f"CH {channel}")
+                checkbox.setChecked(channel in selected_channels)
+                self.channel_checks[channel] = checkbox
+                group_layout.addWidget(checkbox, channel_index // 4, channel_index % 4)
+
+            action_row = QHBoxLayout()
+            select_button = QPushButton(self.manager.tr("ap_group_metadata_select_all"))
+            clear_button = QPushButton(self.manager.tr("ap_group_metadata_clear"))
+            select_button.clicked.connect(lambda _checked=False, values=channels: self.set_channel_group(values, True))
+            clear_button.clicked.connect(lambda _checked=False, values=channels: self.set_channel_group(values, False))
+            action_row.addWidget(select_button)
+            action_row.addWidget(clear_button)
+            action_row.addStretch(1)
+            group_layout.addLayout(action_row, (len(channels) + 3) // 4, 0, 1, 4)
+
+            section_layout.addWidget(group_box, index // 2, index % 2)
+
+        parent_layout.addWidget(section)
+
+    def set_channel_group(self, channels, enabled):
+        for channel in channels:
+            checkbox = self.channel_checks.get(channel)
+            if checkbox is not None:
+                checkbox.setChecked(enabled)
+
+    def metadata_values(self):
+        expected_channels = sort_channels(
+            [
+                channel
+                for channel, checkbox in self.channel_checks.items()
+                if checkbox.isChecked()
+            ],
+            self.manager.app.channel_sort_key,
+        )
+        expected_bands = {
+            band
+            for band, checkbox in self.band_checks.items()
+            if checkbox.isChecked()
+        }
+        for channel in expected_channels:
+            band = infer_band_from_channel(channel)
+            if band:
+                expected_bands.add(band)
+
+        values = {
+            field: edit.text()
+            for field, edit in self.field_edits.items()
+        }
+        values["expected_bands"] = ", ".join(sort_bands(expected_bands))
+        values["expected_channels"] = ", ".join(expected_channels)
+        values["notes"] = self.notes_edit.toPlainText().strip()
+        return normalize_ap_metadata(values)
 
 
 class BssidSelectionDialog(QDialog):

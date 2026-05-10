@@ -388,8 +388,8 @@ Current first step:
   Qt survey viewer pieces: floorplan loading, saved map restore, point marker
   overlay, pan/zoom and fit-to-window.
 - `qt_ap_groups.py` contains the first Qt AP Group Manager migration: group
-  table/search, alias/role edits, BSSID split, conflict details and save
-  behavior are available; metadata editing and AP positioning are still pending.
+  table/search, alias/role edits, metadata editing, BSSID split, conflict
+  details, AP positioning from the Qt floorplan and save behavior are available.
 
 Recommended migration sequence:
 
@@ -407,17 +407,15 @@ Recommended migration sequence:
 
 Near-term:
 
-1. Complete the remaining AP Group Manager Qt workflows:
-   metadata editing and AP positioning.
-2. Move point creation/scanning workflow to Qt.
-3. Move live map workflow to Qt.
-4. Add lightweight tests for AP groups, quality and interference.
+1. Move point creation/scanning workflow to Qt.
+2. Move live map workflow to Qt.
+3. Add lightweight tests for AP groups, quality and interference.
 
 Medium-term:
 
-5. Move quality dashboard workflow to Qt.
-6. Expand survey quality recommendations.
-7. Improve generated reporting.
+4. Move quality dashboard workflow to Qt.
+5. Expand survey quality recommendations.
+6. Improve generated reporting.
 8. Use AP metadata more deeply in diagnostics.
 
 Long-term:

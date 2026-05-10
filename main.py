@@ -238,6 +238,9 @@ class WifiHeatmapQtApp(QMainWindow):
         splitter = QSplitter(Qt.Orientation.Vertical)
 
         self.floorplan_view = FloorplanView()
+        self.floorplan_view.ap_tooltip_formatter = self.format_ap_position_tooltip
+        self.floorplan_view.apPositionPicked.connect(self.save_ap_position)
+        self.floorplan_view.apPositionCancelled.connect(self.cancel_ap_positioning)
         splitter.addWidget(self.floorplan_view)
 
         self.points_table = QTableWidget(0, 6)
@@ -377,6 +380,8 @@ class WifiHeatmapQtApp(QMainWindow):
         self.start_language_combo.blockSignals(False)
         self.workspace_language_combo.blockSignals(False)
         self.retranslate()
+        if self.session is not None:
+            self.floorplan_view.set_ap_groups(self.session.get_ap_groups())
 
     def show_start_page(self):
         self.stack.setCurrentWidget(self.start_page)
@@ -495,6 +500,7 @@ class WifiHeatmapQtApp(QMainWindow):
             self.session.update_metadata({"map_file": os.path.abspath(file_path)})
 
         self.floorplan_view.set_points(self.session.get_point_summaries())
+        self.floorplan_view.set_ap_groups(self.session.get_ap_groups())
         self.refresh_session_labels()
         point_count = len(self.session.get_point_summaries())
         if point_count:
@@ -569,7 +575,71 @@ class WifiHeatmapQtApp(QMainWindow):
         if open_qt_ap_group_manager(self):
             self.refresh_session_labels()
             self.refresh_points_table()
-            self.status.showMessage(self.tr("ap_groups_saved"))
+            if not self.floorplan_view.pending_ap_position_group_id:
+                self.status.showMessage(self.tr("ap_groups_saved"))
+
+    def start_ap_positioning(self, group_id):
+        if self.session is None:
+            return False
+
+        if not self.floorplan_view.has_floorplan():
+            QMessageBox.warning(self, self.tr("warning"), self.tr("load_plan_first"))
+            return False
+
+        label = self.get_ap_group_display_name(group_id)
+        started = self.floorplan_view.start_ap_position_pick(group_id, label)
+        if started:
+            self.tabs.setCurrentIndex(0)
+            self.status.showMessage(self.tr("ap_position_pick", group=label))
+        return started
+
+    def save_ap_position(self, group_id, x, y):
+        if self.session is None:
+            return
+
+        groups = self.session.get_ap_groups()
+        updated = False
+        for group in groups:
+            if str(group.get("group_id", "")) == str(group_id):
+                group["position"] = {"x": int(x), "y": int(y)}
+                group["locked"] = True
+                updated = True
+                break
+
+        if not updated:
+            QMessageBox.warning(self, self.tr("warning"), self.tr("ap_group_not_found"))
+            return
+
+        self.session.set_ap_groups(groups)
+        self.refresh_session_labels()
+        self.refresh_points_table()
+        self.status.showMessage(
+            self.tr("ap_position_saved", group=self.get_ap_group_display_name(group_id), x=x, y=y)
+        )
+
+    def cancel_ap_positioning(self):
+        self.status.showMessage(self.tr("ap_position_cancelled"))
+
+    def get_ap_group_display_name(self, group_id):
+        if self.session is None:
+            return str(group_id)
+
+        group_id = str(group_id)
+        for group in self.session.get_ap_groups():
+            if str(group.get("group_id", "")) == group_id:
+                alias = str(group.get("alias", "")).strip()
+                return alias or group_id
+
+        return group_id
+
+    def format_ap_position_tooltip(self, group, label, x, y):
+        return "\n".join([
+            self.tr("ap_group_position_tooltip_title"),
+            f"{self.tr('ap_alias_value')}: {label}",
+            f"{self.tr('ap_alias_group')}: {group.get('group_id', '-')}",
+            f"x/y: {x}, {y}",
+            f"{self.tr('ap_alias_bssids')}: {', '.join(group.get('bssids', [])) or '-'}",
+        ])
 
     def session_display_name(self):
         if self.session is None:
@@ -632,6 +702,7 @@ class WifiHeatmapQtApp(QMainWindow):
 
         summaries = list(reversed(self.session.get_point_summaries()))
         self.floorplan_view.set_points(summaries)
+        self.floorplan_view.set_ap_groups(self.session.get_ap_groups())
         self.points_table.setRowCount(len(summaries))
         for row_index, point in enumerate(summaries):
             values = [

@@ -388,8 +388,12 @@ Language:
 - Added the first Qt AP Group Manager implementation in `qt_ap_groups.py` and
   connected it from `main.py`. It migrates group listing/search, alias editing,
   alias deletion, role editing, reset automatic grouping, BSSID split, warning
-  details and save-to-session behavior. Metadata editing and AP positioning are
-  still pending in Qt.
+  details and save-to-session behavior.
+- Completed the remaining first-pass Qt AP Group Manager workflows: metadata
+  editing now uses guided Qt controls for vendor/model/mounting, expected
+  bands/channels and notes; AP positioning now saves current groups, closes the
+  manager, and lets the user right-click the Qt floorplan to store physical AP
+  position markers.
 
 Recent commits:
 
@@ -411,16 +415,14 @@ Recent commits:
 
 Good next steps, in likely order:
 
-1. Improve AP Group Manager workflows:
-   complete the remaining Qt migration for metadata editing and AP positioning.
-2. Continue PySide6 migration in `main.py`, with point creation/scanning as the
+1. Continue PySide6 migration in `main.py`, with point creation/scanning as the
    next major workflow to move.
-3. Add lightweight tests around AP groups, quality and interference before
+2. Add lightweight tests around AP groups, quality and interference before
    larger V2 refactors.
-4. Decide whether mounting metadata should influence AP position warnings or
+3. Decide whether mounting metadata should influence AP position warnings or
    remain documentation only.
-5. Improve live map performance only if user sees real lag on large surveys.
-6. Rework Help structure later, after the feature set stabilizes.
+4. Improve live map performance only if user sees real lag on large surveys.
+5. Rework Help structure later, after the feature set stabilizes.
 
 ## Verification Patterns Used
 
