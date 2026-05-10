@@ -150,7 +150,7 @@ class APGroupManagerDialog(QDialog):
         self.table = QTableWidget(0, len(AP_GROUP_COLUMNS))
         self.table.setAlternatingRowColors(True)
         self.table.setShowGrid(False)
-        self.table.setWordWrap(False)
+        self.table.setWordWrap(True)
         self.table.setTextElideMode(Qt.TextElideMode.ElideRight)
         self.table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.table.verticalHeader().setVisible(False)
@@ -398,7 +398,8 @@ class APGroupManagerDialog(QDialog):
             for column, value in enumerate(values):
                 item = QTableWidgetItem(str(value))
                 item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
-                item.setToolTip(str(value))
+                if column in {1, 2, 5, 6, 7} and str(value).strip() not in {"", "-"}:
+                    item.setToolTip(str(value).replace("\n", ", "))
                 if column in {0, 3, 4, 5, 8, 9}:
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 else:
@@ -408,6 +409,7 @@ class APGroupManagerDialog(QDialog):
                 self.table.setItem(row, column, item)
             if group["group_id"] == selected_group_id:
                 self.table.selectRow(row)
+            self.table.setRowHeight(row, self.row_height_for_values(values))
 
         self.apply_table_column_widths()
         self.update_action_state()
@@ -418,16 +420,22 @@ class APGroupManagerDialog(QDialog):
         position_label = f"{position.get('x')}, {position.get('y')}" if position else "-"
         return (
             "!" if self.group_conflicts_by_id.get(group["group_id"]) else "",
-            format_list_preview(group["display_groups"]),
+            format_multiline_list(group["display_groups"]),
             group.get("alias", ""),
             self.tr(f"ap_group_role_{role}"),
             position_label,
             format_metadata_preview(group.get("metadata")),
-            format_list_preview(group["bssids"]),
-            ", ".join(group["ssids"]),
+            format_multiline_list(group["bssids"]),
+            format_multiline_list(group["ssids"]),
             ", ".join(group["channels"]),
             self.tr("ap_group_state_manual") if group.get("locked") else self.tr("ap_group_state_auto"),
         )
+
+    def row_height_for_values(self, values):
+        multiline_columns = (1, 6, 7)
+        line_count = max(str(values[column]).count("\n") + 1 for column in multiline_columns)
+        line_height = self.table.fontMetrics().lineSpacing()
+        return max(widget_px(self, 44), (line_height * line_count) + widget_px(self, 18))
 
     def group_matches_search(self, group, query):
         if not query:
@@ -1025,11 +1033,9 @@ class ConflictDialog(QDialog):
         return "\n".join(lines).strip()
 
 
-def format_list_preview(values, limit=2):
+def format_multiline_list(values):
     clean_values = [str(value) for value in values if str(value)]
-    if len(clean_values) <= limit:
-        return ", ".join(clean_values)
-    return f"{', '.join(clean_values[:limit])} (+{len(clean_values) - limit})"
+    return "\n".join(clean_values) if clean_values else "-"
 
 
 def format_metadata_preview(metadata):

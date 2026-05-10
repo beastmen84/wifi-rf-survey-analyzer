@@ -621,6 +621,11 @@ Language:
   columns to fill available space, keeps utility columns compact, adds tooltips
   for clipped cell content, and moves actions into compact rows so buttons no
   longer overflow or get cut off.
+- AP Group Manager rows now show multi-value AP group, BSSID, and Seen SSID
+  cells on separate lines instead of truncating with `(+n)`. Row height grows
+  with the tallest multi-line cell. Tooltips were narrowed to content columns
+  where they are useful, removing unnecessary tooltips from compact columns
+  such as role, channel, and management.
 
 Recent commits:
 
