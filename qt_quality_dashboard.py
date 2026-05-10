@@ -82,6 +82,7 @@ class QualityDashboardDialog(QDialog):
         hint.setWordWrap(True)
         layout.addWidget(hint)
 
+        layout.addWidget(self.build_status_panel(summary))
         layout.addWidget(self.build_summary_panel(summary))
         layout.addWidget(self.build_context_panel(summary))
         layout.addLayout(self.build_controls())
@@ -101,8 +102,7 @@ class QualityDashboardDialog(QDialog):
             "SSID",
             app.tr("quality_dashboard_issue"),
         ])
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        self.table.horizontalHeader().setStretchLastSection(True)
+        self.configure_table_columns()
         self.table.itemDoubleClicked.connect(lambda _item: self.focus_selected_point())
         layout.addWidget(self.table, 1)
 
@@ -115,6 +115,56 @@ class QualityDashboardDialog(QDialog):
 
         self.issues_only_check.toggled.connect(self.render_rows)
         self.render_rows()
+
+    def build_status_panel(self, summary):
+        panel = QFrame()
+        panel.setObjectName("summaryPanel")
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(widget_px(self, 14), widget_px(self, 10), widget_px(self, 14), widget_px(self, 10))
+        layout.setSpacing(widget_px(self, 4))
+
+        title_key, message_key, severity = self.status_text_keys(summary)
+        title = QLabel(self.app.tr(title_key))
+        title.setObjectName(f"metricValue_{severity}")
+        message = QLabel(self.app.tr(message_key, count=summary["review_points"], total=summary["total_points"]))
+        message.setObjectName("mutedText")
+        message.setWordWrap(True)
+        layout.addWidget(title)
+        layout.addWidget(message)
+        return panel
+
+    def status_text_keys(self, summary):
+        if summary["review_points"]:
+            return (
+                "quality_dashboard_status_review_title",
+                "quality_dashboard_status_review_message",
+                "warning",
+            )
+        if summary["ap_metadata_warnings"] or summary["ap_missing_positions"]:
+            return (
+                "quality_dashboard_status_setup_title",
+                "quality_dashboard_status_setup_message",
+                "warning",
+            )
+        if summary["total_points"] < 5:
+            return (
+                "quality_dashboard_status_early_title",
+                "quality_dashboard_status_early_message",
+                "info",
+            )
+        return (
+            "quality_dashboard_status_ok_title",
+            "quality_dashboard_status_ok_message",
+            "good",
+        )
+
+    def configure_table_columns(self):
+        header = self.table.horizontalHeader()
+        header.setStretchLastSection(False)
+        for column in range(7):
+            header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(8, QHeaderView.ResizeMode.Stretch)
 
     def build_summary_panel(self, summary):
         panel = QFrame()
@@ -224,7 +274,12 @@ class QualityDashboardDialog(QDialog):
                     item.setData(Qt.ItemDataRole.UserRole, row)
                 if background is not None:
                     item.setBackground(background)
+                if column_index <= 6:
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                else:
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 self.table.setItem(row_index, column_index, item)
+            self.table.setRowHeight(row_index, widget_px(self, 38))
 
         self.visible_count_label.setText(
             self.app.tr(
@@ -234,6 +289,8 @@ class QualityDashboardDialog(QDialog):
             )
         )
         self.focus_button.setEnabled(bool(self.filtered_rows))
+        if self.filtered_rows:
+            self.table.selectRow(0)
 
     def current_row_data(self):
         selected = self.table.selectedItems()

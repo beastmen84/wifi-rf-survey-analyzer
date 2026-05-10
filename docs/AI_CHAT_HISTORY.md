@@ -678,6 +678,11 @@ Language:
 - AP Group Manager table selection now uses the theme accent color with white
   text instead of the softer row-selection tint, making the selected row clearly
   distinguishable from alternating row backgrounds.
+- Survey Quality Dashboard now starts with an operational status banner:
+  consistent survey, early/limited data, review recommended, or AP setup
+  attention. The point table centers numeric columns, stretches SSID/Issue
+  columns, sets consistent row height, and auto-selects the first visible row so
+  `Go to point` is immediately actionable.
 
 Recent commits:
 
