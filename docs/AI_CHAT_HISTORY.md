@@ -705,6 +705,9 @@ Language:
 - The centered Qt file dialogs have a dedicated stylesheet and view tuning so
   they do not inherit oversized global button widths/padding from the main app.
   Keep future file-dialog styling scoped to `QFileDialog#centeredFileDialog`.
+  File-dialog tool buttons, combo boxes and line edits are forced to the same
+  control height, and the file table stretches the Date Modified column to avoid
+  an unstyled empty header area.
 - Survey Quality AP position setup counters are scoped to relevant SSIDs when
   relevant networks are defined: `AP without position` and the `AP positions`
   ratio count only AP groups that have at least one row for a relevant SSID.

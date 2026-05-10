@@ -9,7 +9,11 @@ from PySide6.QtWidgets import (
     QGraphicsOpacityEffect,
     QHeaderView,
     QListView,
+    QComboBox,
+    QLineEdit,
+    QPushButton,
     QTreeView,
+    QToolButton,
     QWidget,
 )
 
@@ -168,8 +172,9 @@ def apply_file_dialog_tuning(dialog, parent):
             color: {palette["text"]};
             border: 1px solid {palette["border"]};
             border-radius: {px(4)}px;
-            padding: {px(4)}px {px(8)}px;
-            min-height: {px(28)}px;
+            padding: 0 {px(8)}px;
+            min-height: {px(38)}px;
+            max-height: {px(38)}px;
             min-width: 0;
         }}
         QFileDialog#{FILE_DIALOG_OBJECT_NAME} QComboBox::drop-down {{
@@ -196,9 +201,11 @@ def apply_file_dialog_tuning(dialog, parent):
             color: {palette["text"]};
             border: 1px solid transparent;
             border-radius: {px(5)}px;
-            padding: {px(5)}px;
-            min-width: {px(28)}px;
-            min-height: {px(28)}px;
+            padding: 0;
+            min-width: {px(38)}px;
+            max-width: {px(38)}px;
+            min-height: {px(38)}px;
+            max-height: {px(38)}px;
         }}
         QFileDialog#{FILE_DIALOG_OBJECT_NAME} QToolButton:hover {{
             background: {palette["button_hover"]};
@@ -219,6 +226,9 @@ def apply_file_dialog_tuning(dialog, parent):
             min-height: {px(26)}px;
             padding: {px(2)}px {px(5)}px;
         }}
+        QFileDialog#{FILE_DIALOG_OBJECT_NAME} QHeaderView {{
+            background: {palette["header"]};
+        }}
         QFileDialog#{FILE_DIALOG_OBJECT_NAME} QHeaderView::section {{
             background: {palette["header"]};
             color: {palette["text"]};
@@ -238,6 +248,21 @@ def tune_file_dialog_views(dialog):
 
     scale = getattr(dialog.parentWidget(), "ui_scale", 1.0) if dialog.parentWidget() else 1.0
     px = lambda value: max(1, int(round(value * scale)))
+    control_height = px(38)
+
+    for combo in dialog.findChildren(QComboBox):
+        combo.setMinimumHeight(control_height)
+        combo.setMaximumHeight(control_height)
+
+    for line_edit in dialog.findChildren(QLineEdit):
+        line_edit.setMinimumHeight(control_height)
+        line_edit.setMaximumHeight(control_height)
+
+    for tool_button in dialog.findChildren(QToolButton):
+        tool_button.setFixedSize(control_height, control_height)
+
+    for push_button in dialog.findChildren(QPushButton):
+        push_button.setMinimumHeight(control_height)
 
     for tree in dialog.findChildren(QTreeView):
         header = tree.header()
@@ -245,8 +270,9 @@ def tune_file_dialog_views(dialog):
             tree.setMinimumWidth(px(160))
             continue
 
-        header.setStretchLastSection(False)
-        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        header.setStretchLastSection(True)
+        for section in range(header.count()):
+            header.setSectionResizeMode(section, QHeaderView.ResizeMode.Interactive)
         tree.setColumnWidth(0, px(360))
         if header.count() > 1:
             tree.setColumnWidth(1, px(110))
@@ -254,6 +280,7 @@ def tune_file_dialog_views(dialog):
             tree.setColumnWidth(2, px(150))
         if header.count() > 3:
             tree.setColumnWidth(3, px(190))
+            header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
 
     for list_view in dialog.findChildren(QListView):
         list_view.setMinimumWidth(px(170))
