@@ -610,6 +610,11 @@ Language:
   them. This is intentionally lightweight documentation so future refactors can
   identify each file's responsibility without adding noisy per-handler comments.
   Tests now also cover source-mode and frozen-exe restart command construction.
+- Scale calibration is now treated as a locked survey setting once present.
+  `Calibrate scale` is disabled when `px_per_meter` exists, and a compact
+  `Delete scale` action appears in the `View` app-bar header. Deleting the
+  scale asks for confirmation, removes `px_per_meter`, marks the survey dirty,
+  refreshes the live map state, and enables calibration again.
 
 Recent commits:
 

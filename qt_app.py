@@ -151,6 +151,9 @@ class WifiHeatmapQtApp(QMainWindow):
 
         return value if value > 0 else None
 
+    def has_calibrated_scale(self):
+        return self.get_px_per_meter() is not None
+
     def build_start_page(self):
         page = QWidget()
         outer = QVBoxLayout(page)
@@ -272,6 +275,11 @@ class WifiHeatmapQtApp(QMainWindow):
         self.zoom_in_button = self.create_app_bar_button(self.zoom_in, "appBarIconButton")
         self.fit_view_button = self.create_app_bar_button(self.fit_floorplan)
         self.calibrate_button = self.create_app_bar_button(self.start_scale_calibration)
+        self.delete_scale_button = QPushButton()
+        self.delete_scale_button.setObjectName("appBarTitleDangerButton")
+        self.delete_scale_button.clicked.connect(self.delete_scale_calibration)
+        self.delete_scale_button.setMaximumWidth(self.spx(116))
+        view_section.title_row.addWidget(self.delete_scale_button)
         for button in (
             self.zoom_out_button,
             self.zoom_in_button,
@@ -312,12 +320,19 @@ class WifiHeatmapQtApp(QMainWindow):
 
         title = QLabel()
         title.setObjectName("appBarSectionTitle")
+        title_row = QHBoxLayout()
+        title_row.setContentsMargins(0, 0, 0, 0)
+        title_row.setSpacing(self.spx(6))
+        title_row.addWidget(title)
+        title_row.addStretch(1)
+
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(self.spx(6))
 
-        outer.addWidget(title)
+        outer.addLayout(title_row)
         outer.addLayout(row)
+        section.title_row = title_row
         return section, title, row
 
     def create_app_bar_button(self, callback, object_name="appBarButton"):
@@ -890,6 +905,21 @@ class WifiHeatmapQtApp(QMainWindow):
                 font-size: {font(8)}pt;
                 font-weight: 600;
             }}
+            QPushButton#appBarTitleDangerButton {{
+                min-width: 0;
+                padding: {s(2)}px {s(7)}px;
+                border-radius: {s(4)}px;
+                font-size: {font(8)}pt;
+                font-weight: 700;
+                background: {palette["save_dirty_bg"]};
+                color: {palette["save_dirty_text"]};
+                border: 1px solid {palette["save_dirty_border"]};
+            }}
+            QPushButton#appBarTitleDangerButton:disabled {{
+                background: {palette["panel_alt"]};
+                color: {palette["muted"]};
+                border: 1px solid {palette["border"]};
+            }}
             QFrame#appBar {{
                 background: {palette["toolbar"]};
                 border-bottom: 1px solid {palette["border"]};
@@ -1106,6 +1136,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.zoom_in_button.setText("+")
         self.fit_view_button.setText(self.tr("fit"))
         self.calibrate_button.setText(self.tr("calibrate_scale"))
+        self.delete_scale_button.setText(self.tr("delete_scale"))
         self.ap_groups_button.setText(self.tr("ap_groups_title"))
         self.quality_button.setText(self.tr("quality_dashboard_title"))
         self.help_button.setText(self.tr("help"))
@@ -1777,6 +1808,10 @@ class WifiHeatmapQtApp(QMainWindow):
             QMessageBox.warning(self, self.tr("warning"), self.tr("load_plan_first"))
             return
 
+        if self.has_calibrated_scale():
+            self.status.showMessage(self.tr("calibrate_scale_already_set"))
+            return
+
         if self.floorplan_view.start_scale_calibration_pick():
             self.tabs.setCurrentIndex(0)
             self.status.showMessage(self.tr("calibrate_scale_start"))
@@ -1816,6 +1851,27 @@ class WifiHeatmapQtApp(QMainWindow):
 
     def cancel_scale_calibration(self):
         self.status.showMessage(self.tr("calibrate_scale_cancelled"))
+
+    def delete_scale_calibration(self):
+        if self.session is None or not self.has_calibrated_scale():
+            return
+
+        response = QMessageBox.question(
+            self,
+            self.tr("delete_scale_title"),
+            self.tr("delete_scale_confirm"),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        if response != QMessageBox.StandardButton.Yes:
+            return
+
+        self.session.metadata.pop("px_per_meter", None)
+        self.session.dirty = True
+        self.floorplan_view.clear_scale_calibration_overlay()
+        self.refresh_session_labels()
+        self.status.showMessage(self.tr("delete_scale_done"))
+        self.maybe_update_live_preview()
 
     def confirm_switch_survey(self):
         if self.session is None or not self.session.dirty:
@@ -2496,10 +2552,12 @@ class WifiHeatmapQtApp(QMainWindow):
             can_use_session and bool(self.relevant_ssids or self.known_ssids)
         )
         has_map = self.floorplan_view.has_floorplan()
+        has_scale = self.has_calibrated_scale()
         self.zoom_in_button.setEnabled(has_map and not self.scan_in_progress)
         self.zoom_out_button.setEnabled(has_map and not self.scan_in_progress)
         self.fit_view_button.setEnabled(has_map and not self.scan_in_progress)
-        self.calibrate_button.setEnabled(has_map and not self.scan_in_progress)
+        self.calibrate_button.setEnabled(has_map and not self.scan_in_progress and not has_scale)
+        self.delete_scale_button.setEnabled(can_use_session and has_scale)
         self.update_save_action_state()
         self.refresh_live_controls()
         self.update_point_action_state()
