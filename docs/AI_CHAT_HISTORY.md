@@ -165,7 +165,9 @@ Live tab:
 - Supports AP channels and dominant AP with real point markers and legend box.
 - Supports zoom and drag.
 - Tooltips show structured information.
-- Hovering a point highlights the matching legend entry.
+- Legacy Tk live maps highlight the matching legend entry on hover. The Qt
+  first pass has native tooltips and a static legend; hover-to-legend highlight
+  is still optional/pending.
 - Continuous live rendering uses a worker thread and Matplotlib Agg; GUI updates
   happen on the Tk main thread.
 - Result caching/fingerprinting exists in `live_renderer.py`.
@@ -405,6 +407,10 @@ Language:
   interference render in a background Qt thread through `qt_live_map.py`, using
   the existing AP group role/filter logic and the shared live renderer. Channel
   and dominant AP live views still need to be migrated in a later step.
+- Added Qt live AP Channels and Dominant AP map modes. Discrete modes use real
+  measurement markers on the floor plan, AP aliases/groups, AP roles, channel
+  width when available, AP-position warning triangles for dominant AP, and a Qt
+  swatch legend panel.
 
 Recent commits:
 
@@ -427,15 +433,16 @@ Recent commits:
 
 Good next steps, in likely order:
 
-1. Continue PySide6 migration by adding the discrete live map modes:
-   AP channels and Dominant AP, including category legends and AP position
-   warning markers.
-2. Add lightweight tests around AP groups, quality and point scanning before
+1. Continue PySide6 migration with the generated map/heatmap dialog and output
+   flow, so the current `Genera heatmap` toolbar action is no longer a
+   placeholder.
+2. Migrate or rebuild the Survey Quality Dashboard in Qt.
+3. Add lightweight tests around AP groups, quality and point scanning before
    larger V2 refactors.
-3. Decide whether mounting metadata should influence AP position warnings or
+4. Decide whether mounting metadata should influence AP position warnings or
    remain documentation only.
-4. Improve live map performance only if user sees real lag on large surveys.
-5. Rework Help structure later, after the feature set stabilizes.
+5. Improve live map performance only if user sees real lag on large surveys.
+6. Rework Help structure later, after the feature set stabilizes.
 
 ## Verification Patterns Used
 

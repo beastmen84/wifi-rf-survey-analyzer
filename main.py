@@ -18,6 +18,8 @@ try:
         QHBoxLayout,
         QHeaderView,
         QLabel,
+        QListWidget,
+        QListWidgetItem,
         QMainWindow,
         QMessageBox,
         QPushButton,
@@ -53,7 +55,7 @@ from quality_engine import (
 )
 from qt_ap_groups import open_qt_ap_group_manager
 from qt_floorplan import FloorplanView
-from qt_live_map import LiveMapRenderWorker, LiveMapView
+from qt_live_map import LiveMapRenderWorker, LiveMapView, create_marker_icon
 from qt_point_workflow import MissingRelevantNetworksDialog, RelevantNetworksDialog, WifiScanWorker
 from survey_store import SurveyFormatError, SurveySession
 from wifi_scanner import get_connected_ssid
@@ -99,6 +101,17 @@ class WifiHeatmapQtApp(QMainWindow):
 
     def tr(self, key, **kwargs):
         return translate(self.language, key, **kwargs)
+
+    def get_px_per_meter(self):
+        if self.session is None:
+            return None
+
+        try:
+            value = float(self.session.metadata.get("px_per_meter", ""))
+        except (TypeError, ValueError):
+            return None
+
+        return value if value > 0 else None
 
     def build_start_page(self):
         page = QWidget()
@@ -374,8 +387,28 @@ class WifiHeatmapQtApp(QMainWindow):
         controls_layout.setColumnStretch(8, 1)
         layout.addWidget(controls)
 
+        live_splitter = QSplitter(Qt.Orientation.Horizontal)
         self.live_view = LiveMapView()
-        layout.addWidget(self.live_view, 1)
+        live_splitter.addWidget(self.live_view)
+
+        self.live_legend_frame = QFrame()
+        self.live_legend_frame.setObjectName("summaryPanel")
+        self.live_legend_frame.setMinimumWidth(260)
+        self.live_legend_frame.setMaximumWidth(360)
+        legend_layout = QVBoxLayout(self.live_legend_frame)
+        legend_layout.setContentsMargins(12, 10, 12, 10)
+        legend_layout.setSpacing(8)
+        self.live_legend_title = QLabel()
+        self.live_legend_title.setObjectName("sectionTitle")
+        self.live_legend_list = QListWidget()
+        self.live_legend_list.setAlternatingRowColors(True)
+        self.live_legend_list.setWordWrap(True)
+        legend_layout.addWidget(self.live_legend_title)
+        legend_layout.addWidget(self.live_legend_list, 1)
+        live_splitter.addWidget(self.live_legend_frame)
+        live_splitter.setStretchFactor(0, 1)
+        live_splitter.setStretchFactor(1, 0)
+        layout.addWidget(live_splitter, 1)
 
         status_row = QHBoxLayout()
         self.live_status_label = QLabel()
@@ -459,6 +492,15 @@ class WifiHeatmapQtApp(QMainWindow):
                 background: #2f3640;
                 border: 1px solid #cbd3dc;
                 border-radius: 4px;
+            }
+            QListWidget {
+                background: #ffffff;
+                border: 1px solid #d7dde3;
+                border-radius: 4px;
+                padding: 4px;
+            }
+            QListWidget::item {
+                padding: 4px;
             }
             QHeaderView::section {
                 background: #e9edf2;
@@ -550,6 +592,8 @@ class WifiHeatmapQtApp(QMainWindow):
             [
                 ("signal", self.tr("map_type_signal")),
                 ("interference", self.tr("map_type_interference")),
+                ("channel", self.tr("map_type_channel")),
+                ("dominant", self.tr("map_type_dominant")),
             ],
         )
         self.set_combo_items(
@@ -619,6 +663,7 @@ class WifiHeatmapQtApp(QMainWindow):
 
         if not can_render and not self.live_rendering:
             self.live_status_label.setText(self.tr("live_preview_empty"))
+            self.clear_live_legend()
 
     def can_use_live_controls(self, ssids=None):
         has_session = self.session is not None
@@ -630,10 +675,12 @@ class WifiHeatmapQtApp(QMainWindow):
 
     def update_live_option_state(self):
         map_type = self.current_combo_value(self.live_map_type_combo, "signal")
+        is_signal = map_type == "signal"
         is_interference = map_type == "interference"
         can_use_controls = self.can_use_live_controls()
+        self.live_aggregation_combo.setEnabled(can_use_controls and is_signal)
         self.live_interference_mode_combo.setEnabled(can_use_controls and is_interference)
-        self.live_usable_check.setEnabled(can_use_controls and not is_interference)
+        self.live_usable_check.setEnabled(can_use_controls and is_signal)
         if is_interference and self.current_combo_value(self.live_band_combo) == "all":
             index = self.live_band_combo.findData("2.4")
             if index >= 0:
@@ -662,6 +709,7 @@ class WifiHeatmapQtApp(QMainWindow):
         if not self.can_render_live_preview():
             self.live_view.clear()
             self.live_status_label.setText(self.tr("live_preview_empty"))
+            self.clear_live_legend()
             self.refresh_live_controls()
             return
 
@@ -678,7 +726,15 @@ class WifiHeatmapQtApp(QMainWindow):
         self.refresh_live_controls()
 
         thread = QThread(self)
-        worker = LiveMapRenderWorker(self.session.rows, map_file, config, translations)
+        worker = LiveMapRenderWorker(
+            self.session.rows,
+            map_file,
+            config,
+            translations,
+            aliases=self.session.get_ap_aliases(),
+            ap_groups=self.session.get_ap_groups(),
+            px_per_meter=self.get_px_per_meter(),
+        )
         worker.moveToThread(thread)
         thread.started.connect(worker.run)
         worker.finished.connect(self.finish_live_preview)
@@ -700,7 +756,10 @@ class WifiHeatmapQtApp(QMainWindow):
         if not map_file or not os.path.exists(map_file):
             return False
 
-        if len(self.session.get_point_summaries()) < 3:
+        point_count = len(self.session.get_point_summaries())
+        map_type = self.current_combo_value(self.live_map_type_combo, "signal")
+        required_points = 1 if map_type in {"channel", "dominant"} else 3
+        if point_count < required_points:
             return False
 
         return bool(self.live_ssid_combo.currentText().strip())
@@ -726,12 +785,39 @@ class WifiHeatmapQtApp(QMainWindow):
         return {
             "signal_title": self.tr("map_type_signal"),
             "interference_title": self.tr("map_type_interference"),
+            "channel_title": self.tr("map_type_channel"),
+            "dominant_title": self.tr("map_type_dominant"),
             "risk": self.tr("interference_top_risk"),
             "serving_ap": self.tr("interference_summary_serving_ap"),
             "serving_channel": self.tr("interference_summary_serving_channel"),
             "interferer": self.tr("interference_summary_interferer"),
             "interferer_channel": self.tr("interference_summary_interferer_channel"),
             "source_rows": self.tr("rows"),
+            "reference_ap": self.tr("reference_ap"),
+            "reference_channel": self.tr("reference_channel"),
+            "ap_group_role": self.tr("ap_group_role"),
+            "ap_group_role_internal": self.tr("ap_group_role_internal"),
+            "ap_group_role_external": self.tr("ap_group_role_external"),
+            "ap_group_role_interferer": self.tr("ap_group_role_interferer"),
+            "ap_group_role_test": self.tr("ap_group_role_test"),
+            "best": self.tr("best"),
+            "confidence": self.tr("confidence"),
+            "second_ap": self.tr("second_ap"),
+            "second_ap_role": self.tr("second_ap_role"),
+            "second_confidence": self.tr("second_confidence"),
+            "roaming_overlap": self.tr("dominant_map_roaming_overlap"),
+            "ap_position_warning_legend": self.tr("ap_position_warning_legend"),
+            "ap_position_distance": self.tr("ap_position_distance"),
+            "ap_position_nearest": self.tr("ap_position_nearest"),
+            "ap_position_analysis": self.tr("ap_position_analysis"),
+            "ap_position_distance_m": self.tr("ap_position_distance_m", distance="{distance}"),
+            "ap_position_distance_px": self.tr("ap_position_distance_px", distance="{distance}"),
+            "ap_position_ok": self.tr("ap_position_ok"),
+            "ap_position_no_scale": self.tr("ap_position_no_scale"),
+            "ap_position_strong_far": self.tr("ap_position_strong_far"),
+            "ap_position_weak_close": self.tr("ap_position_weak_close"),
+            "ap_position_unexpected_dominant": self.tr("ap_position_unexpected_dominant"),
+            "ap_position_unknown_warning": self.tr("ap_position_unknown_warning"),
         }
 
     def finish_live_preview(self, payload):
@@ -740,9 +826,11 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_rendering = False
         if payload:
             self.live_view.set_payload(payload)
+            self.update_live_legend(payload.get("scale_payload"))
             self.live_status_label.setText(self.format_live_status(payload))
         else:
             self.live_view.clear()
+            self.clear_live_legend()
             self.live_status_label.setText(self.tr("live_preview_insufficient"))
         self.refresh_live_controls()
 
@@ -754,6 +842,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_worker = None
         self.live_rendering = False
         self.live_status_label.setText(f"{self.tr('error')}: {message}")
+        self.clear_live_legend()
         self.refresh_live_controls()
 
     def format_live_status(self, payload):
@@ -765,7 +854,39 @@ class WifiHeatmapQtApp(QMainWindow):
                 f"{self.tr('live_preview_updated')} "
                 f"{title}: {scale.get('min')}{suffix} / {scale.get('max')}{suffix}"
             )
+        if scale.get("kind") == "swatches":
+            return f"{self.tr('live_preview_updated')} {title}: {len(scale.get('items', []))}"
         return self.tr("live_preview_updated")
+
+    def update_live_legend(self, scale_payload):
+        self.live_legend_list.clear()
+        if not scale_payload:
+            self.clear_live_legend()
+            return
+
+        self.live_legend_title.setText(str(scale_payload.get("title") or ""))
+        kind = scale_payload.get("kind")
+        if kind == "swatches":
+            for item in scale_payload.get("items", []):
+                list_item = QListWidgetItem(str(item.get("label", "")))
+                list_item.setIcon(create_marker_icon(
+                    item.get("color", "#7f8c8d"),
+                    shape=item.get("shape", "circle"),
+                    outline_only=bool(item.get("outline_only")),
+                ))
+                self.live_legend_list.addItem(list_item)
+            return
+
+        if kind == "gradient":
+            suffix = scale_payload.get("suffix", "")
+            item = QListWidgetItem(
+                f"{scale_payload.get('min')}{suffix} / {scale_payload.get('max')}{suffix}"
+            )
+            self.live_legend_list.addItem(item)
+
+    def clear_live_legend(self):
+        self.live_legend_title.setText("")
+        self.live_legend_list.clear()
 
     def show_start_page(self):
         self.stack.setCurrentWidget(self.start_page)
