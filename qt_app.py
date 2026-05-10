@@ -441,6 +441,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.points_table.setShowGrid(False)
         self.points_table.setWordWrap(False)
         self.points_table.setTextElideMode(Qt.TextElideMode.ElideRight)
+        self.points_table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.points_table.verticalHeader().setVisible(False)
         self.points_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.points_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -997,6 +998,10 @@ class WifiHeatmapQtApp(QMainWindow):
             QTableWidget::item:selected {{
                 background: {palette["selection"]};
                 color: {palette["text"]};
+            }}
+            QTableWidget::item:focus {{
+                border: 0;
+                border-bottom: 1px solid {palette["border"]};
             }}
             QGraphicsView#liveMapView {{
                 background: {palette["live_bg"]};

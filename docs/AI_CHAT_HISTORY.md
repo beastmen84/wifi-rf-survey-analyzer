@@ -548,6 +548,8 @@ Language:
   table. Point summary `best_signal_dbm` now prefers rows marked relevant when
   available, falling back to all networks only when a point has no relevant
   rows.
+- Removed the extra current-cell focus rectangle from the floating measurements
+  table so only the full selected row is visually highlighted.
 
 Recent commits:
 
