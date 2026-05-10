@@ -637,6 +637,12 @@ Language:
   stdout, while `WARNING`, `ERROR`, and `CRITICAL` go to stderr. This avoids
   PyCharm coloring normal informational logs red while preserving warning/error
   visibility. File logging remains unchanged.
+- AP Group metadata editing was adjusted for the Qt UI: the metadata dialog is
+  taller and no longer hides the notes field behind an internal scroll area, and
+  expected-band/channel spacing is more uniform across channel groups. AP
+  placement now uses left-click like scale calibration, disables map dragging
+  while waiting for placement, and uses a smaller 20 px AP icon that scales with
+  map zoom.
 
 Recent commits:
 

@@ -17,14 +17,12 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMessageBox,
     QPushButton,
-    QScrollArea,
     QHeaderView,
     QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
     QTextEdit,
     QVBoxLayout,
-    QWidget,
 )
 
 from ap_group_checks import build_ap_group_conflicts
@@ -269,10 +267,6 @@ class APGroupManagerDialog(QDialog):
             }}
             QListWidget::item {{
                 padding: {s(3)}px;
-            }}
-            QScrollArea {{
-                background: {palette["bg"]};
-                border: 0;
             }}
             QGroupBox {{
                 color: {palette["text"]};
@@ -818,8 +812,8 @@ class MetadataDialog(QDialog):
         self.channel_checks = {}
 
         self.setWindowTitle(manager.tr("ap_group_metadata_title"))
-        self.resize(widget_px(self, 1060), widget_px(self, 680))
-        self.setMinimumSize(widget_px(self, 840), widget_px(self, 560))
+        self.resize(widget_px(self, 1120), widget_px(self, 820))
+        self.setMinimumSize(widget_px(self, 980), widget_px(self, 760))
         self.setStyleSheet(manager.styleSheet())
         self.build_ui()
 
@@ -833,11 +827,8 @@ class MetadataDialog(QDialog):
         hint.setWordWrap(True)
         outer.addWidget(hint)
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        content = QWidget()
-        content_layout = QVBoxLayout(content)
-        content_layout.setContentsMargins(widget_px(self, 4), widget_px(self, 4), widget_px(self, 4), widget_px(self, 4))
+        content_layout = QVBoxLayout()
+        content_layout.setContentsMargins(widget_px(self, 2), widget_px(self, 2), widget_px(self, 2), widget_px(self, 2))
         content_layout.setSpacing(widget_px(self, 8))
 
         form = QGridLayout()
@@ -858,10 +849,9 @@ class MetadataDialog(QDialog):
         content_layout.addWidget(QLabel(self.manager.tr("ap_group_metadata_notes")))
         self.notes_edit = QTextEdit()
         self.notes_edit.setPlainText(self.metadata.get("notes", ""))
-        self.notes_edit.setMinimumHeight(widget_px(self, 84))
+        self.notes_edit.setMinimumHeight(widget_px(self, 104))
         content_layout.addWidget(self.notes_edit)
-        scroll.setWidget(content)
-        outer.addWidget(scroll, 1)
+        outer.addLayout(content_layout, 1)
 
         buttons = QHBoxLayout()
         buttons.addStretch(1)
@@ -881,11 +871,12 @@ class MetadataDialog(QDialog):
         selected_bands = parse_expected_bands(self.metadata.get("expected_bands", ""))
         band_box = QGroupBox(self.manager.tr("ap_group_metadata_expected_bands"))
         band_layout = QHBoxLayout(band_box)
-        band_layout.setContentsMargins(widget_px(self, 10), widget_px(self, 8), widget_px(self, 10), widget_px(self, 8))
-        band_layout.setSpacing(widget_px(self, 14))
+        band_layout.setContentsMargins(widget_px(self, 10), widget_px(self, 10), widget_px(self, 10), widget_px(self, 10))
+        band_layout.setSpacing(widget_px(self, 12))
         for band_value, band_label in EXPECTED_BAND_OPTIONS:
             checkbox = QCheckBox(band_label)
             checkbox.setChecked(band_value in selected_bands)
+            checkbox.setMinimumWidth(widget_px(self, 92))
             self.band_checks[band_value] = checkbox
             band_layout.addWidget(checkbox)
         band_layout.addStretch(1)
@@ -896,18 +887,21 @@ class MetadataDialog(QDialog):
         section = QGroupBox(self.manager.tr("ap_group_metadata_expected_channels"))
         section_layout = QGridLayout(section)
         section_layout.setContentsMargins(widget_px(self, 10), widget_px(self, 10), widget_px(self, 10), widget_px(self, 10))
-        section_layout.setHorizontalSpacing(widget_px(self, 8))
-        section_layout.setVerticalSpacing(widget_px(self, 8))
+        section_layout.setHorizontalSpacing(widget_px(self, 10))
+        section_layout.setVerticalSpacing(widget_px(self, 10))
 
         for index, (title_key, channels) in enumerate(EXPECTED_CHANNEL_GROUPS):
             group_box = QGroupBox(self.manager.tr(title_key))
             group_layout = QGridLayout(group_box)
-            group_layout.setContentsMargins(widget_px(self, 10), widget_px(self, 8), widget_px(self, 10), widget_px(self, 8))
-            group_layout.setHorizontalSpacing(widget_px(self, 10))
-            group_layout.setVerticalSpacing(widget_px(self, 5))
+            group_layout.setContentsMargins(widget_px(self, 10), widget_px(self, 10), widget_px(self, 10), widget_px(self, 10))
+            group_layout.setHorizontalSpacing(widget_px(self, 12))
+            group_layout.setVerticalSpacing(widget_px(self, 6))
+            for column in range(4):
+                group_layout.setColumnMinimumWidth(column, widget_px(self, 74))
             for channel_index, channel in enumerate(channels):
                 checkbox = QCheckBox(f"CH {channel}")
                 checkbox.setChecked(channel in selected_channels)
+                checkbox.setMinimumWidth(widget_px(self, 74))
                 self.channel_checks[channel] = checkbox
                 group_layout.addWidget(
                     checkbox,

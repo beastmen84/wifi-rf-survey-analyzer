@@ -7,12 +7,14 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QBrush, QColor, QImage, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QGraphicsEllipseItem,
-    QGraphicsItem,
     QGraphicsLineItem,
     QGraphicsPixmapItem,
     QGraphicsScene,
     QGraphicsView,
 )
+
+
+AP_MARKER_BASE_SIZE = 20
 
 
 class FloorplanView(QGraphicsView):
@@ -178,8 +180,8 @@ class FloorplanView(QGraphicsView):
     def create_ap_marker(self, x, y, group, label):
         if self.ap_position_icon and not self.ap_position_icon.isNull():
             pixmap = self.ap_position_icon.scaled(
-                26,
-                26,
+                AP_MARKER_BASE_SIZE,
+                AP_MARKER_BASE_SIZE,
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation,
             )
@@ -187,12 +189,12 @@ class FloorplanView(QGraphicsView):
             item.setOffset(-pixmap.width() / 2, -pixmap.height() / 2)
             item.setPos(x, y)
         else:
-            item = QGraphicsEllipseItem(-7, -7, 14, 14)
+            radius = AP_MARKER_BASE_SIZE / 2
+            item = QGraphicsEllipseItem(-radius, -radius, radius * 2, radius * 2)
             item.setBrush(QBrush(QColor("#0d6efd")))
             item.setPen(QPen(Qt.GlobalColor.white, 1.6))
             item.setPos(x, y)
 
-        item.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations, True)
         item.setZValue(30)
         tooltip = (
             self.ap_tooltip_formatter(group, label, x, y)
@@ -209,6 +211,7 @@ class FloorplanView(QGraphicsView):
         self.cancel_scale_calibration_pick(emit_signal=False)
         self.pending_ap_position_group_id = str(group_id)
         self.pending_ap_position_label = str(label or group_id)
+        self.setDragMode(QGraphicsView.DragMode.NoDrag)
         self.viewport().setCursor(Qt.CursorShape.CrossCursor)
         return True
 
@@ -218,6 +221,7 @@ class FloorplanView(QGraphicsView):
 
         self.pending_ap_position_group_id = ""
         self.pending_ap_position_label = ""
+        self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
         self.viewport().unsetCursor()
         if emit_signal:
             self.apPositionCancelled.emit()
@@ -321,15 +325,14 @@ class FloorplanView(QGraphicsView):
             return
 
         if self.pending_ap_position_group_id:
-            if event.button() == Qt.MouseButton.RightButton:
+            if event.button() == Qt.MouseButton.LeftButton:
                 point = self.mapToScene(event.position().toPoint())
                 group_id = self.pending_ap_position_group_id
                 self.pending_ap_position_group_id = ""
                 self.pending_ap_position_label = ""
+                self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
                 self.viewport().unsetCursor()
                 self.apPositionPicked.emit(group_id, int(round(point.x())), int(round(point.y())))
-            else:
-                self.viewport().setCursor(Qt.CursorShape.CrossCursor)
             event.accept()
             return
 
