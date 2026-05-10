@@ -683,6 +683,12 @@ Language:
   attention. The point table centers numeric columns, stretches SSID/Issue
   columns, sets consistent row height, and auto-selects the first visible row so
   `Go to point` is immediately actionable.
+- Survey Quality follow-up: the dashboard table now disables cell focus styling
+  like the measurement table, metric labels were expanded from abbreviations to
+  descriptive names, and `Go to point` opens the measurement-points overlay
+  before selecting the target point. The measurement-points overlay also gained
+  a `Recalculate` action before the delete buttons to refresh point quality,
+  map markers, AP markers, and live preview from the current survey data.
 
 Recent commits:
 

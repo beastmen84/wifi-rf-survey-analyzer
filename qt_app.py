@@ -484,14 +484,22 @@ class WifiHeatmapQtApp(QMainWindow):
 
         point_buttons = QHBoxLayout()
         self.focus_point_button = QPushButton()
+        self.refresh_points_button = QPushButton()
         self.delete_selected_button = QPushButton()
         self.delete_last_button = QPushButton()
-        for button in (self.focus_point_button, self.delete_selected_button, self.delete_last_button):
+        for button in (
+            self.focus_point_button,
+            self.refresh_points_button,
+            self.delete_selected_button,
+            self.delete_last_button,
+        ):
             button.setObjectName("pointsActionButton")
         self.focus_point_button.clicked.connect(self.focus_selected_point)
+        self.refresh_points_button.clicked.connect(self.recalculate_points_panel)
         self.delete_selected_button.clicked.connect(self.delete_selected_point)
         self.delete_last_button.clicked.connect(self.delete_last_point)
         point_buttons.addWidget(self.focus_point_button)
+        point_buttons.addWidget(self.refresh_points_button)
         point_buttons.addWidget(self.delete_selected_button)
         point_buttons.addWidget(self.delete_last_button)
         point_buttons.addStretch(1)
@@ -511,6 +519,19 @@ class WifiHeatmapQtApp(QMainWindow):
             self.points_overlay_height = self.default_points_overlay_height()
         self.points_table_body.setVisible(self.points_panel_expanded)
         self.points_panel_resize_button.setVisible(self.points_panel_expanded)
+        self.update_points_panel_toggle()
+        self.position_points_overlay()
+
+    def show_points_panel(self):
+        if self.points_panel_expanded:
+            self.position_points_overlay()
+            return
+
+        self.points_panel_expanded = True
+        if not self.points_overlay_height:
+            self.points_overlay_height = self.default_points_overlay_height()
+        self.points_table_body.setVisible(True)
+        self.points_panel_resize_button.setVisible(True)
         self.update_points_panel_toggle()
         self.position_points_overlay()
 
@@ -1148,6 +1169,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.help_button.setText(self.tr("help"))
         self.generate_map_button.setText(self.tr("generate_heatmap"))
         self.focus_point_button.setText(self.tr("go_to_point"))
+        self.refresh_points_button.setText(self.tr("refresh_points"))
         self.delete_selected_button.setText(self.tr("delete_selected"))
         self.delete_last_button.setText(self.tr("delete_last"))
         self.update_points_panel_toggle()
@@ -2437,6 +2459,7 @@ class WifiHeatmapQtApp(QMainWindow):
         has_point = bool(self.current_selected_point())
         has_any_point = bool(self.session and self.session.get_point_summaries())
         self.focus_point_button.setEnabled(has_point)
+        self.refresh_points_button.setEnabled(has_any_point)
         self.delete_selected_button.setEnabled(has_point)
         self.delete_last_button.setEnabled(has_any_point)
 
@@ -2447,6 +2470,18 @@ class WifiHeatmapQtApp(QMainWindow):
             return
 
         self.floorplan_view.focus_on(point["x"], point["y"])
+
+    def recalculate_points_panel(self):
+        if self.session is None:
+            return
+
+        selected_point = self.current_selected_point()
+        self.refresh_session_labels()
+        self.refresh_points_table()
+        if selected_point:
+            self.select_point_in_table(selected_point)
+        self.status.showMessage(self.tr("points_recalculated"))
+        self.maybe_update_live_preview()
 
     def delete_selected_point(self):
         point = self.current_selected_point()

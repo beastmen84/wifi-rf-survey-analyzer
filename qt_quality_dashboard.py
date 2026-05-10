@@ -89,6 +89,9 @@ class QualityDashboardDialog(QDialog):
 
         self.table = QTableWidget(0, 9)
         self.table.setAlternatingRowColors(True)
+        self.table.setShowGrid(False)
+        self.table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.table.verticalHeader().setVisible(False)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setHorizontalHeaderLabels([
@@ -200,6 +203,7 @@ class QualityDashboardDialog(QDialog):
         layout.setContentsMargins(widget_px(self, 10), widget_px(self, 8), widget_px(self, 10), widget_px(self, 8))
         label_widget = QLabel(label)
         label_widget.setObjectName("mutedText")
+        label_widget.setWordWrap(True)
         value_widget = QLabel(str(value))
         value_widget.setObjectName(f"metricValue_{severity}")
         layout.addWidget(label_widget)
@@ -309,6 +313,7 @@ class QualityDashboardDialog(QDialog):
         self.accept()
         self.app.tabs.setCurrentIndex(0)
         self.app.floorplan_view.focus_on(row["x"], row["y"])
+        self.app.show_points_panel()
         self.app.select_point_in_table(row)
 
 
