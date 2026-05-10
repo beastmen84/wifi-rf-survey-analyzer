@@ -6,3 +6,4 @@ matplotlib
 scipy
 lswifi
 PySide6
+pytest

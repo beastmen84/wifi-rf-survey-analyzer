@@ -492,6 +492,9 @@ Language:
   The Survey tab summary area was also changed from plain label rows into
   compact status cards for CSV, map, points, raw scans, AP groups and relevant
   networks.
+- Added `pytest` to the project dependencies and installed it in the local
+  virtual environment. Existing `unittest` tests are now also runnable through
+  `python -m pytest`, which collected 4 tests successfully.
 
 Recent commits:
 
