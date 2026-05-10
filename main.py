@@ -22,9 +22,10 @@ except ModuleNotFoundError as exc:
     raise SystemExit(1) from exc
 
 from app_logging import configure_logging, log_event, log_exception, log_unhandled_exception
-from app_settings import get_saved_theme
+from app_settings import get_saved_theme, get_saved_ui_scale
 from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_language, translate
 from qt_theme import QT_THEMES
+from ui_scaling import resolve_ui_scale, scale_font_px, scale_px
 
 
 START_LANGUAGE_LABELS = {
@@ -56,6 +57,8 @@ class StartWindow(QMainWindow):
         super().__init__()
         self.language = DEFAULT_LANGUAGE
         self.theme = get_saved_theme(default="light", valid_themes=QT_THEMES)
+        self.ui_scale_mode = get_saved_ui_scale()
+        self.ui_scale = resolve_ui_scale(self.ui_scale_mode)
         self.app_class = None
         self.workspace_window = None
         self.load_thread = None
@@ -64,8 +67,8 @@ class StartWindow(QMainWindow):
         self.close_after_load = False
 
         self.setObjectName("startWindow")
-        self.setMinimumSize(1100, 720)
-        self.resize(1320, 820)
+        self.setMinimumSize(self.spx(1100), self.spx(720))
+        self.resize(self.spx(1320), self.spx(820))
 
         self.build_ui()
         self.apply_styles()
@@ -76,14 +79,20 @@ class StartWindow(QMainWindow):
     def tr(self, key, **kwargs):
         return translate(self.language, key, **kwargs)
 
+    def spx(self, value):
+        return scale_px(value, self.ui_scale)
+
+    def sfont(self, value):
+        return scale_font_px(value, self.ui_scale)
+
     def build_ui(self):
         page = QWidget()
         page.setObjectName("startPage")
         self.setCentralWidget(page)
 
         outer = QVBoxLayout(page)
-        outer.setContentsMargins(56, 36, 56, 24)
-        outer.setSpacing(24)
+        outer.setContentsMargins(self.spx(56), self.spx(36), self.spx(56), self.spx(24))
+        outer.setSpacing(self.spx(24))
 
         top_row = QHBoxLayout()
         top_row.addStretch(1)
@@ -100,14 +109,14 @@ class StartWindow(QMainWindow):
         outer.addLayout(top_row)
 
         body = QHBoxLayout()
-        body.setSpacing(28)
+        body.setSpacing(self.spx(28))
         body.addStretch(1)
 
         hero = QFrame()
         hero.setObjectName("startHero")
         hero_layout = QVBoxLayout(hero)
-        hero_layout.setContentsMargins(40, 38, 40, 34)
-        hero_layout.setSpacing(18)
+        hero_layout.setContentsMargins(self.spx(40), self.spx(38), self.spx(40), self.spx(34))
+        hero_layout.setSpacing(self.spx(18))
 
         self.title = QLabel()
         self.title.setObjectName("startTitle")
@@ -117,7 +126,7 @@ class StartWindow(QMainWindow):
         self.subtitle.setWordWrap(True)
         hero_layout.addWidget(self.title)
         hero_layout.addWidget(self.subtitle)
-        hero_layout.addSpacing(14)
+        hero_layout.addSpacing(self.spx(14))
 
         self.workflow_title = QLabel()
         self.workflow_title.setObjectName("startSectionTitle")
@@ -137,7 +146,7 @@ class StartWindow(QMainWindow):
         self.loading_status.setObjectName("startMuted")
         self.loading_progress = QProgressBar()
         self.loading_progress.setTextVisible(False)
-        self.loading_progress.setFixedHeight(8)
+        self.loading_progress.setFixedHeight(self.spx(8))
         hero_layout.addWidget(self.loading_title)
         hero_layout.addWidget(self.loading_status)
         hero_layout.addWidget(self.loading_progress)
@@ -145,8 +154,8 @@ class StartWindow(QMainWindow):
         actions = QFrame()
         actions.setObjectName("startActions")
         actions_layout = QVBoxLayout(actions)
-        actions_layout.setContentsMargins(32, 34, 32, 32)
-        actions_layout.setSpacing(14)
+        actions_layout.setContentsMargins(self.spx(32), self.spx(34), self.spx(32), self.spx(32))
+        actions_layout.setSpacing(self.spx(14))
 
         self.actions_title = QLabel()
         self.actions_title.setObjectName("startSectionTitle")
@@ -155,7 +164,7 @@ class StartWindow(QMainWindow):
         self.actions_hint.setWordWrap(True)
         actions_layout.addWidget(self.actions_title)
         actions_layout.addWidget(self.actions_hint)
-        actions_layout.addSpacing(14)
+        actions_layout.addSpacing(self.spx(14))
 
         self.new_button = QPushButton()
         self.open_button = QPushButton()
@@ -167,7 +176,7 @@ class StartWindow(QMainWindow):
         self.open_button.clicked.connect(self.launch_open_survey)
         self.exit_button.clicked.connect(self.close)
         for button in (self.new_button, self.open_button, self.exit_button):
-            button.setMinimumHeight(50)
+            button.setMinimumHeight(self.spx(50))
             actions_layout.addWidget(button)
 
         actions_layout.addStretch(1)
@@ -191,44 +200,46 @@ class StartWindow(QMainWindow):
     def apply_styles(self):
         palette = QT_THEMES.get(self.theme, QT_THEMES["light"])
         combo_arrow_icon = (Path(__file__).resolve().parent / "images" / "combo_arrow_white.svg").as_posix()
+        s = self.spx
+        font = self.sfont
         self.setStyleSheet(
             f"""
             QMainWindow#startWindow, QWidget#startPage {{
                 background: {palette["bg"]};
                 color: {palette["text"]};
                 font-family: "Segoe UI";
-                font-size: 14px;
+                font-size: {font(14)}px;
             }}
             QFrame#startHero, QFrame#startActions {{
                 background: {palette["panel"]};
                 border: 1px solid {palette["border"]};
-                border-radius: 10px;
+                border-radius: {s(10)}px;
             }}
             QFrame#startHero {{
-                min-width: 620px;
+                min-width: {s(620)}px;
             }}
             QFrame#startActions {{
-                min-width: 360px;
-                max-width: 430px;
+                min-width: {s(360)}px;
+                max-width: {s(430)}px;
             }}
             QLabel#startTitle {{
                 color: {palette["title"]};
-                font-size: 42px;
+                font-size: {font(42)}px;
                 font-weight: 800;
             }}
             QLabel#startSubtitle {{
                 color: {palette["muted"]};
-                font-size: 18px;
+                font-size: {font(18)}px;
             }}
             QLabel#startSectionTitle {{
                 color: {palette["title"]};
-                font-size: 17px;
+                font-size: {font(17)}px;
                 font-weight: 700;
             }}
             QLabel#startStep {{
                 color: {palette["text"]};
-                font-size: 15px;
-                padding: 2px 0;
+                font-size: {font(15)}px;
+                padding: {s(2)}px 0;
             }}
             QLabel#startMuted, QLabel#startFooter {{
                 color: {palette["muted"]};
@@ -237,10 +248,10 @@ class StartWindow(QMainWindow):
                 background: {palette["metric_info"]};
                 color: #ffffff;
                 border: 1px solid {palette["metric_info"]};
-                border-radius: 7px;
-                font-size: 15px;
+                border-radius: {s(7)}px;
+                font-size: {font(15)}px;
                 font-weight: 700;
-                padding: 10px 14px;
+                padding: {s(10)}px {s(14)}px;
             }}
             QPushButton#primaryStartButton:hover {{
                 background: {palette["metric_info"]};
@@ -254,10 +265,10 @@ class StartWindow(QMainWindow):
                 background: {palette["button_bg"]};
                 color: {palette["text"]};
                 border: 1px solid {palette["border"]};
-                border-radius: 7px;
-                font-size: 15px;
+                border-radius: {s(7)}px;
+                font-size: {font(15)}px;
                 font-weight: 600;
-                padding: 10px 14px;
+                padding: {s(10)}px {s(14)}px;
             }}
             QPushButton#secondaryStartButton:hover {{
                 background: {palette["button_hover"]};
@@ -270,17 +281,17 @@ class StartWindow(QMainWindow):
                 background: {palette["button_bg"]};
                 color: {palette["text"]};
                 border: 1px solid {palette["border"]};
-                border-radius: 6px;
-                padding: 6px 28px 6px 10px;
-                min-width: 72px;
+                border-radius: {s(6)}px;
+                padding: {s(6)}px {s(28)}px {s(6)}px {s(10)}px;
+                min-width: {s(72)}px;
             }}
             QComboBox#languageCombo {{
                 background: {palette["metric_info"]};
                 color: #ffffff;
                 border: 1px solid {palette["metric_info"]};
-                border-radius: 7px;
-                padding: 8px 34px 8px 12px;
-                min-width: 128px;
+                border-radius: {s(7)}px;
+                padding: {s(8)}px {s(34)}px {s(8)}px {s(12)}px;
+                min-width: {s(128)}px;
                 font-weight: 700;
             }}
             QComboBox#languageCombo:hover {{
@@ -290,16 +301,16 @@ class StartWindow(QMainWindow):
             QComboBox::drop-down {{
                 subcontrol-origin: padding;
                 subcontrol-position: top right;
-                width: 28px;
+                width: {s(28)}px;
                 border-left: 1px solid {palette["metric_info"]};
-                border-top-right-radius: 6px;
-                border-bottom-right-radius: 6px;
+                border-top-right-radius: {s(6)}px;
+                border-bottom-right-radius: {s(6)}px;
                 background: {palette["metric_info"]};
             }}
             QComboBox::down-arrow {{
                 image: url("{combo_arrow_icon}");
-                width: 10px;
-                height: 6px;
+                width: {s(10)}px;
+                height: {s(6)}px;
             }}
             QComboBox#languageCombo QAbstractItemView {{
                 background: {palette["panel"]};
@@ -311,11 +322,11 @@ class StartWindow(QMainWindow):
             QProgressBar {{
                 background: {palette["panel_alt"]};
                 border: 0;
-                border-radius: 4px;
+                border-radius: {s(4)}px;
             }}
             QProgressBar::chunk {{
                 background: {palette["metric_info"]};
-                border-radius: 4px;
+                border-radius: {s(4)}px;
             }}
             """
         )

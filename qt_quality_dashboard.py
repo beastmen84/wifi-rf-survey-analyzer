@@ -43,6 +43,7 @@ from quality_engine import (
     normalize_ssid,
     parse_float,
 )
+from ui_scaling import widget_px
 
 
 QUALITY_SEVERITY = {
@@ -67,12 +68,12 @@ class QualityDashboardDialog(QDialog):
         self.rows = rows
         self.filtered_rows = []
         self.setWindowTitle(app.tr("quality_dashboard_title"))
-        self.resize(1420, 800)
-        self.setMinimumSize(1180, 700)
+        self.resize(widget_px(self, 1420), widget_px(self, 800))
+        self.setMinimumSize(widget_px(self, 1180), widget_px(self, 700))
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(14, 14, 14, 14)
-        layout.setSpacing(10)
+        layout.setContentsMargins(widget_px(self, 14), widget_px(self, 14), widget_px(self, 14), widget_px(self, 14))
+        layout.setSpacing(widget_px(self, 10))
 
         hint = QLabel(app.tr("quality_dashboard_hint"))
         hint.setObjectName("mutedText")
@@ -117,9 +118,9 @@ class QualityDashboardDialog(QDialog):
         panel = QFrame()
         panel.setObjectName("summaryPanel")
         grid = QGridLayout(panel)
-        grid.setContentsMargins(12, 12, 12, 12)
-        grid.setHorizontalSpacing(8)
-        grid.setVerticalSpacing(8)
+        grid.setContentsMargins(widget_px(self, 12), widget_px(self, 12), widget_px(self, 12), widget_px(self, 12))
+        grid.setHorizontalSpacing(widget_px(self, 8))
+        grid.setVerticalSpacing(widget_px(self, 8))
 
         metrics = [
             ("quality_dashboard_metric_points", summary["total_points"], "info"),
@@ -144,7 +145,7 @@ class QualityDashboardDialog(QDialog):
         box = QFrame()
         box.setObjectName("metricBox")
         layout = QVBoxLayout(box)
-        layout.setContentsMargins(10, 8, 10, 8)
+        layout.setContentsMargins(widget_px(self, 10), widget_px(self, 8), widget_px(self, 10), widget_px(self, 8))
         label_widget = QLabel(label)
         label_widget.setObjectName("mutedText")
         value_widget = QLabel(str(value))

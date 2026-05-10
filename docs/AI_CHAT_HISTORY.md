@@ -55,6 +55,8 @@ Core UI:
 - `qt_map_generation.py`: Qt generated map dialog.
 - `qt_quality_dashboard.py`: Qt survey quality dashboard.
 - `qt_help_dialog.py`: Qt help dialog.
+- `ui_scaling.py`: shared UI scaling helpers used by the Qt launcher,
+  workspace and dialogs.
 - `live_renderer.py`: continuous live signal/interference rendering in a worker.
 - `map_rendering.py`: PNG map legend/reference helpers.
 
@@ -559,6 +561,11 @@ Language:
 - Improved the Qt survey point tooltip formatting: it now shows a clear title,
   position, best signal with relevant/all scope, row counts, timestamp and
   detected SSIDs as a short list for quicker reading.
+- Added a shared Qt UI scaling layer. The launcher, main workspace and primary
+  dialogs now scale window sizes, margins, controls and stylesheet dimensions
+  from an automatic display scale so the app keeps a 1080p-like visual density
+  on higher resolution screens such as 1440p/2K. The scale mode is stored in
+  shared app settings as `ui_scale` for future user-facing control.
 
 Recent commits:
 

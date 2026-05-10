@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ui_scaling import widget_px
 from wifi_scanner import scan_wifi
 
 
@@ -41,14 +42,14 @@ class RelevantNetworksDialog(QDialog):
         self.checkboxes = {}
 
         self.setWindowTitle(title)
-        self.resize(560, 520)
-        self.setMinimumSize(460, 360)
+        self.resize(widget_px(self, 560), widget_px(self, 520))
+        self.setMinimumSize(widget_px(self, 460), widget_px(self, 360))
         self.build_ui(title, message)
 
     def build_ui(self, title, message):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(14, 14, 14, 14)
-        layout.setSpacing(10)
+        layout.setContentsMargins(widget_px(self, 14), widget_px(self, 14), widget_px(self, 14), widget_px(self, 14))
+        layout.setSpacing(widget_px(self, 10))
 
         heading = QLabel(title)
         heading.setObjectName("sectionTitle")
@@ -62,8 +63,8 @@ class RelevantNetworksDialog(QDialog):
         scroll.setWidgetResizable(True)
         content = QWidget()
         choices_layout = QVBoxLayout(content)
-        choices_layout.setContentsMargins(6, 6, 6, 6)
-        choices_layout.setSpacing(6)
+        choices_layout.setContentsMargins(widget_px(self, 6), widget_px(self, 6), widget_px(self, 6), widget_px(self, 6))
+        choices_layout.setSpacing(widget_px(self, 6))
 
         ordered_ssids = sorted(
             self.ssids,
@@ -111,14 +112,14 @@ class MissingRelevantNetworksDialog(QDialog):
         self.action = "cancel"
 
         self.setWindowTitle(app.tr("missing_relevant_networks_title"))
-        self.resize(560, 280)
-        self.setMinimumSize(460, 240)
+        self.resize(widget_px(self, 560), widget_px(self, 280))
+        self.setMinimumSize(widget_px(self, 460), widget_px(self, 240))
         self.build_ui()
 
     def build_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(12)
+        layout.setContentsMargins(widget_px(self, 16), widget_px(self, 16), widget_px(self, 16), widget_px(self, 16))
+        layout.setSpacing(widget_px(self, 12))
 
         heading = QLabel(self.app.tr("missing_relevant_networks_title"))
         heading.setObjectName("sectionTitle")

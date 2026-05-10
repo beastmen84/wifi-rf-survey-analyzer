@@ -38,7 +38,7 @@ except ModuleNotFoundError as exc:
 
 from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_language, translate
 from app_logging import configure_logging, log_event, log_exception, log_unhandled_exception
-from app_settings import get_saved_theme, save_theme
+from app_settings import get_saved_theme, get_saved_ui_scale, save_theme
 from ap_groups import (
     build_ap_group_role_map,
     build_bssid_to_manual_group_map,
@@ -64,6 +64,7 @@ from qt_point_workflow import MissingRelevantNetworksDialog, RelevantNetworksDia
 from qt_quality_dashboard import open_qt_quality_dashboard
 from qt_theme import QT_THEME_OPTIONS, QT_THEMES
 from survey_store import SurveyFormatError, SurveySession
+from ui_scaling import resolve_ui_scale, scale_font, scale_px
 from wifi_scanner import get_connected_ssid
 
 
@@ -76,6 +77,8 @@ class WifiHeatmapQtApp(QMainWindow):
         super().__init__()
         self.language = DEFAULT_LANGUAGE
         self.theme = get_saved_theme(default="light", valid_themes=QT_THEMES)
+        self.ui_scale_mode = get_saved_ui_scale()
+        self.ui_scale = resolve_ui_scale(self.ui_scale_mode)
         self.session = None
         self.relevant_ssids = set()
         self.known_ssids = set()
@@ -95,7 +98,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.points_overlay_resize_start_height = 0
 
         self.setWindowTitle(self.tr("app_title"))
-        self.resize(1400, 900)
+        self.resize(self.spx(1400), self.spx(900))
 
         self.stack = QStackedWidget()
         self.setCentralWidget(self.stack)
@@ -114,6 +117,12 @@ class WifiHeatmapQtApp(QMainWindow):
     def tr(self, key, **kwargs):
         return translate(self.language, key, **kwargs)
 
+    def spx(self, value):
+        return scale_px(value, self.ui_scale)
+
+    def spt(self, value):
+        return scale_font(value, self.ui_scale)
+
     def get_px_per_meter(self):
         if self.session is None:
             return None
@@ -128,7 +137,7 @@ class WifiHeatmapQtApp(QMainWindow):
     def build_start_page(self):
         page = QWidget()
         outer = QVBoxLayout(page)
-        outer.setContentsMargins(48, 40, 48, 32)
+        outer.setContentsMargins(self.spx(48), self.spx(40), self.spx(48), self.spx(32))
 
         top_row = QHBoxLayout()
         top_row.addStretch(1)
@@ -146,9 +155,9 @@ class WifiHeatmapQtApp(QMainWindow):
         panel = QFrame()
         panel.setObjectName("startPanel")
         panel_layout = QGridLayout(panel)
-        panel_layout.setContentsMargins(32, 32, 32, 32)
-        panel_layout.setHorizontalSpacing(28)
-        panel_layout.setVerticalSpacing(14)
+        panel_layout.setContentsMargins(self.spx(32), self.spx(32), self.spx(32), self.spx(32))
+        panel_layout.setHorizontalSpacing(self.spx(28))
+        panel_layout.setVerticalSpacing(self.spx(14))
 
         title_box = QVBoxLayout()
         self.start_title = QLabel()
@@ -168,7 +177,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.open_button.clicked.connect(lambda _checked=False: self.open_survey())
         self.exit_button.clicked.connect(self.close)
         for button in (self.new_button, self.open_button, self.exit_button):
-            button.setMinimumHeight(42)
+            button.setMinimumHeight(self.spx(42))
             action_box.addWidget(button)
         action_box.addStretch(1)
         panel_layout.addLayout(action_box, 1, 0)
@@ -211,7 +220,7 @@ class WifiHeatmapQtApp(QMainWindow):
         footer = QFrame()
         footer.setObjectName("footer")
         footer_layout = QHBoxLayout(footer)
-        footer_layout.setContentsMargins(12, 6, 12, 6)
+        footer_layout.setContentsMargins(self.spx(12), self.spx(6), self.spx(12), self.spx(6))
         self.footer_label = QLabel()
         self.footer_label.setObjectName("mutedText")
         footer_layout.addWidget(self.footer_label)
@@ -223,8 +232,8 @@ class WifiHeatmapQtApp(QMainWindow):
         bar = QFrame()
         bar.setObjectName("appBar")
         layout = QHBoxLayout(bar)
-        layout.setContentsMargins(14, 10, 14, 10)
-        layout.setSpacing(10)
+        layout.setContentsMargins(self.spx(14), self.spx(10), self.spx(14), self.spx(10))
+        layout.setSpacing(self.spx(10))
 
         project_section, self.project_section_label, project_row = self.build_app_bar_section()
         self.new_workspace_button = self.create_app_bar_button(self.new_survey)
@@ -298,14 +307,14 @@ class WifiHeatmapQtApp(QMainWindow):
         section = QFrame()
         section.setObjectName("appBarSection")
         outer = QVBoxLayout(section)
-        outer.setContentsMargins(10, 7, 10, 8)
-        outer.setSpacing(5)
+        outer.setContentsMargins(self.spx(10), self.spx(7), self.spx(10), self.spx(8))
+        outer.setSpacing(self.spx(5))
 
         title = QLabel()
         title.setObjectName("appBarSectionTitle")
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(6)
+        row.setSpacing(self.spx(6))
 
         outer.addWidget(title)
         outer.addLayout(row)
@@ -321,8 +330,8 @@ class WifiHeatmapQtApp(QMainWindow):
         card = QFrame()
         card.setObjectName("summaryCardCompact" if compact else "summaryCard")
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(7, 4, 7, 5)
-        layout.setSpacing(1)
+        layout.setContentsMargins(self.spx(7), self.spx(4), self.spx(7), self.spx(5))
+        layout.setSpacing(self.spx(1))
 
         title = QLabel()
         title.setObjectName("summaryCardTitle")
@@ -336,7 +345,7 @@ class WifiHeatmapQtApp(QMainWindow):
         else:
             title_row = QHBoxLayout()
             title_row.setContentsMargins(0, 0, 0, 0)
-            title_row.setSpacing(4)
+            title_row.setSpacing(self.spx(4))
             title_row.addWidget(title)
             title_row.addStretch(1)
             title_row.addWidget(action_widget)
@@ -348,20 +357,20 @@ class WifiHeatmapQtApp(QMainWindow):
     def build_survey_tab(self):
         tab = QWidget()
         layout = QVBoxLayout(tab)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(12)
+        layout.setContentsMargins(self.spx(16), self.spx(16), self.spx(16), self.spx(16))
+        layout.setSpacing(self.spx(12))
 
         summary = QFrame()
         summary.setObjectName("summaryPanel")
         self.summary_title_bindings = []
         grid = QGridLayout(summary)
-        grid.setContentsMargins(8, 8, 8, 8)
-        grid.setHorizontalSpacing(6)
-        grid.setVerticalSpacing(6)
+        grid.setContentsMargins(self.spx(8), self.spx(8), self.spx(8), self.spx(8))
+        grid.setHorizontalSpacing(self.spx(6))
+        grid.setVerticalSpacing(self.spx(6))
 
         self.clear_relevant_button = QPushButton()
         self.clear_relevant_button.setObjectName("summaryActionButton")
-        self.clear_relevant_button.setMaximumWidth(118)
+        self.clear_relevant_button.setMaximumWidth(self.spx(118))
         self.clear_relevant_button.clicked.connect(self.clear_relevant_ssids)
         csv_card, self.csv_label, _csv_layout = self.create_summary_card("qt_csv")
         map_card, self.map_label, _map_layout = self.create_summary_card("map")
@@ -373,7 +382,7 @@ class WifiHeatmapQtApp(QMainWindow):
             action_widget=self.clear_relevant_button,
         )
         for card in (points_card, raw_card, ap_card):
-            card.setMaximumWidth(112)
+            card.setMaximumWidth(self.spx(112))
         for index, card in enumerate((
             csv_card,
             map_card,
@@ -395,7 +404,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.floorplan_container.setObjectName("floorplanContainer")
         self.floorplan_container.installEventFilter(self)
         floorplan_layout = QVBoxLayout(self.floorplan_container)
-        floorplan_layout.setContentsMargins(1, 1, 1, 1)
+        floorplan_layout.setContentsMargins(self.spx(1), self.spx(1), self.spx(1), self.spx(1))
         floorplan_layout.setSpacing(0)
         self.floorplan_view = FloorplanView()
         self.floorplan_view.ap_tooltip_formatter = self.format_ap_position_tooltip
@@ -413,8 +422,8 @@ class WifiHeatmapQtApp(QMainWindow):
         self.points_overlay.setObjectName("floatingPointsPanel")
         self.points_overlay.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         overlay_layout = QVBoxLayout(self.points_overlay)
-        overlay_layout.setContentsMargins(8, 8, 8, 8)
-        overlay_layout.setSpacing(6)
+        overlay_layout.setContentsMargins(self.spx(8), self.spx(8), self.spx(8), self.spx(8))
+        overlay_layout.setSpacing(self.spx(6))
 
         points_handle_row = QHBoxLayout()
         points_handle_row.setContentsMargins(0, 0, 0, 0)
@@ -434,7 +443,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.points_table_body.setObjectName("pointsTableBody")
         table_layout = QVBoxLayout(self.points_table_body)
         table_layout.setContentsMargins(0, 0, 0, 0)
-        table_layout.setSpacing(8)
+        table_layout.setSpacing(self.spx(8))
 
         self.points_table = QTableWidget(0, 8)
         self.points_table.setAlternatingRowColors(True)
@@ -446,7 +455,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.points_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.points_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.points_table.horizontalHeader().setStretchLastSection(False)
-        self.points_table.horizontalHeader().setMinimumSectionSize(34)
+        self.points_table.horizontalHeader().setMinimumSectionSize(self.spx(34))
         self.configure_points_table_columns()
         self.points_table.itemSelectionChanged.connect(self.on_points_table_selection_changed)
         self.points_table.itemDoubleClicked.connect(lambda _item: self.focus_selected_point())
@@ -500,11 +509,11 @@ class WifiHeatmapQtApp(QMainWindow):
             self.points_panel_resize_button.setToolTip(self.tr("points_panel_resize"))
 
     def default_points_overlay_height(self):
-        row_height = max(24, self.points_table.verticalHeader().defaultSectionSize())
-        header_height = max(28, self.points_table.horizontalHeader().height())
-        button_height = max(34, self.focus_point_button.sizeHint().height())
-        handle_height = max(34, self.points_panel_toggle_button.sizeHint().height())
-        return handle_height + header_height + (row_height * 6) + button_height + 44
+        row_height = max(self.spx(24), self.points_table.verticalHeader().defaultSectionSize())
+        header_height = max(self.spx(28), self.points_table.horizontalHeader().height())
+        button_height = max(self.spx(34), self.focus_point_button.sizeHint().height())
+        handle_height = max(self.spx(34), self.points_panel_toggle_button.sizeHint().height())
+        return handle_height + header_height + (row_height * 6) + button_height + self.spx(44)
 
     def max_points_overlay_height(self):
         container_height = self.floorplan_container.height() if hasattr(self, "floorplan_container") else 0
@@ -519,18 +528,18 @@ class WifiHeatmapQtApp(QMainWindow):
         if container_width <= 0 or container_height <= 0:
             return
 
-        margin = 16
+        margin = self.spx(16)
         if self.points_panel_expanded:
             default_height = self.default_points_overlay_height()
             max_height = self.max_points_overlay_height()
             if not self.points_overlay_height:
                 self.points_overlay_height = default_height
             self.points_overlay_height = max(default_height, min(self.points_overlay_height, max_height))
-            width = min(max(760, int(container_width * 0.84)), max(320, container_width - (margin * 2)))
-            height = min(self.points_overlay_height, max(170, container_height - (margin * 2)))
+            width = min(max(self.spx(760), int(container_width * 0.84)), max(self.spx(320), container_width - (margin * 2)))
+            height = min(self.points_overlay_height, max(self.spx(170), container_height - (margin * 2)))
         else:
-            width = min(280, max(240, container_width - (margin * 2)))
-            height = max(50, self.points_panel_toggle_button.sizeHint().height() + 16)
+            width = min(self.spx(280), max(self.spx(240), container_width - (margin * 2)))
+            height = max(self.spx(50), self.points_panel_toggle_button.sizeHint().height() + self.spx(16))
 
         x = max(margin, (container_width - width) // 2)
         y = max(margin, container_height - height - margin)
@@ -581,18 +590,18 @@ class WifiHeatmapQtApp(QMainWindow):
         self.configure_points_table_columns()
         self.points_table.resizeColumnsToContents()
         compact_limits = {
-            0: (42, 54),
-            1: (50, 64),
-            2: (50, 64),
-            3: (92, 116),
-            4: (110, 150),
-            6: (54, 72),
-            7: (140, 180),
+            0: (self.spx(42), self.spx(54)),
+            1: (self.spx(50), self.spx(64)),
+            2: (self.spx(50), self.spx(64)),
+            3: (self.spx(92), self.spx(116)),
+            4: (self.spx(110), self.spx(150)),
+            6: (self.spx(54), self.spx(72)),
+            7: (self.spx(140), self.spx(180)),
         }
         header = self.points_table.horizontalHeader()
         for column, (minimum, maximum) in compact_limits.items():
             width = self.points_table.columnWidth(column)
-            width = max(minimum, min(width + 10, maximum))
+            width = max(minimum, min(width + self.spx(10), maximum))
             header.setSectionResizeMode(column, QHeaderView.ResizeMode.Fixed)
             self.points_table.setColumnWidth(column, width)
         header.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
@@ -600,19 +609,19 @@ class WifiHeatmapQtApp(QMainWindow):
     def build_live_tab(self):
         tab = QWidget()
         layout = QVBoxLayout(tab)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(12)
+        layout.setContentsMargins(self.spx(16), self.spx(16), self.spx(16), self.spx(16))
+        layout.setSpacing(self.spx(12))
 
         controls = QFrame()
         controls.setObjectName("summaryPanel")
         controls_layout = QGridLayout(controls)
-        controls_layout.setContentsMargins(14, 12, 14, 12)
-        controls_layout.setHorizontalSpacing(10)
-        controls_layout.setVerticalSpacing(8)
+        controls_layout.setContentsMargins(self.spx(14), self.spx(12), self.spx(14), self.spx(12))
+        controls_layout.setHorizontalSpacing(self.spx(10))
+        controls_layout.setVerticalSpacing(self.spx(8))
 
         self.live_ssid_label = QLabel()
         self.live_ssid_combo = QComboBox()
-        self.live_ssid_combo.setMinimumWidth(220)
+        self.live_ssid_combo.setMinimumWidth(self.spx(220))
         self.live_band_label = QLabel()
         self.live_band_combo = QComboBox()
         self.live_map_type_label = QLabel()
@@ -660,11 +669,11 @@ class WifiHeatmapQtApp(QMainWindow):
 
         self.live_legend_frame = QFrame()
         self.live_legend_frame.setObjectName("summaryPanel")
-        self.live_legend_frame.setMinimumWidth(260)
-        self.live_legend_frame.setMaximumWidth(360)
+        self.live_legend_frame.setMinimumWidth(self.spx(260))
+        self.live_legend_frame.setMaximumWidth(self.spx(360))
         legend_layout = QVBoxLayout(self.live_legend_frame)
-        legend_layout.setContentsMargins(12, 10, 12, 10)
-        legend_layout.setSpacing(8)
+        legend_layout.setContentsMargins(self.spx(12), self.spx(10), self.spx(12), self.spx(10))
+        legend_layout.setSpacing(self.spx(8))
         self.live_legend_title = QLabel()
         self.live_legend_title.setObjectName("sectionTitle")
         self.live_legend_list = QListWidget()
@@ -686,9 +695,9 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_fit_button = QPushButton()
         for button in (self.live_zoom_out_button, self.live_zoom_in_button, self.live_fit_button):
             button.setObjectName("compactButton")
-        self.live_zoom_out_button.setMaximumWidth(42)
-        self.live_zoom_in_button.setMaximumWidth(42)
-        self.live_fit_button.setMaximumWidth(80)
+        self.live_zoom_out_button.setMaximumWidth(self.spx(42))
+        self.live_zoom_in_button.setMaximumWidth(self.spx(42))
+        self.live_fit_button.setMaximumWidth(self.spx(80))
         self.live_fit_button.clicked.connect(self.live_view.fit_to_view)
         self.live_zoom_out_button.clicked.connect(self.live_view.zoom_out)
         self.live_zoom_in_button.clicked.connect(self.live_view.zoom_in)
@@ -701,13 +710,15 @@ class WifiHeatmapQtApp(QMainWindow):
     def apply_styles(self):
         palette = QT_THEMES.get(self.theme, QT_THEMES["light"])
         combo_arrow_icon = (Path(__file__).resolve().parent / "images" / "combo_arrow_white.svg").as_posix()
+        s = self.spx
+        font = self.spt
         self.setStyleSheet(
             f"""
             QMainWindow, QWidget {{
                 background: {palette["bg"]};
                 color: {palette["text"]};
                 font-family: Segoe UI;
-                font-size: 10.5pt;
+                font-size: {font(10.5)}pt;
             }}
             QLabel, QCheckBox {{
                 background: transparent;
@@ -715,7 +726,7 @@ class WifiHeatmapQtApp(QMainWindow):
             QFrame#startPanel, QFrame#summaryPanel {{
                 background: {palette["panel"]};
                 border: 1px solid {palette["border"]};
-                border-radius: 8px;
+                border-radius: {s(8)}px;
             }}
             QFrame#footer {{
                 background: {palette["footer"]};
@@ -724,22 +735,22 @@ class WifiHeatmapQtApp(QMainWindow):
             QFrame#metricBox {{
                 background: {palette["panel"]};
                 border: 1px solid {palette["border"]};
-                border-radius: 6px;
+                border-radius: {s(6)}px;
             }}
             QFrame#floorplanContainer {{
                 background: {palette["live_bg"]};
                 border: 1px solid {palette["border"]};
-                border-radius: 8px;
+                border-radius: {s(8)}px;
             }}
             QGraphicsView#floorplanView {{
                 background: {palette["live_bg"]};
                 border: 0;
-                border-radius: 8px;
+                border-radius: {s(8)}px;
             }}
             QFrame#floatingPointsPanel {{
                 background: {palette["panel"]};
                 border: 1px solid {palette["border"]};
-                border-radius: 10px;
+                border-radius: {s(10)}px;
             }}
             QFrame#floatingPointsPanelCollapsed {{
                 background: transparent;
@@ -749,20 +760,20 @@ class WifiHeatmapQtApp(QMainWindow):
                 background: transparent;
             }}
             QPushButton#pointsPanelToggle {{
-                min-width: 190px;
-                min-height: 30px;
-                padding: 6px 18px;
-                border-radius: 15px;
+                min-width: {s(190)}px;
+                min-height: {s(30)}px;
+                padding: {s(6)}px {s(18)}px;
+                border-radius: {s(15)}px;
                 background: {palette["metric_info"]};
                 color: #FFFFFF;
                 border: 1px solid {palette["metric_info"]};
                 font-weight: 700;
             }}
             QPushButton#pointsPanelResize {{
-                min-width: 30px;
-                max-width: 34px;
-                padding: 6px 0;
-                border-radius: 14px;
+                min-width: {s(30)}px;
+                max-width: {s(34)}px;
+                padding: {s(6)}px 0;
+                border-radius: {s(14)}px;
                 background: {palette["button_bg"]};
                 color: {palette["muted"]};
                 border: 1px solid {palette["border"]};
@@ -770,35 +781,35 @@ class WifiHeatmapQtApp(QMainWindow):
             }}
             QPushButton#pointsActionButton {{
                 min-width: 0;
-                padding: 6px 10px;
+                padding: {s(6)}px {s(10)}px;
             }}
             QFrame#summaryCard, QFrame#summaryCardCompact {{
                 background: {palette["panel_alt"]};
                 border: 1px solid {palette["border"]};
-                border-radius: 5px;
+                border-radius: {s(5)}px;
             }}
             QLabel#summaryCardTitle {{
                 color: {palette["muted"]};
-                font-size: 8pt;
+                font-size: {font(8)}pt;
                 font-weight: 700;
             }}
             QLabel#summaryCardValue {{
                 color: {palette["title"]};
-                font-size: 10pt;
+                font-size: {font(10)}pt;
                 font-weight: 600;
             }}
             QLabel#summaryCardCompactValue {{
                 color: {palette["title"]};
-                font-size: 14pt;
+                font-size: {font(14)}pt;
                 font-weight: 600;
             }}
             QLabel#startTitle {{
-                font-size: 25pt;
+                font-size: {font(25)}pt;
                 font-weight: 700;
                 color: {palette["title"]};
             }}
             QLabel#sectionTitle {{
-                font-size: 13pt;
+                font-size: {font(13)}pt;
                 font-weight: 600;
                 color: {palette["title"]};
             }}
@@ -809,36 +820,36 @@ class WifiHeatmapQtApp(QMainWindow):
                 color: {palette["badge_text"]};
                 background: {palette["badge_bg"]};
                 border: 1px solid {palette["badge_border"]};
-                border-radius: 5px;
-                padding: 5px 8px;
+                border-radius: {s(5)}px;
+                padding: {s(5)}px {s(8)}px;
             }}
             QLabel#metricValue_good {{
                 color: {palette["metric_good"]};
-                font-size: 18pt;
+                font-size: {font(18)}pt;
                 font-weight: 700;
             }}
             QLabel#metricValue_warning {{
                 color: {palette["metric_warning"]};
-                font-size: 18pt;
+                font-size: {font(18)}pt;
                 font-weight: 700;
             }}
             QLabel#metricValue_danger {{
                 color: {palette["metric_danger"]};
-                font-size: 18pt;
+                font-size: {font(18)}pt;
                 font-weight: 700;
             }}
             QLabel#metricValue_info {{
                 color: {palette["metric_info"]};
-                font-size: 18pt;
+                font-size: {font(18)}pt;
                 font-weight: 700;
             }}
             QPushButton {{
                 background: {palette["button_bg"]};
                 color: {palette["text"]};
                 border: 1px solid {palette["border"]};
-                border-radius: 5px;
-                min-width: 240px;
-                padding: 8px 12px;
+                border-radius: {s(5)}px;
+                min-width: {s(240)}px;
+                padding: {s(8)}px {s(12)}px;
             }}
             QPushButton:hover {{
                 background: {palette["button_hover"]};
@@ -848,13 +859,13 @@ class WifiHeatmapQtApp(QMainWindow):
             }}
             QPushButton#compactButton {{
                 min-width: 0;
-                padding: 5px 8px;
+                padding: {s(5)}px {s(8)}px;
             }}
             QPushButton#summaryActionButton {{
                 min-width: 0;
-                padding: 2px 6px;
-                border-radius: 4px;
-                font-size: 8pt;
+                padding: {s(2)}px {s(6)}px;
+                border-radius: {s(4)}px;
+                font-size: {font(8)}pt;
                 font-weight: 600;
             }}
             QFrame#appBar {{
@@ -864,29 +875,29 @@ class WifiHeatmapQtApp(QMainWindow):
             QFrame#appBarSection {{
                 background: {palette["panel"]};
                 border: 1px solid {palette["border"]};
-                border-radius: 6px;
+                border-radius: {s(6)}px;
             }}
             QLabel#appBarSectionTitle {{
                 color: {palette["muted"]};
-                font-size: 8.5pt;
+                font-size: {font(8.5)}pt;
                 font-weight: 700;
             }}
             QLabel#appBarInlineLabel {{
                 color: {palette["muted"]};
-                font-size: 9pt;
+                font-size: {font(9)}pt;
                 font-weight: 600;
             }}
             QPushButton#appBarButton, QPushButton#appBarIconButton, QPushButton#primaryAppBarButton, QPushButton#dirtySaveButton {{
                 min-width: 0;
-                padding: 6px 10px;
-                border-radius: 5px;
+                padding: {s(6)}px {s(10)}px;
+                border-radius: {s(5)}px;
                 font-weight: 600;
             }}
             QPushButton#appBarIconButton {{
-                min-width: 30px;
-                max-width: 34px;
-                padding: 6px 0;
-                font-size: 12pt;
+                min-width: {s(30)}px;
+                max-width: {s(34)}px;
+                padding: {s(6)}px 0;
+                font-size: {font(12)}pt;
             }}
             QPushButton#primaryAppBarButton {{
                 background: {palette["metric_info"]};
@@ -907,8 +918,8 @@ class WifiHeatmapQtApp(QMainWindow):
                 background: {palette["button_bg"]};
                 color: {palette["text"]};
                 border: 1px solid transparent;
-                border-radius: 5px;
-                padding: 5px 8px;
+                border-radius: {s(5)}px;
+                padding: {s(5)}px {s(8)}px;
             }}
             QToolButton:hover {{
                 background: {palette["button_hover"]};
@@ -924,22 +935,22 @@ class WifiHeatmapQtApp(QMainWindow):
                 background: {palette["button_bg"]};
                 color: {palette["text"]};
                 border: 1px solid {palette["border"]};
-                border-radius: 4px;
-                padding: 4px 28px 4px 8px;
+                border-radius: {s(4)}px;
+                padding: {s(4)}px {s(28)}px {s(4)}px {s(8)}px;
             }}
             QComboBox::drop-down {{
                 subcontrol-origin: padding;
                 subcontrol-position: top right;
-                width: 22px;
+                width: {s(22)}px;
                 border-left: 1px solid {palette["metric_info"]};
-                border-top-right-radius: 4px;
-                border-bottom-right-radius: 4px;
+                border-top-right-radius: {s(4)}px;
+                border-bottom-right-radius: {s(4)}px;
                 background: {palette["metric_info"]};
             }}
             QComboBox::down-arrow {{
                 image: url("{combo_arrow_icon}");
-                width: 10px;
-                height: 6px;
+                width: {s(10)}px;
+                height: {s(6)}px;
             }}
             QComboBox QAbstractItemView {{
                 background: {palette["panel"]};
@@ -948,13 +959,13 @@ class WifiHeatmapQtApp(QMainWindow):
             }}
             QCheckBox {{
                 color: {palette["text"]};
-                spacing: 9px;
-                padding: 3px 2px;
+                spacing: {s(9)}px;
+                padding: {s(3)}px {s(2)}px;
             }}
             QCheckBox::indicator {{
-                width: 18px;
-                height: 18px;
-                border-radius: 4px;
+                width: {s(18)}px;
+                height: {s(18)}px;
+                border-radius: {s(4)}px;
                 border: 1px solid {palette["border"]};
                 background: {palette["panel"]};
             }}
@@ -974,10 +985,10 @@ class WifiHeatmapQtApp(QMainWindow):
                 color: {palette["muted"]};
                 border: 1px solid {palette["border"]};
                 border-bottom: 0;
-                padding: 7px 16px;
-                margin-right: 2px;
-                border-top-left-radius: 5px;
-                border-top-right-radius: 5px;
+                padding: {s(7)}px {s(16)}px;
+                margin-right: {s(2)}px;
+                border-top-left-radius: {s(5)}px;
+                border-top-right-radius: {s(5)}px;
             }}
             QTabBar::tab:selected {{
                 background: {palette["panel"]};
@@ -993,7 +1004,7 @@ class WifiHeatmapQtApp(QMainWindow):
             QTableWidget::item {{
                 border: 0;
                 border-bottom: 1px solid {palette["border"]};
-                padding: 4px 6px;
+                padding: {s(4)}px {s(6)}px;
             }}
             QTableWidget::item:selected {{
                 background: {palette["selection"]};
@@ -1006,22 +1017,22 @@ class WifiHeatmapQtApp(QMainWindow):
             QGraphicsView#liveMapView {{
                 background: {palette["live_bg"]};
                 border: 1px solid {palette["border"]};
-                border-radius: 4px;
+                border-radius: {s(4)}px;
             }}
             QListWidget {{
                 background: {palette["panel"]};
                 color: {palette["text"]};
                 border: 1px solid {palette["border"]};
-                border-radius: 4px;
-                padding: 4px;
+                border-radius: {s(4)}px;
+                padding: {s(4)}px;
             }}
             QListWidget::item {{
-                padding: 4px;
+                padding: {s(4)}px;
             }}
             QHeaderView::section {{
                 background: {palette["header"]};
                 color: {palette["text"]};
-                padding: 5px;
+                padding: {s(5)}px;
                 border: 0;
                 border-right: 1px solid {palette["border"]};
                 font-weight: 600;
@@ -1030,7 +1041,7 @@ class WifiHeatmapQtApp(QMainWindow):
                 background: {palette["panel"]};
                 color: {palette["text"]};
                 border: 1px solid {palette["border"]};
-                padding: 5px;
+                padding: {s(5)}px;
             }}
             """
         )

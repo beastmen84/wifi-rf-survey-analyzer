@@ -42,6 +42,7 @@ from ap_groups import (
     normalize_ap_role,
     normalize_bssid,
 )
+from ui_scaling import widget_px
 
 
 AP_GROUP_COLUMNS = (
@@ -90,8 +91,8 @@ class APGroupManagerDialog(QDialog):
         self.sort_reverse = False
 
         self.setWindowTitle(self.tr("ap_groups_title"))
-        self.resize(1680, 820)
-        self.setMinimumSize(1300, 700)
+        self.resize(widget_px(self, 1680), widget_px(self, 820))
+        self.setMinimumSize(widget_px(self, 1300), widget_px(self, 700))
 
         self.build_state()
         self.build_ui()
@@ -119,8 +120,8 @@ class APGroupManagerDialog(QDialog):
 
     def build_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(14, 14, 14, 14)
-        layout.setSpacing(10)
+        layout.setContentsMargins(widget_px(self, 14), widget_px(self, 14), widget_px(self, 14), widget_px(self, 14))
+        layout.setSpacing(widget_px(self, 10))
 
         hint = QLabel(self.tr("ap_groups_hint"))
         hint.setWordWrap(True)
@@ -582,14 +583,14 @@ class MetadataDialog(QDialog):
         self.channel_checks = {}
 
         self.setWindowTitle(manager.tr("ap_group_metadata_title"))
-        self.resize(1040, 760)
-        self.setMinimumSize(900, 660)
+        self.resize(widget_px(self, 1040), widget_px(self, 760))
+        self.setMinimumSize(widget_px(self, 900), widget_px(self, 660))
         self.build_ui()
 
     def build_ui(self):
         outer = QVBoxLayout(self)
-        outer.setContentsMargins(14, 14, 14, 14)
-        outer.setSpacing(10)
+        outer.setContentsMargins(widget_px(self, 14), widget_px(self, 14), widget_px(self, 14), widget_px(self, 14))
+        outer.setSpacing(widget_px(self, 10))
 
         hint = QLabel(self.manager.tr("ap_group_metadata_hint"))
         hint.setWordWrap(True)
@@ -599,7 +600,7 @@ class MetadataDialog(QDialog):
         scroll.setWidgetResizable(True)
         content = QWidget()
         content_layout = QVBoxLayout(content)
-        content_layout.setSpacing(14)
+        content_layout.setSpacing(widget_px(self, 14))
 
         form = QFormLayout()
         form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -615,7 +616,7 @@ class MetadataDialog(QDialog):
         content_layout.addWidget(QLabel(self.manager.tr("ap_group_metadata_notes")))
         self.notes_edit = QTextEdit()
         self.notes_edit.setPlainText(self.metadata.get("notes", ""))
-        self.notes_edit.setMinimumHeight(130)
+        self.notes_edit.setMinimumHeight(widget_px(self, 130))
         content_layout.addWidget(self.notes_edit)
         scroll.setWidget(content)
         outer.addWidget(scroll, 1)
@@ -646,8 +647,8 @@ class MetadataDialog(QDialog):
         selected_channels = parse_expected_channels(self.metadata.get("expected_channels", ""))
         section = QGroupBox(self.manager.tr("ap_group_metadata_expected_channels"))
         section_layout = QGridLayout(section)
-        section_layout.setHorizontalSpacing(12)
-        section_layout.setVerticalSpacing(12)
+        section_layout.setHorizontalSpacing(widget_px(self, 12))
+        section_layout.setVerticalSpacing(widget_px(self, 12))
 
         for index, (title_key, channels) in enumerate(EXPECTED_CHANNEL_GROUPS):
             group_box = QGroupBox(self.manager.tr(title_key))
@@ -718,8 +719,8 @@ class BssidSelectionDialog(QDialog):
         self.checked_by_bssid = {}
 
         self.setWindowTitle(manager.tr("ap_group_bssid_title"))
-        self.resize(980, 700)
-        self.setMinimumSize(850, 580)
+        self.resize(widget_px(self, 980), widget_px(self, 700))
+        self.setMinimumSize(widget_px(self, 850), widget_px(self, 580))
         self.build_ui()
         self.render_items()
 
@@ -835,7 +836,7 @@ class ConflictDialog(QDialog):
         self.conflicts = conflicts
 
         self.setWindowTitle(manager.tr("ap_group_conflict_title"))
-        self.resize(760, 520)
+        self.resize(widget_px(self, 760), widget_px(self, 520))
         self.build_ui()
 
     def build_ui(self):

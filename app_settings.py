@@ -6,6 +6,7 @@ from pathlib import Path
 APP_SETTINGS_DIR = "WifiHeatmap"
 SETTINGS_FILE_NAME = "settings.json"
 THEME_KEY = "theme"
+UI_SCALE_KEY = "ui_scale"
 
 
 def get_settings_path():
@@ -59,4 +60,19 @@ def get_saved_theme(default="light", valid_themes=None):
 def save_theme(theme):
     settings = load_app_settings()
     settings[THEME_KEY] = str(theme)
+    return save_app_settings(settings)
+
+
+def get_saved_ui_scale(default="auto", valid_modes=None):
+    mode = str(load_app_settings().get(UI_SCALE_KEY, "")).strip()
+    if not mode:
+        return default
+    if valid_modes is not None and mode not in valid_modes:
+        return default
+    return mode
+
+
+def save_ui_scale(mode):
+    settings = load_app_settings()
+    settings[UI_SCALE_KEY] = str(mode)
     return save_app_settings(settings)

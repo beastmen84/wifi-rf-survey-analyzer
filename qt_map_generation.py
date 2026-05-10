@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 
 from constants import HEATMAP_MAX_DISTANCE_PX, HEATMAP_SMOOTHING_SIGMA
 from map_config import MapConfig
+from ui_scaling import widget_px
 
 
 class MapGenerationDialog(QDialog):
@@ -21,20 +22,20 @@ class MapGenerationDialog(QDialog):
         self.px_per_meter = px_per_meter
         self.setWindowTitle(tr("generate_heatmap"))
         self.setModal(True)
-        self.resize(760, 520)
+        self.resize(widget_px(self, 760), widget_px(self, 520))
 
         current_config = current_config or MapConfig()
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(18, 18, 18, 18)
-        layout.setSpacing(14)
+        layout.setContentsMargins(widget_px(self, 18), widget_px(self, 18), widget_px(self, 18), widget_px(self, 18))
+        layout.setSpacing(widget_px(self, 14))
 
         grid = QGridLayout()
-        grid.setHorizontalSpacing(12)
-        grid.setVerticalSpacing(10)
+        grid.setHorizontalSpacing(widget_px(self, 12))
+        grid.setVerticalSpacing(widget_px(self, 10))
         layout.addLayout(grid)
 
         self.ssid_combo = QComboBox()
-        self.ssid_combo.setMinimumWidth(260)
+        self.ssid_combo.setMinimumWidth(widget_px(self, 260))
         self.ssid_combo.addItems(ssids)
         if current_config.ssid in ssids:
             self.ssid_combo.setCurrentText(current_config.ssid)

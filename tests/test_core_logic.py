@@ -9,6 +9,7 @@ from ap_metadata_checks import build_ap_metadata_warnings
 from heatmap_tools import calculate_interference_points
 from quality_engine import QUALITY_MISSING_RELEVANT, evaluate_point_quality
 from survey_store import get_survey_point_summaries_from_rows
+from ui_scaling import normalize_ui_scale_mode, scale_font, scale_px
 
 
 class ApGroupTests(unittest.TestCase):
@@ -79,6 +80,15 @@ class SurveyPointSummaryTests(unittest.TestCase):
         self.assertEqual(len(summaries), 1)
         self.assertEqual(summaries[0]["best_signal_dbm"], -68)
         self.assertEqual(summaries[0]["signal_scope"], "relevant")
+
+
+class UiScalingTests(unittest.TestCase):
+    def test_ui_scale_helpers_are_predictable(self):
+        self.assertEqual(normalize_ui_scale_mode("125%"), "125")
+        self.assertEqual(normalize_ui_scale_mode("auto"), "auto")
+        self.assertEqual(normalize_ui_scale_mode("bad"), "auto")
+        self.assertEqual(scale_px(10, 1.25), 12)
+        self.assertGreater(scale_font(10, 1.25), 10)
 
 
 class ApMetadataTests(unittest.TestCase):
