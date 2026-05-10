@@ -408,7 +408,7 @@ Language:
 
 Recent commits:
 
-- `7e6ac86` Add Qt live map preview.
+- `58d4a3a` Add Qt live map preview.
 - `ce08bea` Add AI chat continuity notes.
 - `7dfb5be` Hide test AP groups from map analysis.
 - `1d35a5d` Use AP roles in interference analysis.
