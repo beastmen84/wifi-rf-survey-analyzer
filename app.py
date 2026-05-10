@@ -854,6 +854,7 @@ class WifiHeatmapApp:
         search_var = tk.StringVar(value="")
         search_entry = ttk.Entry(search_frame, textvariable=search_var, width=42)
         search_entry.pack(side=tk.LEFT, padx=(8, 0), fill=tk.X, expand=True)
+        alias_action_buttons = {"delete": None}
 
         columns = ("status", "group", "alias", "bssids", "ssids", "channels", "locked")
         table_frame = ttk.Frame(frame)
@@ -874,7 +875,6 @@ class WifiHeatmapApp:
         table_frame.grid_rowconfigure(0, weight=1)
         table_frame.grid_columnconfigure(0, weight=1)
 
-        active_editor = {"entry": None, "item": None}
         sort_state = {"column": "ssids", "reverse": False}
 
         def format_list_preview(values, limit=2):
@@ -928,8 +928,8 @@ class WifiHeatmapApp:
             return " ".join(group["display_groups"]).lower()
 
         def render_alias_rows():
-            close_alias_editor(False)
             query = search_var.get().strip()
+            selected_group = tree.selection()[0] if tree.selection() else ""
             visible_groups = [
                 group
                 for group in groups
@@ -948,18 +948,36 @@ class WifiHeatmapApp:
                     tags=("aliased",) if group.get("alias") else (),
                     values=get_group_display_values(group)
                 )
+            if selected_group and tree.exists(selected_group):
+                tree.selection_set(selected_group)
+            update_alias_action_state()
 
-        def get_selected_group_key():
+        def get_selected_group_key(show_warning=True):
             selection = tree.selection()
             if not selection:
-                messagebox.showwarning(
-                    self.tr("ap_groups_title"),
-                    self.tr("ap_group_select_group"),
-                    parent=dialog
-                )
+                if show_warning:
+                    messagebox.showwarning(
+                        self.tr("ap_groups_title"),
+                        self.tr("ap_group_select_group"),
+                        parent=dialog
+                    )
                 return ""
 
             return selection[0]
+
+        def get_group_by_key(group_key):
+            return next((item for item in groups if item["group_id"] == group_key), None)
+
+        def update_alias_action_state(_event=None):
+            delete_button = alias_action_buttons.get("delete")
+            if delete_button is None:
+                return
+
+            group_key = get_selected_group_key(show_warning=False)
+            group = get_group_by_key(group_key) if group_key else None
+            delete_button.configure(
+                state=tk.NORMAL if group and group.get("alias", "") else tk.DISABLED
+            )
 
         def sort_by_column(column):
             if column == "status":
@@ -1004,23 +1022,45 @@ class WifiHeatmapApp:
             current_values[6] = self.tr("yes")
             tree.item(group_key, values=current_values)
             tree.item(group_key, tags=("aliased",) if value else ())
+            update_alias_action_state()
 
-        def close_alias_editor(save_value=True):
-            entry = active_editor.get("entry")
-            group_key = active_editor.get("item")
-            if entry is None:
+        def prompt_alias_for_selected_group():
+            group_key = get_selected_group_key()
+            if not group_key:
                 return
 
-            if save_value and group_key:
-                set_alias(group_key, entry.get())
+            group = get_group_by_key(group_key) or {}
+            value = simpledialog.askstring(
+                self.tr("ap_group_alias_title"),
+                self.tr("ap_group_alias_prompt"),
+                initialvalue=group.get("alias", ""),
+                parent=dialog
+            )
+            if value is None:
+                return
 
-            entry.destroy()
-            active_editor["entry"] = None
-            active_editor["item"] = None
+            set_alias(group_key, value)
+
+        def delete_alias_for_selected_group():
+            group_key = get_selected_group_key()
+            if not group_key:
+                return
+
+            group = get_group_by_key(group_key)
+            if not group or not group.get("alias", ""):
+                return
+
+            if not messagebox.askyesno(
+                self.tr("ap_group_delete_alias_title"),
+                self.tr("ap_group_delete_alias_confirm"),
+                parent=dialog
+            ):
+                return
+
+            set_alias(group_key, "")
 
         def open_bssid_group_dialog(group_key):
-            close_alias_editor(True)
-            group = next((item for item in groups if item["group_id"] == group_key), None)
+            group = get_group_by_key(group_key)
             if group is None:
                 return
 
@@ -1152,38 +1192,7 @@ class WifiHeatmapApp:
             bssid_dialog.bind("<Escape>", lambda _event: bssid_dialog.destroy())
             self.center_dialog(bssid_dialog)
 
-        def begin_alias_edit(event):
-            group_key = tree.identify_row(event.y)
-            if not group_key:
-                return
-
-            column = tree.identify_column(event.x)
-            if column == "#4":
-                open_bssid_group_dialog(group_key)
-                return
-            if column != "#3":
-                return
-
-            close_alias_editor()
-            bbox = tree.bbox(group_key, "alias")
-            if not bbox:
-                return
-
-            x, y, width, height = bbox
-            entry = ttk.Entry(tree)
-            group = next((item for item in groups if item["group_id"] == group_key), {})
-            entry.insert(0, group.get("alias", ""))
-            entry.place(x=x, y=max(0, y - 1), width=width, height=height + 6)
-            entry.focus_set()
-            entry.select_range(0, tk.END)
-            active_editor["entry"] = entry
-            active_editor["item"] = group_key
-            entry.bind("<Return>", lambda _event: close_alias_editor(True))
-            entry.bind("<Escape>", lambda _event: close_alias_editor(False))
-            entry.bind("<FocusOut>", lambda _event: close_alias_editor(True))
-
         def save_aliases():
-            close_alias_editor(True)
             aliases = {
                 group["group_id"]: group.get("alias", "")
                 for group in groups
@@ -1198,7 +1207,7 @@ class WifiHeatmapApp:
             self.status_var.set(self.tr("ap_groups_saved"))
             dialog.destroy()
 
-        tree.bind("<Double-1>", begin_alias_edit)
+        tree.bind("<<TreeviewSelect>>", update_alias_action_state)
         table_frame.bind("<Configure>", schedule_alias_table_resize)
         tree.bind("<Configure>", schedule_alias_table_resize, add="+")
         render_alias_rows()
@@ -1219,6 +1228,22 @@ class WifiHeatmapApp:
             command=lambda: open_bssid_group_dialog(get_selected_group_key()),
             bootstyle=SECONDARY
         ).pack(side=tk.LEFT, padx=(8, 0))
+        ttk.Button(
+            buttons,
+            text=self.tr("ap_group_set_alias"),
+            command=prompt_alias_for_selected_group,
+            bootstyle=INFO
+        ).pack(side=tk.LEFT, padx=(8, 0))
+        delete_alias_button = ttk.Button(
+            buttons,
+            text=self.tr("ap_group_delete_alias"),
+            command=delete_alias_for_selected_group,
+            bootstyle=DANGER,
+            state=tk.DISABLED
+        )
+        delete_alias_button.pack(side=tk.LEFT, padx=(8, 0))
+        alias_action_buttons["delete"] = delete_alias_button
+        update_alias_action_state()
         dialog.bind("<Escape>", lambda _event: dialog.destroy())
         self.center_dialog(dialog)
 
