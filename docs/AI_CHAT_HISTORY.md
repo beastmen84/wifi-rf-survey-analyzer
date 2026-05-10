@@ -526,6 +526,9 @@ Language:
   compact technical columns resize to content within fixed bounds, kept the
   `Networks` column as the stretch column, and added full-cell tooltips for
   truncated content.
+- Updated `docs/UI_COLOR_PALETTES.md` to match the actual Qt palettes currently
+  implemented in `qt_theme.py`, including the cooled Sand Blue values and the
+  active theme keys/names.
 
 Recent commits:
 
