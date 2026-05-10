@@ -28,6 +28,15 @@ from ap_groups import (
     resolve_ap_group_key,
     serialize_ap_group_map,
 )
+from ap_positioning import (
+    AP_POSITION_MISSING,
+    AP_POSITION_NO_SCALE,
+    AP_POSITION_OK,
+    AP_POSITION_STRONG_FAR,
+    AP_POSITION_UNEXPECTED_DOMINANT,
+    AP_POSITION_WEAK_CLOSE,
+    analyze_dominant_ap_position,
+)
 from constants import (
     HEATMAP_GRID_SIZE,
     HEATMAP_SMOOTHING_SIGMA,
@@ -3222,6 +3231,7 @@ class WifiHeatmapApp(ModalDialogMixin):
         delta = self.format_report_value(row.get("delta_db", ""), suffix=" dB")
         dominant = self.format_ap_label(row.get("dominant_bssid", ""), row.get("dominant_ap_group", ""))
         second = self.format_ap_label(row.get("second_bssid", ""), row.get("second_ap_group", "")) if row.get("second_bssid", "") else "-"
+        position_rows = self.build_ap_position_tooltip_rows(row)
         return {
             "title": self.tr("map_type_dominant"),
             "accent": "#f1c40f" if row.get("roaming_overlap") else "#34495e",
@@ -3235,8 +3245,67 @@ class WifiHeatmapApp(ModalDialogMixin):
                 (self.tr("second_ap"), second),
                 (self.tr("second_confidence"), self.format_named_confidence(row, "second")),
                 ("Delta", delta),
-            ]
+            ] + position_rows
         }
+
+    def build_ap_position_tooltip_rows(self, row):
+        analysis = analyze_dominant_ap_position(
+            row,
+            self.session.get_ap_groups(),
+            px_per_meter=self.get_px_per_meter()
+        )
+
+        if analysis.get("status") == AP_POSITION_MISSING:
+            return []
+
+        rows = [
+            (self.tr("ap_position_distance"), self.format_ap_position_distance(analysis, "dominant")),
+        ]
+        nearest_group = analysis.get("nearest_ap_group", "")
+        dominant_group = analysis.get("dominant_ap_group", "")
+        if nearest_group and nearest_group != dominant_group:
+            rows.append((
+                self.tr("ap_position_nearest"),
+                self.tr(
+                    "ap_position_nearest_value",
+                    ap=self.get_ap_group_display_name(nearest_group),
+                    distance=self.format_ap_position_distance(analysis, "nearest")
+                )
+            ))
+
+        rows.append((self.tr("ap_position_analysis"), self.format_ap_position_status(analysis)))
+        return rows
+
+    def format_ap_position_distance(self, analysis, key):
+        distance_m = analysis.get(f"{key}_distance_m")
+        if distance_m is not None:
+            return self.tr("ap_position_distance_m", distance=round(distance_m, 1))
+
+        distance_px = analysis.get(f"{key}_distance_px")
+        if distance_px is not None:
+            return self.tr("ap_position_distance_px", distance=int(round(distance_px)))
+
+        return "-"
+
+    def format_ap_position_status(self, analysis):
+        warnings = analysis.get("warnings", [])
+        if warnings:
+            return "; ".join(self.tr(self.ap_position_warning_translation_key(warning)) for warning in warnings)
+
+        status = analysis.get("status")
+        if status == AP_POSITION_NO_SCALE:
+            return self.tr("ap_position_no_scale")
+        if status == AP_POSITION_OK:
+            return self.tr("ap_position_ok")
+
+        return "-"
+
+    def ap_position_warning_translation_key(self, warning):
+        return {
+            AP_POSITION_STRONG_FAR: "ap_position_strong_far",
+            AP_POSITION_WEAK_CLOSE: "ap_position_weak_close",
+            AP_POSITION_UNEXPECTED_DOMINANT: "ap_position_unexpected_dominant",
+        }.get(warning, "ap_position_unknown_warning")
 
     def format_live_interference_tooltip(self, row, config):
         risk = self.format_report_value(row.get("risk", ""), suffix="%")
