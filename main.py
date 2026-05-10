@@ -644,7 +644,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.workspace_language_label.setText(self.tr("language"))
         self.start_title.setText(self.tr("app_title"))
         self.start_subtitle.setText(self.tr("start_subtitle"))
-        self.qt_badge.setText(self.tr("qt_migration_badge"))
+        self.qt_badge.setText(self.tr("qt_interface_badge"))
         self.start_hint_title.setText(self.tr("qt_start_hint_title"))
         self.start_hint_text.setText(self.tr("qt_start_hint"))
         self.copyright_label.setText(self.tr("copyright"))

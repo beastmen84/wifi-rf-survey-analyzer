@@ -466,6 +466,9 @@ Language:
 - Retired the legacy Tkinter/ttkbootstrap UI from the active codebase. Removed
   `wifi_heatmap.py`, `app.py`, legacy Tk dialogs/helpers and the `ttkbootstrap`
   dependency. `main.py` is now the documented application entry point.
+- Performed a follow-up cleanup after retiring Tk: removed the unused live-map
+  placeholder translation key, renamed the start-screen badge key away from
+  migration wording, and removed `ttkbootstrap` from PyInstaller excludes.
 
 Recent commits:
 
