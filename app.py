@@ -1116,7 +1116,7 @@ class WifiHeatmapApp:
                 if not assigned_group_id:
                     return "-"
                 if assigned_group_id == group_key:
-                    return "-"
+                    return ""
                 return assigned_alias or assigned_group_id
 
             def render_bssid_checks(_event=None):
@@ -1129,13 +1129,21 @@ class WifiHeatmapApp:
                     ssids = ", ".join(detected_group.get("ssids", [])) or "-"
                     channels = ", ".join(detected_group.get("channels", [])) or "-"
                     assigned_label = format_assigned_label(bssid)
-                    label = self.tr(
-                        "ap_group_bssid_row",
-                        bssid=bssid,
-                        ssids=ssids,
-                        channels=channels,
-                        group=assigned_label
-                    )
+                    if assigned_label:
+                        label = self.tr(
+                            "ap_group_bssid_row_with_group",
+                            bssid=bssid,
+                            ssids=ssids,
+                            channels=channels,
+                            group=assigned_label
+                        )
+                    else:
+                        label = self.tr(
+                            "ap_group_bssid_row",
+                            bssid=bssid,
+                            ssids=ssids,
+                            channels=channels
+                        )
                     if query and query not in label.lower():
                         continue
 
