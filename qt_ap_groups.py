@@ -380,6 +380,7 @@ class APGroupManagerDialog(QDialog):
         header.setMinimumSectionSize(widget_px(self, 34))
         for column in range(self.table.columnCount()):
             header.setSectionResizeMode(column, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         self.apply_table_column_widths()
 
     def apply_table_column_widths(self):
@@ -406,10 +407,13 @@ class APGroupManagerDialog(QDialog):
         viewport_width = max(0, self.table.viewport().width() - widget_px(self, 4))
         reserved_width = sum(widths.values())
         alias_content_width = self.table.columnWidth(2) + widget_px(self, 20)
-        widths[2] = max(widget_px(self, 180), alias_content_width, viewport_width - reserved_width)
+        alias_min_width = max(widget_px(self, 220), min(alias_content_width, widget_px(self, 360)))
+        self.table.horizontalHeader().setMinimumSectionSize(widget_px(self, 34))
 
         for column, width in widths.items():
             self.table.setColumnWidth(column, width)
+        self.table.setColumnWidth(2, max(alias_min_width, viewport_width - reserved_width))
+        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

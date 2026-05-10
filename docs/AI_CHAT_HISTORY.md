@@ -643,6 +643,9 @@ Language:
   placement now uses left-click like scale calibration, disables map dragging
   while waiting for placement, and uses a smaller 20 px AP icon that scales with
   map zoom.
+- AP Group Manager table sizing now treats Alias as the primary flexible column:
+  utility columns remain compact, while Alias stretches into the remaining table
+  width instead of staying narrow when there is unused space.
 
 Recent commits:
 
