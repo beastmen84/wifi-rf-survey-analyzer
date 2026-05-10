@@ -592,6 +592,12 @@ Language:
   `100%` reduces the UI. The Settings popup combobox dropdowns now explicitly
   style popup text and selection colors so items remain visible on themed
   backgrounds, and the popup width was reduced.
+- Added maintenance around the UI scale/settings work: `ui_scaling.py`,
+  `app_logging.py`, and `app_settings.py` now have module docstrings; startup
+  and workspace log UI scale diagnostics on creation and when the user changes
+  UI scale, plus theme changes; tests now cover device-pixel-ratio resolution
+  detection, resolution buckets, relative scale percentages, and diagnostics
+  formatting.
 
 Recent commits:
 

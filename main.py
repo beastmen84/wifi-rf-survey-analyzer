@@ -29,10 +29,12 @@ from qt_theme import QT_THEME_OPTIONS, QT_THEMES
 from ui_scaling import (
     UI_SCALE_OPTIONS,
     detect_auto_ui_scale_percent,
+    format_ui_scale_diagnostics,
     normalize_ui_scale_mode,
     resolve_ui_scale,
     scale_font_px,
     scale_px,
+    ui_scale_diagnostics,
 )
 
 
@@ -67,6 +69,10 @@ class StartWindow(QMainWindow):
         self.theme = get_saved_theme(default="light", valid_themes=QT_THEMES)
         self.ui_scale_mode = normalize_ui_scale_mode(get_saved_ui_scale())
         self.ui_scale = resolve_ui_scale(self.ui_scale_mode)
+        log_event(
+            f"startup ui scale resolved {format_ui_scale_diagnostics(ui_scale_diagnostics(self.ui_scale_mode))}",
+            logger_name="ui",
+        )
         self.app_class = None
         self.workspace_window = None
         self.load_thread = None
@@ -396,6 +402,7 @@ class StartWindow(QMainWindow):
 
         self.theme = theme
         save_theme(theme)
+        log_event(f"startup theme changed theme={theme}", logger_name="ui")
         self.apply_styles()
 
     def change_ui_scale(self, mode):
@@ -406,6 +413,10 @@ class StartWindow(QMainWindow):
         self.ui_scale_mode = mode
         self.ui_scale = resolve_ui_scale(mode)
         save_ui_scale(mode)
+        log_event(
+            f"startup ui scale changed {format_ui_scale_diagnostics(ui_scale_diagnostics(mode))}",
+            logger_name="ui",
+        )
         self.setMinimumSize(self.spx(1100), self.spx(720))
         self.apply_styles()
         self.ready_note.setText(self.tr("ui_scale_saved_restart"))

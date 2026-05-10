@@ -1,3 +1,10 @@
+"""Central logging setup for the Qt Wi-Fi heatmap application.
+
+The executable and source-run modes share the same logger namespace. Source
+runs log to the current working directory and console; frozen builds log next
+to the executable so user reports can include a predictable file.
+"""
+
 import logging
 import sys
 from logging.handlers import RotatingFileHandler

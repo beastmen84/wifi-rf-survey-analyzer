@@ -10,11 +10,14 @@ from heatmap_tools import calculate_interference_points
 from quality_engine import QUALITY_MISSING_RELEVANT, evaluate_point_quality
 from survey_store import get_survey_point_summaries_from_rows
 from ui_scaling import (
+    detect_screen_resolution,
     effective_scale_for_percent,
+    format_ui_scale_diagnostics,
     normalize_ui_scale_mode,
     scale_font,
     scale_percent_for_resolution,
     scale_px,
+    ui_scale_diagnostics,
 )
 
 
@@ -107,6 +110,33 @@ class UiScalingTests(unittest.TestCase):
         self.assertEqual(effective_scale_for_percent(100, 125), 0.8)
         self.assertEqual(effective_scale_for_percent(150, 125), 1.2)
 
+    def test_screen_resolution_uses_device_pixel_ratio(self):
+        screen = FakeScreen(1280, 800, 2.0)
+
+        self.assertEqual(detect_screen_resolution(screen), (2560, 1600))
+
+    def test_ui_scale_diagnostics_format_is_stable(self):
+        diagnostics = {
+            "mode": "125",
+            "auto_percent": 125,
+            "effective_scale": 1.0,
+            "screen": "2560x1600",
+        }
+
+        self.assertEqual(
+            format_ui_scale_diagnostics(diagnostics),
+            "mode=125 auto_percent=125 effective_scale=1.0 screen=2560x1600",
+        )
+
+    def test_ui_scale_diagnostics_accepts_app_like_object(self):
+        app = FakeApp(FakeScreen(2560, 1600, 1.0))
+
+        diagnostics = ui_scale_diagnostics("100", app)
+
+        self.assertEqual(diagnostics["auto_percent"], 125)
+        self.assertEqual(diagnostics["effective_scale"], 0.8)
+        self.assertEqual(diagnostics["screen"], "2560x1600")
+
 
 class ApMetadataTests(unittest.TestCase):
     def test_metadata_warning_detects_unexpected_channel(self):
@@ -155,6 +185,38 @@ def rows_to_dataframe(rows):
     import pandas as pd
 
     return pd.DataFrame(rows)
+
+
+class FakeGeometry:
+    def __init__(self, width, height):
+        self._width = width
+        self._height = height
+
+    def width(self):
+        return self._width
+
+    def height(self):
+        return self._height
+
+
+class FakeScreen:
+    def __init__(self, width, height, ratio):
+        self._geometry = FakeGeometry(width, height)
+        self._ratio = ratio
+
+    def geometry(self):
+        return self._geometry
+
+    def devicePixelRatio(self):
+        return self._ratio
+
+
+class FakeApp:
+    def __init__(self, screen):
+        self._screen = screen
+
+    def primaryScreen(self):
+        return self._screen
 
 
 if __name__ == "__main__":

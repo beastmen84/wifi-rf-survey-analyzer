@@ -1,3 +1,10 @@
+"""Small JSON-backed application preferences.
+
+These settings are intentionally separate from survey CSV files. They store
+user interface preferences such as theme and UI scale, so changing appearance
+does not dirty the active survey.
+"""
+
 import json
 import os
 from pathlib import Path

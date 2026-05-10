@@ -67,10 +67,12 @@ from survey_store import SurveyFormatError, SurveySession
 from ui_scaling import (
     UI_SCALE_OPTIONS,
     detect_auto_ui_scale_percent,
+    format_ui_scale_diagnostics,
     normalize_ui_scale_mode,
     resolve_ui_scale,
     scale_font,
     scale_px,
+    ui_scale_diagnostics,
 )
 from wifi_scanner import get_connected_ssid
 
@@ -86,6 +88,10 @@ class WifiHeatmapQtApp(QMainWindow):
         self.theme = get_saved_theme(default="light", valid_themes=QT_THEMES)
         self.ui_scale_mode = normalize_ui_scale_mode(get_saved_ui_scale())
         self.ui_scale = resolve_ui_scale(self.ui_scale_mode)
+        log_event(
+            f"workspace ui scale resolved {format_ui_scale_diagnostics(ui_scale_diagnostics(self.ui_scale_mode))}",
+            logger_name="ui",
+        )
         self.session = None
         self.relevant_ssids = set()
         self.known_ssids = set()
@@ -1151,6 +1157,7 @@ class WifiHeatmapQtApp(QMainWindow):
 
         self.theme = theme
         save_theme(theme)
+        log_event(f"workspace theme changed theme={theme}", logger_name="ui")
         self.apply_styles()
 
     def change_ui_scale(self, mode):
@@ -1161,6 +1168,10 @@ class WifiHeatmapQtApp(QMainWindow):
         self.ui_scale_mode = mode
         self.ui_scale = resolve_ui_scale(mode)
         save_ui_scale(mode)
+        log_event(
+            f"workspace ui scale changed {format_ui_scale_diagnostics(ui_scale_diagnostics(mode))}",
+            logger_name="ui",
+        )
         self.apply_styles()
         self.resize_points_table_columns()
         self.position_points_overlay()
