@@ -21,7 +21,6 @@ try:
         QListWidget,
         QListWidgetItem,
         QMainWindow,
-        QMenu,
         QMessageBox,
         QPushButton,
         QSplitter,
@@ -31,7 +30,6 @@ try:
         QTableWidgetItem,
         QTabWidget,
         QVBoxLayout,
-        QWidgetAction,
         QWidget,
     )
 except ModuleNotFoundError as exc:
@@ -283,7 +281,7 @@ class WifiHeatmapQtApp(QMainWindow):
             analysis_row.addWidget(button)
         layout.addWidget(analysis_section, 1)
 
-        self.settings_menu_button = self.create_app_bar_button(self.open_settings_menu)
+        self.settings_menu_button = self.create_app_bar_button(self.open_settings_menu, "appBarSettingsButton")
         layout.addWidget(self.settings_menu_button)
 
         return bar
@@ -741,18 +739,15 @@ class WifiHeatmapQtApp(QMainWindow):
                 background: transparent;
                 border: 0;
             }}
-            QWidget#settingsMenuPanel {{
+            QDialog#settingsMenuPanel, QWidget#settingsMenuPanel {{
                 background: {palette["panel"]};
                 color: {palette["text"]};
+                border: 1px solid {palette["border"]};
+                border-radius: {s(8)}px;
             }}
             QLabel#settingsMenuLabel {{
                 color: {palette["muted"]};
                 font-weight: 700;
-            }}
-            QMenu {{
-                background: {palette["panel"]};
-                border: 1px solid {palette["border"]};
-                padding: {s(8)}px;
             }}
             QWidget#pointsTableBody {{
                 background: transparent;
@@ -890,6 +885,19 @@ class WifiHeatmapQtApp(QMainWindow):
                 padding: {s(6)}px {s(10)}px;
                 border-radius: {s(5)}px;
                 font-weight: 600;
+            }}
+            QPushButton#appBarSettingsButton {{
+                min-width: 0;
+                min-height: {s(48)}px;
+                padding: {s(6)}px {s(14)}px;
+                border-radius: {s(6)}px;
+                font-weight: 700;
+                background: {palette["panel"]};
+                color: {palette["text"]};
+                border: 1px solid {palette["border"]};
+            }}
+            QPushButton#appBarSettingsButton:hover {{
+                background: {palette["button_hover"]};
             }}
             QPushButton#appBarIconButton {{
                 min-width: {s(30)}px;
@@ -1140,10 +1148,10 @@ class WifiHeatmapQtApp(QMainWindow):
         self.status.showMessage(self.tr("ui_scale_saved_restart"), 7000)
 
     def open_settings_menu(self):
-        menu = QMenu(self)
-        panel = QWidget(menu)
-        panel.setObjectName("settingsMenuPanel")
-        layout = QVBoxLayout(panel)
+        dialog = QDialog(self)
+        dialog.setObjectName("settingsMenuPanel")
+        dialog.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
+        layout = QVBoxLayout(dialog)
         layout.setContentsMargins(self.spx(12), self.spx(10), self.spx(12), self.spx(10))
         layout.setSpacing(self.spx(8))
 
@@ -1165,15 +1173,14 @@ class WifiHeatmapQtApp(QMainWindow):
         language_combo.currentIndexChanged.connect(lambda _index: self.change_language(language_combo.currentData()))
         self.add_settings_row(layout, self.tr("language"), language_combo)
 
-        action = QWidgetAction(menu)
-        action.setDefaultWidget(panel)
-        menu.addAction(action)
-        menu_width = self.spx(280)
-        panel.setMinimumWidth(menu_width)
+        menu_width = self.spx(300)
+        dialog.setMinimumWidth(menu_width)
+        dialog.adjustSize()
         position = self.settings_menu_button.mapToGlobal(
             QPoint(self.settings_menu_button.width() - menu_width, self.settings_menu_button.height())
         )
-        menu.exec(position)
+        dialog.move(position)
+        dialog.exec()
 
     def create_settings_combo(self, items, current_value):
         combo = QComboBox()

@@ -1,8 +1,11 @@
-import math
-
-
 DEFAULT_UI_SCALE_MODE = "auto"
 UI_SCALE_OPTIONS = ("auto", "100", "110", "125", "150", "175")
+RESOLUTION_SCALE_BREAKPOINTS = (
+    ((1920, 1200), 1.0),
+    ((2560, 1600), 1.25),
+    ((3440, 1600), 1.25),
+    ((3840, 2400), 1.5),
+)
 
 
 def normalize_ui_scale_mode(value, default=DEFAULT_UI_SCALE_MODE):
@@ -31,16 +34,25 @@ def detect_auto_ui_scale(app=None):
     if screen is None:
         return 1.0
 
-    geometry = screen.availableGeometry()
-    short_edge = min(geometry.width(), geometry.height())
-    logical_dpi = float(screen.logicalDotsPerInch() or 96.0)
+    width, height = detect_screen_resolution(screen)
+    return scale_for_resolution(width, height)
 
-    # Use a softened resolution scale so 1440p feels like a scaled 1080p UI
-    # without making dense toolbars or tables disproportionately large.
-    resolution_scale = math.pow(short_edge / 1080.0, 0.65)
-    dpi_scale = logical_dpi / 96.0
-    scale = max(resolution_scale, dpi_scale, 1.0)
-    return round(min(max(scale, 1.0), 1.75), 2)
+
+def detect_screen_resolution(screen):
+    geometry = screen.geometry()
+    ratio = float(screen.devicePixelRatio() or 1.0)
+    width = int(round(geometry.width() * ratio))
+    height = int(round(geometry.height() * ratio))
+    return max(width, height), min(width, height)
+
+
+def scale_for_resolution(width, height):
+    long_edge = max(int(width), int(height))
+    short_edge = min(int(width), int(height))
+    for (max_long, max_short), scale in RESOLUTION_SCALE_BREAKPOINTS:
+        if long_edge <= max_long and short_edge <= max_short:
+            return scale
+    return 1.75
 
 
 def resolve_ui_scale(mode=None, app=None):

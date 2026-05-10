@@ -576,6 +576,16 @@ Language:
   Theme, UI scale and Language comboboxes. This keeps the toolbar focused on
   workflow commands and avoids layout crowding from always-visible settings
   controls.
+- Reworked the Settings menu implementation from `QMenu` with embedded widgets
+  to a small popup `QDialog`, because comboboxes inside `QMenu` can be fragile
+  on Windows. The popup still opens below and to the left of the Settings
+  button, but reliably shows Theme, UI scale and Language. The main toolbar
+  Settings button now uses a taller dedicated style so it aligns visually with
+  the rest of the toolbar.
+- Changed automatic UI scale detection to use detected screen resolution
+  buckets rather than trusting only Windows/Qt logical DPI. Current mapping:
+  up to 1920x1200 = 100%, up to 2560x1600 / 3440x1600 = 125%, up to
+  3840x2400 = 150%, larger = 175%. Manual scale choices remain available.
 
 Recent commits:
 
