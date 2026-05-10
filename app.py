@@ -891,8 +891,8 @@ class WifiHeatmapApp(ModalDialogMixin):
 
     def open_help_dialog(self):
         dialog = self.create_modal_dialog(self.tr("help_title"))
-        dialog.geometry("760x720")
-        dialog.minsize(740, 660)
+        dialog.geometry("820x760")
+        dialog.minsize(780, 700)
 
         frame = ttk.Frame(dialog, padding=12)
         frame.pack(fill=tk.BOTH, expand=True)

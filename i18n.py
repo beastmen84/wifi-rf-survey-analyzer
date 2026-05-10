@@ -299,7 +299,7 @@ TRANSLATIONS = {
         "start_step_points": "2. Crea punti con tasto destro",
         "start_step_heatmap": "3. Genera heatmap per SSID e banda",
         "start_shortcuts": "Tasto sinistro premuto: trascina mappa | Ctrl + rotella: zoom",
-        "mouse_right_action": "Crea punto",
+        "mouse_right_action": "Crea punto / posiziona AP",
         "mouse_left_action": "Trascina mappa",
         "mouse_marker_action": "Seleziona punto",
         "mouse_wheel_action": "Scorrimento verticale",
@@ -313,9 +313,10 @@ TRANSLATIONS = {
             "1-a. Crea un nuovo rilievo e carica la pianta dell'ambiente.\n"
             "1-b. Oppure apri un rilievo già salvato: la pianta verrà caricata automaticamente.\n"
             "2. Spostati fisicamente nell'area e usa il tasto destro sulla mappa per registrare i punti di misura.\n"
-            "3. Salva il rilievo dopo aver raccolto abbastanza punti.\n"
-            "4. Genera la mappa e scegli SSID, banda Wi-Fi e tipo analisi.\n"
-            "5. Usa Copertura segnale per valutare il livello dBm, Interferenza AP per trovare sovrapposizioni, Canali AP per controllare i canali e AP dominante per analizzare il roaming."
+            "3. Usa Gruppi AP per assegnare alias, correggere i gruppi e, se conosci la posizione fisica degli AP, posizionarli sulla mappa.\n"
+            "4. Salva il rilievo dopo aver raccolto abbastanza punti.\n"
+            "5. Genera la mappa e scegli SSID, banda Wi-Fi e tipo analisi.\n"
+            "6. Usa Copertura segnale per valutare il livello dBm, Interferenza AP per trovare sovrapposizioni, Canali AP per controllare i canali e AP dominante per analizzare il roaming."
         ),
         "help_live": "Mappa live",
         "help_live_title": "Come usare la mappa live",
@@ -323,7 +324,8 @@ TRANSLATIONS = {
             "La Mappa live mostra una preview del rilievo senza generare file PNG.\n"
             "Scegli SSID, banda e tipo mappa direttamente nel tab Mappa live.\n"
             "Copertura segnale e Interferenza AP vengono calcolate in background, quindi la GUI resta utilizzabile durante l'aggiornamento.\n"
-            "Canali AP e AP dominante mostrano i punti reali con legenda inferiore.\n"
+            "Canali AP e AP dominante mostrano i punti reali con legenda dedicata.\n"
+            "In AP dominante, un triangolo giallo indica un possibile warning di posizione AP: il tooltip mostra distanza dall'AP dominante e AP fisico più vicino.\n"
             "Se sei nel tab Rilievo, la live view viene aggiornata quando entri nel tab Mappa live o premi Aggiorna ora.\n"
             "Lo zoom della live view non rigenera la mappa: ridimensiona la preview e rifinisce la qualità dopo una breve pausa."
         ),
@@ -336,7 +338,8 @@ TRANSLATIONS = {
             "Solo >= -70 dBm evidenzia le zone normalmente utilizzabili.\n"
             "Interferenza AP calcola il rischio in percentuale, salva anche un report CSV e mostra un riepilogo con AP servente, interferente principale e qualità dati.\n"
             "Canali AP non interpola: mostra i punti reali colorati per canale, con etichette tipo CH 36 / 80 quando la larghezza canale è disponibile.\n"
-            "AP dominante mostra quale BSSID è più forte in ogni punto e marca in giallo le zone dove il secondo AP è entro 5 dB."
+            "AP dominante mostra quale AP è più forte in ogni punto e marca in giallo le zone dove il secondo AP è entro 5 dB.\n"
+            "Se hai posizionato fisicamente gli AP, AP dominante aggiunge triangoli di warning quando il segnale non è coerente con la posizione attesa e salva i dettagli nel report CSV."
         ),
         "help_scan": "Scansione",
         "help_scan_title": "Come gestire la scansione Wi-Fi",
@@ -702,7 +705,7 @@ TRANSLATIONS = {
         "start_step_points": "2. Create points with right click",
         "start_step_heatmap": "3. Generate heatmaps by SSID and band",
         "start_shortcuts": "Hold left button: pan map | Ctrl + wheel: zoom",
-        "mouse_right_action": "Create point",
+        "mouse_right_action": "Create point / place AP",
         "mouse_left_action": "Pan map",
         "mouse_marker_action": "Select point",
         "mouse_wheel_action": "Vertical scroll",
@@ -716,9 +719,10 @@ TRANSLATIONS = {
             "1-a. Create a new survey and load the floor plan.\n"
             "1-b. Or open a saved survey: the floor plan will be loaded automatically.\n"
             "2. Physically move through the area and use right click on the map to record measurement points.\n"
-            "3. Save the survey after collecting enough points.\n"
-            "4. Generate the map and choose SSID, Wi-Fi band, and analysis type.\n"
-            "5. Use Signal coverage to evaluate dBm level, AP interference to find overlaps, AP channels to inspect channels, and Dominant AP to analyze roaming."
+            "3. Use AP Groups to assign aliases, fix groups, and place physical AP positions on the map when known.\n"
+            "4. Save the survey after collecting enough points.\n"
+            "5. Generate the map and choose SSID, Wi-Fi band, and analysis type.\n"
+            "6. Use Signal coverage to evaluate dBm level, AP interference to find overlaps, AP channels to inspect channels, and Dominant AP to analyze roaming."
         ),
         "help_live": "Live map",
         "help_live_title": "How to use the live map",
@@ -726,7 +730,8 @@ TRANSLATIONS = {
             "The Live map shows a survey preview without generating PNG files.\n"
             "Choose SSID, band, and map type directly in the Live map tab.\n"
             "Signal coverage and AP interference are calculated in the background, so the GUI stays usable while updating.\n"
-            "AP channels and Dominant AP show real points with the bottom legend.\n"
+            "AP channels and Dominant AP show real points with a dedicated legend.\n"
+            "In Dominant AP, a yellow triangle marks a possible AP position warning: the tooltip shows distance from the dominant AP and the nearest physical AP.\n"
             "If you are in the Survey tab, the live view updates when you enter the Live map tab or press Update now.\n"
             "Live zoom does not regenerate the map: it resizes the preview and refines quality after a short pause."
         ),
@@ -739,7 +744,8 @@ TRANSLATIONS = {
             "Only >= -70 dBm highlights normally usable areas.\n"
             "AP interference calculates percentage risk, also saves a CSV report, and shows a summary with serving AP, main interferer, and data quality.\n"
             "AP channels does not interpolate: it shows real points colored by channel, with labels like CH 36 / 80 when channel width is available.\n"
-            "Dominant AP shows which BSSID is strongest at each point and marks in yellow where the second AP is within 5 dB."
+            "Dominant AP shows which AP is strongest at each point and marks in yellow where the second AP is within 5 dB.\n"
+            "If physical AP positions are set, Dominant AP adds warning triangles when signal strength is not coherent with the expected position and saves details in the CSV report."
         ),
         "help_scan": "Scan",
         "help_scan_title": "How to handle Wi-Fi scans",
