@@ -652,6 +652,10 @@ Language:
   right-side summary of active channels. The picker opens a compact checkbox
   dialog for that band's channels and still writes the same `expected_bands` and
   `expected_channels` metadata fields.
+- AP Group Duplicate/Split now uses a resizable table instead of a one-line
+  checkbox label per BSSID. BSSID, seen SSIDs, channels, and any other assigned
+  group are split into columns, while membership in the currently edited group is
+  represented by the checkbox itself.
 
 Recent commits:
 

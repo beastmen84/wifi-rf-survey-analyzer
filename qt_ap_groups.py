@@ -13,8 +13,6 @@ from PySide6.QtWidgets import (
     QInputDialog,
     QLabel,
     QLineEdit,
-    QListWidget,
-    QListWidgetItem,
     QMessageBox,
     QPushButton,
     QHeaderView,
@@ -23,6 +21,7 @@ from PySide6.QtWidgets import (
     QTableWidgetItem,
     QTextEdit,
     QVBoxLayout,
+    QWidget,
 )
 
 from ap_group_checks import build_ap_group_conflicts
@@ -268,16 +267,6 @@ class APGroupManagerDialog(QDialog):
                 border: 1px solid {palette["border"]};
                 border-radius: {s(5)}px;
                 padding: {s(6)}px {s(8)}px;
-            }}
-            QListWidget {{
-                background: {palette["panel"]};
-                color: {palette["text"]};
-                border: 1px solid {palette["border"]};
-                border-radius: {s(5)}px;
-                padding: {s(4)}px;
-            }}
-            QListWidget::item {{
-                padding: {s(3)}px;
             }}
             QGroupBox {{
                 color: {palette["text"]};
@@ -1102,8 +1091,8 @@ class BssidSelectionDialog(QDialog):
         self.checked_by_bssid = {}
 
         self.setWindowTitle(manager.tr("ap_group_bssid_title"))
-        self.resize(widget_px(self, 980), widget_px(self, 700))
-        self.setMinimumSize(widget_px(self, 850), widget_px(self, 580))
+        self.resize(widget_px(self, 1180), widget_px(self, 720))
+        self.setMinimumSize(widget_px(self, 980), widget_px(self, 580))
         self.setStyleSheet(manager.styleSheet())
         self.build_ui()
         self.render_items()
@@ -1125,8 +1114,27 @@ class BssidSelectionDialog(QDialog):
         search_row.addWidget(self.search_edit, 1)
         layout.addLayout(search_row)
 
-        self.list_widget = QListWidget()
-        layout.addWidget(self.list_widget, 1)
+        self.table = QTableWidget(0, 5)
+        self.table.setAlternatingRowColors(True)
+        self.table.setShowGrid(False)
+        self.table.setWordWrap(True)
+        self.table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table.verticalHeader().setVisible(False)
+        self.table.setHorizontalHeaderLabels([
+            "",
+            self.manager.tr("ap_alias_bssids"),
+            self.manager.tr("ap_alias_ssids"),
+            self.manager.tr("ap_alias_channels"),
+            self.manager.tr("ap_group_bssid_other_group"),
+        ])
+        header = self.table.horizontalHeader()
+        header.setStretchLastSection(False)
+        for column in range(self.table.columnCount()):
+            header.setSectionResizeMode(column, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        layout.addWidget(self.table, 1)
 
         buttons = QHBoxLayout()
         buttons.addStretch(1)
@@ -1145,56 +1153,72 @@ class BssidSelectionDialog(QDialog):
 
     def render_items(self):
         query = self.search_edit.text().strip().lower()
-        self.list_widget.clear()
+        self.table.setRowCount(0)
         all_bssids = sorted(
             self.detected_by_bssid.keys(),
             key=lambda bssid: (0 if normalize_bssid(bssid) in self.focus_bssids else 1, bssid),
         )
 
         for bssid in all_bssids:
-            label = self.build_bssid_label(bssid)
-            if query and query not in label.lower():
+            row_data = self.build_bssid_row_data(bssid)
+            if query and query not in " ".join(row_data.values()).lower():
                 continue
             clean_bssid = normalize_bssid(bssid)
-            checkbox = QCheckBox(label)
+            row = self.table.rowCount()
+            self.table.insertRow(row)
+
+            checkbox_container = QWidget()
+            checkbox_layout = QHBoxLayout(checkbox_container)
+            checkbox_layout.setContentsMargins(0, 0, 0, 0)
+            checkbox_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            checkbox = QCheckBox()
             checkbox.setChecked(self.checked_by_bssid.get(clean_bssid, False))
             checkbox.toggled.connect(
                 lambda checked, selected_bssid=clean_bssid: self.set_bssid_checked(selected_bssid, checked)
             )
-            item = QListWidgetItem()
-            item.setData(Qt.ItemDataRole.UserRole, clean_bssid)
-            item.setSizeHint(checkbox.sizeHint())
-            self.list_widget.addItem(item)
-            self.list_widget.setItemWidget(item, checkbox)
+            checkbox_layout.addWidget(checkbox)
+            self.table.setCellWidget(row, 0, checkbox_container)
+
+            values = [
+                row_data["bssid"],
+                row_data["ssids"],
+                row_data["channels"],
+                row_data["other_group"],
+            ]
+            for offset, value in enumerate(values, start=1):
+                item = QTableWidgetItem(value)
+                item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
+                item.setData(Qt.ItemDataRole.UserRole, clean_bssid)
+                if clean_bssid in self.focus_bssids:
+                    item.setToolTip(self.manager.tr("ap_group_bssid_warning_focus_hint"))
+                elif value and value != "-":
+                    item.setToolTip(value)
+                if offset in {1, 3, 4}:
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                else:
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                self.table.setItem(row, offset, item)
+            self.table.setRowHeight(row, widget_px(self, 38))
+
+        self.apply_table_column_widths()
 
     def set_bssid_checked(self, bssid, checked):
         self.checked_by_bssid[bssid] = bool(checked)
 
-    def build_bssid_label(self, bssid):
+    def build_bssid_row_data(self, bssid):
         detected_group = self.detected_by_bssid.get(bssid, {})
         ssids = ", ".join(detected_group.get("ssids", [])) or "-"
         channels = ", ".join(detected_group.get("channels", [])) or "-"
-        assigned_label = self.format_assigned_label(bssid)
-        if assigned_label:
-            label = self.manager.tr(
-                "ap_group_bssid_row_with_group",
-                bssid=bssid,
-                ssids=ssids,
-                channels=channels,
-                group=assigned_label,
-            )
-        else:
-            label = self.manager.tr(
-                "ap_group_bssid_row",
-                bssid=bssid,
-                ssids=ssids,
-                channels=channels,
-            )
-        if normalize_bssid(bssid) in self.focus_bssids:
-            label = self.manager.tr("ap_group_bssid_warning_row", row=label)
-        return label
+        other_group = self.format_other_group_label(bssid)
+        return {
+            "bssid": bssid,
+            "ssids": ssids,
+            "channels": channels,
+            "other_group": other_group or "-",
+            "focus": "!" if normalize_bssid(bssid) in self.focus_bssids else "",
+        }
 
-    def format_assigned_label(self, bssid):
+    def format_other_group_label(self, bssid):
         clean_bssid = normalize_bssid(bssid)
         for group in self.groups:
             if clean_bssid not in {normalize_bssid(item) for item in group.get("bssids", [])}:
@@ -1202,7 +1226,28 @@ class BssidSelectionDialog(QDialog):
             if group.get("group_id") == self.group.get("group_id"):
                 return ""
             return group.get("alias") or group.get("group_id") or "-"
-        return "-"
+        return ""
+
+    def apply_table_column_widths(self):
+        self.table.resizeColumnsToContents()
+        viewport_width = max(0, self.table.viewport().width() - widget_px(self, 4))
+        fixed_widths = {
+            0: widget_px(self, 48),
+            1: max(widget_px(self, 190), min(self.table.columnWidth(1) + widget_px(self, 16), widget_px(self, 240))),
+            3: max(widget_px(self, 92), min(self.table.columnWidth(3) + widget_px(self, 18), widget_px(self, 130))),
+            4: max(widget_px(self, 150), min(self.table.columnWidth(4) + widget_px(self, 18), widget_px(self, 260))),
+        }
+        reserved_width = sum(fixed_widths.values())
+        ssid_width = max(widget_px(self, 260), viewport_width - reserved_width)
+        for column, width in fixed_widths.items():
+            self.table.setColumnWidth(column, width)
+        self.table.setColumnWidth(2, ssid_width)
+        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, "table"):
+            self.apply_table_column_widths()
 
     def selected_bssids(self):
         return sorted([
