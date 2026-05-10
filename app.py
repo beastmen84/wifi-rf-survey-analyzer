@@ -796,7 +796,7 @@ class WifiHeatmapApp:
             for bssid in detected_group["bssids"]
         }
 
-        for group in groups:
+        def refresh_group_details(group):
             group["alias"] = group.get("alias") or aliases.get(group["group_id"], "")
             seen_ssids = set()
             seen_channels = set()
@@ -811,6 +811,12 @@ class WifiHeatmapApp:
             group["ssids"] = sorted(seen_ssids)
             group["channels"] = sorted(seen_channels, key=self.channel_sort_key)
             group["display_groups"] = sorted(display_groups) or [group["group_id"]]
+
+        def refresh_all_group_details():
+            for group in groups:
+                refresh_group_details(group)
+
+        refresh_all_group_details()
 
         if not groups:
             ttk.Label(frame, text=self.tr("ap_aliases_empty"), bootstyle=WARNING).pack(anchor="w")
@@ -969,12 +975,108 @@ class WifiHeatmapApp:
             active_editor["entry"] = None
             active_editor["item"] = None
 
-        def begin_alias_edit(event):
-            if tree.identify_column(event.x) != "#3":
+        def open_bssid_group_dialog(group_key):
+            close_alias_editor(True)
+            group = next((item for item in groups if item["group_id"] == group_key), None)
+            if group is None:
                 return
 
+            bssid_dialog = self.create_modal_dialog(self.tr("ap_group_bssid_title"))
+            bssid_dialog.geometry("760x620")
+            bssid_dialog.minsize(680, 520)
+
+            content = ttk.Frame(bssid_dialog, padding=12)
+            content.pack(fill=tk.BOTH, expand=True)
+            ttk.Label(
+                content,
+                text=self.tr("ap_group_bssid_hint"),
+                wraplength=700,
+                style="ReadableMuted.TLabel"
+            ).pack(anchor="w", pady=(0, 10))
+
+            list_frame = ttk.Frame(content)
+            list_frame.pack(fill=tk.BOTH, expand=True)
+            canvas = tk.Canvas(list_frame, highlightthickness=0)
+            scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=canvas.yview)
+            checks_frame = ttk.Frame(canvas)
+            checks_frame.bind(
+                "<Configure>",
+                lambda _event: canvas.configure(scrollregion=canvas.bbox("all"))
+            )
+            canvas.create_window((0, 0), window=checks_frame, anchor="nw")
+            canvas.configure(yscrollcommand=scrollbar.set)
+            canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+            current_bssids = set(group.get("bssids", []))
+            bssid_vars = {}
+            all_bssids = sorted(detected_by_bssid.keys())
+            for bssid in all_bssids:
+                detected_group = detected_by_bssid.get(bssid, {})
+                label = self.tr(
+                    "ap_group_bssid_row",
+                    bssid=bssid,
+                    ssids=", ".join(detected_group.get("ssids", [])) or "-",
+                    channels=", ".join(detected_group.get("channels", [])) or "-"
+                )
+                var = tk.BooleanVar(value=bssid in current_bssids)
+                bssid_vars[bssid] = var
+                ttk.Checkbutton(checks_frame, text=label, variable=var).pack(anchor="w", pady=2)
+
+            def apply_bssid_selection():
+                selected_bssids = sorted([
+                    bssid
+                    for bssid, var in bssid_vars.items()
+                    if var.get()
+                ])
+                if not selected_bssids:
+                    messagebox.showwarning(
+                        self.tr("ap_groups_title"),
+                        self.tr("ap_group_empty_selection"),
+                        parent=bssid_dialog
+                    )
+                    return
+
+                selected_set = set(selected_bssids)
+                for other_group in groups:
+                    if other_group["group_id"] == group_key:
+                        other_group["bssids"] = selected_bssids
+                        other_group["locked"] = True
+                    else:
+                        other_group["bssids"] = [
+                            bssid
+                            for bssid in other_group.get("bssids", [])
+                            if bssid not in selected_set
+                        ]
+
+                groups[:] = [
+                    item
+                    for item in groups
+                    if item.get("bssids")
+                ]
+                groups[:] = merge_new_bssids_into_manual_groups(groups, self.session.rows)
+                refresh_all_group_details()
+                render_alias_rows()
+                schedule_alias_table_resize()
+                bssid_dialog.destroy()
+
+            buttons = ttk.Frame(content)
+            buttons.pack(fill=tk.X, pady=(12, 0))
+            ttk.Button(buttons, text=self.tr("cancel"), command=bssid_dialog.destroy, bootstyle=SECONDARY).pack(side=tk.RIGHT)
+            ttk.Button(buttons, text=self.tr("save"), command=apply_bssid_selection, bootstyle=PRIMARY).pack(side=tk.RIGHT, padx=(0, 8))
+            bssid_dialog.bind("<Escape>", lambda _event: bssid_dialog.destroy())
+            self.center_dialog(bssid_dialog)
+
+        def begin_alias_edit(event):
             group_key = tree.identify_row(event.y)
             if not group_key:
+                return
+
+            column = tree.identify_column(event.x)
+            if column == "#4":
+                open_bssid_group_dialog(group_key)
+                return
+            if column != "#3":
                 return
 
             close_alias_editor()

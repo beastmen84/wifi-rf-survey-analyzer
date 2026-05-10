@@ -135,6 +135,11 @@ def merge_new_bssids_into_manual_groups(manual_groups, rows):
         )
         for group in manual_groups
     ]
+    existing_group_ids = {
+        str(group.get("group_id", ""))
+        for group in merged_groups
+        if str(group.get("group_id", ""))
+    }
 
     for detected_group in build_default_manual_groups(rows):
         new_bssids = [
@@ -145,14 +150,28 @@ def merge_new_bssids_into_manual_groups(manual_groups, rows):
         if not new_bssids:
             continue
 
+        group_id = build_unique_group_id(detected_group["group_id"], existing_group_ids)
+        existing_group_ids.add(group_id)
         merged_groups.append(build_manual_ap_group(
-            detected_group["group_id"],
+            group_id,
             new_bssids,
             locked=False,
         ))
         assigned_bssids.update(new_bssids)
 
     return merged_groups
+
+
+def build_unique_group_id(group_id, existing_group_ids):
+    clean_group_id = str(group_id or "").strip()
+    if clean_group_id not in existing_group_ids:
+        return clean_group_id
+
+    suffix = 2
+    while f"{clean_group_id}#{suffix}" in existing_group_ids:
+        suffix += 1
+
+    return f"{clean_group_id}#{suffix}"
 
 
 def build_bssid_to_manual_group_map(manual_groups):
