@@ -19,6 +19,7 @@ from ap_groups import (
     build_detected_ap_groups,
     merge_new_bssids_into_manual_groups,
     normalize_ap_metadata,
+    normalize_bssid,
     normalize_ap_role,
 )
 
@@ -673,10 +674,22 @@ def open_ap_group_manager(app):
         metadata_dialog.bind("<Escape>", lambda _event: metadata_dialog.destroy())
         app.center_dialog(metadata_dialog)
 
-    def open_bssid_group_dialog(group_key):
+    def collect_conflict_bssids(conflicts):
+        bssids = set()
+        for conflict in conflicts:
+            for channel_bssids in conflict.get("bssids_by_channel", {}).values():
+                bssids.update(normalize_bssid(bssid) for bssid in channel_bssids)
+        return sorted(bssids)
+
+    def open_bssid_group_dialog(group_key, focus_bssids=None):
         group = get_group_by_key(group_key)
         if group is None:
             return
+        focus_bssids = {
+            normalize_bssid(bssid)
+            for bssid in (focus_bssids or [])
+            if normalize_bssid(bssid)
+        }
 
         bssid_dialog = app.create_modal_dialog(app.tr("ap_group_bssid_title"))
         bssid_dialog.geometry("980x700")
@@ -690,6 +703,13 @@ def open_ap_group_manager(app):
             wraplength=920,
             style="ReadableMuted.TLabel"
         ).pack(anchor="w", pady=(0, 10))
+        if focus_bssids:
+            ttk.Label(
+                content,
+                text=app.tr("ap_group_bssid_warning_focus_hint"),
+                wraplength=920,
+                bootstyle=WARNING
+            ).pack(anchor="w", pady=(0, 10))
 
         bssid_search_frame = ttk.Frame(content)
         bssid_search_frame.pack(fill=tk.X, pady=(0, 10))
@@ -719,7 +739,10 @@ def open_ap_group_manager(app):
             for item in groups
             for bssid in item.get("bssids", [])
         }
-        all_bssids = sorted(detected_by_bssid.keys())
+        all_bssids = sorted(
+            detected_by_bssid.keys(),
+            key=lambda bssid: (0 if normalize_bssid(bssid) in focus_bssids else 1, bssid)
+        )
         for bssid in all_bssids:
             bssid_vars[bssid] = tk.BooleanVar(value=bssid in current_bssids)
 
@@ -758,6 +781,8 @@ def open_ap_group_manager(app):
                         ssids=ssids,
                         channels=channels
                     )
+                if normalize_bssid(bssid) in focus_bssids:
+                    label = app.tr("ap_group_bssid_warning_row", row=label)
                 if query and query not in label.lower():
                     continue
 
@@ -862,6 +887,12 @@ def open_ap_group_manager(app):
             text.insert(tk.END, "\n")
         text.configure(state=tk.DISABLED)
 
+        focus_bssids = collect_conflict_bssids(conflicts)
+
+        def open_split_from_warning():
+            conflict_dialog.destroy()
+            open_bssid_group_dialog(group_key, focus_bssids=focus_bssids)
+
         buttons = ttk.Frame(content)
         buttons.pack(fill=tk.X, pady=(12, 0))
         ttk.Button(
@@ -870,6 +901,12 @@ def open_ap_group_manager(app):
             command=conflict_dialog.destroy,
             bootstyle=SECONDARY
         ).pack(side=tk.RIGHT)
+        ttk.Button(
+            buttons,
+            text=app.tr("ap_group_split_from_warning"),
+            command=open_split_from_warning,
+            bootstyle=PRIMARY
+        ).pack(side=tk.RIGHT, padx=(0, 8))
         conflict_dialog.bind("<Escape>", lambda _event: conflict_dialog.destroy())
         app.center_dialog(conflict_dialog)
 
