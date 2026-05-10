@@ -1069,7 +1069,7 @@ class WifiHeatmapApp:
                 if not assigned_group_id:
                     return "-"
                 if assigned_group_id == group_key:
-                    return self.tr("ap_group_current")
+                    return "-"
                 return assigned_alias or assigned_group_id
 
             def render_bssid_checks(_event=None):
