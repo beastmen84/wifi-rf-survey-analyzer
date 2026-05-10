@@ -19,6 +19,8 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QScrollArea,
+    QHeaderView,
+    QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
     QTextEdit,
@@ -44,7 +46,8 @@ from ap_groups import (
     normalize_ap_role,
     normalize_bssid,
 )
-from ui_scaling import widget_px
+from qt_theme import QT_THEMES
+from ui_scaling import widget_font, widget_px
 
 
 AP_GROUP_COLUMNS = (
@@ -93,11 +96,12 @@ class APGroupManagerDialog(QDialog):
         self.sort_reverse = False
 
         self.setWindowTitle(self.tr("ap_groups_title"))
-        self.resize(widget_px(self, 1680), widget_px(self, 820))
-        self.setMinimumSize(widget_px(self, 1300), widget_px(self, 700))
+        self.resize(widget_px(self, 1480), widget_px(self, 780))
+        self.setMinimumSize(widget_px(self, 1120), widget_px(self, 640))
 
         self.build_state()
         self.build_ui()
+        self.apply_styles()
         self.refresh_all_group_details()
         self.render_rows()
         self.update_action_state()
@@ -126,20 +130,30 @@ class APGroupManagerDialog(QDialog):
         layout.setSpacing(widget_px(self, 10))
 
         hint = QLabel(self.tr("ap_groups_hint"))
+        hint.setObjectName("apDialogHint")
         hint.setWordWrap(True)
         layout.addWidget(hint)
 
         search_row = QHBoxLayout()
-        search_row.addWidget(QLabel(self.tr("ap_alias_search")))
+        search_row.setSpacing(widget_px(self, 8))
+        search_label = QLabel(self.tr("ap_alias_search"))
+        search_label.setObjectName("apDialogLabel")
+        search_row.addWidget(search_label)
         self.search_edit = QLineEdit()
         self.search_edit.textChanged.connect(self.render_rows)
         search_row.addWidget(self.search_edit, 1)
         self.conflict_label = QLabel()
+        self.conflict_label.setObjectName("apConflictLabel")
         search_row.addWidget(self.conflict_label)
         layout.addLayout(search_row)
 
         self.table = QTableWidget(0, len(AP_GROUP_COLUMNS))
         self.table.setAlternatingRowColors(True)
+        self.table.setShowGrid(False)
+        self.table.setWordWrap(False)
+        self.table.setTextElideMode(Qt.TextElideMode.ElideRight)
+        self.table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.table.verticalHeader().setVisible(False)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setHorizontalHeaderLabels([
@@ -154,11 +168,19 @@ class APGroupManagerDialog(QDialog):
             self.tr("ap_alias_channels"),
             self.tr("ap_group_management"),
         ])
+        self.configure_table_columns()
         self.table.horizontalHeader().sectionClicked.connect(self.sort_by_column_index)
         self.table.itemSelectionChanged.connect(self.update_action_state)
         layout.addWidget(self.table, 1)
 
-        button_row = QHBoxLayout()
+        footer = QFrame()
+        footer.setObjectName("apDialogFooter")
+        footer_layout = QVBoxLayout(footer)
+        footer_layout.setContentsMargins(widget_px(self, 0), widget_px(self, 4), widget_px(self, 0), 0)
+        footer_layout.setSpacing(widget_px(self, 8))
+
+        action_row = QHBoxLayout()
+        action_row.setSpacing(widget_px(self, 6))
         self.reset_button = QPushButton(self.tr("ap_groups_reset_auto"))
         self.split_button = QPushButton(self.tr("ap_group_split"))
         self.conflict_button = QPushButton(self.tr("ap_group_conflict_details"))
@@ -189,17 +211,143 @@ class APGroupManagerDialog(QDialog):
             self.delete_alias_button,
             self.role_button,
             self.metadata_button,
+            self.position_button,
         ):
-            button_row.addWidget(button)
-        separator = QFrame()
-        separator.setFrameShape(QFrame.Shape.VLine)
-        separator.setFrameShadow(QFrame.Shadow.Sunken)
-        button_row.addWidget(separator)
-        button_row.addWidget(self.position_button)
-        button_row.addStretch(1)
-        button_row.addWidget(self.save_button)
-        button_row.addWidget(self.cancel_button)
-        layout.addLayout(button_row)
+            self.prepare_action_button(button)
+            action_row.addWidget(button)
+        action_row.addStretch(1)
+        footer_layout.addLayout(action_row)
+
+        commit_row = QHBoxLayout()
+        commit_row.setSpacing(widget_px(self, 8))
+        self.save_button.setObjectName("apDialogPrimaryButton")
+        self.cancel_button.setObjectName("apDialogActionButton")
+        self.prepare_action_button(self.save_button)
+        self.prepare_action_button(self.cancel_button)
+        commit_row.addStretch(1)
+        commit_row.addWidget(self.save_button)
+        commit_row.addWidget(self.cancel_button)
+        footer_layout.addLayout(commit_row)
+        layout.addWidget(footer)
+
+    def apply_styles(self):
+        palette = QT_THEMES.get(getattr(self.app, "theme", "light"), QT_THEMES["light"])
+        s = lambda value: widget_px(self, value)
+        font = lambda value: widget_font(self, value)
+        self.setStyleSheet(
+            f"""
+            QDialog, QWidget {{
+                background: {palette["bg"]};
+                color: {palette["text"]};
+                font-family: "Segoe UI";
+                font-size: {font(10)}pt;
+            }}
+            QLabel#apDialogHint {{
+                color: {palette["text"]};
+                font-size: {font(10)}pt;
+            }}
+            QLabel#apDialogLabel {{
+                color: {palette["muted"]};
+                font-weight: 700;
+            }}
+            QLabel#apConflictLabel {{
+                color: {palette["metric_danger"]};
+                font-weight: 700;
+            }}
+            QLineEdit {{
+                background: {palette["panel"]};
+                color: {palette["text"]};
+                border: 1px solid {palette["border"]};
+                border-radius: {s(5)}px;
+                padding: {s(6)}px {s(8)}px;
+            }}
+            QTableWidget {{
+                background: {palette["panel"]};
+                alternate-background-color: {palette["panel_alt"]};
+                color: {palette["text"]};
+                selection-background-color: {palette["selection"]};
+                border: 1px solid {palette["border"]};
+                border-radius: {s(5)}px;
+            }}
+            QTableWidget::item {{
+                border: 0;
+                border-bottom: 1px solid {palette["border"]};
+                padding: {s(5)}px {s(7)}px;
+            }}
+            QTableWidget::item:selected {{
+                background: {palette["selection"]};
+                color: {palette["text"]};
+            }}
+            QTableWidget::item:focus {{
+                border: 0;
+                border-bottom: 1px solid {palette["border"]};
+            }}
+            QHeaderView::section {{
+                background: {palette["header"]};
+                color: {palette["text"]};
+                padding: {s(6)}px {s(7)}px;
+                border: 0;
+                border-right: 1px solid {palette["border"]};
+                font-weight: 700;
+            }}
+            QFrame#apDialogFooter {{
+                background: {palette["bg"]};
+            }}
+            QPushButton#apDialogActionButton, QPushButton#apDialogPrimaryButton {{
+                min-width: 0;
+                background: {palette["button_bg"]};
+                color: {palette["text"]};
+                border: 1px solid {palette["border"]};
+                border-radius: {s(5)}px;
+                padding: {s(6)}px {s(10)}px;
+                font-weight: 600;
+            }}
+            QPushButton#apDialogActionButton:hover {{
+                background: {palette["button_hover"]};
+            }}
+            QPushButton#apDialogActionButton:disabled {{
+                color: {palette["muted"]};
+                background: {palette["panel_alt"]};
+            }}
+            QPushButton#apDialogPrimaryButton {{
+                background: {palette["metric_info"]};
+                color: #FFFFFF;
+                border: 1px solid {palette["metric_info"]};
+            }}
+            QPushButton#apDialogPrimaryButton:hover {{
+                background: {palette["metric_info"]};
+            }}
+            """
+        )
+
+    def prepare_action_button(self, button):
+        if not button.objectName():
+            button.setObjectName("apDialogActionButton")
+        button.setMinimumWidth(0)
+        button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+
+    def configure_table_columns(self):
+        header = self.table.horizontalHeader()
+        header.setStretchLastSection(False)
+        header.setMinimumSectionSize(widget_px(self, 34))
+        stretch_columns = {1, 6, 7}
+        for column in range(self.table.columnCount()):
+            mode = QHeaderView.ResizeMode.Stretch if column in stretch_columns else QHeaderView.ResizeMode.Fixed
+            header.setSectionResizeMode(column, mode)
+        self.apply_table_column_widths()
+
+    def apply_table_column_widths(self):
+        widths = {
+            0: 34,
+            2: 118,
+            3: 102,
+            4: 104,
+            5: 126,
+            8: 104,
+            9: 142,
+        }
+        for column, width in widths.items():
+            self.table.setColumnWidth(column, widget_px(self, width))
 
     def refresh_group_details(self, group):
         group["alias"] = group.get("alias") or self.aliases.get(group["group_id"], "")
@@ -250,14 +398,18 @@ class APGroupManagerDialog(QDialog):
             for column, value in enumerate(values):
                 item = QTableWidgetItem(str(value))
                 item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
+                item.setToolTip(str(value))
+                if column in {0, 3, 4, 5, 8, 9}:
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                else:
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 if column == 0:
                     item.setData(Qt.ItemDataRole.UserRole, group["group_id"])
-                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.table.setItem(row, column, item)
             if group["group_id"] == selected_group_id:
                 self.table.selectRow(row)
 
-        self.table.resizeColumnsToContents()
+        self.apply_table_column_widths()
         self.update_action_state()
 
     def get_group_display_values(self, group):

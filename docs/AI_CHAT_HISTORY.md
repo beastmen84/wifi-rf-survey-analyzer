@@ -615,6 +615,12 @@ Language:
   `Delete scale` action appears in the `View` app-bar header. Deleting the
   scale asks for confirmation, removes `px_per_meter`, marks the survey dirty,
   refreshes the live map state, and enables calibration again.
+- AP Group Manager layout was cleaned up after the Qt theme migration. The
+  dialog now uses the active theme locally, has a smaller default/minimum size,
+  hides the redundant vertical row header, stretches AP group/BSSID/SSID
+  columns to fill available space, keeps utility columns compact, adds tooltips
+  for clipped cell content, and moves actions into compact rows so buttons no
+  longer overflow or get cut off.
 
 Recent commits:
 
