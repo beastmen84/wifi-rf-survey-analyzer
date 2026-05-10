@@ -57,6 +57,7 @@ from quality_engine import (
 )
 from qt_ap_groups import open_qt_ap_group_manager
 from qt_floorplan import FloorplanView
+from qt_help_dialog import open_qt_help_dialog
 from qt_live_map import LiveMapRenderWorker, LiveMapView, create_marker_icon, load_floorplan_image
 from qt_map_generation import MapGenerationDialog
 from qt_point_workflow import MissingRelevantNetworksDialog, RelevantNetworksDialog, WifiScanWorker
@@ -209,6 +210,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.calibrate_action = QAction(self)
         self.ap_groups_action = QAction(self)
         self.quality_action = QAction(self)
+        self.help_action = QAction(self)
         self.generate_action = QAction(self)
         self.new_action.triggered.connect(self.new_survey)
         self.open_action.triggered.connect(self.open_survey)
@@ -220,6 +222,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.calibrate_action.triggered.connect(self.start_scale_calibration)
         self.ap_groups_action.triggered.connect(self.open_ap_group_manager)
         self.quality_action.triggered.connect(self.open_quality_dashboard)
+        self.help_action.triggered.connect(self.open_help_dialog)
         self.generate_action.triggered.connect(self.open_generate_map_dialog)
 
         for action in (
@@ -233,7 +236,7 @@ class WifiHeatmapQtApp(QMainWindow):
         for action in (self.zoom_out_action, self.zoom_in_action, self.fit_action, self.calibrate_action):
             self.toolbar.addAction(action)
         self.toolbar.addSeparator()
-        for action in (self.ap_groups_action, self.quality_action, self.generate_action):
+        for action in (self.ap_groups_action, self.quality_action, self.help_action, self.generate_action):
             self.toolbar.addAction(action)
 
         self.toolbar.addSeparator()
@@ -567,6 +570,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.calibrate_action.setText(self.tr("calibrate_scale"))
         self.ap_groups_action.setText(self.tr("ap_groups_title"))
         self.quality_action.setText(self.tr("quality_dashboard_title"))
+        self.help_action.setText(self.tr("help"))
         self.generate_action.setText(self.tr("generate_heatmap"))
         self.focus_point_button.setText(self.tr("go_to_point"))
         self.delete_selected_button.setText(self.tr("delete_selected"))
@@ -1557,6 +1561,9 @@ class WifiHeatmapQtApp(QMainWindow):
 
         open_qt_quality_dashboard(self)
 
+    def open_help_dialog(self):
+        open_qt_help_dialog(self, self.tr)
+
     def start_ap_positioning(self, group_id):
         if self.session is None:
             return False
@@ -1775,6 +1782,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.load_plan_action.setEnabled(can_use_session)
         self.ap_groups_action.setEnabled(can_use_session)
         self.quality_action.setEnabled(can_use_session)
+        self.help_action.setEnabled(True)
         self.generate_action.setEnabled(can_use_session)
         has_map = self.floorplan_view.has_floorplan()
         self.zoom_in_action.setEnabled(has_map and not self.scan_in_progress)

@@ -428,6 +428,9 @@ Language:
   right-click two-point calibration mode on the Qt floor plan, stores
   `px_per_meter` in survey metadata, updates live/export distance handling and
   avoids creating survey points while calibration is active.
+- Added first-pass Qt Help dialog. The toolbar now has a Help action that opens
+  translated workflow, live map, generated map, scan and command tabs using the
+  existing help text.
 
 Recent commits:
 
