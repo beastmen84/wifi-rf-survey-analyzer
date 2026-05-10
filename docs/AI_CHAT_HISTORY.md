@@ -675,6 +675,9 @@ Language:
 - AP Group Manager table tooltips were removed from both the main AP group table
   and Duplicate/Split table because the current column sizing keeps content
   readable without hover-only duplicates.
+- AP Group Manager table selection now uses the theme accent color with white
+  text instead of the softer row-selection tint, making the selected row clearly
+  distinguishable from alternating row backgrounds.
 
 Recent commits:
 

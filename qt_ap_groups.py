@@ -315,7 +315,8 @@ class APGroupManagerDialog(QDialog):
                 background: {palette["panel"]};
                 alternate-background-color: {palette["panel_alt"]};
                 color: {palette["text"]};
-                selection-background-color: {palette["selection"]};
+                selection-background-color: {palette["metric_info"]};
+                selection-color: #FFFFFF;
                 border: 1px solid {palette["border"]};
                 border-radius: {s(5)}px;
             }}
@@ -325,8 +326,9 @@ class APGroupManagerDialog(QDialog):
                 padding: {s(5)}px {s(7)}px;
             }}
             QTableWidget::item:selected {{
-                background: {palette["selection"]};
-                color: {palette["text"]};
+                background: {palette["metric_info"]};
+                color: #FFFFFF;
+                border-bottom: 1px solid {palette["metric_info"]};
             }}
             QTableWidget::item:focus {{
                 border: 0;
