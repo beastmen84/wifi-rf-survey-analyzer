@@ -39,7 +39,7 @@ except ModuleNotFoundError as exc:
     raise SystemExit(1) from exc
 
 from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_language, translate
-from app_logging import log_event, log_exception, log_unhandled_exception
+from app_logging import configure_logging, log_event, log_exception, log_unhandled_exception
 from ap_groups import (
     build_ap_group_role_map,
     build_bssid_to_manual_group_map,
@@ -1002,7 +1002,7 @@ class WifiHeatmapQtApp(QMainWindow):
 
     def finish_live_preview(self, payload):
         self.live_rendering = False
-        log_event("qt live render finished")
+        log_event("qt live render finished", logger_name="main")
         if payload:
             self.live_view.set_payload(payload)
             self.update_live_legend(payload.get("scale_payload"))
@@ -1018,7 +1018,7 @@ class WifiHeatmapQtApp(QMainWindow):
 
     def fail_live_preview(self, message):
         self.live_rendering = False
-        log_event(f"qt live render failed message={message}")
+        log_event(f"qt live render failed message={message}", logger_name="main")
         self.live_status_label.setText(f"{self.tr('error')}: {message}")
         self.clear_live_legend()
         self.refresh_live_controls()
@@ -1028,7 +1028,7 @@ class WifiHeatmapQtApp(QMainWindow):
         if finished_thread is self.live_thread:
             self.live_thread = None
             self.live_worker = None
-        log_event("qt live render thread cleaned up")
+        log_event("qt live render thread cleaned up", logger_name="main")
 
     def format_live_status(self, payload):
         scale = payload.get("scale_payload", {}) if payload else {}
@@ -1536,7 +1536,7 @@ class WifiHeatmapQtApp(QMainWindow):
     def start_wifi_scan(self, x, y):
         self.pending_scan_point = (int(x), int(y))
         self.set_scan_busy(True, self.tr("scanning", x=int(x), y=int(y)))
-        log_event(f"qt point scan start x={int(x)} y={int(y)}")
+        log_event(f"qt point scan start x={int(x)} y={int(y)}", logger_name="main")
 
         thread = QThread(self)
         worker = WifiScanWorker("auto")
@@ -1559,13 +1559,13 @@ class WifiHeatmapQtApp(QMainWindow):
             x, y = self.pending_scan_point or (None, None)
             self.set_scan_busy(False)
             self.last_scan_backend_used = backend_used
-            log_event(f"qt point scan finished backend={backend_used} networks={len(networks or [])}")
+            log_event(f"qt point scan finished backend={backend_used} networks={len(networks or [])}", logger_name="main")
 
             if x is None or y is None:
                 return
 
             action = self.validate_relevant_networks(networks)
-            log_event(f"qt point relevant validation action={action}")
+            log_event(f"qt point relevant validation action={action}", logger_name="main")
             if action == "retry":
                 self.start_wifi_scan(x, y)
                 return
@@ -1577,13 +1577,13 @@ class WifiHeatmapQtApp(QMainWindow):
             self.pending_scan_point = None
             self.save_survey_point(x, y, networks)
         except Exception as exc:
-            log_exception("finish_wifi_scan failed", exc)
+            log_exception("finish_wifi_scan failed", exc, logger_name="main")
             self.pending_scan_point = None
             self.set_scan_busy(False)
             QMessageBox.critical(self, self.tr("error"), str(exc))
 
     def fail_wifi_scan(self, message):
-        log_event(f"qt point scan failed message={message}")
+        log_event(f"qt point scan failed message={message}", logger_name="main")
         self.set_scan_busy(False)
         self.pending_scan_point = None
         QMessageBox.critical(self, self.tr("error"), message)
@@ -1593,7 +1593,7 @@ class WifiHeatmapQtApp(QMainWindow):
         if finished_thread is self.scan_thread:
             self.scan_thread = None
             self.scan_worker = None
-        log_event("qt point scan thread cleaned up")
+        log_event("qt point scan thread cleaned up", logger_name="main")
 
     def set_scan_busy(self, is_busy, message=None):
         self.scan_in_progress = is_busy
@@ -1669,7 +1669,7 @@ class WifiHeatmapQtApp(QMainWindow):
             QMessageBox.critical(self, self.tr("error"), self.tr("no_networks_found"))
             return
 
-        log_event(f"qt save point start x={x} y={y} networks={len(networks or [])}")
+        log_event(f"qt save point start x={x} y={y} networks={len(networks or [])}", logger_name="main")
         timestamp = self.session.add_points(
             x,
             y,
@@ -1682,7 +1682,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.status.showMessage(self.tr("point_saved", x=x, y=y, count=len(networks)))
         self.points_table.selectRow(0)
         self.maybe_update_live_preview()
-        log_event(f"qt save point done timestamp={timestamp}")
+        log_event(f"qt save point done timestamp={timestamp}", logger_name="main")
 
     def open_ap_group_manager(self):
         if self.session is None:
@@ -2033,6 +2033,8 @@ class WifiHeatmapQtApp(QMainWindow):
 
 
 def main():
+    configure_logging()
+    log_event("qt app start", logger_name="main")
     install_exception_logging()
     app = QApplication(sys.argv)
     window = WifiHeatmapQtApp()

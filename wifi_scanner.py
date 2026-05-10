@@ -53,7 +53,7 @@ def get_connected_ssid():
 
 def scan_wifi_netsh(show_errors=True):
     try:
-        log_event("scan_wifi_netsh start")
+        log_event("scan_wifi_netsh start", logger_name="wifi_scanner")
         scans = []
 
         for attempt in range(WIFI_SCAN_ATTEMPTS):
@@ -70,18 +70,21 @@ def scan_wifi_netsh(show_errors=True):
                 time.sleep(WIFI_SCAN_DELAY_SECONDS)
 
         networks = merge_wifi_scans(scans, WIFI_SCAN_ATTEMPTS)
-        log_event(f"scan_wifi_netsh done networks={len(networks)} raw_samples={len(scans)}")
+        log_event(
+            f"scan_wifi_netsh done networks={len(networks)} raw_samples={len(scans)}",
+            logger_name="wifi_scanner",
+        )
         return networks
 
     except Exception as e:
-        log_exception("scan_wifi_netsh failed", e)
+        log_exception("scan_wifi_netsh failed", e, logger_name="wifi_scanner")
         report_scan_error(show_errors, "Errore scan Wi-Fi", e)
         return []
 
 
 def scan_wifi_lswifi(show_errors=True):
     try:
-        log_event("scan_wifi_lswifi start")
+        log_event("scan_wifi_lswifi start", logger_name="wifi_scanner")
         from lswifi import wlanapi as lswifi_wlanapi
 
         scans = []
@@ -105,12 +108,13 @@ def scan_wifi_lswifi(show_errors=True):
 
         networks = merge_wifi_scans(scans, WIFI_SCAN_ATTEMPTS * interface_count)
         log_event(
-            f"scan_wifi_lswifi done interfaces={interface_count} networks={len(networks)} raw_samples={len(scans)}"
+            f"scan_wifi_lswifi done interfaces={interface_count} networks={len(networks)} raw_samples={len(scans)}",
+            logger_name="wifi_scanner",
         )
         return networks
 
     except Exception as e:
-        log_exception("scan_wifi_lswifi failed", e)
+        log_exception("scan_wifi_lswifi failed", e, logger_name="wifi_scanner")
         report_scan_error(show_errors, "Errore scan Wi-Fi lswifi", e)
         return []
 

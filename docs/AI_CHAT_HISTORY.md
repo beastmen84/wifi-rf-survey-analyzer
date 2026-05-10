@@ -70,6 +70,7 @@ Core logic/data:
 - `quality_engine.py`: per-point quality engine.
 - `map_config.py`: current map settings.
 - `constants.py`: schema/version/config constants.
+- `app_logging.py`: unified Qt logging setup and compatibility wrappers.
 
 Docs:
 
@@ -462,6 +463,11 @@ Language:
   until the thread has actually finished, logs render start/end/failure, and
   signal interpolation now falls back to nearest-neighbor when RBF/linear cannot
   build a surface from sparse or collinear points.
+- Replaced the temporary `wifi_heatmap_error.log` writer with unified Qt
+  logging in `app_logging.py`. Logs now go to rotating `wifi_heatmap_qt.log`
+  with timestamp, severity and component names (`main`, `live_map`,
+  `wifi_scanner`, `unhandled`), and Python warnings are captured into the same
+  file.
 
 Recent commits:
 

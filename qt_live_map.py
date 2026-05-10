@@ -49,7 +49,10 @@ class LiveMapRenderWorker(QObject):
     @Slot()
     def run(self):
         try:
-            log_event(f"qt live render worker start map_type={self.config.map_type} band={self.config.band}")
+            log_event(
+                f"qt live render worker start map_type={self.config.map_type} band={self.config.band}",
+                logger_name="live_map",
+            )
             bg_image = load_floorplan_image(self.map_file)
             df = pd.DataFrame(self.rows, columns=SURVEY_FIELDNAMES)
             payload = render_live_map_payload(
@@ -62,12 +65,15 @@ class LiveMapRenderWorker(QObject):
                 px_per_meter=self.px_per_meter,
             )
         except Exception as exc:
-            log_exception("qt live render worker failed", exc)
+            log_exception("qt live render worker failed", exc, logger_name="live_map")
             self.failed.emit(str(exc))
             return
 
         point_count = len(payload.get("point_infos", [])) if payload else 0
-        log_event(f"qt live render worker done payload={bool(payload)} points={point_count}")
+        log_event(
+            f"qt live render worker done payload={bool(payload)} points={point_count}",
+            logger_name="live_map",
+        )
         self.finished.emit(payload)
 
 
