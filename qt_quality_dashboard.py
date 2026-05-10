@@ -22,7 +22,9 @@ from PySide6.QtWidgets import (
 
 from ap_groups import (
     AP_ROLE_TEST,
+    build_default_manual_groups,
     build_bssid_to_manual_group_map,
+    merge_new_bssids_into_manual_groups,
     normalize_ap_role,
     resolve_ap_group_key,
 )
@@ -328,14 +330,15 @@ def open_qt_quality_dashboard(app):
         app.session.raw_scan_rows,
         relevant_ssids=app.relevant_ssids,
     )
-    ap_position_by_point = build_ap_position_quality_by_point(app)
+    ap_groups = get_effective_ap_groups(app)
+    ap_position_by_point = build_ap_position_quality_by_point(app, ap_groups)
     ap_metadata_warnings = build_ap_metadata_warnings(
         app.session.rows,
-        app.session.get_ap_groups(),
+        ap_groups,
         app.channel_sort_key,
     )
     rows = build_dashboard_rows(app, point_summaries, quality_by_point_id, ap_position_by_point)
-    summary = build_summary(app, rows, ap_metadata_warnings)
+    summary = build_summary(app, rows, ap_metadata_warnings, ap_groups)
     QualityDashboardDialog(app, rows, summary).exec()
 
 
@@ -380,10 +383,18 @@ def build_dashboard_rows(app, point_summaries, quality_by_point_id, ap_position_
     return rows
 
 
-def build_summary(app, rows, ap_metadata_warnings=None):
+def get_effective_ap_groups(app):
+    saved_groups = app.session.get_ap_groups()
+    if saved_groups:
+        return merge_new_bssids_into_manual_groups(saved_groups, app.session.rows)
+
+    return build_default_manual_groups(app.session.rows)
+
+
+def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None):
     ap_metadata_warnings = ap_metadata_warnings or []
     status_counts = Counter(row["status"] for row in rows)
-    ap_groups = app.session.get_ap_groups()
+    ap_groups = ap_groups if ap_groups is not None else get_effective_ap_groups(app)
     visible_ap_groups = [
         group
         for group in ap_groups
@@ -428,13 +439,16 @@ def build_summary(app, rows, ap_metadata_warnings=None):
     }
 
 
-def build_ap_position_quality_by_point(app):
-    ap_groups = app.session.get_ap_groups()
+def build_ap_position_quality_by_point(app, ap_groups=None):
+    ap_groups = ap_groups if ap_groups is not None else get_effective_ap_groups(app)
     if not ap_groups:
         return {}
 
     group_map = build_bssid_to_manual_group_map(ap_groups)
-    role_map = app.get_current_ap_group_roles()
+    role_map = {
+        str(group.get("group_id", "")): normalize_ap_role(group.get("role"))
+        for group in ap_groups
+    }
     relevant_ssids = {
         normalize_ssid(ssid)
         for ssid in app.relevant_ssids or []
@@ -473,7 +487,7 @@ def build_ap_position_quality_by_point(app):
     for key, dominant_row in best_by_point.items():
         analysis = analyze_dominant_ap_position(
             dominant_row,
-            app.session.get_ap_groups(),
+            ap_groups,
             app.get_px_per_meter(),
         )
         warnings = analysis.get("warnings", [])

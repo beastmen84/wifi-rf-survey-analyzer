@@ -103,6 +103,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.scan_worker = None
         self.scan_in_progress = False
         self.pending_scan_point = None
+        self.pending_rescan_point = None
         self.last_scan_backend_used = "-"
         self.live_thread = None
         self.live_worker = None
@@ -484,22 +485,22 @@ class WifiHeatmapQtApp(QMainWindow):
 
         point_buttons = QHBoxLayout()
         self.focus_point_button = QPushButton()
-        self.refresh_points_button = QPushButton()
+        self.rescan_point_button = QPushButton()
         self.delete_selected_button = QPushButton()
         self.delete_last_button = QPushButton()
         for button in (
             self.focus_point_button,
-            self.refresh_points_button,
+            self.rescan_point_button,
             self.delete_selected_button,
             self.delete_last_button,
         ):
             button.setObjectName("pointsActionButton")
         self.focus_point_button.clicked.connect(self.focus_selected_point)
-        self.refresh_points_button.clicked.connect(self.recalculate_points_panel)
+        self.rescan_point_button.clicked.connect(self.rescan_selected_point)
         self.delete_selected_button.clicked.connect(self.delete_selected_point)
         self.delete_last_button.clicked.connect(self.delete_last_point)
         point_buttons.addWidget(self.focus_point_button)
-        point_buttons.addWidget(self.refresh_points_button)
+        point_buttons.addWidget(self.rescan_point_button)
         point_buttons.addWidget(self.delete_selected_button)
         point_buttons.addWidget(self.delete_last_button)
         point_buttons.addStretch(1)
@@ -1169,7 +1170,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.help_button.setText(self.tr("help"))
         self.generate_map_button.setText(self.tr("generate_heatmap"))
         self.focus_point_button.setText(self.tr("go_to_point"))
-        self.refresh_points_button.setText(self.tr("refresh_points"))
+        self.rescan_point_button.setText(self.tr("rescan_point"))
         self.delete_selected_button.setText(self.tr("delete_selected"))
         self.delete_last_button.setText(self.tr("delete_last"))
         self.update_points_panel_toggle()
@@ -2170,6 +2171,7 @@ class WifiHeatmapQtApp(QMainWindow):
         if self.scan_in_progress:
             return
 
+        self.pending_rescan_point = None
         self.start_wifi_scan(x, y)
 
     def start_wifi_scan(self, x, y):
@@ -2203,6 +2205,12 @@ class WifiHeatmapQtApp(QMainWindow):
             if x is None or y is None:
                 return
 
+            if not networks:
+                self.pending_scan_point = None
+                self.pending_rescan_point = None
+                QMessageBox.critical(self, self.tr("error"), self.tr("no_networks_found"))
+                return
+
             action = self.validate_relevant_networks(networks)
             log_event(f"qt point relevant validation action={action}", logger_name="main")
             if action == "retry":
@@ -2210,14 +2218,32 @@ class WifiHeatmapQtApp(QMainWindow):
                 return
             if action == "cancel":
                 self.pending_scan_point = None
+                self.pending_rescan_point = None
                 self.status.showMessage(self.tr("cancelled"))
                 return
 
+            rescan_point = self.pending_rescan_point
             self.pending_scan_point = None
-            self.save_survey_point(x, y, networks)
+            self.pending_rescan_point = None
+            removed_rows = 0
+            if rescan_point:
+                removed_rows = self.delete_point(rescan_point, refresh=False)
+            self.save_survey_point(
+                x,
+                y,
+                networks,
+                status_message=self.tr(
+                    "point_rescanned" if rescan_point else "point_saved",
+                    x=x,
+                    y=y,
+                    count=len(networks),
+                    rows=removed_rows,
+                ),
+            )
         except Exception as exc:
             log_exception("finish_wifi_scan failed", exc, logger_name="main")
             self.pending_scan_point = None
+            self.pending_rescan_point = None
             self.set_scan_busy(False)
             QMessageBox.critical(self, self.tr("error"), str(exc))
 
@@ -2225,6 +2251,7 @@ class WifiHeatmapQtApp(QMainWindow):
         log_event(f"qt point scan failed message={message}", logger_name="main")
         self.set_scan_busy(False)
         self.pending_scan_point = None
+        self.pending_rescan_point = None
         QMessageBox.critical(self, self.tr("error"), message)
 
     def cleanup_wifi_scan_thread(self):
@@ -2301,7 +2328,7 @@ class WifiHeatmapQtApp(QMainWindow):
             if str(network.get("ssid", "")).strip()
         }
 
-    def save_survey_point(self, x, y, networks):
+    def save_survey_point(self, x, y, networks, status_message=None):
         if self.session is None:
             return
 
@@ -2319,7 +2346,7 @@ class WifiHeatmapQtApp(QMainWindow):
         )
         self.refresh_session_labels()
         self.refresh_points_table()
-        self.status.showMessage(self.tr("point_saved", x=x, y=y, count=len(networks)))
+        self.status.showMessage(status_message or self.tr("point_saved", x=x, y=y, count=len(networks)))
         self.points_table.selectRow(0)
         self.maybe_update_live_preview()
         log_event(f"qt save point done timestamp={timestamp}", logger_name="main")
@@ -2459,7 +2486,7 @@ class WifiHeatmapQtApp(QMainWindow):
         has_point = bool(self.current_selected_point())
         has_any_point = bool(self.session and self.session.get_point_summaries())
         self.focus_point_button.setEnabled(has_point)
-        self.refresh_points_button.setEnabled(has_any_point)
+        self.rescan_point_button.setEnabled(has_point and not self.scan_in_progress)
         self.delete_selected_button.setEnabled(has_point)
         self.delete_last_button.setEnabled(has_any_point)
 
@@ -2471,17 +2498,19 @@ class WifiHeatmapQtApp(QMainWindow):
 
         self.floorplan_view.focus_on(point["x"], point["y"])
 
-    def recalculate_points_panel(self):
+    def rescan_selected_point(self):
         if self.session is None:
             return
 
-        selected_point = self.current_selected_point()
-        self.refresh_session_labels()
-        self.refresh_points_table()
-        if selected_point:
-            self.select_point_in_table(selected_point)
-        self.status.showMessage(self.tr("points_recalculated"))
-        self.maybe_update_live_preview()
+        point = self.current_selected_point()
+        if not point:
+            QMessageBox.warning(self, self.tr("warning"), self.tr("select_point"))
+            return
+        if self.scan_in_progress:
+            return
+
+        self.pending_rescan_point = dict(point)
+        self.start_wifi_scan(point["x"], point["y"])
 
     def delete_selected_point(self):
         point = self.current_selected_point()

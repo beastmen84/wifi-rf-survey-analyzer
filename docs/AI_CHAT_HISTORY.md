@@ -686,9 +686,15 @@ Language:
 - Survey Quality follow-up: the dashboard table now disables cell focus styling
   like the measurement table, metric labels were expanded from abbreviations to
   descriptive names, and `Go to point` opens the measurement-points overlay
-  before selecting the target point. The measurement-points overlay also gained
-  a `Recalculate` action before the delete buttons to refresh point quality,
-  map markers, AP markers, and live preview from the current survey data.
+  before selecting the target point.
+- The measurement-points overlay now uses `Rescan point` / `Rimisura punto`
+  instead of the previous refresh-only wording. It reruns Wi-Fi scanning at the
+  selected point position and replaces the old point only after the new scan is
+  accepted, so retry/cancel leaves the existing measurement intact.
+- Survey Quality now builds an effective AP group list from saved AP groups plus
+  automatically detected groups from survey rows. This keeps `AP without
+  position` accurate even before the user has opened/saved AP Group Manager in a
+  new survey.
 
 Recent commits:
 
@@ -707,6 +713,9 @@ Recent commits:
 - `826b92c` Highlight AP position warnings in live map.
 - `162958a` Add AP position analysis to dominant tooltips.
 - `cea47b6` Reposition AP placement action.
+- `06fdb88` Emphasize AP group row selection.
+- `5fa18a3` Clarify survey quality dashboard.
+- `c76451d` Refine survey quality workflow.
 
 ## Likely Next Steps
 

@@ -10,7 +10,8 @@ from ap_groups import (
 )
 from ap_metadata_checks import build_ap_metadata_warnings
 from heatmap_tools import calculate_interference_points
-from quality_engine import QUALITY_MISSING_RELEVANT, evaluate_point_quality
+from qt_quality_dashboard import build_summary, get_effective_ap_groups
+from quality_engine import QUALITY_GOOD, QUALITY_MISSING_RELEVANT, evaluate_point_quality
 from survey_store import get_survey_point_summaries_from_rows
 from ui_scaling import (
     detect_screen_resolution,
@@ -79,6 +80,22 @@ class QualityTests(unittest.TestCase):
 
         self.assertEqual(quality["p1"]["status"], QUALITY_MISSING_RELEVANT)
         self.assertEqual(quality["p1"]["missing_relevant"], ["guest"])
+
+    def test_quality_summary_counts_auto_ap_groups_without_position(self):
+        rows = [build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)]
+        app = FakeQualityApp(rows)
+        groups = get_effective_ap_groups(app)
+
+        summary = build_summary(
+            app,
+            [{"status": QUALITY_GOOD, "needs_review": False, "ap_position_warning_count": 0}],
+            [],
+            groups,
+        )
+
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(summary["ap_missing_positions"], 1)
+        self.assertEqual(summary["ap_positions"], "0/1")
 
 
 class SurveyPointSummaryTests(unittest.TestCase):
@@ -264,6 +281,35 @@ class FakeApp:
 
     def primaryScreen(self):
         return self._screen
+
+
+class FakeQualitySession:
+    def __init__(self, rows, ap_groups=None):
+        self.rows = rows
+        self._ap_groups = ap_groups or []
+
+    def get_ap_groups(self):
+        return self._ap_groups
+
+
+class FakeQualityApp:
+    def __init__(self, rows, ap_groups=None):
+        self.session = FakeQualitySession(rows, ap_groups)
+        self.relevant_ssids = set()
+
+    def tr(self, key, **kwargs):
+        if key == "relevant_networks_none":
+            return "No relevant network defined"
+        if key == "quality_dashboard_missing_positions_more":
+            return f"{kwargs.get('names', '')} +{kwargs.get('count', 0)}"
+        if key == "quality_dashboard_missing_positions_none":
+            return "None"
+        if key == "quality_dashboard_more_issues":
+            return f"+{kwargs.get('count', 0)}"
+        return key.format(**kwargs) if kwargs else key
+
+    def get_ap_group_display_name(self, group_id):
+        return str(group_id)
 
 
 if __name__ == "__main__":
