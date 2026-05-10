@@ -4,6 +4,7 @@ from tkinter import messagebox, simpledialog
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import DANGER, INFO, PRIMARY, SECONDARY, WARNING
 
+from ap_group_checks import build_ap_group_conflicts
 from ap_metadata_checks import (
     infer_band_from_channel,
     parse_expected_bands,
@@ -72,6 +73,7 @@ def open_ap_group_manager(app):
         if saved_groups
         else build_default_manual_groups(app.session.rows)
     )
+    group_conflicts_by_id = {}
     detected_by_bssid = {
         bssid: detected_group
         for detected_group in detected_groups
@@ -96,9 +98,15 @@ def open_ap_group_manager(app):
         group["channels"] = sorted(seen_channels, key=app.channel_sort_key)
         group["display_groups"] = sorted(display_groups) or [group["group_id"]]
 
+    def refresh_group_checks():
+        group_conflicts_by_id.clear()
+        for conflict in build_ap_group_conflicts(app.session.rows, groups, app.channel_sort_key):
+            group_conflicts_by_id.setdefault(conflict["group_id"], []).append(conflict)
+
     def refresh_all_group_details():
         for group in groups:
             refresh_group_details(group)
+        refresh_group_checks()
 
     refresh_all_group_details()
 
@@ -145,7 +153,10 @@ def open_ap_group_manager(app):
     search_var = tk.StringVar(value="")
     search_entry = ttk.Entry(search_frame, textvariable=search_var, width=42)
     search_entry.pack(side=tk.LEFT, padx=(8, 0), fill=tk.X, expand=True)
-    alias_action_buttons = {"delete": None}
+    conflict_status_var = tk.StringVar(value="")
+    conflict_status_label = ttk.Label(search_frame, textvariable=conflict_status_var, bootstyle=WARNING)
+    conflict_status_label.pack(side=tk.LEFT, padx=(12, 0))
+    alias_action_buttons = {"delete": None, "conflict": None}
 
     table_frame = ttk.Frame(frame)
     table_frame.pack(fill=tk.BOTH, expand=True)
@@ -161,6 +172,10 @@ def open_ap_group_manager(app):
     tree.column("channels", width=120, minwidth=90, anchor="center", stretch=False)
     tree.column("locked", width=110, minwidth=90, anchor="center", stretch=False)
     tree.tag_configure("aliased", background="#e9f7ef")
+    if getattr(app, "is_dark_theme", False):
+        tree.tag_configure("conflict", background="#3c331d", foreground="#fff3cd")
+    else:
+        tree.tag_configure("conflict", background="#fff3cd", foreground="#2f2a18")
     scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=tree.yview)
     tree.configure(yscrollcommand=scrollbar.set)
     tree.grid(row=0, column=0, sticky="nsew")
@@ -199,7 +214,7 @@ def open_ap_group_manager(app):
         position = group.get("position") or {}
         position_label = f"{position.get('x')}, {position.get('y')}" if position else "-"
         return (
-            "OK" if alias else "",
+            "!" if group_conflicts_by_id.get(group["group_id"]) else "OK" if alias else "",
             format_list_preview(group["display_groups"]),
             alias,
             app.tr(f"ap_group_role_{role}"),
@@ -220,6 +235,10 @@ def open_ap_group_manager(app):
         metadata = normalize_ap_metadata(group.get("metadata"))
         position = group.get("position") or {}
         position_text = f"{position.get('x', '')} {position.get('y', '')}" if position else ""
+        conflict_text = " ".join(
+            format_group_conflict_summary(conflict)
+            for conflict in group_conflicts_by_id.get(group["group_id"], [])
+        )
         haystack = " ".join([
             group["group_id"],
             " ".join(group["display_groups"]),
@@ -227,6 +246,7 @@ def open_ap_group_manager(app):
             role,
             app.tr(f"ap_group_role_{role}"),
             " ".join(metadata.values()),
+            conflict_text,
             position_text,
             " ".join(group["bssids"]),
             " ".join(group["ssids"]),
@@ -237,7 +257,7 @@ def open_ap_group_manager(app):
     def sort_value(group, column):
         alias = group.get("alias", "")
         if column == "status":
-            return 0 if alias else 1
+            return 0 if group_conflicts_by_id.get(group["group_id"]) else 1 if alias else 2
         if column == "alias":
             return alias.lower()
         if column == "role":
@@ -260,6 +280,7 @@ def open_ap_group_manager(app):
     def render_alias_rows():
         query = search_var.get().strip()
         selected_group = tree.selection()[0] if tree.selection() else ""
+        update_conflict_status_label()
         visible_groups = [
             group
             for group in groups
@@ -275,7 +296,7 @@ def open_ap_group_manager(app):
                 "",
                 tk.END,
                 iid=group["group_id"],
-                tags=("aliased",) if group.get("alias") else (),
+                tags=get_group_tags(group),
                 values=get_group_display_values(group)
             )
         if selected_group and tree.exists(selected_group):
@@ -300,6 +321,7 @@ def open_ap_group_manager(app):
 
     def update_alias_action_state(_event=None):
         delete_button = alias_action_buttons.get("delete")
+        conflict_button = alias_action_buttons.get("conflict")
         if delete_button is None:
             return
 
@@ -308,6 +330,39 @@ def open_ap_group_manager(app):
         delete_button.configure(
             state=tk.NORMAL if group and group.get("alias", "") else tk.DISABLED
         )
+        if conflict_button is not None:
+            conflict_button.configure(
+                state=tk.NORMAL if group and group_conflicts_by_id.get(group["group_id"]) else tk.DISABLED
+            )
+
+    def get_group_tags(group):
+        if group_conflicts_by_id.get(group["group_id"]):
+            return ("conflict",)
+        if group.get("alias"):
+            return ("aliased",)
+        return ()
+
+    def update_conflict_status_label():
+        conflict_count = len(group_conflicts_by_id)
+        conflict_status_var.set(
+            app.tr("ap_group_conflict_count", count=conflict_count)
+            if conflict_count
+            else ""
+        )
+
+    def format_group_conflict_summary(conflict):
+        return app.tr(
+            "ap_group_conflict_band_row",
+            band=format_band_label(conflict.get("band", "")),
+            channels=", ".join(conflict.get("channels", []))
+        )
+
+    def format_band_label(band):
+        if str(band) == "2.4":
+            return "2.4 GHz"
+        if str(band) in {"5", "6"}:
+            return f"{band} GHz"
+        return str(band)
 
     def sort_by_column(column):
         if column == "status":
@@ -353,7 +408,7 @@ def open_ap_group_manager(app):
 
         if target_group:
             tree.item(group_key, values=get_group_display_values(target_group))
-        tree.item(group_key, tags=("aliased",) if value else ())
+            tree.item(group_key, tags=get_group_tags(target_group))
         update_alias_action_state()
 
     def prompt_alias_for_selected_group():
@@ -403,6 +458,7 @@ def open_ap_group_manager(app):
 
         if target_group:
             tree.item(group_key, values=get_group_display_values(target_group))
+            tree.item(group_key, tags=get_group_tags(target_group))
 
     def prompt_role_for_selected_group():
         group_key = get_selected_group_key()
@@ -606,7 +662,7 @@ def open_ap_group_manager(app):
             group["metadata"] = normalize_ap_metadata(values)
             group["locked"] = True
             tree.item(group_key, values=get_group_display_values(group))
-            tree.item(group_key, tags=("aliased",) if group.get("alias") else ())
+            tree.item(group_key, tags=get_group_tags(group))
             schedule_alias_table_resize()
             metadata_dialog.destroy()
 
@@ -758,6 +814,65 @@ def open_ap_group_manager(app):
         bssid_dialog.bind("<Escape>", lambda _event: bssid_dialog.destroy())
         app.center_dialog(bssid_dialog)
 
+    def open_conflict_dialog_for_selected_group():
+        group_key = get_selected_group_key()
+        if not group_key:
+            return
+
+        conflicts = group_conflicts_by_id.get(group_key, [])
+        if not conflicts:
+            messagebox.showinfo(
+                app.tr("ap_group_conflict_title"),
+                app.tr("ap_group_conflict_none"),
+                parent=dialog
+            )
+            return
+
+        conflict_dialog = app.create_modal_dialog(app.tr("ap_group_conflict_title"))
+        conflict_dialog.geometry("760x520")
+        conflict_dialog.minsize(700, 460)
+
+        content = ttk.Frame(conflict_dialog, padding=16)
+        content.pack(fill=tk.BOTH, expand=True)
+        ttk.Label(
+            content,
+            text=app.tr("ap_group_conflict_hint"),
+            wraplength=700,
+            bootstyle=WARNING
+        ).pack(anchor="w", pady=(0, 12))
+
+        text = tk.Text(
+            content,
+            height=14,
+            wrap="word",
+            background=getattr(app, "live_overlay_bg", "#ffffff"),
+            foreground=getattr(app, "readable_text_color", "#000000"),
+            insertbackground=getattr(app, "readable_text_color", "#000000"),
+            highlightbackground=getattr(app, "live_overlay_separator", "#d7dde3"),
+            highlightthickness=1,
+            relief="solid",
+            borderwidth=1,
+        )
+        text.pack(fill=tk.BOTH, expand=True)
+        for conflict in conflicts:
+            text.insert(tk.END, f"{format_group_conflict_summary(conflict)}\n")
+            for channel in conflict.get("channels", []):
+                bssids = ", ".join(conflict.get("bssids_by_channel", {}).get(channel, []))
+                text.insert(tk.END, f"  {app.tr('ap_group_conflict_channel_row', channel=channel, bssids=bssids)}\n")
+            text.insert(tk.END, "\n")
+        text.configure(state=tk.DISABLED)
+
+        buttons = ttk.Frame(content)
+        buttons.pack(fill=tk.X, pady=(12, 0))
+        ttk.Button(
+            buttons,
+            text=app.tr("close"),
+            command=conflict_dialog.destroy,
+            bootstyle=SECONDARY
+        ).pack(side=tk.RIGHT)
+        conflict_dialog.bind("<Escape>", lambda _event: conflict_dialog.destroy())
+        app.center_dialog(conflict_dialog)
+
     def start_positioning_for_selected_group():
         group_key = get_selected_group_key()
         if not group_key:
@@ -813,6 +928,14 @@ def open_ap_group_manager(app):
         command=lambda: open_bssid_group_dialog(get_selected_group_key()),
         bootstyle=SECONDARY
     ).pack(side=tk.LEFT, padx=(8, 0))
+    conflict_button = ttk.Button(
+        buttons,
+        text=app.tr("ap_group_conflict_details"),
+        command=open_conflict_dialog_for_selected_group,
+        bootstyle=WARNING,
+        state=tk.DISABLED
+    )
+    conflict_button.pack(side=tk.LEFT, padx=(8, 0))
     ttk.Button(
         buttons,
         text=app.tr("ap_group_set_alias"),
@@ -847,6 +970,7 @@ def open_ap_group_manager(app):
         bootstyle=PRIMARY
     ).pack(side=tk.LEFT)
     alias_action_buttons["delete"] = delete_alias_button
+    alias_action_buttons["conflict"] = conflict_button
     update_alias_action_state()
     dialog.bind("<Escape>", lambda _event: dialog.destroy())
     app.center_dialog(dialog)
