@@ -571,6 +571,11 @@ Language:
   percentage, because on Windows/Qt high-DPI systems it may resolve to 100% if
   the OS already reports logical pixels. Manual scale choices are saved and
   take full effect on the next app start.
+- Moved Qt appearance controls behind a compact Settings menu. The startup
+  screen and main toolbar now expose one `Settings` button; the menu contains
+  Theme, UI scale and Language comboboxes. This keeps the toolbar focused on
+  workflow commands and avoids layout crowding from always-visible settings
+  controls.
 
 Recent commits:
 

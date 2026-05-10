@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 try:
-    from PySide6.QtCore import QEvent, Qt, QThread, QTimer
+    from PySide6.QtCore import QEvent, QPoint, Qt, QThread, QTimer
     from PySide6.QtWidgets import (
         QAbstractItemView,
         QApplication,
@@ -21,6 +21,7 @@ try:
         QListWidget,
         QListWidgetItem,
         QMainWindow,
+        QMenu,
         QMessageBox,
         QPushButton,
         QSplitter,
@@ -30,6 +31,7 @@ try:
         QTableWidgetItem,
         QTabWidget,
         QVBoxLayout,
+        QWidgetAction,
         QWidget,
     )
 except ModuleNotFoundError as exc:
@@ -281,31 +283,8 @@ class WifiHeatmapQtApp(QMainWindow):
             analysis_row.addWidget(button)
         layout.addWidget(analysis_section, 1)
 
-        settings_section, self.settings_section_label, settings_row = self.build_app_bar_section()
-        self.workspace_theme_label = QLabel()
-        self.workspace_theme_label.setObjectName("appBarInlineLabel")
-        self.workspace_theme_combo = QComboBox()
-        self.workspace_theme_combo.currentIndexChanged.connect(self.change_theme)
-        self.workspace_scale_label = QLabel()
-        self.workspace_scale_label.setObjectName("appBarInlineLabel")
-        self.workspace_scale_combo = QComboBox()
-        self.workspace_scale_combo.currentIndexChanged.connect(self.change_ui_scale)
-        self.workspace_language_label = QLabel()
-        self.workspace_language_label.setObjectName("appBarInlineLabel")
-        self.workspace_language_combo = QComboBox()
-        self.workspace_language_combo.addItems(SUPPORTED_LANGUAGES)
-        self.workspace_language_combo.setCurrentText(self.language.upper())
-        self.workspace_language_combo.currentTextChanged.connect(self.change_language)
-        for widget in (
-            self.workspace_theme_label,
-            self.workspace_theme_combo,
-            self.workspace_scale_label,
-            self.workspace_scale_combo,
-            self.workspace_language_label,
-            self.workspace_language_combo,
-        ):
-            settings_row.addWidget(widget)
-        layout.addWidget(settings_section)
+        self.settings_menu_button = self.create_app_bar_button(self.open_settings_menu)
+        layout.addWidget(self.settings_menu_button)
 
         return bar
 
@@ -762,6 +741,19 @@ class WifiHeatmapQtApp(QMainWindow):
                 background: transparent;
                 border: 0;
             }}
+            QWidget#settingsMenuPanel {{
+                background: {palette["panel"]};
+                color: {palette["text"]};
+            }}
+            QLabel#settingsMenuLabel {{
+                color: {palette["muted"]};
+                font-weight: 700;
+            }}
+            QMenu {{
+                background: {palette["panel"]};
+                border: 1px solid {palette["border"]};
+                padding: {s(8)}px;
+            }}
             QWidget#pointsTableBody {{
                 background: transparent;
             }}
@@ -1055,13 +1047,10 @@ class WifiHeatmapQtApp(QMainWindow):
     def retranslate(self):
         self.setWindowTitle(self.tr("app_title"))
         self.start_language_label.setText(self.tr("language"))
-        self.workspace_theme_label.setText(self.tr("theme"))
-        self.workspace_scale_label.setText(self.tr("ui_scale"))
-        self.workspace_language_label.setText(self.tr("language"))
         self.project_section_label.setText(self.tr("toolbar_project"))
         self.view_section_label.setText(self.tr("toolbar_view"))
         self.analysis_section_label.setText(self.tr("toolbar_analysis"))
-        self.settings_section_label.setText(self.tr("toolbar_settings"))
+        self.settings_menu_button.setText(self.tr("toolbar_settings"))
         for title_label, title_key in self.summary_title_bindings:
             title_label.setText(self.tr(title_key))
         self.start_title.setText(self.tr("app_title"))
@@ -1100,8 +1089,6 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_auto_check.setText(self.tr("live_auto_update"))
         self.live_update_button.setText(self.tr("live_update_now"))
         self.live_fit_button.setText(self.tr("fit"))
-        self.refresh_theme_options()
-        self.refresh_ui_scale_options()
         self.refresh_live_static_options()
         self.points_table.setHorizontalHeaderLabels([
             "#",
@@ -1116,24 +1103,6 @@ class WifiHeatmapQtApp(QMainWindow):
         self.resize_points_table_columns()
         self.refresh_session_labels()
 
-    def refresh_theme_options(self):
-        self.set_combo_items(
-            self.workspace_theme_combo,
-            [(theme, self.tr(f"qt_theme_{theme}")) for theme in QT_THEME_OPTIONS],
-            current_value=self.theme,
-        )
-
-    def refresh_ui_scale_options(self):
-        auto_percent = int(round(resolve_ui_scale("auto") * 100))
-        self.set_combo_items(
-            self.workspace_scale_combo,
-            [
-                (mode, self.tr("ui_scale_auto", percent=auto_percent) if mode == "auto" else f"{mode}%")
-                for mode in UI_SCALE_OPTIONS
-            ],
-            current_value=self.ui_scale_mode,
-        )
-
     def change_language(self, value):
         language = normalize_language(value)
         if language == self.language:
@@ -1141,19 +1110,15 @@ class WifiHeatmapQtApp(QMainWindow):
 
         self.language = language
         self.start_language_combo.blockSignals(True)
-        self.workspace_language_combo.blockSignals(True)
         self.start_language_combo.setCurrentText(language.upper())
-        self.workspace_language_combo.setCurrentText(language.upper())
         self.start_language_combo.blockSignals(False)
-        self.workspace_language_combo.blockSignals(False)
         self.retranslate()
         if self.session is not None:
             self.floorplan_view.set_ap_groups(self.session.get_ap_groups())
             self.refresh_live_controls()
             self.maybe_update_live_preview()
 
-    def change_theme(self, _index=None):
-        theme = self.workspace_theme_combo.currentData()
+    def change_theme(self, theme):
         if theme not in QT_THEMES or theme == self.theme:
             return
 
@@ -1161,8 +1126,8 @@ class WifiHeatmapQtApp(QMainWindow):
         save_theme(theme)
         self.apply_styles()
 
-    def change_ui_scale(self, _index=None):
-        mode = normalize_ui_scale_mode(self.workspace_scale_combo.currentData())
+    def change_ui_scale(self, mode):
+        mode = normalize_ui_scale_mode(mode)
         if mode == self.ui_scale_mode:
             return
 
@@ -1173,6 +1138,64 @@ class WifiHeatmapQtApp(QMainWindow):
         self.resize_points_table_columns()
         self.position_points_overlay()
         self.status.showMessage(self.tr("ui_scale_saved_restart"), 7000)
+
+    def open_settings_menu(self):
+        menu = QMenu(self)
+        panel = QWidget(menu)
+        panel.setObjectName("settingsMenuPanel")
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(self.spx(12), self.spx(10), self.spx(12), self.spx(10))
+        layout.setSpacing(self.spx(8))
+
+        theme_combo = self.create_settings_combo(
+            [(theme, self.tr(f"qt_theme_{theme}")) for theme in QT_THEME_OPTIONS],
+            self.theme,
+        )
+        theme_combo.currentIndexChanged.connect(lambda _index: self.change_theme(theme_combo.currentData()))
+        self.add_settings_row(layout, self.tr("theme"), theme_combo)
+
+        scale_combo = self.create_settings_combo(self.ui_scale_items(), self.ui_scale_mode)
+        scale_combo.currentIndexChanged.connect(lambda _index: self.change_ui_scale(scale_combo.currentData()))
+        self.add_settings_row(layout, self.tr("ui_scale"), scale_combo)
+
+        language_combo = self.create_settings_combo(
+            [(code, code) for code in SUPPORTED_LANGUAGES],
+            self.language.upper(),
+        )
+        language_combo.currentIndexChanged.connect(lambda _index: self.change_language(language_combo.currentData()))
+        self.add_settings_row(layout, self.tr("language"), language_combo)
+
+        action = QWidgetAction(menu)
+        action.setDefaultWidget(panel)
+        menu.addAction(action)
+        menu_width = self.spx(280)
+        panel.setMinimumWidth(menu_width)
+        position = self.settings_menu_button.mapToGlobal(
+            QPoint(self.settings_menu_button.width() - menu_width, self.settings_menu_button.height())
+        )
+        menu.exec(position)
+
+    def create_settings_combo(self, items, current_value):
+        combo = QComboBox()
+        combo.setMinimumWidth(self.spx(168))
+        for value, label in items:
+            combo.addItem(label, value)
+        index = combo.findData(current_value)
+        combo.setCurrentIndex(max(0, index))
+        return combo
+
+    def add_settings_row(self, layout, label_text, widget):
+        label = QLabel(label_text)
+        label.setObjectName("settingsMenuLabel")
+        layout.addWidget(label)
+        layout.addWidget(widget)
+
+    def ui_scale_items(self):
+        auto_percent = int(round(resolve_ui_scale("auto") * 100))
+        return [
+            (mode, self.tr("ui_scale_auto", percent=auto_percent) if mode == "auto" else f"{mode}%")
+            for mode in UI_SCALE_OPTIONS
+        ]
 
     def refresh_live_static_options(self):
         self.set_combo_items(

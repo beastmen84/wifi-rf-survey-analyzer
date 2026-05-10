@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 
 try:
-    from PySide6.QtCore import QObject, Qt, QThread, QTimer, Signal, Slot
+    from PySide6.QtCore import QObject, QPoint, Qt, QThread, QTimer, Signal, Slot
     from PySide6.QtWidgets import (
         QApplication,
         QComboBox,
@@ -11,10 +11,12 @@ try:
         QHBoxLayout,
         QLabel,
         QMainWindow,
+        QMenu,
         QMessageBox,
         QProgressBar,
         QPushButton,
         QVBoxLayout,
+        QWidgetAction,
         QWidget,
     )
 except ModuleNotFoundError as exc:
@@ -22,9 +24,9 @@ except ModuleNotFoundError as exc:
     raise SystemExit(1) from exc
 
 from app_logging import configure_logging, log_event, log_exception, log_unhandled_exception
-from app_settings import get_saved_theme, get_saved_ui_scale, save_ui_scale
+from app_settings import get_saved_theme, get_saved_ui_scale, save_theme, save_ui_scale
 from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_language, translate
-from qt_theme import QT_THEMES
+from qt_theme import QT_THEME_OPTIONS, QT_THEMES
 from ui_scaling import UI_SCALE_OPTIONS, normalize_ui_scale_mode, resolve_ui_scale, scale_font_px, scale_px
 
 
@@ -96,21 +98,10 @@ class StartWindow(QMainWindow):
 
         top_row = QHBoxLayout()
         top_row.addStretch(1)
-        self.ui_scale_combo = QComboBox()
-        self.ui_scale_combo.setObjectName("scaleCombo")
-        self.refresh_ui_scale_options()
-        self.ui_scale_combo.currentIndexChanged.connect(self.change_ui_scale)
-        top_row.addWidget(self.ui_scale_combo)
-        self.language_combo = QComboBox()
-        self.language_combo.setObjectName("languageCombo")
-        for language_code in SUPPORTED_LANGUAGES:
-            self.language_combo.addItem(
-                START_LANGUAGE_LABELS.get(language_code, language_code),
-                language_code,
-            )
-        self.language_combo.setCurrentIndex(max(0, self.language_combo.findData(self.language.upper())))
-        self.language_combo.currentIndexChanged.connect(self.change_language)
-        top_row.addWidget(self.language_combo)
+        self.settings_button = QPushButton()
+        self.settings_button.setObjectName("startSettingsButton")
+        self.settings_button.clicked.connect(self.open_settings_menu)
+        top_row.addWidget(self.settings_button)
         outer.addLayout(top_row)
 
         body = QHBoxLayout()
@@ -306,6 +297,29 @@ class StartWindow(QMainWindow):
             QComboBox#scaleCombo {{
                 min-width: {s(108)}px;
             }}
+            QPushButton#startSettingsButton {{
+                background: {palette["metric_info"]};
+                color: #ffffff;
+                border: 1px solid {palette["metric_info"]};
+                border-radius: {s(7)}px;
+                font-size: {font(14)}px;
+                font-weight: 700;
+                padding: {s(8)}px {s(14)}px;
+                min-width: {s(116)}px;
+            }}
+            QWidget#settingsMenuPanel {{
+                background: {palette["panel"]};
+                color: {palette["text"]};
+            }}
+            QLabel#settingsMenuLabel {{
+                color: {palette["muted"]};
+                font-weight: 700;
+            }}
+            QMenu {{
+                background: {palette["panel"]};
+                border: 1px solid {palette["border"]};
+                padding: {s(8)}px;
+            }}
             QComboBox::drop-down {{
                 subcontrol-origin: padding;
                 subcontrol-position: top right;
@@ -352,34 +366,25 @@ class StartWindow(QMainWindow):
         self.new_button.setText(self.tr("new_survey"))
         self.open_button.setText(self.tr("open_existing_survey"))
         self.exit_button.setText(self.tr("exit"))
+        self.settings_button.setText(self.tr("toolbar_settings"))
         self.ready_note.setText(self.tr("start_ready_hint"))
         self.copyright_label.setText(self.tr("copyright"))
-        self.refresh_ui_scale_options()
         self.update_loading_text()
 
-    def change_language(self, _index=None):
-        self.language = normalize_language(self.language_combo.currentData())
+    def change_language(self, value):
+        self.language = normalize_language(value)
         self.retranslate()
 
-    def refresh_ui_scale_options(self):
-        if not hasattr(self, "ui_scale_combo"):
+    def change_theme(self, theme):
+        if theme not in QT_THEMES or theme == self.theme:
             return
 
-        current = self.ui_scale_mode
-        self.ui_scale_combo.blockSignals(True)
-        self.ui_scale_combo.clear()
-        auto_percent = int(round(resolve_ui_scale("auto") * 100))
-        for mode in UI_SCALE_OPTIONS:
-            label = self.tr("ui_scale_auto", percent=auto_percent) if mode == "auto" else f"{mode}%"
-            self.ui_scale_combo.addItem(label, mode)
-        index = self.ui_scale_combo.findData(current)
-        if index < 0:
-            index = 0
-        self.ui_scale_combo.setCurrentIndex(index)
-        self.ui_scale_combo.blockSignals(False)
+        self.theme = theme
+        save_theme(theme)
+        self.apply_styles()
 
-    def change_ui_scale(self, _index=None):
-        mode = normalize_ui_scale_mode(self.ui_scale_combo.currentData())
+    def change_ui_scale(self, mode):
+        mode = normalize_ui_scale_mode(mode)
         if mode == self.ui_scale_mode:
             return
 
@@ -389,6 +394,64 @@ class StartWindow(QMainWindow):
         self.setMinimumSize(self.spx(1100), self.spx(720))
         self.apply_styles()
         self.ready_note.setText(self.tr("ui_scale_saved_restart"))
+
+    def open_settings_menu(self):
+        menu = QMenu(self)
+        panel = QWidget(menu)
+        panel.setObjectName("settingsMenuPanel")
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(self.spx(12), self.spx(10), self.spx(12), self.spx(10))
+        layout.setSpacing(self.spx(8))
+
+        theme_combo = self.create_settings_combo(
+            [(theme, self.tr(f"qt_theme_{theme}")) for theme in QT_THEME_OPTIONS],
+            self.theme,
+        )
+        theme_combo.currentIndexChanged.connect(lambda _index: self.change_theme(theme_combo.currentData()))
+        self.add_settings_row(layout, self.tr("theme"), theme_combo)
+
+        scale_combo = self.create_settings_combo(self.ui_scale_items(), self.ui_scale_mode)
+        scale_combo.currentIndexChanged.connect(lambda _index: self.change_ui_scale(scale_combo.currentData()))
+        self.add_settings_row(layout, self.tr("ui_scale"), scale_combo)
+
+        language_combo = self.create_settings_combo(
+            [(code, START_LANGUAGE_LABELS.get(code, code)) for code in SUPPORTED_LANGUAGES],
+            self.language.upper(),
+        )
+        language_combo.currentIndexChanged.connect(lambda _index: self.change_language(language_combo.currentData()))
+        self.add_settings_row(layout, self.tr("language"), language_combo)
+
+        action = QWidgetAction(menu)
+        action.setDefaultWidget(panel)
+        menu.addAction(action)
+        menu_width = self.spx(280)
+        panel.setMinimumWidth(menu_width)
+        position = self.settings_button.mapToGlobal(
+            QPoint(self.settings_button.width() - menu_width, self.settings_button.height())
+        )
+        menu.exec(position)
+
+    def create_settings_combo(self, items, current_value):
+        combo = QComboBox()
+        combo.setMinimumWidth(self.spx(168))
+        for value, label in items:
+            combo.addItem(label, value)
+        index = combo.findData(current_value)
+        combo.setCurrentIndex(max(0, index))
+        return combo
+
+    def add_settings_row(self, layout, label_text, widget):
+        label = QLabel(label_text)
+        label.setObjectName("settingsMenuLabel")
+        layout.addWidget(label)
+        layout.addWidget(widget)
+
+    def ui_scale_items(self):
+        auto_percent = int(round(resolve_ui_scale("auto") * 100))
+        return [
+            (mode, self.tr("ui_scale_auto", percent=auto_percent) if mode == "auto" else f"{mode}%")
+            for mode in UI_SCALE_OPTIONS
+        ]
 
     def start_async_imports(self):
         self.load_thread = QThread(self)
