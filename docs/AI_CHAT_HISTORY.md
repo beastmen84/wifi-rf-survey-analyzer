@@ -542,6 +542,12 @@ Language:
   launcher and the main workspace, and is saved whenever the user changes it.
   The startup page now styles itself from the active Qt palette instead of
   hard-coded colors.
+- Refined survey point markers in the Qt floorplan: markers are larger, use
+  muted green/yellow/orange/red signal colors, still scale naturally with map
+  zoom, and can now be highlighted again when selected from the measurements
+  table. Point summary `best_signal_dbm` now prefers rows marked relevant when
+  available, falling back to all networks only when a point has no relevant
+  rows.
 
 Recent commits:
 

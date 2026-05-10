@@ -447,7 +447,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.points_table.horizontalHeader().setStretchLastSection(False)
         self.points_table.horizontalHeader().setMinimumSectionSize(34)
         self.configure_points_table_columns()
-        self.points_table.itemSelectionChanged.connect(self.update_point_action_state)
+        self.points_table.itemSelectionChanged.connect(self.on_points_table_selection_changed)
         self.points_table.itemDoubleClicked.connect(lambda _item: self.focus_selected_point())
         table_layout.addWidget(self.points_table)
 
@@ -2210,6 +2210,15 @@ class WifiHeatmapQtApp(QMainWindow):
 
     def clear_point_selection(self):
         self.points_table.clearSelection()
+        self.floorplan_view.clear_selected_point()
+        self.update_point_action_state()
+
+    def on_points_table_selection_changed(self):
+        point = self.current_selected_point()
+        if point:
+            self.floorplan_view.select_point(point)
+        else:
+            self.floorplan_view.clear_selected_point()
         self.update_point_action_state()
 
     def update_point_action_state(self):

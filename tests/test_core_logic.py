@@ -8,6 +8,7 @@ from ap_groups import (
 from ap_metadata_checks import build_ap_metadata_warnings
 from heatmap_tools import calculate_interference_points
 from quality_engine import QUALITY_MISSING_RELEVANT, evaluate_point_quality
+from survey_store import get_survey_point_summaries_from_rows
 
 
 class ApGroupTests(unittest.TestCase):
@@ -65,6 +66,19 @@ class QualityTests(unittest.TestCase):
 
         self.assertEqual(quality["p1"]["status"], QUALITY_MISSING_RELEVANT)
         self.assertEqual(quality["p1"]["missing_relevant"], ["guest"])
+
+
+class SurveyPointSummaryTests(unittest.TestCase):
+    def test_best_signal_prefers_relevant_networks_when_available(self):
+        relevant_row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -68, 1)
+        external_row = build_row("p1", "EXTERNAL", "80:11:22:33:44:10", -42, 6)
+        external_row["is_relevant"] = "0"
+
+        summaries = get_survey_point_summaries_from_rows([external_row, relevant_row])
+
+        self.assertEqual(len(summaries), 1)
+        self.assertEqual(summaries[0]["best_signal_dbm"], -68)
+        self.assertEqual(summaries[0]["signal_scope"], "relevant")
 
 
 class ApMetadataTests(unittest.TestCase):

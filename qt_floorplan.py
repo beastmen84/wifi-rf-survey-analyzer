@@ -32,6 +32,7 @@ class FloorplanView(QGraphicsView):
         self.ap_marker_items = []
         self.scale_calibration_items = []
         self.scale_calibration_points = []
+        self.selected_point_key = None
         self.zoom_level = 1.0
         self.pending_ap_position_group_id = ""
         self.pending_ap_position_label = ""
@@ -56,6 +57,7 @@ class FloorplanView(QGraphicsView):
         self.ap_marker_items = []
         self.scale_calibration_items = []
         self.scale_calibration_points = []
+        self.selected_point_key = None
         self.scale_calibration_active = False
         self.pending_ap_position_group_id = ""
         self.pending_ap_position_label = ""
@@ -74,6 +76,7 @@ class FloorplanView(QGraphicsView):
         self.ap_marker_items = []
         self.scale_calibration_items = []
         self.scale_calibration_points = []
+        self.selected_point_key = None
         self.zoom_level = 1.0
         self.cancel_ap_position_pick(emit_signal=False)
         self.cancel_scale_calibration_pick(emit_signal=False)
@@ -97,14 +100,57 @@ class FloorplanView(QGraphicsView):
             except (TypeError, ValueError):
                 continue
 
-            item = QGraphicsEllipseItem(x - 5, y - 5, 10, 10)
-            item.setBrush(QBrush(point_color(signal)))
-            item.setPen(QPen(Qt.GlobalColor.white, 1.5))
-            item.setZValue(10)
+            radius = 7
+            item = QGraphicsEllipseItem(x - radius, y - radius, radius * 2, radius * 2)
+            self.style_point_marker(item, point_color(signal), self.point_key(point) == self.selected_point_key)
             item.setToolTip(format_point_tooltip(point))
             item.setData(0, dict(point))
             self.scene.addItem(item)
             self.marker_items.append(item)
+
+    def style_point_marker(self, item, color, selected=False):
+        item.setBrush(QBrush(color))
+        if selected:
+            item.setPen(QPen(QColor("#1f2937"), 3.2))
+            item.setZValue(20)
+        else:
+            item.setPen(QPen(Qt.GlobalColor.white, 2.0))
+            item.setZValue(10)
+
+    def point_key(self, point):
+        point_id = str(point.get("point_id", "")).strip()
+        if point_id:
+            return ("id", point_id)
+
+        return (
+            "position",
+            str(point.get("timestamp", "")),
+            str(point.get("x", "")),
+            str(point.get("y", "")),
+        )
+
+    def select_point(self, point):
+        self.selected_point_key = self.point_key(point) if point else None
+        self.refresh_point_marker_selection()
+
+    def clear_selected_point(self):
+        self.selected_point_key = None
+        self.refresh_point_marker_selection()
+
+    def refresh_point_marker_selection(self):
+        for item in self.marker_items:
+            point = item.data(0)
+            if not isinstance(point, dict):
+                continue
+            try:
+                signal = float(point.get("best_signal_dbm", point.get("signal_dbm", -90)))
+            except (TypeError, ValueError):
+                signal = -90
+            self.style_point_marker(
+                item,
+                point_color(signal),
+                self.point_key(point) == self.selected_point_key,
+            )
 
     def set_ap_groups(self, groups):
         for item in self.ap_marker_items:
@@ -289,10 +335,12 @@ class FloorplanView(QGraphicsView):
             for item in self.scene.items(scene_point):
                 point_data = item.data(0)
                 if isinstance(point_data, dict):
+                    self.select_point(point_data)
                     self.pointSelected.emit(point_data)
                     event.accept()
                     return
             self.pointSelectionCleared.emit()
+            self.clear_selected_point()
             self.viewport().setCursor(Qt.CursorShape.ClosedHandCursor)
 
         super().mousePressEvent(event)
@@ -352,12 +400,12 @@ def load_ap_position_icon():
 
 def point_color(signal_dbm):
     if signal_dbm >= -60:
-        return Qt.GlobalColor.green
+        return QColor("#4E8F5A")
     if signal_dbm >= -70:
-        return Qt.GlobalColor.yellow
+        return QColor("#D6B84A")
     if signal_dbm >= -80:
-        return Qt.GlobalColor.darkYellow
-    return Qt.GlobalColor.red
+        return QColor("#D49A32")
+    return QColor("#C65A5A")
 
 
 def format_point_tooltip(point):

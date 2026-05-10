@@ -472,12 +472,21 @@ def get_survey_point_summaries_from_rows(rows):
                 "x": x,
                 "y": y,
                 "best_signal_dbm": signal_dbm,
+                "best_relevant_signal_dbm": None,
                 "ssids": set(),
-                "row_count": 0
+                "row_count": 0,
+                "relevant_row_count": 0
             }
         )
         point["best_signal_dbm"] = max(point["best_signal_dbm"], signal_dbm)
         point["row_count"] += 1
+        if str(row.get("is_relevant", "")).strip() == "1":
+            point["best_relevant_signal_dbm"] = (
+                signal_dbm
+                if point["best_relevant_signal_dbm"] is None
+                else max(point["best_relevant_signal_dbm"], signal_dbm)
+            )
+            point["relevant_row_count"] += 1
 
         if ssid:
             point["ssids"].add(ssid)
@@ -485,8 +494,17 @@ def get_survey_point_summaries_from_rows(rows):
     summaries = []
 
     for point in points.values():
+        if point["best_relevant_signal_dbm"] is not None:
+            best_signal_dbm = point["best_relevant_signal_dbm"]
+            signal_scope = "relevant"
+        else:
+            best_signal_dbm = point["best_signal_dbm"]
+            signal_scope = "all"
+
         summaries.append({
             **point,
+            "best_signal_dbm": best_signal_dbm,
+            "signal_scope": signal_scope,
             "ssids": sorted(point["ssids"])
         })
 
