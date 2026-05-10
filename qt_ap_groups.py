@@ -474,8 +474,6 @@ class APGroupManagerDialog(QDialog):
             for column, value in enumerate(values):
                 item = QTableWidgetItem(str(value))
                 item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
-                if column in {1, 2, 5, 6, 7} and str(value).strip() not in {"", "-"}:
-                    item.setToolTip(str(value).replace("\n", ", "))
                 if column in {0, 3, 4, 5, 8, 9}:
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 else:
@@ -1206,10 +1204,6 @@ class BssidSelectionDialog(QDialog):
                 item = QTableWidgetItem(value)
                 item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
                 item.setData(Qt.ItemDataRole.UserRole, clean_bssid)
-                if clean_bssid in self.focus_bssids:
-                    item.setToolTip(self.manager.tr("ap_group_bssid_warning_focus_hint"))
-                elif value and value != "-":
-                    item.setToolTip(value)
                 if offset in {1, 3, 4}:
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 else:

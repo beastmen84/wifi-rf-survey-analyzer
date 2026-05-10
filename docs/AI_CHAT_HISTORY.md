@@ -672,6 +672,9 @@ Language:
 - The main toolbar Settings button height is now tied to the same app-bar
   control height used by the section cards, avoiding the slightly shorter
   standalone button appearance.
+- AP Group Manager table tooltips were removed from both the main AP group table
+  and Duplicate/Split table because the current column sizing keeps content
+  readable without hover-only duplicates.
 
 Recent commits:
 
