@@ -533,6 +533,9 @@ Language:
   tooltip, all other columns are center-aligned, the collapsed measurement
   points handle no longer draws a surrounding panel frame, and floorplan drag
   resets the cursor to the normal arrow after mouse release.
+- Restored the collapsed measurement-points button shape after removing the
+  surrounding overlay frame by increasing the collapsed overlay size and
+  enforcing a pill-shaped minimum button size.
 
 Recent commits:
 

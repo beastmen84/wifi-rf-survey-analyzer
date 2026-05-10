@@ -527,8 +527,8 @@ class WifiHeatmapQtApp(QMainWindow):
             width = min(max(760, int(container_width * 0.84)), max(320, container_width - (margin * 2)))
             height = min(self.points_overlay_height, max(170, container_height - (margin * 2)))
         else:
-            width = min(260, max(220, container_width - (margin * 2)))
-            height = max(38, self.points_panel_toggle_button.sizeHint().height() + 8)
+            width = min(280, max(240, container_width - (margin * 2)))
+            height = max(50, self.points_panel_toggle_button.sizeHint().height() + 16)
 
         x = max(margin, (container_width - width) // 2)
         y = max(margin, container_height - height - margin)
@@ -747,9 +747,10 @@ class WifiHeatmapQtApp(QMainWindow):
                 background: transparent;
             }}
             QPushButton#pointsPanelToggle {{
-                min-width: 150px;
-                padding: 6px 14px;
-                border-radius: 14px;
+                min-width: 190px;
+                min-height: 30px;
+                padding: 6px 18px;
+                border-radius: 15px;
                 background: {palette["metric_info"]};
                 color: #FFFFFF;
                 border: 1px solid {palette["metric_info"]};
