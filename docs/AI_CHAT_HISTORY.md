@@ -399,9 +399,16 @@ Language:
   networks through `SurveySession.add_points`, manages relevant SSID prompts in
   Qt, and keeps point quality/delete/focus controls in the Qt points table.
   `qt_point_workflow.py` now contains the scan worker and point-related dialogs.
+- Added the first real Qt live map preview for continuous maps. The `Mappa live`
+  tab now has SSID, band, map type, aggregation, usable-threshold, interference
+  mode, auto-update and manual update controls. Signal coverage and AP
+  interference render in a background Qt thread through `qt_live_map.py`, using
+  the existing AP group role/filter logic and the shared live renderer. Channel
+  and dominant AP live views still need to be migrated in a later step.
 
 Recent commits:
 
+- `7e6ac86` Add Qt live map preview.
 - `ce08bea` Add AI chat continuity notes.
 - `7dfb5be` Hide test AP groups from map analysis.
 - `1d35a5d` Use AP roles in interference analysis.
@@ -420,8 +427,9 @@ Recent commits:
 
 Good next steps, in likely order:
 
-1. Continue PySide6 migration with the live map tab as the next major workflow
-   to move.
+1. Continue PySide6 migration by adding the discrete live map modes:
+   AP channels and Dominant AP, including category legends and AP position
+   warning markers.
 2. Add lightweight tests around AP groups, quality and point scanning before
    larger V2 refactors.
 3. Decide whether mounting metadata should influence AP position warnings or

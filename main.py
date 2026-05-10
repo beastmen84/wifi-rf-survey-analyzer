@@ -4,11 +4,12 @@ import sys
 from pathlib import Path
 
 try:
-    from PySide6.QtCore import Qt, QThread
+    from PySide6.QtCore import Qt, QThread, QTimer
     from PySide6.QtGui import QAction
     from PySide6.QtWidgets import (
         QAbstractItemView,
         QApplication,
+        QCheckBox,
         QComboBox,
         QDialog,
         QFileDialog,
@@ -35,6 +36,13 @@ except ModuleNotFoundError as exc:
     raise SystemExit(1) from exc
 
 from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_language, translate
+from ap_groups import (
+    build_ap_group_role_map,
+    build_bssid_to_manual_group_map,
+    serialize_ap_group_map,
+    serialize_ap_group_roles,
+)
+from map_config import MapConfig
 from quality_engine import (
     QUALITY_GOOD,
     QUALITY_LOW_CONFIDENCE,
@@ -45,6 +53,7 @@ from quality_engine import (
 )
 from qt_ap_groups import open_qt_ap_group_manager
 from qt_floorplan import FloorplanView
+from qt_live_map import LiveMapRenderWorker, LiveMapView
 from qt_point_workflow import MissingRelevantNetworksDialog, RelevantNetworksDialog, WifiScanWorker
 from survey_store import SurveyFormatError, SurveySession
 from wifi_scanner import get_connected_ssid
@@ -66,6 +75,10 @@ class WifiHeatmapQtApp(QMainWindow):
         self.scan_in_progress = False
         self.pending_scan_point = None
         self.last_scan_backend_used = "-"
+        self.live_thread = None
+        self.live_worker = None
+        self.live_rendering = False
+        self.live_dirty = False
 
         self.setWindowTitle(self.tr("app_title"))
         self.resize(1400, 900)
@@ -217,6 +230,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.tabs = QTabWidget()
         self.tabs.addTab(self.build_survey_tab(), "")
         self.tabs.addTab(self.build_live_tab(), "")
+        self.tabs.currentChanged.connect(self.on_workspace_tab_changed)
         layout.addWidget(self.tabs)
 
         footer = QFrame()
@@ -307,14 +321,81 @@ class WifiHeatmapQtApp(QMainWindow):
         tab = QWidget()
         layout = QVBoxLayout(tab)
         layout.setContentsMargins(16, 16, 16, 16)
-        self.live_title = QLabel()
-        self.live_title.setObjectName("sectionTitle")
-        self.live_body = QLabel()
-        self.live_body.setObjectName("mutedText")
-        self.live_body.setWordWrap(True)
-        layout.addWidget(self.live_title)
-        layout.addWidget(self.live_body)
-        layout.addStretch(1)
+        layout.setSpacing(12)
+
+        controls = QFrame()
+        controls.setObjectName("summaryPanel")
+        controls_layout = QGridLayout(controls)
+        controls_layout.setContentsMargins(14, 12, 14, 12)
+        controls_layout.setHorizontalSpacing(10)
+        controls_layout.setVerticalSpacing(8)
+
+        self.live_ssid_label = QLabel()
+        self.live_ssid_combo = QComboBox()
+        self.live_ssid_combo.setMinimumWidth(220)
+        self.live_band_label = QLabel()
+        self.live_band_combo = QComboBox()
+        self.live_map_type_label = QLabel()
+        self.live_map_type_combo = QComboBox()
+        self.live_aggregation_label = QLabel()
+        self.live_aggregation_combo = QComboBox()
+        self.live_interference_mode_label = QLabel()
+        self.live_interference_mode_combo = QComboBox()
+        self.live_usable_check = QCheckBox()
+        self.live_auto_check = QCheckBox()
+        self.live_auto_check.setChecked(True)
+        self.live_update_button = QPushButton()
+        self.live_update_button.clicked.connect(self.update_live_preview)
+
+        for combo in (
+            self.live_ssid_combo,
+            self.live_band_combo,
+            self.live_map_type_combo,
+            self.live_aggregation_combo,
+            self.live_interference_mode_combo,
+        ):
+            combo.currentIndexChanged.connect(lambda *_args: self.on_live_option_changed())
+        self.live_usable_check.toggled.connect(lambda *_args: self.on_live_option_changed())
+        self.live_auto_check.toggled.connect(lambda *_args: self.on_live_option_changed())
+
+        controls_layout.addWidget(self.live_ssid_label, 0, 0)
+        controls_layout.addWidget(self.live_ssid_combo, 0, 1)
+        controls_layout.addWidget(self.live_band_label, 0, 2)
+        controls_layout.addWidget(self.live_band_combo, 0, 3)
+        controls_layout.addWidget(self.live_map_type_label, 0, 4)
+        controls_layout.addWidget(self.live_map_type_combo, 0, 5)
+        controls_layout.addWidget(self.live_auto_check, 0, 6)
+        controls_layout.addWidget(self.live_update_button, 0, 7)
+        controls_layout.addWidget(self.live_aggregation_label, 1, 0)
+        controls_layout.addWidget(self.live_aggregation_combo, 1, 1)
+        controls_layout.addWidget(self.live_interference_mode_label, 1, 2)
+        controls_layout.addWidget(self.live_interference_mode_combo, 1, 3)
+        controls_layout.addWidget(self.live_usable_check, 1, 4, 1, 2)
+        controls_layout.setColumnStretch(8, 1)
+        layout.addWidget(controls)
+
+        self.live_view = LiveMapView()
+        layout.addWidget(self.live_view, 1)
+
+        status_row = QHBoxLayout()
+        self.live_status_label = QLabel()
+        self.live_status_label.setObjectName("mutedText")
+        status_row.addWidget(self.live_status_label, 1)
+        self.live_zoom_out_button = QPushButton("-")
+        self.live_zoom_in_button = QPushButton("+")
+        self.live_fit_button = QPushButton()
+        for button in (self.live_zoom_out_button, self.live_zoom_in_button, self.live_fit_button):
+            button.setObjectName("compactButton")
+        self.live_zoom_out_button.setMaximumWidth(42)
+        self.live_zoom_in_button.setMaximumWidth(42)
+        self.live_fit_button.setMaximumWidth(80)
+        self.live_fit_button.clicked.connect(self.live_view.fit_to_view)
+        self.live_zoom_out_button.clicked.connect(self.live_view.zoom_out)
+        self.live_zoom_in_button.clicked.connect(self.live_view.zoom_in)
+        status_row.addWidget(self.live_zoom_out_button)
+        status_row.addWidget(self.live_zoom_in_button)
+        status_row.addWidget(self.live_fit_button)
+        layout.addLayout(status_row)
         return tab
 
     def apply_styles(self):
@@ -359,6 +440,10 @@ class WifiHeatmapQtApp(QMainWindow):
                 min-width: 240px;
                 padding: 8px 12px;
             }
+            QPushButton#compactButton {
+                min-width: 0;
+                padding: 5px 8px;
+            }
             QToolBar {
                 background: #ffffff;
                 border-bottom: 1px solid #d7dde3;
@@ -369,6 +454,11 @@ class WifiHeatmapQtApp(QMainWindow):
                 background: #ffffff;
                 alternate-background-color: #f1f4f7;
                 gridline-color: #d7dde3;
+            }
+            QGraphicsView#liveMapView {
+                background: #2f3640;
+                border: 1px solid #cbd3dc;
+                border-radius: 4px;
             }
             QHeaderView::section {
                 background: #e9edf2;
@@ -406,8 +496,16 @@ class WifiHeatmapQtApp(QMainWindow):
         self.delete_last_button.setText(self.tr("delete_last"))
         self.tabs.setTabText(0, self.tr("survey_tab"))
         self.tabs.setTabText(1, self.tr("live_map_tab"))
-        self.live_title.setText(self.tr("qt_live_placeholder_title"))
-        self.live_body.setText(self.tr("qt_live_placeholder_body"))
+        self.live_ssid_label.setText("SSID")
+        self.live_band_label.setText(self.tr("band"))
+        self.live_map_type_label.setText(self.tr("map_type"))
+        self.live_aggregation_label.setText(self.tr("aggregation"))
+        self.live_interference_mode_label.setText(self.tr("interference_mode"))
+        self.live_usable_check.setText(self.tr("usable_only"))
+        self.live_auto_check.setText(self.tr("live_auto_update"))
+        self.live_update_button.setText(self.tr("live_update_now"))
+        self.live_fit_button.setText(self.tr("fit"))
+        self.refresh_live_static_options()
         self.points_table.setHorizontalHeaderLabels([
             "#",
             "X",
@@ -435,6 +533,239 @@ class WifiHeatmapQtApp(QMainWindow):
         self.retranslate()
         if self.session is not None:
             self.floorplan_view.set_ap_groups(self.session.get_ap_groups())
+            self.refresh_live_controls()
+            self.maybe_update_live_preview()
+
+    def refresh_live_static_options(self):
+        self.set_combo_items(
+            self.live_band_combo,
+            [
+                ("all", self.tr("all_bands_option")),
+                ("2.4", "2.4 GHz"),
+                ("5", "5 GHz"),
+            ],
+        )
+        self.set_combo_items(
+            self.live_map_type_combo,
+            [
+                ("signal", self.tr("map_type_signal")),
+                ("interference", self.tr("map_type_interference")),
+            ],
+        )
+        self.set_combo_items(
+            self.live_aggregation_combo,
+            [
+                ("max", self.tr("aggregation_max")),
+                ("median", self.tr("aggregation_median")),
+                ("mean", self.tr("aggregation_mean")),
+            ],
+        )
+        self.set_combo_items(
+            self.live_interference_mode_combo,
+            [
+                ("intra_ssid", self.tr("interference_mode_intra_ssid")),
+                ("all", self.tr("interference_mode_all")),
+            ],
+        )
+
+    def set_combo_items(self, combo, items):
+        current = combo.currentData()
+        combo.blockSignals(True)
+        combo.clear()
+        for value, label in items:
+            combo.addItem(label, value)
+        index = combo.findData(current)
+        if index < 0 and combo.count():
+            index = 0
+        if index >= 0:
+            combo.setCurrentIndex(index)
+        combo.blockSignals(False)
+
+    def current_combo_value(self, combo, default=""):
+        value = combo.currentData()
+        return default if value is None else str(value)
+
+    def refresh_live_controls(self):
+        ssids = []
+        if self.session is not None:
+            ssids = self.session.get_ssids()
+
+        current_ssid = self.live_ssid_combo.currentText().strip()
+        self.live_ssid_combo.blockSignals(True)
+        self.live_ssid_combo.clear()
+        self.live_ssid_combo.addItems(ssids)
+        if current_ssid and current_ssid in ssids:
+            self.live_ssid_combo.setCurrentText(current_ssid)
+        elif ssids:
+            self.live_ssid_combo.setCurrentIndex(0)
+        self.live_ssid_combo.blockSignals(False)
+
+        can_render = self.can_use_live_controls(ssids)
+        for widget in (
+            self.live_ssid_combo,
+            self.live_band_combo,
+            self.live_map_type_combo,
+            self.live_aggregation_combo,
+            self.live_interference_mode_combo,
+            self.live_usable_check,
+            self.live_auto_check,
+        ):
+            widget.setEnabled(can_render)
+        self.live_update_button.setEnabled(can_render and not self.live_rendering)
+        self.live_zoom_out_button.setEnabled(self.live_view.pixmap_item is not None)
+        self.live_zoom_in_button.setEnabled(self.live_view.pixmap_item is not None)
+        self.live_fit_button.setEnabled(self.live_view.pixmap_item is not None)
+        self.update_live_option_state()
+
+        if not can_render and not self.live_rendering:
+            self.live_status_label.setText(self.tr("live_preview_empty"))
+
+    def can_use_live_controls(self, ssids=None):
+        has_session = self.session is not None
+        has_map = bool(has_session and self.session.metadata.get("map_file"))
+        has_rows = bool(has_session and self.session.get_point_summaries())
+        if ssids is None:
+            ssids = self.session.get_ssids() if has_session else []
+        return has_session and has_map and has_rows and bool(ssids) and not self.scan_in_progress
+
+    def update_live_option_state(self):
+        map_type = self.current_combo_value(self.live_map_type_combo, "signal")
+        is_interference = map_type == "interference"
+        can_use_controls = self.can_use_live_controls()
+        self.live_interference_mode_combo.setEnabled(can_use_controls and is_interference)
+        self.live_usable_check.setEnabled(can_use_controls and not is_interference)
+        if is_interference and self.current_combo_value(self.live_band_combo) == "all":
+            index = self.live_band_combo.findData("2.4")
+            if index >= 0:
+                self.live_band_combo.blockSignals(True)
+                self.live_band_combo.setCurrentIndex(index)
+                self.live_band_combo.blockSignals(False)
+
+    def on_workspace_tab_changed(self, index):
+        if index == 1:
+            self.refresh_live_controls()
+            self.maybe_update_live_preview()
+
+    def on_live_option_changed(self):
+        self.update_live_option_state()
+        self.refresh_live_controls()
+        self.maybe_update_live_preview()
+
+    def maybe_update_live_preview(self):
+        if self.tabs.currentIndex() != 1:
+            return
+        if not self.live_auto_check.isChecked():
+            return
+        self.update_live_preview()
+
+    def update_live_preview(self):
+        if not self.can_render_live_preview():
+            self.live_view.clear()
+            self.live_status_label.setText(self.tr("live_preview_empty"))
+            self.refresh_live_controls()
+            return
+
+        if self.live_rendering:
+            self.live_dirty = True
+            return
+
+        map_file = self.session.metadata.get("map_file", "")
+        config = self.build_live_map_config()
+        translations = self.build_live_renderer_translations()
+        self.live_rendering = True
+        self.live_dirty = False
+        self.live_status_label.setText(self.tr("live_preview_rendering"))
+        self.refresh_live_controls()
+
+        thread = QThread(self)
+        worker = LiveMapRenderWorker(self.session.rows, map_file, config, translations)
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.finished.connect(self.finish_live_preview)
+        worker.finished.connect(thread.quit)
+        worker.finished.connect(worker.deleteLater)
+        worker.failed.connect(self.fail_live_preview)
+        worker.failed.connect(thread.quit)
+        worker.failed.connect(worker.deleteLater)
+        thread.finished.connect(thread.deleteLater)
+        self.live_thread = thread
+        self.live_worker = worker
+        thread.start()
+
+    def can_render_live_preview(self):
+        if self.session is None:
+            return False
+
+        map_file = self.session.metadata.get("map_file", "")
+        if not map_file or not os.path.exists(map_file):
+            return False
+
+        if len(self.session.get_point_summaries()) < 3:
+            return False
+
+        return bool(self.live_ssid_combo.currentText().strip())
+
+    def build_live_map_config(self):
+        groups = self.session.get_ap_groups() if self.session is not None else []
+        ap_group_map = serialize_ap_group_map(build_bssid_to_manual_group_map(groups))
+        ap_group_roles = serialize_ap_group_roles(build_ap_group_role_map(groups))
+        return MapConfig(
+            ssid=self.live_ssid_combo.currentText().strip(),
+            band=self.current_combo_value(self.live_band_combo, "all"),
+            map_type=self.current_combo_value(self.live_map_type_combo, "signal"),
+            interference_mode=self.current_combo_value(self.live_interference_mode_combo, "intra_ssid"),
+            interpolation="rbf",
+            aggregation=self.current_combo_value(self.live_aggregation_combo, "max"),
+            color_scale="fixed",
+            usable_only=self.live_usable_check.isChecked(),
+            ap_group_map=ap_group_map,
+            ap_group_roles=ap_group_roles,
+        ).normalized()
+
+    def build_live_renderer_translations(self):
+        return {
+            "signal_title": self.tr("map_type_signal"),
+            "interference_title": self.tr("map_type_interference"),
+            "risk": self.tr("interference_top_risk"),
+            "serving_ap": self.tr("interference_summary_serving_ap"),
+            "serving_channel": self.tr("interference_summary_serving_channel"),
+            "interferer": self.tr("interference_summary_interferer"),
+            "interferer_channel": self.tr("interference_summary_interferer_channel"),
+            "source_rows": self.tr("rows"),
+        }
+
+    def finish_live_preview(self, payload):
+        self.live_thread = None
+        self.live_worker = None
+        self.live_rendering = False
+        if payload:
+            self.live_view.set_payload(payload)
+            self.live_status_label.setText(self.format_live_status(payload))
+        else:
+            self.live_view.clear()
+            self.live_status_label.setText(self.tr("live_preview_insufficient"))
+        self.refresh_live_controls()
+
+        if self.live_dirty and self.live_auto_check.isChecked():
+            QTimer.singleShot(0, self.update_live_preview)
+
+    def fail_live_preview(self, message):
+        self.live_thread = None
+        self.live_worker = None
+        self.live_rendering = False
+        self.live_status_label.setText(f"{self.tr('error')}: {message}")
+        self.refresh_live_controls()
+
+    def format_live_status(self, payload):
+        scale = payload.get("scale_payload", {}) if payload else {}
+        title = scale.get("title") or self.tr("live_preview_updated")
+        if scale.get("kind") == "gradient":
+            suffix = scale.get("suffix", "")
+            return (
+                f"{self.tr('live_preview_updated')} "
+                f"{title}: {scale.get('min')}{suffix} / {scale.get('max')}{suffix}"
+            )
+        return self.tr("live_preview_updated")
 
     def show_start_page(self):
         self.stack.setCurrentWidget(self.start_page)
@@ -446,6 +777,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.toolbar.setVisible(True)
         self.refresh_session_labels()
         self.refresh_points_table()
+        self.maybe_update_live_preview()
 
     def new_survey(self):
         if not self.confirm_switch_survey():
@@ -453,6 +785,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.session = SurveySession()
         self.load_session_ssid_state()
         self.floorplan_view.clear_floorplan()
+        self.live_view.clear()
         self.show_workspace_page()
 
     def open_survey(self):
@@ -475,6 +808,7 @@ class WifiHeatmapQtApp(QMainWindow):
             return
 
         self.load_session_ssid_state()
+        self.live_view.clear()
         self.show_workspace_page()
         self.load_saved_plan()
         self.status.showMessage(self.tr("active_survey", name=self.session_display_name()))
@@ -525,6 +859,7 @@ class WifiHeatmapQtApp(QMainWindow):
         map_file = self.session.metadata.get("map_file", "")
         if not map_file:
             self.floorplan_view.clear_floorplan()
+            self.live_view.clear()
             return
 
         if os.path.exists(map_file):
@@ -564,6 +899,7 @@ class WifiHeatmapQtApp(QMainWindow):
             )
         else:
             self.status.showMessage(self.tr("map_loaded", name=self.session_display_name()))
+        self.maybe_update_live_preview()
 
     def zoom_in(self):
         self.floorplan_view.zoom_in()
@@ -602,6 +938,10 @@ class WifiHeatmapQtApp(QMainWindow):
         if self.scan_in_progress:
             x, y = self.pending_scan_point or ("-", "-")
             self.status.showMessage(self.tr("scanning", x=x, y=y))
+            event.ignore()
+            return
+        if self.live_rendering:
+            self.status.showMessage(self.tr("live_preview_rendering"))
             event.ignore()
             return
 
@@ -815,6 +1155,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.refresh_points_table()
         self.status.showMessage(self.tr("point_saved", x=x, y=y, count=len(networks)))
         self.points_table.selectRow(0)
+        self.maybe_update_live_preview()
 
     def open_ap_group_manager(self):
         if self.session is None:
@@ -825,6 +1166,7 @@ class WifiHeatmapQtApp(QMainWindow):
             self.refresh_points_table()
             if not self.floorplan_view.pending_ap_position_group_id:
                 self.status.showMessage(self.tr("ap_groups_saved"))
+            self.maybe_update_live_preview()
 
     def start_ap_positioning(self, group_id):
         if self.session is None:
@@ -864,6 +1206,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.status.showMessage(
             self.tr("ap_position_saved", group=self.get_ap_group_display_name(group_id), x=x, y=y)
         )
+        self.maybe_update_live_preview()
 
     def cancel_ap_positioning(self):
         self.status.showMessage(self.tr("ap_position_cancelled"))
@@ -937,6 +1280,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.status.showMessage(
             self.tr("last_point_deleted", x=point["x"], y=point["y"], rows=removed_rows)
         )
+        self.maybe_update_live_preview()
 
     def delete_point(self, point, refresh=True):
         if self.session is None:
@@ -949,6 +1293,7 @@ class WifiHeatmapQtApp(QMainWindow):
             self.status.showMessage(
                 self.tr("point_deleted", x=point["x"], y=point["y"], rows=removed_rows)
             )
+            self.maybe_update_live_preview()
         return removed_rows
 
     def session_display_name(self):
@@ -1021,6 +1366,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.zoom_in_action.setEnabled(has_map and not self.scan_in_progress)
         self.zoom_out_action.setEnabled(has_map and not self.scan_in_progress)
         self.fit_action.setEnabled(has_map and not self.scan_in_progress)
+        self.refresh_live_controls()
         self.update_point_action_state()
 
     def refresh_points_table(self):
