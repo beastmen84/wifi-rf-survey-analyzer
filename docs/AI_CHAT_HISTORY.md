@@ -586,6 +586,12 @@ Language:
   buckets rather than trusting only Windows/Qt logical DPI. Current mapping:
   up to 1920x1200 = 100%, up to 2560x1600 / 3440x1600 = 125%, up to
   3840x2400 = 150%, larger = 175%. Manual scale choices remain available.
+- Adjusted the meaning of UI scale percentages: the resolution bucket is now
+  the neutral density for that screen. Example: on a 2560x1600 display,
+  `Auto (125%)` and manual `125%` both keep the current density, while manual
+  `100%` reduces the UI. The Settings popup combobox dropdowns now explicitly
+  style popup text and selection colors so items remain visible on themed
+  backgrounds, and the popup width was reduced.
 
 Recent commits:
 

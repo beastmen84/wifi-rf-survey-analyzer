@@ -9,7 +9,13 @@ from ap_metadata_checks import build_ap_metadata_warnings
 from heatmap_tools import calculate_interference_points
 from quality_engine import QUALITY_MISSING_RELEVANT, evaluate_point_quality
 from survey_store import get_survey_point_summaries_from_rows
-from ui_scaling import normalize_ui_scale_mode, scale_font, scale_for_resolution, scale_px
+from ui_scaling import (
+    effective_scale_for_percent,
+    normalize_ui_scale_mode,
+    scale_font,
+    scale_percent_for_resolution,
+    scale_px,
+)
 
 
 class ApGroupTests(unittest.TestCase):
@@ -91,10 +97,15 @@ class UiScalingTests(unittest.TestCase):
         self.assertGreater(scale_font(10, 1.25), 10)
 
     def test_ui_auto_scale_matches_common_resolutions(self):
-        self.assertEqual(scale_for_resolution(1920, 1080), 1.0)
-        self.assertEqual(scale_for_resolution(2560, 1440), 1.25)
-        self.assertEqual(scale_for_resolution(2560, 1600), 1.25)
-        self.assertEqual(scale_for_resolution(3840, 2160), 1.5)
+        self.assertEqual(scale_percent_for_resolution(1920, 1080), 100)
+        self.assertEqual(scale_percent_for_resolution(2560, 1440), 125)
+        self.assertEqual(scale_percent_for_resolution(2560, 1600), 125)
+        self.assertEqual(scale_percent_for_resolution(3840, 2160), 150)
+
+    def test_ui_scale_percent_is_relative_to_resolution_class(self):
+        self.assertEqual(effective_scale_for_percent(125, 125), 1.0)
+        self.assertEqual(effective_scale_for_percent(100, 125), 0.8)
+        self.assertEqual(effective_scale_for_percent(150, 125), 1.2)
 
 
 class ApMetadataTests(unittest.TestCase):

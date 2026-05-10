@@ -26,7 +26,14 @@ from app_logging import configure_logging, log_event, log_exception, log_unhandl
 from app_settings import get_saved_theme, get_saved_ui_scale, save_theme, save_ui_scale
 from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_language, translate
 from qt_theme import QT_THEME_OPTIONS, QT_THEMES
-from ui_scaling import UI_SCALE_OPTIONS, normalize_ui_scale_mode, resolve_ui_scale, scale_font_px, scale_px
+from ui_scaling import (
+    UI_SCALE_OPTIONS,
+    detect_auto_ui_scale_percent,
+    normalize_ui_scale_mode,
+    resolve_ui_scale,
+    scale_font_px,
+    scale_px,
+)
 
 
 START_LANGUAGE_LABELS = {
@@ -316,6 +323,18 @@ class StartWindow(QMainWindow):
                 color: {palette["muted"]};
                 font-weight: 700;
             }}
+            QComboBox QAbstractItemView {{
+                background: {palette["panel"]};
+                color: {palette["text"]};
+                selection-background-color: {palette["selection"]};
+                selection-color: {palette["text"]};
+                border: 1px solid {palette["border"]};
+                outline: 0;
+            }}
+            QComboBox QAbstractItemView::item {{
+                min-height: {s(24)}px;
+                padding: {s(4)}px {s(8)}px;
+            }}
             QComboBox::drop-down {{
                 subcontrol-origin: padding;
                 subcontrol-position: top right;
@@ -417,7 +436,7 @@ class StartWindow(QMainWindow):
         language_combo.currentIndexChanged.connect(lambda _index: self.change_language(language_combo.currentData()))
         self.add_settings_row(layout, self.tr("language"), language_combo)
 
-        menu_width = self.spx(300)
+        menu_width = self.spx(230)
         dialog.setMinimumWidth(menu_width)
         dialog.adjustSize()
         position = self.settings_button.mapToGlobal(
@@ -428,7 +447,7 @@ class StartWindow(QMainWindow):
 
     def create_settings_combo(self, items, current_value):
         combo = QComboBox()
-        combo.setMinimumWidth(self.spx(168))
+        combo.setMinimumWidth(self.spx(150))
         for value, label in items:
             combo.addItem(label, value)
         index = combo.findData(current_value)
@@ -442,7 +461,7 @@ class StartWindow(QMainWindow):
         layout.addWidget(widget)
 
     def ui_scale_items(self):
-        auto_percent = int(round(resolve_ui_scale("auto") * 100))
+        auto_percent = detect_auto_ui_scale_percent()
         return [
             (mode, self.tr("ui_scale_auto", percent=auto_percent) if mode == "auto" else f"{mode}%")
             for mode in UI_SCALE_OPTIONS
