@@ -40,7 +40,14 @@ except ModuleNotFoundError as exc:
 from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_language, translate
 from app_logging import configure_logging, log_event, log_exception, log_unhandled_exception
 from app_restart import start_replacement_process
-from app_settings import get_saved_theme, get_saved_ui_scale, save_theme, save_ui_scale
+from app_settings import (
+    get_last_survey_directory,
+    get_saved_theme,
+    get_saved_ui_scale,
+    save_last_survey_path,
+    save_theme,
+    save_ui_scale,
+)
 from ap_groups import (
     build_ap_group_role_map,
     build_bssid_to_manual_group_map,
@@ -1714,7 +1721,7 @@ class WifiHeatmapQtApp(QMainWindow):
             csv_file, _selected_filter = get_centered_open_file_name(
                 self,
                 self.tr("open_existing_survey"),
-                "",
+                get_last_survey_directory(),
                 self.tr("qt_survey_file_filter"),
             )
         if not csv_file:
@@ -1727,6 +1734,7 @@ class WifiHeatmapQtApp(QMainWindow):
             return False
 
         self.load_session_ssid_state()
+        save_last_survey_path(csv_file)
         self.live_view.clear()
         self.show_workspace_page()
         self.load_saved_plan()
@@ -1742,7 +1750,7 @@ class WifiHeatmapQtApp(QMainWindow):
             csv_file, _selected_filter = get_centered_save_file_name(
                 self,
                 self.tr("save"),
-                "",
+                get_last_survey_directory(),
                 self.tr("qt_survey_file_filter"),
             )
             if not csv_file:
@@ -1751,6 +1759,7 @@ class WifiHeatmapQtApp(QMainWindow):
                 csv_file = f"{csv_file}.csv"
 
         self.session.save(csv_file)
+        save_last_survey_path(csv_file)
         self.refresh_session_labels()
         self.status.showMessage(self.tr("survey_saved", name=self.session.display_name))
         return True

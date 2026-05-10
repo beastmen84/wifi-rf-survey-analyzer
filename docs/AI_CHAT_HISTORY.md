@@ -720,6 +720,10 @@ Language:
   label/value panel on the right instead of long pipe-separated sentences.
   The right panel intentionally avoids duplicating metric counts already present
   in the boxes and keeps only operational details/lists.
+- The app remembers the last successfully opened or saved survey CSV path in
+  app settings. `Open existing survey` from both the start screen and workspace
+  opens in that directory; first save of a new survey uses the same directory as
+  the initial suggestion.
 
 Recent commits:
 

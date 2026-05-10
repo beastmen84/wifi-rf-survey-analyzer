@@ -1,8 +1,11 @@
 import unittest
 import logging
+import os
+import tempfile
 
 from app_logging import MaxLogLevelFilter
 from app_restart import build_restart_command
+from app_settings import get_last_survey_directory, save_last_survey_path
 from ap_groups import (
     build_bssid_to_manual_group_map,
     build_manual_ap_group,
@@ -195,6 +198,26 @@ class AppRestartTests(unittest.TestCase):
         )
 
         self.assertEqual(command, ["wifi_heatmap.exe", "--debug"])
+
+
+class AppSettingsTests(unittest.TestCase):
+    def test_last_survey_directory_uses_saved_file_parent(self):
+        previous = os.environ.get("WIFI_HEATMAP_SETTINGS_FILE")
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                settings_file = os.path.join(temp_dir, "settings.json")
+                survey_file = os.path.join(temp_dir, "surveys", "test.csv")
+                os.makedirs(os.path.dirname(survey_file), exist_ok=True)
+                os.environ["WIFI_HEATMAP_SETTINGS_FILE"] = settings_file
+
+                self.assertTrue(save_last_survey_path(survey_file))
+
+                self.assertEqual(get_last_survey_directory(), os.path.dirname(survey_file))
+        finally:
+            if previous is None:
+                os.environ.pop("WIFI_HEATMAP_SETTINGS_FILE", None)
+            else:
+                os.environ["WIFI_HEATMAP_SETTINGS_FILE"] = previous
 
 
 class LoggingTests(unittest.TestCase):

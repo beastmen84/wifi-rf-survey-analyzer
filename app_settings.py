@@ -14,6 +14,7 @@ APP_SETTINGS_DIR = "WifiHeatmap"
 SETTINGS_FILE_NAME = "settings.json"
 THEME_KEY = "theme"
 UI_SCALE_KEY = "ui_scale"
+LAST_SURVEY_PATH_KEY = "last_survey_path"
 
 
 def get_settings_path():
@@ -82,4 +83,26 @@ def get_saved_ui_scale(default="auto", valid_modes=None):
 def save_ui_scale(mode):
     settings = load_app_settings()
     settings[UI_SCALE_KEY] = str(mode)
+    return save_app_settings(settings)
+
+
+def get_last_survey_directory(default=""):
+    path = Path(str(load_app_settings().get(LAST_SURVEY_PATH_KEY, "")).strip())
+    if not str(path):
+        return default
+
+    if path.is_dir():
+        return str(path)
+
+    parent = path.parent
+    return str(parent) if parent.exists() else default
+
+
+def save_last_survey_path(file_path):
+    clean_path = str(file_path or "").strip()
+    if not clean_path:
+        return False
+
+    settings = load_app_settings()
+    settings[LAST_SURVEY_PATH_KEY] = str(Path(clean_path).resolve())
     return save_app_settings(settings)
