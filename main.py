@@ -33,6 +33,7 @@ except ModuleNotFoundError as exc:
     raise SystemExit(1) from exc
 
 from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_language, translate
+from qt_ap_groups import open_qt_ap_group_manager
 from qt_floorplan import FloorplanView
 from survey_store import SurveyFormatError, SurveySession
 
@@ -162,7 +163,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.zoom_out_action.triggered.connect(self.zoom_out)
         self.zoom_in_action.triggered.connect(self.zoom_in)
         self.fit_action.triggered.connect(self.fit_floorplan)
-        self.ap_groups_action.triggered.connect(self.show_not_migrated_message)
+        self.ap_groups_action.triggered.connect(self.open_ap_group_manager)
         self.quality_action.triggered.connect(self.show_not_migrated_message)
         self.generate_action.triggered.connect(self.show_not_migrated_message)
 
@@ -561,12 +562,27 @@ class WifiHeatmapQtApp(QMainWindow):
             self.tr("qt_not_migrated_message"),
         )
 
+    def open_ap_group_manager(self):
+        if self.session is None:
+            return
+
+        if open_qt_ap_group_manager(self):
+            self.refresh_session_labels()
+            self.refresh_points_table()
+            self.status.showMessage(self.tr("ap_groups_saved"))
+
     def session_display_name(self):
         if self.session is None:
             return self.tr("unsaved_survey")
         if self.session.csv_file:
             return self.session.display_name
         return self.tr("unsaved_survey")
+
+    def channel_sort_key(self, channel):
+        try:
+            return int(str(channel).strip())
+        except (TypeError, ValueError):
+            return 9999
 
     def refresh_session_labels(self):
         if self.session is None:
@@ -601,6 +617,9 @@ class WifiHeatmapQtApp(QMainWindow):
         )
         self.save_action.setEnabled(self.session is not None)
         self.load_plan_action.setEnabled(self.session is not None)
+        self.ap_groups_action.setEnabled(self.session is not None)
+        self.quality_action.setEnabled(self.session is not None)
+        self.generate_action.setEnabled(self.session is not None)
         has_map = self.floorplan_view.has_floorplan()
         self.zoom_in_action.setEnabled(has_map)
         self.zoom_out_action.setEnabled(has_map)

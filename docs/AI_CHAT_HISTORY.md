@@ -51,6 +51,9 @@ Core UI:
   workflows instead of adding more complex GUI to `app.py`.
 - `qt_floorplan.py`: Qt floorplan viewer with image/PDF loading, pan/zoom and
   point marker overlay.
+- `qt_ap_groups.py`: Qt AP Group Manager migration in progress; currently
+  handles group table/search, alias edits, role edits, BSSID split, conflict
+  details and saving group metadata.
 - `ap_group_dialog.py`: AP Group Manager.
 - `survey_quality_dialog.py`: survey quality dashboard.
 - `modal_dialogs.py`: shared modal dialog behavior.
@@ -382,6 +385,11 @@ Language:
   QGraphicsView floorplan loading for images/PDFs, saved floorplan restore from
   survey metadata, point marker overlay, pan/zoom controls, Ctrl+wheel zoom and
   fit-to-window. The reusable viewer lives in `qt_floorplan.py`.
+- Added the first Qt AP Group Manager implementation in `qt_ap_groups.py` and
+  connected it from `main.py`. It migrates group listing/search, alias editing,
+  alias deletion, role editing, reset automatic grouping, BSSID split, warning
+  details and save-to-session behavior. Metadata editing and AP positioning are
+  still pending in Qt.
 
 Recent commits:
 
@@ -404,9 +412,9 @@ Recent commits:
 Good next steps, in likely order:
 
 1. Improve AP Group Manager workflows:
-   better manual split/merge UX, especially for larger BSSID lists.
-2. Continue PySide6 migration in `main.py`, with AP Group Manager as the next
-   major workflow to move.
+   complete the remaining Qt migration for metadata editing and AP positioning.
+2. Continue PySide6 migration in `main.py`, with point creation/scanning as the
+   next major workflow to move.
 3. Add lightweight tests around AP groups, quality and interference before
    larger V2 refactors.
 4. Decide whether mounting metadata should influence AP position warnings or
