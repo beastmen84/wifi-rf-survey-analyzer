@@ -55,6 +55,7 @@ from heatmap_tools import (
     get_distance_alpha,
     get_dominant_ap_points,
     get_interference_data_quality,
+    get_scan_confidence_values,
     interpolate_signal_grid,
     smooth_heatmap_grid,
 )
@@ -3767,6 +3768,7 @@ class WifiHeatmapApp(ModalDialogMixin):
         x = df["x"].values
         y = df["y"].values
         signal = df["signal_dbm"].values
+        confidence = get_scan_confidence_values(df)
 
         width, height = self.bg_image.size
 
@@ -3781,7 +3783,8 @@ class WifiHeatmapApp(ModalDialogMixin):
             signal,
             grid_x,
             grid_y,
-            method=config.interpolation
+            method=config.interpolation,
+            confidence=confidence
         )
         grid_z = smooth_heatmap_grid(grid_z, sigma=config.smoothing_sigma)
         grid_z = apply_distance_mask(
@@ -3801,7 +3804,8 @@ class WifiHeatmapApp(ModalDialogMixin):
             grid_y,
             x,
             y,
-            max_distance_px=config.max_distance_px
+            max_distance_px=config.max_distance_px,
+            point_confidence=confidence
         )
         heatmap_alpha = np.where(np.isfinite(grid_z), distance_alpha * 0.55, 0)
         vmin, vmax = self.get_color_scale_limits(grid_z, config)
@@ -4034,6 +4038,7 @@ class WifiHeatmapApp(ModalDialogMixin):
         x = risk_df["x"].values
         y = risk_df["y"].values
         risk = risk_df["risk"].values
+        confidence = get_scan_confidence_values(risk_df)
         width, height = self.bg_image.size
 
         grid_x, grid_y = np.mgrid[
@@ -4046,7 +4051,8 @@ class WifiHeatmapApp(ModalDialogMixin):
             risk,
             grid_x,
             grid_y,
-            method=config.interpolation
+            method=config.interpolation,
+            confidence=confidence
         )
         grid_z = smooth_heatmap_grid(grid_z, sigma=config.smoothing_sigma)
         grid_z = apply_distance_mask(
@@ -4062,7 +4068,8 @@ class WifiHeatmapApp(ModalDialogMixin):
             grid_y,
             x,
             y,
-            max_distance_px=config.max_distance_px
+            max_distance_px=config.max_distance_px,
+            point_confidence=confidence
         )
         heatmap_alpha = np.where(np.isfinite(grid_z), distance_alpha * 0.58, 0)
         bg = np.array(self.bg_image)

@@ -18,6 +18,7 @@ from heatmap_tools import (
     collapse_heatmap_points,
     filter_by_band,
     get_distance_alpha,
+    get_scan_confidence_values,
     interpolate_signal_grid,
     smooth_heatmap_grid,
 )
@@ -67,16 +68,32 @@ def build_signal_payload(df, config, bg_image, translations, point_tooltip_build
     x = rows["x"].values
     y = rows["y"].values
     signal = rows["signal_dbm"].values
+    confidence = get_scan_confidence_values(rows)
     width, height = bg_image.size
     grid_x, grid_y = get_grid(width, height)
-    grid_z = interpolate_signal_grid(x, y, signal, grid_x, grid_y, method=config.interpolation)
+    grid_z = interpolate_signal_grid(
+        x,
+        y,
+        signal,
+        grid_x,
+        grid_y,
+        method=config.interpolation,
+        confidence=confidence
+    )
     grid_z = smooth_heatmap_grid(grid_z, sigma=config.smoothing_sigma)
     grid_z = apply_distance_mask(grid_z, grid_x, grid_y, x, y, max_distance_px=config.max_distance_px)
 
     if config.usable_only:
         grid_z = apply_signal_threshold(grid_z, min_signal_dbm=-70)
 
-    distance_alpha = get_distance_alpha(grid_x, grid_y, x, y, max_distance_px=config.max_distance_px)
+    distance_alpha = get_distance_alpha(
+        grid_x,
+        grid_y,
+        x,
+        y,
+        max_distance_px=config.max_distance_px,
+        point_confidence=confidence
+    )
     heatmap_alpha = np.where(np.isfinite(grid_z), distance_alpha * 0.55, 0)
     vmin, vmax = color_scale_limits(grid_z, config)
     scale_payload = {
@@ -128,12 +145,28 @@ def build_interference_payload(df, config, bg_image, translations, point_tooltip
     x = risk_df["x"].values
     y = risk_df["y"].values
     risk = risk_df["risk"].values
+    confidence = get_scan_confidence_values(risk_df)
     width, height = bg_image.size
     grid_x, grid_y = get_grid(width, height)
-    grid_z = interpolate_signal_grid(x, y, risk, grid_x, grid_y, method=config.interpolation)
+    grid_z = interpolate_signal_grid(
+        x,
+        y,
+        risk,
+        grid_x,
+        grid_y,
+        method=config.interpolation,
+        confidence=confidence
+    )
     grid_z = smooth_heatmap_grid(grid_z, sigma=config.smoothing_sigma)
     grid_z = apply_distance_mask(grid_z, grid_x, grid_y, x, y, max_distance_px=config.max_distance_px)
-    distance_alpha = get_distance_alpha(grid_x, grid_y, x, y, max_distance_px=config.max_distance_px)
+    distance_alpha = get_distance_alpha(
+        grid_x,
+        grid_y,
+        x,
+        y,
+        max_distance_px=config.max_distance_px,
+        point_confidence=confidence
+    )
     heatmap_alpha = np.where(np.isfinite(grid_z), distance_alpha * 0.58, 0)
     scale_payload = {
         "kind": "gradient",
@@ -235,7 +268,24 @@ def stable_dataframe_fingerprint(df):
     if df.empty:
         return 0
 
-    columns = [column for column in ("timestamp", "x", "y", "ssid", "bssid", "signal_dbm", "channel") if column in df.columns]
+    columns = [
+        column
+        for column in (
+            "timestamp",
+            "x",
+            "y",
+            "ssid",
+            "bssid",
+            "signal_dbm",
+            "channel",
+            "channel_width_mhz",
+            "samples_seen",
+            "samples_total",
+            "scan_confidence",
+            "is_relevant",
+        )
+        if column in df.columns
+    ]
     if not columns:
         return len(df)
 

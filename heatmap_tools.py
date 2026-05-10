@@ -37,10 +37,22 @@ def collapse_heatmap_points(df, aggregation="max"):
     }
     aggregation_function = aggregation_functions.get(aggregation, "max")
 
+    aggregation_spec = {"signal_dbm": aggregation_function}
+    optional_aggregations = {
+        "scan_confidence": "mean",
+        "samples_seen": "max",
+        "samples_total": "max",
+    }
+
+    for column, function in optional_aggregations.items():
+        if column in heatmap_df.columns:
+            heatmap_df[column] = pd.to_numeric(heatmap_df[column], errors="coerce")
+            aggregation_spec[column] = function
+
     return (
         heatmap_df
         .groupby(["timestamp", "x", "y"], as_index=False)
-        .agg({"signal_dbm": aggregation_function})
+        .agg(aggregation_spec)
     )
 
 
@@ -207,15 +219,16 @@ def calculate_interference_points(df, ssid, band, mode="intra_ssid", include_det
                 })
 
         risk_score = min(100.0, risk * 100)
+        strongest_interferer = get_strongest_interferer(interferers)
         risk_row = {
             "timestamp": timestamp,
             "x": x,
             "y": y,
-            "risk": risk_score
+            "risk": risk_score,
+            "scan_confidence": get_interference_confidence(serving_ap, strongest_interferer),
         }
 
         if include_details:
-            strongest_interferer = get_strongest_interferer(interferers)
             risk_row.update({
                 "ssid": ssid,
                 "serving_ap_group": serving_ap_group,
@@ -287,6 +300,27 @@ def get_strongest_interferer(interferers):
         return {}
 
     return max(interferers, key=lambda interferer: interferer["contribution"])
+
+
+def get_interference_confidence(serving_ap, strongest_interferer):
+    confidence_values = [parse_scan_confidence(serving_ap.get("scan_confidence", 1.0))]
+
+    if strongest_interferer:
+        confidence_values.append(parse_scan_confidence(strongest_interferer.get("scan_confidence", 1.0)))
+
+    return round(min(confidence_values), 3)
+
+
+def parse_scan_confidence(value, default=1.0):
+    try:
+        confidence = float(value)
+    except (TypeError, ValueError):
+        return default
+
+    if np.isnan(confidence):
+        return default
+
+    return float(np.clip(confidence, 0.05, 1.0))
 
 
 def channel_overlap_weight(base_channel, other_channel, band, base_width_mhz=None, other_width_mhz=None):
@@ -446,7 +480,38 @@ def smooth_heatmap_grid(grid_z, sigma):
     return smoothed_grid
 
 
-def interpolate_signal_grid(x, y, signal, grid_x, grid_y, method="rbf"):
+def get_scan_confidence_values(rows, default=1.0):
+    if rows is None or len(rows) == 0:
+        return np.array([], dtype=float)
+
+    if not hasattr(rows, "columns") or "scan_confidence" not in rows.columns:
+        return np.full(len(rows), default, dtype=float)
+
+    values = pd.to_numeric(rows["scan_confidence"], errors="coerce").fillna(default).to_numpy(dtype=float)
+    return np.clip(values, 0.05, 1.0)
+
+
+def normalize_confidence_array(confidence, expected_length):
+    if confidence is None:
+        return None
+
+    values = np.asarray(confidence, dtype=float)
+    if values.size != expected_length:
+        return None
+
+    values = np.where(np.isfinite(values), values, 1.0)
+    return np.clip(values, 0.05, 1.0)
+
+
+def get_confidence_rbf_smoothing(confidence, point_count, base_smoothing=4.0):
+    values = normalize_confidence_array(confidence, point_count)
+    if values is None:
+        return base_smoothing
+
+    return base_smoothing + ((1.0 - values) ** 2 * 24.0)
+
+
+def interpolate_signal_grid(x, y, signal, grid_x, grid_y, method="rbf", confidence=None):
     if method == "linear":
         return griddata(
             points=(x, y),
@@ -463,7 +528,7 @@ def interpolate_signal_grid(x, y, signal, grid_x, grid_y, method="rbf"):
             points,
             signal,
             kernel="thin_plate_spline",
-            smoothing=4.0
+            smoothing=get_confidence_rbf_smoothing(confidence, len(points))
         )
         return interpolator(grid_points).reshape(grid_x.shape)
     except Exception:
@@ -475,12 +540,26 @@ def interpolate_signal_grid(x, y, signal, grid_x, grid_y, method="rbf"):
         )
 
 
-def get_distance_alpha(grid_x, grid_y, point_x, point_y, max_distance_px, fade_ratio=0.25):
+def get_distance_alpha(
+    grid_x,
+    grid_y,
+    point_x,
+    point_y,
+    max_distance_px,
+    fade_ratio=0.25,
+    point_confidence=None,
+    min_confidence_alpha=0.45
+):
     min_distance_sq = np.full(grid_x.shape, np.inf)
+    confidence = normalize_confidence_array(point_confidence, len(point_x))
+    nearest_confidence = np.ones(grid_x.shape) if confidence is not None else None
 
-    for x, y in zip(point_x, point_y):
+    for index, (x, y) in enumerate(zip(point_x, point_y)):
         distance_sq = (grid_x - x) ** 2 + (grid_y - y) ** 2
-        min_distance_sq = np.minimum(min_distance_sq, distance_sq)
+        nearest_mask = distance_sq < min_distance_sq
+        min_distance_sq[nearest_mask] = distance_sq[nearest_mask]
+        if nearest_confidence is not None:
+            nearest_confidence[nearest_mask] = confidence[index]
 
     min_distance = np.sqrt(min_distance_sq)
     fade_width = max(1, max_distance_px * fade_ratio)
@@ -490,6 +569,11 @@ def get_distance_alpha(grid_x, grid_y, point_x, point_y, max_distance_px, fade_r
 
     alpha[fade_zone] = 1 - ((min_distance[fade_zone] - fade_start) / fade_width)
     alpha[min_distance > max_distance_px] = 0
+
+    if nearest_confidence is not None:
+        confidence_alpha = min_confidence_alpha + ((1 - min_confidence_alpha) * nearest_confidence)
+        alpha *= confidence_alpha
+
     return np.clip(alpha, 0, 1)
 
 
