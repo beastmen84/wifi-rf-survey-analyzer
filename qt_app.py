@@ -487,6 +487,13 @@ class WifiHeatmapQtApp(QMainWindow):
             return
         key = "points_panel_hide" if self.points_panel_expanded else "points_panel_show"
         self.points_panel_toggle_button.setText(self.tr(key))
+        if hasattr(self, "points_overlay"):
+            self.points_overlay.setObjectName(
+                "floatingPointsPanel" if self.points_panel_expanded else "floatingPointsPanelCollapsed"
+            )
+            self.points_overlay.style().unpolish(self.points_overlay)
+            self.points_overlay.style().polish(self.points_overlay)
+            self.points_overlay.update()
         if hasattr(self, "points_panel_resize_button"):
             self.points_panel_resize_button.setToolTip(self.tr("points_panel_resize"))
 
@@ -521,7 +528,7 @@ class WifiHeatmapQtApp(QMainWindow):
             height = min(self.points_overlay_height, max(170, container_height - (margin * 2)))
         else:
             width = min(260, max(220, container_width - (margin * 2)))
-            height = max(42, self.points_panel_toggle_button.sizeHint().height() + 18)
+            height = max(38, self.points_panel_toggle_button.sizeHint().height() + 8)
 
         x = max(margin, (container_width - width) // 2)
         y = max(margin, container_height - height - margin)
@@ -731,6 +738,10 @@ class WifiHeatmapQtApp(QMainWindow):
                 background: {palette["panel"]};
                 border: 1px solid {palette["border"]};
                 border-radius: 10px;
+            }}
+            QFrame#floatingPointsPanelCollapsed {{
+                background: transparent;
+                border: 0;
             }}
             QWidget#pointsTableBody {{
                 background: transparent;
@@ -2374,12 +2385,13 @@ class WifiHeatmapQtApp(QMainWindow):
             for column_index, value in enumerate(values):
                 item = QTableWidgetItem(value)
                 item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
-                if value:
+                if column_index == 5:
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                     item.setToolTip(value)
+                else:
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 if column_index == 0:
                     item.setData(Qt.ItemDataRole.UserRole, point)
-                if column_index == 4 and self.should_show_quality_tooltip(quality):
-                    item.setToolTip(self.build_quality_tooltip_text(quality))
                 self.points_table.setItem(row_index, column_index, item)
         self.resize_points_table_columns()
         self.update_point_action_state()

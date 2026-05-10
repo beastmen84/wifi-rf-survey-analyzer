@@ -529,6 +529,10 @@ Language:
 - Updated `docs/UI_COLOR_PALETTES.md` to match the actual Qt palettes currently
   implemented in `qt_theme.py`, including the cooled Sand Blue values and the
   active theme keys/names.
+- Refined the floating points table UX: only the `Networks` column now has a
+  tooltip, all other columns are center-aligned, the collapsed measurement
+  points handle no longer draws a surrounding panel frame, and floorplan drag
+  resets the cursor to the normal arrow after mouse release.
 
 Recent commits:
 

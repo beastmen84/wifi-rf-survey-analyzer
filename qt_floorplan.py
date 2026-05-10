@@ -293,8 +293,14 @@ class FloorplanView(QGraphicsView):
                     event.accept()
                     return
             self.pointSelectionCleared.emit()
+            self.viewport().setCursor(Qt.CursorShape.ClosedHandCursor)
 
         super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)
+        if not self.pending_ap_position_group_id and not self.scale_calibration_active:
+            self.viewport().setCursor(Qt.CursorShape.ArrowCursor)
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Escape and self.cancel_scale_calibration_pick():
