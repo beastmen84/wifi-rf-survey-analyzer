@@ -1,7 +1,6 @@
 import json
 import os
 import sys
-import traceback
 from pathlib import Path
 
 try:
@@ -40,6 +39,7 @@ except ModuleNotFoundError as exc:
     raise SystemExit(1) from exc
 
 from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_language, translate
+from app_logging import log_event, log_exception, log_unhandled_exception
 from ap_groups import (
     build_ap_group_role_map,
     build_bssid_to_manual_group_map,
@@ -1530,6 +1530,7 @@ class WifiHeatmapQtApp(QMainWindow):
     def start_wifi_scan(self, x, y):
         self.pending_scan_point = (int(x), int(y))
         self.set_scan_busy(True, self.tr("scanning", x=int(x), y=int(y)))
+        log_event(f"qt point scan start x={int(x)} y={int(y)}")
 
         thread = QThread(self)
         worker = WifiScanWorker("auto")
@@ -1541,39 +1542,52 @@ class WifiHeatmapQtApp(QMainWindow):
         worker.failed.connect(self.fail_wifi_scan)
         worker.failed.connect(thread.quit)
         worker.failed.connect(worker.deleteLater)
+        thread.finished.connect(self.cleanup_wifi_scan_thread)
         thread.finished.connect(thread.deleteLater)
         self.scan_thread = thread
         self.scan_worker = worker
         thread.start()
 
     def finish_wifi_scan(self, networks, backend_used):
-        x, y = self.pending_scan_point or (None, None)
-        self.scan_thread = None
-        self.scan_worker = None
-        self.set_scan_busy(False)
-        self.last_scan_backend_used = backend_used
+        try:
+            x, y = self.pending_scan_point or (None, None)
+            self.set_scan_busy(False)
+            self.last_scan_backend_used = backend_used
+            log_event(f"qt point scan finished backend={backend_used} networks={len(networks or [])}")
 
-        if x is None or y is None:
-            return
+            if x is None or y is None:
+                return
 
-        action = self.validate_relevant_networks(networks)
-        if action == "retry":
-            self.start_wifi_scan(x, y)
-            return
-        if action == "cancel":
+            action = self.validate_relevant_networks(networks)
+            log_event(f"qt point relevant validation action={action}")
+            if action == "retry":
+                self.start_wifi_scan(x, y)
+                return
+            if action == "cancel":
+                self.pending_scan_point = None
+                self.status.showMessage(self.tr("cancelled"))
+                return
+
             self.pending_scan_point = None
-            self.status.showMessage(self.tr("cancelled"))
-            return
-
-        self.pending_scan_point = None
-        self.save_survey_point(x, y, networks)
+            self.save_survey_point(x, y, networks)
+        except Exception as exc:
+            log_exception("finish_wifi_scan failed", exc)
+            self.pending_scan_point = None
+            self.set_scan_busy(False)
+            QMessageBox.critical(self, self.tr("error"), str(exc))
 
     def fail_wifi_scan(self, message):
-        self.scan_thread = None
-        self.scan_worker = None
+        log_event(f"qt point scan failed message={message}")
         self.set_scan_busy(False)
         self.pending_scan_point = None
         QMessageBox.critical(self, self.tr("error"), message)
+
+    def cleanup_wifi_scan_thread(self):
+        finished_thread = self.sender()
+        if finished_thread is self.scan_thread:
+            self.scan_thread = None
+            self.scan_worker = None
+        log_event("qt point scan thread cleaned up")
 
     def set_scan_busy(self, is_busy, message=None):
         self.scan_in_progress = is_busy
@@ -1649,6 +1663,7 @@ class WifiHeatmapQtApp(QMainWindow):
             QMessageBox.critical(self, self.tr("error"), self.tr("no_networks_found"))
             return
 
+        log_event(f"qt save point start x={x} y={y} networks={len(networks or [])}")
         timestamp = self.session.add_points(
             x,
             y,
@@ -1661,6 +1676,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.status.showMessage(self.tr("point_saved", x=x, y=y, count=len(networks)))
         self.points_table.selectRow(0)
         self.maybe_update_live_preview()
+        log_event(f"qt save point done timestamp={timestamp}")
 
     def open_ap_group_manager(self):
         if self.session is None:
@@ -2024,22 +2040,6 @@ def install_exception_logging():
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
 
     sys.excepthook = handle_exception
-
-
-def log_unhandled_exception(exc_type, exc_value, exc_traceback):
-    try:
-        log_file = application_log_file()
-        with log_file.open("a", encoding="utf-8") as handle:
-            handle.write("\n=== Unhandled exception ===\n")
-            traceback.print_exception(exc_type, exc_value, exc_traceback, file=handle)
-    except Exception:
-        pass
-
-
-def application_log_file():
-    if getattr(sys, "frozen", False):
-        return Path(sys.executable).with_name("wifi_heatmap_error.log")
-    return Path.cwd() / "wifi_heatmap_error.log"
 
 
 def load_json_string_set(value):

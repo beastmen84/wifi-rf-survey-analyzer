@@ -453,6 +453,10 @@ Language:
   `lswifi`; removed Tkinter messagebox usage from `wifi_scanner.py`, excluded
   Tkinter/ttkbootstrap from the PyInstaller build, and added a small
   `wifi_heatmap_error.log` unhandled-exception logger next to the exe.
+- Restored `lswifi` as the primary Auto backend inside the exe after user
+  feedback. Stabilized the Qt scan worker cleanup so the QThread is not cleared
+  until it has actually finished, and added step-by-step point creation logging
+  to `wifi_heatmap_error.log` for scan, validation and point save phases.
 
 Recent commits:
 

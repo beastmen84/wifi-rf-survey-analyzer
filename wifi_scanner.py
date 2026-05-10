@@ -1,11 +1,11 @@
 import re
-import os
 import subprocess
 import sys
 import time
 from collections import Counter
 from statistics import median
 
+from app_logging import log_event, log_exception
 from constants import WIFI_SCAN_ATTEMPTS, WIFI_SCAN_DELAY_SECONDS
 from utils import dbm_to_percent, percent_to_dbm
 
@@ -17,21 +17,11 @@ def scan_wifi(backend="auto", show_errors=True):
     if backend == "netsh":
         return scan_wifi_netsh(show_errors=show_errors), "netsh"
 
-    if not can_use_lswifi_in_auto():
-        return scan_wifi_netsh(show_errors=show_errors), "netsh"
-
     networks = scan_wifi_lswifi(show_errors=False)
     if networks:
         return networks, "lswifi"
 
     return scan_wifi_netsh(show_errors=show_errors), "netsh fallback"
-
-
-def can_use_lswifi_in_auto():
-    if not getattr(sys, "frozen", False):
-        return True
-
-    return os.environ.get("WIFI_HEATMAP_ENABLE_LSWIFI_IN_EXE") == "1"
 
 
 def get_connected_ssid():
@@ -63,6 +53,7 @@ def get_connected_ssid():
 
 def scan_wifi_netsh(show_errors=True):
     try:
+        log_event("scan_wifi_netsh start")
         scans = []
 
         for attempt in range(WIFI_SCAN_ATTEMPTS):
@@ -78,15 +69,19 @@ def scan_wifi_netsh(show_errors=True):
             if attempt < WIFI_SCAN_ATTEMPTS - 1:
                 time.sleep(WIFI_SCAN_DELAY_SECONDS)
 
-        return merge_wifi_scans(scans, WIFI_SCAN_ATTEMPTS)
+        networks = merge_wifi_scans(scans, WIFI_SCAN_ATTEMPTS)
+        log_event(f"scan_wifi_netsh done networks={len(networks)} raw_samples={len(scans)}")
+        return networks
 
     except Exception as e:
+        log_exception("scan_wifi_netsh failed", e)
         report_scan_error(show_errors, "Errore scan Wi-Fi", e)
         return []
 
 
 def scan_wifi_lswifi(show_errors=True):
     try:
+        log_event("scan_wifi_lswifi start")
         from lswifi import wlanapi as lswifi_wlanapi
 
         scans = []
@@ -108,9 +103,14 @@ def scan_wifi_lswifi(show_errors=True):
                 )
                 scans.extend(annotate_raw_scan_samples(parse_lswifi_bss_list(bss_list), attempt + 1, "lswifi"))
 
-        return merge_wifi_scans(scans, WIFI_SCAN_ATTEMPTS * interface_count)
+        networks = merge_wifi_scans(scans, WIFI_SCAN_ATTEMPTS * interface_count)
+        log_event(
+            f"scan_wifi_lswifi done interfaces={interface_count} networks={len(networks)} raw_samples={len(scans)}"
+        )
+        return networks
 
     except Exception as e:
+        log_exception("scan_wifi_lswifi failed", e)
         report_scan_error(show_errors, "Errore scan Wi-Fi lswifi", e)
         return []
 
