@@ -514,12 +514,6 @@ def open_ap_group_manager(app):
         command=prompt_alias_for_selected_group,
         bootstyle=INFO
     ).pack(side=tk.LEFT, padx=(8, 0))
-    ttk.Button(
-        buttons,
-        text=app.tr("ap_group_set_position"),
-        command=start_positioning_for_selected_group,
-        bootstyle=PRIMARY
-    ).pack(side=tk.LEFT, padx=(8, 0))
     delete_alias_button = ttk.Button(
         buttons,
         text=app.tr("ap_group_delete_alias"),
@@ -528,6 +522,13 @@ def open_ap_group_manager(app):
         state=tk.DISABLED
     )
     delete_alias_button.pack(side=tk.LEFT, padx=(8, 0))
+    ttk.Separator(buttons, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=(12, 8))
+    ttk.Button(
+        buttons,
+        text=app.tr("ap_group_set_position"),
+        command=start_positioning_for_selected_group,
+        bootstyle=PRIMARY
+    ).pack(side=tk.LEFT)
     alias_action_buttons["delete"] = delete_alias_button
     update_alias_action_state()
     dialog.bind("<Escape>", lambda _event: dialog.destroy())
