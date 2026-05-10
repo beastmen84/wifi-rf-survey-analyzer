@@ -400,9 +400,10 @@ def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None):
         for group in ap_groups
         if normalize_ap_role(group.get("role")) != AP_ROLE_TEST
     ]
+    positioned_ap_groups = filter_ap_groups_for_relevant_ssids(app, visible_ap_groups)
     test_ap_count = len(ap_groups) - len(visible_ap_groups)
-    positioned_count = sum(1 for group in visible_ap_groups if group.get("position"))
-    missing_position_groups = [group for group in visible_ap_groups if not group.get("position")]
+    positioned_count = sum(1 for group in positioned_ap_groups if group.get("position"))
+    missing_position_groups = [group for group in positioned_ap_groups if not group.get("position")]
     relevant_networks = (
         ", ".join(sorted(app.relevant_ssids))
         if app.relevant_ssids
@@ -432,11 +433,37 @@ def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None):
         "ap_missing_positions": len(missing_position_groups),
         "missing_position_labels": missing_position_labels,
         "relevant_networks": relevant_networks,
-        "ap_positions": f"{positioned_count}/{len(visible_ap_groups)}" if visible_ap_groups else "0/0",
+        "ap_positions": f"{positioned_count}/{len(positioned_ap_groups)}" if positioned_ap_groups else "0/0",
         "test_aps": test_ap_count,
         "ap_metadata_warnings": len(ap_metadata_warnings),
         "ap_metadata_warning_labels": format_ap_metadata_warning_labels(app, ap_metadata_warnings),
     }
+
+
+def filter_ap_groups_for_relevant_ssids(app, ap_groups):
+    relevant_ssids = {
+        normalize_ssid(ssid)
+        for ssid in app.relevant_ssids or []
+        if normalize_ssid(ssid)
+    }
+    if not relevant_ssids:
+        return list(ap_groups)
+
+    group_map = build_bssid_to_manual_group_map(ap_groups)
+    relevant_group_ids = set()
+    for row in app.session.rows:
+        if normalize_ssid(row.get("ssid")) not in relevant_ssids:
+            continue
+
+        group_id = resolve_ap_group_key(row.get("bssid", ""), group_map)
+        if group_id:
+            relevant_group_ids.add(group_id)
+
+    return [
+        group
+        for group in ap_groups
+        if str(group.get("group_id", "")) in relevant_group_ids
+    ]
 
 
 def build_ap_position_quality_by_point(app, ap_groups=None):

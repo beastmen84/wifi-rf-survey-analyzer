@@ -97,6 +97,25 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(summary["ap_missing_positions"], 1)
         self.assertEqual(summary["ap_positions"], "0/1")
 
+    def test_quality_summary_scopes_missing_ap_positions_to_relevant_ssids(self):
+        rows = [
+            build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1),
+            build_row("p1", "GUEST", "80:11:22:33:44:10", -56, 6),
+        ]
+        app = FakeQualityApp(rows, relevant_ssids={"MAIN"})
+        groups = get_effective_ap_groups(app)
+
+        summary = build_summary(
+            app,
+            [{"status": QUALITY_GOOD, "needs_review": False, "ap_position_warning_count": 0}],
+            [],
+            groups,
+        )
+
+        self.assertEqual(len(groups), 2)
+        self.assertEqual(summary["ap_missing_positions"], 1)
+        self.assertEqual(summary["ap_positions"], "0/1")
+
 
 class SurveyPointSummaryTests(unittest.TestCase):
     def test_best_signal_prefers_relevant_networks_when_available(self):
@@ -293,9 +312,9 @@ class FakeQualitySession:
 
 
 class FakeQualityApp:
-    def __init__(self, rows, ap_groups=None):
+    def __init__(self, rows, ap_groups=None, relevant_ssids=None):
         self.session = FakeQualitySession(rows, ap_groups)
-        self.relevant_ssids = set()
+        self.relevant_ssids = set(relevant_ssids or [])
 
     def tr(self, key, **kwargs):
         if key == "relevant_networks_none":
