@@ -1,5 +1,7 @@
 """Qt AP Group Manager dialog and related editing workflows."""
 
+import math
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -1018,10 +1020,20 @@ class ChannelSelectionDialog(QDialog):
                 band=format_band_label(band),
             )
         )
-        self.resize(widget_px(self, 520), widget_px(self, 380))
-        self.setMinimumSize(widget_px(self, 440), widget_px(self, 300))
+        width, height = self.dialog_size_for_channels()
+        self.resize(width, height)
+        self.setMinimumSize(width, height)
         self.setStyleSheet(self.manager.styleSheet())
         self.build_ui(set(selected_channels))
+
+    def dialog_size_for_channels(self):
+        rows = max(1, math.ceil(len(self.channels) / self.column_count()))
+        width = max(widget_px(self, 360), (self.column_count() * widget_px(self, 96)) + widget_px(self, 54))
+        height = widget_px(self, 152) + (rows * widget_px(self, 34))
+        return width, max(widget_px(self, 250), height)
+
+    def column_count(self):
+        return min(4, max(2, math.ceil(len(self.channels) / 4)))
 
     def build_ui(self, selected_channels):
         layout = QVBoxLayout(self)
@@ -1031,7 +1043,7 @@ class ChannelSelectionDialog(QDialog):
         grid = QGridLayout()
         grid.setHorizontalSpacing(widget_px(self, 12))
         grid.setVerticalSpacing(widget_px(self, 6))
-        columns = 4
+        columns = self.column_count()
         for index, channel in enumerate(self.channels):
             checkbox = QCheckBox(f"CH {channel}")
             checkbox.setChecked(channel in selected_channels)

@@ -656,6 +656,9 @@ Language:
   checkbox label per BSSID. BSSID, seen SSIDs, channels, and any other assigned
   group are split into columns, while membership in the currently edited group is
   represented by the checkbox itself.
+- The AP metadata channel picker now sizes itself from the number of channels in
+  the selected band, so the 2.4 GHz picker is compact while the 5 GHz picker can
+  remain larger for its longer channel list.
 
 Recent commits:
 
