@@ -363,6 +363,10 @@ Language:
   Manual/Auto management state.
 - Added a faster warning-resolution path in AP Group Manager: warning details
   can open Duplicate/Split directly, with the conflicting BSSIDs shown first.
+- Reworked `docs/V2_ARCHITECTURE_NOTES.md` into an updated V2 roadmap:
+  completed foundation items are separated from the remaining backlog, and new
+  suggested priorities were added around AP Group Manager UX, tests, reporting,
+  metadata-driven diagnostics and future UI migration.
 
 Recent commits:
 
@@ -386,11 +390,13 @@ Good next steps, in likely order:
 
 1. Improve AP Group Manager workflows:
    better manual split/merge UX, especially for larger BSSID lists.
-2. Decide whether mounting metadata should influence AP position warnings or
+2. Add lightweight tests around AP groups, quality and interference before
+   larger V2 refactors.
+3. Decide whether mounting metadata should influence AP position warnings or
    remain documentation only.
-3. Improve live map performance only if user sees real lag on large surveys.
-4. Rework Help structure later, after the feature set stabilizes.
-5. Consider PySide6 migration only after core logic is sufficiently separated.
+4. Improve live map performance only if user sees real lag on large surveys.
+5. Rework Help structure later, after the feature set stabilizes.
+6. Consider PySide6 migration only after core logic is sufficiently separated.
 
 ## Verification Patterns Used
 

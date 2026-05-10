@@ -1,347 +1,417 @@
-# WiFi Heatmap – V2 Vision & Architecture Notes
+# WiFi Heatmap - V2 Architecture Notes
 
-## General Direction
+Last updated: 2026-05-10
 
-The goal of V2 is not simply adding more visual features, but improving:
+This document is the forward-looking V2 roadmap. Completed items are kept only
+as context; the actionable backlog is in the "Remaining Work" section.
 
-- RF data reliability
-- survey quality evaluation
-- AP intelligence
-- realism of collected data interpretation
-- advanced workflow usability
+## V2 Direction
 
-The application should progressively evolve from:
+V2 is not just a better heatmap renderer. The target is a Wi-Fi survey and RF
+analysis platform that:
+
+- stores reliable raw measurements;
+- evaluates survey quality before trusting maps;
+- understands AP groups, aliases, roles, radios and BSSIDs;
+- detects inconsistent RF behavior;
+- helps the user correct survey/modeling problems;
+- produces maps that are explainable, not only visually appealing.
+
+The heatmap should be the result of a validated RF dataset, not just
+interpolated colors.
+
+## Implemented V2 Foundation
+
+These areas were part of the original V2 plan and are now substantially
+implemented.
+
+### Raw Scan Storage
+
+Implemented:
+
+- repeated scans per measurement point;
+- raw scan samples retained in a linked sidecar file;
+- sidecar extension changed to `.scan` to avoid confusing it with the main CSV;
+- main CSV contains aggregated survey rows;
+- raw sidecar path is stored in survey metadata;
+- opening a raw sidecar directly is rejected.
+
+Current format decision:
+
+- main survey file: `<name>.csv`;
+- linked raw file: `<name>_raw_data.scan`.
+
+### Scan Aggregation And Confidence
+
+Implemented:
+
+- repeated lswifi/netsh scans;
+- aggregation per BSSID/channel;
+- median dBm;
+- min/max dBm;
+- samples seen/total;
+- scan confidence;
+- raw sample retention.
+
+Confidence is also used by continuous/live rendering as interpolation weight.
+
+### Relevant SSID Workflow
+
+Implemented direction:
+
+- save all visible networks;
+- let the user mark relevant SSIDs;
+- warn when relevant SSIDs are missing;
+- base point quality mostly on relevant SSIDs rather than on total visible
+  networks.
+
+### Data Quality Engine
+
+Implemented:
+
+- per-point quality state;
+- quality tooltip with useful breakdown;
+- relevant SSID awareness;
+- missing relevant network detection;
+- low confidence detection;
+- unstable signal detection;
+- sparse data detection.
+
+Current quality states include:
+
+- `GOOD`
+- `MISSING_RELEVANT`
+- `LOW_CONFIDENCE`
+- `UNSTABLE_SIGNAL`
+- `SPARSE_DATA`
+
+### Survey Quality Dashboard
+
+Implemented:
+
+- summary of good/review points;
+- missing relevant network information;
+- low confidence/unstable point information;
+- AP positioning awareness;
+- AP metadata consistency checks;
+- AP configuration warning list.
+
+### AP Group Manager
+
+Implemented:
+
+- automatic AP group suggestions;
+- saved manual AP groups;
+- manual BSSID merge/split;
+- alias management;
+- roles:
+  - internal;
+  - external;
+  - interferer;
+  - test/hidden;
+- reset to automatic grouping;
+- manual groups are stored in survey metadata;
+- user edits are preserved for known BSSIDs;
+- new BSSIDs can still be added automatically;
+- conflict warning when one AP group is observed on multiple channels in the
+  same band;
+- warning details dialog;
+- shortcut from warning details to Duplicate/Split, with conflicting BSSIDs
+  shown first;
+- user-facing `Auto` / `Manual` management state.
+
+Important decision:
+
+- simple automatic grouping can be wrong in real deployments;
+- AP Group Manager is the authority;
+- automatic grouping is a suggestion, not the final truth.
+
+### AP Roles In Analysis
+
+Implemented:
+
+- `Test/hidden` AP groups are excluded from:
+  - signal coverage;
+  - AP channels;
+  - dominant AP;
+  - interference;
+  - live AP group filters.
+- AP roles are included in relevant tooltips/reports.
+
+### AP Positioning
+
+Implemented:
+
+- AP physical position saved per AP group;
+- right click on floor plan assigns AP position while positioning mode is
+  active;
+- AP position is saved in survey metadata;
+- dirty state updates correctly;
+- dominant AP tooltips show distance to AP;
+- dominant AP PNG report includes AP position status and warnings;
+- live and generated dominant maps show triangle warning markers.
+
+Current warning logic:
+
+- strong signal too far from AP;
+- weak signal too close to AP;
+- unexpected dominant AP;
+- missing AP position;
+- no scale calibration.
+
+### AP Metadata
+
+Implemented:
+
+- metadata editor inside AP Group Manager;
+- vendor;
+- model;
+- mounting type;
+- expected bands;
+- expected channels;
+- notes;
+- guided selections for expected bands/channels instead of free text.
+
+Current use:
+
+- metadata is descriptive;
+- expected bands/channels are used by quality checks;
+- mounting type is not yet used by RF logic.
+
+### Improved Interference Analysis
+
+Implemented:
+
+- channel-width-aware overlap logic;
+- 5 GHz overlap based on MHz ranges where width is available;
+- same AP group ignored as interferer;
+- guest/main SSIDs on the same physical AP do not count as mutual
+  interference when grouped correctly;
+- interference reports include serving/interferer AP, channels, widths,
+  confidence, overlap and diagnosis;
+- tooltips include width in MHz.
+
+### Live Map View
+
+Implemented:
+
+- separate live map tab;
+- signal/interference continuous rendering;
+- AP channels and dominant AP marker views;
+- live zoom and drag;
+- structured mouseover tooltips;
+- hover legend highlight;
+- cached/fingerprinted rendering;
+- worker rendering with Matplotlib Agg and Tk main-thread GUI updates.
+
+### UI/Workflow Foundation
+
+Implemented:
+
+- fullscreen main app by default;
+- start screen with scaled layout;
+- toolbar-based workflow;
+- new/open/save survey handling;
+- dirty-state save button highlighting;
+- save prompt before close/new/open;
+- map generation requires saved survey;
+- generated PNG/report names depend on survey filename, map type, band and
+  timestamp;
+- map/output files are saved beside the survey CSV;
+- language selector IT/EN;
+- theme selector reduced to a small set of sensible themes.
+
+## Remaining Work
+
+### 1. AP Group Manager UX For Large Surveys
+
+Why it matters:
+
+- real surveys can contain many BSSIDs;
+- manual split/merge must stay fast and understandable;
+- ttkbootstrap tree/table behavior is limited.
+
+Suggested next steps:
+
+- improve BSSID selection dialog for large lists;
+- add filters by SSID, channel, band, role, current group and warning state;
+- add quick actions:
+  - select only warning BSSIDs;
+  - invert selection;
+  - split selected into new group;
+  - move selected to existing group;
+- add clearer conflict explanation by band/channel;
+- consider a dedicated "unassigned/new BSSID" view.
+
+### 2. AP Group Model Refinement
+
+Current model is physical-AP oriented. Future RF logic may need to distinguish:
+
+- physical AP;
+- radio;
+- BSSID;
+- SSID/service;
+- band/channel operation.
+
+Reason:
+
+- the same physical AP can legitimately operate different radios/channels;
+- false warnings can happen if a physical AP group contains separate radios;
+- interference and roaming logic may become more accurate if radios are modeled
+  explicitly.
+
+Conservative next step:
+
+- keep the current AP group model;
+- add optional per-BSSID/radio metadata later only if real tests show that the
+  current model blocks correct analysis.
+
+### 3. AP Metadata Usage In RF Checks
+
+Currently metadata is partly descriptive and partly used for expected
+band/channel checks.
+
+Useful next checks:
+
+- mounting type influencing AP position warnings;
+- expected radio count;
+- expected channel width;
+- vendor/model capability hints;
+- AP role consistency:
+  - external AP should not be selected as dominant for internal coverage;
+  - test/hidden AP should remain excluded from user-facing analysis.
+
+Keep this rule:
+
+- metadata should assist diagnosis, not silently change measurements.
+
+### 4. Survey Quality Engine Expansion
+
+Possible additions:
+
+- point spacing quality;
+- coverage completeness by area;
+- scan backend reliability score;
+- repeated scan variance per AP group;
+- channel change detection over time;
+- likely mesh/roaming ambiguity detection;
+- "points to rescan" recommendation list.
+
+### 5. Live View V2
+
+Current live view is useful, but it can become the main working surface.
+
+Potential upgrades:
+
+- preserve live map options as defaults for PNG generation;
+- faster switching between map types;
+- per-map option panels;
+- live overlay for quality warnings;
+- live overlay for AP positions;
+- live AP group filter improvements;
+- optional hover pinning so a tooltip can stay open while inspecting details.
+
+### 6. Generated Report Improvements
+
+The generated maps are now useful, but reports can become more actionable.
+
+Possible additions:
+
+- combined summary report per survey;
+- AP group summary table;
+- quality warning export;
+- interference ranking per AP group;
+- dominant AP transition summary;
+- PDF report generation later.
+
+### 7. Testing And Validation
+
+This project now has enough logic that manual testing alone is risky.
+
+Suggested test areas:
+
+- AP group serialization/deserialization;
+- manual group merge/split preservation;
+- role filtering;
+- channel-width overlap;
+- AP position warning logic;
+- quality engine states;
+- old invalid CSV rejection;
+- raw `.scan` sidecar handling.
+
+Priority:
+
+- add lightweight unit tests before larger V2 refactors.
+
+### 8. Help System Rework
+
+Postponed intentionally.
+
+Needed later:
+
+- restructure help by workflow rather than feature list;
+- add a dedicated live map help tab;
+- add AP Group Manager help;
+- explain relevant SSIDs, raw scans, confidence and quality states;
+- keep text concise and visual where possible.
+
+### 9. UI Technology Review
+
+Tkinter + ttkbootstrap is still acceptable for current V2 steps.
+
+PySide6 remains a good future direction if the UI grows into:
+
+- complex editable tables;
+- dockable panels;
+- multi-panel dashboards;
+- larger datasets;
+- richer validation workflows.
+
+Migration should happen only after core logic remains UI-independent.
+
+Recommended migration sequence:
 
 ```text
-"heatmap drawing tool"
+1. Keep extracting logic from app.py
+2. Add tests around logic modules
+3. Stabilize data model
+4. Prototype PySide6 UI for one isolated workflow
+5. Migrate only if the prototype clearly improves maintenance and UX
 ```
 
-to:
+## Suggested Next Priorities
 
-```text
-"Wi‑Fi survey and RF analysis platform"
-```
+Near-term:
 
----
+1. Improve AP Group Manager large-list workflows.
+2. Add lightweight tests for AP groups, quality and interference.
+3. Expand survey quality recommendations.
+4. Add live map quality/AP position overlays where useful.
 
-# Core Philosophy of V2
+Medium-term:
 
-The application should:
+5. Improve generated reporting.
+6. Use AP metadata more deeply in diagnostics.
+7. Continue extracting logic from `app.py`.
+8. Rework Help after feature workflows stabilize.
 
-- collect raw Wi‑Fi measurements
-- evaluate data quality
-- identify inconsistencies
-- understand AP relationships
-- distinguish APs, radios and BSSIDs
-- help the user validate the survey itself
+Long-term:
 
-The heatmap becomes the result of a validated RF dataset, not just interpolated colors.
+9. Evaluate PySide6 migration.
+10. Add advanced RF/AI-assisted suggestions.
+11. Add richer deployment/reporting outputs.
 
----
+## Final Vision
 
-# Main V2 Areas
+The long-term goal remains a tool capable of:
 
-## 1. AP Group Manager
+- collecting real RF data;
+- preserving evidence behind every aggregate value;
+- understanding AP relationships;
+- evaluating survey reliability;
+- detecting anomalies;
+- explaining generated maps;
+- helping users improve Wi-Fi deployments.
 
-### Problem
-
-Enterprise and advanced Wi‑Fi environments generate multiple BSSIDs:
-
-- multiple radios
-- guest networks
-- virtual interfaces
-- locally administered MACs
-- mesh/repeater behavior
-
-Simple grouping logic is not always reliable.
-
-### Proposed Solution
-
-Introduce a dedicated AP Group Manager.
-
-### Features
-
-- automatic grouping suggestions
-- manual merge/split of AP groups
-- editable AP aliases
-- save grouping inside survey project
-- mark AP as:
-  - internal
-  - external
-  - interferer
-  - hidden/test AP
-
-### Example
-
-```text
-AP Group: IT OFFICE
-Members:
-- 78:8c:b5:ee:c1:2a
-- 7a:8c:b5:ee:c1:2b
-```
-
----
-
-## 2. AP Positioning on Map
-
-### New Capability
-
-Allow manually placing APs directly on the floorplan.
-
-### Why Important
-
-Knowing physical AP position allows:
-
-- validating signal behavior
-- detecting anomalous coverage
-- understanding roaming
-- validating dominant AP regions
-- identifying unrealistic interpolations
-
-### Possible Logic
-
-Examples:
-
-```text
-Strong signal too far from AP
-Weak signal too close to AP
-Unexpected dominant AP
-```
-
----
-
-## 3. AP Metadata System
-
-Each AP group may include metadata:
-
-```text
-Vendor
-Model
-Mounting type
-Band support
-Expected channels
-Expected radios
-Notes
-```
-
-### AI-Assisted Suggestions
-
-Future possibility:
-
-- infer vendor/model
-- suggest expected capabilities
-- suggest expected band/channel behavior
-
-User should always confirm suggestions manually.
-
----
-
-# 4. Raw Scan Storage
-
-## Current Limitation
-
-Only aggregated scan results are preserved.
-
-This reduces debugging capability.
-
-## Proposed V2 Structure
-
-### raw_scans.csv
-
-Store every scan attempt individually:
-
-```text
-point_id
-scan_attempt
-timestamp
-ssid
-bssid
-channel
-band
-signal_dbm
-backend
-```
-
-### aggregated_points.csv
-
-Store processed/merged results separately.
-
----
-
-# 5. Data Quality Engine
-
-One of the most important V2 systems.
-
-## Per-network statistics
-
-For each AP/network:
-
-```text
-samples_seen
-samples_total
-median_dbm
-mean_dbm
-max_dbm
-min_dbm
-variance
-range_db
-channel_consistency
-```
-
-## Quality Classification
-
-Examples:
-
-```text
-GOOD
-UNSTABLE
-LOW CONFIDENCE
-MISSING EXPECTED BAND
-CHANNEL CONFLICT
-OUTLIER
-```
-
----
-
-# 6. Confidence-Aware Rendering
-
-Current confidence:
-
-```text
-samples_seen / samples_total
-```
-
-V2 should use confidence as interpolation weight.
-
-### Example
-
-```text
-High confidence point:
-strong influence on heatmap
-
-Low confidence point:
-reduced influence
-```
-
-### Benefits
-
-- fewer artifacts
-- fewer false hotspots
-- more realistic interpolation
-- unstable readings affect map less
-
----
-
-# 7. Survey Quality Dashboard
-
-Dedicated survey validation panel.
-
-## Example Information
-
-```text
-Total points
-Good points
-Unstable points
-Suspicious points
-Coverage completeness
-Missing expected bands
-Dominant AP conflicts
-```
-
-## Goal
-
-Help the user identify:
-
-- points to rescan
-- unreliable measurements
-- suspicious AP behavior
-
----
-
-# 8. Improved Interference Analysis
-
-Current interference maps can evolve into:
-
-- co-channel interference analysis
-- adjacent-channel interference
-- AP overlap quality
-- roaming overlap zones
-- AP density analysis
-
----
-
-# 9. UI Evolution
-
-## Current Situation
-
-Tkinter + ttkbootstrap works well for V1.
-
-However, V2 may eventually require:
-
-- advanced tables
-- dockable panels
-- complex dashboards
-- large interactive datasets
-- advanced filtering
-- multi-panel workflows
-
-## Recommended Future Direction
-
-Potential migration toward PySide6 (Qt for Python).
-
-Reasons:
-
-- stronger desktop architecture
-- advanced widgets
-- scalable layouts
-- better threading support
-- professional dashboard workflows
-- better support for complex data interfaces
-- long-term maintainability for large applications
-
-Suggested approach:
-
-```text
-1. Refactor core logic first
-2. Separate UI from RF engine
-3. Keep rendering/scan logic UI-independent
-4. Migrate UI gradually later
-```
-
----
-
-# Suggested V2 Priorities
-
-## Highest Priority
-
-1. AP Group Manager
-2. Raw scan storage
-3. Data Quality Engine
-4. Confidence-aware rendering
-
-## Medium Priority
-
-5. Survey Quality Dashboard
-6. AP positioning system
-7. Advanced interference analysis
-
-## Long-Term
-
-8. UI migration to PySide6
-9. Internal floorplan editor
-10. Advanced AI-assisted RF analysis
-
----
-
-# Final Vision
-
-The long-term vision is a tool capable of:
-
-- collecting real RF data
-- understanding AP relationships
-- evaluating survey reliability
-- detecting anomalies
-- visualizing realistic Wi‑Fi behavior
-- helping users improve Wi‑Fi deployments
-
-rather than simply generating colored heatmaps.
+The tool should make the survey more trustworthy, not just make prettier
+heatmaps.
