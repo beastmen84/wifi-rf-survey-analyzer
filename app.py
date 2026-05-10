@@ -4425,6 +4425,7 @@ class WifiHeatmapApp(ModalDialogMixin):
 
     def save_dominant_ap_report(self, dominant_df, report_file):
         report_df = dominant_df.copy()
+        report_df = self.add_ap_position_report_columns(report_df)
         report_df["roaming_status"] = report_df["roaming_overlap"].map({
             True: "roaming_overlap",
             False: "stable"
@@ -4452,9 +4453,49 @@ class WifiHeatmapApp(ModalDialogMixin):
             "second_channel_width_mhz",
             "delta_db",
             "roaming_status",
+            "dominant_ap_distance_px",
+            "dominant_ap_distance_m",
+            "nearest_physical_ap_group",
+            "nearest_physical_ap_label",
+            "nearest_physical_ap_distance_px",
+            "nearest_physical_ap_distance_m",
+            "ap_position_status",
+            "ap_position_warnings",
         ]
         existing_columns = [column for column in report_columns if column in report_df.columns]
         report_df[existing_columns].to_csv(report_file, index=False, encoding="utf-8")
+
+    def add_ap_position_report_columns(self, report_df):
+        if report_df.empty:
+            return report_df
+
+        enriched_rows = []
+        for _index, row in report_df.iterrows():
+            analysis = self.analyze_dominant_ap_position_for_row(row)
+            enriched_rows.append({
+                "dominant_ap_distance_px": self.clean_report_number(analysis.get("dominant_distance_px")),
+                "dominant_ap_distance_m": self.clean_report_number(analysis.get("dominant_distance_m")),
+                "nearest_physical_ap_group": analysis.get("nearest_ap_group", ""),
+                "nearest_physical_ap_label": self.get_ap_group_display_name(analysis.get("nearest_ap_group", "")),
+                "nearest_physical_ap_distance_px": self.clean_report_number(analysis.get("nearest_distance_px")),
+                "nearest_physical_ap_distance_m": self.clean_report_number(analysis.get("nearest_distance_m")),
+                "ap_position_status": analysis.get("status", ""),
+                "ap_position_warnings": ";".join(analysis.get("warnings", [])),
+            })
+
+        position_df = pd.DataFrame(enriched_rows, index=report_df.index)
+        return pd.concat([report_df, position_df], axis=1)
+
+    def clean_report_number(self, value):
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            return ""
+
+        if not np.isfinite(number):
+            return ""
+
+        return round(number, 2)
 
     def get_color_scale_limits(self, grid_z, config=None):
         color_scale = config.color_scale if config else self.color_scale_var.get()
