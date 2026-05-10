@@ -62,7 +62,7 @@ def collapse_heatmap_points(df, aggregation="max"):
     )
 
 
-def get_channel_map_points(df, ssid, band, ap_group_map=None):
+def get_channel_map_points(df, ssid, band, ap_group_map=None, ap_group_roles=None):
     rows = df[df["ssid"].str.lower() == ssid.lower()].copy()
     rows = filter_by_band(rows, band)
     rows["x"] = pd.to_numeric(rows["x"], errors="coerce")
@@ -78,14 +78,16 @@ def get_channel_map_points(df, ssid, band, ap_group_map=None):
     if rows.empty:
         return rows
 
-    group_map = normalize_ap_group_map(ap_group_map)
-    rows["ap_group"] = rows["bssid"].apply(lambda bssid: resolve_ap_group_key(bssid, group_map))
+    rows = add_ap_group_metadata(rows, ap_group_map, ap_group_roles)
+    rows = rows[rows["ap_role"] != AP_ROLE_TEST]
+    if rows.empty:
+        return rows
 
     strongest_indexes = rows.groupby(["timestamp", "x", "y"])["signal_dbm"].idxmax()
     return rows.loc[strongest_indexes].sort_values("timestamp")
 
 
-def get_dominant_ap_points(df, ssid, band, ap_group_map=None):
+def get_dominant_ap_points(df, ssid, band, ap_group_map=None, ap_group_roles=None):
     rows = df[df["ssid"].str.lower() == ssid.lower()].copy()
     rows = filter_by_band(rows, band)
     rows["x"] = pd.to_numeric(rows["x"], errors="coerce")
@@ -97,8 +99,10 @@ def get_dominant_ap_points(df, ssid, band, ap_group_map=None):
     else:
         rows["channel_width_mhz"] = np.nan
     rows = rows.dropna(subset=["timestamp", "x", "y", "signal_dbm", "bssid"])
-    group_map = normalize_ap_group_map(ap_group_map)
-    rows["ap_group"] = rows["bssid"].apply(lambda bssid: resolve_ap_group_key(bssid, group_map))
+    rows = add_ap_group_metadata(rows, ap_group_map, ap_group_roles)
+    rows = rows[rows["ap_role"] != AP_ROLE_TEST]
+    if rows.empty:
+        return pd.DataFrame()
 
     dominant_rows = []
 
@@ -116,6 +120,7 @@ def get_dominant_ap_points(df, ssid, band, ap_group_map=None):
             "y": y,
             "ssid": ssid,
             "dominant_ap_group": dominant["ap_group"],
+            "dominant_ap_role": dominant.get("ap_role", AP_ROLE_INTERNAL),
             "dominant_bssid": dominant["bssid"],
             "dominant_signal_dbm": dominant["signal_dbm"],
             "dominant_samples_seen": clean_report_value(dominant.get("samples_seen", np.nan)),
@@ -124,6 +129,7 @@ def get_dominant_ap_points(df, ssid, band, ap_group_map=None):
             "dominant_channel": dominant.get("channel", np.nan),
             "dominant_channel_width_mhz": clean_report_value(dominant.get("channel_width_mhz", np.nan)),
             "second_ap_group": second["ap_group"] if second is not None else "",
+            "second_ap_role": second.get("ap_role", "") if second is not None else "",
             "second_bssid": second["bssid"] if second is not None else "",
             "second_signal_dbm": clean_report_value(second_signal),
             "second_samples_seen": (
@@ -146,6 +152,15 @@ def get_dominant_ap_points(df, ssid, band, ap_group_map=None):
     return pd.DataFrame(dominant_rows).sort_values("timestamp") if dominant_rows else pd.DataFrame()
 
 
+def add_ap_group_metadata(rows, ap_group_map=None, ap_group_roles=None):
+    group_map = normalize_ap_group_map(ap_group_map)
+    role_map = normalize_ap_role_map(ap_group_roles)
+    rows = rows.copy()
+    rows["ap_group"] = rows["bssid"].apply(lambda bssid: resolve_ap_group_key(bssid, group_map))
+    rows["ap_role"] = rows["ap_group"].apply(lambda group: role_map.get(str(group), AP_ROLE_INTERNAL))
+    return rows
+
+
 def calculate_interference_points(
     df,
     ssid,
@@ -165,10 +180,7 @@ def calculate_interference_points(
         rows["channel_width_mhz"] = np.nan
     rows["signal_dbm"] = pd.to_numeric(rows["signal_dbm"], errors="coerce")
     rows = rows.dropna(subset=["timestamp", "x", "y", "channel", "signal_dbm", "ssid", "bssid"])
-    group_map = normalize_ap_group_map(ap_group_map)
-    role_map = normalize_ap_role_map(ap_group_roles)
-    rows["ap_group"] = rows["bssid"].apply(lambda bssid: resolve_ap_group_key(bssid, group_map))
-    rows["ap_role"] = rows["ap_group"].apply(lambda group: role_map.get(str(group), AP_ROLE_INTERNAL))
+    rows = add_ap_group_metadata(rows, ap_group_map, ap_group_roles)
 
     if band not in {"2.4", "5"}:
         return pd.DataFrame(columns=["timestamp", "x", "y", "risk"])
@@ -181,7 +193,14 @@ def calculate_interference_points(
     risk_rows = []
 
     for (timestamp, x, y), point_rows in rows.groupby(["timestamp", "x", "y"]):
-        selected_rows = point_rows[point_rows["ssid"].str.lower() == ssid.lower()]
+        selected_test_rows = point_rows[
+            (point_rows["ssid"].str.lower() == ssid.lower())
+            & (point_rows["ap_role"] == AP_ROLE_TEST)
+        ]
+        selected_rows = point_rows[
+            (point_rows["ssid"].str.lower() == ssid.lower())
+            & (point_rows["ap_role"] != AP_ROLE_TEST)
+        ]
 
         if selected_rows.empty:
             continue
@@ -200,7 +219,7 @@ def calculate_interference_points(
         risk = 0.0
         interferers = []
         same_physical_ap_ignored_count = 0
-        test_ap_ignored_count = 0
+        test_ap_ignored_count = len(selected_test_rows) if mode == "intra_ssid" else 0
 
         for _index, candidate in candidate_rows.iterrows():
             if candidate["bssid"] == serving_ap["bssid"]:

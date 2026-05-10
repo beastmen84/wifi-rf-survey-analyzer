@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 
 from ap_group_dialog import open_ap_group_manager
 from ap_groups import (
+    AP_ROLE_TEST,
     build_dominant_ap_group_labels as build_ap_group_labels,
     build_bssid_to_manual_group_map,
     build_ap_group_role_map,
@@ -48,6 +49,7 @@ from constants import (
     SUSPICIOUS_SCAN_RATIO,
 )
 from heatmap_tools import (
+    add_ap_group_metadata,
     apply_distance_mask,
     apply_signal_threshold,
     calculate_interference_points,
@@ -821,6 +823,10 @@ class WifiHeatmapApp(ModalDialogMixin):
     def get_live_ap_filter_groups(self, config):
         rows = self.session.rows
         groups = {}
+        role_map = {
+            str(group_id): normalize_ap_role(role)
+            for group_id, role in (config.ap_group_roles or ())
+        }
 
         for row in rows:
             if config.ssid and str(row.get("ssid", "")).lower() != config.ssid.lower():
@@ -841,6 +847,9 @@ class WifiHeatmapApp(ModalDialogMixin):
                 continue
 
             group_key = self.resolve_ap_group_key(bssid, config.ap_group_map)
+            if role_map.get(group_key) == AP_ROLE_TEST:
+                continue
+
             groups.setdefault(group_key, bssid)
 
         return [
@@ -2538,7 +2547,13 @@ class WifiHeatmapApp(ModalDialogMixin):
         return {"missing": missing, "all_points": all_points}
 
     def build_live_channel_points(self, df, config):
-        channel_df = get_channel_map_points(df, config.ssid, config.band, ap_group_map=config.ap_group_map)
+        channel_df = get_channel_map_points(
+            df,
+            config.ssid,
+            config.band,
+            ap_group_map=config.ap_group_map,
+            ap_group_roles=config.ap_group_roles,
+        )
         if channel_df.empty:
             return False
 
@@ -2576,7 +2591,13 @@ class WifiHeatmapApp(ModalDialogMixin):
         return True
 
     def build_live_dominant_points(self, df, config):
-        dominant_df = get_dominant_ap_points(df, config.ssid, config.band, ap_group_map=config.ap_group_map)
+        dominant_df = get_dominant_ap_points(
+            df,
+            config.ssid,
+            config.band,
+            ap_group_map=config.ap_group_map,
+            ap_group_roles=config.ap_group_roles,
+        )
         if dominant_df.empty:
             return False
 
@@ -3286,6 +3307,7 @@ class WifiHeatmapApp(ModalDialogMixin):
                 ("SSID", config.ssid),
                 ("x/y", f"{self.format_report_value(row.get('x', ''))}, {self.format_report_value(row.get('y', ''))}"),
                 (self.tr("reference_ap"), ap_label),
+                (self.tr("ap_group_role"), self.format_ap_role(row.get("ap_role"))),
                 (self.tr("reference_channel"), f"CH {self.format_report_value(row.get('channel', ''))}{width_label}"),
                 (self.tr("best"), self.format_report_value(row.get("signal_dbm", ""), suffix=" dBm")),
                 (self.tr("confidence"), self.format_row_confidence(row)),
@@ -3304,10 +3326,12 @@ class WifiHeatmapApp(ModalDialogMixin):
                 ("SSID", config.ssid),
                 ("x/y", f"{self.format_report_value(row.get('x', ''))}, {self.format_report_value(row.get('y', ''))}"),
                 (self.tr("reference_ap"), dominant),
+                (self.tr("ap_group_role"), self.format_ap_role(row.get("dominant_ap_role"))),
                 (self.tr("reference_channel"), f"CH {self.format_report_value(row.get('dominant_channel', ''))}"),
                 (self.tr("best"), self.format_report_value(row.get("dominant_signal_dbm", ""), suffix=" dBm")),
                 (self.tr("confidence"), self.format_named_confidence(row, "dominant")),
                 (self.tr("second_ap"), second),
+                (self.tr("second_ap_role"), self.format_ap_role(row.get("second_ap_role")) if row.get("second_ap_role") else "-"),
                 (self.tr("second_confidence"), self.format_named_confidence(row, "second")),
                 ("Delta", delta),
             ] + position_rows
@@ -3783,6 +3807,8 @@ class WifiHeatmapApp(ModalDialogMixin):
         band = config.band
 
         df = filter_by_band(df, band)
+        df = add_ap_group_metadata(df, self.get_current_ap_group_map(), self.get_current_ap_group_roles())
+        df = df[df["ap_role"] != AP_ROLE_TEST]
         raw_rows = len(df)
         df = collapse_heatmap_points(df, aggregation=config.aggregation)
 
@@ -3869,7 +3895,13 @@ class WifiHeatmapApp(ModalDialogMixin):
     def generate_channel_map(self, df, config):
         ssid = config.ssid
         band = config.band
-        channel_df = get_channel_map_points(df, ssid, band, ap_group_map=self.get_current_ap_group_map())
+        channel_df = get_channel_map_points(
+            df,
+            ssid,
+            band,
+            ap_group_map=self.get_current_ap_group_map(),
+            ap_group_roles=self.get_current_ap_group_roles(),
+        )
 
         if channel_df.empty:
             messagebox.showwarning(
@@ -3940,7 +3972,13 @@ class WifiHeatmapApp(ModalDialogMixin):
     def generate_dominant_ap_map(self, df, config):
         ssid = config.ssid
         band = config.band
-        dominant_df = get_dominant_ap_points(df, ssid, band, ap_group_map=self.get_current_ap_group_map())
+        dominant_df = get_dominant_ap_points(
+            df,
+            ssid,
+            band,
+            ap_group_map=self.get_current_ap_group_map(),
+            ap_group_roles=self.get_current_ap_group_roles(),
+        )
 
         if dominant_df.empty:
             messagebox.showwarning(
@@ -4502,6 +4540,7 @@ class WifiHeatmapApp(ModalDialogMixin):
             "y",
             "ssid",
             "dominant_ap_group",
+            "dominant_ap_role",
             "dominant_bssid",
             "dominant_signal_dbm",
             "dominant_samples_seen",
@@ -4510,6 +4549,7 @@ class WifiHeatmapApp(ModalDialogMixin):
             "dominant_channel",
             "dominant_channel_width_mhz",
             "second_ap_group",
+            "second_ap_role",
             "second_bssid",
             "second_signal_dbm",
             "second_samples_seen",

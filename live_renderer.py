@@ -10,8 +10,9 @@ import pandas as pd
 from PIL import Image
 
 from constants import HEATMAP_GRID_SIZE
-from ap_groups import normalize_ap_group_map, resolve_ap_group_key
+from ap_groups import AP_ROLE_TEST
 from heatmap_tools import (
+    add_ap_group_metadata,
     apply_distance_mask,
     apply_signal_threshold,
     calculate_interference_points,
@@ -56,9 +57,10 @@ def render_live_continuous_map(df, config, bg_image, translations, point_tooltip
 def build_signal_payload(df, config, bg_image, translations, point_tooltip_builder, color_scale_limits):
     rows = df[df["ssid"].str.lower() == config.ssid.lower()]
     rows = filter_by_band(rows, config.band)
-    ap_group_map = normalize_ap_group_map(config.ap_group_map)
+    rows = add_ap_group_metadata(rows, config.ap_group_map, config.ap_group_roles)
+    rows = rows[rows["ap_role"] != AP_ROLE_TEST]
     if config.ap_group_filter:
-        rows = rows[rows["bssid"].apply(lambda bssid: resolve_ap_group_key(bssid, ap_group_map)) == config.ap_group_filter]
+        rows = rows[rows["ap_group"] == config.ap_group_filter]
     raw_rows = len(rows)
     rows = collapse_heatmap_points(rows, aggregation=config.aggregation)
 
