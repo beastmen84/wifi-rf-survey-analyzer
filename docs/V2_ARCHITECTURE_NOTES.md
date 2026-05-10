@@ -229,7 +229,7 @@ Why it matters:
 
 - real surveys can contain many BSSIDs;
 - manual split/merge must stay fast and understandable;
-- ttkbootstrap tree/table behavior is limited.
+- dense AP tables need stronger filtering and batch-edit workflows.
 
 Suggested next steps:
 
@@ -360,8 +360,9 @@ Needed later:
 Decision updated:
 
 - PySide6 migration should happen early, while the tool is not yet distributed;
-- the existing Tkinter/ttkbootstrap UI remains available during the migration;
-- new complex GUI work should target Qt instead of making `app.py` larger.
+- Qt is now the active UI stack;
+- the old Tkinter/ttkbootstrap UI has been retired from the active codebase;
+- new GUI work should target Qt.
 
 Reason:
 
@@ -380,13 +381,12 @@ PySide6 is the target UI stack for:
 - larger datasets;
 - richer validation workflows.
 
-Current first step:
+Current state:
 
-- `main.py` is the new PySide6 entry point;
-- `wifi_heatmap.py` remains the legacy Tkinter entry point during migration;
-- `main.py` already starts with project/session shell behavior and the first
-  Qt survey viewer pieces: floorplan loading, saved map restore, point marker
-  overlay, pan/zoom and fit-to-window.
+- `main.py` is the PySide6 entry point;
+- the legacy Tkinter entry point and legacy Tk dialogs have been removed;
+- `main.py` includes project/session shell behavior, floorplan loading, saved
+  map restore, point marker overlay, pan/zoom and fit-to-window.
 - `qt_ap_groups.py` contains the first Qt AP Group Manager migration: group
   table/search, alias/role edits, metadata editing, BSSID split, conflict
   details, AP positioning from the Qt floorplan and save behavior are available.
@@ -400,29 +400,28 @@ Current first step:
   calibration, Help and the toolbar theme selector are now available in
   first-pass form.
 
-Recommended migration sequence:
+Completed migration sequence:
 
 ```text
-1. Keep Tkinter stable as fallback
+1. Keep Tkinter stable as fallback during the transition
 2. Build the Qt shell in main.py
 3. Move survey state, loading/saving and floorplan viewing to Qt
 4. Move AP Group Manager to Qt
 5. Move live map tab to Qt
 6. Move quality dashboard and map generation dialogs to Qt
 7. Move remaining smaller workflow dialogs/actions to Qt
-8. Retire Tkinter only after feature parity is acceptable
+8. Retire Tkinter after practical feature parity
 ```
 
 ## Suggested Next Priorities
 
 Near-term:
 
-1. Continue Qt feature parity for any small utility actions still only present
-   in the legacy UI.
-2. Add more targeted tests for point scanning, survey save/load and sidecar
+1. Add more targeted tests for point scanning, survey save/load and sidecar
    handling.
-3. Keep using the legacy Tkinter entry point as fallback until Qt parity is
-   acceptable.
+2. Keep the Qt code modular while the visual redesign proceeds.
+3. Remove or rewrite any stale documentation that still describes retired
+   transition behavior.
 
 Medium-term:
 
@@ -432,10 +431,9 @@ Medium-term:
 
 Long-term:
 
-9. Retire the Tkinter UI when Qt reaches practical feature parity.
-10. Rework Help after feature workflows stabilize.
-11. Add advanced RF/AI-assisted suggestions.
-12. Add richer deployment/reporting outputs.
+9. Rework Help after feature workflows stabilize.
+10. Add advanced RF/AI-assisted suggestions.
+11. Add richer deployment/reporting outputs.
 
 ## Final Vision
 

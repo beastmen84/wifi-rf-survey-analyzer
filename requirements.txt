@@ -5,5 +5,4 @@ numpy
 matplotlib
 scipy
 lswifi
-ttkbootstrap
 PySide6

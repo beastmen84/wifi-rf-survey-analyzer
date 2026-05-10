@@ -19,8 +19,7 @@ The project focuses on practical analysis from live Wi-Fi measurements collected
 
 ### User Interface
 
-- PySide6 UI migration started in `main.py`.
-- Existing ttkbootstrap UI remains available during migration.
+- PySide6 UI in `main.py`.
 - Start screen with new/open/exit actions and visual mouse shortcut help.
 - Main UI split into survey and live map tabs.
 - Toolbar controls for saving, opening CSV, AP aliases, scale calibration, help, map generation, theme, and language.
@@ -39,7 +38,7 @@ The project focuses on practical analysis from live Wi-Fi measurements collected
 - Median, min, max, and sample list for RSSI values.
 - Confidence fields per measurement.
 - Suspicious scan warning when a new scan sees far fewer networks than the previous good scan.
-- Capture selection dialog with "all networks", single SSID selection, and remembered choice.
+- Relevant SSID workflow: all networks are saved, while selected SSIDs drive warnings and quality checks.
 
 Collected fields include:
 
@@ -69,7 +68,7 @@ Metadata can include:
 - scale calibration (`px_per_meter`)
 - app creation fields
 
-Older CSV files are migrated on load by adding missing fields where possible.
+The current application expects V2 survey CSV files created by this tool.
 
 ### AP Aliases
 
@@ -191,8 +190,6 @@ The project explicitly handles or exposes several practical Wi-Fi survey problem
 
 - Python
 - PySide6
-- Tkinter
-- ttkbootstrap
 - PyMuPDF
 - Pillow
 - Pandas
@@ -230,16 +227,10 @@ pip install -r requirements.txt
 
 ## Running the Application
 
-The new V2 Qt entry point is:
+The application entry point is:
 
 ```bash
 python main.py
-```
-
-During the migration, the existing Tkinter UI is still available:
-
-```bash
-python wifi_heatmap.py
 ```
 
 ## Building the Executable

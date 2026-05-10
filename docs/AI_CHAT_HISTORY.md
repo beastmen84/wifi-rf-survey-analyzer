@@ -17,9 +17,8 @@ current architecture, and active rules that matter for continuing the work.
   made, then commit both code and this file together.
 - Prefer small, coherent steps. The app is growing and should remain easy to
   reason about.
-- Current UI direction is PySide6. `main.py` is the new Qt entry point, while
-  `wifi_heatmap.py` remains the legacy Tkinter/ttkbootstrap entry point during
-  migration.
+- Current UI direction is PySide6. `main.py` is now the active Qt entry point;
+  the legacy Tkinter/ttkbootstrap UI has been retired from the active codebase.
 - Help text should eventually be reworked structurally, but the user chose to
   postpone that for now.
 - Existing code is the source of truth. If this file and code disagree, inspect
@@ -38,25 +37,21 @@ script and has evolved toward a V2 "RF analysis platform":
 - manage AP groups, aliases, roles, and physical AP positions;
 - evaluate scan/survey quality.
 
-Entry points:
+Entry point:
 
-- `main.py`: new PySide6 V2 entry point.
-- `wifi_heatmap.py`: legacy Tkinter start screen and application launch during
-  migration.
+- `main.py`: PySide6 V2 entry point.
 
 Core UI:
 
-- `app.py`: main application. Still large, but several areas have been extracted.
-- `main.py`: current Qt shell/prototype; it should progressively absorb real
-  workflows instead of adding more complex GUI to `app.py`.
+- `main.py`: current Qt application shell and workflow coordinator.
 - `qt_floorplan.py`: Qt floorplan viewer with image/PDF loading, pan/zoom and
   point marker overlay.
-- `qt_ap_groups.py`: Qt AP Group Manager migration in progress; currently
-  handles group table/search, alias edits, role edits, BSSID split, conflict
-  details and saving group metadata.
-- `ap_group_dialog.py`: AP Group Manager.
-- `survey_quality_dialog.py`: survey quality dashboard.
-- `modal_dialogs.py`: shared modal dialog behavior.
+- `qt_ap_groups.py`: Qt AP Group Manager for group table/search, alias edits,
+  role edits, BSSID split, conflict details and saving group metadata.
+- `qt_point_workflow.py`: Qt Wi-Fi scan worker and point workflow dialogs.
+- `qt_map_generation.py`: Qt generated map dialog.
+- `qt_quality_dashboard.py`: Qt survey quality dashboard.
+- `qt_help_dialog.py`: Qt help dialog.
 - `live_renderer.py`: continuous live signal/interference rendering in a worker.
 - `map_rendering.py`: PNG map legend/reference helpers.
 
@@ -243,8 +238,8 @@ Implemented:
   - expected channels;
   - notes.
 - Reset to automatic grouping.
-- AP Group Manager is intentionally not perfect visually in ttkbootstrap; later
-  PySide6 could improve complex table behavior.
+- AP Group Manager is now Qt-based; visual refinement and dense-table workflow
+  improvements remain future work.
 
 Grouping caveat:
 
@@ -468,6 +463,9 @@ Language:
   with timestamp, severity and component names (`main`, `live_map`,
   `wifi_scanner`, `unhandled`), and Python warnings are captured into the same
   file.
+- Retired the legacy Tkinter/ttkbootstrap UI from the active codebase. Removed
+  `wifi_heatmap.py`, `app.py`, legacy Tk dialogs/helpers and the `ttkbootstrap`
+  dependency. `main.py` is now the documented application entry point.
 
 Recent commits:
 
@@ -493,19 +491,18 @@ Good next steps, in likely order:
 
 1. Add more targeted tests as new V2 modules are split out, especially around
    point scanning and survey save/load.
-2. Continue practical Qt feature parity for any remaining small workflow
-   actions still only present in the legacy UI.
-3. Decide whether mounting metadata should influence AP position warnings or
+2. Decide whether mounting metadata should influence AP position warnings or
    remain documentation only.
-4. Improve live map performance only if user sees real lag on large surveys.
-5. Rework Help structure later, after the feature set stabilizes.
+3. Improve live map performance only if user sees real lag on large surveys.
+4. Rework Help structure later, after the feature set stabilizes.
+5. Continue visual redesign on the Qt-only UI.
 
 ## Verification Patterns Used
 
 Typical checks after code edits:
 
 ```powershell
-.\.venv\Scripts\python.exe -m py_compile .\app.py .\heatmap_tools.py .\live_renderer.py .\i18n.py
+.\.venv\Scripts\python.exe -m py_compile .\main.py .\heatmap_tools.py .\live_renderer.py .\i18n.py
 git diff --check
 git status --short
 ```
