@@ -650,6 +650,9 @@ class WifiHeatmapQtApp(QMainWindow):
                 font-family: Segoe UI;
                 font-size: 10.5pt;
             }}
+            QLabel, QCheckBox {{
+                background: transparent;
+            }}
             QFrame#startPanel, QFrame#summaryPanel {{
                 background: {palette["panel"]};
                 border: 1px solid {palette["border"]};

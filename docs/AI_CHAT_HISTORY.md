@@ -508,6 +508,10 @@ Language:
   improved relevant-network selection checkboxes. The connected SSID is now
   sorted to the top and preselected whenever Windows reports it and it appears
   in the scan.
+- Fixed the visible rectangular patches under text in Qt cards and toolbar
+  sections by making labels and checkboxes transparent over their parent
+  surfaces. The Sand Blue palette was cooled further toward neutral
+  gray/blue surfaces so beige is no longer dominant in the main theme.
 
 Recent commits:
 
