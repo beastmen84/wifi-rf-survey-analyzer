@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 
 try:
     from PySide6.QtCore import QObject, Qt, QThread, QTimer, Signal, Slot
@@ -21,7 +22,9 @@ except ModuleNotFoundError as exc:
     raise SystemExit(1) from exc
 
 from app_logging import configure_logging, log_event, log_exception, log_unhandled_exception
+from app_settings import get_saved_theme
 from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_language, translate
+from qt_theme import QT_THEMES
 
 
 START_LANGUAGE_LABELS = {
@@ -52,6 +55,7 @@ class StartWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.language = DEFAULT_LANGUAGE
+        self.theme = get_saved_theme(default="light", valid_themes=QT_THEMES)
         self.app_class = None
         self.workspace_window = None
         self.load_thread = None
@@ -185,122 +189,134 @@ class StartWindow(QMainWindow):
         outer.addWidget(self.copyright_label)
 
     def apply_styles(self):
+        palette = QT_THEMES.get(self.theme, QT_THEMES["light"])
+        combo_arrow_icon = (Path(__file__).resolve().parent / "images" / "combo_arrow_white.svg").as_posix()
         self.setStyleSheet(
-            """
-            QMainWindow#startWindow, QWidget#startPage {
-                background: #eef2f6;
-                color: #172033;
+            f"""
+            QMainWindow#startWindow, QWidget#startPage {{
+                background: {palette["bg"]};
+                color: {palette["text"]};
                 font-family: "Segoe UI";
                 font-size: 14px;
-            }
-            QFrame#startHero, QFrame#startActions {
-                background: #ffffff;
-                border: 1px solid #d4dce7;
+            }}
+            QFrame#startHero, QFrame#startActions {{
+                background: {palette["panel"]};
+                border: 1px solid {palette["border"]};
                 border-radius: 10px;
-            }
-            QFrame#startHero {
+            }}
+            QFrame#startHero {{
                 min-width: 620px;
-            }
-            QFrame#startActions {
+            }}
+            QFrame#startActions {{
                 min-width: 360px;
                 max-width: 430px;
-            }
-            QLabel#startTitle {
-                color: #111827;
+            }}
+            QLabel#startTitle {{
+                color: {palette["title"]};
                 font-size: 42px;
                 font-weight: 800;
-            }
-            QLabel#startSubtitle {
-                color: #516070;
+            }}
+            QLabel#startSubtitle {{
+                color: {palette["muted"]};
                 font-size: 18px;
-            }
-            QLabel#startSectionTitle {
-                color: #162033;
+            }}
+            QLabel#startSectionTitle {{
+                color: {palette["title"]};
                 font-size: 17px;
                 font-weight: 700;
-            }
-            QLabel#startStep {
-                color: #263447;
+            }}
+            QLabel#startStep {{
+                color: {palette["text"]};
                 font-size: 15px;
                 padding: 2px 0;
-            }
-            QLabel#startMuted, QLabel#startFooter {
-                color: #64748b;
-            }
-            QPushButton#primaryStartButton {
-                background: #1f6feb;
+            }}
+            QLabel#startMuted, QLabel#startFooter {{
+                color: {palette["muted"]};
+            }}
+            QPushButton#primaryStartButton {{
+                background: {palette["metric_info"]};
                 color: #ffffff;
-                border: 1px solid #1f6feb;
+                border: 1px solid {palette["metric_info"]};
                 border-radius: 7px;
                 font-size: 15px;
                 font-weight: 700;
                 padding: 10px 14px;
-            }
-            QPushButton#primaryStartButton:hover {
-                background: #185fc8;
-            }
-            QPushButton#primaryStartButton:disabled {
-                background: #9db9df;
-                border-color: #9db9df;
-                color: #eef4ff;
-            }
-            QPushButton#secondaryStartButton {
-                background: #ffffff;
-                color: #172033;
-                border: 1px solid #c9d3df;
+            }}
+            QPushButton#primaryStartButton:hover {{
+                background: {palette["metric_info"]};
+            }}
+            QPushButton#primaryStartButton:disabled {{
+                background: {palette["button_hover"]};
+                border-color: {palette["border"]};
+                color: {palette["muted"]};
+            }}
+            QPushButton#secondaryStartButton {{
+                background: {palette["button_bg"]};
+                color: {palette["text"]};
+                border: 1px solid {palette["border"]};
                 border-radius: 7px;
                 font-size: 15px;
                 font-weight: 600;
                 padding: 10px 14px;
-            }
-            QPushButton#secondaryStartButton:hover {
-                background: #f3f6fa;
-            }
-            QPushButton#secondaryStartButton:disabled {
-                color: #9aa7b5;
-                background: #f5f7fa;
-            }
-            QComboBox {
-                background: #ffffff;
-                color: #172033;
-                border: 1px solid #c9d3df;
+            }}
+            QPushButton#secondaryStartButton:hover {{
+                background: {palette["button_hover"]};
+            }}
+            QPushButton#secondaryStartButton:disabled {{
+                color: {palette["muted"]};
+                background: {palette["panel_alt"]};
+            }}
+            QComboBox {{
+                background: {palette["button_bg"]};
+                color: {palette["text"]};
+                border: 1px solid {palette["border"]};
                 border-radius: 6px;
-                padding: 6px 10px;
+                padding: 6px 28px 6px 10px;
                 min-width: 72px;
-            }
-            QComboBox#languageCombo {
-                background: #1f6feb;
+            }}
+            QComboBox#languageCombo {{
+                background: {palette["metric_info"]};
                 color: #ffffff;
-                border: 1px solid #1f6feb;
+                border: 1px solid {palette["metric_info"]};
                 border-radius: 7px;
-                padding: 8px 12px;
+                padding: 8px 34px 8px 12px;
                 min-width: 128px;
                 font-weight: 700;
-            }
-            QComboBox#languageCombo:hover {
-                background: #185fc8;
-                border-color: #185fc8;
-            }
-            QComboBox#languageCombo::drop-down {
-                border: 0;
+            }}
+            QComboBox#languageCombo:hover {{
+                background: {palette["metric_info"]};
+                border-color: {palette["metric_info"]};
+            }}
+            QComboBox::drop-down {{
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
                 width: 28px;
-            }
-            QComboBox#languageCombo QAbstractItemView {
-                background: #ffffff;
-                color: #172033;
-                selection-background-color: #dbeafe;
-                selection-color: #111827;
-                border: 1px solid #c9d3df;
-            }
-            QProgressBar {
-                background: #e3e9f2;
+                border-left: 1px solid {palette["metric_info"]};
+                border-top-right-radius: 6px;
+                border-bottom-right-radius: 6px;
+                background: {palette["metric_info"]};
+            }}
+            QComboBox::down-arrow {{
+                image: url("{combo_arrow_icon}");
+                width: 10px;
+                height: 6px;
+            }}
+            QComboBox#languageCombo QAbstractItemView {{
+                background: {palette["panel"]};
+                color: {palette["text"]};
+                selection-background-color: {palette["selection"]};
+                selection-color: {palette["text"]};
+                border: 1px solid {palette["border"]};
+            }}
+            QProgressBar {{
+                background: {palette["panel_alt"]};
                 border: 0;
                 border-radius: 4px;
-            }
-            QProgressBar::chunk {
-                background: #1f6feb;
+            }}
+            QProgressBar::chunk {{
+                background: {palette["metric_info"]};
                 border-radius: 4px;
-            }
+            }}
             """
         )
 

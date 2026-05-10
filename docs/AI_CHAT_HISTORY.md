@@ -536,6 +536,12 @@ Language:
 - Restored the collapsed measurement-points button shape after removing the
   surrounding overlay frame by increasing the collapsed overlay size and
   enforcing a pill-shaped minimum button size.
+- Added shared application settings in `app_settings.py`. The selected Qt theme
+  is now persisted in the user's app settings folder, defaults to `light`
+  (Sand Blue) when no saved config exists, is restored by both the startup
+  launcher and the main workspace, and is saved whenever the user changes it.
+  The startup page now styles itself from the active Qt palette instead of
+  hard-coded colors.
 
 Recent commits:
 

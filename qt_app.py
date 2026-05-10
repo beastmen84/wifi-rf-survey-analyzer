@@ -38,6 +38,7 @@ except ModuleNotFoundError as exc:
 
 from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_language, translate
 from app_logging import configure_logging, log_event, log_exception, log_unhandled_exception
+from app_settings import get_saved_theme, save_theme
 from ap_groups import (
     build_ap_group_role_map,
     build_bssid_to_manual_group_map,
@@ -74,7 +75,7 @@ class WifiHeatmapQtApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.language = DEFAULT_LANGUAGE
-        self.theme = "light"
+        self.theme = get_saved_theme(default="light", valid_themes=QT_THEMES)
         self.session = None
         self.relevant_ssids = set()
         self.known_ssids = set()
@@ -1095,6 +1096,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.set_combo_items(
             self.workspace_theme_combo,
             [(theme, self.tr(f"qt_theme_{theme}")) for theme in QT_THEME_OPTIONS],
+            current_value=self.theme,
         )
 
     def change_language(self, value):
@@ -1121,6 +1123,7 @@ class WifiHeatmapQtApp(QMainWindow):
             return
 
         self.theme = theme
+        save_theme(theme)
         self.apply_styles()
 
     def refresh_live_static_options(self):
@@ -1157,8 +1160,8 @@ class WifiHeatmapQtApp(QMainWindow):
             ],
         )
 
-    def set_combo_items(self, combo, items):
-        current = combo.currentData()
+    def set_combo_items(self, combo, items, current_value=None):
+        current = combo.currentData() if current_value is None else current_value
         combo.blockSignals(True)
         combo.clear()
         for value, label in items:
