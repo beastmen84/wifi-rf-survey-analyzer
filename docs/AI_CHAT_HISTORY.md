@@ -521,6 +521,11 @@ Language:
 - Adjusted the combo-box styling after visual testing: the right dropdown
   segment now takes the theme accent color and uses an explicit white SVG arrow
   (`images/combo_arrow_white.svg`) instead of relying on a fragile CSS triangle.
+- Refined the floating points table: removed visible grid separation so row
+  selection reads as a continuous row instead of isolated colored cells, made
+  compact technical columns resize to content within fixed bounds, kept the
+  `Networks` column as the stretch column, and added full-cell tooltips for
+  truncated content.
 
 Recent commits:
 

@@ -437,10 +437,15 @@ class WifiHeatmapQtApp(QMainWindow):
 
         self.points_table = QTableWidget(0, 8)
         self.points_table.setAlternatingRowColors(True)
+        self.points_table.setShowGrid(False)
+        self.points_table.setWordWrap(False)
+        self.points_table.setTextElideMode(Qt.TextElideMode.ElideRight)
+        self.points_table.verticalHeader().setVisible(False)
         self.points_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.points_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.points_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        self.points_table.horizontalHeader().setStretchLastSection(True)
+        self.points_table.horizontalHeader().setStretchLastSection(False)
+        self.points_table.horizontalHeader().setMinimumSectionSize(34)
+        self.configure_points_table_columns()
         self.points_table.itemSelectionChanged.connect(self.update_point_action_state)
         self.points_table.itemDoubleClicked.connect(lambda _item: self.focus_selected_point())
         table_layout.addWidget(self.points_table)
@@ -549,6 +554,39 @@ class WifiHeatmapQtApp(QMainWindow):
                 return True
 
         return super().eventFilter(source, event)
+
+    def configure_points_table_columns(self):
+        if not hasattr(self, "points_table"):
+            return
+
+        header = self.points_table.horizontalHeader()
+        header.setStretchLastSection(False)
+        for column in range(self.points_table.columnCount()):
+            mode = QHeaderView.ResizeMode.Stretch if column == 5 else QHeaderView.ResizeMode.ResizeToContents
+            header.setSectionResizeMode(column, mode)
+
+    def resize_points_table_columns(self):
+        if not hasattr(self, "points_table"):
+            return
+
+        self.configure_points_table_columns()
+        self.points_table.resizeColumnsToContents()
+        compact_limits = {
+            0: (42, 54),
+            1: (50, 64),
+            2: (50, 64),
+            3: (92, 116),
+            4: (110, 150),
+            6: (54, 72),
+            7: (140, 180),
+        }
+        header = self.points_table.horizontalHeader()
+        for column, (minimum, maximum) in compact_limits.items():
+            width = self.points_table.columnWidth(column)
+            width = max(minimum, min(width + 10, maximum))
+            header.setSectionResizeMode(column, QHeaderView.ResizeMode.Fixed)
+            self.points_table.setColumnWidth(column, width)
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
 
     def build_live_tab(self):
         tab = QWidget()
@@ -936,8 +974,16 @@ class WifiHeatmapQtApp(QMainWindow):
                 background: {palette["panel"]};
                 alternate-background-color: {palette["panel_alt"]};
                 color: {palette["text"]};
-                gridline-color: {palette["border"]};
                 selection-background-color: {palette["selection"]};
+            }}
+            QTableWidget::item {{
+                border: 0;
+                border-bottom: 1px solid {palette["border"]};
+                padding: 4px 6px;
+            }}
+            QTableWidget::item:selected {{
+                background: {palette["selection"]};
+                color: {palette["text"]};
             }}
             QGraphicsView#liveMapView {{
                 background: {palette["live_bg"]};
@@ -1030,6 +1076,7 @@ class WifiHeatmapQtApp(QMainWindow):
             self.tr("rows"),
             self.tr("qt_table_timestamp"),
         ])
+        self.resize_points_table_columns()
         self.refresh_session_labels()
 
     def refresh_theme_options(self):
@@ -2327,11 +2374,14 @@ class WifiHeatmapQtApp(QMainWindow):
             for column_index, value in enumerate(values):
                 item = QTableWidgetItem(value)
                 item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
+                if value:
+                    item.setToolTip(value)
                 if column_index == 0:
                     item.setData(Qt.ItemDataRole.UserRole, point)
                 if column_index == 4 and self.should_show_quality_tooltip(quality):
                     item.setToolTip(self.build_quality_tooltip_text(quality))
                 self.points_table.setItem(row_index, column_index, item)
+        self.resize_points_table_columns()
         self.update_point_action_state()
 
     def format_point_quality(self, status):
