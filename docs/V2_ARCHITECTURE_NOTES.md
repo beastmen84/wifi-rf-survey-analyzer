@@ -397,7 +397,8 @@ Current first step:
 - `qt_point_workflow.py` contains the Qt scan worker and relevant/missing
   network dialogs.
 - Qt live map, generated map export, Survey Quality Dashboard, scale
-  calibration and Help are now available in first-pass form.
+  calibration, Help and the toolbar theme selector are now available in
+  first-pass form.
 
 Recommended migration sequence:
 
@@ -416,8 +417,8 @@ Recommended migration sequence:
 
 Near-term:
 
-1. Continue Qt feature parity for remaining workflow pieces such as theme
-   selector and any small utility actions still only present in the legacy UI.
+1. Continue Qt feature parity for any small utility actions still only present
+   in the legacy UI.
 2. Add more targeted tests for point scanning, survey save/load and sidecar
    handling.
 3. Keep using the legacy Tkinter entry point as fallback until Qt parity is

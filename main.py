@@ -68,12 +68,108 @@ from wifi_scanner import get_connected_ssid
 
 RELEVANT_SSIDS_METADATA_KEY = "relevant_ssids"
 KNOWN_SSIDS_METADATA_KEY = "known_ssids"
+QT_THEME_OPTIONS = ("light", "soft", "dark", "contrast")
+QT_THEMES = {
+    "light": {
+        "bg": "#f6f7f9",
+        "panel": "#ffffff",
+        "panel_alt": "#f1f4f7",
+        "footer": "#ffffff",
+        "border": "#d7dde3",
+        "text": "#1f2933",
+        "title": "#243447",
+        "muted": "#586575",
+        "toolbar": "#ffffff",
+        "header": "#e9edf2",
+        "badge_bg": "#d4edda",
+        "badge_border": "#b8dfc2",
+        "badge_text": "#155724",
+        "live_bg": "#2f3640",
+        "metric_good": "#16803d",
+        "metric_warning": "#9a6500",
+        "metric_danger": "#b42318",
+        "metric_info": "#1d4ed8",
+        "button_bg": "#ffffff",
+        "button_hover": "#eef3f8",
+        "selection": "#dbeafe",
+    },
+    "soft": {
+        "bg": "#f7f5f0",
+        "panel": "#fffdf8",
+        "panel_alt": "#f1eee6",
+        "footer": "#fffdf8",
+        "border": "#d9d1c2",
+        "text": "#252525",
+        "title": "#32302c",
+        "muted": "#625b50",
+        "toolbar": "#fffdf8",
+        "header": "#ece5d9",
+        "badge_bg": "#e1f2e7",
+        "badge_border": "#b8dcc5",
+        "badge_text": "#14532d",
+        "live_bg": "#303336",
+        "metric_good": "#15803d",
+        "metric_warning": "#9a5f00",
+        "metric_danger": "#b42318",
+        "metric_info": "#1d4ed8",
+        "button_bg": "#fffdf8",
+        "button_hover": "#eee8dc",
+        "selection": "#dce7f7",
+    },
+    "dark": {
+        "bg": "#161a20",
+        "panel": "#20252d",
+        "panel_alt": "#262d36",
+        "footer": "#20252d",
+        "border": "#3a4350",
+        "text": "#edf2f7",
+        "title": "#f8fafc",
+        "muted": "#c3ccd7",
+        "toolbar": "#20252d",
+        "header": "#2d3540",
+        "badge_bg": "#183b2a",
+        "badge_border": "#2f6b46",
+        "badge_text": "#b7f7ca",
+        "live_bg": "#11151b",
+        "metric_good": "#7bd88f",
+        "metric_warning": "#ffd166",
+        "metric_danger": "#ff8f86",
+        "metric_info": "#93c5fd",
+        "button_bg": "#2b323d",
+        "button_hover": "#384251",
+        "selection": "#1e3a5f",
+    },
+    "contrast": {
+        "bg": "#0f1720",
+        "panel": "#17212d",
+        "panel_alt": "#202c3a",
+        "footer": "#17212d",
+        "border": "#466075",
+        "text": "#f5f7fa",
+        "title": "#ffffff",
+        "muted": "#d6dee8",
+        "toolbar": "#17212d",
+        "header": "#243547",
+        "badge_bg": "#123b33",
+        "badge_border": "#2c7c69",
+        "badge_text": "#c6fff1",
+        "live_bg": "#0b1118",
+        "metric_good": "#80ed99",
+        "metric_warning": "#ffd166",
+        "metric_danger": "#ff9b9b",
+        "metric_info": "#9cc9ff",
+        "button_bg": "#233244",
+        "button_hover": "#30465f",
+        "selection": "#224e7a",
+    },
+}
 
 
 class WifiHeatmapQtApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.language = DEFAULT_LANGUAGE
+        self.theme = "light"
         self.session = None
         self.relevant_ssids = set()
         self.known_ssids = set()
@@ -241,6 +337,12 @@ class WifiHeatmapQtApp(QMainWindow):
 
         self.toolbar.addSeparator()
         self.toolbar.addWidget(QLabel("  "))
+        self.workspace_theme_label = QLabel()
+        self.workspace_theme_combo = QComboBox()
+        self.workspace_theme_combo.currentIndexChanged.connect(self.change_theme)
+        self.toolbar.addWidget(self.workspace_theme_label)
+        self.toolbar.addWidget(self.workspace_theme_combo)
+        self.toolbar.addSeparator()
         self.workspace_language_label = QLabel()
         self.workspace_language_combo = QComboBox()
         self.workspace_language_combo.addItems(SUPPORTED_LANGUAGES)
@@ -444,114 +546,167 @@ class WifiHeatmapQtApp(QMainWindow):
         return tab
 
     def apply_styles(self):
+        palette = QT_THEMES.get(self.theme, QT_THEMES["light"])
         self.setStyleSheet(
-            """
-            QMainWindow, QWidget {
-                background: #f6f7f9;
-                color: #1f2933;
+            f"""
+            QMainWindow, QWidget {{
+                background: {palette["bg"]};
+                color: {palette["text"]};
                 font-family: Segoe UI;
                 font-size: 10.5pt;
-            }
-            QFrame#startPanel, QFrame#summaryPanel {
-                background: #ffffff;
-                border: 1px solid #d7dde3;
+            }}
+            QFrame#startPanel, QFrame#summaryPanel {{
+                background: {palette["panel"]};
+                border: 1px solid {palette["border"]};
                 border-radius: 8px;
-            }
-            QFrame#footer {
-                background: #ffffff;
-                border-top: 1px solid #d7dde3;
-            }
-            QFrame#metricBox {
-                background: #ffffff;
-                border: 1px solid #d7dde3;
+            }}
+            QFrame#footer {{
+                background: {palette["footer"]};
+                border-top: 1px solid {palette["border"]};
+            }}
+            QFrame#metricBox {{
+                background: {palette["panel"]};
+                border: 1px solid {palette["border"]};
                 border-radius: 6px;
-            }
-            QLabel#startTitle {
+            }}
+            QLabel#startTitle {{
                 font-size: 25pt;
                 font-weight: 700;
-                color: #243447;
-            }
-            QLabel#sectionTitle {
+                color: {palette["title"]};
+            }}
+            QLabel#sectionTitle {{
                 font-size: 13pt;
                 font-weight: 600;
-                color: #243447;
-            }
-            QLabel#mutedText {
-                color: #586575;
-            }
-            QLabel#badge {
-                color: #155724;
-                background: #d4edda;
-                border: 1px solid #b8dfc2;
+                color: {palette["title"]};
+            }}
+            QLabel#mutedText {{
+                color: {palette["muted"]};
+            }}
+            QLabel#badge {{
+                color: {palette["badge_text"]};
+                background: {palette["badge_bg"]};
+                border: 1px solid {palette["badge_border"]};
                 border-radius: 5px;
                 padding: 5px 8px;
-            }
-            QLabel#metricValue_good {
-                color: #16803d;
+            }}
+            QLabel#metricValue_good {{
+                color: {palette["metric_good"]};
                 font-size: 18pt;
                 font-weight: 700;
-            }
-            QLabel#metricValue_warning {
-                color: #9a6500;
+            }}
+            QLabel#metricValue_warning {{
+                color: {palette["metric_warning"]};
                 font-size: 18pt;
                 font-weight: 700;
-            }
-            QLabel#metricValue_danger {
-                color: #b42318;
+            }}
+            QLabel#metricValue_danger {{
+                color: {palette["metric_danger"]};
                 font-size: 18pt;
                 font-weight: 700;
-            }
-            QLabel#metricValue_info {
-                color: #1d4ed8;
+            }}
+            QLabel#metricValue_info {{
+                color: {palette["metric_info"]};
                 font-size: 18pt;
                 font-weight: 700;
-            }
-            QPushButton {
+            }}
+            QPushButton {{
+                background: {palette["button_bg"]};
+                color: {palette["text"]};
+                border: 1px solid {palette["border"]};
+                border-radius: 5px;
                 min-width: 240px;
                 padding: 8px 12px;
-            }
-            QPushButton#compactButton {
+            }}
+            QPushButton:hover {{
+                background: {palette["button_hover"]};
+            }}
+            QPushButton:disabled {{
+                color: {palette["muted"]};
+            }}
+            QPushButton#compactButton {{
                 min-width: 0;
                 padding: 5px 8px;
-            }
-            QToolBar {
-                background: #ffffff;
-                border-bottom: 1px solid #d7dde3;
+            }}
+            QToolBar {{
+                background: {palette["toolbar"]};
+                border-bottom: 1px solid {palette["border"]};
                 spacing: 8px;
                 padding: 6px;
-            }
-            QTableWidget {
-                background: #ffffff;
-                alternate-background-color: #f1f4f7;
-                gridline-color: #d7dde3;
-            }
-            QGraphicsView#liveMapView {
-                background: #2f3640;
-                border: 1px solid #cbd3dc;
+            }}
+            QComboBox {{
+                background: {palette["button_bg"]};
+                color: {palette["text"]};
+                border: 1px solid {palette["border"]};
                 border-radius: 4px;
-            }
-            QListWidget {
-                background: #ffffff;
-                border: 1px solid #d7dde3;
+                padding: 4px 8px;
+            }}
+            QComboBox QAbstractItemView {{
+                background: {palette["panel"]};
+                color: {palette["text"]};
+                selection-background-color: {palette["selection"]};
+            }}
+            QTabWidget::pane {{
+                border: 1px solid {palette["border"]};
+                top: -1px;
+            }}
+            QTabBar::tab {{
+                background: {palette["header"]};
+                color: {palette["muted"]};
+                border: 1px solid {palette["border"]};
+                border-bottom: 0;
+                padding: 7px 16px;
+                margin-right: 2px;
+                border-top-left-radius: 5px;
+                border-top-right-radius: 5px;
+            }}
+            QTabBar::tab:selected {{
+                background: {palette["panel"]};
+                color: {palette["text"]};
+                font-weight: 600;
+            }}
+            QTableWidget {{
+                background: {palette["panel"]};
+                alternate-background-color: {palette["panel_alt"]};
+                color: {palette["text"]};
+                gridline-color: {palette["border"]};
+                selection-background-color: {palette["selection"]};
+            }}
+            QGraphicsView#liveMapView {{
+                background: {palette["live_bg"]};
+                border: 1px solid {palette["border"]};
+                border-radius: 4px;
+            }}
+            QListWidget {{
+                background: {palette["panel"]};
+                color: {palette["text"]};
+                border: 1px solid {palette["border"]};
                 border-radius: 4px;
                 padding: 4px;
-            }
-            QListWidget::item {
+            }}
+            QListWidget::item {{
                 padding: 4px;
-            }
-            QHeaderView::section {
-                background: #e9edf2;
+            }}
+            QHeaderView::section {{
+                background: {palette["header"]};
+                color: {palette["text"]};
                 padding: 5px;
                 border: 0;
-                border-right: 1px solid #d7dde3;
+                border-right: 1px solid {palette["border"]};
                 font-weight: 600;
-            }
+            }}
+            QToolTip {{
+                background: {palette["panel"]};
+                color: {palette["text"]};
+                border: 1px solid {palette["border"]};
+                padding: 5px;
+            }}
             """
         )
 
     def retranslate(self):
         self.setWindowTitle(self.tr("app_title"))
         self.start_language_label.setText(self.tr("language"))
+        self.workspace_theme_label.setText(self.tr("theme"))
         self.workspace_language_label.setText(self.tr("language"))
         self.start_title.setText(self.tr("app_title"))
         self.start_subtitle.setText(self.tr("start_subtitle"))
@@ -586,6 +741,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_auto_check.setText(self.tr("live_auto_update"))
         self.live_update_button.setText(self.tr("live_update_now"))
         self.live_fit_button.setText(self.tr("fit"))
+        self.refresh_theme_options()
         self.refresh_live_static_options()
         self.points_table.setHorizontalHeaderLabels([
             "#",
@@ -598,6 +754,12 @@ class WifiHeatmapQtApp(QMainWindow):
             self.tr("qt_table_timestamp"),
         ])
         self.refresh_session_labels()
+
+    def refresh_theme_options(self):
+        self.set_combo_items(
+            self.workspace_theme_combo,
+            [(theme, self.tr(f"qt_theme_{theme}")) for theme in QT_THEME_OPTIONS],
+        )
 
     def change_language(self, value):
         language = normalize_language(value)
@@ -616,6 +778,14 @@ class WifiHeatmapQtApp(QMainWindow):
             self.floorplan_view.set_ap_groups(self.session.get_ap_groups())
             self.refresh_live_controls()
             self.maybe_update_live_preview()
+
+    def change_theme(self, _index=None):
+        theme = self.workspace_theme_combo.currentData()
+        if theme not in QT_THEMES or theme == self.theme:
+            return
+
+        self.theme = theme
+        self.apply_styles()
 
     def refresh_live_static_options(self):
         self.set_combo_items(
@@ -1347,13 +1517,6 @@ class WifiHeatmapQtApp(QMainWindow):
             f"{self.tr('interference_quality_title')}: {quality_text}\n"
             f"{summary.get('quality_message', '')}\n\n"
             f"{files_message}"
-        )
-
-    def show_not_migrated_message(self):
-        QMessageBox.information(
-            self,
-            self.tr("qt_not_migrated_title"),
-            self.tr("qt_not_migrated_message"),
         )
 
     def load_session_ssid_state(self):

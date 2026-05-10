@@ -431,6 +431,10 @@ Language:
 - Added first-pass Qt Help dialog. The toolbar now has a Help action that opens
   translated workflow, live map, generated map, scan and command tabs using the
   existing help text.
+- Added first-pass Qt theme selector. The workspace toolbar now exposes four
+  internal palettes, two light and two dark, with explicit styling for toolbar,
+  tabs, tables, combo boxes, status panels and tooltips. Also removed an unused
+  Qt placeholder method left over from earlier migration steps.
 
 Recent commits:
 
@@ -456,8 +460,8 @@ Good next steps, in likely order:
 
 1. Add more targeted tests as new V2 modules are split out, especially around
    point scanning and survey save/load.
-2. Continue practical Qt feature parity: Help, theme selector and any remaining
-   small workflow actions still only present in the legacy UI.
+2. Continue practical Qt feature parity for any remaining small workflow
+   actions still only present in the legacy UI.
 3. Decide whether mounting metadata should influence AP position warnings or
    remain documentation only.
 4. Improve live map performance only if user sees real lag on large surveys.
