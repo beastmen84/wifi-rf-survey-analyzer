@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['wifi_heatmap.py'],
+    ['main.py'],
     pathex=[],
     binaries=[],
     datas=[('images', 'images')],

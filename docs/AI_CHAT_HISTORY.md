@@ -446,6 +446,8 @@ Language:
   space clears the point selection without blocking map drag behavior.
 - Moved Qt theme palette data from `main.py` to `qt_theme.py`, keeping behavior
   unchanged while reducing the size of the main window module.
+- Updated `WifiHeatmap.spec` to build the executable from the Qt entry point
+  `main.py` instead of the legacy Tkinter launcher `wifi_heatmap.py`.
 
 Recent commits:
 
