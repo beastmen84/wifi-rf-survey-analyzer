@@ -44,6 +44,7 @@ from ap_groups import (
     serialize_ap_group_map,
     serialize_ap_group_roles,
 )
+from map_exporter import MapExportError, generate_map_export
 from map_config import MapConfig
 from quality_engine import (
     QUALITY_GOOD,
@@ -55,7 +56,8 @@ from quality_engine import (
 )
 from qt_ap_groups import open_qt_ap_group_manager
 from qt_floorplan import FloorplanView
-from qt_live_map import LiveMapRenderWorker, LiveMapView, create_marker_icon
+from qt_live_map import LiveMapRenderWorker, LiveMapView, create_marker_icon, load_floorplan_image
+from qt_map_generation import MapGenerationDialog
 from qt_point_workflow import MissingRelevantNetworksDialog, RelevantNetworksDialog, WifiScanWorker
 from survey_store import SurveyFormatError, SurveySession
 from wifi_scanner import get_connected_ssid
@@ -214,7 +216,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.fit_action.triggered.connect(self.fit_floorplan)
         self.ap_groups_action.triggered.connect(self.open_ap_group_manager)
         self.quality_action.triggered.connect(self.show_not_migrated_message)
-        self.generate_action.triggered.connect(self.show_not_migrated_message)
+        self.generate_action.triggered.connect(self.open_generate_map_dialog)
 
         for action in (
             self.new_action,
@@ -781,6 +783,41 @@ class WifiHeatmapQtApp(QMainWindow):
             ap_group_roles=ap_group_roles,
         ).normalized()
 
+    def get_current_ap_group_map(self):
+        if self.session is None:
+            return {}
+
+        return build_bssid_to_manual_group_map(self.session.get_ap_groups())
+
+    def get_current_ap_group_roles(self):
+        if self.session is None:
+            return {}
+
+        return build_ap_group_role_map(self.session.get_ap_groups())
+
+    def build_export_default_config(self):
+        if self.session is None:
+            return MapConfig()
+
+        ssids = self.session.get_ssids()
+        current_ssid = self.live_ssid_combo.currentText().strip()
+        if current_ssid not in ssids:
+            current_ssid = ssids[0] if ssids else ""
+
+        groups = self.session.get_ap_groups()
+        return MapConfig(
+            ssid=current_ssid,
+            band=self.current_combo_value(self.live_band_combo, "all"),
+            map_type=self.current_combo_value(self.live_map_type_combo, "signal"),
+            interference_mode=self.current_combo_value(self.live_interference_mode_combo, "intra_ssid"),
+            interpolation="rbf",
+            aggregation=self.current_combo_value(self.live_aggregation_combo, "max"),
+            color_scale="fixed",
+            usable_only=self.live_usable_check.isChecked(),
+            ap_group_map=serialize_ap_group_map(build_bssid_to_manual_group_map(groups)),
+            ap_group_roles=serialize_ap_group_roles(build_ap_group_role_map(groups)),
+        ).normalized()
+
     def build_live_renderer_translations(self):
         return {
             "signal_title": self.tr("map_type_signal"),
@@ -1081,6 +1118,150 @@ class WifiHeatmapQtApp(QMainWindow):
             self,
             self.tr("invalid_survey_title"),
             self.tr(message_key),
+        )
+
+    def open_generate_map_dialog(self):
+        if self.session is None:
+            return
+
+        map_file = self.session.metadata.get("map_file", "")
+        if not map_file or not os.path.exists(map_file):
+            QMessageBox.warning(self, self.tr("warning"), self.tr("load_plan_first"))
+            return
+
+        ssids = self.session.get_ssids()
+        if not ssids:
+            QMessageBox.warning(self, self.tr("warning"), self.tr("no_ssid"))
+            return
+
+        dialog = MapGenerationDialog(
+            self,
+            ssids,
+            self.tr,
+            current_config=self.build_export_default_config(),
+            px_per_meter=self.get_px_per_meter(),
+        )
+        while dialog.exec() == QDialog.DialogCode.Accepted:
+            if self.generate_map_from_dialog(dialog):
+                break
+
+    def ensure_saved_for_map_export(self):
+        if self.session is None:
+            return False
+
+        if not self.session.csv_file:
+            QMessageBox.information(
+                self,
+                self.tr("save_required_title"),
+                self.tr("save_required"),
+            )
+
+        if self.session.dirty or not self.session.csv_file:
+            saved = self.save_survey()
+            if not saved:
+                self.status.showMessage(self.tr("save_failed"))
+            return saved
+
+        return True
+
+    def generate_map_from_dialog(self, dialog):
+        if self.session is None:
+            return False
+
+        config = dialog.get_config(
+            ap_group_map=serialize_ap_group_map(self.get_current_ap_group_map()),
+            ap_group_roles=serialize_ap_group_roles(self.get_current_ap_group_roles()),
+        )
+        if not config.ssid:
+            QMessageBox.warning(self, self.tr("warning"), self.tr("select_ssid_heatmap"))
+            return False
+
+        if not self.ensure_saved_for_map_export():
+            return False
+
+        map_file = self.session.metadata.get("map_file", "")
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        result = None
+        map_error = None
+        unexpected_error = None
+        try:
+            bg_image = load_floorplan_image(map_file)
+            result = generate_map_export(
+                self.session.to_dataframe(),
+                bg_image,
+                self.session.csv_file,
+                config,
+                self.tr,
+                language=self.language,
+                aliases=self.session.get_ap_aliases(),
+                ap_groups=self.session.get_ap_groups(),
+                px_per_meter=self.get_px_per_meter(),
+            )
+        except MapExportError as exc:
+            map_error = exc
+        except Exception as exc:
+            unexpected_error = exc
+        finally:
+            QApplication.restoreOverrideCursor()
+
+        if map_error is not None:
+            QMessageBox.warning(self, map_error.title, map_error.message)
+            return False
+        if unexpected_error is not None:
+            QMessageBox.critical(self, self.tr("error"), str(unexpected_error))
+            return False
+        if result is None:
+            return False
+
+        QMessageBox.information(
+            self,
+            self.tr("heatmap_generated"),
+            self.format_map_export_result_message(result),
+        )
+        self.status.showMessage(self.tr("heatmap_generated"))
+        return True
+
+    def format_map_export_result_message(self, result):
+        files_message = (
+            self.tr("files_created", paths="\n".join(result.files))
+            if len(result.files) > 1
+            else self.tr("file_created", path=result.output_file)
+        )
+        if result.map_type != "interference" or not result.summary:
+            return files_message
+
+        summary = result.summary
+        rows = [
+            (self.tr("interference_summary_band"), summary.get("band", "-")),
+            (self.tr("interference_summary_max_risk"), summary.get("max_risk", "-")),
+            (self.tr("interference_summary_point"), summary.get("point", "-")),
+            (self.tr("interference_summary_serving_ap"), summary.get("serving_ap", "-")),
+            (self.tr("interference_summary_serving_role"), summary.get("serving_role", "-")),
+            (self.tr("interference_summary_serving_channel"), summary.get("serving_channel", "-")),
+            (self.tr("interference_summary_serving_width"), summary.get("serving_width", "-")),
+            (self.tr("interference_summary_interferer"), summary.get("interferer", "-")),
+            (self.tr("interference_summary_interferer_role"), summary.get("interferer_role", "-")),
+            (self.tr("interference_summary_interferer_ssid"), summary.get("interferer_ssid", "-")),
+            (self.tr("interference_summary_interferer_channel"), summary.get("interferer_channel", "-")),
+            (self.tr("interference_summary_interferer_width"), summary.get("interferer_width", "-")),
+            (self.tr("interference_summary_interferer_dbm"), summary.get("interferer_dbm", "-")),
+            (self.tr("interference_summary_test_ignored"), summary.get("test_ignored", "-")),
+        ]
+        quality = summary.get("quality", {})
+        quality_text = self.tr(
+            "interference_quality_width_coverage",
+            available=quality.get("available", 0),
+            total=quality.get("total", 0),
+            percent=quality.get("percent", 0),
+        )
+        details = "\n".join(f"{label}: {value or '-'}" for label, value in rows)
+        return (
+            f"{self.tr('interference_summary_title')}\n"
+            f"{details}\n\n"
+            f"{self.tr('interference_summary_diagnosis')}: {summary.get('diagnosis', '-')}\n\n"
+            f"{self.tr('interference_quality_title')}: {quality_text}\n"
+            f"{summary.get('quality_message', '')}\n\n"
+            f"{files_message}"
         )
 
     def show_not_migrated_message(self):
