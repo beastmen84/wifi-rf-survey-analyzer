@@ -85,8 +85,7 @@ class QualityDashboardDialog(QDialog):
         layout.addWidget(hint)
 
         layout.addWidget(self.build_status_panel(summary))
-        layout.addWidget(self.build_summary_panel(summary))
-        layout.addWidget(self.build_context_panel(summary))
+        layout.addWidget(self.build_overview_panel(summary))
         layout.addLayout(self.build_controls())
 
         self.table = QTableWidget(0, 9)
@@ -171,13 +170,22 @@ class QualityDashboardDialog(QDialog):
         header.setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(8, QHeaderView.ResizeMode.Stretch)
 
+    def build_overview_panel(self, summary):
+        panel = QFrame()
+        layout = QHBoxLayout(panel)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(widget_px(self, 10))
+        layout.addWidget(self.build_summary_panel(summary), 3)
+        layout.addWidget(self.build_context_panel(summary), 2)
+        return panel
+
     def build_summary_panel(self, summary):
         panel = QFrame()
         panel.setObjectName("summaryPanel")
         grid = QGridLayout(panel)
-        grid.setContentsMargins(widget_px(self, 12), widget_px(self, 12), widget_px(self, 12), widget_px(self, 12))
-        grid.setHorizontalSpacing(widget_px(self, 8))
-        grid.setVerticalSpacing(widget_px(self, 8))
+        grid.setContentsMargins(widget_px(self, 10), widget_px(self, 10), widget_px(self, 10), widget_px(self, 10))
+        grid.setHorizontalSpacing(widget_px(self, 7))
+        grid.setVerticalSpacing(widget_px(self, 7))
 
         metrics = [
             ("quality_dashboard_metric_points", summary["total_points"], "info"),
@@ -193,8 +201,9 @@ class QualityDashboardDialog(QDialog):
 
         for index, (label_key, value, severity) in enumerate(metrics):
             metric = self.create_metric_box(self.app.tr(label_key), value, severity if value else "good")
-            grid.addWidget(metric, index // 5, index % 5)
-            grid.setColumnStretch(index % 5, 1)
+            metric.setMinimumHeight(widget_px(self, 74))
+            grid.addWidget(metric, index // 3, index % 3)
+            grid.setColumnStretch(index % 3, 1)
 
         return panel
 
@@ -214,33 +223,65 @@ class QualityDashboardDialog(QDialog):
 
     def build_context_panel(self, summary):
         panel = QFrame()
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        lines = [
-            self.app.tr(
-                "quality_dashboard_context",
-                relevant=summary["relevant_networks"],
-                ap_positions=summary["ap_positions"],
-                test_aps=summary["test_aps"],
-            ),
-            self.app.tr(
-                "quality_dashboard_ap_context",
-                ap_warnings=summary["ap_position_warnings"],
-                missing_positions=summary["ap_missing_positions"],
-                missing_list=summary["missing_position_labels"],
-            ),
-            self.app.tr(
-                "quality_dashboard_ap_metadata_context",
-                warnings=summary["ap_metadata_warnings"],
-                warning_list=summary["ap_metadata_warning_labels"],
-            ),
-        ]
-        for line in lines:
-            label = QLabel(line)
-            label.setObjectName("mutedText")
-            label.setWordWrap(True)
-            layout.addWidget(label)
+        panel.setObjectName("summaryPanel")
+        grid = QGridLayout(panel)
+        grid.setContentsMargins(widget_px(self, 12), widget_px(self, 10), widget_px(self, 12), widget_px(self, 10))
+        grid.setHorizontalSpacing(widget_px(self, 10))
+        grid.setVerticalSpacing(widget_px(self, 7))
+        self.add_context_row(
+            grid,
+            0,
+            "quality_dashboard_context_relevant_networks",
+            summary["relevant_networks"],
+        )
+        self.add_context_row(
+            grid,
+            1,
+            "quality_dashboard_context_ap_positions",
+            summary["ap_positions"],
+        )
+        self.add_context_row(
+            grid,
+            2,
+            "quality_dashboard_context_test_aps",
+            summary["test_aps"],
+        )
+        self.add_context_row(
+            grid,
+            3,
+            "quality_dashboard_context_position_warnings",
+            summary["ap_position_warnings"],
+        )
+        self.add_context_row(
+            grid,
+            4,
+            "quality_dashboard_context_missing_positions",
+            summary["ap_missing_positions"],
+            summary["missing_position_labels"],
+        )
+        self.add_context_row(
+            grid,
+            5,
+            "quality_dashboard_context_config_warnings",
+            summary["ap_metadata_warnings"],
+            summary["ap_metadata_warning_labels"],
+        )
+        grid.setColumnStretch(0, 0)
+        grid.setColumnStretch(1, 1)
         return panel
+
+    def add_context_row(self, grid, row, label_key, value, detail=None):
+        label = QLabel(self.app.tr(label_key))
+        label.setObjectName("mutedText")
+        label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
+        value_label = QLabel(str(value))
+        if detail:
+            value_label.setText(f"{value}\n{detail}")
+        value_label.setWordWrap(True)
+        value_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        value_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        grid.addWidget(label, row, 0)
+        grid.addWidget(value_label, row, 1)
 
     def build_controls(self):
         controls = QHBoxLayout()

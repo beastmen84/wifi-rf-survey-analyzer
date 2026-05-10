@@ -715,6 +715,9 @@ Language:
   ratio count only AP groups that have at least one row for a relevant SSID.
   With no relevant SSIDs defined, the dashboard keeps the previous all-AP
   fallback.
+- Survey Quality top area was reorganized: the nine numeric metrics are shown
+  as a compact 3x3 grid on the left, while the context details are shown as a
+  label/value panel on the right instead of long pipe-separated sentences.
 
 Recent commits:
 
