@@ -5,19 +5,22 @@ import ttkbootstrap as ttk
 from ttkbootstrap.constants import DANGER, INFO, PRIMARY, SECONDARY, WARNING
 
 from ap_groups import (
+    AP_ROLE_CHOICES,
+    AP_ROLE_INTERNAL,
     build_default_manual_groups,
     build_detected_ap_groups,
     merge_new_bssids_into_manual_groups,
+    normalize_ap_role,
 )
 
 
-AP_GROUP_COLUMNS = ("status", "group", "alias", "position", "bssids", "ssids", "channels", "locked")
+AP_GROUP_COLUMNS = ("status", "group", "alias", "role", "position", "bssids", "ssids", "channels", "locked")
 
 
 def open_ap_group_manager(app):
     dialog = app.create_modal_dialog(app.tr("ap_groups_title"))
-    dialog.geometry("1560x780")
-    dialog.minsize(1320, 700)
+    dialog.geometry("1680x800")
+    dialog.minsize(1440, 720)
 
     frame = ttk.Frame(dialog, padding=12)
     frame.pack(fill=tk.BOTH, expand=True)
@@ -44,6 +47,7 @@ def open_ap_group_manager(app):
 
     def refresh_group_details(group):
         group["alias"] = group.get("alias") or aliases.get(group["group_id"], "")
+        group["role"] = normalize_ap_role(group.get("role", AP_ROLE_INTERNAL))
         seen_ssids = set()
         seen_channels = set()
         display_groups = set()
@@ -72,14 +76,18 @@ def open_ap_group_manager(app):
         ):
             return
 
-        aliases_by_group = {
-            group["group_id"]: group.get("alias", "")
+        state_by_group = {
+            group["group_id"]: {
+                "alias": group.get("alias", ""),
+                "role": normalize_ap_role(group.get("role")),
+            }
             for group in groups
-            if group.get("alias", "")
         }
         groups[:] = build_default_manual_groups(app.session.rows)
         for group in groups:
-            group["alias"] = aliases_by_group.get(group["group_id"], aliases.get(group["group_id"], ""))
+            saved_state = state_by_group.get(group["group_id"], {})
+            group["alias"] = saved_state.get("alias") or aliases.get(group["group_id"], "")
+            group["role"] = saved_state.get("role", AP_ROLE_INTERNAL)
             group["locked"] = False
         refresh_all_group_details()
         render_alias_rows()
@@ -105,6 +113,7 @@ def open_ap_group_manager(app):
     tree.column("status", width=42, minwidth=36, anchor="center", stretch=False)
     tree.column("group", width=270, minwidth=210, anchor="w", stretch=True)
     tree.column("alias", width=230, minwidth=170, anchor="w", stretch=True)
+    tree.column("role", width=140, minwidth=110, anchor="center", stretch=False)
     tree.column("position", width=120, minwidth=100, anchor="center", stretch=False)
     tree.column("bssids", width=390, minwidth=250, anchor="w", stretch=True)
     tree.column("ssids", width=320, minwidth=210, anchor="w", stretch=True)
@@ -129,12 +138,14 @@ def open_ap_group_manager(app):
 
     def get_group_display_values(group):
         alias = group.get("alias", "")
+        role = normalize_ap_role(group.get("role"))
         position = group.get("position") or {}
         position_label = f"{position.get('x')}, {position.get('y')}" if position else "-"
         return (
             "OK" if alias else "",
             format_list_preview(group["display_groups"]),
             alias,
+            app.tr(f"ap_group_role_{role}"),
             position_label,
             format_list_preview(group["bssids"]),
             ", ".join(group["ssids"]),
@@ -147,12 +158,15 @@ def open_ap_group_manager(app):
             return True
 
         alias = group.get("alias", "")
+        role = normalize_ap_role(group.get("role"))
         position = group.get("position") or {}
         position_text = f"{position.get('x', '')} {position.get('y', '')}" if position else ""
         haystack = " ".join([
             group["group_id"],
             " ".join(group["display_groups"]),
             alias,
+            role,
+            app.tr(f"ap_group_role_{role}"),
             position_text,
             " ".join(group["bssids"]),
             " ".join(group["ssids"]),
@@ -166,6 +180,8 @@ def open_ap_group_manager(app):
             return 0 if alias else 1
         if column == "alias":
             return alias.lower()
+        if column == "role":
+            return app.tr(f"ap_group_role_{normalize_ap_role(group.get('role'))}").lower()
         if column == "position":
             position = group.get("position") or {}
             return (position.get("x", 999999), position.get("y", 999999))
@@ -245,6 +261,7 @@ def open_ap_group_manager(app):
     tree.heading("status", text="", command=lambda: sort_by_column("status"))
     tree.heading("group", text=app.tr("ap_alias_group"), command=lambda: sort_by_column("group"))
     tree.heading("alias", text=app.tr("ap_alias_value"), command=lambda: sort_by_column("alias"))
+    tree.heading("role", text=app.tr("ap_group_role"), command=lambda: sort_by_column("role"))
     tree.heading("position", text=app.tr("ap_group_position"), command=lambda: sort_by_column("position"))
     tree.heading("bssids", text=app.tr("ap_alias_bssids"), command=lambda: sort_by_column("bssids"))
     tree.heading("ssids", text=app.tr("ap_alias_ssids"), command=lambda: sort_by_column("ssids"))
@@ -272,7 +289,7 @@ def open_ap_group_manager(app):
         current_values = list(tree.item(group_key, "values"))
         current_values[0] = "OK" if value else ""
         current_values[2] = value
-        current_values[7] = app.tr("yes")
+        current_values[8] = app.tr("yes")
         tree.item(group_key, values=current_values)
         tree.item(group_key, tags=("aliased",) if value else ())
         update_alias_action_state()
@@ -311,6 +328,59 @@ def open_ap_group_manager(app):
             return
 
         set_alias(group_key, "")
+
+    def set_role(group_key, role):
+        role = normalize_ap_role(role)
+        for group in groups:
+            if group["group_id"] == group_key:
+                group["role"] = role
+                group["locked"] = True
+                break
+
+        current_values = list(tree.item(group_key, "values"))
+        current_values[3] = app.tr(f"ap_group_role_{role}")
+        current_values[8] = app.tr("yes")
+        tree.item(group_key, values=current_values)
+
+    def prompt_role_for_selected_group():
+        group_key = get_selected_group_key()
+        if not group_key:
+            return
+
+        group = get_group_by_key(group_key) or {}
+        current_role = normalize_ap_role(group.get("role"))
+        role_dialog = app.create_modal_dialog(app.tr("ap_group_role_title"))
+        role_dialog.geometry("420x210")
+        role_dialog.minsize(400, 190)
+
+        content = ttk.Frame(role_dialog, padding=16)
+        content.pack(fill=tk.BOTH, expand=True)
+        ttk.Label(content, text=app.tr("ap_group_role_prompt")).pack(anchor="w")
+
+        label_to_role = {
+            app.tr(f"ap_group_role_{role}"): role
+            for role in AP_ROLE_CHOICES
+        }
+        role_var = tk.StringVar(value=app.tr(f"ap_group_role_{current_role}"))
+        role_combo = ttk.Combobox(
+            content,
+            textvariable=role_var,
+            values=list(label_to_role.keys()),
+            state="readonly",
+            width=34
+        )
+        role_combo.pack(anchor="w", fill=tk.X, pady=(10, 0))
+
+        def apply_role():
+            set_role(group_key, label_to_role.get(role_var.get(), AP_ROLE_INTERNAL))
+            role_dialog.destroy()
+
+        buttons = ttk.Frame(content)
+        buttons.pack(fill=tk.X, pady=(18, 0))
+        ttk.Button(buttons, text=app.tr("cancel"), command=role_dialog.destroy, bootstyle=SECONDARY).pack(side=tk.RIGHT)
+        ttk.Button(buttons, text=app.tr("save"), command=apply_role, bootstyle=PRIMARY).pack(side=tk.RIGHT, padx=(0, 8))
+        role_dialog.bind("<Escape>", lambda _event: role_dialog.destroy())
+        app.center_dialog(role_dialog)
 
     def open_bssid_group_dialog(group_key):
         group = get_group_by_key(group_key)
@@ -522,6 +592,12 @@ def open_ap_group_manager(app):
         state=tk.DISABLED
     )
     delete_alias_button.pack(side=tk.LEFT, padx=(8, 0))
+    ttk.Button(
+        buttons,
+        text=app.tr("ap_group_set_role"),
+        command=prompt_role_for_selected_group,
+        bootstyle=SECONDARY
+    ).pack(side=tk.LEFT, padx=(8, 0))
     ttk.Separator(buttons, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=(12, 8))
     ttk.Button(
         buttons,
@@ -547,6 +623,7 @@ def adjust_ap_group_table_columns(app, tree, columns):
         "status": 38,
         "group": 220,
         "alias": 180,
+        "role": 110,
         "position": 100,
         "bssids": 260,
         "ssids": 220,
@@ -557,6 +634,7 @@ def adjust_ap_group_table_columns(app, tree, columns):
         "status": 46,
         "group": 420,
         "alias": 360,
+        "role": 160,
         "position": 130,
         "bssids": 620,
         "ssids": 440,
@@ -574,7 +652,7 @@ def adjust_ap_group_table_columns(app, tree, columns):
         for column, value in zip(columns, values):
             measured[column] = max(measured[column], body_font.measure(str(value)) + 34)
 
-    fixed_columns = ("status", "position", "channels", "locked")
+    fixed_columns = ("status", "role", "position", "channels", "locked")
     flexible_columns = ("group", "alias", "bssids", "ssids")
     widths = {
         column: min(max(measured[column], min_widths[column]), max_widths[column])

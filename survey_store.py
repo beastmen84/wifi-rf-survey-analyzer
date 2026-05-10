@@ -12,7 +12,7 @@ from constants import (
     SURVEY_FIELDNAMES,
     SURVEY_SCHEMA_VERSION,
 )
-from ap_groups import AP_GROUPS_METADATA_KEY, normalize_ap_position
+from ap_groups import AP_GROUPS_METADATA_KEY, normalize_ap_position, normalize_ap_role
 
 
 class SurveyFormatError(ValueError):
@@ -230,6 +230,7 @@ class SurveySession:
                 "alias": str(group.get("alias", "")).strip(),
                 "bssids": sorted(set(bssids)),
                 "locked": bool(group.get("locked", False)),
+                "role": normalize_ap_role(group.get("role")),
             }
             position = normalize_ap_position(group.get("position"))
             if position:

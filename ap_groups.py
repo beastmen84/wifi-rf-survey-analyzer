@@ -1,6 +1,16 @@
 import pandas as pd
 
 AP_GROUPS_METADATA_KEY = "ap_groups"
+AP_ROLE_INTERNAL = "internal"
+AP_ROLE_EXTERNAL = "external"
+AP_ROLE_INTERFERER = "interferer"
+AP_ROLE_TEST = "test"
+AP_ROLE_CHOICES = (
+    AP_ROLE_INTERNAL,
+    AP_ROLE_EXTERNAL,
+    AP_ROLE_INTERFERER,
+    AP_ROLE_TEST,
+)
 
 
 def normalize_bssid(bssid):
@@ -103,7 +113,12 @@ def normalize_ap_position(value):
     return {"x": x, "y": y}
 
 
-def build_manual_ap_group(group_id, bssids, alias="", locked=True, position=None):
+def normalize_ap_role(value):
+    role = str(value or "").strip().lower()
+    return role if role in AP_ROLE_CHOICES else AP_ROLE_INTERNAL
+
+
+def build_manual_ap_group(group_id, bssids, alias="", locked=True, position=None, role=AP_ROLE_INTERNAL):
     clean_bssids = sorted({
         normalize_bssid(bssid)
         for bssid in bssids
@@ -117,6 +132,7 @@ def build_manual_ap_group(group_id, bssids, alias="", locked=True, position=None
         "alias": str(alias or "").strip(),
         "bssids": clean_bssids,
         "locked": bool(locked),
+        "role": normalize_ap_role(role),
     }
 
     clean_position = normalize_ap_position(position)
@@ -152,6 +168,7 @@ def merge_new_bssids_into_manual_groups(manual_groups, rows):
             alias=group.get("alias", ""),
             locked=group.get("locked", True),
             position=group.get("position"),
+            role=group.get("role", AP_ROLE_INTERNAL),
         )
         for group in manual_groups
     ]
