@@ -20,6 +20,8 @@ class FloorplanView(QGraphicsView):
     scaleCalibrationFirstPointPicked = Signal()
     scaleCalibrationCompleted = Signal(float)
     scaleCalibrationCancelled = Signal()
+    pointSelected = Signal(dict)
+    pointSelectionCleared = Signal()
 
     def __init__(self):
         super().__init__()
@@ -100,6 +102,7 @@ class FloorplanView(QGraphicsView):
             item.setPen(QPen(Qt.GlobalColor.white, 1.5))
             item.setZValue(10)
             item.setToolTip(format_point_tooltip(point))
+            item.setData(0, dict(point))
             self.scene.addItem(item)
             self.marker_items.append(item)
 
@@ -280,6 +283,16 @@ class FloorplanView(QGraphicsView):
             self.surveyPointRequested.emit(int(round(point.x())), int(round(point.y())))
             event.accept()
             return
+
+        if self.has_floorplan() and event.button() == Qt.MouseButton.LeftButton:
+            scene_point = self.mapToScene(event.position().toPoint())
+            for item in self.scene.items(scene_point):
+                point_data = item.data(0)
+                if isinstance(point_data, dict):
+                    self.pointSelected.emit(point_data)
+                    event.accept()
+                    return
+            self.pointSelectionCleared.emit()
 
         super().mousePressEvent(event)
 

@@ -428,6 +428,8 @@ class WifiHeatmapQtApp(QMainWindow):
         self.floorplan_view.scaleCalibrationFirstPointPicked.connect(self.on_scale_calibration_first_point)
         self.floorplan_view.scaleCalibrationCompleted.connect(self.finish_scale_calibration)
         self.floorplan_view.scaleCalibrationCancelled.connect(self.cancel_scale_calibration)
+        self.floorplan_view.pointSelected.connect(self.select_point_in_table)
+        self.floorplan_view.pointSelectionCleared.connect(self.clear_point_selection)
         splitter.addWidget(self.floorplan_view)
 
         table_panel = QWidget()
@@ -1882,6 +1884,10 @@ class WifiHeatmapQtApp(QMainWindow):
                 return True
 
         return False
+
+    def clear_point_selection(self):
+        self.points_table.clearSelection()
+        self.update_point_action_state()
 
     def update_point_action_state(self):
         has_point = bool(self.current_selected_point())

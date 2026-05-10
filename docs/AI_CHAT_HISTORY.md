@@ -441,6 +441,9 @@ Language:
 - Added a Qt `Azzera rilevanti` control in the Survey summary. It clears both
   relevant and known SSID metadata, marks the session dirty, refreshes point
   quality immediately and disables itself when there is nothing to clear.
+- Added Qt survey-point selection from the floorplan: left-clicking a marker
+  selects and scrolls to the matching table row, while left-clicking empty map
+  space clears the point selection without blocking map drag behavior.
 
 Recent commits:
 
