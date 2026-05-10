@@ -1,6 +1,6 @@
 # WiFi Heatmap
 
-A Python desktop application for real-world Wi-Fi heatmap surveying and RF visualization.
+A Python desktop application for real-world Wi-Fi RF surveying, live map analysis, and RF visualization.
 
 The project focuses on practical analysis from live Wi-Fi measurements collected directly in real environments. It is intended as a transparent, customizable alternative to closed survey tools, with emphasis on scan reliability, AP behavior, and map readability.
 

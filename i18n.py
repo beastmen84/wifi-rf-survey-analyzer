@@ -1,20 +1,19 @@
-DEFAULT_LANGUAGE = "it"
+DEFAULT_LANGUAGE = "en"
 SUPPORTED_LANGUAGES = ("IT", "EN")
 
 
 TRANSLATIONS = {
     "it": {
-        "app_title": "Wi-Fi Heatmap Survey",
+        "app_title": "Wi-Fi RF Survey Analyzer",
         "copyright": "© Davide Marchi",
         "loading_app": "Caricamento componenti...",
         "loading_app_ready": "Pronto",
         "loading_app_error": "Errore durante il caricamento dell'app.",
-        "start_subtitle": "Rilievi Wi-Fi su pianta, heatmap e controllo punti",
-        "qt_interface_badge": "Rilievo Wi-Fi",
+        "start_subtitle": "Rilievi reali, mappe live e diagnostica RF",
         "start_workflow_title": "Flusso operativo",
-        "start_workflow_1": "1. Crea o apri un rilievo e collega la pianta dell'ambiente.",
-        "start_workflow_2": "2. Registra i punti di misura e conserva tutte le letture Wi-Fi.",
-        "start_workflow_3": "3. Analizza copertura, interferenze, canali e AP dominanti.",
+        "start_workflow_1": "1. Crea o apri un rilievo e carica la pianta dell'ambiente.",
+        "start_workflow_2": "2. Registra i punti con scansioni multi-campione e reti rilevanti.",
+        "start_workflow_3": "3. Analizza copertura, interferenze, roaming, AP group e qualità.",
         "start_loading_title": "Avvio applicazione",
         "start_actions_title": "Rilievo",
         "start_actions_hint": "I comandi si attivano quando i componenti di analisi sono pronti.",
@@ -504,17 +503,16 @@ TRANSLATIONS = {
         ),
     },
     "en": {
-        "app_title": "Wi-Fi Heatmap Survey",
+        "app_title": "Wi-Fi RF Survey Analyzer",
         "copyright": "© Davide Marchi",
         "loading_app": "Loading components...",
         "loading_app_ready": "Ready",
         "loading_app_error": "Error while loading the app.",
-        "start_subtitle": "Wi-Fi surveys on floor plans, heatmaps, and point checks",
-        "qt_interface_badge": "Wi-Fi Survey",
+        "start_subtitle": "Real surveys, live maps, and RF diagnostics",
         "start_workflow_title": "Workflow",
-        "start_workflow_1": "1. Create or open a survey and link the environment floor plan.",
-        "start_workflow_2": "2. Record measurement points and keep every Wi-Fi reading.",
-        "start_workflow_3": "3. Analyze coverage, interference, channels, and dominant APs.",
+        "start_workflow_1": "1. Create or open a survey and load the environment floor plan.",
+        "start_workflow_2": "2. Record points with multi-sample scans and relevant networks.",
+        "start_workflow_3": "3. Analyze coverage, interference, roaming, AP groups, and quality.",
         "start_loading_title": "Application startup",
         "start_actions_title": "Survey",
         "start_actions_hint": "Commands become available when the analysis components are ready.",

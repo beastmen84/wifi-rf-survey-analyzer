@@ -105,15 +105,12 @@ class StartWindow(QMainWindow):
         hero_layout.setContentsMargins(40, 38, 40, 34)
         hero_layout.setSpacing(18)
 
-        self.badge = QLabel()
-        self.badge.setObjectName("startBadge")
         self.title = QLabel()
         self.title.setObjectName("startTitle")
         self.title.setWordWrap(True)
         self.subtitle = QLabel()
         self.subtitle.setObjectName("startSubtitle")
         self.subtitle.setWordWrap(True)
-        hero_layout.addWidget(self.badge, 0, Qt.AlignmentFlag.AlignLeft)
         hero_layout.addWidget(self.title)
         hero_layout.addWidget(self.subtitle)
         hero_layout.addSpacing(14)
@@ -207,14 +204,6 @@ class StartWindow(QMainWindow):
             QFrame#startActions {
                 min-width: 360px;
                 max-width: 430px;
-            }
-            QLabel#startBadge {
-                background: #dff3e7;
-                color: #0f6b3b;
-                border: 1px solid #b8dfc9;
-                border-radius: 6px;
-                padding: 7px 12px;
-                font-weight: 600;
             }
             QLabel#startTitle {
                 color: #111827;
@@ -317,7 +306,6 @@ class StartWindow(QMainWindow):
 
     def retranslate(self):
         self.setWindowTitle(self.tr("app_title"))
-        self.badge.setText(self.tr("qt_interface_badge"))
         self.title.setText(self.tr("app_title"))
         self.subtitle.setText(self.tr("start_subtitle"))
         self.workflow_title.setText(self.tr("start_workflow_title"))
@@ -460,7 +448,7 @@ def main():
     install_exception_logging()
     log_event("qt launcher start", logger_name="startup")
     app = QApplication(sys.argv)
-    app.setApplicationName("Wi-Fi Heatmap Survey")
+    app.setApplicationName("Wi-Fi RF Survey Analyzer")
     window = StartWindow()
     window.showMaximized()
     sys.exit(app.exec())

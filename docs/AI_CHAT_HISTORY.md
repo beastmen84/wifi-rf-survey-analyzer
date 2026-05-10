@@ -481,6 +481,10 @@ Language:
   label, switched the startup dropdown to full language names, gave it a
   stronger filled style, and changed the start badge from a GUI-library label
   to a product/workflow label.
+- Updated startup positioning: English is now the default language, the product
+  name is `Wi-Fi RF Survey Analyzer`, startup copy now references RF analysis,
+  relevant networks, roaming, AP groups and quality, and the green badge was
+  removed entirely.
 
 Recent commits:
 
