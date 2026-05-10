@@ -444,6 +444,8 @@ Language:
 - Added Qt survey-point selection from the floorplan: left-clicking a marker
   selects and scrolls to the matching table row, while left-clicking empty map
   space clears the point selection without blocking map drag behavior.
+- Moved Qt theme palette data from `main.py` to `qt_theme.py`, keeping behavior
+  unchanged while reducing the size of the main window module.
 
 Recent commits:
 
