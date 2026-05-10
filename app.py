@@ -104,12 +104,14 @@ class WifiHeatmapApp(ModalDialogMixin):
         self.tk_image = None
         self.canvas_image = None
         self.point_markers = []
+        self.ap_position_markers = []
         self.zoom_level = 1.0
         self.last_good_scan = []
         self.last_scan_backend_used = "-"
         self.relevant_ssids = self.load_relevant_ssids()
         self.known_ssids = self.load_known_ssids()
         self.selected_point_id = None
+        self.pending_ap_position_group_id = None
         self.highlight_item_id = None
         self.tooltip_window = None
         self.modal_dialogs = []
@@ -275,6 +277,7 @@ class WifiHeatmapApp(ModalDialogMixin):
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.bind("<FocusIn>", self.restore_active_modal_dialog, add="+")
         self.root.bind("<Map>", self.restore_active_modal_dialog, add="+")
+        self.root.bind("<Escape>", self.cancel_ap_positioning, add="+")
         self.apply_language()
         self.refresh_session_labels()
 
@@ -1194,6 +1197,9 @@ class WifiHeatmapApp(ModalDialogMixin):
         )
 
     def start_map_drag(self, event):
+        if self.handle_ap_position_click(event):
+            return "break"
+
         if self.handle_scale_calibration_click(event):
             return "break"
 
@@ -1206,6 +1212,64 @@ class WifiHeatmapApp(ModalDialogMixin):
     def is_point_marker_at(self, x, y):
         nearby_items = self.canvas.find_overlapping(x - 2, y - 2, x + 2, y + 2)
         return any("point_marker" in self.canvas.gettags(item) for item in nearby_items)
+
+    def start_ap_positioning(self, group_id):
+        if self.bg_image is None:
+            messagebox.showwarning(self.tr("warning"), self.tr("load_plan_first"), parent=self.root)
+            return
+
+        self.pending_ap_position_group_id = str(group_id)
+        self.canvas.config(cursor="crosshair")
+        self.status_var.set(self.tr("ap_position_pick", group=self.get_ap_group_display_name(group_id)))
+
+    def handle_ap_position_click(self, event):
+        if not self.pending_ap_position_group_id:
+            return False
+
+        group_id = self.pending_ap_position_group_id
+        x = int(self.canvas.canvasx(event.x) / self.zoom_level)
+        y = int(self.canvas.canvasy(event.y) / self.zoom_level)
+        groups = self.session.get_ap_groups()
+        updated = False
+
+        for group in groups:
+            if str(group.get("group_id", "")) == group_id:
+                group["position"] = {"x": x, "y": y}
+                group["locked"] = True
+                updated = True
+                break
+
+        self.pending_ap_position_group_id = None
+        self.canvas.config(cursor="")
+
+        if not updated:
+            messagebox.showwarning(self.tr("warning"), self.tr("ap_group_not_found"), parent=self.root)
+            return True
+
+        self.session.set_ap_groups(groups)
+        self.refresh_session_labels()
+        self.redraw_ap_position_markers()
+        self.schedule_live_update(force=True)
+        self.status_var.set(self.tr("ap_position_saved", group=self.get_ap_group_display_name(group_id), x=x, y=y))
+        return True
+
+    def cancel_ap_positioning(self, _event=None):
+        if not self.pending_ap_position_group_id:
+            return
+
+        self.pending_ap_position_group_id = None
+        self.canvas.config(cursor="")
+        self.status_var.set(self.tr("ap_position_cancelled"))
+        return "break"
+
+    def get_ap_group_display_name(self, group_id):
+        group_id = str(group_id)
+        for group in self.session.get_ap_groups():
+            if str(group.get("group_id", "")) == group_id:
+                alias = str(group.get("alias", "")).strip()
+                return alias or group_id
+
+        return group_id
 
     def drag_map(self, event):
         if self.scale_calibration_points:
@@ -2038,6 +2102,7 @@ class WifiHeatmapApp(ModalDialogMixin):
         self.canvas_image = self.canvas.create_image(0, 0, anchor="nw", image=self.tk_image)
         self.canvas.config(scrollregion=(0, 0, width, height))
         self.redraw_point_markers()
+        self.redraw_ap_position_markers()
         self.redraw_point_highlight()
 
     def redraw_point_markers(self):
@@ -2047,6 +2112,79 @@ class WifiHeatmapApp(ModalDialogMixin):
                 marker["y"],
                 marker.get("signal_dbm")
             )
+
+    def redraw_ap_position_markers(self):
+        for marker_id in self.ap_position_markers:
+            self.canvas.delete(marker_id)
+        self.ap_position_markers = []
+
+        for group in self.session.get_ap_groups():
+            position = group.get("position") or {}
+            try:
+                x = int(position.get("x"))
+                y = int(position.get("y"))
+            except (TypeError, ValueError):
+                continue
+
+            sx = x * self.zoom_level
+            sy = y * self.zoom_level
+            size = max(9, int(12 * self.zoom_level))
+            fill = "#0d6efd"
+            outline = "#ffffff"
+            group_id = str(group.get("group_id", ""))
+            label = str(group.get("alias", "")).strip() or group_id
+            short_label = "AP"
+
+            diamond = self.canvas.create_polygon(
+                sx,
+                sy - size,
+                sx + size,
+                sy,
+                sx,
+                sy + size,
+                sx - size,
+                sy,
+                fill=fill,
+                outline=outline,
+                width=2,
+                tags=("ap_position_marker",)
+            )
+            text = self.canvas.create_text(
+                sx,
+                sy,
+                text=short_label,
+                fill="#ffffff",
+                font=("Segoe UI", max(7, int(8 * self.zoom_level)), "bold"),
+                tags=("ap_position_marker",)
+            )
+            self.canvas.tag_bind(
+                diamond,
+                "<Enter>",
+                lambda event, g=group, px=x, py=y, name=label: self.show_ap_position_tooltip(event, g, px, py, name)
+            )
+            self.canvas.tag_bind(text, "<Enter>", lambda event, g=group, px=x, py=y, name=label: self.show_ap_position_tooltip(event, g, px, py, name))
+            self.canvas.tag_bind(diamond, "<Leave>", lambda _event: self.hide_point_tooltip())
+            self.canvas.tag_bind(text, "<Leave>", lambda _event: self.hide_point_tooltip())
+            self.ap_position_markers.extend([diamond, text])
+
+    def show_ap_position_tooltip(self, event, group, x, y, label):
+        self.hide_point_tooltip()
+        self.tooltip_window = tk.Toplevel(self.root)
+        self.tooltip_window.wm_overrideredirect(True)
+        self.build_structured_tooltip(
+            self.tooltip_window,
+            {
+                "title": self.tr("ap_group_position_tooltip_title"),
+                "accent": "#0d6efd",
+                "rows": [
+                    (self.tr("ap_alias_value"), label),
+                    (self.tr("ap_alias_group"), group.get("group_id", "-")),
+                    ("x/y", f"{x}, {y}"),
+                    (self.tr("ap_alias_bssids"), ", ".join(group.get("bssids", []))),
+                ]
+            }
+        )
+        self.position_tooltip_window(self.tooltip_window, event)
 
     def on_live_config_changed(self):
         config = self.get_current_map_config()

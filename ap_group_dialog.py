@@ -11,7 +11,7 @@ from ap_groups import (
 )
 
 
-AP_GROUP_COLUMNS = ("status", "group", "alias", "bssids", "ssids", "channels", "locked")
+AP_GROUP_COLUMNS = ("status", "group", "alias", "position", "bssids", "ssids", "channels", "locked")
 
 
 def open_ap_group_manager(app):
@@ -103,10 +103,11 @@ def open_ap_group_manager(app):
     table_frame.pack(fill=tk.BOTH, expand=True)
     tree = ttk.Treeview(table_frame, columns=AP_GROUP_COLUMNS, show="headings", height=16)
     tree.column("status", width=42, minwidth=36, anchor="center", stretch=False)
-    tree.column("group", width=300, minwidth=220, anchor="w", stretch=True)
-    tree.column("alias", width=260, minwidth=180, anchor="w", stretch=True)
-    tree.column("bssids", width=430, minwidth=260, anchor="w", stretch=True)
-    tree.column("ssids", width=340, minwidth=220, anchor="w", stretch=True)
+    tree.column("group", width=270, minwidth=210, anchor="w", stretch=True)
+    tree.column("alias", width=230, minwidth=170, anchor="w", stretch=True)
+    tree.column("position", width=120, minwidth=100, anchor="center", stretch=False)
+    tree.column("bssids", width=390, minwidth=250, anchor="w", stretch=True)
+    tree.column("ssids", width=320, minwidth=210, anchor="w", stretch=True)
     tree.column("channels", width=120, minwidth=90, anchor="center", stretch=False)
     tree.column("locked", width=110, minwidth=90, anchor="center", stretch=False)
     tree.tag_configure("aliased", background="#e9f7ef")
@@ -128,10 +129,13 @@ def open_ap_group_manager(app):
 
     def get_group_display_values(group):
         alias = group.get("alias", "")
+        position = group.get("position") or {}
+        position_label = f"{position.get('x')}, {position.get('y')}" if position else "-"
         return (
             "OK" if alias else "",
             format_list_preview(group["display_groups"]),
             alias,
+            position_label,
             format_list_preview(group["bssids"]),
             ", ".join(group["ssids"]),
             ", ".join(group["channels"]),
@@ -143,10 +147,13 @@ def open_ap_group_manager(app):
             return True
 
         alias = group.get("alias", "")
+        position = group.get("position") or {}
+        position_text = f"{position.get('x', '')} {position.get('y', '')}" if position else ""
         haystack = " ".join([
             group["group_id"],
             " ".join(group["display_groups"]),
             alias,
+            position_text,
             " ".join(group["bssids"]),
             " ".join(group["ssids"]),
             " ".join(group["channels"]),
@@ -159,6 +166,9 @@ def open_ap_group_manager(app):
             return 0 if alias else 1
         if column == "alias":
             return alias.lower()
+        if column == "position":
+            position = group.get("position") or {}
+            return (position.get("x", 999999), position.get("y", 999999))
         if column == "bssids":
             return " ".join(group["bssids"]).lower()
         if column == "ssids":
@@ -235,6 +245,7 @@ def open_ap_group_manager(app):
     tree.heading("status", text="", command=lambda: sort_by_column("status"))
     tree.heading("group", text=app.tr("ap_alias_group"), command=lambda: sort_by_column("group"))
     tree.heading("alias", text=app.tr("ap_alias_value"), command=lambda: sort_by_column("alias"))
+    tree.heading("position", text=app.tr("ap_group_position"), command=lambda: sort_by_column("position"))
     tree.heading("bssids", text=app.tr("ap_alias_bssids"), command=lambda: sort_by_column("bssids"))
     tree.heading("ssids", text=app.tr("ap_alias_ssids"), command=lambda: sort_by_column("ssids"))
     tree.heading("channels", text=app.tr("ap_alias_channels"), command=lambda: sort_by_column("channels"))
@@ -261,7 +272,7 @@ def open_ap_group_manager(app):
         current_values = list(tree.item(group_key, "values"))
         current_values[0] = "OK" if value else ""
         current_values[2] = value
-        current_values[6] = app.tr("yes")
+        current_values[7] = app.tr("yes")
         tree.item(group_key, values=current_values)
         tree.item(group_key, tags=("aliased",) if value else ())
         update_alias_action_state()
@@ -442,6 +453,25 @@ def open_ap_group_manager(app):
         bssid_dialog.bind("<Escape>", lambda _event: bssid_dialog.destroy())
         app.center_dialog(bssid_dialog)
 
+    def start_positioning_for_selected_group():
+        group_key = get_selected_group_key()
+        if not group_key:
+            return
+
+        aliases = {
+            group["group_id"]: group.get("alias", "")
+            for group in groups
+            if group.get("alias", "").strip()
+        }
+        aliases_changed = app.session.set_ap_aliases(aliases)
+        groups_changed = app.session.set_ap_groups(groups)
+        if aliases_changed or groups_changed:
+            app.session.dirty = True
+        app.refresh_session_labels()
+        app.schedule_live_update(force=True)
+        dialog.destroy()
+        app.start_ap_positioning(group_key)
+
     def save_aliases():
         aliases = {
             group["group_id"]: group.get("alias", "")
@@ -484,6 +514,12 @@ def open_ap_group_manager(app):
         command=prompt_alias_for_selected_group,
         bootstyle=INFO
     ).pack(side=tk.LEFT, padx=(8, 0))
+    ttk.Button(
+        buttons,
+        text=app.tr("ap_group_set_position"),
+        command=start_positioning_for_selected_group,
+        bootstyle=PRIMARY
+    ).pack(side=tk.LEFT, padx=(8, 0))
     delete_alias_button = ttk.Button(
         buttons,
         text=app.tr("ap_group_delete_alias"),
@@ -510,6 +546,7 @@ def adjust_ap_group_table_columns(app, tree, columns):
         "status": 38,
         "group": 220,
         "alias": 180,
+        "position": 100,
         "bssids": 260,
         "ssids": 220,
         "channels": 92,
@@ -519,6 +556,7 @@ def adjust_ap_group_table_columns(app, tree, columns):
         "status": 46,
         "group": 420,
         "alias": 360,
+        "position": 130,
         "bssids": 620,
         "ssids": 440,
         "channels": 140,
@@ -535,7 +573,7 @@ def adjust_ap_group_table_columns(app, tree, columns):
         for column, value in zip(columns, values):
             measured[column] = max(measured[column], body_font.measure(str(value)) + 34)
 
-    fixed_columns = ("status", "channels", "locked")
+    fixed_columns = ("status", "position", "channels", "locked")
     flexible_columns = ("group", "alias", "bssids", "ssids")
     widths = {
         column: min(max(measured[column], min_widths[column]), max_widths[column])

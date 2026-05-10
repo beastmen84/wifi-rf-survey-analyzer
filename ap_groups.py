@@ -90,7 +90,20 @@ def build_detected_ap_groups(rows, channel_sort_key=None):
     return sorted(result, key=lambda item: " ".join(item["display_groups"]))
 
 
-def build_manual_ap_group(group_id, bssids, alias="", locked=True):
+def normalize_ap_position(value):
+    if not isinstance(value, dict):
+        return None
+
+    try:
+        x = int(round(float(value.get("x"))))
+        y = int(round(float(value.get("y"))))
+    except (TypeError, ValueError):
+        return None
+
+    return {"x": x, "y": y}
+
+
+def build_manual_ap_group(group_id, bssids, alias="", locked=True, position=None):
     clean_bssids = sorted({
         normalize_bssid(bssid)
         for bssid in bssids
@@ -99,12 +112,18 @@ def build_manual_ap_group(group_id, bssids, alias="", locked=True):
     if not group_id:
         group_id = clean_bssids[0] if clean_bssids else ""
 
-    return {
+    group = {
         "group_id": str(group_id),
         "alias": str(alias or "").strip(),
         "bssids": clean_bssids,
         "locked": bool(locked),
     }
+
+    clean_position = normalize_ap_position(position)
+    if clean_position:
+        group["position"] = clean_position
+
+    return group
 
 
 def build_default_manual_groups(rows):
@@ -132,6 +151,7 @@ def merge_new_bssids_into_manual_groups(manual_groups, rows):
             group.get("bssids", []),
             alias=group.get("alias", ""),
             locked=group.get("locked", True),
+            position=group.get("position"),
         )
         for group in manual_groups
     ]

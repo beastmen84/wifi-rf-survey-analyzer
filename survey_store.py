@@ -12,7 +12,7 @@ from constants import (
     SURVEY_FIELDNAMES,
     SURVEY_SCHEMA_VERSION,
 )
-from ap_groups import AP_GROUPS_METADATA_KEY
+from ap_groups import AP_GROUPS_METADATA_KEY, normalize_ap_position
 
 
 class SurveyFormatError(ValueError):
@@ -225,12 +225,17 @@ class SurveySession:
             if not group_id or not bssids:
                 continue
 
-            clean_groups.append({
+            clean_group = {
                 "group_id": group_id,
                 "alias": str(group.get("alias", "")).strip(),
                 "bssids": sorted(set(bssids)),
                 "locked": bool(group.get("locked", False)),
-            })
+            }
+            position = normalize_ap_position(group.get("position"))
+            if position:
+                clean_group["position"] = position
+
+            clean_groups.append(clean_group)
 
         serialized_groups = json.dumps(clean_groups, ensure_ascii=False, sort_keys=True)
         changed = self.metadata.get(AP_GROUPS_METADATA_KEY) != serialized_groups
