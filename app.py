@@ -89,6 +89,7 @@ from survey_store import (
     SurveySession,
     SurveyFormatError,
 )
+from survey_quality_dialog import open_survey_quality_dashboard
 from ui_dialogs import open_existing_survey_file, save_survey_file_as
 from utils import sanitize_filename, signal_to_color
 from wifi_scanner import get_connected_ssid, scan_wifi
@@ -193,6 +194,8 @@ class WifiHeatmapApp(ModalDialogMixin):
         self.open_csv_button.pack(side=tk.LEFT, padx=(0, 6))
         self.alias_button = ttk.Button(toolbar, command=self.open_ap_alias_dialog, bootstyle=SECONDARY)
         self.alias_button.pack(side=tk.LEFT, padx=(0, 6))
+        self.quality_button = ttk.Button(toolbar, command=self.open_quality_dashboard, bootstyle=SECONDARY)
+        self.quality_button.pack(side=tk.LEFT, padx=(0, 6))
         self.calibrate_button = ttk.Button(toolbar, command=self.start_scale_calibration, bootstyle=SECONDARY)
         self.calibrate_button.pack(side=tk.LEFT, padx=(0, 6))
         self.help_button = ttk.Button(toolbar, command=self.open_help_dialog, bootstyle=SECONDARY)
@@ -479,6 +482,7 @@ class WifiHeatmapApp(ModalDialogMixin):
         self.open_csv_button.configure(text=self.tr("open_csv"))
         self.save_button.configure(text=self.tr("save"))
         self.alias_button.configure(text=self.tr("ap_aliases"))
+        self.quality_button.configure(text=self.tr("quality_dashboard_button"))
         self.calibrate_button.configure(text=self.tr("calibrate_scale"))
         self.help_button.configure(text=self.tr("help"))
         self.fit_button.configure(text=self.tr("fit"))
@@ -791,6 +795,9 @@ class WifiHeatmapApp(ModalDialogMixin):
 
     def open_ap_alias_dialog(self):
         open_ap_group_manager(self)
+
+    def open_quality_dashboard(self):
+        open_survey_quality_dashboard(self)
 
     def get_current_ap_group_map(self):
         groups = self.session.get_ap_groups()
