@@ -13,7 +13,6 @@ try:
         QCheckBox,
         QComboBox,
         QDialog,
-        QFileDialog,
         QFrame,
         QGridLayout,
         QHBoxLayout,
@@ -66,7 +65,12 @@ from qt_map_generation import MapGenerationDialog
 from qt_point_workflow import MissingRelevantNetworksDialog, RelevantNetworksDialog, WifiScanWorker
 from qt_quality_dashboard import open_qt_quality_dashboard
 from qt_theme import QT_THEME_OPTIONS, QT_THEMES
-from qt_windowing import SKIP_CENTERING_PROPERTY, install_dialog_centering
+from qt_windowing import (
+    SKIP_CENTERING_PROPERTY,
+    get_centered_open_file_name,
+    get_centered_save_file_name,
+    install_dialog_centering,
+)
 from survey_store import SurveyFormatError, SurveySession
 from ui_scaling import (
     UI_SCALE_OPTIONS,
@@ -1707,7 +1711,7 @@ class WifiHeatmapQtApp(QMainWindow):
             return False
 
         if csv_file is None:
-            csv_file, _selected_filter = QFileDialog.getOpenFileName(
+            csv_file, _selected_filter = get_centered_open_file_name(
                 self,
                 self.tr("open_existing_survey"),
                 "",
@@ -1735,7 +1739,7 @@ class WifiHeatmapQtApp(QMainWindow):
 
         csv_file = self.session.csv_file
         if not csv_file:
-            csv_file, _selected_filter = QFileDialog.getSaveFileName(
+            csv_file, _selected_filter = get_centered_save_file_name(
                 self,
                 self.tr("save"),
                 "",
@@ -1757,7 +1761,7 @@ class WifiHeatmapQtApp(QMainWindow):
             if self.session is None:
                 return
 
-        file_path, _selected_filter = QFileDialog.getOpenFileName(
+        file_path, _selected_filter = get_centered_open_file_name(
             self,
             self.tr("select_plan_title"),
             "",

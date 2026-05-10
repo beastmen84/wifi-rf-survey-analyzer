@@ -1,27 +1,40 @@
 """Shared Qt window behavior helpers."""
 
-from PySide6.QtCore import QObject, QEvent, QTimer
+from PySide6.QtCore import QEasingCurve, QObject, QEvent, QPropertyAnimation, Qt, QTimer
 from PySide6.QtGui import QCursor, QGuiApplication
-from PySide6.QtWidgets import QApplication, QDialog
+from PySide6.QtWidgets import QApplication, QDialog, QFileDialog, QGraphicsOpacityEffect, QWidget
 
 
 CENTERED_PROPERTY = "_wifi_heatmap_centered_once"
 SKIP_CENTERING_PROPERTY = "_wifi_heatmap_skip_centering"
+DIM_OVERLAY_OBJECT_NAME = "modalDimOverlay"
+DIM_FADE_MS = 120
 
 
 class DialogCenteringFilter(QObject):
-    """Center top-level dialogs the first time they are shown."""
+    """Center top-level dialogs and dim their parent while they are visible."""
 
     def eventFilter(self, obj, event):
+        if isinstance(obj, QWidget) and event.type() in (QEvent.Type.Resize, QEvent.Type.Move):
+            resize_dim_overlay(obj)
+
         if (
             event.type() == QEvent.Type.Show
             and isinstance(obj, QDialog)
             and obj.isWindow()
             and not obj.property(SKIP_CENTERING_PROPERTY)
-            and not obj.property(CENTERED_PROPERTY)
         ):
-            obj.setProperty(CENTERED_PROPERTY, True)
-            QTimer.singleShot(0, lambda dialog=obj: center_window(dialog))
+            if not obj.property(CENTERED_PROPERTY):
+                obj.setProperty(CENTERED_PROPERTY, True)
+                QTimer.singleShot(0, lambda dialog=obj: center_window(dialog))
+            QTimer.singleShot(0, lambda dialog=obj: push_modal_dim(dialog))
+
+        if (
+            event.type() in (QEvent.Type.Hide, QEvent.Type.Close)
+            and isinstance(obj, QDialog)
+            and obj.isWindow()
+        ):
+            pop_modal_dim(obj)
         return False
 
 
@@ -71,6 +84,129 @@ def center_window(window):
     x = clamp(frame.x(), available.left(), available.left() + max(0, available.width() - frame.width()))
     y = clamp(frame.y(), available.top(), available.top() + max(0, available.height() - frame.height()))
     window.move(x, y)
+
+
+def get_centered_open_file_name(parent, caption, directory, name_filter):
+    """Open a centered Qt file-open dialog and return `(path, selected_filter)`."""
+
+    return run_centered_file_dialog(
+        parent,
+        caption,
+        directory,
+        name_filter,
+        QFileDialog.AcceptMode.AcceptOpen,
+        QFileDialog.FileMode.ExistingFile,
+    )
+
+
+def get_centered_save_file_name(parent, caption, directory, name_filter):
+    """Open a centered Qt file-save dialog and return `(path, selected_filter)`."""
+
+    return run_centered_file_dialog(
+        parent,
+        caption,
+        directory,
+        name_filter,
+        QFileDialog.AcceptMode.AcceptSave,
+        QFileDialog.FileMode.AnyFile,
+    )
+
+
+def run_centered_file_dialog(parent, caption, directory, name_filter, accept_mode, file_mode):
+    dialog = QFileDialog(parent, caption, directory, name_filter)
+    dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
+    dialog.setAcceptMode(accept_mode)
+    dialog.setFileMode(file_mode)
+    dialog.setModal(True)
+
+    if dialog.exec() != QDialog.DialogCode.Accepted:
+        return "", ""
+
+    selected = dialog.selectedFiles()
+    return (selected[0] if selected else ""), dialog.selectedNameFilter()
+
+
+def push_modal_dim(dialog):
+    """Add a soft dim overlay to the dialog parent window."""
+
+    if dialog is None or dialog.property(SKIP_CENTERING_PROPERTY):
+        return
+
+    parent = dialog.parentWidget()
+    if parent is None:
+        return
+
+    target = parent.window()
+    if target is None or target is dialog or not target.isVisible():
+        return
+
+    if getattr(dialog, "_wifi_heatmap_dim_parent", None) is target:
+        return
+
+    count = getattr(target, "_wifi_heatmap_dim_count", 0)
+    overlay = getattr(target, "_wifi_heatmap_dim_overlay", None)
+    if overlay is None:
+        overlay = QWidget(target)
+        overlay.setObjectName(DIM_OVERLAY_OBJECT_NAME)
+        overlay.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        overlay.setStyleSheet(
+            f"QWidget#{DIM_OVERLAY_OBJECT_NAME} {{ background-color: rgba(6, 12, 22, 92); }}"
+        )
+        overlay.setGeometry(target.rect())
+        overlay.raise_()
+        overlay.show()
+        fade_overlay(overlay, 0.0, 1.0)
+        target._wifi_heatmap_dim_overlay = overlay
+    else:
+        resize_dim_overlay(target)
+        overlay.raise_()
+        overlay.show()
+
+    target._wifi_heatmap_dim_count = count + 1
+    dialog._wifi_heatmap_dim_parent = target
+
+
+def pop_modal_dim(dialog):
+    target = getattr(dialog, "_wifi_heatmap_dim_parent", None)
+    if target is None:
+        return
+
+    dialog._wifi_heatmap_dim_parent = None
+    count = max(0, getattr(target, "_wifi_heatmap_dim_count", 1) - 1)
+    target._wifi_heatmap_dim_count = count
+    if count > 0:
+        return
+
+    overlay = getattr(target, "_wifi_heatmap_dim_overlay", None)
+    target._wifi_heatmap_dim_overlay = None
+    if overlay is None:
+        return
+
+    fade_overlay(overlay, 1.0, 0.0, delete_when_finished=True)
+
+
+def resize_dim_overlay(widget):
+    overlay = getattr(widget, "_wifi_heatmap_dim_overlay", None)
+    if overlay is not None and overlay.isVisible():
+        overlay.setGeometry(widget.rect())
+        overlay.raise_()
+
+
+def fade_overlay(overlay, start, end, delete_when_finished=False):
+    effect = overlay.graphicsEffect()
+    if not isinstance(effect, QGraphicsOpacityEffect):
+        effect = QGraphicsOpacityEffect(overlay)
+        overlay.setGraphicsEffect(effect)
+
+    animation = QPropertyAnimation(effect, b"opacity", overlay)
+    animation.setDuration(DIM_FADE_MS)
+    animation.setStartValue(start)
+    animation.setEndValue(end)
+    animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+    if delete_when_finished:
+        animation.finished.connect(overlay.deleteLater)
+    overlay._wifi_heatmap_dim_animation = animation
+    animation.start()
 
 
 def screen_for_window(window):

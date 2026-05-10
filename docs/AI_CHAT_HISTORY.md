@@ -695,6 +695,13 @@ Language:
   automatically detected groups from survey rows. This keeps `AP without
   position` accurate even before the user has opened/saved AP Group Manager in a
   new survey.
+- Qt window behavior now includes app-wide modal dimming: when a program dialog
+  opens, its parent window receives a soft overlay so attention stays on the
+  active dialog. Nested dialogs dim their immediate parent as well. Toolbar/start
+  settings popups intentionally opt out because they are anchored menus.
+- File open/save actions now use centered Qt file dialogs instead of the native
+  static Windows dialogs, because the native dialogs cannot be centered
+  reliably through Qt.
 
 Recent commits:
 

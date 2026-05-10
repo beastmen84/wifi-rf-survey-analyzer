@@ -9,7 +9,6 @@ try:
         QApplication,
         QComboBox,
         QDialog,
-        QFileDialog,
         QFrame,
         QHBoxLayout,
         QLabel,
@@ -29,7 +28,7 @@ from app_restart import start_replacement_process
 from app_settings import get_saved_theme, get_saved_ui_scale, save_theme, save_ui_scale
 from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_language, translate
 from qt_theme import QT_THEME_OPTIONS, QT_THEMES
-from qt_windowing import SKIP_CENTERING_PROPERTY, install_dialog_centering
+from qt_windowing import SKIP_CENTERING_PROPERTY, get_centered_open_file_name, install_dialog_centering
 from ui_scaling import (
     UI_SCALE_OPTIONS,
     detect_auto_ui_scale_percent,
@@ -578,7 +577,7 @@ class StartWindow(QMainWindow):
 
         csv_file = None
         if action == "open":
-            csv_file, _selected_filter = QFileDialog.getOpenFileName(
+            csv_file, _selected_filter = get_centered_open_file_name(
                 self,
                 self.tr("open_existing_survey"),
                 "",
