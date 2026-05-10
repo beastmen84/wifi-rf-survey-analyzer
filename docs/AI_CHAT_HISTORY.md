@@ -416,6 +416,10 @@ Language:
   before export, and generates signal, interference, channel and dominant AP
   PNGs plus the existing CSV reports where relevant. Export rendering lives in
   `map_exporter.py`, while the Qt dialog lives in `qt_map_generation.py`.
+- Added first-pass Qt Survey Quality Dashboard. The `Qualità` toolbar action now
+  opens `qt_quality_dashboard.py`, showing summary metrics, relevant-network
+  quality, AP position warnings, AP metadata warnings, an issues-only filter and
+  point focus back to the survey tab.
 
 Recent commits:
 
@@ -439,13 +443,12 @@ Recent commits:
 
 Good next steps, in likely order:
 
-1. Migrate or rebuild the Survey Quality Dashboard in Qt.
-2. Add lightweight tests around AP groups, quality and point scanning before
+1. Add lightweight tests around AP groups, quality and point scanning before
    larger V2 refactors.
-3. Decide whether mounting metadata should influence AP position warnings or
+2. Decide whether mounting metadata should influence AP position warnings or
    remain documentation only.
-4. Improve live map performance only if user sees real lag on large surveys.
-5. Rework Help structure later, after the feature set stabilizes.
+3. Improve live map performance only if user sees real lag on large surveys.
+4. Rework Help structure later, after the feature set stabilizes.
 
 ## Verification Patterns Used
 

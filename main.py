@@ -59,6 +59,7 @@ from qt_floorplan import FloorplanView
 from qt_live_map import LiveMapRenderWorker, LiveMapView, create_marker_icon, load_floorplan_image
 from qt_map_generation import MapGenerationDialog
 from qt_point_workflow import MissingRelevantNetworksDialog, RelevantNetworksDialog, WifiScanWorker
+from qt_quality_dashboard import open_qt_quality_dashboard
 from survey_store import SurveyFormatError, SurveySession
 from wifi_scanner import get_connected_ssid
 
@@ -215,7 +216,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.zoom_in_action.triggered.connect(self.zoom_in)
         self.fit_action.triggered.connect(self.fit_floorplan)
         self.ap_groups_action.triggered.connect(self.open_ap_group_manager)
-        self.quality_action.triggered.connect(self.show_not_migrated_message)
+        self.quality_action.triggered.connect(self.open_quality_dashboard)
         self.generate_action.triggered.connect(self.open_generate_map_dialog)
 
         for action in (
@@ -451,6 +452,11 @@ class WifiHeatmapQtApp(QMainWindow):
                 background: #ffffff;
                 border-top: 1px solid #d7dde3;
             }
+            QFrame#metricBox {
+                background: #ffffff;
+                border: 1px solid #d7dde3;
+                border-radius: 6px;
+            }
             QLabel#startTitle {
                 font-size: 25pt;
                 font-weight: 700;
@@ -470,6 +476,26 @@ class WifiHeatmapQtApp(QMainWindow):
                 border: 1px solid #b8dfc2;
                 border-radius: 5px;
                 padding: 5px 8px;
+            }
+            QLabel#metricValue_good {
+                color: #16803d;
+                font-size: 18pt;
+                font-weight: 700;
+            }
+            QLabel#metricValue_warning {
+                color: #9a6500;
+                font-size: 18pt;
+                font-weight: 700;
+            }
+            QLabel#metricValue_danger {
+                color: #b42318;
+                font-size: 18pt;
+                font-weight: 700;
+            }
+            QLabel#metricValue_info {
+                color: #1d4ed8;
+                font-size: 18pt;
+                font-weight: 700;
             }
             QPushButton {
                 min-width: 240px;
@@ -1470,6 +1496,12 @@ class WifiHeatmapQtApp(QMainWindow):
                 self.status.showMessage(self.tr("ap_groups_saved"))
             self.maybe_update_live_preview()
 
+    def open_quality_dashboard(self):
+        if self.session is None:
+            return
+
+        open_qt_quality_dashboard(self)
+
     def start_ap_positioning(self, group_id):
         if self.session is None:
             return False
@@ -1542,6 +1574,31 @@ class WifiHeatmapQtApp(QMainWindow):
         row = selected[0].row()
         item = self.points_table.item(row, 0)
         return item.data(Qt.ItemDataRole.UserRole) if item else None
+
+    def select_point_in_table(self, point):
+        point_id = str(point.get("point_id", ""))
+        timestamp = point.get("timestamp")
+        x = point.get("x")
+        y = point.get("y")
+
+        for row_index in range(self.points_table.rowCount()):
+            item = self.points_table.item(row_index, 0)
+            row_point = item.data(Qt.ItemDataRole.UserRole) if item else None
+            if not row_point:
+                continue
+
+            same_point_id = point_id and str(row_point.get("point_id", "")) == point_id
+            same_position = (
+                row_point.get("timestamp") == timestamp
+                and row_point.get("x") == x
+                and row_point.get("y") == y
+            )
+            if same_point_id or same_position:
+                self.points_table.selectRow(row_index)
+                self.points_table.scrollToItem(item)
+                return True
+
+        return False
 
     def update_point_action_state(self):
         has_point = bool(self.current_selected_point())
