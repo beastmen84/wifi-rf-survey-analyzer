@@ -2569,28 +2569,38 @@ class WifiHeatmapApp(ModalDialogMixin):
         color_map, _visible_ap_groups, _hidden_ap_count = get_limited_bssid_color_map(dominant_df)
         group_labels = self.build_dominant_ap_group_labels(dominant_df)
         legend_items = []
-        self.live_point_infos = [
-            {
+        self.live_point_infos = []
+        has_position_warning = False
+        has_roaming_overlap = False
+
+        for _index, row in dominant_df.iterrows():
+            position_analysis = self.analyze_dominant_ap_position_for_row(row)
+            position_warning_color = self.get_ap_position_warning_color(position_analysis)
+            has_position_warning = has_position_warning or bool(position_warning_color)
+            has_roaming_overlap = has_roaming_overlap or bool(row.get("roaming_overlap"))
+            outline = position_warning_color or ("#f1c40f" if row.get("roaming_overlap") else "black")
+            self.live_point_infos.append({
                 "x": float(row["x"]),
                 "y": float(row["y"]),
                 "color": color_map.get(row["dominant_ap_group"], "#7f8c8d"),
-                "outline": "#f1c40f" if row.get("roaming_overlap") else "black",
-                "outline_width": 1,
+                "outline": outline,
+                "outline_width": 2 if position_warning_color else 1,
                 "legend_label": group_labels.get(
                     row.get("dominant_ap_group", ""),
                     self.format_ap_label(row.get("dominant_bssid", ""), row.get("dominant_ap_group", ""))
                 ),
-                "tooltip": self.format_live_dominant_tooltip(row, config)
-            }
-            for _index, row in dominant_df.iterrows()
-        ]
+                "tooltip": self.format_live_dominant_tooltip(row, config, position_analysis)
+            })
+
         for point in self.live_point_infos:
             label = point.get("legend_label", "")
             if label and label not in [item["label"] for item in legend_items]:
                 legend_items.append({"label": label, "color": point.get("color", "#7f8c8d")})
         legend_items.sort(key=lambda item: item.get("label", "").casefold())
-        if any(point.get("outline") == "#f1c40f" for point in self.live_point_infos):
+        if has_roaming_overlap:
             legend_items.append({"label": self.tr("dominant_map_roaming_overlap"), "color": "#f1c40f", "outline_only": True})
+        if has_position_warning:
+            legend_items.append({"label": self.tr("ap_position_warning_legend"), "color": "#d62728", "outline_only": True})
         self.live_scale_payload = {
             "kind": "swatches",
             "title": self.tr("map_type_dominant"),
@@ -3227,11 +3237,11 @@ class WifiHeatmapApp(ModalDialogMixin):
             ]
         }
 
-    def format_live_dominant_tooltip(self, row, config):
+    def format_live_dominant_tooltip(self, row, config, position_analysis=None):
         delta = self.format_report_value(row.get("delta_db", ""), suffix=" dB")
         dominant = self.format_ap_label(row.get("dominant_bssid", ""), row.get("dominant_ap_group", ""))
         second = self.format_ap_label(row.get("second_bssid", ""), row.get("second_ap_group", "")) if row.get("second_bssid", "") else "-"
-        position_rows = self.build_ap_position_tooltip_rows(row)
+        position_rows = self.build_ap_position_tooltip_rows(row, position_analysis)
         return {
             "title": self.tr("map_type_dominant"),
             "accent": "#f1c40f" if row.get("roaming_overlap") else "#34495e",
@@ -3248,13 +3258,15 @@ class WifiHeatmapApp(ModalDialogMixin):
             ] + position_rows
         }
 
-    def build_ap_position_tooltip_rows(self, row):
-        analysis = analyze_dominant_ap_position(
+    def analyze_dominant_ap_position_for_row(self, row):
+        return analyze_dominant_ap_position(
             row,
             self.session.get_ap_groups(),
             px_per_meter=self.get_px_per_meter()
         )
 
+    def build_ap_position_tooltip_rows(self, row, analysis=None):
+        analysis = analysis or self.analyze_dominant_ap_position_for_row(row)
         if analysis.get("status") == AP_POSITION_MISSING:
             return []
 
@@ -3306,6 +3318,16 @@ class WifiHeatmapApp(ModalDialogMixin):
             AP_POSITION_WEAK_CLOSE: "ap_position_weak_close",
             AP_POSITION_UNEXPECTED_DOMINANT: "ap_position_unexpected_dominant",
         }.get(warning, "ap_position_unknown_warning")
+
+    def get_ap_position_warning_color(self, analysis):
+        warnings = analysis.get("warnings", []) if analysis else []
+        if not warnings:
+            return ""
+
+        if AP_POSITION_STRONG_FAR in warnings or AP_POSITION_WEAK_CLOSE in warnings:
+            return "#d62728"
+
+        return "#ff7f0e"
 
     def format_live_interference_tooltip(self, row, config):
         risk = self.format_report_value(row.get("risk", ""), suffix="%")
