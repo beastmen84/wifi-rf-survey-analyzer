@@ -3,7 +3,7 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 from scipy.interpolate import RBFInterpolator, griddata
 
-from ap_groups import get_ap_group_key
+from ap_groups import normalize_ap_group_map, resolve_ap_group_key
 from i18n import translate
 
 
@@ -44,7 +44,7 @@ def collapse_heatmap_points(df, aggregation="max"):
     )
 
 
-def get_channel_map_points(df, ssid, band):
+def get_channel_map_points(df, ssid, band, ap_group_map=None):
     rows = df[df["ssid"].str.lower() == ssid.lower()].copy()
     rows = filter_by_band(rows, band)
     rows["x"] = pd.to_numeric(rows["x"], errors="coerce")
@@ -60,11 +60,14 @@ def get_channel_map_points(df, ssid, band):
     if rows.empty:
         return rows
 
+    group_map = normalize_ap_group_map(ap_group_map)
+    rows["ap_group"] = rows["bssid"].apply(lambda bssid: resolve_ap_group_key(bssid, group_map))
+
     strongest_indexes = rows.groupby(["timestamp", "x", "y"])["signal_dbm"].idxmax()
     return rows.loc[strongest_indexes].sort_values("timestamp")
 
 
-def get_dominant_ap_points(df, ssid, band):
+def get_dominant_ap_points(df, ssid, band, ap_group_map=None):
     rows = df[df["ssid"].str.lower() == ssid.lower()].copy()
     rows = filter_by_band(rows, band)
     rows["x"] = pd.to_numeric(rows["x"], errors="coerce")
@@ -76,7 +79,8 @@ def get_dominant_ap_points(df, ssid, band):
     else:
         rows["channel_width_mhz"] = np.nan
     rows = rows.dropna(subset=["timestamp", "x", "y", "signal_dbm", "bssid"])
-    rows["ap_group"] = rows["bssid"].apply(get_ap_group_key)
+    group_map = normalize_ap_group_map(ap_group_map)
+    rows["ap_group"] = rows["bssid"].apply(lambda bssid: resolve_ap_group_key(bssid, group_map))
 
     dominant_rows = []
 
@@ -124,7 +128,7 @@ def get_dominant_ap_points(df, ssid, band):
     return pd.DataFrame(dominant_rows).sort_values("timestamp") if dominant_rows else pd.DataFrame()
 
 
-def calculate_interference_points(df, ssid, band, mode="intra_ssid", include_details=False):
+def calculate_interference_points(df, ssid, band, mode="intra_ssid", include_details=False, ap_group_map=None):
     rows = df.copy()
     rows["x"] = pd.to_numeric(rows["x"], errors="coerce")
     rows["y"] = pd.to_numeric(rows["y"], errors="coerce")
@@ -135,7 +139,8 @@ def calculate_interference_points(df, ssid, band, mode="intra_ssid", include_det
         rows["channel_width_mhz"] = np.nan
     rows["signal_dbm"] = pd.to_numeric(rows["signal_dbm"], errors="coerce")
     rows = rows.dropna(subset=["timestamp", "x", "y", "channel", "signal_dbm", "ssid", "bssid"])
-    rows["ap_group"] = rows["bssid"].apply(get_ap_group_key)
+    group_map = normalize_ap_group_map(ap_group_map)
+    rows["ap_group"] = rows["bssid"].apply(lambda bssid: resolve_ap_group_key(bssid, group_map))
 
     if band not in {"2.4", "5"}:
         return pd.DataFrame(columns=["timestamp", "x", "y", "risk"])

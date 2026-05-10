@@ -22,10 +22,13 @@ from ap_groups import (
     build_detected_ap_groups,
     build_dominant_ap_group_labels as build_ap_group_labels,
     build_default_manual_groups,
+    build_bssid_to_manual_group_map,
     format_ap_label as format_ap_group_label,
     format_short_bssid,
-    get_ap_group_key,
     merge_new_bssids_into_manual_groups,
+    normalize_ap_group_map,
+    resolve_ap_group_key,
+    serialize_ap_group_map,
 )
 from constants import (
     HEATMAP_GRID_SIZE,
@@ -1128,6 +1131,13 @@ class WifiHeatmapApp:
     def get_detected_ap_groups(self):
         return build_detected_ap_groups(self.session.rows, self.channel_sort_key)
 
+    def get_current_ap_group_map(self):
+        groups = self.session.get_ap_groups()
+        if not groups:
+            return {}
+
+        return build_bssid_to_manual_group_map(groups)
+
     def adjust_alias_table_columns(self, tree, columns):
         self.alias_table_resize_after_id = None
 
@@ -1228,7 +1238,7 @@ class WifiHeatmapApp:
             if not bssid:
                 continue
 
-            group_key = get_ap_group_key(bssid)
+            group_key = self.resolve_ap_group_key(bssid, config.ap_group_map)
             groups.setdefault(group_key, bssid)
 
         return [
@@ -2774,7 +2784,7 @@ class WifiHeatmapApp:
         return {"missing": missing, "all_points": all_points}
 
     def build_live_channel_points(self, df, config):
-        channel_df = get_channel_map_points(df, config.ssid, config.band)
+        channel_df = get_channel_map_points(df, config.ssid, config.band, ap_group_map=config.ap_group_map)
         if channel_df.empty:
             return False
 
@@ -2791,7 +2801,7 @@ class WifiHeatmapApp:
                 "tooltip": self.format_live_channel_tooltip(row, config)
             }
             for _index, row in channel_df.iterrows()
-            if not config.ap_group_filter or get_ap_group_key(row.get("bssid", "")) == config.ap_group_filter
+            if not config.ap_group_filter or self.resolve_ap_group_key(row.get("bssid", ""), config.ap_group_map) == config.ap_group_filter
         ]
         if not self.live_point_infos:
             return False
@@ -2812,7 +2822,7 @@ class WifiHeatmapApp:
         return True
 
     def build_live_dominant_points(self, df, config):
-        dominant_df = get_dominant_ap_points(df, config.ssid, config.band)
+        dominant_df = get_dominant_ap_points(df, config.ssid, config.band, ap_group_map=config.ap_group_map)
         if dominant_df.empty:
             return False
 
@@ -2971,7 +2981,7 @@ class WifiHeatmapApp:
 
     def format_live_channel_legend_label(self, row):
         channel = self.format_report_value(row.get("channel", ""))
-        ap_label = self.format_ap_label(row.get("bssid", ""))
+        ap_label = self.format_ap_label(row.get("bssid", ""), row.get("ap_group", ""))
         return f"CH {channel} - {ap_label}"
 
     def draw_live_overlay_legend(self):
@@ -3440,6 +3450,10 @@ class WifiHeatmapApp:
     def build_dominant_ap_group_labels(self, dominant_df):
         return build_ap_group_labels(dominant_df, self.session.get_ap_aliases())
 
+    def resolve_ap_group_key(self, bssid, ap_group_map=None):
+        group_map = normalize_ap_group_map(ap_group_map if ap_group_map is not None else self.get_current_ap_group_map())
+        return resolve_ap_group_key(bssid, group_map)
+
     def format_live_signal_tooltip(self, row, config, raw_rows):
         signal = self.format_report_value(row.get("signal_dbm", ""), suffix=" dBm")
         confidence = self.format_row_confidence(row)
@@ -3459,7 +3473,7 @@ class WifiHeatmapApp:
     def format_live_channel_tooltip(self, row, config):
         width = self.format_report_value(row.get("channel_width_mhz", ""))
         width_label = f" / {width} MHz" if width != "-" else ""
-        ap_label = self.format_ap_label(row.get("bssid", ""))
+        ap_label = self.format_ap_label(row.get("bssid", ""), row.get("ap_group", ""))
         return {
             "title": self.tr("map_type_channel"),
             "accent": get_channel_color(row.get("channel", ""), config.band),
@@ -4028,7 +4042,7 @@ class WifiHeatmapApp:
     def generate_channel_map(self, df, config):
         ssid = config.ssid
         band = config.band
-        channel_df = get_channel_map_points(df, ssid, band)
+        channel_df = get_channel_map_points(df, ssid, band, ap_group_map=self.get_current_ap_group_map())
 
         if channel_df.empty:
             messagebox.showwarning(
@@ -4099,7 +4113,7 @@ class WifiHeatmapApp:
     def generate_dominant_ap_map(self, df, config):
         ssid = config.ssid
         band = config.band
-        dominant_df = get_dominant_ap_points(df, ssid, band)
+        dominant_df = get_dominant_ap_points(df, ssid, band, ap_group_map=self.get_current_ap_group_map())
 
         if dominant_df.empty:
             messagebox.showwarning(
@@ -4193,7 +4207,8 @@ class WifiHeatmapApp:
             ssid,
             band,
             mode=config.interference_mode,
-            include_details=True
+            include_details=True,
+            ap_group_map=self.get_current_ap_group_map()
         )
 
         if len(risk_df) < 3:
@@ -4494,6 +4509,7 @@ class WifiHeatmapApp:
             color_scale=self.color_scale_var.get(),
             point_label_mode=self.point_label_mode_var.get(),
             ap_group_filter=getattr(self, "live_ap_filter_label_map", {}).get(self.ap_group_filter_var.get(), ""),
+            ap_group_map=serialize_ap_group_map(self.get_current_ap_group_map()),
             usable_only=bool(self.usable_only_var.get()),
             smoothing_sigma=smoothing_sigma,
             max_distance_px=max_distance_px,

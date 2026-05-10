@@ -10,7 +10,7 @@ import pandas as pd
 from PIL import Image
 
 from constants import HEATMAP_GRID_SIZE
-from ap_groups import get_ap_group_key
+from ap_groups import normalize_ap_group_map, resolve_ap_group_key
 from heatmap_tools import (
     apply_distance_mask,
     apply_signal_threshold,
@@ -55,8 +55,9 @@ def render_live_continuous_map(df, config, bg_image, translations, point_tooltip
 def build_signal_payload(df, config, bg_image, translations, point_tooltip_builder, color_scale_limits):
     rows = df[df["ssid"].str.lower() == config.ssid.lower()]
     rows = filter_by_band(rows, config.band)
+    ap_group_map = normalize_ap_group_map(config.ap_group_map)
     if config.ap_group_filter:
-        rows = rows[rows["bssid"].apply(get_ap_group_key) == config.ap_group_filter]
+        rows = rows[rows["bssid"].apply(lambda bssid: resolve_ap_group_key(bssid, ap_group_map)) == config.ap_group_filter]
     raw_rows = len(rows)
     rows = collapse_heatmap_points(rows, aggregation=config.aggregation)
 
@@ -118,7 +119,8 @@ def build_interference_payload(df, config, bg_image, translations, point_tooltip
         config.ssid,
         config.band,
         mode=config.interference_mode,
-        include_details=True
+        include_details=True,
+        ap_group_map=config.ap_group_map
     )
     if len(risk_df) < 3:
         return None
@@ -217,6 +219,7 @@ def build_result_cache_key(df, config, bg_image, translations):
         config.aggregation,
         config.color_scale,
         config.ap_group_filter,
+        config.ap_group_map,
         config.usable_only,
         round(float(config.smoothing_sigma), 4),
         int(config.max_distance_px),

@@ -189,6 +189,34 @@ def build_bssid_to_manual_group_map(manual_groups):
     return mapping
 
 
+def resolve_ap_group_key(bssid, bssid_group_map=None):
+    clean_bssid = normalize_bssid(bssid)
+    if bssid_group_map and clean_bssid in bssid_group_map:
+        return bssid_group_map[clean_bssid]
+
+    return get_ap_group_key(clean_bssid)
+
+
+def normalize_ap_group_map(ap_group_map):
+    if isinstance(ap_group_map, dict):
+        return {
+            normalize_bssid(bssid): str(group_id)
+            for bssid, group_id in ap_group_map.items()
+            if normalize_bssid(bssid) and str(group_id)
+        }
+
+    return {
+        normalize_bssid(bssid): str(group_id)
+        for bssid, group_id in (ap_group_map or ())
+        if normalize_bssid(bssid) and str(group_id)
+    }
+
+
+def serialize_ap_group_map(ap_group_map):
+    normalized = normalize_ap_group_map(ap_group_map)
+    return tuple(sorted(normalized.items()))
+
+
 def build_dominant_ap_group_labels(dominant_df, aliases):
     labels = {}
     if dominant_df.empty or "dominant_ap_group" not in dominant_df.columns:
