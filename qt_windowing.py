@@ -2,13 +2,25 @@
 
 from PySide6.QtCore import QEasingCurve, QObject, QEvent, QPropertyAnimation, Qt, QTimer
 from PySide6.QtGui import QCursor, QGuiApplication
-from PySide6.QtWidgets import QApplication, QDialog, QFileDialog, QGraphicsOpacityEffect, QWidget
+from PySide6.QtWidgets import (
+    QApplication,
+    QDialog,
+    QFileDialog,
+    QGraphicsOpacityEffect,
+    QHeaderView,
+    QListView,
+    QTreeView,
+    QWidget,
+)
+
+from qt_theme import QT_THEMES
 
 
 CENTERED_PROPERTY = "_wifi_heatmap_centered_once"
 SKIP_CENTERING_PROPERTY = "_wifi_heatmap_skip_centering"
 DIM_OVERLAY_OBJECT_NAME = "modalDimOverlay"
 DIM_FADE_MS = 120
+FILE_DIALOG_OBJECT_NAME = "centeredFileDialog"
 
 
 class DialogCenteringFilter(QObject):
@@ -114,16 +126,137 @@ def get_centered_save_file_name(parent, caption, directory, name_filter):
 
 def run_centered_file_dialog(parent, caption, directory, name_filter, accept_mode, file_mode):
     dialog = QFileDialog(parent, caption, directory, name_filter)
+    dialog.setObjectName(FILE_DIALOG_OBJECT_NAME)
     dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
     dialog.setAcceptMode(accept_mode)
     dialog.setFileMode(file_mode)
     dialog.setModal(True)
+    apply_file_dialog_tuning(dialog, parent)
+    QTimer.singleShot(0, lambda current_dialog=dialog: tune_file_dialog_views(current_dialog))
 
     if dialog.exec() != QDialog.DialogCode.Accepted:
         return "", ""
 
     selected = dialog.selectedFiles()
     return (selected[0] if selected else ""), dialog.selectedNameFilter()
+
+
+def apply_file_dialog_tuning(dialog, parent):
+    theme = getattr(parent, "theme", "light")
+    palette = QT_THEMES.get(theme, QT_THEMES["light"])
+    scale = getattr(parent, "ui_scale", 1.0)
+    px = lambda value: max(1, int(round(value * scale)))
+    font_px = lambda value: max(9, int(round(value * scale)))
+
+    dialog.setMinimumSize(px(980), px(620))
+    dialog.resize(px(1080), px(700))
+    dialog.setStyleSheet(
+        f"""
+        QFileDialog#{FILE_DIALOG_OBJECT_NAME} {{
+            background: {palette["bg"]};
+            color: {palette["text"]};
+            font-family: "Segoe UI";
+            font-size: {font_px(13)}px;
+        }}
+        QFileDialog#{FILE_DIALOG_OBJECT_NAME} QLabel {{
+            color: {palette["text"]};
+            font-size: {font_px(13)}px;
+        }}
+        QFileDialog#{FILE_DIALOG_OBJECT_NAME} QLineEdit,
+        QFileDialog#{FILE_DIALOG_OBJECT_NAME} QComboBox {{
+            background: {palette["panel"]};
+            color: {palette["text"]};
+            border: 1px solid {palette["border"]};
+            border-radius: {px(4)}px;
+            padding: {px(4)}px {px(8)}px;
+            min-height: {px(28)}px;
+            min-width: 0;
+        }}
+        QFileDialog#{FILE_DIALOG_OBJECT_NAME} QComboBox::drop-down {{
+            width: {px(24)}px;
+            border-left: 1px solid {palette["border"]};
+            background: {palette["metric_info"]};
+        }}
+        QFileDialog#{FILE_DIALOG_OBJECT_NAME} QPushButton {{
+            background: {palette["button_bg"]};
+            color: {palette["text"]};
+            border: 1px solid {palette["border"]};
+            border-radius: {px(5)}px;
+            padding: {px(6)}px {px(14)}px;
+            min-width: {px(96)}px;
+            min-height: {px(30)}px;
+            font-size: {font_px(13)}px;
+            font-weight: 500;
+        }}
+        QFileDialog#{FILE_DIALOG_OBJECT_NAME} QPushButton:hover {{
+            background: {palette["button_hover"]};
+        }}
+        QFileDialog#{FILE_DIALOG_OBJECT_NAME} QToolButton {{
+            background: {palette["button_bg"]};
+            color: {palette["text"]};
+            border: 1px solid transparent;
+            border-radius: {px(5)}px;
+            padding: {px(5)}px;
+            min-width: {px(28)}px;
+            min-height: {px(28)}px;
+        }}
+        QFileDialog#{FILE_DIALOG_OBJECT_NAME} QToolButton:hover {{
+            background: {palette["button_hover"]};
+            border: 1px solid {palette["border"]};
+        }}
+        QFileDialog#{FILE_DIALOG_OBJECT_NAME} QTreeView,
+        QFileDialog#{FILE_DIALOG_OBJECT_NAME} QListView {{
+            background: {palette["panel"]};
+            color: {palette["text"]};
+            border: 0;
+            selection-background-color: {palette["selection"]};
+            selection-color: {palette["text"]};
+            font-size: {font_px(13)}px;
+            outline: 0;
+        }}
+        QFileDialog#{FILE_DIALOG_OBJECT_NAME} QTreeView::item,
+        QFileDialog#{FILE_DIALOG_OBJECT_NAME} QListView::item {{
+            min-height: {px(26)}px;
+            padding: {px(2)}px {px(5)}px;
+        }}
+        QFileDialog#{FILE_DIALOG_OBJECT_NAME} QHeaderView::section {{
+            background: {palette["header"]};
+            color: {palette["text"]};
+            padding: {px(6)}px {px(8)}px;
+            border: 0;
+            border-right: 1px solid {palette["border"]};
+            font-weight: 600;
+            font-size: {font_px(13)}px;
+        }}
+        """
+    )
+
+
+def tune_file_dialog_views(dialog):
+    if dialog is None:
+        return
+
+    scale = getattr(dialog.parentWidget(), "ui_scale", 1.0) if dialog.parentWidget() else 1.0
+    px = lambda value: max(1, int(round(value * scale)))
+
+    for tree in dialog.findChildren(QTreeView):
+        header = tree.header()
+        if header is None or header.count() <= 1:
+            tree.setMinimumWidth(px(160))
+            continue
+
+        header.setStretchLastSection(False)
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        tree.setColumnWidth(0, px(360))
+        if header.count() > 1:
+            tree.setColumnWidth(1, px(110))
+        if header.count() > 2:
+            tree.setColumnWidth(2, px(150))
+        if header.count() > 3:
+            tree.setColumnWidth(3, px(190))
+
+    for list_view in dialog.findChildren(QListView):
+        list_view.setMinimumWidth(px(170))
 
 
 def push_modal_dim(dialog):

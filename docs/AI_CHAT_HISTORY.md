@@ -702,6 +702,9 @@ Language:
 - File open/save actions now use centered Qt file dialogs instead of the native
   static Windows dialogs, because the native dialogs cannot be centered
   reliably through Qt.
+- The centered Qt file dialogs have a dedicated stylesheet and view tuning so
+  they do not inherit oversized global button widths/padding from the main app.
+  Keep future file-dialog styling scoped to `QFileDialog#centeredFileDialog`.
 
 Recent commits:
 
