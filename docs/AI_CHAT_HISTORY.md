@@ -17,9 +17,9 @@ current architecture, and active rules that matter for continuing the work.
   made, then commit both code and this file together.
 - Prefer small, coherent steps. The app is growing and should remain easy to
   reason about.
-- Current UI stack is Tkinter + ttkbootstrap. PySide6 is considered for a later
-  V2 migration, but current work should keep the existing UI unless the user
-  explicitly asks to migrate.
+- Current UI direction is PySide6. `main.py` is the new Qt entry point, while
+  `wifi_heatmap.py` remains the legacy Tkinter/ttkbootstrap entry point during
+  migration.
 - Help text should eventually be reworked structurally, but the user chose to
   postpone that for now.
 - Existing code is the source of truth. If this file and code disagree, inspect
@@ -38,13 +38,17 @@ script and has evolved toward a V2 "RF analysis platform":
 - manage AP groups, aliases, roles, and physical AP positions;
 - evaluate scan/survey quality.
 
-Main entry point:
+Entry points:
 
-- `wifi_heatmap.py`: start screen and application launch.
+- `main.py`: new PySide6 V2 entry point.
+- `wifi_heatmap.py`: legacy Tkinter start screen and application launch during
+  migration.
 
 Core UI:
 
 - `app.py`: main application. Still large, but several areas have been extracted.
+- `main.py`: current Qt shell/prototype; it should progressively absorb real
+  workflows instead of adding more complex GUI to `app.py`.
 - `ap_group_dialog.py`: AP Group Manager.
 - `survey_quality_dialog.py`: survey quality dashboard.
 - `modal_dialogs.py`: shared modal dialog behavior.
@@ -367,6 +371,11 @@ Language:
   completed foundation items are separated from the remaining backlog, and new
   suggested priorities were added around AP Group Manager UX, tests, reporting,
   metadata-driven diagnostics and future UI migration.
+- Decided to bring PySide6 forward instead of treating it as long-term work.
+  Added `main.py` as the new Qt entry point with a first project shell:
+  start page, language selector, survey open/new/save, floorplan path metadata,
+  survey/live tabs and point summary table. Added PySide6 to requirements and
+  kept `wifi_heatmap.py` as the legacy fallback during migration.
 
 Recent commits:
 
@@ -390,13 +399,14 @@ Good next steps, in likely order:
 
 1. Improve AP Group Manager workflows:
    better manual split/merge UX, especially for larger BSSID lists.
-2. Add lightweight tests around AP groups, quality and interference before
+2. Build out the PySide6 shell in `main.py`, starting with floorplan viewer
+   pan/zoom and then AP Group Manager.
+3. Add lightweight tests around AP groups, quality and interference before
    larger V2 refactors.
-3. Decide whether mounting metadata should influence AP position warnings or
+4. Decide whether mounting metadata should influence AP position warnings or
    remain documentation only.
-4. Improve live map performance only if user sees real lag on large surveys.
-5. Rework Help structure later, after the feature set stabilizes.
-6. Consider PySide6 migration only after core logic is sufficiently separated.
+5. Improve live map performance only if user sees real lag on large surveys.
+6. Rework Help structure later, after the feature set stabilizes.
 
 ## Verification Patterns Used
 

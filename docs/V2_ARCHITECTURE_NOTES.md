@@ -355,11 +355,24 @@ Needed later:
 - explain relevant SSIDs, raw scans, confidence and quality states;
 - keep text concise and visual where possible.
 
-### 9. UI Technology Review
+### 9. PySide6 Migration
 
-Tkinter + ttkbootstrap is still acceptable for current V2 steps.
+Decision updated:
 
-PySide6 remains a good future direction if the UI grows into:
+- PySide6 migration should happen early, while the tool is not yet distributed;
+- the existing Tkinter/ttkbootstrap UI remains available during the migration;
+- new complex GUI work should target Qt instead of making `app.py` larger.
+
+Reason:
+
+- AP Group Manager, live maps and quality dashboards need stronger table,
+  layout and interaction primitives than Tkinter comfortably provides;
+- postponing the migration would make every future GUI feature more expensive
+  to port;
+- the current user base is still controlled, so this is the right moment for a
+  heavy UI change.
+
+PySide6 is the target UI stack for:
 
 - complex editable tables;
 - dockable panels;
@@ -367,39 +380,47 @@ PySide6 remains a good future direction if the UI grows into:
 - larger datasets;
 - richer validation workflows.
 
-Migration should happen only after core logic remains UI-independent.
+Current first step:
+
+- `main.py` is the new PySide6 entry point;
+- `wifi_heatmap.py` remains the legacy Tkinter entry point during migration;
+- `main.py` starts with project/session shell behavior and should progressively
+  absorb the real workflows.
 
 Recommended migration sequence:
 
 ```text
-1. Keep extracting logic from app.py
-2. Add tests around logic modules
-3. Stabilize data model
-4. Prototype PySide6 UI for one isolated workflow
-5. Migrate only if the prototype clearly improves maintenance and UX
+1. Keep Tkinter stable as fallback
+2. Build the Qt shell in main.py
+3. Move survey state, loading/saving and floorplan viewing to Qt
+4. Move AP Group Manager to Qt
+5. Move live map tab to Qt
+6. Move quality dashboard and map generation dialogs to Qt
+7. Retire Tkinter only after feature parity is acceptable
 ```
 
 ## Suggested Next Priorities
 
 Near-term:
 
-1. Improve AP Group Manager large-list workflows.
-2. Add lightweight tests for AP groups, quality and interference.
-3. Expand survey quality recommendations.
-4. Add live map quality/AP position overlays where useful.
+1. Build out the PySide6 shell in `main.py`.
+2. Move floorplan viewer pan/zoom and point table to Qt.
+3. Move AP Group Manager to Qt, using proper table/filter/edit widgets.
+4. Add lightweight tests for AP groups, quality and interference.
 
 Medium-term:
 
-5. Improve generated reporting.
-6. Use AP metadata more deeply in diagnostics.
-7. Continue extracting logic from `app.py`.
-8. Rework Help after feature workflows stabilize.
+5. Move live map and quality dashboard workflows to Qt.
+6. Expand survey quality recommendations.
+7. Improve generated reporting.
+8. Use AP metadata more deeply in diagnostics.
 
 Long-term:
 
-9. Evaluate PySide6 migration.
-10. Add advanced RF/AI-assisted suggestions.
-11. Add richer deployment/reporting outputs.
+9. Retire the Tkinter UI when Qt reaches practical feature parity.
+10. Rework Help after feature workflows stabilize.
+11. Add advanced RF/AI-assisted suggestions.
+12. Add richer deployment/reporting outputs.
 
 ## Final Vision
 

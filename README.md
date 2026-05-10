@@ -19,7 +19,8 @@ The project focuses on practical analysis from live Wi-Fi measurements collected
 
 ### User Interface
 
-- ttkbootstrap-based desktop UI.
+- PySide6 UI migration started in `main.py`.
+- Existing ttkbootstrap UI remains available during migration.
 - Start screen with new/open/exit actions and visual mouse shortcut help.
 - Main UI split into survey and live map tabs.
 - Toolbar controls for saving, opening CSV, AP aliases, scale calibration, help, map generation, theme, and language.
@@ -189,6 +190,7 @@ The project explicitly handles or exposes several practical Wi-Fi survey problem
 ## Technologies Used
 
 - Python
+- PySide6
 - Tkinter
 - ttkbootstrap
 - PyMuPDF
@@ -227,6 +229,14 @@ pip install -r requirements.txt
 ```
 
 ## Running the Application
+
+The new V2 Qt entry point is:
+
+```bash
+python main.py
+```
+
+During the migration, the existing Tkinter UI is still available:
 
 ```bash
 python wifi_heatmap.py
