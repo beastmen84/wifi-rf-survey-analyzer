@@ -38,7 +38,7 @@ except ModuleNotFoundError as exc:
 
 from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_language, translate
 from app_logging import configure_logging, log_event, log_exception, log_unhandled_exception
-from app_settings import get_saved_theme, get_saved_ui_scale, save_theme
+from app_settings import get_saved_theme, get_saved_ui_scale, save_theme, save_ui_scale
 from ap_groups import (
     build_ap_group_role_map,
     build_bssid_to_manual_group_map,
@@ -64,7 +64,7 @@ from qt_point_workflow import MissingRelevantNetworksDialog, RelevantNetworksDia
 from qt_quality_dashboard import open_qt_quality_dashboard
 from qt_theme import QT_THEME_OPTIONS, QT_THEMES
 from survey_store import SurveyFormatError, SurveySession
-from ui_scaling import resolve_ui_scale, scale_font, scale_px
+from ui_scaling import UI_SCALE_OPTIONS, normalize_ui_scale_mode, resolve_ui_scale, scale_font, scale_px
 from wifi_scanner import get_connected_ssid
 
 
@@ -77,7 +77,7 @@ class WifiHeatmapQtApp(QMainWindow):
         super().__init__()
         self.language = DEFAULT_LANGUAGE
         self.theme = get_saved_theme(default="light", valid_themes=QT_THEMES)
-        self.ui_scale_mode = get_saved_ui_scale()
+        self.ui_scale_mode = normalize_ui_scale_mode(get_saved_ui_scale())
         self.ui_scale = resolve_ui_scale(self.ui_scale_mode)
         self.session = None
         self.relevant_ssids = set()
@@ -286,6 +286,10 @@ class WifiHeatmapQtApp(QMainWindow):
         self.workspace_theme_label.setObjectName("appBarInlineLabel")
         self.workspace_theme_combo = QComboBox()
         self.workspace_theme_combo.currentIndexChanged.connect(self.change_theme)
+        self.workspace_scale_label = QLabel()
+        self.workspace_scale_label.setObjectName("appBarInlineLabel")
+        self.workspace_scale_combo = QComboBox()
+        self.workspace_scale_combo.currentIndexChanged.connect(self.change_ui_scale)
         self.workspace_language_label = QLabel()
         self.workspace_language_label.setObjectName("appBarInlineLabel")
         self.workspace_language_combo = QComboBox()
@@ -295,6 +299,8 @@ class WifiHeatmapQtApp(QMainWindow):
         for widget in (
             self.workspace_theme_label,
             self.workspace_theme_combo,
+            self.workspace_scale_label,
+            self.workspace_scale_combo,
             self.workspace_language_label,
             self.workspace_language_combo,
         ):
@@ -1050,6 +1056,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.setWindowTitle(self.tr("app_title"))
         self.start_language_label.setText(self.tr("language"))
         self.workspace_theme_label.setText(self.tr("theme"))
+        self.workspace_scale_label.setText(self.tr("ui_scale"))
         self.workspace_language_label.setText(self.tr("language"))
         self.project_section_label.setText(self.tr("toolbar_project"))
         self.view_section_label.setText(self.tr("toolbar_view"))
@@ -1094,6 +1101,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_update_button.setText(self.tr("live_update_now"))
         self.live_fit_button.setText(self.tr("fit"))
         self.refresh_theme_options()
+        self.refresh_ui_scale_options()
         self.refresh_live_static_options()
         self.points_table.setHorizontalHeaderLabels([
             "#",
@@ -1113,6 +1121,17 @@ class WifiHeatmapQtApp(QMainWindow):
             self.workspace_theme_combo,
             [(theme, self.tr(f"qt_theme_{theme}")) for theme in QT_THEME_OPTIONS],
             current_value=self.theme,
+        )
+
+    def refresh_ui_scale_options(self):
+        auto_percent = int(round(resolve_ui_scale("auto") * 100))
+        self.set_combo_items(
+            self.workspace_scale_combo,
+            [
+                (mode, self.tr("ui_scale_auto", percent=auto_percent) if mode == "auto" else f"{mode}%")
+                for mode in UI_SCALE_OPTIONS
+            ],
+            current_value=self.ui_scale_mode,
         )
 
     def change_language(self, value):
@@ -1141,6 +1160,19 @@ class WifiHeatmapQtApp(QMainWindow):
         self.theme = theme
         save_theme(theme)
         self.apply_styles()
+
+    def change_ui_scale(self, _index=None):
+        mode = normalize_ui_scale_mode(self.workspace_scale_combo.currentData())
+        if mode == self.ui_scale_mode:
+            return
+
+        self.ui_scale_mode = mode
+        self.ui_scale = resolve_ui_scale(mode)
+        save_ui_scale(mode)
+        self.apply_styles()
+        self.resize_points_table_columns()
+        self.position_points_overlay()
+        self.status.showMessage(self.tr("ui_scale_saved_restart"), 7000)
 
     def refresh_live_static_options(self):
         self.set_combo_items(

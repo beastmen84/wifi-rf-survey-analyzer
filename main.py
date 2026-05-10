@@ -22,10 +22,10 @@ except ModuleNotFoundError as exc:
     raise SystemExit(1) from exc
 
 from app_logging import configure_logging, log_event, log_exception, log_unhandled_exception
-from app_settings import get_saved_theme, get_saved_ui_scale
+from app_settings import get_saved_theme, get_saved_ui_scale, save_ui_scale
 from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_language, translate
 from qt_theme import QT_THEMES
-from ui_scaling import resolve_ui_scale, scale_font_px, scale_px
+from ui_scaling import UI_SCALE_OPTIONS, normalize_ui_scale_mode, resolve_ui_scale, scale_font_px, scale_px
 
 
 START_LANGUAGE_LABELS = {
@@ -57,7 +57,7 @@ class StartWindow(QMainWindow):
         super().__init__()
         self.language = DEFAULT_LANGUAGE
         self.theme = get_saved_theme(default="light", valid_themes=QT_THEMES)
-        self.ui_scale_mode = get_saved_ui_scale()
+        self.ui_scale_mode = normalize_ui_scale_mode(get_saved_ui_scale())
         self.ui_scale = resolve_ui_scale(self.ui_scale_mode)
         self.app_class = None
         self.workspace_window = None
@@ -96,6 +96,11 @@ class StartWindow(QMainWindow):
 
         top_row = QHBoxLayout()
         top_row.addStretch(1)
+        self.ui_scale_combo = QComboBox()
+        self.ui_scale_combo.setObjectName("scaleCombo")
+        self.refresh_ui_scale_options()
+        self.ui_scale_combo.currentIndexChanged.connect(self.change_ui_scale)
+        top_row.addWidget(self.ui_scale_combo)
         self.language_combo = QComboBox()
         self.language_combo.setObjectName("languageCombo")
         for language_code in SUPPORTED_LANGUAGES:
@@ -298,6 +303,9 @@ class StartWindow(QMainWindow):
                 background: {palette["metric_info"]};
                 border-color: {palette["metric_info"]};
             }}
+            QComboBox#scaleCombo {{
+                min-width: {s(108)}px;
+            }}
             QComboBox::drop-down {{
                 subcontrol-origin: padding;
                 subcontrol-position: top right;
@@ -346,11 +354,41 @@ class StartWindow(QMainWindow):
         self.exit_button.setText(self.tr("exit"))
         self.ready_note.setText(self.tr("start_ready_hint"))
         self.copyright_label.setText(self.tr("copyright"))
+        self.refresh_ui_scale_options()
         self.update_loading_text()
 
     def change_language(self, _index=None):
         self.language = normalize_language(self.language_combo.currentData())
         self.retranslate()
+
+    def refresh_ui_scale_options(self):
+        if not hasattr(self, "ui_scale_combo"):
+            return
+
+        current = self.ui_scale_mode
+        self.ui_scale_combo.blockSignals(True)
+        self.ui_scale_combo.clear()
+        auto_percent = int(round(resolve_ui_scale("auto") * 100))
+        for mode in UI_SCALE_OPTIONS:
+            label = self.tr("ui_scale_auto", percent=auto_percent) if mode == "auto" else f"{mode}%"
+            self.ui_scale_combo.addItem(label, mode)
+        index = self.ui_scale_combo.findData(current)
+        if index < 0:
+            index = 0
+        self.ui_scale_combo.setCurrentIndex(index)
+        self.ui_scale_combo.blockSignals(False)
+
+    def change_ui_scale(self, _index=None):
+        mode = normalize_ui_scale_mode(self.ui_scale_combo.currentData())
+        if mode == self.ui_scale_mode:
+            return
+
+        self.ui_scale_mode = mode
+        self.ui_scale = resolve_ui_scale(mode)
+        save_ui_scale(mode)
+        self.setMinimumSize(self.spx(1100), self.spx(720))
+        self.apply_styles()
+        self.ready_note.setText(self.tr("ui_scale_saved_restart"))
 
     def start_async_imports(self):
         self.load_thread = QThread(self)

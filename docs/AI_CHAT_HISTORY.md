@@ -566,6 +566,11 @@ Language:
   from an automatic display scale so the app keeps a 1080p-like visual density
   on higher resolution screens such as 1440p/2K. The scale mode is stored in
   shared app settings as `ui_scale` for future user-facing control.
+- Exposed the Qt UI scale setting in both the startup screen and main toolbar:
+  `Auto`, `100%`, `110%`, `125%`, `150%`, `175%`. `Auto` displays the resolved
+  percentage, because on Windows/Qt high-DPI systems it may resolve to 100% if
+  the OS already reports logical pixels. Manual scale choices are saved and
+  take full effect on the next app start.
 
 Recent commits:
 
