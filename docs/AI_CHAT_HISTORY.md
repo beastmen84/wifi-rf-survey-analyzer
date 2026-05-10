@@ -358,6 +358,9 @@ Language:
 - Added AP Group Manager conflict warnings: groups observed on multiple channels
   in the same band are highlighted and have a details dialog, helping catch
   suspicious automatic merges without blocking manual saves.
+- Refined AP Group Manager state display: the warning column now only shows
+  real warnings, while the former locked flag is shown as a user-facing
+  Manual/Auto management state.
 
 Recent commits:
 
@@ -380,7 +383,7 @@ Recent commits:
 Good next steps, in likely order:
 
 1. Improve AP Group Manager workflows:
-   better manual split/merge UX and clearer locked/manual status.
+   better manual split/merge UX and faster ways to act on warnings.
 2. Decide whether mounting metadata should influence AP position warnings or
    remain documentation only.
 3. Improve live map performance only if user sees real lag on large surveys.

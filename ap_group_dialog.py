@@ -214,7 +214,7 @@ def open_ap_group_manager(app):
         position = group.get("position") or {}
         position_label = f"{position.get('x')}, {position.get('y')}" if position else "-"
         return (
-            "!" if group_conflicts_by_id.get(group["group_id"]) else "OK" if alias else "",
+            "!" if group_conflicts_by_id.get(group["group_id"]) else "",
             format_list_preview(group["display_groups"]),
             alias,
             app.tr(f"ap_group_role_{role}"),
@@ -223,7 +223,7 @@ def open_ap_group_manager(app):
             format_list_preview(group["bssids"]),
             ", ".join(group["ssids"]),
             ", ".join(group["channels"]),
-            app.tr("yes") if group.get("locked") else app.tr("no"),
+            app.tr("ap_group_state_manual") if group.get("locked") else app.tr("ap_group_state_auto"),
         )
 
     def group_matches_search(group, query):
@@ -257,7 +257,7 @@ def open_ap_group_manager(app):
     def sort_value(group, column):
         alias = group.get("alias", "")
         if column == "status":
-            return 0 if group_conflicts_by_id.get(group["group_id"]) else 1 if alias else 2
+            return 0 if group_conflicts_by_id.get(group["group_id"]) else 1
         if column == "alias":
             return alias.lower()
         if column == "role":
@@ -384,7 +384,7 @@ def open_ap_group_manager(app):
     tree.heading("bssids", text=app.tr("ap_alias_bssids"), command=lambda: sort_by_column("bssids"))
     tree.heading("ssids", text=app.tr("ap_alias_ssids"), command=lambda: sort_by_column("ssids"))
     tree.heading("channels", text=app.tr("ap_alias_channels"), command=lambda: sort_by_column("channels"))
-    tree.heading("locked", text=app.tr("ap_group_locked"), command=lambda: sort_by_column("locked"))
+    tree.heading("locked", text=app.tr("ap_group_management"), command=lambda: sort_by_column("locked"))
     search_entry.bind("<KeyRelease>", lambda _event: render_alias_rows())
 
     def schedule_alias_table_resize(_event=None):
@@ -994,7 +994,7 @@ def adjust_ap_group_table_columns(app, tree, columns):
         "bssids": 260,
         "ssids": 220,
         "channels": 92,
-        "locked": 90,
+        "locked": 100,
     }
     max_widths = {
         "status": 46,
@@ -1006,7 +1006,7 @@ def adjust_ap_group_table_columns(app, tree, columns):
         "bssids": 620,
         "ssids": 440,
         "channels": 140,
-        "locked": 120,
+        "locked": 140,
     }
     measured = {}
 
