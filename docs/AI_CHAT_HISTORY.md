@@ -424,6 +424,10 @@ Language:
   It uses stdlib `unittest` and covers manual AP group overrides, interference
   ignoring same-physical-AP BSSIDs, missing relevant SSID quality state, and AP
   metadata channel warnings.
+- Added Qt scale calibration. The `Calibra scala` toolbar action now starts a
+  right-click two-point calibration mode on the Qt floor plan, stores
+  `px_per_meter` in survey metadata, updates live/export distance handling and
+  avoids creating survey points while calibration is active.
 
 Recent commits:
 
@@ -449,10 +453,12 @@ Good next steps, in likely order:
 
 1. Add more targeted tests as new V2 modules are split out, especially around
    point scanning and survey save/load.
-2. Decide whether mounting metadata should influence AP position warnings or
+2. Continue practical Qt feature parity: Help, theme selector and any remaining
+   small workflow actions still only present in the legacy UI.
+3. Decide whether mounting metadata should influence AP position warnings or
    remain documentation only.
-3. Improve live map performance only if user sees real lag on large surveys.
-4. Rework Help structure later, after the feature set stabilizes.
+4. Improve live map performance only if user sees real lag on large surveys.
+5. Rework Help structure later, after the feature set stabilizes.
 
 ## Verification Patterns Used
 

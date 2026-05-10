@@ -396,6 +396,8 @@ Current first step:
   points table includes quality/focus/delete controls.
 - `qt_point_workflow.py` contains the Qt scan worker and relevant/missing
   network dialogs.
+- Qt live map, generated map export, Survey Quality Dashboard and scale
+  calibration are now available in first-pass form.
 
 Recommended migration sequence:
 
@@ -406,17 +408,21 @@ Recommended migration sequence:
 4. Move AP Group Manager to Qt
 5. Move live map tab to Qt
 6. Move quality dashboard and map generation dialogs to Qt
-7. Retire Tkinter only after feature parity is acceptable
+7. Move remaining smaller workflow dialogs/actions to Qt
+8. Retire Tkinter only after feature parity is acceptable
 ```
 
 ## Suggested Next Priorities
 
 Near-term:
 
-1. Move live map workflow to Qt.
-2. Move quality dashboard workflow to Qt.
-3. Add lightweight tests for AP groups, quality, point scanning and
-   interference.
+1. Continue Qt feature parity for remaining workflow pieces such as Help,
+   theme selector and any small utility actions still only present in the
+   legacy UI.
+2. Add more targeted tests for point scanning, survey save/load and sidecar
+   handling.
+3. Keep using the legacy Tkinter entry point as fallback until Qt parity is
+   acceptable.
 
 Medium-term:
 

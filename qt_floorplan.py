@@ -1,10 +1,12 @@
 from pathlib import Path
+import math
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QBrush, QColor, QImage, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QGraphicsEllipseItem,
     QGraphicsItem,
+    QGraphicsLineItem,
     QGraphicsPixmapItem,
     QGraphicsScene,
     QGraphicsView,
@@ -15,6 +17,9 @@ class FloorplanView(QGraphicsView):
     surveyPointRequested = Signal(int, int)
     apPositionPicked = Signal(str, int, int)
     apPositionCancelled = Signal()
+    scaleCalibrationFirstPointPicked = Signal()
+    scaleCalibrationCompleted = Signal(float)
+    scaleCalibrationCancelled = Signal()
 
     def __init__(self):
         super().__init__()
@@ -23,9 +28,12 @@ class FloorplanView(QGraphicsView):
         self.pixmap_item = None
         self.marker_items = []
         self.ap_marker_items = []
+        self.scale_calibration_items = []
+        self.scale_calibration_points = []
         self.zoom_level = 1.0
         self.pending_ap_position_group_id = ""
         self.pending_ap_position_label = ""
+        self.scale_calibration_active = False
         self.ap_position_icon = load_ap_position_icon()
         self.ap_tooltip_formatter = None
 
@@ -44,6 +52,12 @@ class FloorplanView(QGraphicsView):
         self.scene.clear()
         self.marker_items = []
         self.ap_marker_items = []
+        self.scale_calibration_items = []
+        self.scale_calibration_points = []
+        self.scale_calibration_active = False
+        self.pending_ap_position_group_id = ""
+        self.pending_ap_position_label = ""
+        self.viewport().unsetCursor()
         self.pixmap_item = QGraphicsPixmapItem(pixmap)
         self.scene.addItem(self.pixmap_item)
         self.scene.setSceneRect(pixmap.rect())
@@ -56,8 +70,11 @@ class FloorplanView(QGraphicsView):
         self.pixmap_item = None
         self.marker_items = []
         self.ap_marker_items = []
+        self.scale_calibration_items = []
+        self.scale_calibration_points = []
         self.zoom_level = 1.0
         self.cancel_ap_position_pick(emit_signal=False)
+        self.cancel_scale_calibration_pick(emit_signal=False)
 
     def has_floorplan(self):
         return self.pixmap_item is not None
@@ -138,6 +155,7 @@ class FloorplanView(QGraphicsView):
         if not self.has_floorplan():
             return False
 
+        self.cancel_scale_calibration_pick(emit_signal=False)
         self.pending_ap_position_group_id = str(group_id)
         self.pending_ap_position_label = str(label or group_id)
         self.viewport().setCursor(Qt.CursorShape.CrossCursor)
@@ -153,6 +171,58 @@ class FloorplanView(QGraphicsView):
         if emit_signal:
             self.apPositionCancelled.emit()
         return True
+
+    def start_scale_calibration_pick(self):
+        if not self.has_floorplan():
+            return False
+
+        self.cancel_ap_position_pick(emit_signal=False)
+        self.clear_scale_calibration_overlay()
+        self.scale_calibration_active = True
+        self.viewport().setCursor(Qt.CursorShape.CrossCursor)
+        return True
+
+    def cancel_scale_calibration_pick(self, emit_signal=True):
+        if not self.scale_calibration_active and not self.scale_calibration_points:
+            return False
+
+        self.scale_calibration_active = False
+        self.clear_scale_calibration_overlay()
+        self.viewport().unsetCursor()
+        if emit_signal:
+            self.scaleCalibrationCancelled.emit()
+        return True
+
+    def clear_scale_calibration_overlay(self):
+        for item in self.scale_calibration_items:
+            self.scene.removeItem(item)
+        self.scale_calibration_items = []
+        self.scale_calibration_points = []
+
+    def pick_scale_calibration_point(self, x, y):
+        self.scale_calibration_points.append((float(x), float(y)))
+        marker = QGraphicsEllipseItem(float(x) - 5, float(y) - 5, 10, 10)
+        marker.setBrush(QBrush(QColor("#0d6efd")))
+        marker.setPen(QPen(Qt.GlobalColor.white, 1.6))
+        marker.setZValue(40)
+        self.scene.addItem(marker)
+        self.scale_calibration_items.append(marker)
+
+        if len(self.scale_calibration_points) == 1:
+            self.scaleCalibrationFirstPointPicked.emit()
+            return
+
+        first_x, first_y = self.scale_calibration_points[0]
+        line = QGraphicsLineItem(first_x, first_y, float(x), float(y))
+        line.setPen(QPen(QColor("#0d6efd"), 3))
+        line.setZValue(39)
+        self.scene.addItem(line)
+        self.scale_calibration_items.append(line)
+
+        distance_px = math.hypot(float(x) - first_x, float(y) - first_y)
+        self.scale_calibration_active = False
+        self.viewport().unsetCursor()
+        self.scaleCalibrationCompleted.emit(distance_px)
 
     def zoom_in(self):
         self.set_zoom(self.zoom_level * 1.25)
@@ -189,6 +259,12 @@ class FloorplanView(QGraphicsView):
         super().wheelEvent(event)
 
     def mousePressEvent(self, event):
+        if self.scale_calibration_active and event.button() == Qt.MouseButton.RightButton:
+            point = self.mapToScene(event.position().toPoint())
+            self.pick_scale_calibration_point(point.x(), point.y())
+            event.accept()
+            return
+
         if self.pending_ap_position_group_id and event.button() == Qt.MouseButton.RightButton:
             point = self.mapToScene(event.position().toPoint())
             group_id = self.pending_ap_position_group_id
@@ -208,6 +284,10 @@ class FloorplanView(QGraphicsView):
         super().mousePressEvent(event)
 
     def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Escape and self.cancel_scale_calibration_pick():
+            event.accept()
+            return
+
         if event.key() == Qt.Key.Key_Escape and self.cancel_ap_position_pick():
             event.accept()
             return

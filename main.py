@@ -17,6 +17,7 @@ try:
         QGridLayout,
         QHBoxLayout,
         QHeaderView,
+        QInputDialog,
         QLabel,
         QListWidget,
         QListWidgetItem,
@@ -205,6 +206,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.zoom_out_action = QAction("-", self)
         self.zoom_in_action = QAction("+", self)
         self.fit_action = QAction(self)
+        self.calibrate_action = QAction(self)
         self.ap_groups_action = QAction(self)
         self.quality_action = QAction(self)
         self.generate_action = QAction(self)
@@ -215,6 +217,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.zoom_out_action.triggered.connect(self.zoom_out)
         self.zoom_in_action.triggered.connect(self.zoom_in)
         self.fit_action.triggered.connect(self.fit_floorplan)
+        self.calibrate_action.triggered.connect(self.start_scale_calibration)
         self.ap_groups_action.triggered.connect(self.open_ap_group_manager)
         self.quality_action.triggered.connect(self.open_quality_dashboard)
         self.generate_action.triggered.connect(self.open_generate_map_dialog)
@@ -227,7 +230,7 @@ class WifiHeatmapQtApp(QMainWindow):
         ):
             self.toolbar.addAction(action)
         self.toolbar.addSeparator()
-        for action in (self.zoom_out_action, self.zoom_in_action, self.fit_action):
+        for action in (self.zoom_out_action, self.zoom_in_action, self.fit_action, self.calibrate_action):
             self.toolbar.addAction(action)
         self.toolbar.addSeparator()
         for action in (self.ap_groups_action, self.quality_action, self.generate_action):
@@ -297,6 +300,9 @@ class WifiHeatmapQtApp(QMainWindow):
         self.floorplan_view.surveyPointRequested.connect(self.create_point_from_floorplan)
         self.floorplan_view.apPositionPicked.connect(self.save_ap_position)
         self.floorplan_view.apPositionCancelled.connect(self.cancel_ap_positioning)
+        self.floorplan_view.scaleCalibrationFirstPointPicked.connect(self.on_scale_calibration_first_point)
+        self.floorplan_view.scaleCalibrationCompleted.connect(self.finish_scale_calibration)
+        self.floorplan_view.scaleCalibrationCancelled.connect(self.cancel_scale_calibration)
         splitter.addWidget(self.floorplan_view)
 
         table_panel = QWidget()
@@ -558,6 +564,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.save_action.setText(self.tr("save"))
         self.load_plan_action.setText(self.tr("load_plan"))
         self.fit_action.setText(self.tr("fit"))
+        self.calibrate_action.setText(self.tr("calibrate_scale"))
         self.ap_groups_action.setText(self.tr("ap_groups_title"))
         self.quality_action.setText(self.tr("quality_dashboard_title"))
         self.generate_action.setText(self.tr("generate_heatmap"))
@@ -1096,6 +1103,54 @@ class WifiHeatmapQtApp(QMainWindow):
     def fit_floorplan(self):
         self.floorplan_view.fit_to_view()
         self.status.showMessage(self.tr("zoom", zoom=self.floorplan_view.zoom_level))
+
+    def start_scale_calibration(self):
+        if self.session is None:
+            return
+
+        if not self.floorplan_view.has_floorplan():
+            QMessageBox.warning(self, self.tr("warning"), self.tr("load_plan_first"))
+            return
+
+        if self.floorplan_view.start_scale_calibration_pick():
+            self.tabs.setCurrentIndex(0)
+            self.status.showMessage(self.tr("calibrate_scale_start"))
+
+    def on_scale_calibration_first_point(self):
+        self.status.showMessage(self.tr("calibrate_scale_second_point"))
+
+    def finish_scale_calibration(self, pixel_distance):
+        if self.session is None:
+            self.floorplan_view.clear_scale_calibration_overlay()
+            return
+
+        if pixel_distance <= 0:
+            self.floorplan_view.clear_scale_calibration_overlay()
+            self.status.showMessage(self.tr("calibrate_scale_invalid"))
+            return
+
+        meters, accepted = QInputDialog.getDouble(
+            self,
+            self.tr("calibrate_scale_title"),
+            self.tr("calibrate_scale_distance_prompt"),
+            1.0,
+            0.01,
+            10000.0,
+            2,
+        )
+        self.floorplan_view.clear_scale_calibration_overlay()
+        if not accepted or meters <= 0:
+            self.status.showMessage(self.tr("calibrate_scale_invalid"))
+            return
+
+        px_per_meter = float(pixel_distance) / float(meters)
+        self.session.update_metadata({"px_per_meter": f"{px_per_meter:.6f}"})
+        self.refresh_session_labels()
+        self.status.showMessage(self.tr("calibrate_scale_saved", px_per_meter=px_per_meter))
+        self.maybe_update_live_preview()
+
+    def cancel_scale_calibration(self):
+        self.status.showMessage(self.tr("calibrate_scale_cancelled"))
 
     def confirm_switch_survey(self):
         if self.session is None or not self.session.dirty:
@@ -1725,6 +1780,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.zoom_in_action.setEnabled(has_map and not self.scan_in_progress)
         self.zoom_out_action.setEnabled(has_map and not self.scan_in_progress)
         self.fit_action.setEnabled(has_map and not self.scan_in_progress)
+        self.calibrate_action.setEnabled(has_map and not self.scan_in_progress)
         self.refresh_live_controls()
         self.update_point_action_state()
 
