@@ -24,6 +24,12 @@ from app_logging import configure_logging, log_event, log_exception, log_unhandl
 from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_language, translate
 
 
+START_LANGUAGE_LABELS = {
+    "IT": "Italiano",
+    "EN": "English",
+}
+
+
 class AppImportWorker(QObject):
     finished = Signal(object)
     failed = Signal(str)
@@ -77,12 +83,15 @@ class StartWindow(QMainWindow):
 
         top_row = QHBoxLayout()
         top_row.addStretch(1)
-        self.language_label = QLabel()
         self.language_combo = QComboBox()
-        self.language_combo.addItems(SUPPORTED_LANGUAGES)
-        self.language_combo.setCurrentText(self.language.upper())
-        self.language_combo.currentTextChanged.connect(self.change_language)
-        top_row.addWidget(self.language_label)
+        self.language_combo.setObjectName("languageCombo")
+        for language_code in SUPPORTED_LANGUAGES:
+            self.language_combo.addItem(
+                START_LANGUAGE_LABELS.get(language_code, language_code),
+                language_code,
+            )
+        self.language_combo.setCurrentIndex(max(0, self.language_combo.findData(self.language.upper())))
+        self.language_combo.currentIndexChanged.connect(self.change_language)
         top_row.addWidget(self.language_combo)
         outer.addLayout(top_row)
 
@@ -270,6 +279,30 @@ class StartWindow(QMainWindow):
                 padding: 6px 10px;
                 min-width: 72px;
             }
+            QComboBox#languageCombo {
+                background: #1f6feb;
+                color: #ffffff;
+                border: 1px solid #1f6feb;
+                border-radius: 7px;
+                padding: 8px 12px;
+                min-width: 128px;
+                font-weight: 700;
+            }
+            QComboBox#languageCombo:hover {
+                background: #185fc8;
+                border-color: #185fc8;
+            }
+            QComboBox#languageCombo::drop-down {
+                border: 0;
+                width: 28px;
+            }
+            QComboBox#languageCombo QAbstractItemView {
+                background: #ffffff;
+                color: #172033;
+                selection-background-color: #dbeafe;
+                selection-color: #111827;
+                border: 1px solid #c9d3df;
+            }
             QProgressBar {
                 background: #e3e9f2;
                 border: 0;
@@ -284,7 +317,6 @@ class StartWindow(QMainWindow):
 
     def retranslate(self):
         self.setWindowTitle(self.tr("app_title"))
-        self.language_label.setText(self.tr("language"))
         self.badge.setText(self.tr("qt_interface_badge"))
         self.title.setText(self.tr("app_title"))
         self.subtitle.setText(self.tr("start_subtitle"))
@@ -301,8 +333,8 @@ class StartWindow(QMainWindow):
         self.copyright_label.setText(self.tr("copyright"))
         self.update_loading_text()
 
-    def change_language(self, value):
-        self.language = normalize_language(value)
+    def change_language(self, _index=None):
+        self.language = normalize_language(self.language_combo.currentData())
         self.retranslate()
 
     def start_async_imports(self):

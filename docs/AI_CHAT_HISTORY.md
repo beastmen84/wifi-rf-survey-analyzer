@@ -477,6 +477,10 @@ Language:
   redesigned start screen, disabled survey actions until the workspace module is
   loaded, and added an indeterminate startup progress bar backed by a Qt worker
   thread. Runtime `.log` files are ignored by git.
+- Refined the Qt startup language control: removed the separate "Lingua"
+  label, switched the startup dropdown to full language names, gave it a
+  stronger filled style, and changed the start badge from a GUI-library label
+  to a product/workflow label.
 
 Recent commits:
 
