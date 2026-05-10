@@ -858,7 +858,7 @@ class WifiHeatmapApp:
         columns = ("status", "group", "alias", "bssids", "ssids", "channels", "locked")
         table_frame = ttk.Frame(frame)
         table_frame.pack(fill=tk.BOTH, expand=True)
-        tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=16)
+        tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=14, style="APGroup.Treeview")
         tree.column("status", width=42, minwidth=36, anchor="center", stretch=False)
         tree.column("group", width=300, minwidth=220, anchor="w", stretch=True)
         tree.column("alias", width=260, minwidth=180, anchor="w", stretch=True)
@@ -877,13 +877,28 @@ class WifiHeatmapApp:
         active_editor = {"entry": None, "item": None}
         sort_state = {"column": "ssids", "reverse": False}
 
+        def format_multiline(values):
+            return "\n".join(str(value) for value in values if str(value))
+
+        def update_ap_group_row_height(visible_groups):
+            max_lines = 1
+            for group in visible_groups:
+                max_lines = max(
+                    max_lines,
+                    len(group.get("display_groups", [])),
+                    len(group.get("bssids", []))
+                )
+
+            row_height = min(150, max(30, 22 * max_lines + 8))
+            ttk.Style().configure("APGroup.Treeview", rowheight=row_height)
+
         def get_group_display_values(group):
             alias = group.get("alias", "")
             return (
                 "OK" if alias else "",
-                ", ".join(group["display_groups"]),
+                format_multiline(group["display_groups"]),
                 alias,
-                ", ".join(group["bssids"]),
+                format_multiline(group["bssids"]),
                 ", ".join(group["ssids"]),
                 ", ".join(group["channels"]),
                 self.tr("yes") if group.get("locked") else self.tr("no"),
@@ -932,6 +947,7 @@ class WifiHeatmapApp:
                 key=lambda group: sort_value(group, sort_state["column"]),
                 reverse=sort_state["reverse"]
             )
+            update_ap_group_row_height(visible_groups)
             tree.delete(*tree.get_children())
             for group in visible_groups:
                 tree.insert(
@@ -1253,6 +1269,10 @@ class WifiHeatmapApp:
         }
         measured = {}
 
+        def measure_cell(text):
+            lines = str(text).splitlines() or [""]
+            return max(body_font.measure(line) for line in lines)
+
         for column in columns:
             heading = tree.heading(column).get("text", "")
             measured[column] = max(min_widths[column], heading_font.measure(str(heading)) + 28)
@@ -1260,7 +1280,7 @@ class WifiHeatmapApp:
         for item in tree.get_children():
             values = tree.item(item, "values")
             for column, value in zip(columns, values):
-                measured[column] = max(measured[column], body_font.measure(str(value)) + 34)
+                measured[column] = max(measured[column], measure_cell(value) + 34)
 
         fixed_columns = ("status", "channels", "locked")
         flexible_columns = ("group", "alias", "bssids", "ssids")
