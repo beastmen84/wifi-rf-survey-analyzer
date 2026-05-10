@@ -877,13 +877,20 @@ class WifiHeatmapApp:
         active_editor = {"entry": None, "item": None}
         sort_state = {"column": "ssids", "reverse": False}
 
+        def format_list_preview(values, limit=2):
+            clean_values = [str(value) for value in values if str(value)]
+            if len(clean_values) <= limit:
+                return ", ".join(clean_values)
+
+            return f"{', '.join(clean_values[:limit])} (+{len(clean_values) - limit})"
+
         def get_group_display_values(group):
             alias = group.get("alias", "")
             return (
                 "OK" if alias else "",
-                ", ".join(group["display_groups"]),
+                format_list_preview(group["display_groups"]),
                 alias,
-                ", ".join(group["bssids"]),
+                format_list_preview(group["bssids"]),
                 ", ".join(group["ssids"]),
                 ", ".join(group["channels"]),
                 self.tr("yes") if group.get("locked") else self.tr("no"),
