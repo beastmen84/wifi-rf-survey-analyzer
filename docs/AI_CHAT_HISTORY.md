@@ -457,6 +457,11 @@ Language:
   feedback. Stabilized the Qt scan worker cleanup so the QThread is not cleared
   until it has actually finished, and added step-by-step point creation logging
   to `wifi_heatmap_error.log` for scan, validation and point save phases.
+- Fixed Qt live-map crash risk when switching from discrete maps to continuous
+  coverage/interference maps. Live rendering now keeps the QThread reference
+  until the thread has actually finished, logs render start/end/failure, and
+  signal interpolation now falls back to nearest-neighbor when RBF/linear cannot
+  build a surface from sparse or collinear points.
 
 Recent commits:
 

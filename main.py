@@ -887,6 +887,7 @@ class WifiHeatmapQtApp(QMainWindow):
         worker.failed.connect(self.fail_live_preview)
         worker.failed.connect(thread.quit)
         worker.failed.connect(worker.deleteLater)
+        thread.finished.connect(self.cleanup_live_render_thread)
         thread.finished.connect(thread.deleteLater)
         self.live_thread = thread
         self.live_worker = worker
@@ -1000,9 +1001,8 @@ class WifiHeatmapQtApp(QMainWindow):
         }
 
     def finish_live_preview(self, payload):
-        self.live_thread = None
-        self.live_worker = None
         self.live_rendering = False
+        log_event("qt live render finished")
         if payload:
             self.live_view.set_payload(payload)
             self.update_live_legend(payload.get("scale_payload"))
@@ -1017,12 +1017,18 @@ class WifiHeatmapQtApp(QMainWindow):
             QTimer.singleShot(0, self.update_live_preview)
 
     def fail_live_preview(self, message):
-        self.live_thread = None
-        self.live_worker = None
         self.live_rendering = False
+        log_event(f"qt live render failed message={message}")
         self.live_status_label.setText(f"{self.tr('error')}: {message}")
         self.clear_live_legend()
         self.refresh_live_controls()
+
+    def cleanup_live_render_thread(self):
+        finished_thread = self.sender()
+        if finished_thread is self.live_thread:
+            self.live_thread = None
+            self.live_worker = None
+        log_event("qt live render thread cleaned up")
 
     def format_live_status(self, payload):
         scale = payload.get("scale_payload", {}) if payload else {}

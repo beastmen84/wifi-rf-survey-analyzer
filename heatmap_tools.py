@@ -557,15 +557,13 @@ def get_confidence_rbf_smoothing(confidence, point_count, base_smoothing=4.0):
 
 
 def interpolate_signal_grid(x, y, signal, grid_x, grid_y, method="rbf", confidence=None):
-    if method == "linear":
-        return griddata(
-            points=(x, y),
-            values=signal,
-            xi=(grid_x, grid_y),
-            method="linear"
-        )
-
     points = np.column_stack([x, y])
+    if len(points) < 3:
+        return interpolate_nearest_grid(x, y, signal, grid_x, grid_y)
+
+    if method == "linear":
+        return interpolate_linear_grid(x, y, signal, grid_x, grid_y)
+
     grid_points = np.column_stack([grid_x.ravel(), grid_y.ravel()])
 
     try:
@@ -577,12 +575,28 @@ def interpolate_signal_grid(x, y, signal, grid_x, grid_y, method="rbf", confiden
         )
         return interpolator(grid_points).reshape(grid_x.shape)
     except Exception:
+        return interpolate_linear_grid(x, y, signal, grid_x, grid_y)
+
+
+def interpolate_linear_grid(x, y, signal, grid_x, grid_y):
+    try:
         return griddata(
             points=(x, y),
             values=signal,
             xi=(grid_x, grid_y),
             method="linear"
         )
+    except Exception:
+        return interpolate_nearest_grid(x, y, signal, grid_x, grid_y)
+
+
+def interpolate_nearest_grid(x, y, signal, grid_x, grid_y):
+    return griddata(
+        points=(x, y),
+        values=signal,
+        xi=(grid_x, grid_y),
+        method="nearest"
+    )
 
 
 def get_distance_alpha(

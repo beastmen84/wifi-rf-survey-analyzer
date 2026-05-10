@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QGraphicsView,
 )
 
+from app_logging import log_event, log_exception
 from ap_groups import build_dominant_ap_group_labels, format_ap_label, normalize_ap_role
 from ap_positioning import (
     AP_POSITION_MISSING,
@@ -48,6 +49,7 @@ class LiveMapRenderWorker(QObject):
     @Slot()
     def run(self):
         try:
+            log_event(f"qt live render worker start map_type={self.config.map_type} band={self.config.band}")
             bg_image = load_floorplan_image(self.map_file)
             df = pd.DataFrame(self.rows, columns=SURVEY_FIELDNAMES)
             payload = render_live_map_payload(
@@ -60,9 +62,12 @@ class LiveMapRenderWorker(QObject):
                 px_per_meter=self.px_per_meter,
             )
         except Exception as exc:
+            log_exception("qt live render worker failed", exc)
             self.failed.emit(str(exc))
             return
 
+        point_count = len(payload.get("point_infos", [])) if payload else 0
+        log_event(f"qt live render worker done payload={bool(payload)} points={point_count}")
         self.finished.emit(payload)
 
 
