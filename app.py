@@ -821,6 +821,27 @@ class WifiHeatmapApp:
 
         refresh_all_group_details()
 
+        def reset_groups_to_auto():
+            if not messagebox.askyesno(
+                self.tr("ap_groups_reset_title"),
+                self.tr("ap_groups_reset_confirm"),
+                parent=dialog
+            ):
+                return
+
+            aliases_by_group = {
+                group["group_id"]: group.get("alias", "")
+                for group in groups
+                if group.get("alias", "")
+            }
+            groups[:] = build_default_manual_groups(self.session.rows)
+            for group in groups:
+                group["alias"] = aliases_by_group.get(group["group_id"], aliases.get(group["group_id"], ""))
+                group["locked"] = False
+            refresh_all_group_details()
+            render_alias_rows()
+            schedule_alias_table_resize()
+
         if not groups:
             ttk.Label(frame, text=self.tr("ap_aliases_empty"), bootstyle=WARNING).pack(anchor="w")
             dialog.bind("<Escape>", lambda _event: dialog.destroy())
@@ -921,6 +942,18 @@ class WifiHeatmapApp:
                     values=get_group_display_values(group)
                 )
 
+        def get_selected_group_key():
+            selection = tree.selection()
+            if not selection:
+                messagebox.showwarning(
+                    self.tr("ap_groups_title"),
+                    self.tr("ap_group_select_group"),
+                    parent=dialog
+                )
+                return ""
+
+            return selection[0]
+
         def sort_by_column(column):
             if column == "status":
                 sort_state["column"] = column
@@ -985,17 +1018,24 @@ class WifiHeatmapApp:
                 return
 
             bssid_dialog = self.create_modal_dialog(self.tr("ap_group_bssid_title"))
-            bssid_dialog.geometry("760x620")
-            bssid_dialog.minsize(680, 520)
+            bssid_dialog.geometry("980x700")
+            bssid_dialog.minsize(900, 620)
 
             content = ttk.Frame(bssid_dialog, padding=12)
             content.pack(fill=tk.BOTH, expand=True)
             ttk.Label(
                 content,
                 text=self.tr("ap_group_bssid_hint"),
-                wraplength=700,
+                wraplength=920,
                 style="ReadableMuted.TLabel"
             ).pack(anchor="w", pady=(0, 10))
+
+            bssid_search_frame = ttk.Frame(content)
+            bssid_search_frame.pack(fill=tk.X, pady=(0, 10))
+            ttk.Label(bssid_search_frame, text=self.tr("ap_alias_search")).pack(side=tk.LEFT)
+            bssid_search_var = tk.StringVar(value="")
+            bssid_search_entry = ttk.Entry(bssid_search_frame, textvariable=bssid_search_var, width=56)
+            bssid_search_entry.pack(side=tk.LEFT, padx=(8, 0), fill=tk.X, expand=True)
 
             list_frame = ttk.Frame(content)
             list_frame.pack(fill=tk.BOTH, expand=True)
@@ -1013,18 +1053,53 @@ class WifiHeatmapApp:
 
             current_bssids = set(group.get("bssids", []))
             bssid_vars = {}
+            assigned_groups = {
+                bssid: item
+                for item in groups
+                for bssid in item.get("bssids", [])
+            }
             all_bssids = sorted(detected_by_bssid.keys())
             for bssid in all_bssids:
-                detected_group = detected_by_bssid.get(bssid, {})
-                label = self.tr(
-                    "ap_group_bssid_row",
-                    bssid=bssid,
-                    ssids=", ".join(detected_group.get("ssids", [])) or "-",
-                    channels=", ".join(detected_group.get("channels", [])) or "-"
-                )
-                var = tk.BooleanVar(value=bssid in current_bssids)
-                bssid_vars[bssid] = var
-                ttk.Checkbutton(checks_frame, text=label, variable=var).pack(anchor="w", pady=2)
+                bssid_vars[bssid] = tk.BooleanVar(value=bssid in current_bssids)
+
+            def format_assigned_label(bssid):
+                assigned_group = assigned_groups.get(bssid, {})
+                assigned_alias = assigned_group.get("alias", "")
+                assigned_group_id = assigned_group.get("group_id", "")
+                if not assigned_group_id:
+                    return "-"
+                if assigned_group_id == group_key:
+                    return self.tr("ap_group_current")
+                return assigned_alias or assigned_group_id
+
+            def render_bssid_checks(_event=None):
+                query = bssid_search_var.get().strip().lower()
+                for child in checks_frame.winfo_children():
+                    child.destroy()
+
+                for bssid in all_bssids:
+                    detected_group = detected_by_bssid.get(bssid, {})
+                    ssids = ", ".join(detected_group.get("ssids", [])) or "-"
+                    channels = ", ".join(detected_group.get("channels", [])) or "-"
+                    assigned_label = format_assigned_label(bssid)
+                    label = self.tr(
+                        "ap_group_bssid_row",
+                        bssid=bssid,
+                        ssids=ssids,
+                        channels=channels,
+                        group=assigned_label
+                    )
+                    if query and query not in label.lower():
+                        continue
+
+                    ttk.Checkbutton(
+                        checks_frame,
+                        text=label,
+                        variable=bssid_vars[bssid]
+                    ).pack(anchor="w", pady=2)
+
+            bssid_search_entry.bind("<KeyRelease>", render_bssid_checks)
+            render_bssid_checks()
 
             def apply_bssid_selection():
                 selected_bssids = sorted([
@@ -1125,6 +1200,18 @@ class WifiHeatmapApp:
         buttons.pack(fill=tk.X, pady=(12, 0))
         ttk.Button(buttons, text=self.tr("cancel"), command=dialog.destroy, bootstyle=SECONDARY).pack(side=tk.RIGHT)
         ttk.Button(buttons, text=self.tr("save"), command=save_aliases, bootstyle=PRIMARY).pack(side=tk.RIGHT, padx=(0, 8))
+        ttk.Button(
+            buttons,
+            text=self.tr("ap_groups_reset_auto"),
+            command=reset_groups_to_auto,
+            bootstyle=WARNING
+        ).pack(side=tk.LEFT)
+        ttk.Button(
+            buttons,
+            text=self.tr("ap_group_split"),
+            command=lambda: open_bssid_group_dialog(get_selected_group_key()),
+            bootstyle=SECONDARY
+        ).pack(side=tk.LEFT, padx=(8, 0))
         dialog.bind("<Escape>", lambda _event: dialog.destroy())
         self.center_dialog(dialog)
 

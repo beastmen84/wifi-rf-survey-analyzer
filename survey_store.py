@@ -168,9 +168,28 @@ class SurveySession:
             aliases = {}
 
         if not isinstance(aliases, dict):
-            return {}
+            aliases = {}
 
-        return {str(key): str(value) for key, value in aliases.items() if value}
+        clean_aliases = {str(key): str(value) for key, value in aliases.items() if value}
+        ap_groups = self.get_ap_groups()
+        group_ids = {
+            str(group.get("group_id", ""))
+            for group in ap_groups
+            if str(group.get("group_id", ""))
+        }
+        clean_aliases = {
+            key: value
+            for key, value in clean_aliases.items()
+            if key not in group_ids
+        }
+
+        for group in ap_groups:
+            group_id = str(group.get("group_id", ""))
+            alias = str(group.get("alias", "")).strip()
+            if group_id and alias:
+                clean_aliases[group_id] = alias
+
+        return clean_aliases
 
     def set_ap_aliases(self, aliases):
         clean_aliases = {
