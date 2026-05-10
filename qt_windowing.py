@@ -3,6 +3,7 @@
 from PySide6.QtCore import QEasingCurve, QObject, QEvent, QPropertyAnimation, Qt, QTimer
 from PySide6.QtGui import QCursor, QGuiApplication
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QApplication,
     QDialog,
     QFileDialog,
@@ -226,6 +227,15 @@ def apply_file_dialog_tuning(dialog, parent):
             min-height: {px(26)}px;
             padding: {px(2)}px {px(5)}px;
         }}
+        QFileDialog#{FILE_DIALOG_OBJECT_NAME} QTreeView::item:hover,
+        QFileDialog#{FILE_DIALOG_OBJECT_NAME} QListView::item:hover {{
+            background: {palette["button_hover"]};
+        }}
+        QFileDialog#{FILE_DIALOG_OBJECT_NAME} QTreeView::item:selected,
+        QFileDialog#{FILE_DIALOG_OBJECT_NAME} QListView::item:selected {{
+            background: {palette["metric_info"]};
+            color: #ffffff;
+        }}
         QFileDialog#{FILE_DIALOG_OBJECT_NAME} QHeaderView {{
             background: {palette["header"]};
         }}
@@ -265,6 +275,8 @@ def tune_file_dialog_views(dialog):
         push_button.setMinimumHeight(control_height)
 
     for tree in dialog.findChildren(QTreeView):
+        tree.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        tree.setAllColumnsShowFocus(True)
         header = tree.header()
         if header is None or header.count() <= 1:
             tree.setMinimumWidth(px(160))
