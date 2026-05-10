@@ -420,6 +420,10 @@ Language:
   opens `qt_quality_dashboard.py`, showing summary metrics, relevant-network
   quality, AP position warnings, AP metadata warnings, an issues-only filter and
   point focus back to the survey tab.
+- Added the first lightweight core test suite in `tests/test_core_logic.py`.
+  It uses stdlib `unittest` and covers manual AP group overrides, interference
+  ignoring same-physical-AP BSSIDs, missing relevant SSID quality state, and AP
+  metadata channel warnings.
 
 Recent commits:
 
@@ -443,8 +447,8 @@ Recent commits:
 
 Good next steps, in likely order:
 
-1. Add lightweight tests around AP groups, quality and point scanning before
-   larger V2 refactors.
+1. Add more targeted tests as new V2 modules are split out, especially around
+   point scanning and survey save/load.
 2. Decide whether mounting metadata should influence AP position warnings or
    remain documentation only.
 3. Improve live map performance only if user sees real lag on large surveys.
