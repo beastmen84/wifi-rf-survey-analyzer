@@ -316,17 +316,17 @@ class WifiHeatmapQtApp(QMainWindow):
         button.clicked.connect(lambda _checked=False: callback())
         return button
 
-    def create_summary_card(self, title_key):
+    def create_summary_card(self, title_key, compact=False):
         card = QFrame()
-        card.setObjectName("summaryCard")
+        card.setObjectName("summaryCardCompact" if compact else "summaryCard")
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(12, 9, 12, 10)
-        layout.setSpacing(4)
+        layout.setContentsMargins(8, 5, 8, 6)
+        layout.setSpacing(2)
 
         title = QLabel()
         title.setObjectName("summaryCardTitle")
         value = QLabel()
-        value.setObjectName("summaryCardValue")
+        value.setObjectName("summaryCardCompactValue" if compact else "summaryCardValue")
         value.setWordWrap(True)
         value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
 
@@ -345,16 +345,18 @@ class WifiHeatmapQtApp(QMainWindow):
         summary.setObjectName("summaryPanel")
         self.summary_title_bindings = []
         grid = QGridLayout(summary)
-        grid.setContentsMargins(12, 12, 12, 12)
-        grid.setHorizontalSpacing(10)
-        grid.setVerticalSpacing(10)
+        grid.setContentsMargins(8, 8, 8, 8)
+        grid.setHorizontalSpacing(6)
+        grid.setVerticalSpacing(6)
 
         csv_card, self.csv_label, _csv_layout = self.create_summary_card("qt_csv")
         map_card, self.map_label, _map_layout = self.create_summary_card("map")
-        points_card, self.points_label, _points_layout = self.create_summary_card("qt_points")
-        raw_card, self.raw_rows_label, _raw_layout = self.create_summary_card("qt_raw_rows")
-        ap_card, self.ap_groups_label, _ap_layout = self.create_summary_card("ap_groups_title")
+        points_card, self.points_label, _points_layout = self.create_summary_card("qt_points", compact=True)
+        raw_card, self.raw_rows_label, _raw_layout = self.create_summary_card("qt_raw_rows", compact=True)
+        ap_card, self.ap_groups_label, _ap_layout = self.create_summary_card("summary_ap_groups", compact=True)
         relevant_card, self.relevant_label, relevant_layout = self.create_summary_card("saved_network")
+        for card in (points_card, raw_card, ap_card):
+            card.setMaximumWidth(128)
         self.clear_relevant_button = QPushButton()
         self.clear_relevant_button.setObjectName("compactButton")
         self.clear_relevant_button.setMaximumWidth(170)
@@ -369,7 +371,12 @@ class WifiHeatmapQtApp(QMainWindow):
             relevant_card,
         )):
             grid.addWidget(card, 0, index)
-            grid.setColumnStretch(index, 1)
+        grid.setColumnStretch(0, 2)
+        grid.setColumnStretch(1, 2)
+        grid.setColumnStretch(2, 0)
+        grid.setColumnStretch(3, 0)
+        grid.setColumnStretch(4, 0)
+        grid.setColumnStretch(5, 2)
         layout.addWidget(summary)
 
         self.floorplan_container = QFrame()
@@ -698,19 +705,24 @@ class WifiHeatmapQtApp(QMainWindow):
                 min-width: 0;
                 padding: 6px 10px;
             }}
-            QFrame#summaryCard {{
+            QFrame#summaryCard, QFrame#summaryCardCompact {{
                 background: {palette["panel_alt"]};
                 border: 1px solid {palette["border"]};
-                border-radius: 6px;
+                border-radius: 5px;
             }}
             QLabel#summaryCardTitle {{
                 color: {palette["muted"]};
-                font-size: 8.5pt;
+                font-size: 8pt;
                 font-weight: 700;
             }}
             QLabel#summaryCardValue {{
                 color: {palette["title"]};
-                font-size: 10.5pt;
+                font-size: 10pt;
+                font-weight: 600;
+            }}
+            QLabel#summaryCardCompactValue {{
+                color: {palette["title"]};
+                font-size: 14pt;
                 font-weight: 600;
             }}
             QLabel#startTitle {{
@@ -845,6 +857,25 @@ class WifiHeatmapQtApp(QMainWindow):
                 background: {palette["panel"]};
                 color: {palette["text"]};
                 selection-background-color: {palette["selection"]};
+            }}
+            QCheckBox {{
+                color: {palette["text"]};
+                spacing: 9px;
+                padding: 3px 2px;
+            }}
+            QCheckBox::indicator {{
+                width: 18px;
+                height: 18px;
+                border-radius: 4px;
+                border: 1px solid {palette["border"]};
+                background: {palette["panel"]};
+            }}
+            QCheckBox::indicator:hover {{
+                border: 1px solid {palette["metric_info"]};
+            }}
+            QCheckBox::indicator:checked {{
+                background: {palette["metric_info"]};
+                border: 1px solid {palette["metric_info"]};
             }}
             QTabWidget::pane {{
                 border: 1px solid {palette["border"]};
@@ -1918,6 +1949,7 @@ class WifiHeatmapQtApp(QMainWindow):
                 new_ssids,
                 self.tr("new_relevant_networks_title"),
                 self.tr("new_relevant_networks_message"),
+                connected_ssid=get_connected_ssid(),
             )
             if dialog.exec() != QDialog.DialogCode.Accepted:
                 return "cancel"

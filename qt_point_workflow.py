@@ -62,12 +62,21 @@ class RelevantNetworksDialog(QDialog):
         scroll.setWidgetResizable(True)
         content = QWidget()
         choices_layout = QVBoxLayout(content)
-        choices_layout.setContentsMargins(4, 4, 4, 4)
+        choices_layout.setContentsMargins(6, 6, 6, 6)
+        choices_layout.setSpacing(6)
 
-        for ssid in self.ssids:
+        ordered_ssids = sorted(
+            self.ssids,
+            key=lambda value: (
+                not bool(self.connected_ssid and value.lower() == self.connected_ssid.lower()),
+                value.casefold(),
+            ),
+        )
+        for ssid in ordered_ssids:
             is_connected = bool(self.connected_ssid and ssid.lower() == self.connected_ssid.lower())
             label = self.app.tr("connected_ssid_option", ssid=ssid) if is_connected else ssid
             checkbox = QCheckBox(label)
+            checkbox.setObjectName("relevantNetworkCheckbox")
             checkbox.setChecked(is_connected)
             self.checkboxes[ssid] = checkbox
             choices_layout.addWidget(checkbox)

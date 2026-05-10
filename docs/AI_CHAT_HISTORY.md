@@ -502,6 +502,12 @@ Language:
   also remapped to the four palette concepts documented in
   `docs/UI_COLOR_PALETTES.md`: Sand Blue, Soft Olive, Slate Blue and Graphite
   Green.
+- Refined the first Qt workspace redesign pass after visual review: made the
+  Survey summary cards thinner, gave numeric cards narrower widths and shorter
+  AP-group wording, reduced the beige strength of the Sand Blue palette, and
+  improved relevant-network selection checkboxes. The connected SSID is now
+  sorted to the top and preselected whenever Windows reports it and it appears
+  in the scan.
 
 Recent commits:
 
