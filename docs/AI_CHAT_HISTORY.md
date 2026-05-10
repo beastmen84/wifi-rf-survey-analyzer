@@ -669,6 +669,9 @@ Language:
   toolbar/start-screen buttons. AP Group Split table checkbox cell containers
   are explicitly transparent so they inherit the table row color instead of
   showing a stale panel-colored square.
+- The main toolbar Settings button height is now tied to the same app-bar
+  control height used by the section cards, avoiding the slightly shorter
+  standalone button appearance.
 
 Recent commits:
 

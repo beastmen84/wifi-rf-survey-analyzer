@@ -308,13 +308,18 @@ class WifiHeatmapQtApp(QMainWindow):
         layout.addWidget(analysis_section, 1)
 
         self.settings_menu_button = self.create_app_bar_button(self.open_settings_menu, "appBarSettingsButton")
+        self.settings_menu_button.setMinimumHeight(self.app_bar_control_height())
         layout.addWidget(self.settings_menu_button)
 
         return bar
 
+    def app_bar_control_height(self):
+        return self.spx(68)
+
     def build_app_bar_section(self):
         section = QFrame()
         section.setObjectName("appBarSection")
+        section.setMinimumHeight(self.app_bar_control_height())
         outer = QVBoxLayout(section)
         outer.setContentsMargins(self.spx(10), self.spx(7), self.spx(10), self.spx(8))
         outer.setSpacing(self.spx(5))
@@ -948,7 +953,7 @@ class WifiHeatmapQtApp(QMainWindow):
             }}
             QPushButton#appBarSettingsButton {{
                 min-width: 0;
-                min-height: {s(62)}px;
+                min-height: {s(68)}px;
                 padding: {s(6)}px {s(14)}px;
                 border-radius: {s(6)}px;
                 font-weight: 700;
