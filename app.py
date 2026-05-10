@@ -2578,13 +2578,14 @@ class WifiHeatmapApp(ModalDialogMixin):
             position_warning_color = self.get_ap_position_warning_color(position_analysis)
             has_position_warning = has_position_warning or bool(position_warning_color)
             has_roaming_overlap = has_roaming_overlap or bool(row.get("roaming_overlap"))
-            outline = position_warning_color or ("#f1c40f" if row.get("roaming_overlap") else "black")
+            outline = "#f1c40f" if row.get("roaming_overlap") else "black"
             self.live_point_infos.append({
                 "x": float(row["x"]),
                 "y": float(row["y"]),
                 "color": color_map.get(row["dominant_ap_group"], "#7f8c8d"),
                 "outline": outline,
-                "outline_width": 2 if position_warning_color else 1,
+                "outline_width": 1,
+                "shape": "triangle" if position_warning_color else "circle",
                 "legend_label": group_labels.get(
                     row.get("dominant_ap_group", ""),
                     self.format_ap_label(row.get("dominant_bssid", ""), row.get("dominant_ap_group", ""))
@@ -2600,7 +2601,7 @@ class WifiHeatmapApp(ModalDialogMixin):
         if has_roaming_overlap:
             legend_items.append({"label": self.tr("dominant_map_roaming_overlap"), "color": "#f1c40f", "outline_only": True})
         if has_position_warning:
-            legend_items.append({"label": self.tr("ap_position_warning_legend"), "color": "#d62728", "outline_only": True})
+            legend_items.append({"label": self.tr("ap_position_warning_legend"), "color": "#d62728", "shape": "triangle"})
         self.live_scale_payload = {
             "kind": "swatches",
             "title": self.tr("map_type_dominant"),
@@ -2716,6 +2717,21 @@ class WifiHeatmapApp(ModalDialogMixin):
                     sy - cross_radius,
                     fill=point.get("outline", "#d62728"),
                     width=max(2, int(2 * self.live_zoom_level))
+                )
+                continue
+
+            if point.get("shape") == "triangle":
+                triangle_radius = max(5, min(14, int(5 * self.live_zoom_level)))
+                self.live_canvas.create_polygon(
+                    sx,
+                    sy - triangle_radius,
+                    sx + triangle_radius,
+                    sy + triangle_radius,
+                    sx - triangle_radius,
+                    sy + triangle_radius,
+                    fill=point.get("color", "#111111"),
+                    outline=point.get("outline", "white"),
+                    width=point.get("outline_width", 1)
                 )
                 continue
 
@@ -2843,6 +2859,19 @@ class WifiHeatmapApp(ModalDialogMixin):
                         fill="",
                         outline=color,
                         width=3 if is_highlighted else 2,
+                        tags=("live_overlay_legend",)
+                    )
+                elif item.get("shape") == "triangle":
+                    self.live_canvas.create_polygon(
+                        column_x + marker_size / 2,
+                        marker_y,
+                        column_x + marker_size,
+                        marker_y + marker_size,
+                        column_x,
+                        marker_y + marker_size,
+                        fill=color,
+                        outline=getattr(self, "readable_text_color", "#2f3640"),
+                        width=2 if is_highlighted else 1,
                         tags=("live_overlay_legend",)
                     )
                 else:
@@ -3140,6 +3169,18 @@ class WifiHeatmapApp(ModalDialogMixin):
 
             if item.get("outline_only"):
                 self.live_scale_canvas.create_oval(x, y, x + marker_size, y + marker_size, fill="", outline=color, width=2)
+            elif item.get("shape") == "triangle":
+                self.live_scale_canvas.create_polygon(
+                    x + marker_size / 2,
+                    y,
+                    x + marker_size,
+                    y + marker_size,
+                    x,
+                    y + marker_size,
+                    fill=color,
+                    outline=getattr(self, "readable_text_color", "#2f3640"),
+                    width=1
+                )
             else:
                 self.live_scale_canvas.create_oval(x, y, x + marker_size, y + marker_size, fill=color, outline=getattr(self, "readable_text_color", "#2f3640"), width=1)
 
