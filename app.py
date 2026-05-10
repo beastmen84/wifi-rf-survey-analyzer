@@ -105,6 +105,7 @@ class WifiHeatmapApp(ModalDialogMixin):
         self.canvas_image = None
         self.point_markers = []
         self.ap_position_markers = []
+        self.ap_position_icon_cache = {}
         self.zoom_level = 1.0
         self.last_good_scan = []
         self.last_scan_backend_used = "-"
@@ -1197,9 +1198,6 @@ class WifiHeatmapApp(ModalDialogMixin):
         )
 
     def start_map_drag(self, event):
-        if self.handle_ap_position_click(event):
-            return "break"
-
         if self.handle_scale_calibration_click(event):
             return "break"
 
@@ -1357,11 +1355,15 @@ class WifiHeatmapApp(ModalDialogMixin):
     def create_point_from_event(self, event):
         if self.bg_image is None:
             messagebox.showwarning(self.tr("warning"), self.tr("load_plan_first"))
-            return
+            return "break"
+
+        if self.handle_ap_position_click(event):
+            return "break"
 
         x = int(self.canvas.canvasx(event.x) / self.zoom_level)
         y = int(self.canvas.canvasy(event.y) / self.zoom_level)
         self.create_survey_point(x, y)
+        return "break"
 
     def create_survey_point(self, x, y):
         while True:
@@ -2129,43 +2131,59 @@ class WifiHeatmapApp(ModalDialogMixin):
             sx = x * self.zoom_level
             sy = y * self.zoom_level
             size = max(9, int(12 * self.zoom_level))
-            fill = "#0d6efd"
-            outline = "#ffffff"
             group_id = str(group.get("group_id", ""))
             label = str(group.get("alias", "")).strip() or group_id
-            short_label = "AP"
+            icon = self.get_ap_position_icon(size * 2)
 
-            diamond = self.canvas.create_polygon(
-                sx,
-                sy - size,
-                sx + size,
-                sy,
-                sx,
-                sy + size,
-                sx - size,
-                sy,
-                fill=fill,
-                outline=outline,
-                width=2,
-                tags=("ap_position_marker",)
-            )
-            text = self.canvas.create_text(
-                sx,
-                sy,
-                text=short_label,
-                fill="#ffffff",
-                font=("Segoe UI", max(7, int(8 * self.zoom_level)), "bold"),
-                tags=("ap_position_marker",)
-            )
+            if icon:
+                item_id = self.canvas.create_image(
+                    sx,
+                    sy,
+                    image=icon,
+                    tags=("ap_position_marker",)
+                )
+            else:
+                item_id = self.canvas.create_polygon(
+                    sx,
+                    sy - size,
+                    sx + size,
+                    sy,
+                    sx,
+                    sy + size,
+                    sx - size,
+                    sy,
+                    fill="#0d6efd",
+                    outline="#ffffff",
+                    width=2,
+                    tags=("ap_position_marker",)
+                )
+
             self.canvas.tag_bind(
-                diamond,
+                item_id,
                 "<Enter>",
                 lambda event, g=group, px=x, py=y, name=label: self.show_ap_position_tooltip(event, g, px, py, name)
             )
-            self.canvas.tag_bind(text, "<Enter>", lambda event, g=group, px=x, py=y, name=label: self.show_ap_position_tooltip(event, g, px, py, name))
-            self.canvas.tag_bind(diamond, "<Leave>", lambda _event: self.hide_point_tooltip())
-            self.canvas.tag_bind(text, "<Leave>", lambda _event: self.hide_point_tooltip())
-            self.ap_position_markers.extend([diamond, text])
+            self.canvas.tag_bind(item_id, "<Leave>", lambda _event: self.hide_point_tooltip())
+            self.ap_position_markers.append(item_id)
+
+    def get_ap_position_icon(self, size):
+        clean_size = max(18, int(size))
+        if clean_size in self.ap_position_icon_cache:
+            return self.ap_position_icon_cache[clean_size]
+
+        icon_path = Path(__file__).with_name("images") / "wifi.png"
+        if not icon_path.exists():
+            return None
+
+        try:
+            image = Image.open(icon_path).convert("RGBA")
+            image.thumbnail((clean_size, clean_size), Image.Resampling.LANCZOS)
+            icon = ImageTk.PhotoImage(image)
+        except Exception:
+            return None
+
+        self.ap_position_icon_cache[clean_size] = icon
+        return icon
 
     def show_ap_position_tooltip(self, event, group, x, y, label):
         self.hide_point_tooltip()
