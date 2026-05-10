@@ -91,6 +91,9 @@ QT_THEMES = {
         "metric_info": "#1d4ed8",
         "button_bg": "#ffffff",
         "button_hover": "#eef3f8",
+        "save_dirty_bg": "#fff3cd",
+        "save_dirty_border": "#e0a800",
+        "save_dirty_text": "#5f3f00",
         "selection": "#dbeafe",
     },
     "soft": {
@@ -114,6 +117,9 @@ QT_THEMES = {
         "metric_info": "#1d4ed8",
         "button_bg": "#fffdf8",
         "button_hover": "#eee8dc",
+        "save_dirty_bg": "#fff0c2",
+        "save_dirty_border": "#d89b18",
+        "save_dirty_text": "#5d3b00",
         "selection": "#dce7f7",
     },
     "dark": {
@@ -137,6 +143,9 @@ QT_THEMES = {
         "metric_info": "#93c5fd",
         "button_bg": "#2b323d",
         "button_hover": "#384251",
+        "save_dirty_bg": "#5a4218",
+        "save_dirty_border": "#c68a10",
+        "save_dirty_text": "#ffe8a3",
         "selection": "#1e3a5f",
     },
     "contrast": {
@@ -160,6 +169,9 @@ QT_THEMES = {
         "metric_info": "#9cc9ff",
         "button_bg": "#233244",
         "button_hover": "#30465f",
+        "save_dirty_bg": "#684d16",
+        "save_dirty_border": "#d99b1e",
+        "save_dirty_text": "#fff0b8",
         "selection": "#224e7a",
     },
 }
@@ -328,6 +340,9 @@ class WifiHeatmapQtApp(QMainWindow):
             self.load_plan_action,
         ):
             self.toolbar.addAction(action)
+        self.save_tool_button = self.toolbar.widgetForAction(self.save_action)
+        if self.save_tool_button is not None:
+            self.save_tool_button.setObjectName("toolbarButton")
         self.toolbar.addSeparator()
         for action in (self.zoom_out_action, self.zoom_in_action, self.fit_action, self.calibrate_action):
             self.toolbar.addAction(action)
@@ -626,6 +641,23 @@ class WifiHeatmapQtApp(QMainWindow):
             QPushButton#compactButton {{
                 min-width: 0;
                 padding: 5px 8px;
+            }}
+            QToolButton {{
+                background: {palette["button_bg"]};
+                color: {palette["text"]};
+                border: 1px solid transparent;
+                border-radius: 5px;
+                padding: 5px 8px;
+            }}
+            QToolButton:hover {{
+                background: {palette["button_hover"]};
+                border: 1px solid {palette["border"]};
+            }}
+            QToolButton#dirtySaveButton {{
+                background: {palette["save_dirty_bg"]};
+                color: {palette["save_dirty_text"]};
+                border: 1px solid {palette["save_dirty_border"]};
+                font-weight: 600;
             }}
             QToolBar {{
                 background: {palette["toolbar"]};
@@ -1952,8 +1984,22 @@ class WifiHeatmapQtApp(QMainWindow):
         self.zoom_out_action.setEnabled(has_map and not self.scan_in_progress)
         self.fit_action.setEnabled(has_map and not self.scan_in_progress)
         self.calibrate_action.setEnabled(has_map and not self.scan_in_progress)
+        self.update_save_action_state()
         self.refresh_live_controls()
         self.update_point_action_state()
+
+    def update_save_action_state(self):
+        is_dirty = bool(self.session is not None and self.session.dirty)
+        self.save_action.setToolTip(
+            self.tr("save_dirty_tooltip") if is_dirty else self.tr("save_clean_tooltip")
+        )
+        if self.save_tool_button is None:
+            return
+
+        self.save_tool_button.setObjectName("dirtySaveButton" if is_dirty else "toolbarButton")
+        self.save_tool_button.style().unpolish(self.save_tool_button)
+        self.save_tool_button.style().polish(self.save_tool_button)
+        self.save_tool_button.update()
 
     def refresh_points_table(self):
         self.points_table.setRowCount(0)

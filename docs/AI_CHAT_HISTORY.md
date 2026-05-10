@@ -435,6 +435,9 @@ Language:
   internal palettes, two light and two dark, with explicit styling for toolbar,
   tabs, tables, combo boxes, status panels and tooltips. Also removed an unused
   Qt placeholder method left over from earlier migration steps.
+- Added Qt dirty-state feedback for Save. The generated toolbar save button now
+  changes to a warning palette while the current survey has unsaved changes and
+  exposes translated clean/dirty tooltips.
 
 Recent commits:
 
