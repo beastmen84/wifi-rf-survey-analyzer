@@ -22,11 +22,14 @@ from ap_group_dialog import open_ap_group_manager
 from ap_groups import (
     build_dominant_ap_group_labels as build_ap_group_labels,
     build_bssid_to_manual_group_map,
+    build_ap_group_role_map,
     format_ap_label as format_ap_group_label,
     format_short_bssid,
     normalize_ap_group_map,
+    normalize_ap_role,
     resolve_ap_group_key,
     serialize_ap_group_map,
+    serialize_ap_group_roles,
 )
 from ap_positioning import (
     AP_POSITION_MISSING,
@@ -805,6 +808,9 @@ class WifiHeatmapApp(ModalDialogMixin):
             return {}
 
         return build_bssid_to_manual_group_map(groups)
+
+    def get_current_ap_group_roles(self):
+        return build_ap_group_role_map(self.session.get_ap_groups())
 
     def channel_sort_key(self, channel):
         try:
@@ -3409,6 +3415,7 @@ class WifiHeatmapApp(ModalDialogMixin):
                 (self.tr("channel_width"), width_label),
                 (self.tr("reference_risk"), risk),
                 (self.tr("serving_ap"), serving),
+                (self.tr("interference_roles"), self.format_interference_role_label(row)),
                 (self.tr("confidence"), self.format_named_confidence(row, "serving")),
                 (self.tr("interfering_ap"), interferer),
                 (self.tr("interferer_confidence"), self.format_named_confidence(row, "strongest_interferer")),
@@ -3429,6 +3436,20 @@ class WifiHeatmapApp(ModalDialogMixin):
         signal_label = self.format_report_value(signal_dbm, suffix=" dBm")
         signal_part = f" | {signal_label}" if signal_label != "-" else ""
         return f"{ssid_label} | {ap_label} | CH {channel_label}{signal_part}"
+
+    def format_ap_role(self, role):
+        return self.tr(f"ap_group_role_{normalize_ap_role(role)}")
+
+    def format_interference_role_label(self, row):
+        serving_role = self.format_ap_role(row.get("serving_ap_role"))
+        interferer_role = "-"
+        if row.get("strongest_interferer_ap_role"):
+            interferer_role = self.format_ap_role(row.get("strongest_interferer_ap_role"))
+
+        return (
+            f"{self.tr('serving_ap')}: {serving_role} | "
+            f"{self.tr('interfering_ap')}: {interferer_role}"
+        )
 
     def format_row_confidence(self, row):
         samples_seen = row.get("samples_seen", "")
@@ -4032,7 +4053,8 @@ class WifiHeatmapApp(ModalDialogMixin):
             band,
             mode=config.interference_mode,
             include_details=True,
-            ap_group_map=self.get_current_ap_group_map()
+            ap_group_map=self.get_current_ap_group_map(),
+            ap_group_roles=self.get_current_ap_group_roles(),
         )
 
         if len(risk_df) < 3:
@@ -4174,6 +4196,11 @@ class WifiHeatmapApp(ModalDialogMixin):
             suffix=" MHz"
         )
         interferer_dbm = self.format_report_value(worst_row.get("strongest_interferer_dbm", ""), suffix=" dBm")
+        serving_role = self.format_ap_role(worst_row.get("serving_ap_role"))
+        interferer_role = "-"
+        if worst_row.get("strongest_interferer_ap_role"):
+            interferer_role = self.format_ap_role(worst_row.get("strongest_interferer_ap_role"))
+        test_ap_ignored = self.format_report_value(worst_row.get("test_ap_ignored_count", ""))
 
         dialog = self.create_modal_dialog(self.tr("interference_summary_title"))
 
@@ -4193,13 +4220,16 @@ class WifiHeatmapApp(ModalDialogMixin):
             (self.tr("interference_summary_max_risk"), f"{risk_value:.1f}%"),
             (self.tr("interference_summary_point"), f"{x_value}, {y_value}"),
             (self.tr("interference_summary_serving_ap"), worst_row.get("serving_bssid", "-")),
+            (self.tr("interference_summary_serving_role"), serving_role),
             (self.tr("interference_summary_serving_channel"), serving_channel),
             (self.tr("interference_summary_serving_width"), serving_width),
             (self.tr("interference_summary_interferer"), worst_row.get("strongest_interferer_bssid", "-")),
+            (self.tr("interference_summary_interferer_role"), interferer_role),
             (self.tr("interference_summary_interferer_ssid"), worst_row.get("strongest_interferer_ssid", "-")),
             (self.tr("interference_summary_interferer_channel"), interferer_channel),
             (self.tr("interference_summary_interferer_width"), interferer_width),
             (self.tr("interference_summary_interferer_dbm"), interferer_dbm),
+            (self.tr("interference_summary_test_ignored"), test_ap_ignored),
         ]
         for row_index, (label, value) in enumerate(rows):
             ttk.Label(details, text=label).grid(row=row_index, column=0, sticky="w", pady=2, padx=(0, 18))
@@ -4337,6 +4367,7 @@ class WifiHeatmapApp(ModalDialogMixin):
             point_label_mode=self.point_label_mode_var.get(),
             ap_group_filter=getattr(self, "live_ap_filter_label_map", {}).get(self.ap_group_filter_var.get(), ""),
             ap_group_map=serialize_ap_group_map(self.get_current_ap_group_map()),
+            ap_group_roles=serialize_ap_group_roles(self.get_current_ap_group_roles()),
             usable_only=bool(self.usable_only_var.get()),
             smoothing_sigma=smoothing_sigma,
             max_distance_px=max_distance_px,
@@ -4429,6 +4460,7 @@ class WifiHeatmapApp(ModalDialogMixin):
             "y",
             "ssid",
             "serving_ap_group",
+            "serving_ap_role",
             "serving_bssid",
             "serving_channel",
             "serving_channel_width_mhz",
@@ -4439,9 +4471,11 @@ class WifiHeatmapApp(ModalDialogMixin):
             "risk",
             "interferer_count",
             "same_physical_ap_ignored_count",
+            "test_ap_ignored_count",
             "interfering_bssids",
             "strongest_interferer_ssid",
             "strongest_interferer_ap_group",
+            "strongest_interferer_ap_role",
             "strongest_interferer_bssid",
             "strongest_interferer_channel",
             "strongest_interferer_channel_width_mhz",

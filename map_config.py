@@ -15,6 +15,7 @@ class MapConfig:
     point_label_mode: str = "auto"
     ap_group_filter: str = ""
     ap_group_map: tuple = ()
+    ap_group_roles: tuple = ()
     usable_only: bool = False
     smoothing_sigma: float = HEATMAP_SMOOTHING_SIGMA
     max_distance_px: int = HEATMAP_MAX_DISTANCE_PX
@@ -40,6 +41,7 @@ class MapConfig:
             point_label_mode=point_label_mode,
             ap_group_filter=self.ap_group_filter,
             ap_group_map=self.ap_group_map,
+            ap_group_roles=self.ap_group_roles,
             usable_only=self.usable_only,
             smoothing_sigma=self.smoothing_sigma,
             max_distance_px=self.max_distance_px,

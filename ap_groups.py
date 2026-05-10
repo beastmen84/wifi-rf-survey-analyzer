@@ -254,6 +254,32 @@ def serialize_ap_group_map(ap_group_map):
     return tuple(sorted(normalized.items()))
 
 
+def build_ap_group_role_map(manual_groups):
+    return {
+        str(group.get("group_id", "")): normalize_ap_role(group.get("role"))
+        for group in manual_groups
+        if str(group.get("group_id", ""))
+    }
+
+
+def normalize_ap_role_map(ap_group_roles):
+    if isinstance(ap_group_roles, dict):
+        items = ap_group_roles.items()
+    else:
+        items = ap_group_roles or ()
+
+    return {
+        str(group_id): normalize_ap_role(role)
+        for group_id, role in items
+        if str(group_id)
+    }
+
+
+def serialize_ap_group_roles(ap_group_roles):
+    normalized = normalize_ap_role_map(ap_group_roles)
+    return tuple(sorted(normalized.items()))
+
+
 def build_dominant_ap_group_labels(dominant_df, aliases):
     labels = {}
     if dominant_df.empty or "dominant_ap_group" not in dominant_df.columns:

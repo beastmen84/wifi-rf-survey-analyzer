@@ -3,7 +3,13 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 from scipy.interpolate import RBFInterpolator, griddata
 
-from ap_groups import normalize_ap_group_map, resolve_ap_group_key
+from ap_groups import (
+    AP_ROLE_INTERNAL,
+    AP_ROLE_TEST,
+    normalize_ap_group_map,
+    normalize_ap_role_map,
+    resolve_ap_group_key,
+)
 from i18n import translate
 
 
@@ -140,7 +146,15 @@ def get_dominant_ap_points(df, ssid, band, ap_group_map=None):
     return pd.DataFrame(dominant_rows).sort_values("timestamp") if dominant_rows else pd.DataFrame()
 
 
-def calculate_interference_points(df, ssid, band, mode="intra_ssid", include_details=False, ap_group_map=None):
+def calculate_interference_points(
+    df,
+    ssid,
+    band,
+    mode="intra_ssid",
+    include_details=False,
+    ap_group_map=None,
+    ap_group_roles=None,
+):
     rows = df.copy()
     rows["x"] = pd.to_numeric(rows["x"], errors="coerce")
     rows["y"] = pd.to_numeric(rows["y"], errors="coerce")
@@ -152,7 +166,9 @@ def calculate_interference_points(df, ssid, band, mode="intra_ssid", include_det
     rows["signal_dbm"] = pd.to_numeric(rows["signal_dbm"], errors="coerce")
     rows = rows.dropna(subset=["timestamp", "x", "y", "channel", "signal_dbm", "ssid", "bssid"])
     group_map = normalize_ap_group_map(ap_group_map)
+    role_map = normalize_ap_role_map(ap_group_roles)
     rows["ap_group"] = rows["bssid"].apply(lambda bssid: resolve_ap_group_key(bssid, group_map))
+    rows["ap_role"] = rows["ap_group"].apply(lambda group: role_map.get(str(group), AP_ROLE_INTERNAL))
 
     if band not in {"2.4", "5"}:
         return pd.DataFrame(columns=["timestamp", "x", "y", "risk"])
@@ -174,6 +190,7 @@ def calculate_interference_points(df, ssid, band, mode="intra_ssid", include_det
         serving_channel = serving_ap["channel"]
         serving_channel_width = serving_ap.get("channel_width_mhz", np.nan)
         serving_ap_group = serving_ap.get("ap_group", "")
+        serving_ap_role = serving_ap.get("ap_role", AP_ROLE_INTERNAL)
 
         if mode == "intra_ssid":
             candidate_rows = selected_rows
@@ -183,12 +200,17 @@ def calculate_interference_points(df, ssid, band, mode="intra_ssid", include_det
         risk = 0.0
         interferers = []
         same_physical_ap_ignored_count = 0
+        test_ap_ignored_count = 0
 
         for _index, candidate in candidate_rows.iterrows():
             if candidate["bssid"] == serving_ap["bssid"]:
                 continue
             if candidate.get("ap_group", "") == serving_ap_group:
                 same_physical_ap_ignored_count += 1
+                continue
+            candidate_role = candidate.get("ap_role", AP_ROLE_INTERNAL)
+            if candidate_role == AP_ROLE_TEST:
+                test_ap_ignored_count += 1
                 continue
 
             overlap = channel_overlap_weight(
@@ -207,6 +229,7 @@ def calculate_interference_points(df, ssid, band, mode="intra_ssid", include_det
                     "ssid": candidate["ssid"],
                     "bssid": candidate["bssid"],
                     "ap_group": candidate.get("ap_group", ""),
+                    "ap_role": candidate_role,
                     "channel": candidate["channel"],
                     "channel_width_mhz": candidate.get("channel_width_mhz", np.nan),
                     "signal_dbm": candidate["signal_dbm"],
@@ -232,6 +255,7 @@ def calculate_interference_points(df, ssid, band, mode="intra_ssid", include_det
             risk_row.update({
                 "ssid": ssid,
                 "serving_ap_group": serving_ap_group,
+                "serving_ap_role": serving_ap_role,
                 "serving_bssid": serving_ap["bssid"],
                 "serving_channel": serving_channel,
                 "serving_channel_width_mhz": clean_report_value(serving_channel_width),
@@ -241,9 +265,11 @@ def calculate_interference_points(df, ssid, band, mode="intra_ssid", include_det
                 "serving_scan_confidence": clean_report_value(serving_ap.get("scan_confidence", np.nan)),
                 "interferer_count": len(interferers),
                 "same_physical_ap_ignored_count": same_physical_ap_ignored_count,
+                "test_ap_ignored_count": test_ap_ignored_count,
                 "interfering_bssids": "; ".join(interferer["bssid"] for interferer in interferers),
                 "strongest_interferer_ssid": strongest_interferer.get("ssid", ""),
                 "strongest_interferer_ap_group": strongest_interferer.get("ap_group", ""),
+                "strongest_interferer_ap_role": strongest_interferer.get("ap_role", ""),
                 "strongest_interferer_bssid": strongest_interferer.get("bssid", ""),
                 "strongest_interferer_channel": strongest_interferer.get("channel", ""),
                 "strongest_interferer_channel_width_mhz": clean_report_value(
