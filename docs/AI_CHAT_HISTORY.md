@@ -516,6 +516,8 @@ Language:
   into the top-right of the relevant-networks card, tightening card padding,
   and narrowing numeric summary cards. This preserves the floorplan as the main
   visual area.
+- Styled Qt combo-box arrows to use the active theme accent color, matching the
+  `Generate heatmap` primary action color across themes.
 
 Recent commits:
 

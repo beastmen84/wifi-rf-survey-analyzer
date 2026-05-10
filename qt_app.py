@@ -872,7 +872,24 @@ class WifiHeatmapQtApp(QMainWindow):
                 color: {palette["text"]};
                 border: 1px solid {palette["border"]};
                 border-radius: 4px;
-                padding: 4px 8px;
+                padding: 4px 28px 4px 8px;
+            }}
+            QComboBox::drop-down {{
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                width: 22px;
+                border-left: 1px solid {palette["border"]};
+                border-top-right-radius: 4px;
+                border-bottom-right-radius: 4px;
+                background: transparent;
+            }}
+            QComboBox::down-arrow {{
+                width: 0;
+                height: 0;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 6px solid {palette["metric_info"]};
+                margin-right: 6px;
             }}
             QComboBox QAbstractItemView {{
                 background: {palette["panel"]};
