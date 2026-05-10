@@ -438,6 +438,9 @@ Language:
 - Added Qt dirty-state feedback for Save. The generated toolbar save button now
   changes to a warning palette while the current survey has unsaved changes and
   exposes translated clean/dirty tooltips.
+- Added a Qt `Azzera rilevanti` control in the Survey summary. It clears both
+  relevant and known SSID metadata, marks the session dirty, refreshes point
+  quality immediately and disables itself when there is nothing to clear.
 
 Recent commits:
 

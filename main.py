@@ -402,6 +402,10 @@ class WifiHeatmapQtApp(QMainWindow):
         self.raw_rows_label = QLabel()
         self.ap_groups_label = QLabel()
         self.relevant_label = QLabel()
+        self.clear_relevant_button = QPushButton()
+        self.clear_relevant_button.setObjectName("compactButton")
+        self.clear_relevant_button.setMaximumWidth(180)
+        self.clear_relevant_button.clicked.connect(self.clear_relevant_ssids)
         for row, label in enumerate((
             self.csv_label,
             self.map_label,
@@ -411,6 +415,7 @@ class WifiHeatmapQtApp(QMainWindow):
             self.relevant_label,
         )):
             grid.addWidget(label, row // 2, row % 2)
+        grid.addWidget(self.clear_relevant_button, 3, 0)
         layout.addWidget(summary)
 
         splitter = QSplitter(Qt.Orientation.Vertical)
@@ -762,6 +767,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.focus_point_button.setText(self.tr("go_to_point"))
         self.delete_selected_button.setText(self.tr("delete_selected"))
         self.delete_last_button.setText(self.tr("delete_last"))
+        self.clear_relevant_button.setText(self.tr("forget_saved_network"))
         self.tabs.setTabText(0, self.tr("survey_tab"))
         self.tabs.setTabText(1, self.tr("live_map_tab"))
         self.live_ssid_label.setText("SSID")
@@ -1589,6 +1595,26 @@ class WifiHeatmapQtApp(QMainWindow):
         self.known_ssids |= self.relevant_ssids
         self.refresh_session_labels()
 
+    def clear_relevant_ssids(self):
+        if self.session is None:
+            return
+
+        changed = bool(self.relevant_ssids or self.known_ssids)
+        for key in (RELEVANT_SSIDS_METADATA_KEY, KNOWN_SSIDS_METADATA_KEY):
+            if key in self.session.metadata:
+                self.session.metadata.pop(key, None)
+                changed = True
+
+        self.relevant_ssids = set()
+        self.known_ssids = set()
+        self.refresh_session_labels()
+        self.refresh_points_table()
+
+        if changed:
+            self.session.dirty = True
+            self.refresh_session_labels()
+            self.status.showMessage(self.tr("relevant_networks_cleared"))
+
     def create_point_from_floorplan(self, x, y):
         if self.session is None:
             self.new_survey()
@@ -1979,6 +2005,9 @@ class WifiHeatmapQtApp(QMainWindow):
         self.quality_action.setEnabled(can_use_session)
         self.help_action.setEnabled(True)
         self.generate_action.setEnabled(can_use_session)
+        self.clear_relevant_button.setEnabled(
+            can_use_session and bool(self.relevant_ssids or self.known_ssids)
+        )
         has_map = self.floorplan_view.has_floorplan()
         self.zoom_in_action.setEnabled(has_map and not self.scan_in_progress)
         self.zoom_out_action.setEnabled(has_map and not self.scan_in_progress)
