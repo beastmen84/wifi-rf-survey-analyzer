@@ -1,5 +1,7 @@
 import unittest
+import logging
 
+from app_logging import MaxLogLevelFilter
 from app_restart import build_restart_command
 from ap_groups import (
     build_bssid_to_manual_group_map,
@@ -157,6 +159,30 @@ class AppRestartTests(unittest.TestCase):
         )
 
         self.assertEqual(command, ["wifi_heatmap.exe", "--debug"])
+
+
+class LoggingTests(unittest.TestCase):
+    def test_info_console_filter_excludes_warnings_and_errors(self):
+        log_filter = MaxLogLevelFilter(logging.INFO)
+
+        self.assertTrue(log_filter.filter(logging.LogRecord(
+            "test",
+            logging.INFO,
+            __file__,
+            1,
+            "info",
+            (),
+            None,
+        )))
+        self.assertFalse(log_filter.filter(logging.LogRecord(
+            "test",
+            logging.WARNING,
+            __file__,
+            1,
+            "warning",
+            (),
+            None,
+        )))
 
 
 class ApMetadataTests(unittest.TestCase):

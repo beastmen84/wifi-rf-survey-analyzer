@@ -633,6 +633,10 @@ Language:
   dialog was tightened with compact field layout, smaller spacing, and bounded
   All/None buttons; AP placement ignores left-click drag while waiting for the
   required right-click map position.
+- Console logging in source-run mode now splits streams: `INFO` and lower go to
+  stdout, while `WARNING`, `ERROR`, and `CRITICAL` go to stderr. This avoids
+  PyCharm coloring normal informational logs red while preserving warning/error
+  visibility. File logging remains unchanged.
 
 Recent commits:
 

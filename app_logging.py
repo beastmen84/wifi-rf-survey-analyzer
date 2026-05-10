@@ -21,6 +21,17 @@ BACKUP_COUNT = 5
 _CONFIGURED = False
 
 
+class MaxLogLevelFilter(logging.Filter):
+    """Allow records only up to the configured log level."""
+
+    def __init__(self, max_level):
+        super().__init__()
+        self.max_level = int(max_level)
+
+    def filter(self, record):
+        return int(record.levelno) <= self.max_level
+
+
 def application_log_file():
     if getattr(sys, "frozen", False):
         return Path(sys.executable).with_name(LOG_FILE_NAME)
@@ -53,9 +64,16 @@ def configure_logging(level=logging.INFO):
         logger.addHandler(file_handler)
 
         if not getattr(sys, "frozen", False):
-            console_handler = logging.StreamHandler()
-            console_handler.setFormatter(formatter)
-            logger.addHandler(console_handler)
+            stdout_handler = logging.StreamHandler(sys.stdout)
+            stdout_handler.setLevel(level)
+            stdout_handler.addFilter(MaxLogLevelFilter(logging.INFO))
+            stdout_handler.setFormatter(formatter)
+            logger.addHandler(stdout_handler)
+
+            stderr_handler = logging.StreamHandler(sys.stderr)
+            stderr_handler.setLevel(max(int(level), logging.WARNING))
+            stderr_handler.setFormatter(formatter)
+            logger.addHandler(stderr_handler)
 
         logging.captureWarnings(True)
         warnings_logger = logging.getLogger("py.warnings")
