@@ -1,9 +1,10 @@
 import re
+import os
 import subprocess
+import sys
 import time
 from collections import Counter
 from statistics import median
-from tkinter import messagebox
 
 from constants import WIFI_SCAN_ATTEMPTS, WIFI_SCAN_DELAY_SECONDS
 from utils import dbm_to_percent, percent_to_dbm
@@ -16,11 +17,21 @@ def scan_wifi(backend="auto", show_errors=True):
     if backend == "netsh":
         return scan_wifi_netsh(show_errors=show_errors), "netsh"
 
+    if not can_use_lswifi_in_auto():
+        return scan_wifi_netsh(show_errors=show_errors), "netsh"
+
     networks = scan_wifi_lswifi(show_errors=False)
     if networks:
         return networks, "lswifi"
 
     return scan_wifi_netsh(show_errors=show_errors), "netsh fallback"
+
+
+def can_use_lswifi_in_auto():
+    if not getattr(sys, "frozen", False):
+        return True
+
+    return os.environ.get("WIFI_HEATMAP_ENABLE_LSWIFI_IN_EXE") == "1"
 
 
 def get_connected_ssid():
@@ -70,8 +81,7 @@ def scan_wifi_netsh(show_errors=True):
         return merge_wifi_scans(scans, WIFI_SCAN_ATTEMPTS)
 
     except Exception as e:
-        if show_errors:
-            messagebox.showerror("Errore scan Wi-Fi", str(e))
+        report_scan_error(show_errors, "Errore scan Wi-Fi", e)
         return []
 
 
@@ -101,9 +111,13 @@ def scan_wifi_lswifi(show_errors=True):
         return merge_wifi_scans(scans, WIFI_SCAN_ATTEMPTS * interface_count)
 
     except Exception as e:
-        if show_errors:
-            messagebox.showerror("Errore scan Wi-Fi lswifi", str(e))
+        report_scan_error(show_errors, "Errore scan Wi-Fi lswifi", e)
         return []
+
+
+def report_scan_error(show_errors, title, error):
+    if show_errors:
+        print(f"{title}: {error}", file=sys.stderr)
 
 
 def annotate_raw_scan_samples(networks, scan_attempt, backend):

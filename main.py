@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import traceback
 from pathlib import Path
 
 try:
@@ -2010,10 +2011,35 @@ class WifiHeatmapQtApp(QMainWindow):
 
 
 def main():
+    install_exception_logging()
     app = QApplication(sys.argv)
     window = WifiHeatmapQtApp()
     window.showMaximized()
     sys.exit(app.exec())
+
+
+def install_exception_logging():
+    def handle_exception(exc_type, exc_value, exc_traceback):
+        log_unhandled_exception(exc_type, exc_value, exc_traceback)
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+
+    sys.excepthook = handle_exception
+
+
+def log_unhandled_exception(exc_type, exc_value, exc_traceback):
+    try:
+        log_file = application_log_file()
+        with log_file.open("a", encoding="utf-8") as handle:
+            handle.write("\n=== Unhandled exception ===\n")
+            traceback.print_exception(exc_type, exc_value, exc_traceback, file=handle)
+    except Exception:
+        pass
+
+
+def application_log_file():
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).with_name("wifi_heatmap_error.log")
+    return Path.cwd() / "wifi_heatmap_error.log"
 
 
 def load_json_string_set(value):

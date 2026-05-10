@@ -448,6 +448,11 @@ Language:
   unchanged while reducing the size of the main window module.
 - Updated `WifiHeatmap.spec` to build the executable from the Qt entry point
   `main.py` instead of the legacy Tkinter launcher `wifi_heatmap.py`.
+- Fixed an executable crash risk during Qt point creation: Auto scan now uses
+  `netsh` inside frozen builds by default, while source runs can still use
+  `lswifi`; removed Tkinter messagebox usage from `wifi_scanner.py`, excluded
+  Tkinter/ttkbootstrap from the PyInstaller build, and added a small
+  `wifi_heatmap_error.log` unhandled-exception logger next to the exe.
 
 Recent commits:
 
