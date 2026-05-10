@@ -552,6 +552,10 @@ Language:
   table so only the full selected row is visually highlighted.
 - Added automatic floorplan fit after every plan load, covering both explicit
   `Load plan` usage and loading the map associated with an existing survey.
+- Changed Qt scale calibration interaction to use left-click for the two
+  calibration points. While calibration is active, normal left-drag map panning
+  is temporarily disabled and the cursor stays as a crosshair until calibration
+  completes or is cancelled.
 
 Recent commits:
 

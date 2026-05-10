@@ -228,6 +228,7 @@ class FloorplanView(QGraphicsView):
         self.cancel_ap_position_pick(emit_signal=False)
         self.clear_scale_calibration_overlay()
         self.scale_calibration_active = True
+        self.setDragMode(QGraphicsView.DragMode.NoDrag)
         self.viewport().setCursor(Qt.CursorShape.CrossCursor)
         return True
 
@@ -237,6 +238,7 @@ class FloorplanView(QGraphicsView):
 
         self.scale_calibration_active = False
         self.clear_scale_calibration_overlay()
+        self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
         self.viewport().unsetCursor()
         if emit_signal:
             self.scaleCalibrationCancelled.emit()
@@ -270,6 +272,7 @@ class FloorplanView(QGraphicsView):
 
         distance_px = math.hypot(float(x) - first_x, float(y) - first_y)
         self.scale_calibration_active = False
+        self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
         self.viewport().unsetCursor()
         self.scaleCalibrationCompleted.emit(distance_px)
 
@@ -308,9 +311,10 @@ class FloorplanView(QGraphicsView):
         super().wheelEvent(event)
 
     def mousePressEvent(self, event):
-        if self.scale_calibration_active and event.button() == Qt.MouseButton.RightButton:
-            point = self.mapToScene(event.position().toPoint())
-            self.pick_scale_calibration_point(point.x(), point.y())
+        if self.scale_calibration_active:
+            if event.button() == Qt.MouseButton.LeftButton:
+                point = self.mapToScene(event.position().toPoint())
+                self.pick_scale_calibration_point(point.x(), point.y())
             event.accept()
             return
 
