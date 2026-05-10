@@ -353,6 +353,8 @@ Language:
 - Added AP metadata consistency checks in the Survey Quality Dashboard:
   expected bands/channels from AP group metadata are compared with observed
   channels, and mismatches are reported as AP configuration warnings.
+- Changed AP metadata expected bands/channels from free-text entries to guided
+  checkbox selections, while preserving the same normalized metadata storage.
 
 Recent commits:
 

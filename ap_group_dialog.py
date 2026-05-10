@@ -4,6 +4,13 @@ from tkinter import messagebox, simpledialog
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import DANGER, INFO, PRIMARY, SECONDARY, WARNING
 
+from ap_metadata_checks import (
+    infer_band_from_channel,
+    parse_expected_bands,
+    parse_expected_channels,
+    sort_bands,
+    sort_channels,
+)
 from ap_groups import (
     AP_ROLE_CHOICES,
     AP_ROLE_INTERNAL,
@@ -26,6 +33,20 @@ AP_GROUP_COLUMNS = (
     "ssids",
     "channels",
     "locked",
+)
+
+EXPECTED_BAND_OPTIONS = (
+    ("2.4", "2.4 GHz"),
+    ("5", "5 GHz"),
+    ("6", "6 GHz"),
+)
+EXPECTED_CHANNEL_GROUPS = (
+    ("ap_group_metadata_channel_group_24", tuple(str(channel) for channel in range(1, 14))),
+    ("ap_group_metadata_channel_group_5_low", ("36", "40", "44", "48", "52", "56", "60", "64")),
+    ("ap_group_metadata_channel_group_5_dfs", (
+        "100", "104", "108", "112", "116", "120", "124", "128", "132", "136", "140", "144"
+    )),
+    ("ap_group_metadata_channel_group_5_high", ("149", "153", "157", "161", "165")),
 )
 
 
@@ -434,8 +455,8 @@ def open_ap_group_manager(app):
 
         metadata = normalize_ap_metadata(group.get("metadata"))
         metadata_dialog = app.create_modal_dialog(app.tr("ap_group_metadata_title"))
-        metadata_dialog.geometry("760x620")
-        metadata_dialog.minsize(720, 560)
+        metadata_dialog.geometry("940x780")
+        metadata_dialog.minsize(860, 700)
 
         content = ttk.Frame(metadata_dialog, padding=16)
         content.pack(fill=tk.BOTH, expand=True)
@@ -450,7 +471,7 @@ def open_ap_group_manager(app):
         form.pack(fill=tk.BOTH, expand=True)
         form.grid_columnconfigure(1, weight=1)
 
-        fields = ("vendor", "model", "mounting", "expected_bands", "expected_channels")
+        fields = ("vendor", "model", "mounting")
         field_vars = {}
         for row, field in enumerate(fields):
             ttk.Label(form, text=app.tr(f"ap_group_metadata_{field}")).grid(
@@ -468,7 +489,69 @@ def open_ap_group_manager(app):
                 pady=6
             )
 
-        notes_row = len(fields)
+        selected_bands = parse_expected_bands(metadata.get("expected_bands", ""))
+        selected_channels = parse_expected_channels(metadata.get("expected_channels", ""))
+        band_vars = {}
+        channel_vars = {}
+
+        band_row = len(fields)
+        ttk.Label(form, text=app.tr("ap_group_metadata_expected_bands")).grid(
+            row=band_row,
+            column=0,
+            sticky="nw",
+            padx=(0, 12),
+            pady=(10, 0)
+        )
+        bands_frame = ttk.Frame(form)
+        bands_frame.grid(row=band_row, column=1, sticky="ew", pady=(8, 0))
+        for column, (band_value, band_label) in enumerate(EXPECTED_BAND_OPTIONS):
+            band_vars[band_value] = tk.BooleanVar(value=band_value in selected_bands)
+            ttk.Checkbutton(
+                bands_frame,
+                text=band_label,
+                variable=band_vars[band_value]
+            ).grid(row=0, column=column, sticky="w", padx=(0, 18))
+
+        channels_row = band_row + 1
+        ttk.Label(form, text=app.tr("ap_group_metadata_expected_channels")).grid(
+            row=channels_row,
+            column=0,
+            sticky="nw",
+            padx=(0, 12),
+            pady=(12, 0)
+        )
+        channels_frame = ttk.Frame(form)
+        channels_frame.grid(row=channels_row, column=1, sticky="ew", pady=(10, 0))
+        for column, (group_key, channels) in enumerate(EXPECTED_CHANNEL_GROUPS):
+            group_frame = ttk.LabelFrame(channels_frame, text=app.tr(group_key))
+            group_frame.grid(row=0, column=column, sticky="nsew", padx=(0, 8 if column < 3 else 0))
+            channels_frame.grid_columnconfigure(column, weight=1)
+            group_inner = ttk.Frame(group_frame, padding=6)
+            group_inner.pack(fill=tk.BOTH, expand=True)
+            for index, channel in enumerate(channels):
+                channel_vars[channel] = tk.BooleanVar(value=channel in selected_channels)
+                ttk.Checkbutton(
+                    group_inner,
+                    text=f"CH {channel}",
+                    variable=channel_vars[channel]
+                ).grid(row=index // 3, column=index % 3, sticky="w", padx=(0, 8), pady=1)
+
+            actions = ttk.Frame(group_inner)
+            actions.grid(row=(len(channels) + 2) // 3, column=0, columnspan=3, sticky="w", pady=(6, 0))
+            ttk.Button(
+                actions,
+                text=app.tr("ap_group_metadata_select_all"),
+                command=lambda group_channels=channels: set_channel_group(group_channels, True),
+                bootstyle=SECONDARY
+            ).pack(side=tk.LEFT, padx=(0, 6))
+            ttk.Button(
+                actions,
+                text=app.tr("ap_group_metadata_clear"),
+                command=lambda group_channels=channels: set_channel_group(group_channels, False),
+                bootstyle=SECONDARY
+            ).pack(side=tk.LEFT)
+
+        notes_row = channels_row + 1
         ttk.Label(form, text=app.tr("ap_group_metadata_notes")).grid(
             row=notes_row,
             column=0,
@@ -493,11 +576,32 @@ def open_ap_group_manager(app):
         notes_text.grid(row=notes_row, column=1, sticky="nsew", pady=(10, 0))
         form.grid_rowconfigure(notes_row, weight=1)
 
+        def set_channel_group(channels, enabled):
+            for channel in channels:
+                if channel in channel_vars:
+                    channel_vars[channel].set(enabled)
+
         def apply_metadata():
+            expected_channels = sort_channels([
+                channel
+                for channel, var in channel_vars.items()
+                if var.get()
+            ], app.channel_sort_key)
+            expected_bands = {
+                band
+                for band, var in band_vars.items()
+                if var.get()
+            }
+            for channel in expected_channels:
+                band = infer_band_from_channel(channel)
+                if band:
+                    expected_bands.add(band)
             values = {
                 field: field_vars[field].get()
                 for field in fields
             }
+            values["expected_bands"] = ", ".join(sort_bands(expected_bands))
+            values["expected_channels"] = ", ".join(expected_channels)
             values["notes"] = notes_text.get("1.0", "end").strip()
             group["metadata"] = normalize_ap_metadata(values)
             group["locked"] = True
