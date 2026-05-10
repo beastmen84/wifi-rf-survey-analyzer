@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 try:
-    from PySide6.QtCore import Qt, QThread, QTimer
+    from PySide6.QtCore import QEvent, Qt, QThread, QTimer
     from PySide6.QtWidgets import (
         QAbstractItemView,
         QApplication,
@@ -87,6 +87,11 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_worker = None
         self.live_rendering = False
         self.live_dirty = False
+        self.points_panel_expanded = False
+        self.points_overlay_height = 0
+        self.points_overlay_resize_active = False
+        self.points_overlay_resize_start_y = 0
+        self.points_overlay_resize_start_height = 0
 
         self.setWindowTitle(self.tr("app_title"))
         self.resize(1400, 900)
@@ -363,12 +368,16 @@ class WifiHeatmapQtApp(QMainWindow):
             ap_card,
             relevant_card,
         )):
-            grid.addWidget(card, index // 3, index % 3)
-            grid.setColumnStretch(index % 3, 1)
+            grid.addWidget(card, 0, index)
+            grid.setColumnStretch(index, 1)
         layout.addWidget(summary)
 
-        splitter = QSplitter(Qt.Orientation.Vertical)
-
+        self.floorplan_container = QFrame()
+        self.floorplan_container.setObjectName("floorplanContainer")
+        self.floorplan_container.installEventFilter(self)
+        floorplan_layout = QVBoxLayout(self.floorplan_container)
+        floorplan_layout.setContentsMargins(1, 1, 1, 1)
+        floorplan_layout.setSpacing(0)
         self.floorplan_view = FloorplanView()
         self.floorplan_view.ap_tooltip_formatter = self.format_ap_position_tooltip
         self.floorplan_view.surveyPointRequested.connect(self.create_point_from_floorplan)
@@ -379,10 +388,32 @@ class WifiHeatmapQtApp(QMainWindow):
         self.floorplan_view.scaleCalibrationCancelled.connect(self.cancel_scale_calibration)
         self.floorplan_view.pointSelected.connect(self.select_point_in_table)
         self.floorplan_view.pointSelectionCleared.connect(self.clear_point_selection)
-        splitter.addWidget(self.floorplan_view)
+        floorplan_layout.addWidget(self.floorplan_view)
 
-        table_panel = QWidget()
-        table_layout = QVBoxLayout(table_panel)
+        self.points_overlay = QFrame(self.floorplan_container)
+        self.points_overlay.setObjectName("floatingPointsPanel")
+        self.points_overlay.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        overlay_layout = QVBoxLayout(self.points_overlay)
+        overlay_layout.setContentsMargins(8, 8, 8, 8)
+        overlay_layout.setSpacing(6)
+
+        points_handle_row = QHBoxLayout()
+        points_handle_row.setContentsMargins(0, 0, 0, 0)
+        points_handle_row.addStretch(1)
+        self.points_panel_toggle_button = QPushButton()
+        self.points_panel_toggle_button.setObjectName("pointsPanelToggle")
+        self.points_panel_toggle_button.clicked.connect(self.toggle_points_panel)
+        points_handle_row.addWidget(self.points_panel_toggle_button)
+        self.points_panel_resize_button = QPushButton("↕")
+        self.points_panel_resize_button.setObjectName("pointsPanelResize")
+        self.points_panel_resize_button.installEventFilter(self)
+        points_handle_row.addWidget(self.points_panel_resize_button)
+        points_handle_row.addStretch(1)
+        overlay_layout.addLayout(points_handle_row)
+
+        self.points_table_body = QWidget()
+        self.points_table_body.setObjectName("pointsTableBody")
+        table_layout = QVBoxLayout(self.points_table_body)
         table_layout.setContentsMargins(0, 0, 0, 0)
         table_layout.setSpacing(8)
 
@@ -400,6 +431,8 @@ class WifiHeatmapQtApp(QMainWindow):
         self.focus_point_button = QPushButton()
         self.delete_selected_button = QPushButton()
         self.delete_last_button = QPushButton()
+        for button in (self.focus_point_button, self.delete_selected_button, self.delete_last_button):
+            button.setObjectName("pointsActionButton")
         self.focus_point_button.clicked.connect(self.focus_selected_point)
         self.delete_selected_button.clicked.connect(self.delete_selected_point)
         self.delete_last_button.clicked.connect(self.delete_last_point)
@@ -409,11 +442,95 @@ class WifiHeatmapQtApp(QMainWindow):
         point_buttons.addStretch(1)
         table_layout.addLayout(point_buttons)
 
-        splitter.addWidget(table_panel)
-        splitter.setStretchFactor(0, 4)
-        splitter.setStretchFactor(1, 1)
-        layout.addWidget(splitter, 1)
+        overlay_layout.addWidget(self.points_table_body, 1)
+        self.points_table_body.setVisible(False)
+        self.points_panel_resize_button.setVisible(False)
+        self.update_points_panel_toggle()
+        layout.addWidget(self.floorplan_container, 1)
+        QTimer.singleShot(0, self.position_points_overlay)
         return tab
+
+    def toggle_points_panel(self):
+        self.points_panel_expanded = not self.points_panel_expanded
+        if self.points_panel_expanded and not self.points_overlay_height:
+            self.points_overlay_height = self.default_points_overlay_height()
+        self.points_table_body.setVisible(self.points_panel_expanded)
+        self.points_panel_resize_button.setVisible(self.points_panel_expanded)
+        self.update_points_panel_toggle()
+        self.position_points_overlay()
+
+    def update_points_panel_toggle(self):
+        if not hasattr(self, "points_panel_toggle_button"):
+            return
+        key = "points_panel_hide" if self.points_panel_expanded else "points_panel_show"
+        self.points_panel_toggle_button.setText(self.tr(key))
+        if hasattr(self, "points_panel_resize_button"):
+            self.points_panel_resize_button.setToolTip(self.tr("points_panel_resize"))
+
+    def default_points_overlay_height(self):
+        row_height = max(24, self.points_table.verticalHeader().defaultSectionSize())
+        header_height = max(28, self.points_table.horizontalHeader().height())
+        button_height = max(34, self.focus_point_button.sizeHint().height())
+        handle_height = max(34, self.points_panel_toggle_button.sizeHint().height())
+        return handle_height + header_height + (row_height * 6) + button_height + 44
+
+    def max_points_overlay_height(self):
+        container_height = self.floorplan_container.height() if hasattr(self, "floorplan_container") else 0
+        return max(self.default_points_overlay_height(), int(container_height * 0.78))
+
+    def position_points_overlay(self):
+        if not hasattr(self, "points_overlay"):
+            return
+
+        container_width = self.floorplan_container.width()
+        container_height = self.floorplan_container.height()
+        if container_width <= 0 or container_height <= 0:
+            return
+
+        margin = 16
+        if self.points_panel_expanded:
+            default_height = self.default_points_overlay_height()
+            max_height = self.max_points_overlay_height()
+            if not self.points_overlay_height:
+                self.points_overlay_height = default_height
+            self.points_overlay_height = max(default_height, min(self.points_overlay_height, max_height))
+            width = min(max(760, int(container_width * 0.84)), max(320, container_width - (margin * 2)))
+            height = min(self.points_overlay_height, max(170, container_height - (margin * 2)))
+        else:
+            width = min(260, max(220, container_width - (margin * 2)))
+            height = max(42, self.points_panel_toggle_button.sizeHint().height() + 18)
+
+        x = max(margin, (container_width - width) // 2)
+        y = max(margin, container_height - height - margin)
+        self.points_overlay.setGeometry(x, y, width, height)
+        self.points_overlay.raise_()
+
+    def eventFilter(self, source, event):
+        if source is getattr(self, "floorplan_container", None) and event.type() == QEvent.Type.Resize:
+            QTimer.singleShot(0, self.position_points_overlay)
+            return False
+
+        if source is getattr(self, "points_panel_resize_button", None):
+            if event.type() == QEvent.Type.MouseButtonPress and event.button() == Qt.MouseButton.LeftButton:
+                self.points_overlay_resize_active = True
+                self.points_overlay_resize_start_y = int(event.globalPosition().y())
+                self.points_overlay_resize_start_height = self.points_overlay_height or self.default_points_overlay_height()
+                return True
+            if event.type() == QEvent.Type.MouseMove and self.points_overlay_resize_active:
+                current_y = int(event.globalPosition().y())
+                delta = self.points_overlay_resize_start_y - current_y
+                new_height = self.points_overlay_resize_start_height + delta
+                self.points_overlay_height = max(
+                    self.default_points_overlay_height(),
+                    min(new_height, self.max_points_overlay_height()),
+                )
+                self.position_points_overlay()
+                return True
+            if event.type() == QEvent.Type.MouseButtonRelease and self.points_overlay_resize_active:
+                self.points_overlay_resize_active = False
+                return True
+
+        return super().eventFilter(source, event)
 
     def build_live_tab(self):
         tab = QWidget()
@@ -540,6 +657,47 @@ class WifiHeatmapQtApp(QMainWindow):
                 border: 1px solid {palette["border"]};
                 border-radius: 6px;
             }}
+            QFrame#floorplanContainer {{
+                background: {palette["live_bg"]};
+                border: 1px solid {palette["border"]};
+                border-radius: 8px;
+            }}
+            QGraphicsView#floorplanView {{
+                background: {palette["live_bg"]};
+                border: 0;
+                border-radius: 8px;
+            }}
+            QFrame#floatingPointsPanel {{
+                background: {palette["panel"]};
+                border: 1px solid {palette["border"]};
+                border-radius: 10px;
+            }}
+            QWidget#pointsTableBody {{
+                background: transparent;
+            }}
+            QPushButton#pointsPanelToggle {{
+                min-width: 150px;
+                padding: 6px 14px;
+                border-radius: 14px;
+                background: {palette["metric_info"]};
+                color: #FFFFFF;
+                border: 1px solid {palette["metric_info"]};
+                font-weight: 700;
+            }}
+            QPushButton#pointsPanelResize {{
+                min-width: 30px;
+                max-width: 34px;
+                padding: 6px 0;
+                border-radius: 14px;
+                background: {palette["button_bg"]};
+                color: {palette["muted"]};
+                border: 1px solid {palette["border"]};
+                font-weight: 700;
+            }}
+            QPushButton#pointsActionButton {{
+                min-width: 0;
+                padding: 6px 10px;
+            }}
             QFrame#summaryCard {{
                 background: {palette["panel_alt"]};
                 border: 1px solid {palette["border"]};
@@ -646,7 +804,7 @@ class WifiHeatmapQtApp(QMainWindow):
             }}
             QPushButton#primaryAppBarButton {{
                 background: {palette["metric_info"]};
-                color: {palette["save_dirty_text"]};
+                color: #FFFFFF;
                 border: 1px solid {palette["metric_info"]};
             }}
             QPushButton#primaryAppBarButton:disabled {{
@@ -780,6 +938,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.focus_point_button.setText(self.tr("go_to_point"))
         self.delete_selected_button.setText(self.tr("delete_selected"))
         self.delete_last_button.setText(self.tr("delete_last"))
+        self.update_points_panel_toggle()
         self.clear_relevant_button.setText(self.tr("forget_saved_network"))
         self.tabs.setTabText(0, self.tr("survey_tab"))
         self.tabs.setTabText(1, self.tr("live_map_tab"))

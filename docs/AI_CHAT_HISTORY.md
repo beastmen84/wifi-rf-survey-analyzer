@@ -495,6 +495,13 @@ Language:
 - Added `pytest` to the project dependencies and installed it in the local
   virtual environment. Existing `unittest` tests are now also runnable through
   `python -m pytest`, which collected 4 tests successfully.
+- Reworked the Qt Survey tab layout so the floorplan is the focal element:
+  the points table is now hidden by default behind a floating overlay handle,
+  opens over the bottom of the floorplan with a compact 6-row default height,
+  and can be dragged upward/downward from its resize control. Theme colors were
+  also remapped to the four palette concepts documented in
+  `docs/UI_COLOR_PALETTES.md`: Sand Blue, Soft Olive, Slate Blue and Graphite
+  Green.
 
 Recent commits:
 
