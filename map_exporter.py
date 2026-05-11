@@ -154,6 +154,7 @@ def generate_live_pdf_export(
     aliases=None,
     ap_groups=None,
     px_per_meter=None,
+    output_file=None,
 ):
     config = config.normalized()
     aliases = aliases or {}
@@ -161,7 +162,7 @@ def generate_live_pdf_export(
     if not config.ssid:
         raise MapExportError(tr("warning"), tr("select_ssid_heatmap"))
 
-    output_file = build_live_pdf_output_path(csv_file, config)
+    output_file = str(output_file or build_live_pdf_output_path(csv_file, config))
     figures = []
     summary = {}
 
@@ -386,7 +387,6 @@ def build_live_pdf_signal_figure(df, bg_image, config, tr, language, aliases, ap
         ],
     )
     add_live_pdf_colorbar(fig, side_ax, layer, tr("export_signal_colorbar"))
-    add_live_pdf_ap_marker_note(side_ax, ap_groups, aliases, config.ap_group_filter, y=0.08)
     return fig
 
 
@@ -471,7 +471,6 @@ def build_live_pdf_interference_figure(df, bg_image, config, tr, language, alias
         ],
     )
     add_live_pdf_colorbar(fig, side_ax, layer, tr("interference_colorbar"))
-    add_live_pdf_ap_marker_note(side_ax, ap_groups, aliases, "", y=0.08)
     return fig, risk_df
 
 
@@ -511,7 +510,6 @@ def build_live_pdf_channel_figure(df, bg_image, config, tr, language, aliases, a
         [(tr("export_points"), len(channel_df))],
     )
     add_live_pdf_swatch_list(side_ax, legend_items, tr("channel_map_legend_title"), y=0.66)
-    add_live_pdf_ap_marker_note(side_ax, ap_groups, aliases, config.ap_group_filter, y=0.08)
     return fig
 
 
@@ -580,7 +578,6 @@ def build_live_pdf_dominant_figure(df, bg_image, config, tr, language, aliases, 
         ],
     )
     add_live_pdf_swatch_list(side_ax, legend_items, tr("dominant_map_legend_title"), y=0.66)
-    add_live_pdf_ap_marker_note(side_ax, ap_groups, aliases, "", y=0.08)
     return fig, dominant_df
 
 
@@ -1145,15 +1142,6 @@ def add_live_pdf_swatch_list(side_ax, legend_items, title, y=0.66):
         side_ax.text(item_x + 0.02, item_y, str(item.get("label", "")), fontsize=7.4, va="top", wrap=True)
     if len(legend_items) > max_items:
         side_ax.text(x_start, 0.08, f"+{len(legend_items) - max_items}", fontsize=7.4, va="top")
-
-
-def add_live_pdf_ap_marker_note(side_ax, ap_groups, aliases, selected_group="", y=0.08):
-    visible_count = len(build_visible_ap_position_groups(ap_groups))
-    if visible_count == 0:
-        return
-
-    add_pdf_ap_icon(side_ax, 0.86, y + 0.006, xycoords=side_ax.transAxes, icon_size_px=18)
-    side_ax.text(0.88, y, "AP position", fontsize=7.6, va="top")
 
 
 def draw_ap_position_markers(ax, ap_groups, aliases, selected_group=""):

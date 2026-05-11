@@ -41,6 +41,7 @@ from qt_live_map import (
     build_live_tooltip,
     gradient_stops,
 )
+import qt_app as qt_app_module
 from qt_app import WifiHeatmapQtApp
 from qt_windowing import pop_modal_dim, push_modal_dim
 from quality_engine import QUALITY_GOOD, QUALITY_MISSING_RELEVANT, evaluate_point_quality
@@ -815,6 +816,7 @@ class LivePdfExportTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir:
             csv_file = os.path.join(temp_dir, "survey.csv")
+            output_file = os.path.join(temp_dir, "chosen_live_export.pdf")
             result = generate_live_pdf_export(
                 rows_to_dataframe(rows),
                 Image.new("RGB", (120, 100), "white"),
@@ -833,10 +835,11 @@ class LivePdfExportTests(unittest.TestCase):
                 ap_groups=[
                     {"group_id": "ap-main", "position": {"x": 20, "y": 30}, "role": "internal"},
                 ],
+                output_file=output_file,
             )
 
             self.assertEqual(result.map_type, "signal")
-            self.assertTrue(result.output_file.endswith(".pdf"))
+            self.assertEqual(result.output_file, output_file)
             self.assertTrue(os.path.exists(result.output_file))
             with open(result.output_file, "rb") as pdf_file:
                 self.assertEqual(pdf_file.read(4), b"%PDF")
@@ -987,6 +990,36 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(len(set(expanded_heights)), 1)
             self.assertGreaterEqual(expanded_heights[0], window.spx(214))
         finally:
+            window.deleteLater()
+
+    def test_live_pdf_export_asks_for_destination_path(self):
+        window = WifiHeatmapQtApp()
+        original_save_file_name = qt_app_module.get_centered_save_file_name
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                class FakeSession:
+                    csv_file = os.path.join(temp_dir, "survey.csv")
+
+                captured = {}
+                chosen_path = os.path.join(temp_dir, "custom_live_export")
+
+                def fake_save_file_name(parent, title, default_path, file_filter):
+                    captured["title"] = title
+                    captured["default_path"] = default_path
+                    captured["file_filter"] = file_filter
+                    return chosen_path, ""
+
+                qt_app_module.get_centered_save_file_name = fake_save_file_name
+                window.session = FakeSession()
+
+                output_file = window.choose_live_pdf_output_file(MapConfig(ssid="MAIN", map_type="signal"))
+
+                self.assertEqual(output_file, f"{chosen_path}.pdf")
+                self.assertEqual(captured["title"], window.tr("save_live_pdf_title"))
+                self.assertEqual(captured["file_filter"], window.tr("live_pdf_file_filter"))
+                self.assertIn("MAIN_coverage", captured["default_path"])
+        finally:
+            qt_app_module.get_centered_save_file_name = original_save_file_name
             window.deleteLater()
 
     def test_live_options_overlay_is_specific_to_map_type(self):

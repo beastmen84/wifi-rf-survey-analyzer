@@ -66,7 +66,7 @@ from ap_groups import (
     serialize_ap_group_roles,
 )
 from constants import HEATMAP_MAX_DISTANCE_PX, HEATMAP_SMOOTHING_SIGMA
-from map_exporter import MapExportError, generate_live_pdf_export, generate_map_export
+from map_exporter import MapExportError, build_live_pdf_output_path, generate_live_pdf_export, generate_map_export
 from map_config import MapConfig
 from quality_engine import (
     QUALITY_GOOD,
@@ -2780,6 +2780,10 @@ class WifiHeatmapQtApp(QMainWindow):
 
         map_file = self.session.metadata.get("map_file", "")
         config = self.build_live_map_config()
+        output_file = self.choose_live_pdf_output_file(config)
+        if not output_file:
+            return False
+
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         result = None
         map_error = None
@@ -2796,6 +2800,7 @@ class WifiHeatmapQtApp(QMainWindow):
                 aliases=self.session.get_ap_aliases(),
                 ap_groups=self.session.get_ap_groups(),
                 px_per_meter=self.get_px_per_meter(),
+                output_file=output_file,
             )
         except MapExportError as exc:
             map_error = exc
@@ -2819,6 +2824,23 @@ class WifiHeatmapQtApp(QMainWindow):
         )
         self.status.showMessage(self.tr("live_pdf_exported"))
         return True
+
+    def choose_live_pdf_output_file(self, config):
+        if self.session is None or not self.session.csv_file:
+            return ""
+
+        default_path = build_live_pdf_output_path(self.session.csv_file, config)
+        output_file, _selected_filter = get_centered_save_file_name(
+            self,
+            self.tr("save_live_pdf_title"),
+            default_path,
+            self.tr("live_pdf_file_filter"),
+        )
+        if not output_file:
+            return ""
+        if Path(output_file).suffix.lower() != ".pdf":
+            output_file = f"{output_file}.pdf"
+        return output_file
 
     def generate_map_from_dialog(self, dialog):
         if self.session is None:
