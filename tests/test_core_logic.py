@@ -3,6 +3,7 @@ import logging
 import os
 import tempfile
 import time
+from pathlib import Path
 
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QPixmap
@@ -802,7 +803,7 @@ class LiveMapViewTests(unittest.TestCase):
 
 
 class LivePdfExportTests(unittest.TestCase):
-    def test_live_pdf_export_uses_current_config_and_writes_pdf(self):
+    def build_live_pdf_rows(self):
         rows = []
         for point_id, x, y, signal in (
             ("p1", "10", "10", -45),
@@ -813,6 +814,10 @@ class LivePdfExportTests(unittest.TestCase):
             row["x"] = x
             row["y"] = y
             rows.append(row)
+        return rows
+
+    def test_live_pdf_export_uses_current_config_and_writes_pdf(self):
+        rows = self.build_live_pdf_rows()
 
         with tempfile.TemporaryDirectory() as temp_dir:
             csv_file = os.path.join(temp_dir, "survey.csv")
@@ -839,6 +844,41 @@ class LivePdfExportTests(unittest.TestCase):
             )
 
             self.assertEqual(result.map_type, "signal")
+            self.assertEqual(result.output_file, output_file)
+            self.assertTrue(os.path.exists(result.output_file))
+            with open(result.output_file, "rb") as pdf_file:
+                self.assertEqual(pdf_file.read(4), b"%PDF")
+            import fitz
+
+            with fitz.open(result.output_file) as doc:
+                self.assertEqual(doc[0].get_images(full=True), [])
+                self.assertGreater(doc[0].get_pixmap(alpha=False).width, 0)
+
+    def test_live_pdf_export_can_write_reportlab_backend(self):
+        rows = self.build_live_pdf_rows()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            csv_file = os.path.join(temp_dir, "survey.csv")
+            output_file = os.path.join(temp_dir, "chosen_live_export_lab.pdf")
+            result = generate_live_pdf_export(
+                rows_to_dataframe(rows),
+                Image.new("RGB", (120, 100), "white"),
+                csv_file,
+                MapConfig(
+                    ssid="MAIN",
+                    band="2.4",
+                    map_type="signal",
+                    interpolation="linear",
+                    color_scale="auto",
+                    smoothing_sigma=0,
+                    max_distance_px=300,
+                ),
+                lambda key, **kwargs: translate("en", key, **kwargs),
+                language="en",
+                output_file=output_file,
+                pdf_backend="reportlab",
+            )
+
             self.assertEqual(result.output_file, output_file)
             self.assertTrue(os.path.exists(result.output_file))
             with open(result.output_file, "rb") as pdf_file:
@@ -951,6 +991,11 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(app_bar_layout.stretch(1), 0)
             self.assertEqual(app_bar_layout.stretch(2), 1)
             toolbar_layout = window.live_toolbar_frame.layout()
+            self.assertIs(window.live_pdf_export_button.menu(), window.live_pdf_export_menu)
+            self.assertEqual(
+                [action.data() for action in window.live_pdf_export_menu.actions()],
+                ["inline", "reportlab"],
+            )
             self.assertLess(
                 toolbar_layout.indexOf(window.live_pdf_export_button),
                 toolbar_layout.indexOf(window.live_export_separator),
@@ -1018,6 +1063,15 @@ class WorkspaceLiveStateTests(unittest.TestCase):
                 self.assertEqual(captured["title"], window.tr("save_live_pdf_title"))
                 self.assertEqual(captured["file_filter"], window.tr("live_pdf_file_filter"))
                 self.assertIn("MAIN_coverage", captured["default_path"])
+
+                output_file = window.choose_live_pdf_output_file(
+                    MapConfig(ssid="MAIN", map_type="signal"),
+                    pdf_backend="reportlab",
+                )
+
+                self.assertEqual(output_file, f"{chosen_path}.pdf")
+                self.assertIn("MAIN_coverage", captured["default_path"])
+                self.assertTrue(Path(captured["default_path"]).stem.endswith("_lab"))
         finally:
             qt_app_module.get_centered_save_file_name = original_save_file_name
             window.deleteLater()

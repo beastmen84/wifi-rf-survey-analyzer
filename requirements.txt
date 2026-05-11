@@ -7,3 +7,4 @@ scipy
 lswifi
 PySide6
 pytest
+reportlab

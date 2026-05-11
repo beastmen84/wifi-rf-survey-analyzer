@@ -155,6 +155,7 @@ def generate_live_pdf_export(
     ap_groups=None,
     px_per_meter=None,
     output_file=None,
+    pdf_backend="inline",
 ):
     config = config.normalized()
     aliases = aliases or {}
@@ -198,12 +199,27 @@ def generate_live_pdf_export(
         figures.append(build_live_pdf_signal_figure(df, bg_image, config, tr, language, aliases, ap_groups))
 
     try:
-        write_figures_as_inline_image_pdf(figures, output_file)
+        write_figures_as_live_pdf(figures, output_file, pdf_backend, tr)
     finally:
         for fig in figures:
             plt.close(fig)
 
     return MapExportResult(output_file=output_file, map_type=config.map_type, summary=summary)
+
+
+def write_figures_as_live_pdf(figures, output_file, pdf_backend, tr):
+    backend = pdf_backend or "inline"
+    if backend == "inline":
+        write_figures_as_inline_image_pdf(figures, output_file)
+        return
+    if backend == "reportlab":
+        try:
+            write_figures_as_reportlab_pdf(figures, output_file)
+        except ImportError as exc:
+            raise MapExportError(tr("warning"), tr("reportlab_missing")) from exc
+        return
+
+    write_figures_as_inline_image_pdf(figures, output_file)
 
 
 def write_figures_as_inline_image_pdf(figures, output_file):
@@ -212,6 +228,24 @@ def write_figures_as_inline_image_pdf(figures, output_file):
         return
 
     write_inline_image_pdf(pages, output_file)
+
+
+def write_figures_as_reportlab_pdf(figures, output_file):
+    from reportlab.pdfgen import canvas
+
+    pages = [render_figure_to_pdf_page(fig) for fig in figures]
+    if not pages:
+        return
+
+    pdf = canvas.Canvas(str(output_file), pagesize=(pages[0].width_pt, pages[0].height_pt))
+    try:
+        for page in pages:
+            pdf.setPageSize((page.width_pt, page.height_pt))
+            with PILImage.open(BytesIO(page.jpeg_bytes)) as image:
+                pdf.drawInlineImage(image, 0, 0, width=page.width_pt, height=page.height_pt)
+            pdf.showPage()
+    finally:
+        pdf.save()
 
 
 def render_figure_to_pdf_page(fig):
