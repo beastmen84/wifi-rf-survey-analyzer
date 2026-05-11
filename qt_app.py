@@ -990,6 +990,8 @@ class WifiHeatmapQtApp(QMainWindow):
             }}
             QPushButton#appBarButton, QPushButton#appBarIconButton, QPushButton#primaryAppBarButton, QPushButton#dirtySaveButton {{
                 min-width: 0;
+                min-height: {s(30)}px;
+                max-height: {s(30)}px;
                 padding: {s(6)}px {s(10)}px;
                 border-radius: {s(5)}px;
                 font-weight: 600;
@@ -1010,7 +1012,7 @@ class WifiHeatmapQtApp(QMainWindow):
             QPushButton#appBarIconButton {{
                 min-width: {s(30)}px;
                 max-width: {s(34)}px;
-                padding: {s(6)}px 0;
+                padding: 0;
                 font-size: {font(12)}pt;
             }}
             QPushButton#primaryAppBarButton {{
