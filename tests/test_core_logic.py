@@ -42,7 +42,15 @@ from ap_positioning import (
     AP_POSITION_WEAK_CLOSE,
     analyze_dominant_ap_position,
 )
-from heatmap_tools import calculate_interference_points, get_channel_map_points, get_dominant_ap_points
+from heatmap_tools import (
+    calculate_interference_points,
+    channel_overlap_weight,
+    channel_width_overlap_weight,
+    get_channel_map_points,
+    get_dominant_ap_points,
+    get_interference_data_quality,
+    signal_interference_weight,
+)
 from live_renderer import build_signal_payload
 from map_exporter import (
     MapExportResult,
@@ -240,6 +248,68 @@ class InterferenceTests(unittest.TestCase):
         self.assertEqual(row["same_physical_ap_ignored_count"], 1)
         self.assertEqual(row["strongest_interferer_bssid"], neighbor_bssid)
         self.assertGreater(row["risk"], 0)
+
+    def test_24ghz_interference_overlap_weights_are_ordered_by_channel_distance(self):
+        self.assertEqual(channel_overlap_weight(1, 1, "2.4"), 1.0)
+        self.assertEqual(channel_overlap_weight(1, 2, "2.4"), 0.8)
+        self.assertEqual(channel_overlap_weight(1, 3, "2.4"), 0.6)
+        self.assertEqual(channel_overlap_weight(1, 4, "2.4"), 0.35)
+        self.assertEqual(channel_overlap_weight(1, 5, "2.4"), 0.15)
+        self.assertEqual(channel_overlap_weight(1, 6, "2.4"), 0)
+
+    def test_5ghz_channel_width_overlap_uses_frequency_ranges_when_width_is_known(self):
+        self.assertEqual(channel_width_overlap_weight(36, 44, 80, 20), 1.0)
+        self.assertEqual(channel_width_overlap_weight(36, 52, 80, 20), 0.0)
+        self.assertIsNone(channel_width_overlap_weight(36, 44, "", 20))
+
+    def test_signal_interference_weight_thresholds(self):
+        self.assertEqual(signal_interference_weight(-60), 1.0)
+        self.assertEqual(signal_interference_weight(-67), 0.7)
+        self.assertEqual(signal_interference_weight(-75), 0.4)
+        self.assertEqual(signal_interference_weight(-85), 0.15)
+        self.assertEqual(signal_interference_weight(-90), 0.05)
+        self.assertEqual(signal_interference_weight(-91), 0)
+
+    def test_interference_5ghz_uses_channel_width_overlap_and_confidence(self):
+        serving_bssid = "70:4f:57:aa:bb:10"
+        overlapping_bssid = "80:11:22:33:44:10"
+        non_overlapping_bssid = "90:11:22:33:44:10"
+        serving = build_row("p1", "MAIN", serving_bssid, -50, 36)
+        serving["channel_width_mhz"] = "80"
+        serving["scan_confidence"] = "0.8"
+        overlapping = build_row("p1", "NEIGHBOR", overlapping_bssid, -60, 44)
+        overlapping["channel_width_mhz"] = "20"
+        overlapping["scan_confidence"] = "0.3"
+        non_overlapping = build_row("p1", "NEIGHBOR", non_overlapping_bssid, -40, 52)
+        non_overlapping["channel_width_mhz"] = "20"
+        non_overlapping["scan_confidence"] = "1.0"
+
+        risk_df = calculate_interference_points(
+            rows_to_dataframe([serving, overlapping, non_overlapping]),
+            "MAIN",
+            "5",
+            mode="all",
+            include_details=True,
+        )
+
+        self.assertEqual(len(risk_df), 1)
+        row = risk_df.iloc[0]
+        self.assertEqual(row["risk"], 100)
+        self.assertEqual(row["scan_confidence"], 0.3)
+        self.assertEqual(row["interferer_count"], 1)
+        self.assertEqual(row["strongest_interferer_bssid"], overlapping_bssid)
+        self.assertNotIn(non_overlapping_bssid, row["interfering_bssids"])
+
+    def test_interference_data_quality_counts_rows_with_channel_width_details(self):
+        risk_df = rows_to_dataframe([
+            {"serving_channel_width_mhz": "20", "strongest_interferer_channel_width_mhz": ""},
+            {"serving_channel_width_mhz": "", "strongest_interferer_channel_width_mhz": ""},
+            {"serving_channel_width_mhz": "", "strongest_interferer_channel_width_mhz": "40"},
+        ])
+
+        quality = get_interference_data_quality(risk_df)
+
+        self.assertEqual(quality, {"available": 2, "total": 3, "percent": 67})
 
 
 class QualityTests(unittest.TestCase):
