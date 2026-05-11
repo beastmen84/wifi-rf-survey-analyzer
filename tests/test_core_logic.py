@@ -54,9 +54,12 @@ from map_exporter import (
 import matplotlib.pyplot as plt
 from map_config import MapConfig
 from qt_quality_dashboard import (
+    build_ap_position_quality_by_point,
+    build_dashboard_rows,
     build_summary,
     format_point_confidence,
     format_relevant_ssids,
+    get_effective_relevant_ssids,
     get_effective_ap_groups,
 )
 from qt_floorplan import AP_MARKER_BASE_SIZE, FloorplanView, format_ap_tooltip, format_point_tooltip
@@ -324,6 +327,22 @@ class QualityTests(unittest.TestCase):
 
         self.assertEqual(ssids, "MAIN")
 
+    def test_effective_relevant_ssids_prefers_user_selection_and_falls_back_to_row_flags(self):
+        flagged_row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -52, 1)
+        unflagged_row = build_row("p1", "GUEST", "80:11:22:33:44:10", -60, 1)
+        unflagged_row["is_relevant"] = "0"
+
+        self.assertEqual(
+            get_effective_relevant_ssids(FakeQualityApp([flagged_row, unflagged_row])),
+            {"main"},
+        )
+        self.assertEqual(
+            get_effective_relevant_ssids(
+                FakeQualityApp([flagged_row, unflagged_row], relevant_ssids={"GUEST"})
+            ),
+            {"guest"},
+        )
+
     def test_quality_summary_counts_auto_ap_groups_without_position(self):
         rows = [build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)]
         app = FakeQualityApp(rows)
@@ -358,6 +377,83 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(len(groups), 2)
         self.assertEqual(summary["ap_missing_positions"], 1)
         self.assertEqual(summary["ap_positions"], "0/1")
+
+    def test_build_ap_position_quality_by_point_scopes_to_relevant_ssids_and_ignores_test_aps(self):
+        internal_bssid = "70:4f:57:aa:bb:10"
+        guest_bssid = "80:11:22:33:44:10"
+        test_bssid = "90:11:22:33:44:10"
+        main_row = build_row("p1", "MAIN", internal_bssid, -50, 1)
+        main_row["x"] = "0"
+        main_row["y"] = "0"
+        guest_row = build_row("p1", "GUEST", guest_bssid, -30, 1)
+        guest_row["x"] = "0"
+        guest_row["y"] = "0"
+        guest_row["is_relevant"] = "0"
+        test_row = build_row("p1", "MAIN", test_bssid, -20, 1)
+        test_row["x"] = "0"
+        test_row["y"] = "0"
+        groups = [
+            build_manual_ap_group("main-ap", [internal_bssid], position={"x": 30, "y": 0}),
+            build_manual_ap_group("guest-ap", [guest_bssid], position={"x": 1, "y": 0}),
+            build_manual_ap_group("test-ap", [test_bssid], position={"x": 1, "y": 0}, role=AP_ROLE_TEST),
+        ]
+        app = FakeQualityApp([main_row, guest_row, test_row], groups, relevant_ssids={"MAIN"})
+        app.px_per_meter = 1
+
+        position_by_point = build_ap_position_quality_by_point(app, groups)
+
+        self.assertEqual(set(position_by_point), {"p1"})
+        self.assertEqual(position_by_point["p1"]["dominant_ap_group"], "main-ap")
+        self.assertEqual(position_by_point["p1"]["warnings"], [AP_POSITION_STRONG_FAR])
+
+    def test_dashboard_rows_merge_quality_and_ap_position_issues(self):
+        row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -50, 1)
+        app = FakeQualityApp([row], relevant_ssids={"MAIN"})
+        point_summaries = get_survey_point_summaries_from_rows([row])
+        quality_by_point_id = {
+            "p1": {
+                "status": QUALITY_LOW_CONFIDENCE,
+                "breakdown": [
+                    {"ssid": "main", "status": QUALITY_LOW_CONFIDENCE, "message": "low_confidence"}
+                ],
+            }
+        }
+        ap_position_by_point = {
+            "p1": {
+                "dominant_ap_group": "main-ap",
+                "warnings": [AP_POSITION_STRONG_FAR],
+            }
+        }
+
+        rows = build_dashboard_rows(app, point_summaries, quality_by_point_id, ap_position_by_point)
+
+        self.assertEqual(len(rows), 1)
+        self.assertTrue(rows[0]["needs_review"])
+        self.assertEqual(rows[0]["severity"], "warning")
+        self.assertEqual(rows[0]["ap_position_warning_count"], 1)
+        self.assertIn("main: low_confidence", rows[0]["issue"])
+        self.assertIn("main-ap", rows[0]["issue"])
+
+    def test_quality_summary_formats_metadata_warning_labels(self):
+        row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)
+        app = FakeQualityApp([row], relevant_ssids={"MAIN"})
+        warnings = [
+            {"group_id": "ap-1", "unexpected_channels": ["36"], "expected_channels": ["1"]},
+            {"group_id": "ap-2", "unexpected_bands": ["5"], "expected_bands": ["2.4"]},
+            {"group_id": "ap-3", "unexpected_channels": ["11"], "expected_channels": ["6"]},
+            {"group_id": "ap-4", "unexpected_channels": ["1"], "expected_channels": ["11"]},
+        ]
+
+        summary = build_summary(
+            app,
+            [{"status": QUALITY_GOOD, "needs_review": False, "ap_position_warning_count": 0}],
+            warnings,
+            [],
+        )
+
+        self.assertEqual(summary["ap_metadata_warnings"], 4)
+        self.assertIn("ap-1", summary["ap_metadata_warning_labels"])
+        self.assertIn("+1", summary["ap_metadata_warning_labels"])
 
 
 class SurveyPointSummaryTests(unittest.TestCase):
@@ -2295,6 +2391,7 @@ class FakeApp:
 class FakeQualitySession:
     def __init__(self, rows, ap_groups=None):
         self.rows = rows
+        self.raw_scan_rows = []
         self._ap_groups = ap_groups or []
 
     def get_ap_groups(self):
@@ -2305,6 +2402,7 @@ class FakeQualityApp:
     def __init__(self, rows, ap_groups=None, relevant_ssids=None):
         self.session = FakeQualitySession(rows, ap_groups)
         self.relevant_ssids = set(relevant_ssids or [])
+        self.px_per_meter = None
 
     def tr(self, key, **kwargs):
         if key == "relevant_networks_none":
@@ -2315,10 +2413,25 @@ class FakeQualityApp:
             return "None"
         if key == "quality_dashboard_more_issues":
             return f"+{kwargs.get('count', 0)}"
+        if key == "quality_dashboard_ap_position_issue":
+            return f"{kwargs.get('ap')}: {kwargs.get('warning')}"
+        if key == "quality_dashboard_ap_metadata_channels":
+            return f"channels {kwargs.get('channels')} expected {kwargs.get('expected')}"
+        if key == "quality_dashboard_ap_metadata_bands":
+            return f"bands {kwargs.get('bands')} expected {kwargs.get('expected')}"
         return key.format(**kwargs) if kwargs else key
 
     def get_ap_group_display_name(self, group_id):
         return str(group_id)
+
+    def get_px_per_meter(self):
+        return self.px_per_meter
+
+    def format_point_quality(self, status):
+        return str(status)
+
+    def format_quality_breakdown_item(self, item):
+        return str(item.get("message", ""))
 
 
 if __name__ == "__main__":

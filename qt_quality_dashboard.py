@@ -429,7 +429,11 @@ def get_effective_relevant_ssids(app):
         return relevant_ssids
 
     if getattr(app, "session", None):
-        return get_relevant_ssids_from_rows(app.session.rows)
+        return {
+            normalize_ssid(ssid)
+            for ssid in get_relevant_ssids_from_rows(app.session.rows)
+            if normalize_ssid(ssid)
+        }
 
     return set()
 
@@ -523,6 +527,7 @@ def build_ap_position_quality_by_point(app, ap_groups=None):
         return {}
 
     group_map = build_bssid_to_manual_group_map(ap_groups)
+    position_ap_groups = filter_ap_groups_for_relevant_ssids(app, ap_groups)
     role_map = {
         str(group.get("group_id", "")): normalize_ap_role(group.get("role"))
         for group in ap_groups
@@ -565,7 +570,7 @@ def build_ap_position_quality_by_point(app, ap_groups=None):
     for key, dominant_row in best_by_point.items():
         analysis = analyze_dominant_ap_position(
             dominant_row,
-            ap_groups,
+            position_ap_groups,
             app.get_px_per_meter(),
         )
         warnings = analysis.get("warnings", [])
