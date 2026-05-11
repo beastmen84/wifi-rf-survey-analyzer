@@ -87,6 +87,7 @@ from qt_map_generation import MapGenerationDialog
 from qt_point_workflow import MissingRelevantNetworksDialog, RelevantNetworksDialog, WifiScanWorker
 from qt_quality_dashboard import open_qt_quality_dashboard
 from qt_theme import QT_THEME_OPTIONS, QT_THEMES
+from qt_tooltips import build_html_tooltip
 from qt_windowing import (
     SKIP_CENTERING_PROPERTY,
     get_centered_open_file_name,
@@ -3034,13 +3035,16 @@ class WifiHeatmapQtApp(QMainWindow):
         return group_id
 
     def format_ap_position_tooltip(self, group, label, x, y):
-        return "\n".join([
+        return build_html_tooltip(
             self.tr("ap_group_position_tooltip_title"),
-            f"{self.tr('ap_alias_value')}: {label}",
-            f"{self.tr('ap_alias_group')}: {group.get('group_id', '-')}",
-            f"x/y: {x}, {y}",
-            f"{self.tr('ap_alias_bssids')}: {', '.join(group.get('bssids', [])) or '-'}",
-        ])
+            [
+                (self.tr("ap_alias_group"), group.get("group_id", "-")),
+                (self.tr("ap_alias_value"), label),
+                ("x/y", f"{x}, {y}"),
+                (self.tr("ap_alias_bssids"), ", ".join(group.get("bssids", [])) or "-"),
+            ],
+            "#0d6efd",
+        )
 
     def current_selected_point(self):
         selected = self.points_table.selectedItems()

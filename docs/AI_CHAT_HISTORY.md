@@ -36,10 +36,10 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the latest live-map side-panel pass is 40
+- The current code test baseline after the latest live-map side-panel pass is 42
   passing tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
-  `4379b18 Normalize live map option layouts`.
+  `127ff1d Remember live map options per view`.
 - Current AP positioning and scale calibration pick points with left click while
   their modal map-pick mode is active; normal map dragging is disabled during
   the pick and the click must not create a measurement point.
@@ -235,6 +235,9 @@ Visual/UX decisions:
 - Point labels in generated PNG maps became reference numbers plus a reference
   table, because dense surveys make direct labels unreadable.
 - On live maps labels are mostly mouseover/tooltips, not always-visible labels.
+- Survey map point and AP-position tooltips now use the same compact HTML table
+  layout as live map tooltips, via shared `qt_tooltips.py` helpers. Keep future
+  tooltip layout changes shared where practical.
 
 ## Interference Logic
 
@@ -893,6 +896,7 @@ Language:
 
 Recent commits:
 
+- `127ff1d` Remember live map options per view.
 - `4379b18` Normalize live map option layouts.
 - `def9360` Refine live options side panel spacing.
 - `50633a8` Compact live options side tab.

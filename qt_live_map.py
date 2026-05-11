@@ -1,6 +1,5 @@
 """Qt live map scene, tooltips, marker rendering, and render worker."""
 
-import html
 from io import BytesIO
 
 import pandas as pd
@@ -46,6 +45,7 @@ from heatmap_tools import get_channel_map_points, get_dominant_ap_points
 from live_renderer import render_live_continuous_map
 from map_rendering import get_channel_color, get_channel_sort_key, get_limited_bssid_color_map
 from qt_floorplan import AP_MARKER_BASE_SIZE, load_ap_position_icon
+from qt_tooltips import build_html_tooltip
 
 
 LIVE_POINT_MARKER_BASE_SIZE = 14
@@ -973,28 +973,6 @@ def ap_position_warning_translation_key(warning):
         AP_POSITION_WEAK_CLOSE: "ap_position_weak_close",
         AP_POSITION_UNEXPECTED_DOMINANT: "ap_position_unexpected_dominant",
     }.get(warning, "ap_position_unknown_warning")
-
-
-def build_html_tooltip(title, rows, accent):
-    safe_title = html.escape(str(title or "-"))
-    safe_accent = html.escape(str(accent or "#444444"))
-    body_rows = []
-    for label, value in rows:
-        body_rows.append(
-            "<tr>"
-            f"<td style='padding:2px 10px 2px 0;color:#5b6472;'>{html.escape(str(label))}</td>"
-            f"<td style='padding:2px 0;font-weight:600;'>{html.escape(str(value if value not in (None, '') else '-'))}</td>"
-            "</tr>"
-        )
-    return (
-        "<div style='font-family:Segoe UI,Arial,sans-serif;font-size:10pt;'>"
-        f"<div style='border-left:4px solid {safe_accent};padding-left:7px;"
-        "font-weight:700;margin-bottom:5px;'>"
-        f"{safe_title}</div>"
-        "<table cellspacing='0' cellpadding='0'>"
-        f"{''.join(body_rows)}"
-        "</table></div>"
-    )
 
 
 def format_value(value):

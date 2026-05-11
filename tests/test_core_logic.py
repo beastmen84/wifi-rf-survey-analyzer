@@ -25,7 +25,7 @@ from qt_quality_dashboard import (
     format_relevant_ssids,
     get_effective_ap_groups,
 )
-from qt_floorplan import AP_MARKER_BASE_SIZE, FloorplanView
+from qt_floorplan import AP_MARKER_BASE_SIZE, FloorplanView, format_ap_tooltip, format_point_tooltip
 from qt_live_map import (
     LIVE_POINT_MARKER_BASE_SIZE,
     LiveGradientLegendWidget,
@@ -344,6 +344,39 @@ class FloorplanViewTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.qt_app = QApplication.instance() or QApplication([])
+
+    def test_survey_point_tooltip_uses_live_style_html_layout(self):
+        tooltip = format_point_tooltip(
+            {
+                "x": 10,
+                "y": 20,
+                "best_signal_dbm": -61,
+                "signal_scope": "relevant",
+                "row_count": 4,
+                "relevant_row_count": 2,
+                "timestamp": "2026-05-11T12:00:00",
+                "ssids": ["MAIN", "Guest <wifi>"],
+            }
+        )
+
+        self.assertIn("<table", tooltip)
+        self.assertIn("border-left:4px solid", tooltip)
+        self.assertIn("Survey point", tooltip)
+        self.assertIn("Best signal", tooltip)
+        self.assertIn("Guest &lt;wifi&gt;", tooltip)
+
+    def test_survey_ap_tooltip_uses_live_style_html_layout(self):
+        tooltip = format_ap_tooltip(
+            {"group_id": "office", "bssids": ["70:4f:57:aa:bb:10"]},
+            "Office AP",
+            30,
+            40,
+        )
+
+        self.assertIn("<table", tooltip)
+        self.assertIn("AP position", tooltip)
+        self.assertIn("Office AP", tooltip)
+        self.assertIn("70:4f:57:aa:bb:10", tooltip)
 
     def test_ap_marker_keeps_high_resolution_source_pixmap(self):
         view = FloorplanView()

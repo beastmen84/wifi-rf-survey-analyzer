@@ -13,6 +13,8 @@ from PySide6.QtWidgets import (
     QGraphicsView,
 )
 
+from qt_tooltips import build_html_tooltip
+
 
 AP_MARKER_BASE_SIZE = 20
 
@@ -421,31 +423,41 @@ def point_color(signal_dbm):
 
 def format_point_tooltip(point):
     ssids = [str(ssid) for ssid in point.get("ssids", []) if str(ssid)]
-    ssid_text = "\n".join(f"  - {ssid}" for ssid in ssids) if ssids else "  -"
+    ssid_text = ssids or "-"
     signal_scope = str(point.get("signal_scope", "all"))
     scope_label = "relevant networks" if signal_scope == "relevant" else "all networks"
     row_count = point.get("row_count", "-")
     relevant_count = point.get("relevant_row_count", 0)
-    relevant_line = f"Relevant rows: {relevant_count}/{row_count}" if relevant_count else f"Rows: {row_count}"
+    rows_label = "Relevant rows" if relevant_count else "Rows"
+    rows_value = f"{relevant_count}/{row_count}" if relevant_count else row_count
+    signal_value = point.get("best_signal_dbm", "-")
+    try:
+        accent = point_color(float(signal_value)).name()
+    except (TypeError, ValueError):
+        accent = "#111111"
 
-    return (
-        "Survey point\n"
-        "-------------\n"
-        f"Position: x={point.get('x', '-')}, y={point.get('y', '-')}\n"
-        f"Best signal: {point.get('best_signal_dbm', '-')} dBm ({scope_label})\n"
-        f"{relevant_line}\n"
-        f"Time: {point.get('timestamp', '-')}\n"
-        "\n"
-        "Detected SSID:\n"
-        f"{ssid_text}"
+    return build_html_tooltip(
+        "Survey point",
+        [
+            ("x/y", f"{point.get('x', '-')}, {point.get('y', '-')}"),
+            ("Best signal", f"{signal_value} dBm ({scope_label})"),
+            (rows_label, rows_value),
+            ("Time", point.get("timestamp", "-")),
+            ("Detected SSID", ssid_text),
+        ],
+        accent,
     )
 
 
 def format_ap_tooltip(group, label, x, y):
     bssids = ", ".join(group.get("bssids", [])) or "-"
-    return (
-        f"{label}\n"
-        f"Gruppo: {group.get('group_id', '-')}\n"
-        f"x/y: {x}, {y}\n"
-        f"BSSID: {bssids}"
+    return build_html_tooltip(
+        "AP position",
+        [
+            ("AP group", group.get("group_id", "-")),
+            ("Label", label),
+            ("x/y", f"{x}, {y}"),
+            ("BSSID", bssids),
+        ],
+        "#0d6efd",
     )
