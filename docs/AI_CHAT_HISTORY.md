@@ -729,6 +729,9 @@ Language:
   the survey, preselects current relevant SSIDs, persists the updated relevant
   set, and recalculates existing row `is_relevant` flags so earlier points are
   reinterpreted consistently.
+- Fixed a `Manage relevant` save crash caused by the relevant-network dialog
+  storing its initial selection in an attribute with the same name as the method
+  used to return the selected SSIDs.
 
 Recent commits:
 

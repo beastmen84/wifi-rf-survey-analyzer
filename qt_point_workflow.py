@@ -41,7 +41,7 @@ class RelevantNetworksDialog(QDialog):
         self.app = app
         self.ssids = sorted({str(ssid).strip() for ssid in ssids if str(ssid).strip()}, key=str.casefold)
         self.connected_ssid = str(connected_ssid or "").strip()
-        self.selected_ssids = {
+        self.initial_selected_ssids = {
             str(ssid).strip().lower()
             for ssid in (selected_ssids or [])
             if str(ssid).strip()
@@ -86,8 +86,8 @@ class RelevantNetworksDialog(QDialog):
             checkbox = QCheckBox(label)
             checkbox.setObjectName("relevantNetworkCheckbox")
             checkbox.setChecked(
-                ssid.lower() in self.selected_ssids
-                if self.selected_ssids is not None
+                ssid.lower() in self.initial_selected_ssids
+                if self.initial_selected_ssids is not None
                 else is_connected
             )
             self.checkboxes[ssid] = checkbox
