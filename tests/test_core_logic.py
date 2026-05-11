@@ -840,6 +840,11 @@ class LivePdfExportTests(unittest.TestCase):
             self.assertTrue(os.path.exists(result.output_file))
             with open(result.output_file, "rb") as pdf_file:
                 self.assertEqual(pdf_file.read(4), b"%PDF")
+            import fitz
+
+            with fitz.open(result.output_file) as doc:
+                self.assertEqual(doc[0].get_images(full=True), [])
+                self.assertGreater(doc[0].get_pixmap(alpha=False).width, 0)
 
 
 class SettingsMenuTests(unittest.TestCase):

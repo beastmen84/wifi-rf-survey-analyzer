@@ -940,10 +940,10 @@ Language:
   extent, independent from viewport zoom/pan. Page 1 places the map and its
   scale/legend in separate canvas space so the legend does not overlap the map.
   Map markers use survey-like sizing, positioned AP markers use the Wi-Fi icon,
-  and pages are flattened before PDF writing to avoid accidental vector-object
-  selection in PDF viewers. Interference and Dominant AP add a second
-  problem-report page; Coverage does not, and AP Channels remains map-only
-  until a diagnostic rule is defined.
+  and flattened pages are written as inline PDF images rather than selectable
+  page image objects. Interference and Dominant AP add a second problem-report
+  page; Coverage does not, and AP Channels remains map-only until a diagnostic
+  rule is defined.
 - A quick live-map data logic pass confirmed current scoping: Coverage uses
   SSID, band, optional AP group filter, aggregation, interpolation and usable
   threshold; Interference uses SSID, 2.4/5 GHz band, intra/all-network mode,
@@ -955,6 +955,7 @@ Language:
 
 Recent commits:
 
+- `1955bc7` Refine live PDF export and controls.
 - `ab2dae0` Clear live legend selection from map background.
 - `562b878` Move live point labels into legend.
 - `b92ceea` Sync live label legend visibility.
