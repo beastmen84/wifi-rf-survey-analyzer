@@ -226,11 +226,16 @@ def merge_wifi_scans(networks, samples_total=1):
     aggregated_networks = []
 
     for samples in merged_networks.values():
-        signal_values = [
-            float(sample["signal_dbm"])
-            for sample in samples
-            if sample.get("signal_dbm") not in ("", None)
-        ]
+        valid_samples = []
+        signal_values = []
+        for sample in samples:
+            try:
+                signal_dbm = float(sample.get("signal_dbm", ""))
+            except (TypeError, ValueError):
+                continue
+
+            valid_samples.append((sample, signal_dbm))
+            signal_values.append(signal_dbm)
 
         if not signal_values:
             continue
@@ -238,9 +243,9 @@ def merge_wifi_scans(networks, samples_total=1):
         signal_median = float(median(signal_values))
         signal_max = max(signal_values)
         signal_min = min(signal_values)
-        representative = max(samples, key=lambda sample: float(sample.get("signal_dbm", -1000)))
+        representative = max(valid_samples, key=lambda item: item[1])[0]
         samples_seen = len(signal_values)
-        scan_confidence = samples_seen / max(1, samples_total)
+        scan_confidence = min(1.0, samples_seen / max(1, samples_total))
 
         aggregated_networks.append({
             "ssid": representative.get("ssid", ""),

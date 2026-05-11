@@ -1317,6 +1317,33 @@ SSID 2 : GUEST
         self.assertEqual(networks[0]["channel_width_mhz"], "20")
         self.assertIs(networks[0]["raw_samples"][0], samples[0])
 
+    def test_merge_wifi_scans_ignores_invalid_signal_samples_but_keeps_raw_samples(self):
+        samples = [
+            {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": "", "channel": "6", "channel_width_mhz": "40"},
+            {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -60, "channel": "6", "channel_width_mhz": "20"},
+            {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": "bad", "channel": "6", "channel_width_mhz": "80"},
+        ]
+
+        networks = merge_wifi_scans(samples, samples_total=3)
+
+        self.assertEqual(len(networks), 1)
+        self.assertEqual(networks[0]["signal_dbm"], -60.0)
+        self.assertEqual(networks[0]["samples_seen"], 1)
+        self.assertEqual(networks[0]["scan_confidence"], 0.333)
+        self.assertEqual(networks[0]["raw_samples"], samples)
+
+    def test_merge_wifi_scans_clamps_confidence_to_one(self):
+        samples = [
+            {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -52, "channel": "6"},
+            {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -48, "channel": "6"},
+            {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -50, "channel": "6"},
+        ]
+
+        networks = merge_wifi_scans(samples, samples_total=2)
+
+        self.assertEqual(networks[0]["samples_seen"], 3)
+        self.assertEqual(networks[0]["scan_confidence"], 1.0)
+
     def test_merge_wifi_scans_groups_bssid_case_insensitively(self):
         networks = merge_wifi_scans(
             [
