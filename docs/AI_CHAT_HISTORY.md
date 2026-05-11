@@ -724,6 +724,11 @@ Language:
   app settings. `Open existing survey` from both the start screen and workspace
   opens in that directory; first save of a new survey uses the same directory as
   the initial suggestion.
+- Survey summary now has `Manage` / `Gestisci` next to `Clear` for relevant
+  networks. It opens a checkbox dialog over all SSIDs already seen or known in
+  the survey, preselects current relevant SSIDs, persists the updated relevant
+  set, and recalculates existing row `is_relevant` flags so earlier points are
+  reinterpreted consistently.
 
 Recent commits:
 

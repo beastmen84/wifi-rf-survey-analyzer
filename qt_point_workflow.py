@@ -36,11 +36,16 @@ class WifiScanWorker(QObject):
 
 
 class RelevantNetworksDialog(QDialog):
-    def __init__(self, app, ssids, title, message, connected_ssid=None):
+    def __init__(self, app, ssids, title, message, connected_ssid=None, selected_ssids=None):
         super().__init__(app)
         self.app = app
         self.ssids = sorted({str(ssid).strip() for ssid in ssids if str(ssid).strip()}, key=str.casefold)
         self.connected_ssid = str(connected_ssid or "").strip()
+        self.selected_ssids = {
+            str(ssid).strip().lower()
+            for ssid in (selected_ssids or [])
+            if str(ssid).strip()
+        } if selected_ssids is not None else None
         self.checkboxes = {}
 
         self.setWindowTitle(title)
@@ -80,7 +85,11 @@ class RelevantNetworksDialog(QDialog):
             label = self.app.tr("connected_ssid_option", ssid=ssid) if is_connected else ssid
             checkbox = QCheckBox(label)
             checkbox.setObjectName("relevantNetworkCheckbox")
-            checkbox.setChecked(is_connected)
+            checkbox.setChecked(
+                ssid.lower() in self.selected_ssids
+                if self.selected_ssids is not None
+                else is_connected
+            )
             self.checkboxes[ssid] = checkbox
             choices_layout.addWidget(checkbox)
 

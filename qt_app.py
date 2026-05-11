@@ -401,9 +401,19 @@ class WifiHeatmapQtApp(QMainWindow):
         grid.setHorizontalSpacing(self.spx(6))
         grid.setVerticalSpacing(self.spx(6))
 
+        self.manage_relevant_button = QPushButton()
         self.clear_relevant_button = QPushButton()
+        relevant_actions = QWidget()
+        relevant_actions_layout = QHBoxLayout(relevant_actions)
+        relevant_actions_layout.setContentsMargins(0, 0, 0, 0)
+        relevant_actions_layout.setSpacing(self.spx(4))
+        relevant_actions_layout.addWidget(self.manage_relevant_button)
+        relevant_actions_layout.addWidget(self.clear_relevant_button)
+        self.manage_relevant_button.setObjectName("summaryActionButton")
         self.clear_relevant_button.setObjectName("summaryActionButton")
-        self.clear_relevant_button.setMaximumWidth(self.spx(118))
+        self.manage_relevant_button.setMaximumWidth(self.spx(76))
+        self.clear_relevant_button.setMaximumWidth(self.spx(64))
+        self.manage_relevant_button.clicked.connect(self.manage_relevant_ssids)
         self.clear_relevant_button.clicked.connect(self.clear_relevant_ssids)
         csv_card, self.csv_label, _csv_layout = self.create_summary_card("qt_csv")
         map_card, self.map_label, _map_layout = self.create_summary_card("map")
@@ -412,7 +422,7 @@ class WifiHeatmapQtApp(QMainWindow):
         ap_card, self.ap_groups_label, _ap_layout = self.create_summary_card("summary_ap_groups", compact=True)
         relevant_card, self.relevant_label, _relevant_layout = self.create_summary_card(
             "saved_network",
-            action_widget=self.clear_relevant_button,
+            action_widget=relevant_actions,
         )
         for card in (points_card, raw_card, ap_card):
             card.setMaximumWidth(self.spx(112))
@@ -1185,6 +1195,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.delete_selected_button.setText(self.tr("delete_selected"))
         self.delete_last_button.setText(self.tr("delete_last"))
         self.update_points_panel_toggle()
+        self.manage_relevant_button.setText(self.tr("manage_relevant_networks"))
         self.clear_relevant_button.setText(self.tr("forget_saved_network"))
         self.tabs.setTabText(0, self.tr("survey_tab"))
         self.tabs.setTabText(1, self.tr("live_map_tab"))
@@ -2149,7 +2160,60 @@ class WifiHeatmapQtApp(QMainWindow):
         serialized = json.dumps(sorted(self.relevant_ssids), ensure_ascii=False)
         self.session.update_metadata({RELEVANT_SSIDS_METADATA_KEY: serialized})
         self.known_ssids |= self.relevant_ssids
+        self.update_relevant_row_flags()
         self.refresh_session_labels()
+
+    def update_relevant_row_flags(self):
+        if self.session is None:
+            return
+
+        relevant = {ssid.casefold() for ssid in self.relevant_ssids}
+        changed = False
+        for row in self.session.rows:
+            is_relevant = "1" if str(row.get("ssid", "")).strip().casefold() in relevant else "0"
+            if row.get("is_relevant") != is_relevant:
+                row["is_relevant"] = is_relevant
+                changed = True
+
+        if changed:
+            self.session.dirty = True
+
+    def available_relevant_ssids(self):
+        if self.session is None:
+            return set()
+
+        return {
+            str(ssid).strip()
+            for ssid in (self.known_ssids | self.relevant_ssids | set(self.session.get_ssids()))
+            if str(ssid).strip()
+        }
+
+    def manage_relevant_ssids(self):
+        if self.session is None:
+            return
+
+        available_ssids = self.available_relevant_ssids()
+        if not available_ssids:
+            QMessageBox.warning(self, self.tr("warning"), self.tr("no_relevant_networks_to_manage"))
+            return
+
+        dialog = RelevantNetworksDialog(
+            self,
+            available_ssids,
+            self.tr("manage_relevant_networks_title"),
+            self.tr("manage_relevant_networks_message"),
+            connected_ssid=get_connected_ssid(),
+            selected_ssids=self.relevant_ssids,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        self.known_ssids |= available_ssids
+        self.set_relevant_ssids(dialog.selected_ssids())
+        self.save_known_ssids()
+        self.refresh_points_table()
+        self.status.showMessage(self.tr("relevant_networks_updated"))
+        self.maybe_update_live_preview()
 
     def clear_relevant_ssids(self):
         if self.session is None:
@@ -2163,6 +2227,7 @@ class WifiHeatmapQtApp(QMainWindow):
 
         self.relevant_ssids = set()
         self.known_ssids = set()
+        self.update_relevant_row_flags()
         self.refresh_session_labels()
         self.refresh_points_table()
 
@@ -2632,6 +2697,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.quality_button.setEnabled(can_use_session)
         self.help_button.setEnabled(True)
         self.generate_map_button.setEnabled(can_use_session)
+        self.manage_relevant_button.setEnabled(can_use_session and bool(self.available_relevant_ssids()))
         self.clear_relevant_button.setEnabled(
             can_use_session and bool(self.relevant_ssids or self.known_ssids)
         )
