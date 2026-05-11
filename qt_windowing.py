@@ -301,21 +301,56 @@ def tune_file_dialog_views(dialog):
 def push_modal_dim(dialog):
     """Add a soft dim overlay to the dialog parent window."""
 
-    if dialog is None or dialog.property(SKIP_CENTERING_PROPERTY):
+    if dialog is None:
         return
 
-    parent = dialog.parentWidget()
+    try:
+        if dialog.property(SKIP_CENTERING_PROPERTY) or not dialog.isVisible():
+            return
+        parent = dialog.parentWidget()
+    except RuntimeError:
+        return
+
     if parent is None:
         return
 
-    target = parent.window()
-    if target is None or target is dialog or not target.isVisible():
+    try:
+        target = parent.window()
+        target_visible = target is not None and target.isVisible()
+    except RuntimeError:
+        return
+
+    if target is None or target is dialog or not target_visible:
         return
 
     if getattr(dialog, "_wifi_heatmap_dim_parent", None) is target:
         return
 
-    count = getattr(target, "_wifi_heatmap_dim_count", 0)
+    token = getattr(dialog, "_wifi_heatmap_dim_token", None)
+    if token is None:
+        token = id(dialog)
+        dialog._wifi_heatmap_dim_token = token
+
+    active_tokens = getattr(target, "_wifi_heatmap_dim_tokens", None)
+    if active_tokens is None:
+        active_tokens = set()
+        target._wifi_heatmap_dim_tokens = active_tokens
+    if token in active_tokens:
+        dialog._wifi_heatmap_dim_parent = target
+        return
+
+    active_tokens.add(token)
+    target._wifi_heatmap_dim_count = len(active_tokens)
+    dialog._wifi_heatmap_dim_parent = target
+    if not getattr(dialog, "_wifi_heatmap_dim_destroy_hooked", False):
+        dialog.destroyed.connect(
+            lambda _obj=None, current_target=target, current_token=token: pop_modal_dim_token(
+                current_target,
+                current_token,
+            )
+        )
+        dialog._wifi_heatmap_dim_destroy_hooked = True
+
     overlay = getattr(target, "_wifi_heatmap_dim_overlay", None)
     if overlay is None:
         overlay = QWidget(target)
@@ -334,9 +369,6 @@ def push_modal_dim(dialog):
         overlay.raise_()
         overlay.show()
 
-    target._wifi_heatmap_dim_count = count + 1
-    dialog._wifi_heatmap_dim_parent = target
-
 
 def pop_modal_dim(dialog):
     target = getattr(dialog, "_wifi_heatmap_dim_parent", None)
@@ -344,11 +376,25 @@ def pop_modal_dim(dialog):
         return
 
     dialog._wifi_heatmap_dim_parent = None
-    count = max(0, getattr(target, "_wifi_heatmap_dim_count", 1) - 1)
+    pop_modal_dim_token(target, getattr(dialog, "_wifi_heatmap_dim_token", None))
+
+
+def pop_modal_dim_token(target, token):
+    if target is None:
+        return
+
+    active_tokens = getattr(target, "_wifi_heatmap_dim_tokens", None)
+    if active_tokens is not None and token is not None:
+        active_tokens.discard(token)
+        count = len(active_tokens)
+    else:
+        count = max(0, getattr(target, "_wifi_heatmap_dim_count", 1) - 1)
     target._wifi_heatmap_dim_count = count
     if count > 0:
         return
 
+    if active_tokens is not None:
+        active_tokens.clear()
     overlay = getattr(target, "_wifi_heatmap_dim_overlay", None)
     target._wifi_heatmap_dim_overlay = None
     if overlay is None:
@@ -359,12 +405,23 @@ def pop_modal_dim(dialog):
 
 def resize_dim_overlay(widget):
     overlay = getattr(widget, "_wifi_heatmap_dim_overlay", None)
-    if overlay is not None and overlay.isVisible():
-        overlay.setGeometry(widget.rect())
-        overlay.raise_()
+    try:
+        visible = overlay is not None and overlay.isVisible()
+    except RuntimeError:
+        return
+    if visible:
+        try:
+            overlay.setGeometry(widget.rect())
+            overlay.raise_()
+        except RuntimeError:
+            return
 
 
 def fade_overlay(overlay, start, end, delete_when_finished=False):
+    previous_animation = getattr(overlay, "_wifi_heatmap_dim_animation", None)
+    if previous_animation is not None:
+        previous_animation.stop()
+
     effect = overlay.graphicsEffect()
     if not isinstance(effect, QGraphicsOpacityEffect):
         effect = QGraphicsOpacityEffect(overlay)

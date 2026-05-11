@@ -3,6 +3,8 @@ import logging
 import os
 import tempfile
 
+from PySide6.QtWidgets import QApplication, QDialog, QWidget
+
 from app_logging import MaxLogLevelFilter
 from app_restart import build_restart_command
 from app_settings import get_last_survey_directory, save_last_survey_path
@@ -19,6 +21,7 @@ from qt_quality_dashboard import (
     format_relevant_ssids,
     get_effective_ap_groups,
 )
+from qt_windowing import pop_modal_dim, push_modal_dim
 from quality_engine import QUALITY_GOOD, QUALITY_MISSING_RELEVANT, evaluate_point_quality
 from survey_store import get_survey_point_summaries_from_rows
 from ui_scaling import (
@@ -285,6 +288,43 @@ class LoggingTests(unittest.TestCase):
             (),
             None,
         )))
+
+
+class QtWindowingTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.qt_app = QApplication.instance() or QApplication([])
+
+    def test_dim_push_ignores_dialog_that_is_already_hidden(self):
+        parent = QWidget()
+        parent.show()
+        dialog = QDialog(parent)
+        dialog.show()
+        dialog.hide()
+
+        push_modal_dim(dialog)
+
+        self.assertIsNone(getattr(parent.window(), "_wifi_heatmap_dim_overlay", None))
+        dialog.deleteLater()
+        parent.deleteLater()
+
+    def test_dim_pop_clears_overlay_and_active_token(self):
+        parent = QWidget()
+        parent.resize(300, 200)
+        parent.show()
+        dialog = QDialog(parent)
+        dialog.show()
+
+        push_modal_dim(dialog)
+        self.assertIsNotNone(getattr(parent.window(), "_wifi_heatmap_dim_overlay", None))
+
+        pop_modal_dim(dialog)
+
+        self.assertEqual(getattr(parent.window(), "_wifi_heatmap_dim_count", 0), 0)
+        self.assertEqual(getattr(parent.window(), "_wifi_heatmap_dim_tokens", set()), set())
+        self.assertIsNone(getattr(parent.window(), "_wifi_heatmap_dim_overlay", None))
+        dialog.deleteLater()
+        parent.deleteLater()
 
 
 class ApMetadataTests(unittest.TestCase):

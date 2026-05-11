@@ -742,6 +742,9 @@ Language:
 - Quality dashboard labels were tightened after the relevant-SSID column saved
   horizontal space: `Low conf.` is now written out as `Low confidence` /
   `Bassa confidenza`, and table headers use dedicated title-case labels.
+- Hardened Qt modal dimming. The delayed dim push now ignores dialogs that have
+  already closed/hidden, tracks active dialogs by token instead of a fragile
+  counter, and removes dim overlays through an idempotent cleanup path.
 
 Recent commits:
 
