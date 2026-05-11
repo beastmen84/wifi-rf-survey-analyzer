@@ -36,7 +36,7 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline before this handoff refresh was 24 passing
+- The current code test baseline after the latest live-map pass is 26 passing
   tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
   `53e50c1 Keep AP marker icons sharp`.
@@ -192,6 +192,12 @@ Live tab:
 - Discrete Qt live maps use marker tooltips and legend/category panels; hover
   behavior has been refined iteratively, so inspect `qt_live_map.py` and
   `qt_floorplan.py` before changing it.
+- Continuous Qt live coverage/interference maps use a right-side gradient color
+  scale instead of a swatch/list legend.
+- Qt live signal coverage and AP channel maps have an AP group filter. Test AP
+  groups are excluded from the filter list.
+- Qt live point markers are scene-sized 14 px markers like the survey view, so
+  they scale with map zoom instead of staying a fixed screen size.
 - Continuous live rendering uses a worker thread and Matplotlib Agg; GUI updates
   happen on the Qt main thread.
 - Result caching/fingerprinting exists in `live_renderer.py`.
@@ -778,6 +784,12 @@ Language:
   current-state snapshot, corrected stale Tk/right-click notes, updated recent
   commits and replaced old verification commands with the current compile/test
   baseline.
+- Started the Qt live-map refinement pass using a real office V2 test survey:
+  live point markers now use the same 14 px scene-sized behavior as survey
+  markers, continuous coverage/interference legends now render as vertical
+  color scales, and the live controls include an AP group filter for coverage
+  and AP channel views. Added tests for live marker sizing and gradient legend
+  painting.
 
 Recent commits:
 
@@ -843,4 +855,5 @@ Current tests cover, among other things:
 - AP metadata/channel warnings;
 - UI scale and restart command helpers;
 - dialog/windowing behavior;
-- AP marker icon scaling.
+- AP marker icon scaling;
+- live marker sizing and live gradient legend painting.

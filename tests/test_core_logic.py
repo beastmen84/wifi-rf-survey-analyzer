@@ -3,7 +3,9 @@ import logging
 import os
 import tempfile
 
-from PySide6.QtWidgets import QApplication, QDialog, QWidget
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap
+from PySide6.QtWidgets import QApplication, QDialog, QGraphicsItem, QWidget
 
 from app_logging import MaxLogLevelFilter
 from app_restart import build_restart_command
@@ -22,6 +24,7 @@ from qt_quality_dashboard import (
     get_effective_ap_groups,
 )
 from qt_floorplan import AP_MARKER_BASE_SIZE, FloorplanView
+from qt_live_map import LIVE_POINT_MARKER_BASE_SIZE, LiveGradientLegendWidget, LiveMapView
 from qt_windowing import pop_modal_dim, push_modal_dim
 from quality_engine import QUALITY_GOOD, QUALITY_MISSING_RELEVANT, evaluate_point_quality
 from survey_store import get_survey_point_summaries_from_rows
@@ -343,6 +346,39 @@ class FloorplanViewTests(unittest.TestCase):
         self.assertGreater(max(pixmap.width(), pixmap.height()), AP_MARKER_BASE_SIZE)
         self.assertAlmostEqual(rendered_size, AP_MARKER_BASE_SIZE, delta=0.1)
         view.deleteLater()
+
+
+class LiveMapViewTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.qt_app = QApplication.instance() or QApplication([])
+
+    def test_live_marker_uses_scene_sized_survey_marker(self):
+        view = LiveMapView()
+
+        marker = view.create_marker_item({})
+
+        self.assertEqual(marker.rect().width(), LIVE_POINT_MARKER_BASE_SIZE)
+        self.assertFalse(marker.flags() & QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations)
+        view.deleteLater()
+
+    def test_gradient_legend_paints_payload(self):
+        widget = LiveGradientLegendWidget()
+        widget.resize(220, 260)
+        widget.set_scale_payload({
+            "kind": "gradient",
+            "cmap": "RdYlGn",
+            "min": -90,
+            "max": -40,
+            "suffix": " dBm",
+        })
+        pixmap = QPixmap(widget.size())
+        pixmap.fill(Qt.GlobalColor.transparent)
+
+        widget.render(pixmap)
+
+        self.assertFalse(pixmap.isNull())
+        widget.deleteLater()
 
 
 class ApMetadataTests(unittest.TestCase):

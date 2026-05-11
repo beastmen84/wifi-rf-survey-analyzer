@@ -5,16 +5,16 @@ from io import BytesIO
 
 import pandas as pd
 from PIL import Image
-from PySide6.QtCore import QObject, QPointF, Qt, Signal, Slot
-from PySide6.QtGui import QBrush, QColor, QIcon, QPainter, QPainterPath, QPen, QPixmap, QPolygonF
+from PySide6.QtCore import QObject, QPointF, QRectF, QSize, Qt, Signal, Slot
+from PySide6.QtGui import QBrush, QColor, QIcon, QLinearGradient, QPainter, QPainterPath, QPen, QPixmap, QPolygonF
 from PySide6.QtWidgets import (
     QGraphicsEllipseItem,
-    QGraphicsItem,
     QGraphicsPathItem,
     QGraphicsPixmapItem,
     QGraphicsPolygonItem,
     QGraphicsScene,
     QGraphicsView,
+    QWidget,
 )
 
 from app_logging import log_event, log_exception
@@ -32,6 +32,9 @@ from constants import SURVEY_FIELDNAMES
 from heatmap_tools import get_channel_map_points, get_dominant_ap_points
 from live_renderer import render_live_continuous_map
 from map_rendering import get_channel_color, get_channel_sort_key, get_limited_bssid_color_map
+
+
+LIVE_POINT_MARKER_BASE_SIZE = 14
 
 
 class LiveMapRenderWorker(QObject):
@@ -125,7 +128,6 @@ class LiveMapView(QGraphicsView):
 
             item = self.create_marker_item(info)
             item.setPos(x, y)
-            item.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations, True)
             item.setZValue(20)
             tooltip = info.get("tooltip")
             if tooltip:
@@ -138,23 +140,24 @@ class LiveMapView(QGraphicsView):
         color = QColor(str(info.get("color") or "#111111"))
         outline = QColor(str(info.get("outline") or "#ffffff"))
         outline_width = float(info.get("outline_width") or 1.2)
+        radius = LIVE_POINT_MARKER_BASE_SIZE / 2
 
         if shape == "triangle":
             polygon = QPolygonF([
-                QPointF(0, -6),
-                QPointF(6, 6),
-                QPointF(-6, 6),
+                QPointF(0, -radius),
+                QPointF(radius, radius),
+                QPointF(-radius, radius),
             ])
             item = QGraphicsPolygonItem(polygon)
         elif shape == "cross":
             path = QPainterPath()
-            path.moveTo(-6, -6)
-            path.lineTo(6, 6)
-            path.moveTo(6, -6)
-            path.lineTo(-6, 6)
+            path.moveTo(-radius, -radius)
+            path.lineTo(radius, radius)
+            path.moveTo(radius, -radius)
+            path.lineTo(-radius, radius)
             item = QGraphicsPathItem(path)
         else:
-            item = QGraphicsEllipseItem(-5, -5, 10, 10)
+            item = QGraphicsEllipseItem(-radius, -radius, radius * 2, radius * 2)
 
         if shape == "cross":
             item.setBrush(QBrush(Qt.BrushStyle.NoBrush))
@@ -244,6 +247,95 @@ def create_marker_icon(color, shape="circle", outline_only=False):
         painter.drawEllipse(3, 3, 12, 12)
     painter.end()
     return QIcon(pixmap)
+
+
+class LiveGradientLegendWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.scale_payload = {}
+        self.setMinimumHeight(180)
+
+    def sizeHint(self):
+        return QSize(220, 260)
+
+    def set_scale_payload(self, scale_payload):
+        self.scale_payload = dict(scale_payload or {})
+        self.update()
+
+    def clear(self):
+        self.scale_payload = {}
+        self.update()
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if not self.scale_payload:
+            return
+
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        margin = 12
+        bar_width = 34
+        label_gap = 12
+        rect = QRectF(margin, margin, bar_width, max(40, self.height() - margin * 2))
+        gradient = QLinearGradient(rect.topLeft(), rect.bottomLeft())
+        for position, color in gradient_stops(str(self.scale_payload.get("cmap", ""))):
+            gradient.setColorAt(position, QColor(color))
+
+        painter.fillRect(rect, QBrush(gradient))
+        painter.setPen(QPen(QColor("#5b6472"), 1))
+        painter.drawRoundedRect(rect, 3, 3)
+
+        suffix = str(self.scale_payload.get("suffix", ""))
+        max_label = f"{format_value(self.scale_payload.get('max'))}{suffix}"
+        min_label = f"{format_value(self.scale_payload.get('min'))}{suffix}"
+        midpoint = midpoint_label(self.scale_payload, suffix)
+        text_left = rect.right() + label_gap
+        text_width = max(20, self.width() - int(text_left) - margin)
+
+        painter.setPen(QColor("#1f2933"))
+        metrics = painter.fontMetrics()
+        painter.drawText(
+            QRectF(text_left, rect.top() - 2, text_width, metrics.height() + 4),
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+            max_label,
+        )
+        painter.drawText(
+            QRectF(text_left, rect.center().y() - metrics.height() / 2, text_width, metrics.height() + 4),
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+            midpoint,
+        )
+        painter.drawText(
+            QRectF(text_left, rect.bottom() - metrics.height() - 2, text_width, metrics.height() + 4),
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+            min_label,
+        )
+        painter.end()
+
+
+def gradient_stops(cmap):
+    if cmap == "RdYlGn_r":
+        return (
+            (0.0, "#d73027"),
+            (0.5, "#fee08b"),
+            (1.0, "#1a9850"),
+        )
+
+    return (
+        (0.0, "#1a9850"),
+        (0.5, "#fee08b"),
+        (1.0, "#d73027"),
+    )
+
+
+def midpoint_label(scale_payload, suffix):
+    try:
+        minimum = float(scale_payload.get("min"))
+        maximum = float(scale_payload.get("max"))
+    except (TypeError, ValueError):
+        return ""
+
+    return f"{format_value((minimum + maximum) / 2)}{suffix}"
 
 
 def render_live_map_payload(df, config, bg_image, translations, aliases=None, ap_groups=None, px_per_meter=None):

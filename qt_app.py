@@ -49,8 +49,12 @@ from app_settings import (
     save_ui_scale,
 )
 from ap_groups import (
+    AP_ROLE_TEST,
     build_ap_group_role_map,
     build_bssid_to_manual_group_map,
+    format_ap_label,
+    normalize_ap_role,
+    resolve_ap_group_key,
     serialize_ap_group_map,
     serialize_ap_group_roles,
 )
@@ -67,7 +71,13 @@ from quality_engine import (
 from qt_ap_groups import open_qt_ap_group_manager
 from qt_floorplan import FloorplanView
 from qt_help_dialog import open_qt_help_dialog
-from qt_live_map import LiveMapRenderWorker, LiveMapView, create_marker_icon, load_floorplan_image
+from qt_live_map import (
+    LiveGradientLegendWidget,
+    LiveMapRenderWorker,
+    LiveMapView,
+    create_marker_icon,
+    load_floorplan_image,
+)
 from qt_map_generation import MapGenerationDialog
 from qt_point_workflow import MissingRelevantNetworksDialog, RelevantNetworksDialog, WifiScanWorker
 from qt_quality_dashboard import open_qt_quality_dashboard
@@ -694,6 +704,9 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_aggregation_combo = QComboBox()
         self.live_interference_mode_label = QLabel()
         self.live_interference_mode_combo = QComboBox()
+        self.live_ap_group_label = QLabel()
+        self.live_ap_group_combo = QComboBox()
+        self.live_ap_group_combo.setMinimumWidth(self.spx(220))
         self.live_usable_check = QCheckBox()
         self.live_auto_check = QCheckBox()
         self.live_auto_check.setChecked(True)
@@ -706,6 +719,7 @@ class WifiHeatmapQtApp(QMainWindow):
             self.live_map_type_combo,
             self.live_aggregation_combo,
             self.live_interference_mode_combo,
+            self.live_ap_group_combo,
         ):
             combo.currentIndexChanged.connect(lambda *_args: self.on_live_option_changed())
         self.live_usable_check.toggled.connect(lambda *_args: self.on_live_option_changed())
@@ -724,6 +738,8 @@ class WifiHeatmapQtApp(QMainWindow):
         controls_layout.addWidget(self.live_interference_mode_label, 1, 2)
         controls_layout.addWidget(self.live_interference_mode_combo, 1, 3)
         controls_layout.addWidget(self.live_usable_check, 1, 4, 1, 2)
+        controls_layout.addWidget(self.live_ap_group_label, 1, 6)
+        controls_layout.addWidget(self.live_ap_group_combo, 1, 7)
         controls_layout.setColumnStretch(8, 1)
         layout.addWidget(controls)
 
@@ -743,8 +759,11 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_legend_list = QListWidget()
         self.live_legend_list.setAlternatingRowColors(True)
         self.live_legend_list.setWordWrap(True)
+        self.live_gradient_legend = LiveGradientLegendWidget()
+        self.live_gradient_legend.hide()
         legend_layout.addWidget(self.live_legend_title)
         legend_layout.addWidget(self.live_legend_list, 1)
+        legend_layout.addWidget(self.live_gradient_legend, 1)
         live_splitter.addWidget(self.live_legend_frame)
         live_splitter.setStretchFactor(0, 1)
         live_splitter.setStretchFactor(1, 0)
@@ -1206,6 +1225,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_map_type_label.setText(self.tr("map_type"))
         self.live_aggregation_label.setText(self.tr("aggregation"))
         self.live_interference_mode_label.setText(self.tr("interference_mode"))
+        self.live_ap_group_label.setText(self.tr("ap_group_filter"))
         self.live_usable_check.setText(self.tr("usable_only"))
         self.live_auto_check.setText(self.tr("live_auto_update"))
         self.live_update_button.setText(self.tr("live_update_now"))
@@ -1406,6 +1426,81 @@ class WifiHeatmapQtApp(QMainWindow):
         value = combo.currentData()
         return default if value is None else str(value)
 
+    def refresh_live_ap_group_filter(self):
+        current_group = self.current_combo_value(self.live_ap_group_combo, "")
+        items = [("", self.tr("all_ap_groups_option"))]
+        items.extend(self.live_ap_group_filter_items())
+        self.set_combo_items(self.live_ap_group_combo, items, current_value=current_group)
+
+    def live_ap_group_filter_items(self):
+        if self.session is None:
+            return []
+
+        ssid = self.live_ssid_combo.currentText().strip()
+        band = self.current_combo_value(self.live_band_combo, "all")
+        groups = self.session.get_ap_groups()
+        group_map = build_bssid_to_manual_group_map(groups)
+        role_map = build_ap_group_role_map(groups)
+        aliases = self.session.get_ap_aliases()
+        seen_groups = {}
+
+        for row in self.session.rows:
+            row_ssid = str(row.get("ssid", "")).strip()
+            if ssid and row_ssid.casefold() != ssid.casefold():
+                continue
+            if not self.row_matches_live_band(row, band):
+                continue
+
+            bssid = str(row.get("bssid", "")).strip()
+            if not bssid:
+                continue
+            group_id = resolve_ap_group_key(bssid, group_map)
+            if normalize_ap_role(role_map.get(str(group_id))) == AP_ROLE_TEST:
+                continue
+
+            group_entry = seen_groups.setdefault(str(group_id), {"bssids": []})
+            if bssid not in group_entry["bssids"]:
+                group_entry["bssids"].append(bssid)
+
+        return [
+            (group_id, self.format_live_ap_group_filter_label(group_id, entry["bssids"], aliases))
+            for group_id, entry in sorted(
+                seen_groups.items(),
+                key=lambda item: self.format_live_ap_group_filter_label(
+                    item[0],
+                    item[1]["bssids"],
+                    aliases,
+                ).casefold(),
+            )
+        ]
+
+    def row_matches_live_band(self, row, band):
+        if band == "all":
+            return True
+
+        try:
+            channel = float(row.get("channel", ""))
+        except (TypeError, ValueError):
+            return False
+
+        if band == "2.4":
+            return 1 <= channel <= 14
+        if band == "5":
+            return channel >= 36
+        return True
+
+    def format_live_ap_group_filter_label(self, group_id, bssids, aliases):
+        display_name = self.get_ap_group_display_name(group_id)
+        if display_name and display_name != str(group_id):
+            return display_name
+
+        if bssids:
+            label = format_ap_label(bssids[0], aliases, group_id)
+            extra_count = len(bssids) - 1
+            return f"{label} +{extra_count}" if extra_count > 0 else label
+
+        return str(group_id or "-")
+
     def refresh_live_controls(self):
         ssids = []
         if self.session is not None:
@@ -1420,6 +1515,7 @@ class WifiHeatmapQtApp(QMainWindow):
         elif ssids:
             self.live_ssid_combo.setCurrentIndex(0)
         self.live_ssid_combo.blockSignals(False)
+        self.refresh_live_ap_group_filter()
 
         can_render = self.can_use_live_controls(ssids)
         for widget in (
@@ -1428,6 +1524,7 @@ class WifiHeatmapQtApp(QMainWindow):
             self.live_map_type_combo,
             self.live_aggregation_combo,
             self.live_interference_mode_combo,
+            self.live_ap_group_combo,
             self.live_usable_check,
             self.live_auto_check,
         ):
@@ -1458,6 +1555,13 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_aggregation_combo.setEnabled(can_use_controls and is_signal)
         self.live_interference_mode_combo.setEnabled(can_use_controls and is_interference)
         self.live_usable_check.setEnabled(can_use_controls and is_signal)
+        can_filter_ap_group = (
+            can_use_controls
+            and map_type in {"signal", "channel"}
+            and self.live_ap_group_combo.count() > 1
+        )
+        self.live_ap_group_label.setEnabled(can_filter_ap_group)
+        self.live_ap_group_combo.setEnabled(can_filter_ap_group)
         if is_interference and self.current_combo_value(self.live_band_combo) == "all":
             index = self.live_band_combo.findData("2.4")
             if index >= 0:
@@ -1546,15 +1650,22 @@ class WifiHeatmapQtApp(QMainWindow):
         groups = self.session.get_ap_groups() if self.session is not None else []
         ap_group_map = serialize_ap_group_map(build_bssid_to_manual_group_map(groups))
         ap_group_roles = serialize_ap_group_roles(build_ap_group_role_map(groups))
+        map_type = self.current_combo_value(self.live_map_type_combo, "signal")
+        ap_group_filter = (
+            self.current_combo_value(self.live_ap_group_combo, "")
+            if map_type in {"signal", "channel"}
+            else ""
+        )
         return MapConfig(
             ssid=self.live_ssid_combo.currentText().strip(),
             band=self.current_combo_value(self.live_band_combo, "all"),
-            map_type=self.current_combo_value(self.live_map_type_combo, "signal"),
+            map_type=map_type,
             interference_mode=self.current_combo_value(self.live_interference_mode_combo, "intra_ssid"),
             interpolation="rbf",
             aggregation=self.current_combo_value(self.live_aggregation_combo, "max"),
             color_scale="fixed",
             usable_only=self.live_usable_check.isChecked(),
+            ap_group_filter=ap_group_filter,
             ap_group_map=ap_group_map,
             ap_group_roles=ap_group_roles,
         ).normalized()
@@ -1581,15 +1692,22 @@ class WifiHeatmapQtApp(QMainWindow):
             current_ssid = ssids[0] if ssids else ""
 
         groups = self.session.get_ap_groups()
+        map_type = self.current_combo_value(self.live_map_type_combo, "signal")
+        ap_group_filter = (
+            self.current_combo_value(self.live_ap_group_combo, "")
+            if map_type in {"signal", "channel"}
+            else ""
+        )
         return MapConfig(
             ssid=current_ssid,
             band=self.current_combo_value(self.live_band_combo, "all"),
-            map_type=self.current_combo_value(self.live_map_type_combo, "signal"),
+            map_type=map_type,
             interference_mode=self.current_combo_value(self.live_interference_mode_combo, "intra_ssid"),
             interpolation="rbf",
             aggregation=self.current_combo_value(self.live_aggregation_combo, "max"),
             color_scale="fixed",
             usable_only=self.live_usable_check.isChecked(),
+            ap_group_filter=ap_group_filter,
             ap_group_map=serialize_ap_group_map(build_bssid_to_manual_group_map(groups)),
             ap_group_roles=serialize_ap_group_roles(build_ap_group_role_map(groups)),
         ).normalized()
@@ -1678,6 +1796,7 @@ class WifiHeatmapQtApp(QMainWindow):
 
     def update_live_legend(self, scale_payload):
         self.live_legend_list.clear()
+        self.live_gradient_legend.clear()
         if not scale_payload:
             self.clear_live_legend()
             return
@@ -1685,6 +1804,8 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_legend_title.setText(str(scale_payload.get("title") or ""))
         kind = scale_payload.get("kind")
         if kind == "swatches":
+            self.live_gradient_legend.hide()
+            self.live_legend_list.show()
             for item in scale_payload.get("items", []):
                 list_item = QListWidgetItem(str(item.get("label", "")))
                 list_item.setIcon(create_marker_icon(
@@ -1696,15 +1817,16 @@ class WifiHeatmapQtApp(QMainWindow):
             return
 
         if kind == "gradient":
-            suffix = scale_payload.get("suffix", "")
-            item = QListWidgetItem(
-                f"{scale_payload.get('min')}{suffix} / {scale_payload.get('max')}{suffix}"
-            )
-            self.live_legend_list.addItem(item)
+            self.live_legend_list.hide()
+            self.live_gradient_legend.show()
+            self.live_gradient_legend.set_scale_payload(scale_payload)
 
     def clear_live_legend(self):
         self.live_legend_title.setText("")
         self.live_legend_list.clear()
+        self.live_gradient_legend.clear()
+        self.live_legend_list.show()
+        self.live_gradient_legend.hide()
 
     def show_start_page(self):
         self.stack.setCurrentWidget(self.start_page)
