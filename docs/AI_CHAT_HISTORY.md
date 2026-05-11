@@ -937,13 +937,14 @@ Language:
   numeric section in the live options overlay, and used by preview rendering
   and live PDF export.
 - Live PDF export renders the current live-map configuration at full floor-plan
-  extent, independent from viewport zoom/pan. Page 1 places the map and its
-  scale/legend in separate canvas space so the legend does not overlap the map.
-  Map markers use survey-like sizing, positioned AP markers use the Wi-Fi icon,
-  and flattened pages are written as inline PDF images rather than selectable
-  page image objects. Interference and Dominant AP add a second problem-report
-  page; Coverage does not, and AP Channels remains map-only until a diagnostic
-  rule is defined.
+  extent, independent from viewport zoom/pan. Page 1 uses a report-style
+  layout: the map stays full-width on top, while title, summary fields,
+  scale/legend and AP marker note sit in a full-width band below the map. Map
+  markers use survey-like sizing, positioned AP markers use the Wi-Fi icon, and
+  flattened pages are written as inline PDF images rather than selectable page
+  image objects. Interference and Dominant AP add a second problem-report page;
+  Coverage does not, and AP Channels remains map-only until a diagnostic rule
+  is defined.
 - A quick live-map data logic pass confirmed current scoping: Coverage uses
   SSID, band, optional AP group filter, aggregation, interpolation and usable
   threshold; Interference uses SSID, 2.4/5 GHz band, intra/all-network mode,
@@ -955,6 +956,7 @@ Language:
 
 Recent commits:
 
+- `db2eb08` Avoid selectable live PDF page images.
 - `1955bc7` Refine live PDF export and controls.
 - `ab2dae0` Clear live legend selection from map background.
 - `562b878` Move live point labels into legend.

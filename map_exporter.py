@@ -65,6 +65,7 @@ from utils import sanitize_filename
 LIVE_PDF_POINT_SIZE = 105
 LIVE_PDF_POINT_WARNING_SIZE = 132
 LIVE_PDF_AP_ICON_SIZE_PX = 22
+LIVE_PDF_INFO_HEIGHT_PX = 360
 _PDF_AP_ICON_CACHE = None
 
 
@@ -1057,28 +1058,30 @@ def get_risk_color_scale_limits(grid_z, config):
 
 def create_live_pdf_map_figure(bg_image, title):
     width, height = bg_image.size
-    side_width = max(280, min(430, int(width * 0.28)))
-    total_width = width + side_width
+    info_height = max(LIVE_PDF_INFO_HEIGHT_PX, min(520, int(height * 0.18)))
+    total_height = height + info_height
     dpi = 100
-    fig = plt.figure(figsize=(total_width / dpi, height / dpi), dpi=dpi)
-    map_fraction = width / total_width
-    ax = fig.add_axes([0, 0, map_fraction, 1])
+    fig = plt.figure(figsize=(width / dpi, total_height / dpi), dpi=dpi)
+    info_fraction = info_height / total_height
+    map_fraction = height / total_height
+    ax = fig.add_axes([0, info_fraction, 1, map_fraction])
     ax.imshow(np.array(bg_image), zorder=1)
     ax.set_xlim(0, width)
     ax.set_ylim(height, 0)
     ax.set_title("")
     ax.axis("off")
 
-    side_left = map_fraction + 0.025
-    side_width_fraction = max(0.01, 1.0 - side_left - 0.025)
-    side_ax = fig.add_axes([side_left, 0.04, side_width_fraction, 0.92])
-    side_ax.axis("off")
-    side_ax.text(0, 1.0, title, fontsize=13, fontweight="bold", va="top", wrap=True)
-    return fig, ax, side_ax
+    info_ax = fig.add_axes([0, 0, 1, info_fraction])
+    info_ax.set_xlim(0, 1)
+    info_ax.set_ylim(0, 1)
+    info_ax.axis("off")
+    info_ax.add_patch(plt.Rectangle((0, 0), 1, 1, transform=info_ax.transAxes, color="#ffffff", zorder=0))
+    info_ax.plot([0.02, 0.98], [0.94, 0.94], color="#d0d5dd", linewidth=1.0, transform=info_ax.transAxes)
+    return fig, ax, info_ax
 
 
 def add_live_pdf_side_header(side_ax, title, config, tr, language, extra_rows=None):
-    y = 0.89
+    side_ax.text(0.025, 0.78, title, fontsize=15, fontweight="bold", va="top", wrap=True)
     rows = [
         ("SSID", config.ssid),
         (tr("band"), format_band_label(config.band, language)),
@@ -1086,37 +1089,51 @@ def add_live_pdf_side_header(side_ax, title, config, tr, language, extra_rows=No
     if config.is_continuous:
         rows.append((tr("color_scale"), tr(f"color_scale_{config.color_scale}")))
     rows.extend(extra_rows or [])
-    for label, value in rows:
-        side_ax.text(0, y, f"{label}: {value}", fontsize=8.5, va="top", wrap=True)
-        y -= 0.045
+    columns = 3 if len(rows) > 4 else 2
+    x_positions = [0.025, 0.245, 0.465] if columns == 3 else [0.025, 0.345]
+    row_spacing = 0.16 if columns == 3 else 0.19
+    for index, (label, value) in enumerate(rows):
+        column = index % columns
+        row = index // columns
+        x = x_positions[column]
+        y = 0.50 - (row * row_spacing)
+        side_ax.text(x, y, str(label), fontsize=7.4, color="#667085", va="top")
+        side_ax.text(x, y - 0.065, str(value), fontsize=8.8, color="#101828", va="top", fontweight="bold")
 
 
 def add_live_pdf_colorbar(fig, side_ax, mappable, label):
     bbox = side_ax.get_position()
-    side_ax.text(0, 0.55, label, fontsize=8.5, fontweight="bold", va="top", wrap=True)
+    side_ax.text(0.68, 0.62, label, fontsize=9.0, fontweight="bold", va="top", wrap=True)
     cax = fig.add_axes([
-        bbox.x0 + bbox.width * 0.07,
-        bbox.y0 + bbox.height * 0.09,
-        bbox.width * 0.22,
-        bbox.height * 0.38,
+        bbox.x0 + bbox.width * 0.68,
+        bbox.y0 + bbox.height * 0.28,
+        bbox.width * 0.28,
+        bbox.height * 0.14,
     ])
-    cbar = fig.colorbar(mappable, cax=cax)
+    cbar = fig.colorbar(mappable, cax=cax, orientation="horizontal")
     cbar.ax.tick_params(labelsize=7)
 
 
 def add_live_pdf_swatch_list(side_ax, legend_items, title, y=0.66):
-    side_ax.text(0, y, title, fontsize=9.5, fontweight="bold", va="top")
-    y -= 0.05
+    x_start = 0.50
+    side_ax.text(x_start, y, title, fontsize=9.5, fontweight="bold", va="top")
+    y -= 0.12
     if not legend_items:
-        side_ax.text(0, y, "-", fontsize=8, va="top")
+        side_ax.text(x_start, y, "-", fontsize=8, va="top")
         return
 
     max_items = 18
-    for item in legend_items[:max_items]:
+    rows_per_column = 5
+    column_width = 0.12
+    for index, item in enumerate(legend_items[:max_items]):
+        column = index // rows_per_column
+        row = index % rows_per_column
+        item_x = x_start + (column * column_width)
+        item_y = y - (row * 0.11)
         marker = "^" if item.get("shape") == "triangle" else "o"
         side_ax.scatter(
-            [0.035],
-            [y + 0.006],
+            [item_x],
+            [item_y + 0.006],
             s=38,
             marker=marker,
             color=item.get("color", "#7f8c8d"),
@@ -1125,10 +1142,9 @@ def add_live_pdf_swatch_list(side_ax, legend_items, title, y=0.66):
             transform=side_ax.transAxes,
             clip_on=False,
         )
-        side_ax.text(0.09, y, str(item.get("label", "")), fontsize=7.4, va="top", wrap=True)
-        y -= 0.04
+        side_ax.text(item_x + 0.02, item_y, str(item.get("label", "")), fontsize=7.4, va="top", wrap=True)
     if len(legend_items) > max_items:
-        side_ax.text(0.09, y, f"+{len(legend_items) - max_items}", fontsize=7.4, va="top")
+        side_ax.text(x_start, 0.08, f"+{len(legend_items) - max_items}", fontsize=7.4, va="top")
 
 
 def add_live_pdf_ap_marker_note(side_ax, ap_groups, aliases, selected_group="", y=0.08):
@@ -1136,8 +1152,8 @@ def add_live_pdf_ap_marker_note(side_ax, ap_groups, aliases, selected_group="", 
     if visible_count == 0:
         return
 
-    add_pdf_ap_icon(side_ax, 0.035, y + 0.006, xycoords=side_ax.transAxes, icon_size_px=18)
-    side_ax.text(0.09, y, "AP position", fontsize=7.6, va="top")
+    add_pdf_ap_icon(side_ax, 0.86, y + 0.006, xycoords=side_ax.transAxes, icon_size_px=18)
+    side_ax.text(0.88, y, "AP position", fontsize=7.6, va="top")
 
 
 def draw_ap_position_markers(ax, ap_groups, aliases, selected_group=""):
