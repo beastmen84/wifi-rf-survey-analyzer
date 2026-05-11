@@ -594,11 +594,21 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertIs(window.live_update_button.parent(), window.live_toolbar_frame)
             self.assertIs(window.live_band_combo.parent(), window.live_options_body)
             self.assertTrue(window.live_options_body.isHidden())
+            window.live_view_container.resize(900, 600)
+            window.position_live_options_overlay()
+            collapsed_geometry = window.live_options_overlay.geometry()
+            self.assertLessEqual(collapsed_geometry.x(), window.spx(16))
+            self.assertLess(collapsed_geometry.width(), window.spx(96))
+            self.assertGreater(collapsed_geometry.height(), collapsed_geometry.width())
 
             window.toggle_live_options_panel()
+            expanded_geometry = window.live_options_overlay.geometry()
 
             self.assertFalse(window.live_options_body.isHidden())
             self.assertEqual(window.live_options_toggle_button.text(), window.tr("live_options_hide"))
+            self.assertEqual(expanded_geometry.x(), collapsed_geometry.x())
+            self.assertGreater(expanded_geometry.width(), collapsed_geometry.width() * 3)
+            self.assertGreater(expanded_geometry.right(), collapsed_geometry.right())
         finally:
             window.deleteLater()
 
@@ -614,7 +624,14 @@ class WorkspaceLiveStateTests(unittest.TestCase):
                 window.live_map_type_combo.blockSignals(False)
                 window.update_live_option_state()
 
+            def grid_position(widget):
+                item_index = window.live_options_layout.indexOf(widget)
+                return window.live_options_layout.getItemPosition(item_index)
+
             set_map_type("signal")
+            self.assertEqual(grid_position(window.live_band_label)[:2], (0, 0))
+            self.assertEqual(grid_position(window.live_band_combo)[:2], (0, 1))
+            self.assertEqual(grid_position(window.live_usable_check), (3, 0, 1, 2))
             self.assertFalse(window.live_band_combo.isHidden())
             self.assertFalse(window.live_aggregation_combo.isHidden())
             self.assertFalse(window.live_interpolation_combo.isHidden())
@@ -623,6 +640,8 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertTrue(window.live_interference_mode_combo.isHidden())
 
             set_map_type("interference")
+            self.assertEqual(grid_position(window.live_interference_mode_label)[:2], (1, 0))
+            self.assertEqual(grid_position(window.live_interference_mode_combo)[:2], (1, 1))
             self.assertFalse(window.live_band_combo.isHidden())
             self.assertFalse(window.live_interference_mode_combo.isHidden())
             self.assertFalse(window.live_interpolation_combo.isHidden())

@@ -39,7 +39,7 @@ Read this section first in a new chat.
 - The current code test baseline after the latest live-map status pass is 39
   passing tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
-  `ee96a1f Shrink live gradient legend panel`.
+  `90edb05 Simplify live map status text`.
 - Current AP positioning and scale calibration pick points with left click while
   their modal map-pick mode is active; normal map dragging is disabled during
   the pick and the click must not create a measurement point.
@@ -863,9 +863,14 @@ Language:
   only `Live map updated` / `Mappa live aggiornata`, without appending map type,
   color scale min/max, or swatch counts. Rendering, insufficient-data and error
   statuses remain explicit.
+- Live-map options overlay now uses a left-side vertical tab on the viewport
+  instead of a bottom-center pill. When opened, it expands to the right with a
+  vertical list of options: label on the left, dropdown/control aligned on the
+  right; checkbox-only options span the row aligned left.
 
 Recent commits:
 
+- `90edb05` Simplify live map status text.
 - `ee96a1f` Shrink live gradient legend panel.
 - `4698135` Tone down live gradient colors.
 - `2153fd7` Fix live gradient legend saturation.
@@ -940,7 +945,8 @@ Current tests cover, among other things:
 - AP marker icon scaling;
 - live marker sizing, saturated live gradient legend painting/overlay behavior,
   and live AP position marker handling;
-- live toolbar/options overlay placement and map-type-specific option visibility;
+- live toolbar/options overlay placement, left-side expansion, row alignment,
+  and map-type-specific option visibility;
 - minimal live status text after successful renders;
 - live pan cursor state and gradient overlay reanchoring after content scroll;
 - live refresh callbacks that update tab state and finish/fail render state;

@@ -804,26 +804,23 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_options_overlay = QFrame(self.live_view_container)
         self.live_options_overlay.setObjectName("floatingLiveOptionsPanelCollapsed")
         self.live_options_overlay.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        overlay_layout = QVBoxLayout(self.live_options_overlay)
+        overlay_layout = QHBoxLayout(self.live_options_overlay)
         overlay_layout.setContentsMargins(self.spx(8), self.spx(8), self.spx(8), self.spx(8))
         overlay_layout.setSpacing(self.spx(8))
 
-        handle_row = QHBoxLayout()
-        handle_row.setContentsMargins(0, 0, 0, 0)
-        handle_row.addStretch(1)
         self.live_options_toggle_button = QPushButton()
         self.live_options_toggle_button.setObjectName("liveOptionsPanelToggle")
         self.live_options_toggle_button.clicked.connect(self.toggle_live_options_panel)
-        handle_row.addWidget(self.live_options_toggle_button)
-        handle_row.addStretch(1)
-        overlay_layout.addLayout(handle_row)
+        overlay_layout.addWidget(self.live_options_toggle_button)
 
         self.live_options_body = QWidget()
         self.live_options_body.setObjectName("liveOptionsBody")
         self.live_options_layout = QGridLayout(self.live_options_body)
-        self.live_options_layout.setContentsMargins(self.spx(6), self.spx(2), self.spx(6), self.spx(4))
-        self.live_options_layout.setHorizontalSpacing(self.spx(10))
+        self.live_options_layout.setContentsMargins(self.spx(4), self.spx(2), self.spx(8), self.spx(4))
+        self.live_options_layout.setHorizontalSpacing(self.spx(12))
         self.live_options_layout.setVerticalSpacing(self.spx(8))
+        self.live_options_layout.setColumnMinimumWidth(0, self.spx(118))
+        self.live_options_layout.setColumnStretch(1, 1)
         overlay_layout.addWidget(self.live_options_body)
         self.live_options_body.setVisible(False)
         self.update_live_options_panel_toggle()
@@ -859,17 +856,17 @@ class WifiHeatmapQtApp(QMainWindow):
 
         margin = self.spx(16)
         if self.live_options_panel_expanded:
-            width = min(max(self.spx(620), int(container_width * 0.64)), max(self.spx(320), container_width - margin * 2))
+            width = min(max(self.spx(360), int(container_width * 0.34)), max(self.spx(320), container_width - margin * 2))
             height = min(
-                max(self.spx(96), self.live_options_overlay.sizeHint().height()),
-                max(self.spx(96), container_height - margin * 2),
+                max(self.spx(188), self.live_options_overlay.sizeHint().height()),
+                max(self.spx(188), container_height - margin * 2),
             )
         else:
-            width = min(self.spx(260), max(self.spx(220), container_width - margin * 2))
-            height = max(self.spx(50), self.live_options_toggle_button.sizeHint().height() + self.spx(16))
+            width = max(self.spx(58), self.live_options_toggle_button.sizeHint().width() + self.spx(16))
+            height = max(self.spx(132), self.live_options_toggle_button.sizeHint().height() + self.spx(16))
 
-        x = max(margin, (container_width - width) // 2)
-        y = max(margin, container_height - height - margin)
+        x = margin
+        y = max(margin, (container_height - height) // 2)
         self.live_options_overlay.setGeometry(x, y, width, height)
         self.live_options_overlay.raise_()
 
@@ -970,10 +967,11 @@ class WifiHeatmapQtApp(QMainWindow):
                 font-weight: 700;
             }}
             QPushButton#liveOptionsPanelToggle {{
-                min-width: {s(190)}px;
-                min-height: {s(30)}px;
-                padding: {s(6)}px {s(18)}px;
-                border-radius: {s(15)}px;
+                min-width: {s(42)}px;
+                max-width: {s(50)}px;
+                min-height: {s(116)}px;
+                padding: {s(8)}px {s(4)}px;
+                border-radius: {s(18)}px;
                 background: {palette["metric_info"]};
                 color: #FFFFFF;
                 border: 1px solid {palette["metric_info"]};
@@ -1746,40 +1744,32 @@ class WifiHeatmapQtApp(QMainWindow):
         for widget in self.live_option_widgets:
             self.live_options_layout.removeWidget(widget)
 
-        column = 0
         row = 0
-        max_columns = 6
 
-        def add_labeled(label, widget, width=1):
-            nonlocal column, row
-            required_width = 2 + (width - 1)
-            if column and column + required_width > max_columns:
-                row += 1
-                column = 0
-            self.live_options_layout.addWidget(label, row, column)
-            self.live_options_layout.addWidget(widget, row, column + 1, 1, width)
-            column += 2 + (width - 1)
+        def add_labeled(label, widget):
+            nonlocal row
+            label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            self.live_options_layout.addWidget(label, row, 0)
+            self.live_options_layout.addWidget(widget, row, 1)
+            row += 1
 
-        def add_standalone(widget, width=2):
-            nonlocal column, row
-            if column and column + width > max_columns:
-                row += 1
-                column = 0
-            self.live_options_layout.addWidget(widget, row, column, 1, width)
-            column += width
+        def add_checkbox(widget):
+            nonlocal row
+            self.live_options_layout.addWidget(widget, row, 0, 1, 2, Qt.AlignmentFlag.AlignLeft)
+            row += 1
 
         add_labeled(self.live_band_label, self.live_band_combo)
 
         if map_type == "signal":
             add_labeled(self.live_aggregation_label, self.live_aggregation_combo)
             add_labeled(self.live_interpolation_label, self.live_interpolation_combo)
-            add_standalone(self.live_usable_check)
-            add_labeled(self.live_ap_group_label, self.live_ap_group_combo, width=2)
+            add_checkbox(self.live_usable_check)
+            add_labeled(self.live_ap_group_label, self.live_ap_group_combo)
         elif map_type == "interference":
             add_labeled(self.live_interference_mode_label, self.live_interference_mode_combo)
             add_labeled(self.live_interpolation_label, self.live_interpolation_combo)
         elif map_type == "channel":
-            add_labeled(self.live_ap_group_label, self.live_ap_group_combo, width=2)
+            add_labeled(self.live_ap_group_label, self.live_ap_group_combo)
 
         if hasattr(self, "live_options_overlay"):
             QTimer.singleShot(0, self.position_live_options_overlay)
