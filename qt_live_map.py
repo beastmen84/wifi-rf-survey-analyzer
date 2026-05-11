@@ -29,7 +29,7 @@ from PySide6.QtWidgets import (
 )
 
 from app_logging import log_event, log_exception
-from ap_groups import build_dominant_ap_group_labels, format_ap_label, normalize_ap_role
+from ap_groups import AP_ROLE_TEST, build_dominant_ap_group_labels, format_ap_label, normalize_ap_role
 from ap_positioning import (
     AP_POSITION_MISSING,
     AP_POSITION_NO_SCALE,
@@ -43,6 +43,7 @@ from constants import SURVEY_FIELDNAMES
 from heatmap_tools import get_channel_map_points, get_dominant_ap_points
 from live_renderer import render_live_continuous_map
 from map_rendering import get_channel_color, get_channel_sort_key, get_limited_bssid_color_map
+from qt_floorplan import AP_MARKER_BASE_SIZE, load_ap_position_icon
 
 
 LIVE_POINT_MARKER_BASE_SIZE = 14
@@ -100,23 +101,29 @@ class LiveMapView(QGraphicsView):
         self.setScene(self.scene)
         self.pixmap_item = None
         self.marker_items = []
+        self.ap_marker_items = []
         self.zoom_level = 1.0
+        self._pan_last_pos = None
+        self.ap_position_icon = load_ap_position_icon()
         self.gradient_legend = LiveGradientLegendWidget(self.viewport())
         self.gradient_legend.setFixedSize(150, 220)
         self.gradient_legend.hide()
 
         self.setObjectName("liveMapView")
         self.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform)
-        self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+        self.setDragMode(QGraphicsView.DragMode.NoDrag)
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorViewCenter)
         self.setBackgroundBrush(QBrush(Qt.GlobalColor.darkGray))
+        self.viewport().setCursor(Qt.CursorShape.ArrowCursor)
 
     def clear(self):
         self.scene.clear()
         self.pixmap_item = None
         self.marker_items = []
+        self.ap_marker_items = []
         self.zoom_level = 1.0
+        self._pan_last_pos = None
         self.clear_gradient_legend()
 
     def set_payload(self, payload):
@@ -129,6 +136,7 @@ class LiveMapView(QGraphicsView):
         self.scene.addItem(self.pixmap_item)
         self.scene.setSceneRect(pixmap.rect())
         self.add_markers(payload.get("point_infos", []))
+        self.add_ap_markers(payload.get("ap_infos", []))
         self.resetTransform()
         self.zoom_level = 1.0
         self.fit_to_view()
@@ -149,6 +157,40 @@ class LiveMapView(QGraphicsView):
                 item.setToolTip(str(tooltip))
             self.scene.addItem(item)
             self.marker_items.append(item)
+
+    def add_ap_markers(self, ap_infos):
+        for info in ap_infos:
+            try:
+                x = float(info.get("x"))
+                y = float(info.get("y"))
+            except (TypeError, ValueError):
+                continue
+
+            item = self.create_ap_marker_item(info)
+            item.setPos(x, y)
+            item.setZValue(30)
+            tooltip = info.get("tooltip")
+            if tooltip:
+                item.setToolTip(str(tooltip))
+            self.scene.addItem(item)
+            self.ap_marker_items.append(item)
+
+    def create_ap_marker_item(self, info):
+        if self.ap_position_icon and not self.ap_position_icon.isNull():
+            pixmap = self.ap_position_icon
+            item = QGraphicsPixmapItem(pixmap)
+            item.setTransformationMode(Qt.TransformationMode.SmoothTransformation)
+            item.setOffset(-pixmap.width() / 2, -pixmap.height() / 2)
+            max_source_size = max(pixmap.width(), pixmap.height())
+            if max_source_size > 0:
+                item.setScale(AP_MARKER_BASE_SIZE / max_source_size)
+            return item
+
+        radius = AP_MARKER_BASE_SIZE / 2
+        item = QGraphicsEllipseItem(-radius, -radius, radius * 2, radius * 2)
+        item.setBrush(QBrush(QColor(str(info.get("color") or "#0d6efd"))))
+        item.setPen(QPen(Qt.GlobalColor.white, 1.6))
+        return item
 
     def create_marker_item(self, info):
         shape = str(info.get("shape") or "circle")
@@ -229,6 +271,50 @@ class LiveMapView(QGraphicsView):
         super().resizeEvent(event)
         if self.gradient_legend.isVisible():
             self.position_gradient_legend()
+
+    def can_pan(self):
+        return (
+            self.pixmap_item is not None
+            and (
+                self.horizontalScrollBar().maximum() > self.horizontalScrollBar().minimum()
+                or self.verticalScrollBar().maximum() > self.verticalScrollBar().minimum()
+            )
+        )
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton and self.can_pan():
+            self._pan_last_pos = event.position().toPoint()
+            self.viewport().setCursor(Qt.CursorShape.ClosedHandCursor)
+            event.accept()
+            return
+
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self._pan_last_pos is not None:
+            current_pos = event.position().toPoint()
+            delta = current_pos - self._pan_last_pos
+            self._pan_last_pos = current_pos
+            self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() - delta.x())
+            self.verticalScrollBar().setValue(self.verticalScrollBar().value() - delta.y())
+            event.accept()
+            return
+
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton and self._pan_last_pos is not None:
+            self._pan_last_pos = None
+            self.viewport().setCursor(Qt.CursorShape.ArrowCursor)
+            event.accept()
+            return
+
+        super().mouseReleaseEvent(event)
+
+    def leaveEvent(self, event):
+        self._pan_last_pos = None
+        self.viewport().setCursor(Qt.CursorShape.ArrowCursor)
+        super().leaveEvent(event)
 
     def wheelEvent(self, event):
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
@@ -366,15 +452,15 @@ class LiveGradientLegendWidget(QWidget):
 def gradient_stops(cmap):
     if cmap == "RdYlGn_r":
         return (
-            (0.0, "#d73027"),
-            (0.5, "#fee08b"),
-            (1.0, "#1a9850"),
+            (0.0, "#e31a1c"),
+            (0.5, "#ffd21f"),
+            (1.0, "#00a65a"),
         )
 
     return (
-        (0.0, "#1a9850"),
-        (0.5, "#fee08b"),
-        (1.0, "#d73027"),
+        (0.0, "#00a65a"),
+        (0.5, "#ffd21f"),
+        (1.0, "#e31a1c"),
     )
 
 
@@ -390,10 +476,11 @@ def midpoint_label(scale_payload, suffix):
 
 def render_live_map_payload(df, config, bg_image, translations, aliases=None, ap_groups=None, px_per_meter=None):
     if config.is_channel:
-        return build_channel_payload(df, config, bg_image, translations, aliases or {})
+        payload = build_channel_payload(df, config, bg_image, translations, aliases or {})
+        return attach_ap_position_markers(payload, ap_groups or [], aliases or {}, translations)
 
     if config.is_dominant:
-        return build_dominant_payload(
+        payload = build_dominant_payload(
             df,
             config,
             bg_image,
@@ -402,8 +489,9 @@ def render_live_map_payload(df, config, bg_image, translations, aliases=None, ap
             ap_groups or [],
             px_per_meter,
         )
+        return attach_ap_position_markers(payload, ap_groups or [], aliases or {}, translations)
 
-    return render_live_continuous_map(
+    payload = render_live_continuous_map(
         df,
         config,
         bg_image,
@@ -416,6 +504,53 @@ def render_live_map_payload(df, config, bg_image, translations, aliases=None, ap
             aliases or {},
         ),
         get_color_scale_limits,
+    )
+    return attach_ap_position_markers(payload, ap_groups or [], aliases or {}, translations)
+
+
+def attach_ap_position_markers(payload, ap_groups, aliases, translations):
+    if not payload:
+        return payload
+
+    payload["ap_infos"] = build_ap_position_marker_infos(ap_groups, aliases, translations)
+    return payload
+
+
+def build_ap_position_marker_infos(ap_groups, aliases, translations):
+    ap_infos = []
+    for group in ap_groups or []:
+        if normalize_ap_role(group.get("role")) == AP_ROLE_TEST:
+            continue
+
+        position = group.get("position") or {}
+        try:
+            x = int(position.get("x"))
+            y = int(position.get("y"))
+        except (TypeError, ValueError):
+            continue
+
+        group_id = str(group.get("group_id", ""))
+        label = str(group.get("alias", "")).strip() or format_group_label(group_id, aliases)
+        ap_infos.append({
+            "x": x,
+            "y": y,
+            "label": label,
+            "tooltip": build_ap_position_tooltip(group, label, x, y, translations),
+        })
+    return ap_infos
+
+
+def build_ap_position_tooltip(group, label, x, y, translations):
+    bssids = ", ".join(str(bssid) for bssid in group.get("bssids", []) if str(bssid)) or "-"
+    return build_html_tooltip(
+        translations.get("ap_position_marker_title", "AP position"),
+        [
+            (translations.get("ap_group", "AP group"), group.get("group_id", "-")),
+            (translations.get("ap_label", "Label"), label),
+            ("x/y", f"{x}, {y}"),
+            ("BSSID", bssids),
+        ],
+        "#0d6efd",
     )
 
 

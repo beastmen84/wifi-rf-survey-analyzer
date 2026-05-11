@@ -36,7 +36,7 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the latest live-map pass is 27 passing
+- The current code test baseline after the latest live-map pass is 29 passing
   tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
   `53e50c1 Keep AP marker icons sharp`.
@@ -194,14 +194,23 @@ Live tab:
   `qt_floorplan.py` before changing it.
 - Continuous Qt live coverage/interference maps use a right-side gradient color
   scale overlay inside the map view instead of a right-side legend panel.
+- The live gradient scale uses saturated red/yellow/green stops to stay visually
+  aligned with the heatmap colors.
 - Qt live signal coverage and AP channel maps have an AP group filter. Test AP
   groups are excluded from the filter list.
 - Qt live controls are now map-type-specific: coverage shows aggregation,
   interpolation, usable threshold and AP group; interference shows interference
   mode and interpolation; AP channels shows AP group; dominant AP hides the
   continuous-map controls.
+- Live update/auto-update actions are separated into their own action panel
+  instead of being mixed into the filter grid.
 - Qt live point markers are scene-sized 14 px markers like the survey view, so
   they scale with map zoom instead of staying a fixed screen size.
+- Live map panning no longer uses Qt's always-hand `ScrollHandDrag`; the cursor
+  stays normal and switches to a closed hand only while dragging a pannable,
+  zoomed-in live map.
+- Live maps now draw positioned physical AP markers, excluding AP groups marked
+  as `Test/nascosto`.
 - Continuous live rendering uses a worker thread and Matplotlib Agg; GUI updates
   happen on the Qt main thread.
 - Result caching/fingerprinting exists in `live_renderer.py`.
@@ -799,9 +808,14 @@ Language:
   hosted by `LiveMapView`; the second live control row is pruned per map type;
   and live continuous maps expose the same RBF/Linear interpolation choice used
   by generated map export.
+- Refined the Qt live map toolbar and overlays after visual review: auto-update
+  and update-now actions moved to a separate action panel, the continuous
+  colorbar uses more vivid heatmap colors, the live view cursor stays normal
+  until actual panning starts, and positioned AP markers are shown on live maps.
 
 Recent commits:
 
+- `78a210e` Specialize Qt live map views.
 - `67d16b9` Refine Qt live map controls and legend.
 - `53e50c1` Keep AP marker icons sharp.
 - `c836d44` Constrain app bar icon height only.
@@ -866,4 +880,5 @@ Current tests cover, among other things:
 - UI scale and restart command helpers;
 - dialog/windowing behavior;
 - AP marker icon scaling;
-- live marker sizing and live gradient legend painting/overlay behavior.
+- live marker sizing, live gradient legend painting/overlay behavior, and live
+  AP position marker handling.

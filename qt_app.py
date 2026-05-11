@@ -685,6 +685,11 @@ class WifiHeatmapQtApp(QMainWindow):
         layout.setContentsMargins(self.spx(16), self.spx(16), self.spx(16), self.spx(16))
         layout.setSpacing(self.spx(12))
 
+        controls_row = QHBoxLayout()
+        controls_row.setContentsMargins(0, 0, 0, 0)
+        controls_row.setSpacing(self.spx(12))
+        layout.addLayout(controls_row)
+
         controls = QFrame()
         controls.setObjectName("summaryPanel")
         controls_layout = QGridLayout(controls)
@@ -733,8 +738,6 @@ class WifiHeatmapQtApp(QMainWindow):
         controls_layout.addWidget(self.live_band_combo, 0, 3)
         controls_layout.addWidget(self.live_map_type_label, 0, 4)
         controls_layout.addWidget(self.live_map_type_combo, 0, 5)
-        controls_layout.addWidget(self.live_auto_check, 0, 6)
-        controls_layout.addWidget(self.live_update_button, 0, 7)
         controls_layout.addWidget(self.live_aggregation_label, 1, 0)
         controls_layout.addWidget(self.live_aggregation_combo, 1, 1)
         controls_layout.addWidget(self.live_interference_mode_label, 1, 0)
@@ -745,7 +748,18 @@ class WifiHeatmapQtApp(QMainWindow):
         controls_layout.addWidget(self.live_ap_group_label, 1, 6)
         controls_layout.addWidget(self.live_ap_group_combo, 1, 7)
         controls_layout.setColumnStretch(8, 1)
-        layout.addWidget(controls)
+        controls_row.addWidget(controls, 1)
+
+        actions = QFrame()
+        actions.setObjectName("summaryPanel")
+        actions_layout = QVBoxLayout(actions)
+        actions_layout.setContentsMargins(self.spx(14), self.spx(12), self.spx(14), self.spx(12))
+        actions_layout.setSpacing(self.spx(8))
+        self.live_update_button.setMinimumWidth(self.spx(220))
+        actions_layout.addWidget(self.live_auto_check)
+        actions_layout.addWidget(self.live_update_button)
+        actions_layout.addStretch(1)
+        controls_row.addWidget(actions, 0)
 
         live_splitter = QSplitter(Qt.Orientation.Horizontal)
         self.live_view = LiveMapView()
@@ -1788,6 +1802,9 @@ class WifiHeatmapQtApp(QMainWindow):
             "ap_position_weak_close": self.tr("ap_position_weak_close"),
             "ap_position_unexpected_dominant": self.tr("ap_position_unexpected_dominant"),
             "ap_position_unknown_warning": self.tr("ap_position_unknown_warning"),
+            "ap_position_marker_title": self.tr("ap_group_position_tooltip_title"),
+            "ap_group": self.tr("ap_alias_group"),
+            "ap_label": self.tr("ap_label"),
         }
 
     def finish_live_preview(self, payload):

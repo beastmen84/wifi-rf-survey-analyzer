@@ -5,7 +5,8 @@ import tempfile
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QApplication, QDialog, QGraphicsItem, QWidget
+from PySide6.QtWidgets import QApplication, QDialog, QGraphicsItem, QGraphicsView, QWidget
+from PIL import Image
 
 from app_logging import MaxLogLevelFilter
 from app_restart import build_restart_command
@@ -24,7 +25,12 @@ from qt_quality_dashboard import (
     get_effective_ap_groups,
 )
 from qt_floorplan import AP_MARKER_BASE_SIZE, FloorplanView
-from qt_live_map import LIVE_POINT_MARKER_BASE_SIZE, LiveGradientLegendWidget, LiveMapView
+from qt_live_map import (
+    LIVE_POINT_MARKER_BASE_SIZE,
+    LiveGradientLegendWidget,
+    LiveMapView,
+    build_ap_position_marker_infos,
+)
 from qt_windowing import pop_modal_dim, push_modal_dim
 from quality_engine import QUALITY_GOOD, QUALITY_MISSING_RELEVANT, evaluate_point_quality
 from survey_store import get_survey_point_summaries_from_rows
@@ -360,6 +366,7 @@ class LiveMapViewTests(unittest.TestCase):
 
         self.assertEqual(marker.rect().width(), LIVE_POINT_MARKER_BASE_SIZE)
         self.assertFalse(marker.flags() & QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations)
+        self.assertEqual(view.dragMode(), QGraphicsView.DragMode.NoDrag)
         view.deleteLater()
 
     def test_gradient_legend_paints_payload(self):
@@ -399,6 +406,31 @@ class LiveMapViewTests(unittest.TestCase):
 
         self.assertTrue(view.gradient_legend.isHidden())
         view.deleteLater()
+
+    def test_live_view_shows_positioned_ap_markers(self):
+        view = LiveMapView()
+        payload = {
+            "image": Image.new("RGB", (120, 90), "white"),
+            "point_infos": [],
+            "ap_infos": [{"x": 40, "y": 30, "label": "AP", "tooltip": "AP"}],
+        }
+
+        view.set_payload(payload)
+
+        self.assertEqual(len(view.ap_marker_items), 1)
+        view.deleteLater()
+
+    def test_live_ap_position_markers_skip_test_groups(self):
+        markers = build_ap_position_marker_infos(
+            [
+                {"group_id": "visible", "position": {"x": 10, "y": 20}, "role": "internal"},
+                {"group_id": "hidden", "position": {"x": 30, "y": 40}, "role": "test"},
+            ],
+            aliases={},
+            translations={},
+        )
+
+        self.assertEqual([marker["label"] for marker in markers], ["visible"])
 
 
 class ApMetadataTests(unittest.TestCase):
