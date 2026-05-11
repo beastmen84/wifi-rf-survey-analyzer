@@ -19,14 +19,18 @@ from i18n import translate
 from ap_groups import (
     AP_ROLE_EXTERNAL,
     AP_ROLE_INTERNAL,
+    AP_ROLE_INTERFERER,
     AP_ROLE_TEST,
     build_ap_group_role_map,
     build_bssid_to_manual_group_map,
+    build_default_manual_groups,
     build_manual_ap_group,
+    merge_new_bssids_into_manual_groups,
     resolve_ap_group_key,
     serialize_ap_group_map,
     serialize_ap_group_roles,
 )
+from ap_group_checks import build_ap_group_conflicts
 from ap_metadata_checks import build_ap_metadata_warnings
 from heatmap_tools import calculate_interference_points, get_channel_map_points, get_dominant_ap_points
 from live_renderer import build_signal_payload
@@ -92,6 +96,91 @@ class ApGroupTests(unittest.TestCase):
 
         self.assertEqual(resolve_ap_group_key(first_bssid, group_map), "corridor")
         self.assertEqual(resolve_ap_group_key(second_bssid, group_map), "office")
+
+    def test_default_manual_groups_are_unlocked_auto_suggestions(self):
+        first_bssid = "70:4f:57:aa:bb:10"
+        second_bssid = "70:4f:57:aa:bb:11"
+        groups = build_default_manual_groups([
+            build_row("p1", "MAIN", first_bssid, -50, 1),
+            build_row("p1", "GUEST", second_bssid, -55, 1),
+        ])
+
+        self.assertEqual(len(groups), 1)
+        self.assertFalse(groups[0]["locked"])
+        self.assertEqual(groups[0]["role"], AP_ROLE_INTERNAL)
+        self.assertEqual(groups[0]["bssids"], [first_bssid, second_bssid])
+
+    def test_merge_new_bssids_preserves_manual_group_details(self):
+        known_bssid = "70:4f:57:aa:bb:10"
+        new_bssid = "90:11:22:33:44:10"
+        manual_group = build_manual_ap_group(
+            "office-ap",
+            [known_bssid],
+            alias="Office AP",
+            locked=True,
+            position={"x": 10, "y": 20},
+            role=AP_ROLE_INTERFERER,
+            metadata={"vendor": "Acme", "expected_channels": "1"},
+        )
+
+        merged = merge_new_bssids_into_manual_groups(
+            [manual_group],
+            [
+                build_row("p1", "MAIN", known_bssid, -50, 1),
+                build_row("p2", "MAIN", new_bssid, -60, 6),
+            ],
+        )
+
+        preserved = next(group for group in merged if group["group_id"] == "office-ap")
+        added = next(group for group in merged if group["group_id"] != "office-ap")
+
+        self.assertEqual(preserved["alias"], "Office AP")
+        self.assertTrue(preserved["locked"])
+        self.assertEqual(preserved["position"], {"x": 10, "y": 20})
+        self.assertEqual(preserved["role"], AP_ROLE_INTERFERER)
+        self.assertEqual(preserved["metadata"]["vendor"], "Acme")
+        self.assertFalse(added["locked"])
+        self.assertEqual(added["role"], AP_ROLE_INTERNAL)
+        self.assertEqual(added["bssids"], [new_bssid])
+
+    def test_merge_new_bssids_uses_unique_group_id_when_auto_key_collides(self):
+        existing_group_id = "11:22:33:44:1*"
+        new_bssid = "90:11:22:33:44:10"
+        manual_group = build_manual_ap_group(existing_group_id, ["70:aa:bb:cc:dd:10"])
+
+        merged = merge_new_bssids_into_manual_groups(
+            [manual_group],
+            [build_row("p1", "MAIN", new_bssid, -60, 6)],
+        )
+
+        self.assertEqual(
+            sorted(group["group_id"] for group in merged),
+            [existing_group_id, f"{existing_group_id}#2"],
+        )
+
+    def test_ap_group_conflicts_detect_same_band_multi_channel_and_ignore_test_groups(self):
+        internal_bssids = ["70:4f:57:aa:bb:10", "70:4f:57:aa:bb:11", "70:4f:57:aa:bb:50"]
+        test_bssids = ["80:11:22:33:44:10", "80:11:22:33:44:11"]
+        groups = [
+            build_manual_ap_group("office-ap", internal_bssids, role=AP_ROLE_INTERNAL),
+            build_manual_ap_group("test-ap", test_bssids, role=AP_ROLE_TEST),
+        ]
+        rows = [
+            build_row("p1", "MAIN", internal_bssids[0], -50, 1),
+            build_row("p1", "MAIN", internal_bssids[1], -51, 6),
+            build_row("p1", "MAIN", internal_bssids[2], -52, 36),
+            build_row("p1", "MAIN", test_bssids[0], -30, 1),
+            build_row("p1", "MAIN", test_bssids[1], -31, 11),
+        ]
+
+        conflicts = build_ap_group_conflicts(rows, groups)
+
+        self.assertEqual(len(conflicts), 1)
+        self.assertEqual(conflicts[0]["group_id"], "office-ap")
+        self.assertEqual(conflicts[0]["band"], "2.4")
+        self.assertEqual(conflicts[0]["channels"], ["1", "6"])
+        self.assertEqual(conflicts[0]["bssids_by_channel"]["1"], [internal_bssids[0]])
+        self.assertEqual(conflicts[0]["bssids_by_channel"]["6"], [internal_bssids[1]])
 
 
 class InterferenceTests(unittest.TestCase):
