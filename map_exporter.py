@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
+from textwrap import wrap
 
 import matplotlib
 
@@ -179,7 +180,7 @@ def generate_live_pdf_export(
         )
         summary = build_interference_summary(risk_df, output_file, "", config.band, tr, language)
         figures.append(map_fig)
-        figures.append(build_interference_problem_report_page(risk_df, config, tr, language))
+        figures.extend(build_interference_problem_report_pages(risk_df, config, tr, language))
     elif config.is_channel:
         figures.append(build_live_pdf_channel_figure(df, bg_image, config, tr, language, aliases, ap_groups))
     elif config.is_dominant:
@@ -194,7 +195,7 @@ def generate_live_pdf_export(
             px_per_meter,
         )
         figures.append(map_fig)
-        figures.append(build_dominant_problem_report_page(dominant_df, config, tr, language, aliases))
+        figures.extend(build_dominant_problem_report_pages(dominant_df, config, tr, language, aliases))
     else:
         figures.append(build_live_pdf_signal_figure(df, bg_image, config, tr, language, aliases, ap_groups))
 
@@ -1313,7 +1314,7 @@ def build_dominant_point_legend_items(dominant_df, config, aliases, color_map):
     return items
 
 
-def build_interference_problem_report_page(risk_df, config, tr, language):
+def build_interference_problem_report_pages(risk_df, config, tr, language):
     problem_df = risk_df[risk_df["risk"] >= 30].sort_values("risk", ascending=False).head(12)
     rows = []
     for _index, row in problem_df.iterrows():
@@ -1325,7 +1326,7 @@ def build_interference_problem_report_page(risk_df, config, tr, language):
             get_interference_diagnosis(row, tr),
         ])
 
-    return build_problem_report_page(
+    return build_problem_report_pages(
         tr("live_pdf_problem_report_title"),
         f"{tr('export_interference_title')} - {config.ssid} - {format_band_label(config.band, language)}",
         [tr("interference_summary_point"), tr("reference_risk"), tr("interference_summary_serving_channel"),
@@ -1335,7 +1336,7 @@ def build_interference_problem_report_page(risk_df, config, tr, language):
     )
 
 
-def build_dominant_problem_report_page(dominant_df, config, tr, language, aliases):
+def build_dominant_problem_report_pages(dominant_df, config, tr, language, aliases):
     group_labels = build_dominant_ap_group_labels(dominant_df, aliases)
     rows = []
     for _index, row in dominant_df.iterrows():
@@ -1359,7 +1360,7 @@ def build_dominant_problem_report_page(dominant_df, config, tr, language, aliase
             "; ".join(issues),
         ])
 
-    return build_problem_report_page(
+    return build_problem_report_pages(
         tr("live_pdf_problem_report_title"),
         f"{tr('export_dominant_title')} - {config.ssid} - {format_band_label(config.band, language)}",
         [tr("interference_summary_point"), tr("dominant_map_legend_title"), tr("reference_delta"),
@@ -1369,32 +1370,149 @@ def build_dominant_problem_report_page(dominant_df, config, tr, language, aliase
     )
 
 
-def build_problem_report_page(title, subtitle, headers, rows, empty_message):
-    fig, ax = plt.subplots(figsize=(11.69, 8.27), dpi=100)
-    ax.axis("off")
-    ax.text(0.03, 0.96, title, fontsize=16, fontweight="bold", va="top")
-    ax.text(0.03, 0.91, subtitle, fontsize=10, va="top")
+def build_problem_report_pages(title, subtitle, headers, rows, empty_message, rows_per_page=4):
     if not rows:
-        ax.text(0.03, 0.82, empty_message, fontsize=11, va="top")
+        return [build_problem_report_page(title, subtitle, headers, [], empty_message)]
+
+    pages = []
+    page_count = int(np.ceil(len(rows) / rows_per_page))
+    for page_index in range(page_count):
+        start = page_index * rows_per_page
+        stop = start + rows_per_page
+        pages.append(build_problem_report_page(
+            title,
+            subtitle,
+            headers,
+            rows[start:stop],
+            empty_message,
+            page_number=page_index + 1,
+            page_count=page_count,
+            first_item_number=start + 1,
+        ))
+    return pages
+
+
+def clean_report_text(value):
+    if value is None:
+        return "-"
+    text = str(value).strip()
+    return text or "-"
+
+
+def wrap_report_text(value, width, max_lines):
+    lines = wrap(
+        clean_report_text(value),
+        width=width,
+        break_long_words=False,
+        replace_whitespace=True,
+    ) or ["-"]
+    if len(lines) <= max_lines:
+        return lines
+
+    lines = lines[:max_lines]
+    lines[-1] = f"{lines[-1].rstrip('.')}..."
+    return lines
+
+
+def build_problem_report_page(
+    title,
+    subtitle,
+    headers,
+    rows,
+    empty_message,
+    page_number=None,
+    page_count=None,
+    first_item_number=1,
+):
+    fig = plt.figure(figsize=(11.69, 8.27), dpi=100)
+    fig.patch.set_facecolor("white")
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.axis("off")
+
+    ax.text(0.05, 0.94, title, fontsize=17, fontweight="bold", va="top", color="#111827")
+    ax.text(0.05, 0.895, subtitle, fontsize=10.5, va="top", color="#4b5563")
+    if page_count and page_count > 1:
+        ax.text(0.95, 0.94, f"{page_number}/{page_count}", fontsize=10, ha="right", va="top", color="#6b7280")
+    ax.plot([0.05, 0.95], [0.855, 0.855], color="#2f6fed", linewidth=1.1, alpha=0.75)
+
+    if not rows:
+        ax.text(0.05, 0.79, empty_message, fontsize=11, va="top", color="#374151")
         return fig
 
-    table = ax.table(
-        cellText=rows,
-        colLabels=headers,
-        cellLoc="left",
-        colLoc="left",
-        loc="upper left",
-        bbox=[0.03, 0.08, 0.94, 0.78],
-    )
-    table.auto_set_font_size(False)
-    table.set_fontsize(8)
-    table.scale(1, 1.25)
-    for (row_index, _column_index), cell in table.get_celld().items():
-        cell.set_edgecolor("#d0d0d0")
-        cell.set_linewidth(0.45)
-        if row_index == 0:
-            cell.set_text_props(weight="bold")
-            cell.set_facecolor("#f1f3f5")
+    card_left = 0.05
+    card_width = 0.90
+    content_top = 0.82
+    content_bottom = 0.07
+    gap = 0.018
+    card_height = (content_top - content_bottom - gap * (len(rows) - 1)) / len(rows)
+    first_header = clean_report_text(headers[0]) if headers else ""
+    detail_header = clean_report_text(headers[-1]) if headers else ""
+
+    for row_index, row in enumerate(rows):
+        values = [clean_report_text(value) for value in row]
+        if len(values) < len(headers):
+            values.extend(["-"] * (len(headers) - len(values)))
+
+        card_top = content_top - row_index * (card_height + gap)
+        card_bottom = card_top - card_height
+        ax.add_patch(plt.Rectangle(
+            (card_left, card_bottom),
+            card_width,
+            card_height,
+            facecolor="#fbfcfd",
+            edgecolor="#d1d5db",
+            linewidth=0.8,
+        ))
+        ax.add_patch(plt.Rectangle(
+            (card_left, card_bottom),
+            0.006,
+            card_height,
+            facecolor="#2f6fed",
+            edgecolor="#2f6fed",
+            linewidth=0,
+        ))
+
+        card_number = first_item_number + row_index
+        ax.text(
+            card_left + 0.022,
+            card_top - 0.026,
+            f"{card_number}. {first_header}: {values[0] if values else '-'}",
+            fontsize=10.2,
+            fontweight="bold",
+            va="top",
+            color="#111827",
+        )
+
+        metadata = list(zip(headers[1:-1], values[1:-1]))
+        for meta_index, (label, value) in enumerate(metadata):
+            meta_x = card_left + 0.022 + (meta_index % 2) * 0.205
+            meta_y = card_top - 0.065 - (meta_index // 2) * 0.052
+            ax.text(meta_x, meta_y, clean_report_text(label), fontsize=6.8, va="top", color="#6b7280")
+            for line_index, line in enumerate(wrap_report_text(value, width=24, max_lines=2)):
+                ax.text(
+                    meta_x,
+                    meta_y - 0.020 - line_index * 0.020,
+                    line,
+                    fontsize=8.3,
+                    va="top",
+                    color="#111827",
+                )
+
+        detail_x = card_left + 0.49
+        detail_y = card_top - 0.050
+        ax.text(detail_x, detail_y, detail_header, fontsize=6.8, va="top", color="#6b7280")
+        max_detail_lines = max(2, int((card_height - 0.068) / 0.023))
+        for line_index, line in enumerate(wrap_report_text(values[-1], width=66, max_lines=max_detail_lines)):
+            ax.text(
+                detail_x,
+                detail_y - 0.023 - line_index * 0.023,
+                line,
+                fontsize=8.5,
+                va="top",
+                color="#111827",
+            )
     return fig
 
 

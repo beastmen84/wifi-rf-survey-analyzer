@@ -2831,7 +2831,7 @@ class WifiHeatmapQtApp(QMainWindow):
         QMessageBox.information(
             self,
             self.tr("live_pdf_exported"),
-            self.format_map_export_result_message(result),
+            self.format_map_export_files_message(result),
         )
         self.status.showMessage(self.tr("live_pdf_exported"))
         return True
@@ -2914,11 +2914,7 @@ class WifiHeatmapQtApp(QMainWindow):
         return True
 
     def format_map_export_result_message(self, result):
-        files_message = (
-            self.tr("files_created", paths="\n".join(result.files))
-            if len(result.files) > 1
-            else self.tr("file_created", path=result.output_file)
-        )
+        files_message = self.format_map_export_files_message(result)
         if result.map_type != "interference" or not result.summary:
             return files_message
 
@@ -2954,6 +2950,13 @@ class WifiHeatmapQtApp(QMainWindow):
             f"{self.tr('interference_quality_title')}: {quality_text}\n"
             f"{summary.get('quality_message', '')}\n\n"
             f"{files_message}"
+        )
+
+    def format_map_export_files_message(self, result):
+        return (
+            self.tr("files_created", paths="\n".join(result.files))
+            if len(result.files) > 1
+            else self.tr("file_created", path=result.output_file)
         )
 
     def load_session_ssid_state(self):

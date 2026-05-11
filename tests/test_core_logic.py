@@ -23,7 +23,8 @@ from ap_groups import (
 from ap_metadata_checks import build_ap_metadata_warnings
 from heatmap_tools import calculate_interference_points
 from live_renderer import build_signal_payload
-from map_exporter import generate_live_pdf_export
+from map_exporter import MapExportResult, build_problem_report_pages, generate_live_pdf_export
+import matplotlib.pyplot as plt
 from map_config import MapConfig
 from qt_quality_dashboard import (
     build_summary,
@@ -889,6 +890,38 @@ class LivePdfExportTests(unittest.TestCase):
                 self.assertEqual(doc[0].get_images(full=True), [])
                 self.assertGreater(doc[0].get_pixmap(alpha=False).width, 0)
 
+    def test_problem_report_pages_use_wrapped_card_layout(self):
+        rows = [
+            [
+                f"{10 + index}, {20 + index}",
+                "100.0%",
+                "6",
+                "6",
+                (
+                    "The main issue is a strong interferer on the same channel "
+                    "and the diagnosis needs enough room to stay readable."
+                ),
+            ]
+            for index in range(6)
+        ]
+
+        figures = build_problem_report_pages(
+            "Problem report",
+            "Wi-Fi AP interference - MAIN - 2.4 GHz",
+            ["Point", "Risk", "Serving channel", "Interfering channel", "Diagnosis"],
+            rows,
+            "No issues",
+        )
+        try:
+            self.assertEqual(len(figures), 2)
+            first_page_text = "\n".join(text.get_text() for text in figures[0].axes[0].texts)
+            self.assertIn("1/2", first_page_text)
+            self.assertIn("1. Point: 10, 20", first_page_text)
+            self.assertIn("Diagnosis", first_page_text)
+        finally:
+            for fig in figures:
+                plt.close(fig)
+
 
 class SettingsMenuTests(unittest.TestCase):
     @classmethod
@@ -953,6 +986,28 @@ class WorkspaceLiveStateTests(unittest.TestCase):
                 }),
                 window.tr("live_preview_updated"),
             )
+        finally:
+            window.deleteLater()
+
+    def test_live_pdf_file_message_omits_interference_summary(self):
+        window = WifiHeatmapQtApp()
+        try:
+            result = MapExportResult(
+                output_file="export.pdf",
+                map_type="interference",
+                summary={
+                    "band": "2.4 GHz",
+                    "max_risk": "100.0%",
+                    "quality": {"available": 1, "total": 1, "percent": 100},
+                },
+            )
+
+            file_message = window.format_map_export_files_message(result)
+            full_message = window.format_map_export_result_message(result)
+
+            self.assertEqual(file_message, window.tr("file_created", path="export.pdf"))
+            self.assertNotIn(window.tr("interference_summary_title"), file_message)
+            self.assertIn(window.tr("interference_summary_title"), full_message)
         finally:
             window.deleteLater()
 
