@@ -1608,7 +1608,6 @@ class WifiHeatmapQtApp(QMainWindow):
             self.live_point_labels_combo,
             [
                 ("auto", self.tr("point_labels_auto")),
-                ("critical", self.tr("point_labels_critical")),
                 ("all", self.tr("point_labels_all")),
                 ("none", self.tr("point_labels_none")),
             ],

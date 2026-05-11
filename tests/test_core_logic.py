@@ -866,7 +866,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
 
             set_map_type("channel")
             self.assertEqual(combo_values(window.live_band_combo), ["all", "2.4", "5"])
-            self.assertEqual(combo_values(window.live_point_labels_combo), ["auto", "critical", "all", "none"])
+            self.assertEqual(combo_values(window.live_point_labels_combo), ["auto", "all", "none"])
             self.assertEqual(grid_position(window.live_ap_group_label)[:2], (0, 0))
             self.assertEqual(grid_position(window.live_band_label)[:2], (1, 0))
             self.assertEqual(grid_position(window.live_point_labels_label)[:2], (2, 0))
