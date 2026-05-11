@@ -36,10 +36,10 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the latest live-map status pass is 39
+- The current code test baseline after the latest live-map side-panel pass is 39
   passing tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
-  `90edb05 Simplify live map status text`.
+  `7719619 Align live map options in side panel`.
 - Current AP positioning and scale calibration pick points with left click while
   their modal map-pick mode is active; normal map dragging is disabled during
   the pick and the click must not create a measurement point.
@@ -867,9 +867,15 @@ Language:
   instead of a bottom-center pill. When opened, it expands to the right with a
   vertical list of options: label on the left, dropdown/control aligned on the
   right; checkbox-only options span the row aligned left.
+- The live options tab is a compact rectangular side tab with rotated text
+  (`Opzioni` / `Options`), not a large pill or multiline label. Dropdowns in
+  the live options panel share the same fixed width, computed from the widest
+  dropdown item in the active option set and capped so they do not stretch
+  across the whole panel. Checkbox rows sit below all dropdown rows.
 
 Recent commits:
 
+- `7719619` Align live map options in side panel.
 - `90edb05` Simplify live map status text.
 - `ee96a1f` Shrink live gradient legend panel.
 - `4698135` Tone down live gradient colors.

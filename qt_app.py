@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 
 try:
-    from PySide6.QtCore import QEvent, QPoint, Qt, QThread, QTimer
+    from PySide6.QtCore import QEvent, QPoint, QRect, QSize, Qt, QThread, QTimer
     from PySide6.QtGui import QCursor
     from PySide6.QtWidgets import (
         QAbstractItemView,
@@ -26,9 +26,13 @@ try:
         QMainWindow,
         QMessageBox,
         QPushButton,
+        QSizePolicy,
         QSplitter,
         QStackedWidget,
         QStatusBar,
+        QStyle,
+        QStyleOptionButton,
+        QStylePainter,
         QTableWidget,
         QTableWidgetItem,
         QTabWidget,
@@ -105,6 +109,30 @@ from wifi_scanner import get_connected_ssid
 
 RELEVANT_SSIDS_METADATA_KEY = "relevant_ssids"
 KNOWN_SSIDS_METADATA_KEY = "known_ssids"
+
+
+class VerticalTabButton(QPushButton):
+    def sizeHint(self):
+        hint = super().sizeHint()
+        return QSize(max(32, hint.height()), max(88, hint.width() + 10))
+
+    def minimumSizeHint(self):
+        return self.sizeHint()
+
+    def paintEvent(self, event):
+        painter = QStylePainter(self)
+        option = QStyleOptionButton()
+        self.initStyleOption(option)
+        text = option.text
+        option.text = ""
+        painter.drawControl(QStyle.ControlElement.CE_PushButton, option)
+
+        painter.save()
+        painter.translate(self.width() / 2, self.height() / 2)
+        painter.rotate(-90)
+        text_rect = QRect(-self.height() // 2, -self.width() // 2, self.height(), self.width())
+        painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, text)
+        painter.restore()
 
 
 class WifiHeatmapQtApp(QMainWindow):
@@ -808,8 +836,10 @@ class WifiHeatmapQtApp(QMainWindow):
         overlay_layout.setContentsMargins(self.spx(8), self.spx(8), self.spx(8), self.spx(8))
         overlay_layout.setSpacing(self.spx(8))
 
-        self.live_options_toggle_button = QPushButton()
+        self.live_options_toggle_button = VerticalTabButton()
         self.live_options_toggle_button.setObjectName("liveOptionsPanelToggle")
+        self.live_options_toggle_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.live_options_toggle_button.setFixedSize(self.spx(34), self.spx(92))
         self.live_options_toggle_button.clicked.connect(self.toggle_live_options_panel)
         overlay_layout.addWidget(self.live_options_toggle_button)
 
@@ -820,7 +850,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_options_layout.setHorizontalSpacing(self.spx(12))
         self.live_options_layout.setVerticalSpacing(self.spx(8))
         self.live_options_layout.setColumnMinimumWidth(0, self.spx(118))
-        self.live_options_layout.setColumnStretch(1, 1)
+        self.live_options_layout.setColumnStretch(1, 0)
         overlay_layout.addWidget(self.live_options_body)
         self.live_options_body.setVisible(False)
         self.update_live_options_panel_toggle()
@@ -856,14 +886,15 @@ class WifiHeatmapQtApp(QMainWindow):
 
         margin = self.spx(16)
         if self.live_options_panel_expanded:
-            width = min(max(self.spx(360), int(container_width * 0.34)), max(self.spx(320), container_width - margin * 2))
+            desired_width = max(self.spx(288), self.live_options_overlay.sizeHint().width())
+            width = min(desired_width, max(self.spx(288), container_width - margin * 2))
             height = min(
-                max(self.spx(188), self.live_options_overlay.sizeHint().height()),
-                max(self.spx(188), container_height - margin * 2),
+                max(self.spx(166), self.live_options_overlay.sizeHint().height()),
+                max(self.spx(166), container_height - margin * 2),
             )
         else:
-            width = max(self.spx(58), self.live_options_toggle_button.sizeHint().width() + self.spx(16))
-            height = max(self.spx(132), self.live_options_toggle_button.sizeHint().height() + self.spx(16))
+            width = max(self.spx(46), self.live_options_toggle_button.width() + self.spx(12))
+            height = max(self.spx(98), self.live_options_toggle_button.height() + self.spx(12))
 
         x = margin
         y = max(margin, (container_height - height) // 2)
@@ -967,11 +998,12 @@ class WifiHeatmapQtApp(QMainWindow):
                 font-weight: 700;
             }}
             QPushButton#liveOptionsPanelToggle {{
-                min-width: {s(42)}px;
-                max-width: {s(50)}px;
-                min-height: {s(116)}px;
-                padding: {s(8)}px {s(4)}px;
-                border-radius: {s(18)}px;
+                min-width: {s(30)}px;
+                max-width: {s(34)}px;
+                min-height: {s(88)}px;
+                max-height: {s(102)}px;
+                padding: {s(4)}px {s(2)}px;
+                border-radius: {s(5)}px;
                 background: {palette["metric_info"]};
                 color: #FFFFFF;
                 border: 1px solid {palette["metric_info"]};
@@ -1740,17 +1772,32 @@ class WifiHeatmapQtApp(QMainWindow):
         label.setEnabled(enabled)
         widget.setEnabled(enabled)
 
+    def update_live_option_dropdown_widths(self, combos):
+        text_width = 0
+        for combo in combos:
+            metrics = combo.fontMetrics()
+            text_width = max(text_width, metrics.horizontalAdvance(combo.currentText()))
+            for index in range(combo.count()):
+                text_width = max(text_width, metrics.horizontalAdvance(combo.itemText(index)))
+
+        width = max(self.spx(124), min(self.spx(240), text_width + self.spx(58)))
+        for combo in combos:
+            combo.setFixedWidth(width)
+
     def reflow_live_option_controls(self, map_type):
         for widget in self.live_option_widgets:
             self.live_options_layout.removeWidget(widget)
 
         row = 0
+        dropdowns = []
 
         def add_labeled(label, widget):
             nonlocal row
             label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
             self.live_options_layout.addWidget(label, row, 0)
             self.live_options_layout.addWidget(widget, row, 1)
+            if isinstance(widget, QComboBox):
+                dropdowns.append(widget)
             row += 1
 
         def add_checkbox(widget):
@@ -1763,13 +1810,15 @@ class WifiHeatmapQtApp(QMainWindow):
         if map_type == "signal":
             add_labeled(self.live_aggregation_label, self.live_aggregation_combo)
             add_labeled(self.live_interpolation_label, self.live_interpolation_combo)
-            add_checkbox(self.live_usable_check)
             add_labeled(self.live_ap_group_label, self.live_ap_group_combo)
+            add_checkbox(self.live_usable_check)
         elif map_type == "interference":
             add_labeled(self.live_interference_mode_label, self.live_interference_mode_combo)
             add_labeled(self.live_interpolation_label, self.live_interpolation_combo)
         elif map_type == "channel":
             add_labeled(self.live_ap_group_label, self.live_ap_group_combo)
+
+        self.update_live_option_dropdown_widths(dropdowns)
 
         if hasattr(self, "live_options_overlay"):
             QTimer.singleShot(0, self.position_live_options_overlay)

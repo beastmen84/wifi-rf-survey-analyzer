@@ -598,7 +598,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             window.position_live_options_overlay()
             collapsed_geometry = window.live_options_overlay.geometry()
             self.assertLessEqual(collapsed_geometry.x(), window.spx(16))
-            self.assertLess(collapsed_geometry.width(), window.spx(96))
+            self.assertLess(collapsed_geometry.width(), window.spx(64))
             self.assertGreater(collapsed_geometry.height(), collapsed_geometry.width())
 
             window.toggle_live_options_panel()
@@ -609,6 +609,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(expanded_geometry.x(), collapsed_geometry.x())
             self.assertGreater(expanded_geometry.width(), collapsed_geometry.width() * 3)
             self.assertGreater(expanded_geometry.right(), collapsed_geometry.right())
+            self.assertLess(expanded_geometry.width(), window.spx(440))
         finally:
             window.deleteLater()
 
@@ -631,7 +632,11 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             set_map_type("signal")
             self.assertEqual(grid_position(window.live_band_label)[:2], (0, 0))
             self.assertEqual(grid_position(window.live_band_combo)[:2], (0, 1))
-            self.assertEqual(grid_position(window.live_usable_check), (3, 0, 1, 2))
+            self.assertEqual(grid_position(window.live_ap_group_label)[:2], (3, 0))
+            self.assertEqual(grid_position(window.live_ap_group_combo)[:2], (3, 1))
+            self.assertEqual(grid_position(window.live_usable_check), (4, 0, 1, 2))
+            self.assertEqual(window.live_band_combo.width(), window.live_interpolation_combo.width())
+            self.assertLess(window.live_band_combo.width(), window.spx(260))
             self.assertFalse(window.live_band_combo.isHidden())
             self.assertFalse(window.live_aggregation_combo.isHidden())
             self.assertFalse(window.live_interpolation_combo.isHidden())
