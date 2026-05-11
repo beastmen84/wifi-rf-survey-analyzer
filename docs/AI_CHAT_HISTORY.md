@@ -36,10 +36,10 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the latest live-map point-label pass is 48
+- The current code test baseline after the latest live-map point-label pass is 50
   passing tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
-  `b92ceea Sync live label legend visibility`.
+  `562b878 Move live point labels into legend`.
 - Current AP positioning and scale calibration pick points with left click while
   their modal map-pick mode is active; normal map dragging is disabled during
   the pick and the click must not create a measurement point.
@@ -252,7 +252,9 @@ Visual/UX decisions:
   and None for these two maps; Critical remains an internal/export-supported
   mode but is not shown in the live dropdown. When point labels are `None`, the
   side legend is hidden. Legend rows carry marker targets: click highlights the
-  referenced point, and double click centers/focuses the live map on it.
+  referenced point, and double click centers/focuses the live map on it. A
+  plain click on empty live map space clears both the marker highlight and the
+  selected legend row.
 
 ## Interference Logic
 
@@ -918,6 +920,8 @@ Language:
   None hides the side legend. These labels are legend-only; map markers keep
   hover tooltips but no permanent text labels. Legend rows are interactive:
   click highlights the referenced marker, double click focuses the map on it.
+  Clicking empty map space clears the highlighted marker and the selected
+  legend row.
 - A quick live-map data logic pass confirmed current scoping: Coverage uses
   SSID, band, optional AP group filter, aggregation, interpolation and usable
   threshold; Interference uses SSID, 2.4/5 GHz band, intra/all-network mode,
@@ -929,6 +933,7 @@ Language:
 
 Recent commits:
 
+- `562b878` Move live point labels into legend.
 - `b92ceea` Sync live label legend visibility.
 - `a9a7e05` Simplify live point label choices.
 - `37a47e8` Restore live discrete point label options.

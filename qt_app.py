@@ -807,6 +807,7 @@ class WifiHeatmapQtApp(QMainWindow):
         live_view_layout.setContentsMargins(0, 0, 0, 0)
         live_view_layout.setSpacing(0)
         self.live_view = LiveMapView()
+        self.live_view.backgroundClicked.connect(self.clear_live_marker_selection)
         live_view_layout.addWidget(self.live_view)
         self.build_live_options_overlay()
         live_splitter.addWidget(self.live_view_container)
@@ -2242,24 +2243,28 @@ class WifiHeatmapQtApp(QMainWindow):
     def clear_live_legend(self):
         self.live_legend_title.setText("")
         self.live_legend_list.clear()
-        self.live_view.clear_marker_highlight()
+        self.clear_live_marker_selection()
         self.live_view.clear_gradient_legend()
         self.live_legend_frame.hide()
         self.live_legend_list.show()
 
+    def clear_live_marker_selection(self):
+        self.live_legend_list.clearSelection()
+        self.live_legend_list.setCurrentRow(-1)
+        self.live_view.clear_marker_highlight()
+
     def on_live_legend_item_clicked(self, item):
         payload = item.data(Qt.ItemDataRole.UserRole) if item else None
         marker_id = payload.get("marker_id") if isinstance(payload, dict) else ""
-        if marker_id:
-            self.live_view.highlight_marker(marker_id)
-        else:
-            self.live_view.clear_marker_highlight()
+        if not marker_id or not self.live_view.highlight_marker(marker_id):
+            self.clear_live_marker_selection()
 
     def on_live_legend_item_double_clicked(self, item):
         payload = item.data(Qt.ItemDataRole.UserRole) if item else None
         marker_id = payload.get("marker_id") if isinstance(payload, dict) else ""
-        if marker_id:
-            self.live_view.focus_marker(marker_id)
+        if marker_id and self.live_view.focus_marker(marker_id):
+            return
+        self.clear_live_marker_selection()
 
     def show_start_page(self):
         self.stack.setCurrentWidget(self.start_page)

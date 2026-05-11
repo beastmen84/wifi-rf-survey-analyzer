@@ -6,7 +6,8 @@ import time
 
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QApplication, QDialog, QGraphicsItem, QGraphicsView, QWidget
+from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QApplication, QDialog, QGraphicsItem, QGraphicsView, QListWidgetItem, QWidget
 from PIL import Image
 
 from app_logging import MaxLogLevelFilter
@@ -736,6 +737,44 @@ class LiveMapViewTests(unittest.TestCase):
         finally:
             view.deleteLater()
 
+    def test_live_background_click_emits_only_outside_point_markers(self):
+        view = LiveMapView()
+        try:
+            view.resize(320, 240)
+            view.show()
+            view.set_payload({
+                "image": Image.new("RGB", (200, 160), "white"),
+                "point_infos": [
+                    {"marker_id": "p1", "x": 90, "y": 70, "color": "#111111"},
+                ],
+                "scale_payload": None,
+            })
+            QApplication.processEvents()
+
+            background_clicks = []
+            view.backgroundClicked.connect(lambda: background_clicks.append(True))
+
+            marker_pos = view.mapFromScene(view.marker_items_by_id["p1"].scenePos())
+            QTest.mouseClick(
+                view.viewport(),
+                Qt.MouseButton.LeftButton,
+                Qt.KeyboardModifier.NoModifier,
+                marker_pos,
+            )
+            QApplication.processEvents()
+            self.assertEqual(background_clicks, [])
+
+            QTest.mouseClick(
+                view.viewport(),
+                Qt.MouseButton.LeftButton,
+                Qt.KeyboardModifier.NoModifier,
+                QPoint(5, 5),
+            )
+            QApplication.processEvents()
+            self.assertEqual(len(background_clicks), 1)
+        finally:
+            view.deleteLater()
+
     def test_live_ap_position_markers_skip_test_groups(self):
         markers = build_ap_position_marker_infos(
             [
@@ -822,6 +861,30 @@ class WorkspaceLiveStateTests(unittest.TestCase):
                 }),
                 window.tr("live_preview_updated"),
             )
+        finally:
+            window.deleteLater()
+
+    def test_live_background_click_clears_legend_selection_and_marker_highlight(self):
+        window = WifiHeatmapQtApp()
+        try:
+            window.live_view.set_payload({
+                "image": Image.new("RGB", (200, 160), "white"),
+                "point_infos": [
+                    {"marker_id": "p1", "x": 70, "y": 60, "color": "#111111"},
+                ],
+                "scale_payload": None,
+            })
+            list_item = QListWidgetItem("Point 1")
+            list_item.setData(Qt.ItemDataRole.UserRole, {"marker_id": "p1"})
+            window.live_legend_list.addItem(list_item)
+            window.live_legend_list.setCurrentRow(0)
+            self.assertTrue(window.live_view.highlight_marker("p1"))
+
+            window.live_view.backgroundClicked.emit()
+
+            self.assertEqual(window.live_legend_list.currentRow(), -1)
+            self.assertEqual(window.live_legend_list.selectedItems(), [])
+            self.assertIsNone(window.live_view.marker_highlight_item)
         finally:
             window.deleteLater()
 

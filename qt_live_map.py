@@ -103,6 +103,8 @@ class LiveMapRenderWorker(QObject):
 
 
 class LiveMapView(QGraphicsView):
+    backgroundClicked = Signal()
+
     def __init__(self):
         super().__init__()
         self.scene = QGraphicsScene(self)
@@ -115,6 +117,8 @@ class LiveMapView(QGraphicsView):
         self.zoom_level = 1.0
         self._pan_last_pos = None
         self._pan_cursor_active = False
+        self._click_press_pos = None
+        self._click_press_on_marker = False
         self.ap_position_icon = load_ap_position_icon()
         self.gradient_legend = LiveGradientLegendWidget(self.viewport())
         self.gradient_legend.setFixedSize(122, 220)
@@ -136,6 +140,8 @@ class LiveMapView(QGraphicsView):
         self.marker_highlight_item = None
         self.ap_marker_items = []
         self.zoom_level = 1.0
+        self._click_press_pos = None
+        self._click_press_on_marker = False
         self.end_pan()
         self.clear_gradient_legend()
 
@@ -300,6 +306,17 @@ class LiveMapView(QGraphicsView):
         self.centerOn(item.scenePos())
         return True
 
+    def marker_at_view_position(self, position):
+        if not self.marker_items:
+            return False
+
+        scene_pos = self.mapToScene(position)
+        tolerance = max(2.0, 5.0 / max(self.zoom_level, 0.1))
+        for item in self.marker_items:
+            if item.sceneBoundingRect().adjusted(-tolerance, -tolerance, tolerance, tolerance).contains(scene_pos):
+                return True
+        return False
+
     def zoom_in(self):
         self.set_zoom(self.zoom_level * 1.25)
 
@@ -369,10 +386,14 @@ class LiveMapView(QGraphicsView):
         )
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton and self.can_pan():
-            self.begin_pan(event.position().toPoint())
-            event.accept()
-            return
+        if event.button() == Qt.MouseButton.LeftButton:
+            press_pos = event.position().toPoint()
+            self._click_press_pos = press_pos
+            self._click_press_on_marker = self.marker_at_view_position(press_pos)
+            if self.can_pan():
+                self.begin_pan(press_pos)
+                event.accept()
+                return
 
         super().mousePressEvent(event)
 
@@ -390,15 +411,42 @@ class LiveMapView(QGraphicsView):
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton and self._pan_last_pos is not None:
+            should_clear_selection = self.should_clear_selection_from_click(event.position().toPoint())
+            self.reset_click_tracking()
             self.end_pan()
             event.accept()
+            if should_clear_selection:
+                self.backgroundClicked.emit()
             return
 
+        should_clear_selection = False
+        if event.button() == Qt.MouseButton.LeftButton:
+            should_clear_selection = self.should_clear_selection_from_click(event.position().toPoint())
+            self.reset_click_tracking()
+
         super().mouseReleaseEvent(event)
+        if should_clear_selection:
+            self.backgroundClicked.emit()
 
     def leaveEvent(self, event):
         self.end_pan()
+        self.reset_click_tracking()
         super().leaveEvent(event)
+
+    def should_clear_selection_from_click(self, release_pos):
+        if self._click_press_pos is None:
+            return False
+
+        is_click = (release_pos - self._click_press_pos).manhattanLength() <= QApplication.startDragDistance()
+        if not is_click:
+            return False
+
+        clicked_marker = self._click_press_on_marker or self.marker_at_view_position(release_pos)
+        return not clicked_marker
+
+    def reset_click_tracking(self):
+        self._click_press_pos = None
+        self._click_press_on_marker = False
 
     def begin_pan(self, position):
         self._pan_last_pos = position
