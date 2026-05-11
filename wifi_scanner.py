@@ -10,7 +10,7 @@ from statistics import median
 from app_logging import log_event, log_exception
 from constants import SCAN_DETAIL_FIELDNAMES, WIFI_SCAN_ATTEMPTS, WIFI_SCAN_DELAY_SECONDS
 from utils import dbm_to_percent, percent_to_dbm
-from wifi_band import infer_band_from_channel, infer_band_from_frequency_mhz, normalize_band, normalize_frequency_mhz
+from wifi_band import get_row_band, infer_band_from_channel, infer_band_from_frequency_mhz, normalize_band, normalize_frequency_mhz
 
 
 def scan_wifi(backend="auto", show_errors=True):
@@ -385,7 +385,7 @@ def merge_wifi_scans(networks, samples_total=1):
             normalize_merge_text(network.get("ssid")),
             normalize_merge_text(network.get("bssid")).lower(),
             normalize_merge_text(network.get("channel")),
-            normalize_band(network.get("band")),
+            get_row_band(network),
         )
         merged_networks.setdefault(key, []).append(network)
 
@@ -427,7 +427,7 @@ def merge_wifi_scans(networks, samples_total=1):
             "scan_confidence": round(scan_confidence, 3),
             "channel": representative.get("channel", ""),
             "channel_width_mhz": most_common_non_empty(samples, "channel_width_mhz"),
-            "band": most_common_non_empty(samples, "band") or infer_band_from_channel(representative.get("channel")),
+            "band": most_common_non_empty(samples, "band") or most_common_row_band(samples) or infer_band_from_channel(representative.get("channel")),
             "radio": most_common_non_empty(samples, "radio"),
             **{field: most_common_non_empty(samples, field) for field in SCAN_DETAIL_FIELDNAMES},
             "raw_samples": samples
@@ -446,6 +446,19 @@ def most_common_non_empty(samples, key):
         for sample in samples
         if str(sample.get(key, "")).strip()
     ]
+
+    if not values:
+        return ""
+
+    return Counter(values).most_common(1)[0][0]
+
+
+def most_common_row_band(samples):
+    values = []
+    for sample in samples:
+        band = get_row_band(sample)
+        if band:
+            values.append(band)
 
     if not values:
         return ""

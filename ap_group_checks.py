@@ -8,7 +8,8 @@ from ap_groups import (
     normalize_ap_role,
     resolve_ap_group_key,
 )
-from ap_metadata_checks import infer_band_from_channel, normalize_channel, sort_bands, sort_channels
+from ap_metadata_checks import normalize_channel, sort_bands, sort_channels
+from wifi_band import get_row_band
 
 
 def build_ap_group_conflicts(rows, ap_groups, channel_sort_key=None):
@@ -31,7 +32,7 @@ def build_ap_group_conflicts(rows, ap_groups, channel_sort_key=None):
             continue
 
         channel = normalize_channel(row.get("channel"))
-        band = infer_band_from_channel(channel)
+        band = get_row_band(row)
         if channel and band:
             observations[group_id][band][channel].add(bssid)
 

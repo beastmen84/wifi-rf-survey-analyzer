@@ -98,6 +98,7 @@ from qt_quality_dashboard import (
     get_effective_ap_groups,
 )
 from qt_floorplan import AP_MARKER_BASE_SIZE, FloorplanView, format_ap_tooltip, format_point_tooltip
+from qt_ap_groups import EXPECTED_CHANNELS_BY_BAND, infer_expected_channel_bands
 from qt_live_map import (
     LIVE_POINT_MARKER_BASE_SIZE,
     LiveGradientLegendWidget,
@@ -268,6 +269,23 @@ class ApGroupTests(unittest.TestCase):
         self.assertEqual(conflicts[0]["channels"], ["1", "6"])
         self.assertEqual(conflicts[0]["bssids_by_channel"]["1"], [internal_bssids[0]])
         self.assertEqual(conflicts[0]["bssids_by_channel"]["6"], [internal_bssids[1]])
+
+    def test_ap_group_conflicts_use_explicit_6ghz_band_for_low_channels(self):
+        bssid_24 = "70:4f:57:aa:bb:10"
+        bssid_6a = "70:4f:57:aa:bb:11"
+        bssid_6b = "70:4f:57:aa:bb:12"
+        groups = [build_manual_ap_group("tri-band-ap", [bssid_24, bssid_6a, bssid_6b])]
+        rows = [
+            build_row("p1", "MAIN", bssid_24, -50, 1),
+            build_row("p1", "MAIN", bssid_6a, -51, 1, band="6"),
+            build_row("p1", "MAIN", bssid_6b, -52, 9, band="6"),
+        ]
+
+        conflicts = build_ap_group_conflicts(rows, groups)
+
+        self.assertEqual(len(conflicts), 1)
+        self.assertEqual(conflicts[0]["band"], "6")
+        self.assertEqual(conflicts[0]["channels"], ["1", "9"])
 
 
 class InterferenceTests(unittest.TestCase):
@@ -1554,6 +1572,17 @@ SSID 2 : GUEST
         samples = [
             {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -52, "channel": "5", "band": "2.4"},
             {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -48, "channel": "5", "band": "6"},
+        ]
+
+        networks = merge_wifi_scans(samples, samples_total=1)
+
+        self.assertEqual(len(networks), 2)
+        self.assertEqual({network["band"] for network in networks}, {"2.4", "6"})
+
+    def test_merge_wifi_scans_uses_frequency_when_band_is_missing(self):
+        samples = [
+            {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -52, "channel": "5"},
+            {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -48, "channel": "5", "frequency_mhz": "5975"},
         ]
 
         networks = merge_wifi_scans(samples, samples_total=1)
@@ -2938,6 +2967,13 @@ class ApMetadataTests(unittest.TestCase):
     def test_expected_band_parser_accepts_common_wifi_band_labels_including_6ghz_metadata(self):
         self.assertEqual(parse_expected_bands("2.4 GHz / 5GHz; 6g"), {"2.4", "5", "6"})
         self.assertEqual(parse_expected_bands("24, 5, 6"), {"2.4", "5", "6"})
+
+    def test_expected_channel_helpers_include_6ghz_channels(self):
+        self.assertIn("2", EXPECTED_CHANNELS_BY_BAND["6"])
+        self.assertIn("233", EXPECTED_CHANNELS_BY_BAND["6"])
+        self.assertEqual(infer_expected_channel_bands("5", {"6"}), ["6"])
+        self.assertEqual(infer_expected_channel_bands("149", {"5", "6"}), ["5", "6"])
+        self.assertEqual(infer_expected_channel_bands("233", set()), ["6"])
 
     def test_metadata_channel_helpers_normalize_and_sort_values(self):
         self.assertEqual(normalize_channel("CH 036 / 80 MHz"), "36")

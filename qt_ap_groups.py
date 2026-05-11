@@ -75,11 +75,12 @@ EXPECTED_CHANNEL_GROUPS = (
     )),
     ("ap_group_metadata_channel_group_5_high", ("149", "153", "157", "161", "165")),
 )
+EXPECTED_6GHZ_CHANNELS = tuple(str(channel) for channel in ([2] + list(range(1, 234, 4))))
 
 EXPECTED_CHANNEL_GROUPS_BY_BAND = {
     "2.4": EXPECTED_CHANNEL_GROUPS[:1],
     "5": EXPECTED_CHANNEL_GROUPS[1:],
-    "6": (),
+    "6": (("ap_group_metadata_channel_group_6", EXPECTED_6GHZ_CHANNELS),),
 }
 
 EXPECTED_CHANNELS_BY_BAND = {
@@ -830,9 +831,10 @@ class MetadataDialog(QDialog):
 
     def initial_selected_channels_by_band(self):
         selected = {band: set() for band, _label in EXPECTED_BAND_OPTIONS}
+        expected_bands = parse_expected_bands(self.metadata.get("expected_bands", ""))
         for channel in parse_expected_channels(self.metadata.get("expected_channels", "")):
-            band = infer_band_from_channel(channel)
-            if band in selected:
+            candidate_bands = infer_expected_channel_bands(channel, expected_bands)
+            for band in candidate_bands:
                 selected[band].add(channel)
         return selected
 
@@ -995,8 +997,7 @@ class MetadataDialog(QDialog):
             if checkbox.isChecked()
         }
         for channel in expected_channels:
-            band = infer_band_from_channel(channel)
-            if band:
+            for band in infer_expected_channel_bands(channel, expected_bands):
                 expected_bands.add(band)
 
         values = {
@@ -1332,3 +1333,22 @@ def format_metadata_preview(metadata):
 def format_band_label(band):
     band = str(band)
     return f"{band} GHz" if band in {"2.4", "5", "6"} else band
+
+
+def infer_expected_channel_bands(channel, preferred_bands=None):
+    preferred_bands = set(preferred_bands or [])
+    candidates = {
+        band
+        for band, channels in EXPECTED_CHANNELS_BY_BAND.items()
+        if str(channel) in channels
+    }
+    if preferred_bands:
+        preferred_candidates = candidates & preferred_bands
+        if preferred_candidates:
+            return sorted(preferred_candidates, key=lambda band: {"2.4": 0, "5": 1, "6": 2}.get(band, 99))
+
+    inferred = infer_band_from_channel(channel)
+    if inferred:
+        return [inferred]
+
+    return sorted(candidates, key=lambda band: {"2.4": 0, "5": 1, "6": 2}.get(band, 99))

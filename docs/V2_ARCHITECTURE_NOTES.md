@@ -140,6 +140,8 @@ Implemented:
 - new BSSIDs can still be added automatically;
 - conflict warning when one AP group is observed on multiple channels in the
   same band;
+- conflict checks use explicit/frequency-derived scan band data, so low-number
+  6 GHz channels are not treated as 2.4 GHz when the row carries band/frequency;
 - warning details dialog;
 - shortcut from warning details to Duplicate/Split, with conflicting BSSIDs
   shown first;
@@ -196,6 +198,9 @@ Implemented:
 - expected channels;
 - notes;
 - guided selections for expected bands/channels instead of free text.
+- 6 GHz expected-band metadata includes a 6 GHz channel picker; ambiguous
+  low-number channels are assigned according to the selected expected band when
+  possible.
 
 Current use:
 
