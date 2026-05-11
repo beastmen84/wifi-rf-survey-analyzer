@@ -55,8 +55,11 @@ from map_rendering import (
     build_channel_legend_handles,
     build_dominant_ap_legend_handles,
     build_interference_legend_handles,
+    get_channel_band_prefix,
     get_channel_color,
-    get_channel_sort_key,
+    get_channel_display_band,
+    get_channel_display_sort_key,
+    get_channel_label_identity,
     get_limited_bssid_color_map,
     should_label_channel_point,
     should_label_dominant_point,
@@ -400,7 +403,7 @@ def build_live_pdf_signal_figure(df, bg_image, config, tr, language, aliases, ap
 
 
 def build_live_pdf_interference_figure(df, bg_image, config, tr, language, aliases, ap_groups):
-    if config.band not in {"2.4", "5"}:
+    if config.band not in {"2.4", "5", "6"}:
         raise MapExportError(tr("warning"), tr("interference_requires_band"))
 
     risk_df = calculate_interference_points(
@@ -498,7 +501,10 @@ def build_live_pdf_channel_figure(df, bg_image, config, tr, language, aliases, a
 
     title = f"{tr('export_channel_title')} - {config.ssid}"
     fig, ax, side_ax = create_live_pdf_map_figure(bg_image, title)
-    colors = [get_channel_color(row["channel"], config.band) for _index, row in channel_df.iterrows()]
+    colors = [
+        get_channel_color(row["channel"], get_channel_display_band(row, config.band))
+        for _index, row in channel_df.iterrows()
+    ]
     ax.scatter(
         channel_df["x"].values,
         channel_df["y"].values,
@@ -676,7 +682,10 @@ def generate_channel_map(df, bg_image, csv_file, config, tr, language):
     output_file = build_map_output_path(csv_file, ssid, f"channels_{band}")
     fig, ax = plt.subplots(figsize=(14, 8))
     ax.imshow(np.array(bg_image))
-    colors = [get_channel_color(row["channel"], band) for _index, row in channel_df.iterrows()]
+    colors = [
+        get_channel_color(row["channel"], get_channel_display_band(row, band))
+        for _index, row in channel_df.iterrows()
+    ]
     ax.scatter(
         channel_df["x"].values,
         channel_df["y"].values,
@@ -837,7 +846,7 @@ def generate_dominant_ap_map(
 def generate_interference_map(df, bg_image, csv_file, config, tr, language):
     ssid = config.ssid
     band = config.band
-    if band not in {"2.4", "5"}:
+    if band not in {"2.4", "5", "6"}:
         raise MapExportError(tr("warning"), tr("interference_requires_band"))
 
     risk_df = calculate_interference_points(
@@ -975,14 +984,18 @@ def build_map_output_path(csv_file, ssid, band_token):
         "all": "all",
         "2.4": "2.4ghz",
         "5": "5ghz",
+        "6": "6ghz",
         "interference_2.4": "interference_2.4ghz",
         "interference_5": "interference_5ghz",
+        "interference_6": "interference_6ghz",
         "channels_all": "channels_all",
         "channels_2.4": "channels_2.4ghz",
         "channels_5": "channels_5ghz",
+        "channels_6": "channels_6ghz",
         "dominant_all": "dominant_all",
         "dominant_2.4": "dominant_2.4ghz",
         "dominant_5": "dominant_5ghz",
+        "dominant_6": "dominant_6ghz",
     }.get(band_token, sanitize_filename(band_token))
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     file_name = (
@@ -1020,6 +1033,7 @@ def format_band_token(band):
         "all": "all",
         "2.4": "2.4ghz",
         "5": "5ghz",
+        "6": "6ghz",
     }.get(band, sanitize_filename(str(band or "all")))
 
 
@@ -1250,18 +1264,27 @@ def build_channel_point_legend_items(channel_df, config, aliases):
     previous_channel = None
     for _index, row in channel_df.iterrows():
         channel = row.get("channel", "")
+        display_band = get_channel_display_band(row, config.band)
         if should_label_channel_point(row, previous_channel, config.point_label_mode, config.band):
-            label = (
-                f"CH {format_report_value(channel)} - "
-                f"{format_ap_label(row.get('bssid', ''), aliases, row.get('ap_group', ''))}"
-            )
+            label = format_channel_point_legend_label(row, config, aliases)
             items.append({
                 "label": label,
-                "color": get_channel_color(channel, config.band),
-                "sort_key": get_channel_sort_key(channel, config.band) + (label.casefold(),),
+                "color": get_channel_color(channel, display_band),
+                "sort_key": get_channel_display_sort_key(channel, display_band) + (label.casefold(),),
             })
-        previous_channel = channel
+        previous_channel = get_channel_label_identity(row, config.band)
     return sorted(items, key=lambda item: item.get("sort_key", ()))
+
+
+def format_channel_point_legend_label(row, config, aliases):
+    band_prefix = ""
+    if config.band == "all":
+        band_prefix = get_channel_band_prefix(row.get("channel", ""), get_channel_display_band(row, config.band))
+    label_prefix = f"{band_prefix} " if band_prefix else ""
+    return (
+        f"{label_prefix}CH {format_report_value(row.get('channel', ''))} - "
+        f"{format_ap_label(row.get('bssid', ''), aliases, row.get('ap_group', ''))}"
+    )
 
 
 def build_dominant_point_legend_items(dominant_df, config, aliases, color_map):
@@ -2007,7 +2030,7 @@ def get_interference_quality_message(quality, band_label, tr):
     if quality["percent"] >= 70:
         return tr("interference_quality_good")
 
-    if band_label == "5 GHz":
+    if band_label in {"5 GHz", "6 GHz"}:
         return tr("interference_quality_warning_5ghz")
 
     return tr("interference_quality_warning")

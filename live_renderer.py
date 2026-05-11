@@ -134,7 +134,7 @@ def build_signal_payload(df, config, bg_image, translations, point_tooltip_build
 
 
 def build_interference_payload(df, config, bg_image, translations, point_tooltip_builder, color_scale_limits):
-    if config.band not in {"2.4", "5"}:
+    if config.band not in {"2.4", "5", "6"}:
         return None
 
     risk_df = calculate_interference_points(
@@ -288,6 +288,7 @@ def stable_dataframe_fingerprint(df):
             "signal_dbm",
             "channel",
             "channel_width_mhz",
+            "band",
             "samples_seen",
             "samples_total",
             "scan_confidence",

@@ -107,6 +107,7 @@ from ui_scaling import (
     scale_px,
     ui_scale_diagnostics,
 )
+from wifi_band import row_matches_band
 from wifi_scanner import get_connected_ssid
 
 
@@ -1677,6 +1678,7 @@ class WifiHeatmapQtApp(QMainWindow):
             ("all", self.tr("all_bands_option")),
             ("2.4", "2.4 GHz"),
             ("5", "5 GHz"),
+            ("6", "6 GHz"),
         ]
         if map_type == "interference":
             return items[1:]
@@ -1881,19 +1883,7 @@ class WifiHeatmapQtApp(QMainWindow):
         ]
 
     def row_matches_live_band(self, row, band):
-        if band == "all":
-            return True
-
-        try:
-            channel = float(row.get("channel", ""))
-        except (TypeError, ValueError):
-            return False
-
-        if band == "2.4":
-            return 1 <= channel <= 14
-        if band == "5":
-            return channel >= 36
-        return True
+        return row_matches_band(row, band)
 
     def format_live_ap_group_filter_label(self, group_id, bssids, aliases):
         display_name = self.get_ap_group_display_name(group_id)

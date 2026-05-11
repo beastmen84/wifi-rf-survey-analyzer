@@ -2,9 +2,12 @@
 
 from matplotlib.lines import Line2D
 
+from wifi_band import get_row_band, normalize_band
+
 MAX_REFERENCE_ROWS = 10
 MAX_LEGEND_ITEMS = 8
 OTHER_AP_COLOR = "#6c757d"
+BAND_SORT_ORDER = {"2.4": 0, "5": 1, "6": 2}
 
 CATEGORICAL_PALETTE = [
     "#0072B2",  # blue
@@ -45,7 +48,8 @@ CHANNEL_SEQUENCE_5 = [
     149, 153, 157, 161,
     165, 169, 173, 177
 ]
-CHANNEL_COLOR_SEQUENCE = CHANNEL_SEQUENCE_24 + CHANNEL_SEQUENCE_5
+CHANNEL_SEQUENCE_6 = [2] + list(range(1, 234, 4))
+CHANNEL_COLOR_SEQUENCE = CHANNEL_SEQUENCE_24 + CHANNEL_SEQUENCE_5 + CHANNEL_SEQUENCE_6
 
 
 def get_indexed_color(value, palette=CATEGORICAL_PALETTE):
@@ -63,13 +67,22 @@ def get_channel_color(channel, band):
     except (TypeError, ValueError):
         return "#7f8c8d"
 
-    if channel_number in CHANNEL_COLOR_SEQUENCE:
-        return CATEGORICAL_PALETTE[CHANNEL_COLOR_SEQUENCE.index(channel_number) % len(CATEGORICAL_PALETTE)]
+    sequence = get_channel_sequence_for_band(band)
+    if channel_number in sequence:
+        return CATEGORICAL_PALETTE[sequence.index(channel_number) % len(CATEGORICAL_PALETTE)]
 
     return get_indexed_color(channel_number)
 
 
-def get_channel_band_prefix(channel):
+def get_channel_band_prefix(channel, band=""):
+    band = normalize_band(band)
+    if band == "2.4":
+        return "2.4G"
+    if band == "5":
+        return "5G"
+    if band == "6":
+        return "6G"
+
     try:
         channel_number = int(float(channel))
     except (TypeError, ValueError):
@@ -82,6 +95,17 @@ def get_channel_band_prefix(channel):
         return "5G"
 
     return ""
+
+
+def get_channel_sequence_for_band(band):
+    band = normalize_band(band)
+    if band == "2.4":
+        return CHANNEL_SEQUENCE_24
+    if band == "5":
+        return CHANNEL_SEQUENCE_5
+    if band == "6":
+        return CHANNEL_SEQUENCE_6
+    return CHANNEL_COLOR_SEQUENCE
 
 
 def get_bssid_suffix(bssid):
@@ -138,22 +162,32 @@ def create_marker_legend_handle(label, color):
 
 def build_channel_legend_handles(channel_df, band, intermediate_label, format_value, other_label="Altri"):
     handles = []
-    channels = sorted(
-        channel_df["channel"].dropna().unique(),
-        key=lambda channel: get_channel_sort_key(channel, band)
+    entries = []
+    seen = set()
+    for _index, row in channel_df.iterrows():
+        identity = get_channel_label_identity(row, band)
+        if identity is None or identity in seen:
+            continue
+        seen.add(identity)
+        row_band, channel = identity
+        entries.append((row_band, channel))
+
+    entries = sorted(
+        entries,
+        key=lambda item: get_channel_display_sort_key(item[1], item[0]),
     )
-    visible_channels = channels[:MAX_LEGEND_ITEMS]
-    for channel in visible_channels:
+    visible_entries = entries[:MAX_LEGEND_ITEMS]
+    for row_band, channel in visible_entries:
         channel_label = format_value(channel)
-        band_prefix = get_channel_band_prefix(channel) if band == "all" else ""
+        band_prefix = get_channel_band_prefix(channel, row_band) if band == "all" else ""
         label_prefix = f"{band_prefix} " if band_prefix else ""
         handles.append(
             create_marker_legend_handle(
                 f"{label_prefix}CH {channel_label}",
-                get_channel_color(channel, band)
+                get_channel_color(channel, row_band or band)
             )
         )
-    if len(channels) > len(visible_channels):
+    if len(entries) > len(visible_entries):
         handles.append(create_marker_legend_handle(other_label, "#7f8c8d"))
 
     return handles
@@ -165,17 +199,25 @@ def get_channel_sort_key(channel, band):
     except (TypeError, ValueError):
         return (99, str(channel))
 
-    if band == "2.4":
-        sequence = CHANNEL_SEQUENCE_24
-    elif band == "5":
-        sequence = CHANNEL_SEQUENCE_5
-    else:
-        sequence = CHANNEL_COLOR_SEQUENCE
+    sequence = get_channel_sequence_for_band(band)
 
     if channel_number in sequence:
         return (0, sequence.index(channel_number))
 
     return (1, channel_number)
+
+
+def get_channel_display_band(row, selected_band):
+    band = normalize_band(selected_band)
+    return band or get_row_band(row)
+
+
+def get_channel_display_sort_key(channel, band):
+    normalized_band = normalize_band(band)
+    return (
+        BAND_SORT_ORDER.get(normalized_band, 99),
+        *get_channel_sort_key(channel, normalized_band),
+    )
 
 
 def build_interference_legend_handles(low_label, medium_label, high_label):
@@ -290,12 +332,13 @@ def annotate_channel_references(ax, channel_df, format_value, mode="auto", band=
     for _index, row in channel_df.iterrows():
         channel_value = row.get("channel", "")
         if not should_label_channel_point(row, previous_channel, mode, band):
-            previous_channel = channel_value
+            previous_channel = get_channel_label_identity(row, band)
             continue
 
         channel = format_value(row.get("channel", ""))
         width = format_value(row.get("channel_width_mhz", ""))
-        band_prefix = get_channel_band_prefix(row.get("channel", "")) if band == "all" else ""
+        row_band = get_row_band(row)
+        band_prefix = get_channel_band_prefix(row.get("channel", ""), row_band) if band == "all" else ""
         label_prefix = f"{band_prefix} " if band_prefix else ""
         channel_word = labels.get("channel", "CH")
         width_word = labels.get("width", "width")
@@ -307,7 +350,7 @@ def annotate_channel_references(ax, channel_df, format_value, mode="auto", band=
         if ref <= MAX_REFERENCE_ROWS:
             annotate_reference_number(ax, row["x"], row["y"], ref)
         references.append({"ref": ref, "label": label})
-        previous_channel = channel_value
+        previous_channel = get_channel_label_identity(row, band)
 
     return references
 
@@ -318,23 +361,41 @@ def should_label_channel_point(row, previous_channel, mode, band):
     if mode == "all":
         return True
 
-    try:
-        channel = int(float(row.get("channel", "")))
-    except (TypeError, ValueError):
+    current_identity = get_channel_label_identity(row, band)
+    if current_identity is None:
         return mode in {"auto", "critical"}
 
-    is_intermediate_24 = band == "2.4" and channel not in {1, 6, 11}
-    try:
-        previous_channel_number = int(float(previous_channel))
-    except (TypeError, ValueError):
-        previous_channel_number = None
-
-    changed_channel = previous_channel_number is None or channel != previous_channel_number
+    identity_band, channel = current_identity
+    is_intermediate_24 = identity_band == "2.4" and channel not in {1, 6, 11}
+    previous_identity = normalize_channel_label_identity(previous_channel, band)
+    changed_channel = previous_identity is None or current_identity != previous_identity
 
     if mode == "critical":
         return is_intermediate_24 and changed_channel
 
     return changed_channel
+
+
+def get_channel_label_identity(row, band):
+    try:
+        channel = int(float(row.get("channel", "")))
+    except (TypeError, ValueError):
+        return None
+
+    identity_band = get_row_band(row) if band == "all" else normalize_band(band)
+    return identity_band, channel
+
+
+def normalize_channel_label_identity(value, band):
+    if isinstance(value, tuple) and len(value) == 2:
+        return value
+
+    try:
+        channel = int(float(value))
+    except (TypeError, ValueError):
+        return None
+
+    return normalize_band(band), channel
 
 
 def annotate_dominant_ap_references(ax, dominant_df, format_value, mode="auto", labels=None):

@@ -13,21 +13,20 @@ from ap_groups import (
     resolve_ap_group_key,
 )
 from i18n import translate
+from wifi_band import channel_center_frequency_mhz, get_row_band, normalize_band
 
 
 def filter_by_band(df, band):
-    if band == "all":
+    normalized_band = normalize_band(band)
+    if not normalized_band:
         return df
 
-    channels = pd.to_numeric(df["channel"], errors="coerce")
+    if df.empty:
+        return df
 
-    if band == "2.4":
-        return df[(channels >= 1) & (channels <= 14)]
+    return df[df.apply(lambda row: get_row_band(row) == normalized_band, axis=1)]
 
-    if band == "5":
-        return df[channels >= 36]
 
-    return df
 def collapse_heatmap_points(df, aggregation="max"):
     heatmap_df = df.copy()
     heatmap_df["x"] = pd.to_numeric(heatmap_df["x"], errors="coerce")
@@ -70,6 +69,7 @@ def get_channel_map_points(df, ssid, band, ap_group_map=None, ap_group_roles=Non
     rows["x"] = pd.to_numeric(rows["x"], errors="coerce")
     rows["y"] = pd.to_numeric(rows["y"], errors="coerce")
     rows["channel"] = pd.to_numeric(rows["channel"], errors="coerce")
+    rows["band"] = rows.apply(get_row_band, axis=1)
     rows["signal_dbm"] = pd.to_numeric(rows["signal_dbm"], errors="coerce")
     if "channel_width_mhz" in rows.columns:
         rows["channel_width_mhz"] = pd.to_numeric(rows["channel_width_mhz"], errors="coerce")
@@ -97,6 +97,7 @@ def get_dominant_ap_points(df, ssid, band, ap_group_map=None, ap_group_roles=Non
     rows["x"] = pd.to_numeric(rows["x"], errors="coerce")
     rows["y"] = pd.to_numeric(rows["y"], errors="coerce")
     rows["channel"] = pd.to_numeric(rows["channel"], errors="coerce")
+    rows["band"] = rows.apply(get_row_band, axis=1)
     rows["signal_dbm"] = pd.to_numeric(rows["signal_dbm"], errors="coerce")
     if "channel_width_mhz" in rows.columns:
         rows["channel_width_mhz"] = pd.to_numeric(rows["channel_width_mhz"], errors="coerce")
@@ -132,6 +133,7 @@ def get_dominant_ap_points(df, ssid, band, ap_group_map=None, ap_group_roles=Non
             "dominant_scan_confidence": clean_report_value(dominant.get("scan_confidence", np.nan)),
             "dominant_channel": dominant.get("channel", np.nan),
             "dominant_channel_width_mhz": clean_report_value(dominant.get("channel_width_mhz", np.nan)),
+            "dominant_band": dominant.get("band", ""),
             "second_ap_group": second["ap_group"] if second is not None else "",
             "second_ap_role": second.get("ap_role", "") if second is not None else "",
             "second_bssid": second["bssid"] if second is not None else "",
@@ -149,6 +151,7 @@ def get_dominant_ap_points(df, ssid, band, ap_group_map=None, ap_group_roles=Non
             "second_channel_width_mhz": (
                 clean_report_value(second.get("channel_width_mhz", np.nan)) if second is not None else ""
             ),
+            "second_band": second.get("band", "") if second is not None else "",
             "delta_db": clean_report_value(delta_db),
             "roaming_overlap": bool(second is not None and delta_db <= 5)
         })
@@ -174,10 +177,12 @@ def calculate_interference_points(
     ap_group_map=None,
     ap_group_roles=None,
 ):
+    band = normalize_band(band)
     rows = df.copy()
     rows["x"] = pd.to_numeric(rows["x"], errors="coerce")
     rows["y"] = pd.to_numeric(rows["y"], errors="coerce")
     rows["channel"] = pd.to_numeric(rows["channel"], errors="coerce")
+    rows["band"] = rows.apply(get_row_band, axis=1)
     if "channel_width_mhz" in rows.columns:
         rows["channel_width_mhz"] = pd.to_numeric(rows["channel_width_mhz"], errors="coerce")
     else:
@@ -186,7 +191,7 @@ def calculate_interference_points(
     rows = rows.dropna(subset=["timestamp", "x", "y", "channel", "signal_dbm", "ssid", "bssid"])
     rows = add_ap_group_metadata(rows, ap_group_map, ap_group_roles)
 
-    if band not in {"2.4", "5"}:
+    if band not in {"2.4", "5", "6"}:
         return pd.DataFrame(columns=["timestamp", "x", "y", "risk"])
 
     rows = filter_by_band(rows, band)
@@ -255,6 +260,7 @@ def calculate_interference_points(
                     "ap_role": candidate_role,
                     "channel": candidate["channel"],
                     "channel_width_mhz": candidate.get("channel_width_mhz", np.nan),
+                    "band": candidate.get("band", ""),
                     "signal_dbm": candidate["signal_dbm"],
                     "samples_seen": candidate.get("samples_seen", np.nan),
                     "samples_total": candidate.get("samples_total", np.nan),
@@ -282,6 +288,7 @@ def calculate_interference_points(
                 "serving_bssid": serving_ap["bssid"],
                 "serving_channel": serving_channel,
                 "serving_channel_width_mhz": clean_report_value(serving_channel_width),
+                "serving_band": serving_ap.get("band", ""),
                 "serving_signal_dbm": serving_ap["signal_dbm"],
                 "serving_samples_seen": clean_report_value(serving_ap.get("samples_seen", np.nan)),
                 "serving_samples_total": clean_report_value(serving_ap.get("samples_total", np.nan)),
@@ -298,6 +305,7 @@ def calculate_interference_points(
                 "strongest_interferer_channel_width_mhz": clean_report_value(
                     strongest_interferer.get("channel_width_mhz", "")
                 ),
+                "strongest_interferer_band": strongest_interferer.get("band", ""),
                 "strongest_interferer_dbm": strongest_interferer.get("signal_dbm", ""),
                 "strongest_interferer_samples_seen": clean_report_value(
                     strongest_interferer.get("samples_seen", "")
@@ -373,6 +381,7 @@ def parse_scan_confidence(value, default=1.0):
 
 
 def channel_overlap_weight(base_channel, other_channel, band, base_width_mhz=None, other_width_mhz=None):
+    band = normalize_band(band)
     try:
         channel_distance = abs(float(base_channel) - float(other_channel))
     except (TypeError, ValueError):
@@ -391,12 +400,13 @@ def channel_overlap_weight(base_channel, other_channel, band, base_width_mhz=Non
             return 0.15
         return 0
 
-    if band == "5":
+    if band in {"5", "6"}:
         width_overlap = channel_width_overlap_weight(
             base_channel,
             other_channel,
             base_width_mhz,
-            other_width_mhz
+            other_width_mhz,
+            band=band,
         )
         if width_overlap is not None:
             return width_overlap
@@ -406,15 +416,15 @@ def channel_overlap_weight(base_channel, other_channel, band, base_width_mhz=Non
     return 0
 
 
-def channel_width_overlap_weight(base_channel, other_channel, base_width_mhz, other_width_mhz):
+def channel_width_overlap_weight(base_channel, other_channel, base_width_mhz, other_width_mhz, band="5"):
     base_width = normalize_width_mhz(base_width_mhz)
     other_width = normalize_width_mhz(other_width_mhz)
 
     if not base_width or not other_width:
         return None
 
-    base_range = get_5ghz_channel_frequency_range(base_channel, base_width)
-    other_range = get_5ghz_channel_frequency_range(other_channel, other_width)
+    base_range = get_channel_frequency_range(base_channel, base_width, band)
+    other_range = get_channel_frequency_range(other_channel, other_width, band)
     if not base_range or not other_range:
         return None
 
@@ -424,6 +434,13 @@ def channel_width_overlap_weight(base_channel, other_channel, base_width_mhz, ot
         return 0.0
 
     return min(1.0, overlap_mhz / min(base_width, other_width))
+
+
+def get_channel_frequency_range(channel, width_mhz, band="5"):
+    if band == "6":
+        return get_6ghz_channel_frequency_range(channel, width_mhz)
+
+    return get_5ghz_channel_frequency_range(channel, width_mhz)
 
 
 def get_5ghz_channel_frequency_range(channel, width_mhz):
@@ -441,6 +458,44 @@ def get_5ghz_channel_frequency_range(channel, width_mhz):
             return channel_group_frequency_range(group)
 
     return None
+
+
+def get_6ghz_channel_frequency_range(channel, width_mhz):
+    try:
+        primary_channel = int(float(channel))
+    except (TypeError, ValueError):
+        return None
+
+    width = int(round(width_mhz))
+    if width <= 20:
+        center = channel_center_frequency_mhz(primary_channel, "6")
+        if center is None:
+            return None
+        return center - 10, center + 10
+
+    for group in get_6ghz_channel_groups(width):
+        if primary_channel in group:
+            return channel_group_frequency_range(group, band="6")
+
+    return None
+
+
+def get_6ghz_channel_groups(width_mhz):
+    base_channels = list(range(1, 234, 4))
+    if width_mhz <= 40:
+        group_size = 2
+    elif width_mhz <= 80:
+        group_size = 4
+    elif width_mhz <= 160:
+        group_size = 8
+    else:
+        group_size = 16
+
+    return [
+        base_channels[index:index + group_size]
+        for index in range(0, len(base_channels), group_size)
+        if len(base_channels[index:index + group_size]) == group_size
+    ]
 
 
 def get_5ghz_channel_groups(width_mhz):
@@ -470,8 +525,15 @@ def get_5ghz_channel_groups(width_mhz):
     ]
 
 
-def channel_group_frequency_range(channels):
-    centers = [5000 + (channel * 5) for channel in channels]
+def channel_group_frequency_range(channels, band="5"):
+    centers = [
+        channel_center_frequency_mhz(channel, band)
+        for channel in channels
+    ]
+    centers = [center for center in centers if center is not None]
+    if not centers:
+        return None
+
     return min(centers) - 10, max(centers) + 10
 
 
@@ -505,11 +567,15 @@ def signal_interference_weight(signal_dbm):
         return 0.05
     return 0
 def format_band_label(band, language="it"):
+    band = normalize_band(band)
     if band == "2.4":
         return "2.4 GHz"
 
     if band == "5":
         return "5 GHz"
+
+    if band == "6":
+        return "6 GHz"
 
     return translate(language, "all_bands_label")
 def smooth_heatmap_grid(grid_z, sigma):

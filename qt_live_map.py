@@ -44,8 +44,11 @@ from constants import SURVEY_FIELDNAMES
 from heatmap_tools import get_channel_map_points, get_dominant_ap_points
 from live_renderer import render_live_continuous_map
 from map_rendering import (
+    get_channel_band_prefix,
     get_channel_color,
-    get_channel_sort_key,
+    get_channel_display_band,
+    get_channel_display_sort_key,
+    get_channel_label_identity,
     get_limited_bssid_color_map,
     should_label_channel_point,
     should_label_dominant_point,
@@ -737,9 +740,10 @@ def build_channel_payload(df, config, bg_image, translations, aliases):
     for _index, row in channel_df.iterrows():
         marker_id = f"channel-{len(point_infos)}"
         channel = row.get("channel", "")
-        color = get_channel_color(channel, config.band)
-        label = format_channel_legend_label(row, aliases)
-        sort_key = get_channel_sort_key(channel, config.band) + (str(label).casefold(),)
+        display_band = get_channel_display_band(row, config.band)
+        color = get_channel_color(channel, display_band)
+        label = format_channel_legend_label(row, aliases, config.band)
+        sort_key = get_channel_display_sort_key(channel, display_band) + (str(label).casefold(),)
         point_info = {
             "marker_id": marker_id,
             "x": float(row["x"]),
@@ -761,7 +765,7 @@ def build_channel_payload(df, config, bg_image, translations, aliases):
                 "y": float(row["y"]),
             })
         point_infos.append(point_info)
-        previous_channel = channel
+        previous_channel = get_channel_label_identity(row, config.band)
 
     scale_payload = None
     if config.point_label_mode != "none" and legend_items:
@@ -938,7 +942,7 @@ def build_channel_tooltip(row, config, translations, aliases):
             (translations.get("best", "Best"), f"{format_value(row.get('signal_dbm'))} dBm"),
             (translations.get("confidence", "confidence"), format_row_confidence(row)),
         ],
-        get_channel_color(row.get("channel", ""), config.band),
+        get_channel_color(row.get("channel", ""), get_channel_display_band(row, config.band)),
     )
 
 
@@ -1005,9 +1009,13 @@ def build_position_tooltip_rows(analysis, translations, aliases=None):
     return rows
 
 
-def format_channel_legend_label(row, aliases):
+def format_channel_legend_label(row, aliases, selected_band="all"):
+    band_prefix = ""
+    if selected_band == "all":
+        band_prefix = get_channel_band_prefix(row.get("channel", ""), get_channel_display_band(row, selected_band))
+    label_prefix = f"{band_prefix} " if band_prefix else ""
     return (
-        f"CH {format_value(row.get('channel'))} - "
+        f"{label_prefix}CH {format_value(row.get('channel'))} - "
         f"{format_ap_label(row.get('bssid', ''), aliases, row.get('ap_group', ''))}"
     )
 

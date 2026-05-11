@@ -57,6 +57,7 @@ from heatmap_tools import (
     calculate_interference_points,
     channel_overlap_weight,
     channel_width_overlap_weight,
+    filter_by_band,
     get_confidence_rbf_smoothing,
     get_channel_map_points,
     get_distance_alpha,
@@ -109,6 +110,7 @@ from qt_live_map import (
 )
 import qt_app as qt_app_module
 from qt_app import WifiHeatmapQtApp
+from qt_map_generation import MapGenerationDialog
 from qt_windowing import pop_modal_dim, push_modal_dim
 from quality_engine import (
     QUALITY_GOOD,
@@ -141,6 +143,7 @@ from wifi_scanner import (
     parse_lswifi_bss_list,
     parse_netsh_output,
 )
+from wifi_band import infer_band_from_frequency_mhz
 
 
 class ApGroupTests(unittest.TestCase):
@@ -287,6 +290,11 @@ class InterferenceTests(unittest.TestCase):
         self.assertEqual(channel_width_overlap_weight(36, 52, 80, 20), 0.0)
         self.assertIsNone(channel_width_overlap_weight(36, 44, "", 20))
 
+    def test_6ghz_channel_width_overlap_uses_frequency_ranges_when_width_is_known(self):
+        self.assertEqual(channel_width_overlap_weight(1, 9, 80, 20, band="6"), 1.0)
+        self.assertEqual(channel_width_overlap_weight(1, 17, 80, 20, band="6"), 0.0)
+        self.assertEqual(channel_overlap_weight(1, 9, "6", 80, 20), 1.0)
+
     def test_signal_interference_weight_thresholds(self):
         self.assertEqual(signal_interference_weight(-60), 1.0)
         self.assertEqual(signal_interference_weight(-67), 0.7)
@@ -324,6 +332,40 @@ class InterferenceTests(unittest.TestCase):
         self.assertEqual(row["interferer_count"], 1)
         self.assertEqual(row["strongest_interferer_bssid"], overlapping_bssid)
         self.assertNotIn(non_overlapping_bssid, row["interfering_bssids"])
+
+    def test_interference_6ghz_uses_explicit_band_for_ambiguous_channels(self):
+        serving_bssid = "70:4f:57:aa:bb:10"
+        overlapping_bssid = "80:11:22:33:44:10"
+        legacy_24_bssid = "90:11:22:33:44:10"
+        serving = build_row("p1", "MAIN", serving_bssid, -50, 1, band="6")
+        serving["channel_width_mhz"] = "80"
+        overlapping = build_row("p1", "NEIGHBOR", overlapping_bssid, -60, 9, band="6")
+        overlapping["channel_width_mhz"] = "20"
+        legacy_24 = build_row("p1", "NEIGHBOR", legacy_24_bssid, -30, 1)
+
+        risk_df = calculate_interference_points(
+            rows_to_dataframe([serving, overlapping, legacy_24]),
+            "MAIN",
+            "6",
+            mode="all",
+            include_details=True,
+        )
+
+        self.assertEqual(len(risk_df), 1)
+        row = risk_df.iloc[0]
+        self.assertEqual(row["risk"], 100)
+        self.assertEqual(row["serving_band"], "6")
+        self.assertEqual(row["strongest_interferer_band"], "6")
+        self.assertEqual(row["strongest_interferer_bssid"], overlapping_bssid)
+        self.assertNotIn(legacy_24_bssid, row["interfering_bssids"])
+
+    def test_filter_by_band_uses_explicit_6ghz_band_for_ambiguous_channels(self):
+        row_24 = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -50, 5)
+        row_6 = build_row("p2", "MAIN", "80:11:22:33:44:10", -55, 5, band="6")
+
+        filtered = filter_by_band(rows_to_dataframe([row_24, row_6]), "6")
+
+        self.assertEqual(filtered["bssid"].tolist(), ["80:11:22:33:44:10"])
 
     def test_interference_data_quality_counts_rows_with_channel_width_details(self):
         risk_df = rows_to_dataframe([
@@ -1294,7 +1336,29 @@ SSID 2 : GUEST
         self.assertEqual(networks[0]["signal_percent"], 78)
         self.assertEqual(networks[0]["channel"], "36")
         self.assertEqual(networks[0]["channel_width_mhz"], 160)
+        self.assertEqual(networks[0]["band"], "5")
         self.assertEqual(networks[0]["radio"], "802.11ax")
+
+    def test_parse_lswifi_bss_list_reads_frequency_based_6ghz_band(self):
+        networks = parse_lswifi_bss_list([
+            FakeLswifiBss(
+                ssid="MAIN",
+                bssid="70:4f:57:aa:bb:10",
+                rssi="-61",
+                channel_number=5,
+                frequency_mhz=5975,
+            ),
+        ])
+
+        self.assertEqual(len(networks), 1)
+        self.assertEqual(networks[0]["channel"], "5")
+        self.assertEqual(networks[0]["band"], "6")
+
+    def test_frequency_band_inference_accepts_mhz_khz_hz_and_ghz_values(self):
+        self.assertEqual(infer_band_from_frequency_mhz(5975), "6")
+        self.assertEqual(infer_band_from_frequency_mhz(5975000), "6")
+        self.assertEqual(infer_band_from_frequency_mhz(5975000000), "6")
+        self.assertEqual(infer_band_from_frequency_mhz(5.975), "6")
 
     def test_merge_wifi_scans_aggregates_samples_and_confidence(self):
         samples = [
@@ -1315,7 +1379,19 @@ SSID 2 : GUEST
         self.assertEqual(networks[0]["samples_total"], 5)
         self.assertEqual(networks[0]["scan_confidence"], 0.6)
         self.assertEqual(networks[0]["channel_width_mhz"], "20")
+        self.assertEqual(networks[0]["band"], "2.4")
         self.assertIs(networks[0]["raw_samples"][0], samples[0])
+
+    def test_merge_wifi_scans_keeps_same_channel_different_bands_separate(self):
+        samples = [
+            {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -52, "channel": "5", "band": "2.4"},
+            {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -48, "channel": "5", "band": "6"},
+        ]
+
+        networks = merge_wifi_scans(samples, samples_total=1)
+
+        self.assertEqual(len(networks), 2)
+        self.assertEqual({network["band"] for network in networks}, {"2.4", "6"})
 
     def test_merge_wifi_scans_ignores_invalid_signal_samples_but_keeps_raw_samples(self):
         samples = [
@@ -1835,6 +1911,24 @@ class LiveMapViewTests(unittest.TestCase):
 
         self.assertFalse(any(point.get("label") for point in payload["point_infos"]))
         self.assertIsNone(payload["scale_payload"])
+
+    def test_live_channel_all_band_labels_include_6ghz_prefix_for_ambiguous_channels(self):
+        rows = [
+            build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -50, 5),
+            build_row("p2", "MAIN", "80:11:22:33:44:10", -52, 5, band="6"),
+        ]
+
+        payload = build_channel_payload(
+            rows_to_dataframe(rows),
+            MapConfig(ssid="MAIN", band="all", map_type="channel", point_label_mode="auto"),
+            Image.new("RGB", (100, 100), "white"),
+            {"channel_title": "AP channels"},
+            {},
+        )
+
+        labels = [item["label"] for item in payload["scale_payload"]["items"]]
+        self.assertEqual(labels[0].split(" - ")[0], "2.4G CH 5")
+        self.assertEqual(labels[1].split(" - ")[0], "6G CH 5")
 
     def test_live_dominant_point_labels_follow_auto_and_none_modes(self):
         rows = [
@@ -2461,7 +2555,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
                 return [combo.itemData(index) for index in range(combo.count())]
 
             set_map_type("signal")
-            self.assertEqual(combo_values(window.live_band_combo), ["all", "2.4", "5"])
+            self.assertEqual(combo_values(window.live_band_combo), ["all", "2.4", "5", "6"])
             self.assertEqual(grid_position(window.live_ap_group_label)[:2], (0, 0))
             self.assertEqual(grid_position(window.live_band_label)[:2], (1, 0))
             self.assertEqual(grid_position(window.live_color_scale_label)[:2], (2, 0))
@@ -2491,7 +2585,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertTrue(window.live_point_labels_combo.isHidden())
 
             set_map_type("interference")
-            self.assertEqual(combo_values(window.live_band_combo), ["2.4", "5"])
+            self.assertEqual(combo_values(window.live_band_combo), ["2.4", "5", "6"])
             self.assertEqual(window.current_combo_value(window.live_band_combo), "2.4")
             self.assertEqual(window.live_band_combo.width(), window.live_interference_mode_combo.width())
             self.assertEqual(grid_position(window.live_band_label)[:2], (0, 0))
@@ -2518,7 +2612,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(window.live_options_layout.indexOf(window.live_checkbox_separator), -1)
 
             set_map_type("channel")
-            self.assertEqual(combo_values(window.live_band_combo), ["all", "2.4", "5"])
+            self.assertEqual(combo_values(window.live_band_combo), ["all", "2.4", "5", "6"])
             self.assertEqual(combo_values(window.live_point_labels_combo), ["auto", "all", "none"])
             self.assertEqual(grid_position(window.live_ap_group_label)[:2], (0, 0))
             self.assertEqual(grid_position(window.live_band_label)[:2], (1, 0))
@@ -2535,7 +2629,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertTrue(window.live_checkbox_separator.isHidden())
 
             set_map_type("dominant")
-            self.assertEqual(combo_values(window.live_band_combo), ["all", "2.4", "5"])
+            self.assertEqual(combo_values(window.live_band_combo), ["all", "2.4", "5", "6"])
             self.assertEqual(grid_position(window.live_band_label)[:2], (0, 0))
             self.assertEqual(grid_position(window.live_point_labels_label)[:2], (1, 0))
             self.assertFalse(window.live_band_combo.isHidden())
@@ -2645,6 +2739,27 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             window.deleteLater()
 
 
+class MapGenerationDialogTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.qt_app = QApplication.instance() or QApplication([])
+
+    def test_generated_map_dialog_includes_6ghz_band_and_roundtrips_config(self):
+        dialog = MapGenerationDialog(
+            None,
+            ["MAIN"],
+            lambda key, **kwargs: key.format(**kwargs) if kwargs else key,
+            MapConfig(ssid="MAIN", band="6", map_type="interference"),
+        )
+        try:
+            values = [dialog.band_combo.itemData(index) for index in range(dialog.band_combo.count())]
+            self.assertEqual(values, ["all", "2.4", "5", "6"])
+            self.assertEqual(dialog.current_combo_value(dialog.band_combo), "6")
+            self.assertEqual(dialog.get_config().band, "6")
+        finally:
+            dialog.deleteLater()
+
+
 class ApMetadataTests(unittest.TestCase):
     def test_expected_channel_parser_handles_ranges_reversed_ranges_and_text(self):
         self.assertEqual(
@@ -2705,6 +2820,21 @@ class ApMetadataTests(unittest.TestCase):
 
         self.assertEqual(warnings, [])
 
+    def test_metadata_warning_uses_explicit_6ghz_band_for_ambiguous_channel(self):
+        bssid = "70:4f:57:aa:bb:10"
+        rows = [build_row("p1", "MAIN", bssid, -55, 5, band="6")]
+        groups = [
+            build_manual_ap_group(
+                "corridor",
+                [bssid],
+                metadata={"expected_channels": "5", "expected_bands": "6 GHz"},
+            )
+        ]
+
+        warnings = build_ap_metadata_warnings(rows, groups)
+
+        self.assertEqual(warnings, [])
+
     def test_metadata_warning_detects_unexpected_band_and_ignores_test_groups(self):
         bssid = "70:4f:57:aa:bb:10"
         test_bssid = "80:11:22:33:44:10"
@@ -2748,6 +2878,8 @@ class FakeLswifiBss:
         channel_number,
         channel_width="",
         phy_type=None,
+        band="",
+        frequency_mhz="",
     ):
         self.ssid = ssid
         self.bssid = bssid
@@ -2755,10 +2887,12 @@ class FakeLswifiBss:
         self.channel_number = channel_number
         self.channel_width = channel_width
         self.phy_type = phy_type
+        self.band = band
+        self.frequency_mhz = frequency_mhz
 
 
-def build_row(point_id, ssid, bssid, signal_dbm, channel):
-    return {
+def build_row(point_id, ssid, bssid, signal_dbm, channel, band=None):
+    row = {
         "point_id": point_id,
         "timestamp": point_id,
         "x": "10",
@@ -2779,10 +2913,13 @@ def build_row(point_id, ssid, bssid, signal_dbm, channel):
         "radio": "802.11ax",
         "is_relevant": "1",
     }
+    if band is not None:
+        row["band"] = band
+    return row
 
 
-def build_raw_row(point_id, ssid, bssid, signal_dbm, channel):
-    return {
+def build_raw_row(point_id, ssid, bssid, signal_dbm, channel, band=None):
+    row = {
         "point_id": point_id,
         "scan_attempt": "1",
         "timestamp": point_id,
@@ -2797,6 +2934,9 @@ def build_raw_row(point_id, ssid, bssid, signal_dbm, channel):
         "radio": "802.11ax",
         "backend": "test",
     }
+    if band is not None:
+        row["band"] = band
+    return row
 
 
 def rows_to_dataframe(rows):

@@ -28,8 +28,13 @@ SURVEY_FIELDNAMES = [
     "scan_confidence",
     "channel",
     "channel_width_mhz",
+    "band",
     "radio",
     "is_relevant",
+]
+OPTIONAL_SURVEY_FIELDNAMES = ["band"]
+REQUIRED_SURVEY_FIELDNAMES = [
+    field for field in SURVEY_FIELDNAMES if field not in OPTIONAL_SURVEY_FIELDNAMES
 ]
 
 RAW_SCAN_FIELDNAMES = [
@@ -44,6 +49,11 @@ RAW_SCAN_FIELDNAMES = [
     "signal_dbm",
     "channel",
     "channel_width_mhz",
+    "band",
     "radio",
     "backend"
+]
+OPTIONAL_RAW_SCAN_FIELDNAMES = ["band"]
+REQUIRED_RAW_SCAN_FIELDNAMES = [
+    field for field in RAW_SCAN_FIELDNAMES if field not in OPTIONAL_RAW_SCAN_FIELDNAMES
 ]

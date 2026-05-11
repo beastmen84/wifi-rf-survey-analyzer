@@ -61,6 +61,7 @@ class MapGenerationDialog(QDialog):
                 ("all", tr("all_bands_option")),
                 ("2.4", "2.4 GHz"),
                 ("5", "5 GHz"),
+                ("6", "6 GHz"),
             ],
         )
         self.set_combo_items(

@@ -369,7 +369,7 @@ TRANSLATIONS = {
         "interference_quality_width_coverage": "Larghezza canale disponibile: {available}/{total} punti ({percent}%).",
         "interference_quality_good": "La stima usa larghezza canale su una quota sufficiente di punti.",
         "interference_quality_warning": "La larghezza canale è disponibile su pochi punti: la stima usa fallback dove il dato manca.",
-        "interference_quality_warning_5ghz": "La larghezza canale è disponibile su pochi punti: sul 5 GHz la stima può sottovalutare sovrapposizioni tra canali larghi.",
+        "interference_quality_warning_5ghz": "La larghezza canale è disponibile su pochi punti: su 5/6 GHz la stima può sottovalutare sovrapposizioni tra canali larghi.",
         "usable_only": "Solo >= -70 dBm",
         "max_distance_px": "Distanza max (px)",
         "interpolation": "Interpolazione",
@@ -403,7 +403,7 @@ TRANSLATIONS = {
         "select_ssid_heatmap": "Seleziona un SSID per generare la heatmap.",
         "insufficient_data_title": "Dati insufficienti",
         "insufficient_data": "Servono almeno 3 punti per generare una heatmap nella banda {band}.",
-        "interference_requires_band": "Per la mappa interferenza seleziona 2.4 GHz o 5 GHz.",
+        "interference_requires_band": "Per la mappa interferenza seleziona 2.4 GHz, 5 GHz o 6 GHz.",
         "save_required_title": "Salvataggio richiesto",
         "save_required": "Per generare la heatmap devi prima salvare il rilievo CSV.",
         "save_failed": "Salvataggio annullato. Heatmap non generata.",
@@ -549,7 +549,7 @@ TRANSLATIONS = {
         "help_scan_text": (
             "Auto prova lswifi e usa netsh come fallback.\n"
             "lswifi di solito vede più BSSID ed è preferibile quando disponibile.\n"
-            "lswifi può fornire channel_width_mhz, utile per stimare meglio le interferenze 5 GHz.\n"
+            "lswifi può fornire channel_width_mhz e band/frequenza, utile per stimare meglio le interferenze 5/6 GHz.\n"
             "Se una scansione trova molte meno reti della precedente, il programma la segnala come sospetta.\n"
             "In quel caso conviene riprovare prima di salvare il punto."
         ),
@@ -935,7 +935,7 @@ TRANSLATIONS = {
         "interference_quality_width_coverage": "Channel width available: {available}/{total} points ({percent}%).",
         "interference_quality_good": "The estimate uses channel width on a sufficient share of points.",
         "interference_quality_warning": "Channel width is available on few points: the estimate uses fallback where data is missing.",
-        "interference_quality_warning_5ghz": "Channel width is available on few points: on 5 GHz the estimate may underestimate overlap between wide channels.",
+        "interference_quality_warning_5ghz": "Channel width is available on few points: on 5/6 GHz the estimate may underestimate overlap between wide channels.",
         "usable_only": "Only >= -70 dBm",
         "max_distance_px": "Max distance px",
         "interpolation": "Interpolation",
@@ -969,7 +969,7 @@ TRANSLATIONS = {
         "select_ssid_heatmap": "Select an SSID to generate the heatmap.",
         "insufficient_data_title": "Insufficient data",
         "insufficient_data": "At least 3 points are required to generate a heatmap on {band}.",
-        "interference_requires_band": "Select 2.4 GHz or 5 GHz for the interference map.",
+        "interference_requires_band": "Select 2.4 GHz, 5 GHz or 6 GHz for the interference map.",
         "save_required_title": "Save required",
         "save_required": "You must save the survey CSV before generating the heatmap.",
         "save_failed": "Save cancelled. Heatmap not generated.",
@@ -1115,7 +1115,7 @@ TRANSLATIONS = {
         "help_scan_text": (
             "Auto tries lswifi and falls back to netsh.\n"
             "lswifi usually sees more BSSIDs and is preferred when available.\n"
-            "lswifi can provide channel_width_mhz, useful for better 5 GHz interference estimates.\n"
+            "lswifi can provide channel_width_mhz and band/frequency data, useful for better 5/6 GHz interference estimates.\n"
             "If a scan finds far fewer networks than the previous good scan, it is marked suspicious.\n"
             "In that case, retry before saving the point."
         ),

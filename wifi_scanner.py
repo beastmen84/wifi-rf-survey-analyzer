@@ -10,6 +10,7 @@ from statistics import median
 from app_logging import log_event, log_exception
 from constants import WIFI_SCAN_ATTEMPTS, WIFI_SCAN_DELAY_SECONDS
 from utils import dbm_to_percent, percent_to_dbm
+from wifi_band import infer_band_from_channel, infer_band_from_frequency_mhz, normalize_band
 
 
 def scan_wifi(backend="auto", show_errors=True):
@@ -155,6 +156,7 @@ def parse_lswifi_bss_list(bss_list):
 
         channel = str(lswifi_value(getattr(item, "channel_number", ""))).strip()
         channel_width_mhz = get_lswifi_channel_width_mhz(item)
+        band = get_lswifi_band(item, channel)
         radio = format_lswifi_radio(getattr(item, "phy_type", None))
 
         networks.append({
@@ -164,6 +166,7 @@ def parse_lswifi_bss_list(bss_list):
             "signal_dbm": signal_dbm,
             "channel": channel,
             "channel_width_mhz": channel_width_mhz,
+            "band": band,
             "radio": radio
         })
 
@@ -179,6 +182,20 @@ def get_lswifi_channel_width_mhz(item):
             return width
 
     return ""
+
+
+def get_lswifi_band(item, channel):
+    for attribute_name in ("band", "frequency_band", "wifi_band"):
+        band = normalize_band(lswifi_value(getattr(item, attribute_name, ""), ""))
+        if band:
+            return band
+
+    for attribute_name in ("frequency_mhz", "frequency", "center_frequency", "center_frequency_mhz"):
+        band = infer_band_from_frequency_mhz(lswifi_value(getattr(item, attribute_name, ""), ""))
+        if band:
+            return band
+
+    return infer_band_from_channel(channel)
 
 
 def normalize_channel_width_mhz(value):
@@ -220,6 +237,7 @@ def merge_wifi_scans(networks, samples_total=1):
             normalize_merge_text(network.get("ssid")),
             normalize_merge_text(network.get("bssid")).lower(),
             normalize_merge_text(network.get("channel")),
+            normalize_band(network.get("band")),
         )
         merged_networks.setdefault(key, []).append(network)
 
@@ -261,6 +279,7 @@ def merge_wifi_scans(networks, samples_total=1):
             "scan_confidence": round(scan_confidence, 3),
             "channel": representative.get("channel", ""),
             "channel_width_mhz": most_common_non_empty(samples, "channel_width_mhz"),
+            "band": most_common_non_empty(samples, "band") or infer_band_from_channel(representative.get("channel")),
             "radio": most_common_non_empty(samples, "radio"),
             "raw_samples": samples
         })
@@ -307,6 +326,7 @@ def parse_netsh_output(output):
                 "signal_dbm": percent_to_dbm(current_signal),
                 "channel": current_channel,
                 "channel_width_mhz": "",
+                "band": infer_band_from_channel(current_channel),
                 "radio": current_radio
             })
 

@@ -185,8 +185,8 @@ Current use:
 - metadata is descriptive;
 - expected bands/channels are used by quality checks;
 - mounting type is not yet used by RF logic;
-- 6 GHz can be selected as expected metadata, but the rest of the application
-  does not yet handle 6 GHz maps, filters, interference logic or exports.
+- 6 GHz is supported by metadata checks when scan rows include an explicit
+  `band` value or frequency-derived band.
 
 ### Improved Interference Analysis
 
@@ -194,6 +194,7 @@ Implemented:
 
 - channel-width-aware overlap logic;
 - 5 GHz overlap based on MHz ranges where width is available;
+- 6 GHz overlap based on MHz ranges where width is available;
 - same AP group ignored as interferer;
 - guest/main SSIDs on the same physical AP do not count as mutual
   interference when grouped correctly;
@@ -219,6 +220,8 @@ Implemented:
 - continuous maps use a bottom-right color scale overlay bound to the viewport;
 - map-specific options live in a compact left overlay with a vertical tab;
 - each map exposes only values that make sense for that map;
+- 6 GHz is available in live Coverage, Interference, AP Channels and Dominant
+  AP band filters;
 - live-map options are remembered per survey/map type;
 - AP Channels and Dominant AP use legend-controlled point labels
   (`Auto` / `All` / `None`) rather than labels drawn directly on the map;
@@ -240,6 +243,8 @@ Implemented:
 - page 1 is arranged as map first, then summary/scale/legend below the map;
 - continuous Coverage and Interference exports honor color scale, smoothing and
   max-distance settings;
+- live PDF export supports 6 GHz map filters, legends and Interference
+  summaries;
 - exported map pages are flattened to avoid accidental page-image selection in
   PDF viewers;
 - map markers use survey-like sizing;
@@ -352,12 +357,12 @@ Useful next checks:
 - mounting type influencing AP position warnings;
 - expected radio count;
 - expected channel width;
-- full 6 GHz support beyond metadata:
-  - scan/channel band detection;
-  - map filters and live-map options;
-  - AP Channels and Dominant AP views;
-  - interference overlap rules;
-  - PDF/export labels and summaries;
+- validate 6 GHz scan capture on real 6E/7 hardware and scanner backends:
+  - new lswifi scans can preserve explicit/frequency-derived band data;
+  - netsh and legacy survey rows without band/frequency can still only infer
+    2.4/5 GHz from channel numbers;
+  - low-number 6 GHz channels are ambiguous unless the row carries `band` or
+    frequency information;
 - vendor/model capability hints;
 - AP role consistency:
   - external AP should not be selected as dominant for internal coverage;
@@ -419,6 +424,7 @@ Suggested test areas:
 - manual group merge/split preservation;
 - role filtering;
 - channel-width overlap;
+- 6 GHz scans, filters, legends and exports using real hardware data;
 - AP position warning logic;
 - quality engine states;
 - old invalid CSV rejection;

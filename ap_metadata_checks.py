@@ -9,6 +9,7 @@ from ap_groups import (
     normalize_ap_role,
     resolve_ap_group_key,
 )
+from wifi_band import get_row_band, infer_band_from_channel as infer_wifi_band_from_channel
 
 
 def build_ap_metadata_warnings(rows, ap_groups, channel_sort_key=None):
@@ -33,7 +34,7 @@ def build_ap_metadata_warnings(rows, ap_groups, channel_sort_key=None):
 
         observed = observed_by_group.setdefault(group_id, {"channels": set(), "bands": set()})
         observed["channels"].add(channel)
-        band = infer_band_from_channel(channel)
+        band = get_row_band(row)
         if band:
             observed["bands"].add(band)
 
@@ -123,17 +124,7 @@ def normalize_channel(value):
 
 
 def infer_band_from_channel(channel):
-    try:
-        channel_number = int(channel)
-    except (TypeError, ValueError):
-        return ""
-
-    if 1 <= channel_number <= 14:
-        return "2.4"
-    if 32 <= channel_number <= 196:
-        return "5"
-
-    return ""
+    return infer_wifi_band_from_channel(channel)
 
 
 def sort_channels(channels, channel_sort_key=None):

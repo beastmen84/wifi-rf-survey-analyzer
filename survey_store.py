@@ -11,6 +11,8 @@ from constants import (
     APP_ID,
     RAW_DATA_FILE_METADATA_KEY,
     RAW_SCAN_FIELDNAMES,
+    REQUIRED_RAW_SCAN_FIELDNAMES,
+    REQUIRED_SURVEY_FIELDNAMES,
     SURVEY_FIELDNAMES,
     SURVEY_SCHEMA_VERSION,
 )
@@ -20,6 +22,7 @@ from ap_groups import (
     normalize_ap_position,
     normalize_ap_role,
 )
+from wifi_band import get_row_band
 
 
 class SurveyFormatError(ValueError):
@@ -82,6 +85,7 @@ class SurveySession:
                 "scan_confidence": net.get("scan_confidence", ""),
                 "channel": net["channel"],
                 "channel_width_mhz": net.get("channel_width_mhz", ""),
+                "band": get_row_band(net),
                 "radio": net["radio"],
                 "is_relevant": "1" if str(net.get("ssid", "")).lower() in relevant_ssids else "0"
             })
@@ -107,6 +111,7 @@ class SurveySession:
                 "signal_dbm": sample.get("signal_dbm", ""),
                 "channel": sample.get("channel", ""),
                 "channel_width_mhz": sample.get("channel_width_mhz", ""),
+                "band": get_row_band(sample),
                 "radio": sample.get("radio", ""),
                 "backend": sample.get("backend", "")
             })
@@ -328,14 +333,14 @@ def validate_survey_file(csv_file):
         raise SurveyFormatError("invalid_survey_format")
 
     header = read_csv_header(csv_file)
-    missing_fields = [field for field in SURVEY_FIELDNAMES if field not in header]
+    missing_fields = [field for field in REQUIRED_SURVEY_FIELDNAMES if field not in header]
     if missing_fields:
         raise SurveyFormatError("invalid_survey_format")
 
     raw_scan_file = build_raw_scan_file_path(csv_file, metadata)
     if os.path.exists(raw_scan_file):
         raw_header = read_csv_header(raw_scan_file)
-        missing_raw_fields = [field for field in RAW_SCAN_FIELDNAMES if field not in raw_header]
+        missing_raw_fields = [field for field in REQUIRED_RAW_SCAN_FIELDNAMES if field not in raw_header]
         if missing_raw_fields:
             raise SurveyFormatError("invalid_raw_scan_format")
 
