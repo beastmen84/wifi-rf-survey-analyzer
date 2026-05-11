@@ -179,14 +179,13 @@ class FloorplanView(QGraphicsView):
 
     def create_ap_marker(self, x, y, group, label):
         if self.ap_position_icon and not self.ap_position_icon.isNull():
-            pixmap = self.ap_position_icon.scaled(
-                AP_MARKER_BASE_SIZE,
-                AP_MARKER_BASE_SIZE,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
+            pixmap = self.ap_position_icon
             item = QGraphicsPixmapItem(pixmap)
+            item.setTransformationMode(Qt.TransformationMode.SmoothTransformation)
             item.setOffset(-pixmap.width() / 2, -pixmap.height() / 2)
+            max_source_size = max(pixmap.width(), pixmap.height())
+            if max_source_size > 0:
+                item.setScale(AP_MARKER_BASE_SIZE / max_source_size)
             item.setPos(x, y)
         else:
             radius = AP_MARKER_BASE_SIZE / 2

@@ -747,6 +747,9 @@ Language:
   counter, and removes dim overlays through an idempotent cleanup path.
 - Aligned the Qt app bar View buttons without changing text-button sizing:
   `+` and `-` now have their own fixed height and no extra vertical padding.
+- AP position markers now keep the original high-resolution `images/wifi.png`
+  pixmap and scale the graphics item instead of pre-rendering it to 20x20,
+  preventing pixelated AP icons when the map is zoomed.
 
 Recent commits:
 

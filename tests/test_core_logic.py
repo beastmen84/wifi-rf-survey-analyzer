@@ -21,6 +21,7 @@ from qt_quality_dashboard import (
     format_relevant_ssids,
     get_effective_ap_groups,
 )
+from qt_floorplan import AP_MARKER_BASE_SIZE, FloorplanView
 from qt_windowing import pop_modal_dim, push_modal_dim
 from quality_engine import QUALITY_GOOD, QUALITY_MISSING_RELEVANT, evaluate_point_quality
 from survey_store import get_survey_point_summaries_from_rows
@@ -325,6 +326,23 @@ class QtWindowingTests(unittest.TestCase):
         self.assertIsNone(getattr(parent.window(), "_wifi_heatmap_dim_overlay", None))
         dialog.deleteLater()
         parent.deleteLater()
+
+
+class FloorplanViewTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.qt_app = QApplication.instance() or QApplication([])
+
+    def test_ap_marker_keeps_high_resolution_source_pixmap(self):
+        view = FloorplanView()
+
+        marker = view.create_ap_marker(100, 120, {"group_id": "ap"}, "AP")
+        pixmap = marker.pixmap()
+        rendered_size = max(pixmap.width(), pixmap.height()) * marker.scale()
+
+        self.assertGreater(max(pixmap.width(), pixmap.height()), AP_MARKER_BASE_SIZE)
+        self.assertAlmostEqual(rendered_size, AP_MARKER_BASE_SIZE, delta=0.1)
+        view.deleteLater()
 
 
 class ApMetadataTests(unittest.TestCase):
