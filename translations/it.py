@@ -1,5 +1,7 @@
 """Italian translations."""
 
+LANGUAGE_LABEL = "Italiano"
+
 TRANSLATIONS = {
     "app_title": "Wi-Fi RF Survey Analyzer",
     "copyright": "© Davide Marchi",

@@ -28,7 +28,7 @@ except ModuleNotFoundError as exc:
 from app_logging import configure_logging, log_event, log_exception, log_unhandled_exception
 from app_restart import start_replacement_process
 from app_settings import get_last_survey_directory, get_saved_theme, get_saved_ui_scale, save_theme, save_ui_scale
-from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_language, translate
+from i18n import DEFAULT_LANGUAGE, LANGUAGE_OPTIONS, normalize_language, translate
 from qt_theme import QT_THEME_OPTIONS, QT_THEMES
 from qt_windowing import SKIP_CENTERING_PROPERTY, get_centered_open_file_name, install_dialog_centering
 from ui_scaling import (
@@ -41,12 +41,6 @@ from ui_scaling import (
     scale_px,
     ui_scale_diagnostics,
 )
-
-
-START_LANGUAGE_LABELS = {
-    "IT": "Italiano",
-    "EN": "English",
-}
 
 
 class AppImportWorker(QObject):
@@ -486,7 +480,7 @@ class StartWindow(QMainWindow):
         self.add_settings_row(layout, self.tr("ui_scale"), scale_combo)
 
         language_combo = self.create_settings_combo(
-            [(code, START_LANGUAGE_LABELS.get(code, code)) for code in SUPPORTED_LANGUAGES],
+            LANGUAGE_OPTIONS,
             self.language.upper(),
         )
         language_combo.currentIndexChanged.connect(lambda _index: self.change_language(language_combo.currentData()))

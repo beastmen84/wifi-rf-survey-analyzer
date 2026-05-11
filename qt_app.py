@@ -41,7 +41,7 @@ except ModuleNotFoundError as exc:
     print("PySide6 is required for main.py. Run: pip install -r requirements.txt")
     raise SystemExit(1) from exc
 
-from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_language, translate
+from i18n import DEFAULT_LANGUAGE, LANGUAGE_OPTIONS, normalize_language, translate
 from app_logging import configure_logging, log_event, log_exception, log_unhandled_exception
 from app_restart import start_replacement_process
 from app_settings import (
@@ -209,9 +209,13 @@ class WifiHeatmapQtApp(PointCaptureMixin, SurveyPointTableMixin, RelevantNetwork
         top_row.addStretch(1)
         self.start_language_label = QLabel()
         self.start_language_combo = QComboBox()
-        self.start_language_combo.addItems(SUPPORTED_LANGUAGES)
-        self.start_language_combo.setCurrentText(self.language.upper())
-        self.start_language_combo.currentTextChanged.connect(self.change_language)
+        for code, label in LANGUAGE_OPTIONS:
+            self.start_language_combo.addItem(label, code)
+        start_language_index = self.start_language_combo.findData(self.language.upper())
+        self.start_language_combo.setCurrentIndex(max(0, start_language_index))
+        self.start_language_combo.currentIndexChanged.connect(
+            lambda _index: self.change_language(self.start_language_combo.currentData())
+        )
         top_row.addWidget(self.start_language_label)
         top_row.addWidget(self.start_language_combo)
         outer.addLayout(top_row)
@@ -1457,7 +1461,9 @@ class WifiHeatmapQtApp(PointCaptureMixin, SurveyPointTableMixin, RelevantNetwork
 
         self.language = language
         self.start_language_combo.blockSignals(True)
-        self.start_language_combo.setCurrentText(language.upper())
+        language_index = self.start_language_combo.findData(language.upper())
+        if language_index >= 0:
+            self.start_language_combo.setCurrentIndex(language_index)
         self.start_language_combo.blockSignals(False)
         self.retranslate()
         if self.session is not None:
@@ -1553,7 +1559,7 @@ class WifiHeatmapQtApp(PointCaptureMixin, SurveyPointTableMixin, RelevantNetwork
         self.add_settings_row(layout, self.tr("ui_scale"), scale_combo)
 
         language_combo = self.create_settings_combo(
-            [(code, code) for code in SUPPORTED_LANGUAGES],
+            LANGUAGE_OPTIONS,
             self.language.upper(),
         )
         language_combo.currentIndexChanged.connect(lambda _index: self.change_language(language_combo.currentData()))

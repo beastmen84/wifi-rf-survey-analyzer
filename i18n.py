@@ -1,6 +1,6 @@
 """Translation helpers for the Qt interfaces."""
 
-from translations import SUPPORTED_LANGUAGES, TRANSLATIONS
+from translations import LANGUAGE_LABELS, LANGUAGE_OPTIONS, SUPPORTED_LANGUAGES, TRANSLATIONS
 
 
 DEFAULT_LANGUAGE = "en"

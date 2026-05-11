@@ -1,7 +1,15 @@
-import string
 import unittest
+import string
 
-from i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, TRANSLATIONS, normalize_language, translate
+from i18n import (
+    DEFAULT_LANGUAGE,
+    LANGUAGE_LABELS,
+    LANGUAGE_OPTIONS,
+    SUPPORTED_LANGUAGES,
+    TRANSLATIONS,
+    normalize_language,
+    translate,
+)
 
 
 def format_fields(text):
@@ -19,6 +27,17 @@ class I18nTests(unittest.TestCase):
             SUPPORTED_LANGUAGES,
         )
         self.assertIn(DEFAULT_LANGUAGE, TRANSLATIONS)
+
+    def test_language_options_expose_display_labels(self):
+        self.assertEqual(
+            tuple(code for code, _label in LANGUAGE_OPTIONS),
+            SUPPORTED_LANGUAGES,
+        )
+        for code, label in LANGUAGE_OPTIONS:
+            with self.subTest(language=code):
+                language = code.lower()
+                self.assertEqual(LANGUAGE_LABELS[language], label)
+                self.assertTrue(label.strip())
 
     def test_all_languages_define_the_same_keys(self):
         expected_keys = set(TRANSLATIONS[DEFAULT_LANGUAGE])
