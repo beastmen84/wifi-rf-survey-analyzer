@@ -2,6 +2,8 @@
 
 import math
 
+from ap_groups import AP_ROLE_TEST, normalize_ap_role
+
 
 AP_POSITION_OK = "OK"
 AP_POSITION_MISSING = "MISSING_POSITION"
@@ -61,6 +63,9 @@ def build_ap_position_map(ap_groups):
     positions = {}
 
     for group in ap_groups or []:
+        if normalize_ap_role(group.get("role")) == AP_ROLE_TEST:
+            continue
+
         group_id = str(group.get("group_id", "")).strip()
         position = group.get("position") or {}
         point = parse_point(position)

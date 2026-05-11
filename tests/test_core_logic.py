@@ -32,6 +32,15 @@ from ap_groups import (
 )
 from ap_group_checks import build_ap_group_conflicts
 from ap_metadata_checks import build_ap_metadata_warnings
+from ap_positioning import (
+    AP_POSITION_MISSING,
+    AP_POSITION_NO_SCALE,
+    AP_POSITION_OK,
+    AP_POSITION_STRONG_FAR,
+    AP_POSITION_UNEXPECTED_DOMINANT,
+    AP_POSITION_WEAK_CLOSE,
+    analyze_dominant_ap_position,
+)
 from heatmap_tools import calculate_interference_points, get_channel_map_points, get_dominant_ap_points
 from live_renderer import build_signal_payload
 from map_exporter import (
@@ -64,7 +73,14 @@ from qt_live_map import (
 import qt_app as qt_app_module
 from qt_app import WifiHeatmapQtApp
 from qt_windowing import pop_modal_dim, push_modal_dim
-from quality_engine import QUALITY_GOOD, QUALITY_MISSING_RELEVANT, evaluate_point_quality
+from quality_engine import (
+    QUALITY_GOOD,
+    QUALITY_LOW_CONFIDENCE,
+    QUALITY_MISSING_RELEVANT,
+    QUALITY_SPARSE_DATA,
+    QUALITY_UNSTABLE_SIGNAL,
+    evaluate_point_quality,
+)
 from survey_store import (
     SurveyFormatError,
     SurveySession,
@@ -234,6 +250,45 @@ class QualityTests(unittest.TestCase):
 
         self.assertEqual(quality["p1"]["status"], QUALITY_GOOD)
 
+    def test_quality_marks_low_confidence_dominant_relevant_candidate(self):
+        row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -52, 1)
+        row["scan_confidence"] = "0.2"
+
+        quality = evaluate_point_quality([row], relevant_ssids={"MAIN"})
+
+        self.assertEqual(quality["p1"]["status"], QUALITY_LOW_CONFIDENCE)
+        self.assertEqual(quality["p1"]["breakdown"][0]["message"], "low_confidence")
+
+    def test_quality_marks_unstable_signal_from_raw_samples(self):
+        row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -52, 1)
+        raw_rows = [
+            build_raw_row("p1", "MAIN", "70:4f:57:aa:bb:10", -45, 1),
+            build_raw_row("p1", "MAIN", "70:4f:57:aa:bb:10", -59, 1),
+            build_raw_row("p1", "MAIN", "70:4f:57:aa:bb:10", -52, 1),
+        ]
+
+        quality = evaluate_point_quality([row], raw_rows, relevant_ssids={"MAIN"})
+
+        self.assertEqual(quality["p1"]["status"], QUALITY_UNSTABLE_SIGNAL)
+        self.assertEqual(quality["p1"]["breakdown"][0]["range_db"], 14.0)
+
+    def test_quality_marks_sparse_data_when_samples_are_too_few(self):
+        row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -52, 1)
+        row["samples_seen"] = "1"
+
+        quality = evaluate_point_quality([row], relevant_ssids={"MAIN"})
+
+        self.assertEqual(quality["p1"]["status"], QUALITY_SPARSE_DATA)
+
+    def test_quality_missing_relevant_takes_priority_over_low_confidence(self):
+        row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -52, 1)
+        row["scan_confidence"] = "0.1"
+
+        quality = evaluate_point_quality([row], relevant_ssids={"MAIN", "GUEST"})
+
+        self.assertEqual(quality["p1"]["status"], QUALITY_MISSING_RELEVANT)
+        self.assertEqual(quality["p1"]["missing_relevant"], ["guest"])
+
     def test_dashboard_confidence_uses_dominant_candidates(self):
         strong_row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -52, 1)
         weak_row = build_row("p1", "MAIN", "80:11:22:33:44:10", -82, 1)
@@ -309,6 +364,70 @@ class SurveyPointSummaryTests(unittest.TestCase):
         self.assertEqual(len(summaries), 1)
         self.assertEqual(summaries[0]["best_signal_dbm"], -68)
         self.assertEqual(summaries[0]["signal_scope"], "relevant")
+
+
+class ApPositioningTests(unittest.TestCase):
+    def test_dominant_ap_position_reports_missing_position(self):
+        result = analyze_dominant_ap_position(
+            {"x": 10, "y": 20, "dominant_ap_group": "ap-1", "dominant_signal_dbm": -60},
+            [],
+            px_per_meter=10,
+        )
+
+        self.assertEqual(result["status"], AP_POSITION_MISSING)
+        self.assertFalse(result["has_position"])
+
+    def test_dominant_ap_position_reports_no_scale_when_position_exists(self):
+        result = analyze_dominant_ap_position(
+            {"x": 10, "y": 20, "dominant_ap_group": "ap-1", "dominant_signal_dbm": -60},
+            [{"group_id": "ap-1", "position": {"x": 10, "y": 40}}],
+            px_per_meter=None,
+        )
+
+        self.assertEqual(result["status"], AP_POSITION_NO_SCALE)
+        self.assertTrue(result["has_position"])
+        self.assertEqual(result["dominant_distance_px"], 20.0)
+
+    def test_dominant_ap_position_flags_strong_far_and_weak_close(self):
+        strong_far = analyze_dominant_ap_position(
+            {"x": 0, "y": 0, "dominant_ap_group": "ap-1", "dominant_signal_dbm": -50},
+            [{"group_id": "ap-1", "position": {"x": 30, "y": 0}}],
+            px_per_meter=1,
+        )
+        weak_close = analyze_dominant_ap_position(
+            {"x": 0, "y": 0, "dominant_ap_group": "ap-1", "dominant_signal_dbm": -80},
+            [{"group_id": "ap-1", "position": {"x": 4, "y": 0}}],
+            px_per_meter=1,
+        )
+
+        self.assertEqual(strong_far["status"], AP_POSITION_STRONG_FAR)
+        self.assertEqual(weak_close["status"], AP_POSITION_WEAK_CLOSE)
+
+    def test_dominant_ap_position_flags_unexpected_dominant_against_nearest_internal_ap(self):
+        result = analyze_dominant_ap_position(
+            {"x": 0, "y": 0, "dominant_ap_group": "far-ap", "dominant_signal_dbm": -62},
+            [
+                {"group_id": "far-ap", "position": {"x": 30, "y": 0}, "role": AP_ROLE_INTERNAL},
+                {"group_id": "near-ap", "position": {"x": 5, "y": 0}, "role": AP_ROLE_INTERNAL},
+            ],
+            px_per_meter=1,
+        )
+
+        self.assertEqual(result["status"], AP_POSITION_UNEXPECTED_DOMINANT)
+        self.assertEqual(result["nearest_ap_group"], "near-ap")
+
+    def test_dominant_ap_position_ignores_test_hidden_ap_positions_as_nearest(self):
+        result = analyze_dominant_ap_position(
+            {"x": 0, "y": 0, "dominant_ap_group": "far-ap", "dominant_signal_dbm": -62},
+            [
+                {"group_id": "far-ap", "position": {"x": 30, "y": 0}, "role": AP_ROLE_INTERNAL},
+                {"group_id": "hidden-ap", "position": {"x": 5, "y": 0}, "role": AP_ROLE_TEST},
+            ],
+            px_per_meter=1,
+        )
+
+        self.assertEqual(result["status"], AP_POSITION_OK)
+        self.assertEqual(result["nearest_ap_group"], "far-ap")
 
 
 class SurveyStoreTests(unittest.TestCase):
@@ -1709,6 +1828,52 @@ class ApMetadataTests(unittest.TestCase):
         self.assertEqual(warnings[0]["group_id"], "corridor")
         self.assertEqual(warnings[0]["unexpected_channels"], ["6"])
 
+    def test_metadata_warning_accepts_expected_channel_ranges_and_bands(self):
+        bssid = "70:4f:57:aa:bb:10"
+        rows = [
+            build_row("p1", "MAIN", bssid, -55, 1),
+            build_row("p2", "MAIN", bssid, -57, 6),
+            build_row("p3", "MAIN", bssid, -59, 36),
+        ]
+        groups = [
+            build_manual_ap_group(
+                "corridor",
+                [bssid],
+                metadata={"expected_channels": "1-6, 36", "expected_bands": "2.4 GHz / 5 GHz"},
+            )
+        ]
+
+        warnings = build_ap_metadata_warnings(rows, groups)
+
+        self.assertEqual(warnings, [])
+
+    def test_metadata_warning_detects_unexpected_band_and_ignores_test_groups(self):
+        bssid = "70:4f:57:aa:bb:10"
+        test_bssid = "80:11:22:33:44:10"
+        rows = [
+            build_row("p1", "MAIN", bssid, -55, 36),
+            build_row("p1", "MAIN", test_bssid, -30, 36),
+        ]
+        groups = [
+            build_manual_ap_group(
+                "corridor",
+                [bssid],
+                metadata={"expected_bands": "2.4"},
+            ),
+            build_manual_ap_group(
+                "test-ap",
+                [test_bssid],
+                role=AP_ROLE_TEST,
+                metadata={"expected_bands": "2.4"},
+            ),
+        ]
+
+        warnings = build_ap_metadata_warnings(rows, groups)
+
+        self.assertEqual(len(warnings), 1)
+        self.assertEqual(warnings[0]["group_id"], "corridor")
+        self.assertEqual(warnings[0]["unexpected_bands"], ["5"])
+
 
 def build_row(point_id, ssid, bssid, signal_dbm, channel):
     return {
@@ -1731,6 +1896,24 @@ def build_row(point_id, ssid, bssid, signal_dbm, channel):
         "channel_width_mhz": "20",
         "radio": "802.11ax",
         "is_relevant": "1",
+    }
+
+
+def build_raw_row(point_id, ssid, bssid, signal_dbm, channel):
+    return {
+        "point_id": point_id,
+        "scan_attempt": "1",
+        "timestamp": point_id,
+        "x": "10",
+        "y": "20",
+        "ssid": ssid,
+        "bssid": bssid,
+        "signal_percent": "",
+        "signal_dbm": signal_dbm,
+        "channel": channel,
+        "channel_width_mhz": "20",
+        "radio": "802.11ax",
+        "backend": "test",
     }
 
 
