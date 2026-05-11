@@ -2,6 +2,7 @@ import unittest
 import logging
 import os
 import tempfile
+import time
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
@@ -31,6 +32,7 @@ from qt_live_map import (
     LiveMapView,
     build_ap_position_marker_infos,
 )
+from qt_app import WifiHeatmapQtApp
 from qt_windowing import pop_modal_dim, push_modal_dim
 from quality_engine import QUALITY_GOOD, QUALITY_MISSING_RELEVANT, evaluate_point_quality
 from survey_store import get_survey_point_summaries_from_rows
@@ -449,6 +451,29 @@ class LiveMapViewTests(unittest.TestCase):
         )
 
         self.assertTrue(markers[0]["highlight"])
+
+
+class SettingsMenuTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.qt_app = QApplication.instance() or QApplication([])
+
+    def test_settings_menu_suppresses_immediate_reopen_after_button_close(self):
+        window = WifiHeatmapQtApp()
+        window.settings_menu_suppressed_until = time.monotonic() + 1.0
+
+        self.assertTrue(window.should_suppress_settings_menu_toggle())
+        self.assertFalse(window.should_suppress_settings_menu_toggle())
+        window.deleteLater()
+
+    def test_settings_button_global_hit_test_matches_button(self):
+        window = WifiHeatmapQtApp()
+        window.show()
+        QApplication.processEvents()
+        button_pos = window.settings_menu_button.mapToGlobal(window.settings_menu_button.rect().center())
+
+        self.assertTrue(window.is_settings_button_global_pos(button_pos))
+        window.deleteLater()
 
 
 class ApMetadataTests(unittest.TestCase):

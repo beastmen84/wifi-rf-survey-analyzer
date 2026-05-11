@@ -3,10 +3,12 @@
 import json
 import os
 import sys
+import time
 from pathlib import Path
 
 try:
     from PySide6.QtCore import QEvent, QPoint, Qt, QThread, QTimer
+    from PySide6.QtGui import QCursor
     from PySide6.QtWidgets import (
         QAbstractItemView,
         QApplication,
@@ -129,6 +131,8 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_worker = None
         self.live_rendering = False
         self.live_dirty = False
+        self.settings_menu_dialog = None
+        self.settings_menu_suppressed_until = 0.0
         self.points_panel_expanded = False
         self.points_overlay_height = 0
         self.points_overlay_resize_active = False
@@ -1323,7 +1327,16 @@ class WifiHeatmapQtApp(QMainWindow):
         return dict(self.ui_scale_items()).get(mode, f"{mode}%")
 
     def open_settings_menu(self):
+        if self.should_suppress_settings_menu_toggle():
+            return
+
+        active_dialog = self.settings_menu_dialog
+        if active_dialog is not None and active_dialog.isVisible():
+            active_dialog.close()
+            return
+
         dialog = QDialog(self)
+        self.settings_menu_dialog = dialog
         dialog.setObjectName("settingsMenuPanel")
         dialog.setProperty(SKIP_CENTERING_PROPERTY, True)
         dialog.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
@@ -1356,7 +1369,23 @@ class WifiHeatmapQtApp(QMainWindow):
             QPoint(self.settings_menu_button.width() - menu_width, self.settings_menu_button.height())
         )
         dialog.move(position)
-        dialog.exec()
+        try:
+            dialog.exec()
+        finally:
+            if self.settings_menu_dialog is dialog:
+                self.settings_menu_dialog = None
+            if self.is_settings_button_global_pos(QCursor.pos()):
+                self.settings_menu_suppressed_until = time.monotonic() + 0.35
+
+    def should_suppress_settings_menu_toggle(self):
+        if time.monotonic() < self.settings_menu_suppressed_until:
+            self.settings_menu_suppressed_until = 0.0
+            return True
+        return False
+
+    def is_settings_button_global_pos(self, global_pos):
+        local_pos = self.settings_menu_button.mapFromGlobal(global_pos)
+        return self.settings_menu_button.rect().contains(local_pos)
 
     def create_settings_combo(self, items, current_value):
         combo = QComboBox()

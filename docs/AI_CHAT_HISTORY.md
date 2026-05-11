@@ -36,8 +36,8 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the latest live-map pass is 30 passing
-  tests with `.\.venv\Scripts\python.exe -m pytest -q`.
+- The current code test baseline after the latest settings-menu pass is 32
+  passing tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
   `53e50c1 Keep AP marker icons sharp`.
 - Current AP positioning and scale calibration pick points with left click while
@@ -719,6 +719,11 @@ Language:
   toolbar/start-screen buttons. AP Group Split table checkbox cell containers
   are explicitly transparent so they inherit the table row color instead of
   showing a stale panel-colored square.
+- Settings popups on both the startup screen and workspace toolbar are toggled:
+  clicking Settings while the popup is open closes it instead of closing and
+  immediately reopening it. The implementation suppresses the synthetic reopen
+  click that Qt emits after a `Qt.Popup` closes from a click on its anchor
+  button.
 - The main toolbar Settings button height is now tied to the same app-bar
   control height used by the section cards, avoiding the slightly shorter
   standalone button appearance.
@@ -824,9 +829,13 @@ Language:
   AP marker when available, AP group controls reflow to the left when they are
   the only active option, and the main app-bar zoom controls now drive the live
   map so the duplicate live-tab zoom buttons were removed.
+- Fixed Settings popup toggling on startup and workspace screens: clicking the
+  Settings button while the popup is open now closes it rather than reopening a
+  new panel after Qt dismisses the popup.
 
 Recent commits:
 
+- `ad8feca` Tighten Qt live map viewport behavior.
 - `87d7741` Polish Qt live map toolbar and AP markers.
 - `78a210e` Specialize Qt live map views.
 - `67d16b9` Refine Qt live map controls and legend.
@@ -894,4 +903,5 @@ Current tests cover, among other things:
 - dialog/windowing behavior;
 - AP marker icon scaling;
 - live marker sizing, live gradient legend painting/overlay behavior, and live
-  AP position marker handling.
+  AP position marker handling;
+- settings popup toggle suppression.
