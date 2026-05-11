@@ -739,6 +739,9 @@ Language:
 - Confirmed `Best dBm` in the quality dashboard already comes from relevant
   networks when present. The dashboard table now labels the SSID column as
   relevant SSIDs and only shows relevant SSIDs seen at that point.
+- Quality dashboard labels were tightened after the relevant-SSID column saved
+  horizontal space: `Low conf.` is now written out as `Low confidence` /
+  `Bassa confidenza`, and table headers use dedicated title-case labels.
 
 Recent commits:
 
