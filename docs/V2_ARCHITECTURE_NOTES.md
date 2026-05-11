@@ -184,7 +184,9 @@ Current use:
 
 - metadata is descriptive;
 - expected bands/channels are used by quality checks;
-- mounting type is not yet used by RF logic.
+- mounting type is not yet used by RF logic;
+- 6 GHz can be selected as expected metadata, but the rest of the application
+  does not yet handle 6 GHz maps, filters, interference logic or exports.
 
 ### Improved Interference Analysis
 
@@ -350,6 +352,12 @@ Useful next checks:
 - mounting type influencing AP position warnings;
 - expected radio count;
 - expected channel width;
+- full 6 GHz support beyond metadata:
+  - scan/channel band detection;
+  - map filters and live-map options;
+  - AP Channels and Dominant AP views;
+  - interference overlap rules;
+  - PDF/export labels and summaries;
 - vendor/model capability hints;
 - AP role consistency:
   - external AP should not be selected as dominant for internal coverage;
