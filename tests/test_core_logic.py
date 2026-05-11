@@ -32,7 +32,15 @@ from ap_groups import (
     serialize_ap_group_roles,
 )
 from ap_group_checks import build_ap_group_conflicts
-from ap_metadata_checks import build_ap_metadata_warnings
+from ap_metadata_checks import (
+    build_ap_metadata_warnings,
+    infer_band_from_channel,
+    normalize_channel,
+    parse_expected_bands,
+    parse_expected_channels,
+    sort_bands,
+    sort_channels,
+)
 from ap_positioning import (
     AP_POSITION_MISSING,
     AP_POSITION_NO_SCALE,
@@ -2370,6 +2378,29 @@ class WorkspaceLiveStateTests(unittest.TestCase):
 
 
 class ApMetadataTests(unittest.TestCase):
+    def test_expected_channel_parser_handles_ranges_reversed_ranges_and_text(self):
+        self.assertEqual(
+            parse_expected_channels("1-3, 11; ch36 / 40-38"),
+            {"1", "2", "3", "11", "36", "38", "39", "40"},
+        )
+
+    def test_expected_band_parser_accepts_common_wifi_band_labels_including_6ghz_metadata(self):
+        self.assertEqual(parse_expected_bands("2.4 GHz / 5GHz; 6g"), {"2.4", "5", "6"})
+        self.assertEqual(parse_expected_bands("24, 5, 6"), {"2.4", "5", "6"})
+
+    def test_metadata_channel_helpers_normalize_and_sort_values(self):
+        self.assertEqual(normalize_channel("CH 036 / 80 MHz"), "36")
+        self.assertEqual(normalize_channel("unknown"), "")
+        self.assertEqual(sort_channels({"11", "1", "6"}), ["1", "6", "11"])
+        self.assertEqual(sort_channels({"11", "1", "6"}, channel_sort_key=lambda value: -int(value)), ["11", "6", "1"])
+        self.assertEqual(sort_bands({"6", "2.4", "5", "unknown"}), ["2.4", "5", "6", "unknown"])
+
+    def test_band_inference_currently_handles_24_and_5ghz_only(self):
+        self.assertEqual(infer_band_from_channel("1"), "2.4")
+        self.assertEqual(infer_band_from_channel("36"), "5")
+        self.assertEqual(infer_band_from_channel("5"), "2.4")
+        self.assertEqual(infer_band_from_channel("233"), "")
+
     def test_metadata_warning_detects_unexpected_channel(self):
         bssid = "70:4f:57:aa:bb:10"
         rows = [build_row("p1", "MAIN", bssid, -55, 6)]
