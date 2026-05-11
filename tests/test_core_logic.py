@@ -13,7 +13,7 @@ from ap_groups import (
 )
 from ap_metadata_checks import build_ap_metadata_warnings
 from heatmap_tools import calculate_interference_points
-from qt_quality_dashboard import build_summary, get_effective_ap_groups
+from qt_quality_dashboard import build_summary, format_point_confidence, get_effective_ap_groups
 from quality_engine import QUALITY_GOOD, QUALITY_MISSING_RELEVANT, evaluate_point_quality
 from survey_store import get_survey_point_summaries_from_rows
 from ui_scaling import (
@@ -83,6 +83,26 @@ class QualityTests(unittest.TestCase):
 
         self.assertEqual(quality["p1"]["status"], QUALITY_MISSING_RELEVANT)
         self.assertEqual(quality["p1"]["missing_relevant"], ["guest"])
+
+    def test_quality_ignores_low_confidence_weak_non_dominant_bssid(self):
+        strong_row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -52, 1)
+        weak_row = build_row("p1", "MAIN", "80:11:22:33:44:10", -82, 1)
+        weak_row["samples_seen"] = "1"
+        weak_row["scan_confidence"] = "0.2"
+
+        quality = evaluate_point_quality([strong_row, weak_row], relevant_ssids={"MAIN"})
+
+        self.assertEqual(quality["p1"]["status"], QUALITY_GOOD)
+
+    def test_dashboard_confidence_uses_dominant_candidates(self):
+        strong_row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -52, 1)
+        weak_row = build_row("p1", "MAIN", "80:11:22:33:44:10", -82, 1)
+        weak_row["samples_seen"] = "1"
+        weak_row["scan_confidence"] = "0.2"
+
+        confidence = format_point_confidence([strong_row, weak_row], "p1", {"MAIN"})
+
+        self.assertEqual(confidence, "1.00")
 
     def test_quality_summary_counts_auto_ap_groups_without_position(self):
         rows = [build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)]

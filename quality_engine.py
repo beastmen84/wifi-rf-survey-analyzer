@@ -8,6 +8,7 @@ QUALITY_MISSING_RELEVANT = "MISSING_RELEVANT"
 QUALITY_LOW_CONFIDENCE = "LOW_CONFIDENCE"
 QUALITY_UNSTABLE_SIGNAL = "UNSTABLE_SIGNAL"
 QUALITY_SPARSE_DATA = "SPARSE_DATA"
+DOMINANT_SIGNAL_WINDOW_DB = 5
 
 
 def evaluate_point_quality(rows, raw_scan_rows=None, relevant_ssids=None):
@@ -114,7 +115,8 @@ def build_quality_breakdown(rows, raw_rows, relevant_ssids):
             })
             continue
 
-        confidence_values = parse_float_values(row.get("scan_confidence") for row in ssid_rows)
+        confidence_rows = get_dominant_candidate_rows(ssid_rows)
+        confidence_values = parse_float_values(row.get("scan_confidence") for row in confidence_rows)
         min_confidence = min(confidence_values) if confidence_values else None
         avg_confidence = sum(confidence_values) / len(confidence_values) if confidence_values else None
         if min_confidence is not None and (min_confidence < 0.25 or avg_confidence < 0.45):
@@ -146,20 +148,31 @@ def build_quality_breakdown(rows, raw_rows, relevant_ssids):
     return breakdown
 
 
-def get_unstable_range_for_ssid(rows, ranges_by_key):
+def get_dominant_candidate_rows(rows, signal_window_db=DOMINANT_SIGNAL_WINDOW_DB):
     scored_rows = [
         (parse_float(row.get("signal_dbm")), row)
         for row in rows
         if parse_float(row.get("signal_dbm")) is not None
     ]
     if not scored_rows:
-        return None
+        return list(rows)
 
     best_signal = max(signal for signal, _row in scored_rows)
+    return [
+        row
+        for signal, row in scored_rows
+        if best_signal - signal <= signal_window_db
+    ]
+
+
+def get_unstable_range_for_ssid(rows, ranges_by_key):
+    strong_rows = get_dominant_candidate_rows(rows)
+    if not strong_rows:
+        return None
+
     strong_candidate_keys = {
         network_key(row)
-        for signal, row in scored_rows
-        if best_signal - signal <= 5
+        for row in strong_rows
     }
     strong_ranges = [
         ranges_by_key.get(key, 0)

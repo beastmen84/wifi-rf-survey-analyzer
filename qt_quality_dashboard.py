@@ -43,6 +43,8 @@ from quality_engine import (
     QUALITY_SPARSE_DATA,
     QUALITY_UNSTABLE_SIGNAL,
     evaluate_point_quality,
+    get_dominant_candidate_rows,
+    group_rows_by_ssid,
     is_truthy,
     normalize_ssid,
     parse_float,
@@ -640,6 +642,7 @@ def format_point_confidence(rows, point_id, relevant_ssids):
         for ssid in relevant_ssids or []
         if normalize_ssid(ssid)
     }
+    point_rows = []
 
     for row in rows:
         if row.get("point_id") != point_id:
@@ -647,6 +650,16 @@ def format_point_confidence(rows, point_id, relevant_ssids):
         if relevant_ssids:
             if normalize_ssid(row.get("ssid")) not in relevant_ssids and not is_truthy(row.get("is_relevant")):
                 continue
+        point_rows.append(row)
+
+    if relevant_ssids:
+        confidence_rows = []
+        for ssid_rows in group_rows_by_ssid(point_rows).values():
+            confidence_rows.extend(get_dominant_candidate_rows(ssid_rows))
+    else:
+        confidence_rows = get_dominant_candidate_rows(point_rows)
+
+    for row in confidence_rows:
         confidence = parse_float(row.get("scan_confidence"))
         if confidence is not None:
             values.append(confidence)

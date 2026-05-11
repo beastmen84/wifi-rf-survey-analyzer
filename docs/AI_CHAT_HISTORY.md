@@ -732,6 +732,10 @@ Language:
 - Fixed a `Manage relevant` save crash caused by the relevant-network dialog
   storing its initial selection in an attribute with the same name as the method
   used to return the selected SSIDs.
+- A real office V2 survey showed the quality dashboard was too strict on mesh
+  SSIDs: a weak, non-dominant BSSID seen once could mark the whole point as low
+  confidence. Quality confidence is now evaluated on the dominant candidates
+  for each relevant SSID, matching the logic already used for signal stability.
 
 Recent commits:
 
