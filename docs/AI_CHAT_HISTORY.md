@@ -736,6 +736,9 @@ Language:
   SSIDs: a weak, non-dominant BSSID seen once could mark the whole point as low
   confidence. Quality confidence is now evaluated on the dominant candidates
   for each relevant SSID, matching the logic already used for signal stability.
+- Confirmed `Best dBm` in the quality dashboard already comes from relevant
+  networks when present. The dashboard table now labels the SSID column as
+  relevant SSIDs and only shows relevant SSIDs seen at that point.
 
 Recent commits:
 

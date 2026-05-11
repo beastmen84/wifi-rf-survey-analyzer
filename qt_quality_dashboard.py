@@ -44,6 +44,7 @@ from quality_engine import (
     QUALITY_UNSTABLE_SIGNAL,
     evaluate_point_quality,
     get_dominant_candidate_rows,
+    get_relevant_ssids_from_rows,
     group_rows_by_ssid,
     is_truthy,
     normalize_ssid,
@@ -105,7 +106,7 @@ class QualityDashboardDialog(QDialog):
             app.tr("confidence"),
             app.tr("best_dbm"),
             app.tr("rows"),
-            "SSID",
+            app.tr("quality_dashboard_relevant_ssids"),
             app.tr("quality_dashboard_issue"),
         ])
         self.configure_table_columns()
@@ -358,10 +359,11 @@ def open_qt_quality_dashboard(app):
         QMessageBox.warning(app, app.tr("warning"), app.tr("empty_csv"))
         return
 
+    relevant_ssids = get_effective_relevant_ssids(app)
     quality_by_point_id = evaluate_point_quality(
         app.session.rows,
         app.session.raw_scan_rows,
-        relevant_ssids=app.relevant_ssids,
+        relevant_ssids=relevant_ssids,
     )
     ap_groups = get_effective_ap_groups(app)
     ap_position_by_point = build_ap_position_quality_by_point(app, ap_groups)
@@ -379,6 +381,7 @@ def build_dashboard_rows(app, point_summaries, quality_by_point_id, ap_position_
     total_points = len(point_summaries)
     rows = []
     ap_position_by_point = ap_position_by_point or {}
+    relevant_ssids = get_effective_relevant_ssids(app)
 
     for index, point in enumerate(reversed(point_summaries), start=1):
         survey_number = total_points - index + 1
@@ -406,14 +409,29 @@ def build_dashboard_rows(app, point_summaries, quality_by_point_id, ap_position_
             "needs_review": needs_review,
             "severity": severity,
             "ap_position_warning_count": len(ap_position.get("warnings", [])) if ap_position else 0,
-            "confidence": format_point_confidence(app.session.rows, point.get("point_id", ""), app.relevant_ssids),
+            "confidence": format_point_confidence(app.session.rows, point.get("point_id", ""), relevant_ssids),
             "best": f"{point['best_signal_dbm']:.1f}",
             "row_count": point["row_count"],
-            "ssids": ", ".join(point["ssids"]),
+            "ssids": format_relevant_ssids(app.session.rows, point.get("point_id", ""), relevant_ssids),
             "issue": issue,
         })
 
     return rows
+
+
+def get_effective_relevant_ssids(app):
+    relevant_ssids = {
+        normalize_ssid(ssid)
+        for ssid in getattr(app, "relevant_ssids", set()) or []
+        if normalize_ssid(ssid)
+    }
+    if relevant_ssids:
+        return relevant_ssids
+
+    if getattr(app, "session", None):
+        return get_relevant_ssids_from_rows(app.session.rows)
+
+    return set()
 
 
 def get_effective_ap_groups(app):
@@ -668,6 +686,35 @@ def format_point_confidence(rows, point_id, relevant_ssids):
         return "-"
 
     return f"{min(values):.2f}"
+
+
+def format_relevant_ssids(rows, point_id, relevant_ssids):
+    relevant_ssids = {
+        normalize_ssid(ssid)
+        for ssid in relevant_ssids or []
+        if normalize_ssid(ssid)
+    }
+    labels_by_key = {}
+
+    for row in rows:
+        if row.get("point_id") != point_id:
+            continue
+
+        ssid = str(row.get("ssid") or "").strip()
+        ssid_key = normalize_ssid(ssid)
+        if not ssid_key:
+            continue
+
+        if relevant_ssids:
+            if ssid_key not in relevant_ssids:
+                continue
+        elif not is_truthy(row.get("is_relevant")):
+            continue
+
+        labels_by_key.setdefault(ssid_key, ssid)
+
+    labels = sorted(labels_by_key.values(), key=str.casefold)
+    return ", ".join(labels) if labels else "-"
 
 
 def format_ap_metadata_warning_labels(app, warnings):

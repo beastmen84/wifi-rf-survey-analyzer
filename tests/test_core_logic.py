@@ -13,7 +13,12 @@ from ap_groups import (
 )
 from ap_metadata_checks import build_ap_metadata_warnings
 from heatmap_tools import calculate_interference_points
-from qt_quality_dashboard import build_summary, format_point_confidence, get_effective_ap_groups
+from qt_quality_dashboard import (
+    build_summary,
+    format_point_confidence,
+    format_relevant_ssids,
+    get_effective_ap_groups,
+)
 from quality_engine import QUALITY_GOOD, QUALITY_MISSING_RELEVANT, evaluate_point_quality
 from survey_store import get_survey_point_summaries_from_rows
 from ui_scaling import (
@@ -103,6 +108,24 @@ class QualityTests(unittest.TestCase):
         confidence = format_point_confidence([strong_row, weak_row], "p1", {"MAIN"})
 
         self.assertEqual(confidence, "1.00")
+
+    def test_dashboard_relevant_ssid_column_hides_irrelevant_networks(self):
+        relevant_row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -52, 1)
+        irrelevant_row = build_row("p1", "GUEST", "80:11:22:33:44:10", -60, 1)
+        irrelevant_row["is_relevant"] = "0"
+
+        ssids = format_relevant_ssids([irrelevant_row, relevant_row], "p1", {"MAIN"})
+
+        self.assertEqual(ssids, "MAIN")
+
+    def test_dashboard_relevant_ssid_column_falls_back_to_row_flags(self):
+        relevant_row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -52, 1)
+        irrelevant_row = build_row("p1", "GUEST", "80:11:22:33:44:10", -60, 1)
+        irrelevant_row["is_relevant"] = "0"
+
+        ssids = format_relevant_ssids([irrelevant_row, relevant_row], "p1", set())
+
+        self.assertEqual(ssids, "MAIN")
 
     def test_quality_summary_counts_auto_ap_groups_without_position(self):
         rows = [build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)]
