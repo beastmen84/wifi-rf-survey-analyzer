@@ -68,7 +68,13 @@ from heatmap_tools import (
     signal_interference_weight,
     smooth_heatmap_grid,
 )
-from live_renderer import build_signal_payload
+import live_renderer as live_renderer_module
+from live_renderer import (
+    build_signal_payload,
+    clone_cached_result,
+    render_live_continuous_map,
+    stable_dataframe_fingerprint,
+)
 from map_exporter import (
     MapExportResult,
     annotate_interference_problem_numbers,
@@ -1046,6 +1052,106 @@ class LiveMapDataLogicTests(unittest.TestCase):
         self.assertEqual(intra.iloc[0]["interferer_count"], 0)
         self.assertGreater(all_networks.iloc[0]["risk"], 0)
         self.assertEqual(all_networks.iloc[0]["strongest_interferer_bssid"], neighbor_bssid)
+
+
+class LiveRendererCacheTests(unittest.TestCase):
+    def tearDown(self):
+        with live_renderer_module._cache_lock:
+            live_renderer_module._result_cache.clear()
+
+    def test_clone_cached_result_does_not_share_nested_payloads(self):
+        cached = {
+            "image": Image.new("RGB", (4, 4), "white"),
+            "point_infos": [
+                {
+                    "x": 10.0,
+                    "selection": {"active": False},
+                }
+            ],
+            "scale_payload": {
+                "kind": "swatches",
+                "items": [{"label": "AP 1", "selected": False}],
+            },
+        }
+
+        first = clone_cached_result(cached)
+        first["point_infos"][0]["x"] = 99.0
+        first["point_infos"][0]["selection"]["active"] = True
+        first["scale_payload"]["items"][0]["label"] = "mutated"
+        first["scale_payload"]["items"][0]["selected"] = True
+
+        second = clone_cached_result(cached)
+
+        self.assertEqual(second["point_infos"][0]["x"], 10.0)
+        self.assertFalse(second["point_infos"][0]["selection"]["active"])
+        self.assertEqual(second["scale_payload"]["items"][0]["label"], "AP 1")
+        self.assertFalse(second["scale_payload"]["items"][0]["selected"])
+        self.assertIsNot(second["image"], cached["image"])
+
+    def test_cached_continuous_render_returns_independent_point_infos(self):
+        rows = []
+        for point_id, x, y, signal, bssid in (
+            ("p1", "10", "10", -45, "70:4f:57:aa:bb:10"),
+            ("p2", "70", "12", -60, "70:4f:57:aa:bb:11"),
+            ("p3", "35", "52", -72, "70:4f:57:aa:bb:12"),
+        ):
+            row = build_row(point_id, "MAIN", bssid, signal, 1)
+            row["x"] = x
+            row["y"] = y
+            rows.append(row)
+        df = rows_to_dataframe(rows)
+        config = MapConfig(
+            ssid="MAIN",
+            band="2.4",
+            map_type="signal",
+            interpolation="linear",
+            smoothing_sigma=0,
+            max_distance_px=200,
+        )
+        bg_image = Image.new("RGB", (80, 60), "white")
+        translations = {"signal_title": "Signal"}
+
+        first = render_live_continuous_map(
+            df,
+            config,
+            bg_image,
+            translations,
+            lambda map_type, row, total: f"{map_type}:{row['x']},{row['y']}",
+            lambda grid_z, map_config: (-90, -30),
+        )
+        self.assertIsNotNone(first)
+        first["point_infos"][0]["color"] = "#ff00ff"
+        first["point_infos"][0]["tooltip"] = "mutated"
+
+        second = render_live_continuous_map(
+            df,
+            config,
+            bg_image,
+            translations,
+            lambda map_type, row, total: f"{map_type}:{row['x']},{row['y']}",
+            lambda grid_z, map_config: (-90, -30),
+        )
+
+        self.assertEqual(second["point_infos"][0]["color"], "#111111")
+        self.assertNotEqual(second["point_infos"][0]["tooltip"], "mutated")
+        self.assertIsNot(second["image"], first["image"])
+
+    def test_stable_dataframe_fingerprint_tracks_render_inputs(self):
+        row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)
+        df = rows_to_dataframe([row])
+        same_render_inputs = df.copy()
+        same_render_inputs["ui_only"] = "expanded"
+        changed_signal = df.copy()
+        changed_signal.loc[0, "signal_dbm"] = -65
+
+        self.assertEqual(
+            stable_dataframe_fingerprint(df),
+            stable_dataframe_fingerprint(same_render_inputs),
+        )
+        self.assertNotEqual(
+            stable_dataframe_fingerprint(df),
+            stable_dataframe_fingerprint(changed_signal),
+        )
 
 
 class HeatmapMathTests(unittest.TestCase):

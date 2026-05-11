@@ -1,5 +1,6 @@
 """Background renderer for interactive live map previews."""
 
+import copy
 from io import BytesIO
 from threading import Lock
 
@@ -310,8 +311,8 @@ def trim_result_cache():
 def clone_cached_result(result):
     return {
         "image": result["image"].copy(),
-        "point_infos": list(result["point_infos"]),
-        "scale_payload": result["scale_payload"].copy(),
+        "point_infos": copy.deepcopy(result["point_infos"]),
+        "scale_payload": copy.deepcopy(result["scale_payload"]),
     }
 
 
