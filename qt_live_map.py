@@ -756,23 +756,25 @@ def get_color_scale_limits(grid_z, config):
 def build_live_tooltip(map_type, row, raw_rows, translations, aliases=None):
     aliases = aliases or {}
     if map_type == "interference":
-        return build_html_tooltip(
-            translations.get("interference_title", "AP interference"),
-            [
-                ("x/y", f"{format_value(row.get('x'))}, {format_value(row.get('y'))}"),
-                (translations.get("risk", "Risk"), f"{format_value(row.get('risk'))}%"),
-                (
-                    translations.get("serving_ap", "Serving AP"),
-                    format_ap_label(row.get("serving_bssid", ""), aliases, row.get("serving_ap_group", "")),
-                ),
-                (
-                    translations.get("serving_channel", "Serving channel"),
-                    format_channel_with_width(row.get("serving_channel"), row.get("serving_channel_width_mhz")),
-                ),
+        rows = [
+            ("x/y", f"{format_value(row.get('x'))}, {format_value(row.get('y'))}"),
+            (translations.get("risk", "Risk"), f"{format_value(row.get('risk'))}%"),
+            (
+                translations.get("serving_ap", "Serving AP"),
+                format_ap_label(row.get("serving_bssid", ""), aliases, row.get("serving_ap_group", "")),
+            ),
+            (
+                translations.get("serving_channel", "Serving channel"),
+                format_channel_with_width(row.get("serving_channel"), row.get("serving_channel_width_mhz")),
+            ),
+        ]
+        interferer_bssid = row.get("strongest_interferer_bssid", "")
+        if format_value(interferer_bssid) != "-":
+            rows.extend([
                 (
                     translations.get("interferer", "Interferer"),
                     format_ap_label(
-                        row.get("strongest_interferer_bssid", ""),
+                        interferer_bssid,
                         aliases,
                         row.get("strongest_interferer_ap_group", ""),
                     ),
@@ -784,7 +786,10 @@ def build_live_tooltip(map_type, row, raw_rows, translations, aliases=None):
                         row.get("strongest_interferer_channel_width_mhz"),
                     ),
                 ),
-            ],
+            ])
+        return build_html_tooltip(
+            translations.get("interference_title", "AP interference"),
+            rows,
             "#d73027",
         )
 

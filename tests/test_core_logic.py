@@ -33,6 +33,7 @@ from qt_live_map import (
     LiveGradientLegendWidget,
     LiveMapView,
     build_ap_position_marker_infos,
+    build_live_tooltip,
     gradient_stops,
 )
 from qt_app import WifiHeatmapQtApp
@@ -555,6 +556,62 @@ class LiveMapViewTests(unittest.TestCase):
         payload["fig"].clf()
 
         self.assertEqual(tooltip_ssids, ["MAIN", "MAIN", "MAIN"])
+
+    def test_live_interference_tooltip_hides_empty_interferer_rows(self):
+        translations = {
+            "interference_title": "AP interference",
+            "risk": "Risk",
+            "serving_ap": "Serving AP",
+            "serving_channel": "Serving channel",
+            "interferer": "Main interferer",
+            "interferer_channel": "Interferer channel",
+        }
+        tooltip = build_live_tooltip(
+            "interference",
+            {
+                "x": 10,
+                "y": 20,
+                "risk": 0,
+                "serving_bssid": "70:4f:57:aa:bb:10",
+                "serving_channel": 1,
+                "strongest_interferer_bssid": "",
+                "strongest_interferer_channel": "",
+            },
+            None,
+            translations,
+        )
+
+        self.assertIn("Serving AP", tooltip)
+        self.assertNotIn("Main interferer", tooltip)
+        self.assertNotIn("Interferer channel", tooltip)
+
+    def test_live_interference_tooltip_shows_interferer_rows_when_present(self):
+        translations = {
+            "interference_title": "AP interference",
+            "risk": "Risk",
+            "serving_ap": "Serving AP",
+            "serving_channel": "Serving channel",
+            "interferer": "Main interferer",
+            "interferer_channel": "Interferer channel",
+        }
+        tooltip = build_live_tooltip(
+            "interference",
+            {
+                "x": 10,
+                "y": 20,
+                "risk": 45,
+                "serving_bssid": "70:4f:57:aa:bb:10",
+                "serving_channel": 1,
+                "strongest_interferer_bssid": "80:11:22:33:44:10",
+                "strongest_interferer_channel": 6,
+            },
+            None,
+            translations,
+        )
+
+        self.assertIn("Main interferer", tooltip)
+        self.assertIn("Interferer channel", tooltip)
+        self.assertIn("33:44:10", tooltip)
 
     def test_live_ap_position_markers_skip_test_groups(self):
         markers = build_ap_position_marker_infos(

@@ -36,10 +36,10 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the latest live-map side-panel pass is 43
+- The current code test baseline after the latest live-map tooltip pass is 45
   passing tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
-  `6ead043 Unify survey and live tooltip layout`.
+  `4968864 Keep SSID in live coverage tooltips`.
 - Current AP positioning and scale calibration pick points with left click while
   their modal map-pick mode is active; normal map dragging is disabled during
   the pick and the click must not create a measurement point.
@@ -242,6 +242,12 @@ Visual/UX decisions:
   aggregation. `collapse_heatmap_points()` intentionally drops non-aggregated
   string columns, so `live_renderer.build_signal_payload()` reattaches
   `config.ssid` before building point tooltips.
+- Live interference point tooltips hide main-interferer rows when no strongest
+  interferer exists. No-interferer points still show x/y, risk, serving AP and
+  serving channel.
+- The old/default `point_labels_auto` option belongs to generated PNG/reference
+  labels in `qt_map_generation.py`; live maps currently use real markers with
+  hover tooltips instead of permanent point labels.
 
 ## Interference Logic
 
@@ -897,9 +903,20 @@ Language:
   view restores the user's last choices for that view. A new/opened survey
   resets this memory to defaults: `All` bands where valid, and `2.4 GHz` for
   Interference.
+- Live interference tooltips now omit the Main interferer and Interferer channel
+  rows when the calculated point has no strongest interferer.
+- A quick live-map data logic pass confirmed current scoping: Coverage uses
+  SSID, band, optional AP group filter, aggregation, interpolation and usable
+  threshold; Interference uses SSID, 2.4/5 GHz band, intra/all-network mode,
+  interpolation and channel-width-aware overlap; AP Channels uses strongest AP
+  per point for SSID/band plus optional AP group filter; Dominant AP uses
+  dominant/second AP per point for SSID/band plus AP-position warnings. All
+  live map data paths exclude AP groups marked as Test/hidden from displayed AP
+  results.
 
 Recent commits:
 
+- `4968864` Keep SSID in live coverage tooltips.
 - `6ead043` Unify survey and live tooltip layout.
 - `127ff1d` Remember live map options per view.
 - `4379b18` Normalize live map option layouts.
