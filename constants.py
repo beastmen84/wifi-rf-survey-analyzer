@@ -10,6 +10,22 @@ WIFI_SCAN_ATTEMPTS = 5
 WIFI_SCAN_DELAY_SECONDS = 1.5
 MIN_GOOD_SCAN_NETWORKS = 4
 SUSPICIOUS_SCAN_RATIO = 0.5
+SCAN_DETAIL_FIELDNAMES = [
+    "frequency_mhz",
+    "security",
+    "auth",
+    "encryption",
+    "pmf",
+    "country_code",
+    "spatial_streams",
+    "stations",
+    "channel_utilization",
+    "wifi_modes",
+    "amendments",
+    "vendor",
+    "model",
+    "ap_name",
+]
 SURVEY_FIELDNAMES = [
     "point_id",
     "timestamp",
@@ -30,9 +46,10 @@ SURVEY_FIELDNAMES = [
     "channel_width_mhz",
     "band",
     "radio",
+    *SCAN_DETAIL_FIELDNAMES,
     "is_relevant",
 ]
-OPTIONAL_SURVEY_FIELDNAMES = ["band"]
+OPTIONAL_SURVEY_FIELDNAMES = ["band", *SCAN_DETAIL_FIELDNAMES]
 REQUIRED_SURVEY_FIELDNAMES = [
     field for field in SURVEY_FIELDNAMES if field not in OPTIONAL_SURVEY_FIELDNAMES
 ]
@@ -51,9 +68,10 @@ RAW_SCAN_FIELDNAMES = [
     "channel_width_mhz",
     "band",
     "radio",
+    *SCAN_DETAIL_FIELDNAMES,
     "backend"
 ]
-OPTIONAL_RAW_SCAN_FIELDNAMES = ["band"]
+OPTIONAL_RAW_SCAN_FIELDNAMES = ["band", *SCAN_DETAIL_FIELDNAMES]
 REQUIRED_RAW_SCAN_FIELDNAMES = [
     field for field in RAW_SCAN_FIELDNAMES if field not in OPTIONAL_RAW_SCAN_FIELDNAMES
 ]

@@ -42,6 +42,21 @@ Implemented:
 - sidecar extension changed to `.scan` to avoid confusing it with the main CSV;
 - main CSV contains aggregated survey rows;
 - raw sidecar path is stored in survey metadata;
+- new scans can retain optional scanner detail fields:
+  - `frequency_mhz`;
+  - `security`;
+  - `auth`;
+  - `encryption`;
+  - `pmf`;
+  - `country_code`;
+  - `spatial_streams`;
+  - `stations`;
+  - `channel_utilization`;
+  - `wifi_modes`;
+  - `amendments`;
+  - `vendor`;
+  - `model`;
+  - `ap_name`;
 - opening a raw sidecar directly is rejected.
 
 Current format decision:
@@ -59,7 +74,9 @@ Implemented:
 - min/max dBm;
 - samples seen/total;
 - scan confidence;
-- raw sample retention.
+- raw sample retention;
+- most-common optional scanner details retained on aggregated rows where
+  available.
 
 Confidence is also used by continuous/live rendering as interpolation weight.
 
@@ -183,10 +200,20 @@ Implemented:
 Current use:
 
 - metadata is descriptive;
+- vendor/model can be prefilled for automatic AP group suggestions only when
+  scan rows for that group report one unambiguous value;
 - expected bands/channels are used by quality checks;
 - mounting type is not yet used by RF logic;
 - 6 GHz is supported by metadata checks when scan rows include an explicit
   `band` value or frequency-derived band.
+
+Scanner note:
+
+- `lswifi` exposes enough data to preserve band/frequency, security, PMF, mode
+  and QBSS utilization details;
+- true vendor/model data is saved only when the scanner object or decoded WPS
+  information elements expose it. AP name is saved separately and is not treated
+  as vendor.
 
 ### Improved Interference Analysis
 
@@ -363,7 +390,8 @@ Useful next checks:
     2.4/5 GHz from channel numbers;
   - low-number 6 GHz channels are ambiguous unless the row carries `band` or
     frequency information;
-- vendor/model capability hints;
+- vendor/model capability hints based on collected scan metadata and/or user
+  metadata;
 - AP role consistency:
   - external AP should not be selected as dominant for internal coverage;
   - test/hidden AP should remain excluded from user-facing analysis.
@@ -425,6 +453,7 @@ Suggested test areas:
 - role filtering;
 - channel-width overlap;
 - 6 GHz scans, filters, legends and exports using real hardware data;
+- scanner detail fields and conservative AP metadata prefill;
 - AP position warning logic;
 - quality engine states;
 - old invalid CSV rejection;

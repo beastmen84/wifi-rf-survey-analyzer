@@ -88,6 +88,8 @@ def build_detected_ap_groups(rows, channel_sort_key=None):
             "bssids": set(),
             "ssids": set(),
             "channels": set(),
+            "vendors": set(),
+            "models": set(),
         })
         group["display_groups"].add(get_ap_group_display_key(bssid))
         group["bssids"].add(bssid)
@@ -95,6 +97,10 @@ def build_detected_ap_groups(rows, channel_sort_key=None):
             group["ssids"].add(row["ssid"])
         if row.get("channel"):
             group["channels"].add(str(row["channel"]))
+        if row.get("vendor"):
+            group["vendors"].add(str(row["vendor"]).strip())
+        if row.get("model"):
+            group["models"].add(str(row["model"]).strip())
 
     sort_channels = channel_sort_key or (lambda value: value)
     result = []
@@ -105,6 +111,8 @@ def build_detected_ap_groups(rows, channel_sort_key=None):
             "bssids": sorted(group["bssids"]),
             "ssids": sorted(group["ssids"]),
             "channels": sorted(group["channels"], key=sort_channels),
+            "vendors": sorted(value for value in group["vendors"] if value),
+            "models": sorted(value for value in group["models"] if value),
         })
 
     return sorted(result, key=lambda item: " ".join(item["display_groups"]))
@@ -182,9 +190,36 @@ def build_default_manual_groups(rows):
             detected_group["ap_group"],
             detected_group["bssids"],
             locked=False,
+            metadata=infer_detected_ap_metadata(detected_group),
         ))
 
     return groups
+
+
+def infer_detected_ap_metadata(detected_group):
+    metadata = {}
+    vendor = infer_single_detected_value(detected_group.get("vendors", []))
+    model = infer_single_detected_value(detected_group.get("models", []))
+
+    if vendor:
+        metadata["vendor"] = vendor
+    if model:
+        metadata["model"] = model
+
+    return metadata
+
+
+def infer_single_detected_value(values):
+    clean_values = sorted({
+        str(value).strip()
+        for value in values
+        if str(value).strip()
+    })
+
+    if len(clean_values) == 1:
+        return clean_values[0]
+
+    return ""
 
 
 def merge_new_bssids_into_manual_groups(manual_groups, rows):
@@ -227,6 +262,7 @@ def merge_new_bssids_into_manual_groups(manual_groups, rows):
             group_id,
             new_bssids,
             locked=False,
+            metadata=detected_group.get("metadata"),
         ))
         assigned_bssids.update(new_bssids)
 

@@ -289,6 +289,7 @@ def stable_dataframe_fingerprint(df):
             "channel",
             "channel_width_mhz",
             "band",
+            "frequency_mhz",
             "samples_seen",
             "samples_total",
             "scan_confidence",

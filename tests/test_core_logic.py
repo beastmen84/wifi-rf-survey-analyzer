@@ -143,7 +143,7 @@ from wifi_scanner import (
     parse_lswifi_bss_list,
     parse_netsh_output,
 )
-from wifi_band import infer_band_from_frequency_mhz
+from wifi_band import infer_band_from_frequency_mhz, normalize_frequency_mhz
 
 
 class ApGroupTests(unittest.TestCase):
@@ -172,6 +172,30 @@ class ApGroupTests(unittest.TestCase):
         self.assertFalse(groups[0]["locked"])
         self.assertEqual(groups[0]["role"], AP_ROLE_INTERNAL)
         self.assertEqual(groups[0]["bssids"], [first_bssid, second_bssid])
+
+    def test_default_manual_groups_prefill_consistent_scan_metadata(self):
+        first_bssid = "70:4f:57:aa:bb:10"
+        second_bssid = "70:4f:57:aa:bb:11"
+        first_row = build_row("p1", "MAIN", first_bssid, -50, 1)
+        second_row = build_row("p1", "GUEST", second_bssid, -55, 1)
+        for row in (first_row, second_row):
+            row["vendor"] = "Acme"
+            row["model"] = "AX-1"
+
+        groups = build_default_manual_groups([first_row, second_row])
+
+        self.assertEqual(groups[0]["metadata"]["vendor"], "Acme")
+        self.assertEqual(groups[0]["metadata"]["model"], "AX-1")
+
+    def test_default_manual_groups_skip_ambiguous_scan_metadata(self):
+        first_row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -50, 1)
+        second_row = build_row("p1", "GUEST", "70:4f:57:aa:bb:11", -55, 1)
+        first_row["vendor"] = "Acme"
+        second_row["vendor"] = "Other"
+
+        groups = build_default_manual_groups([first_row, second_row])
+
+        self.assertNotIn("metadata", groups[0])
 
     def test_merge_new_bssids_preserves_manual_group_details(self):
         known_bssid = "70:4f:57:aa:bb:10"
@@ -695,6 +719,20 @@ class SurveyStoreTests(unittest.TestCase):
                         "channel": "6",
                         "channel_width_mhz": "20",
                         "radio": "802.11ax",
+                        "frequency_mhz": "2437",
+                        "security": "WPA2-Personal / CCMP",
+                        "auth": "WPA2-Personal",
+                        "encryption": "CCMP",
+                        "pmf": "Disabled",
+                        "country_code": "IT",
+                        "spatial_streams": "2",
+                        "stations": "4",
+                        "channel_utilization": "18%",
+                        "wifi_modes": "ax/n",
+                        "amendments": "d/e/h/i/k/v",
+                        "vendor": "Acme",
+                        "model": "AX-1",
+                        "ap_name": "office-ap",
                         "raw_samples": [
                             {
                                 "scan_attempt": "1",
@@ -705,6 +743,20 @@ class SurveyStoreTests(unittest.TestCase):
                                 "channel": "6",
                                 "channel_width_mhz": "20",
                                 "radio": "802.11ax",
+                                "frequency_mhz": "2437",
+                                "security": "WPA2-Personal / CCMP",
+                                "auth": "WPA2-Personal",
+                                "encryption": "CCMP",
+                                "pmf": "Disabled",
+                                "country_code": "IT",
+                                "spatial_streams": "2",
+                                "stations": "4",
+                                "channel_utilization": "18%",
+                                "wifi_modes": "ax/n",
+                                "amendments": "d/e/h/i/k/v",
+                                "vendor": "Acme",
+                                "model": "AX-1",
+                                "ap_name": "office-ap",
                                 "backend": "netsh",
                             },
                             {
@@ -716,6 +768,20 @@ class SurveyStoreTests(unittest.TestCase):
                                 "channel": "6",
                                 "channel_width_mhz": "20",
                                 "radio": "802.11ax",
+                                "frequency_mhz": "2437",
+                                "security": "WPA2-Personal / CCMP",
+                                "auth": "WPA2-Personal",
+                                "encryption": "CCMP",
+                                "pmf": "Disabled",
+                                "country_code": "IT",
+                                "spatial_streams": "2",
+                                "stations": "4",
+                                "channel_utilization": "18%",
+                                "wifi_modes": "ax/n",
+                                "amendments": "d/e/h/i/k/v",
+                                "vendor": "Acme",
+                                "model": "AX-1",
+                                "ap_name": "office-ap",
                                 "backend": "lswifi",
                             },
                         ],
@@ -755,7 +821,16 @@ class SurveyStoreTests(unittest.TestCase):
             self.assertEqual(len(loaded.rows), 1)
             self.assertEqual(loaded.rows[0]["is_relevant"], "1")
             self.assertEqual(loaded.rows[0]["signal_median_dbm"], "-51")
+            self.assertEqual(loaded.rows[0]["frequency_mhz"], "2437")
+            self.assertEqual(loaded.rows[0]["pmf"], "Disabled")
+            self.assertEqual(loaded.rows[0]["channel_utilization"], "18%")
+            self.assertEqual(loaded.rows[0]["wifi_modes"], "ax/n")
+            self.assertEqual(loaded.rows[0]["vendor"], "Acme")
+            self.assertEqual(loaded.rows[0]["model"], "AX-1")
+            self.assertEqual(loaded.rows[0]["ap_name"], "office-ap")
             self.assertEqual(len(loaded.raw_scan_rows), 2)
+            self.assertEqual(loaded.raw_scan_rows[0]["auth"], "WPA2-Personal")
+            self.assertEqual(loaded.raw_scan_rows[0]["encryption"], "CCMP")
             self.assertEqual(
                 {row["backend"] for row in loaded.raw_scan_rows},
                 {"netsh", "lswifi"},
@@ -1187,6 +1262,8 @@ class LiveRendererCacheTests(unittest.TestCase):
         same_render_inputs["ui_only"] = "expanded"
         changed_signal = df.copy()
         changed_signal.loc[0, "signal_dbm"] = -65
+        changed_frequency = df.copy()
+        changed_frequency.loc[0, "frequency_mhz"] = "5975"
 
         self.assertEqual(
             stable_dataframe_fingerprint(df),
@@ -1195,6 +1272,10 @@ class LiveRendererCacheTests(unittest.TestCase):
         self.assertNotEqual(
             stable_dataframe_fingerprint(df),
             stable_dataframe_fingerprint(changed_signal),
+        )
+        self.assertNotEqual(
+            stable_dataframe_fingerprint(df),
+            stable_dataframe_fingerprint(changed_frequency),
         )
 
 
@@ -1315,8 +1396,13 @@ SSID 2 : GUEST
         self.assertEqual(networks[0]["ssid"], "MAIN")
         self.assertEqual(networks[0]["bssid"], "70:4f:57:aa:bb:10")
         self.assertEqual(networks[0]["signal_dbm"], -59.0)
+        self.assertEqual(networks[0]["auth"], "WPA2-Personal")
+        self.assertEqual(networks[0]["encryption"], "CCMP")
+        self.assertEqual(networks[0]["security"], "WPA2-Personal / CCMP")
+        self.assertEqual(networks[1]["auth"], "WPA2-Personal")
         self.assertEqual(networks[1]["channel"], "11")
         self.assertEqual(networks[2]["ssid"], "GUEST")
+        self.assertEqual(networks[2]["auth"], "")
 
     def test_parse_lswifi_bss_list_normalizes_width_and_radio(self):
         networks = parse_lswifi_bss_list([
@@ -1327,6 +1413,23 @@ SSID 2 : GUEST
                 channel_number=36,
                 channel_width="80+80 MHz",
                 phy_type=FakeLswifiPhy(amendment="ax"),
+                channel_frequency=FakeLswifiValue("5.180"),
+                security="WPA2-Personal / CCMP",
+                auth=FakeLswifiValue("WPA2-Personal"),
+                encryption=FakeLswifiValue("CCMP"),
+                pmf="Disabled",
+                country_code="IT",
+                spatial_streams="2",
+                stations="4",
+                utilization="18%",
+                modes=FakeLswifiList(["n", "ax"]),
+                amendments=FakeLswifiList(["i", "k", "v"]),
+                ap_name="office-ap",
+                information_elements=[
+                    FakeLswifiInformationElement(
+                        "Manufacturer: Acme\nModel Name: AX-1"
+                    )
+                ],
             ),
             FakeLswifiBss(ssid="", bssid="80:11:22:33:44:10", rssi="-70", channel_number=1),
         ])
@@ -1338,6 +1441,20 @@ SSID 2 : GUEST
         self.assertEqual(networks[0]["channel_width_mhz"], 160)
         self.assertEqual(networks[0]["band"], "5")
         self.assertEqual(networks[0]["radio"], "802.11ax")
+        self.assertEqual(networks[0]["frequency_mhz"], "5180")
+        self.assertEqual(networks[0]["security"], "WPA2-Personal / CCMP")
+        self.assertEqual(networks[0]["auth"], "WPA2-Personal")
+        self.assertEqual(networks[0]["encryption"], "CCMP")
+        self.assertEqual(networks[0]["pmf"], "Disabled")
+        self.assertEqual(networks[0]["country_code"], "IT")
+        self.assertEqual(networks[0]["spatial_streams"], "2")
+        self.assertEqual(networks[0]["stations"], "4")
+        self.assertEqual(networks[0]["channel_utilization"], "18%")
+        self.assertEqual(networks[0]["wifi_modes"], "ax/n")
+        self.assertEqual(networks[0]["amendments"], "i/k/v")
+        self.assertEqual(networks[0]["vendor"], "Acme")
+        self.assertEqual(networks[0]["model"], "AX-1")
+        self.assertEqual(networks[0]["ap_name"], "office-ap")
 
     def test_parse_lswifi_bss_list_reads_frequency_based_6ghz_band(self):
         networks = parse_lswifi_bss_list([
@@ -1346,24 +1463,68 @@ SSID 2 : GUEST
                 bssid="70:4f:57:aa:bb:10",
                 rssi="-61",
                 channel_number=5,
-                frequency_mhz=5975,
+                channel_frequency=FakeLswifiValue("5.975"),
             ),
         ])
 
         self.assertEqual(len(networks), 1)
         self.assertEqual(networks[0]["channel"], "5")
         self.assertEqual(networks[0]["band"], "6")
+        self.assertEqual(networks[0]["frequency_mhz"], "5975")
 
     def test_frequency_band_inference_accepts_mhz_khz_hz_and_ghz_values(self):
         self.assertEqual(infer_band_from_frequency_mhz(5975), "6")
         self.assertEqual(infer_band_from_frequency_mhz(5975000), "6")
         self.assertEqual(infer_band_from_frequency_mhz(5975000000), "6")
         self.assertEqual(infer_band_from_frequency_mhz(5.975), "6")
+        self.assertEqual(normalize_frequency_mhz("5.975 GHz"), 5975)
 
     def test_merge_wifi_scans_aggregates_samples_and_confidence(self):
         samples = [
-            {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -52, "channel": "6", "channel_width_mhz": "20", "radio": "802.11ax"},
-            {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -48, "channel": "6", "channel_width_mhz": "20", "radio": "802.11ax"},
+            {
+                "ssid": "MAIN",
+                "bssid": "70:4f:57:aa:bb:10",
+                "signal_dbm": -52,
+                "channel": "6",
+                "channel_width_mhz": "20",
+                "radio": "802.11ax",
+                "frequency_mhz": "2437",
+                "security": "WPA2-Personal / CCMP",
+                "auth": "WPA2-Personal",
+                "encryption": "CCMP",
+                "pmf": "Disabled",
+                "country_code": "IT",
+                "spatial_streams": "2",
+                "stations": "4",
+                "channel_utilization": "18%",
+                "wifi_modes": "ax/n",
+                "amendments": "i/k/v",
+                "vendor": "Acme",
+                "model": "AX-1",
+                "ap_name": "office-ap",
+            },
+            {
+                "ssid": "MAIN",
+                "bssid": "70:4f:57:aa:bb:10",
+                "signal_dbm": -48,
+                "channel": "6",
+                "channel_width_mhz": "20",
+                "radio": "802.11ax",
+                "frequency_mhz": "2437",
+                "security": "WPA2-Personal / CCMP",
+                "auth": "WPA2-Personal",
+                "encryption": "CCMP",
+                "pmf": "Disabled",
+                "country_code": "IT",
+                "spatial_streams": "2",
+                "stations": "4",
+                "channel_utilization": "18%",
+                "wifi_modes": "ax/n",
+                "amendments": "i/k/v",
+                "vendor": "Acme",
+                "model": "AX-1",
+                "ap_name": "office-ap",
+            },
             {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -55, "channel": "6", "channel_width_mhz": "40", "radio": "802.11ax"},
         ]
 
@@ -1380,6 +1541,13 @@ SSID 2 : GUEST
         self.assertEqual(networks[0]["scan_confidence"], 0.6)
         self.assertEqual(networks[0]["channel_width_mhz"], "20")
         self.assertEqual(networks[0]["band"], "2.4")
+        self.assertEqual(networks[0]["frequency_mhz"], "2437")
+        self.assertEqual(networks[0]["pmf"], "Disabled")
+        self.assertEqual(networks[0]["channel_utilization"], "18%")
+        self.assertEqual(networks[0]["wifi_modes"], "ax/n")
+        self.assertEqual(networks[0]["vendor"], "Acme")
+        self.assertEqual(networks[0]["model"], "AX-1")
+        self.assertEqual(networks[0]["ap_name"], "office-ap")
         self.assertIs(networks[0]["raw_samples"][0], samples[0])
 
     def test_merge_wifi_scans_keeps_same_channel_different_bands_separate(self):
@@ -2869,6 +3037,21 @@ class FakeLswifiPhy:
         self.name = name
 
 
+class FakeLswifiValue:
+    def __init__(self, value):
+        self.value = value
+
+
+class FakeLswifiList:
+    def __init__(self, elements):
+        self.elements = elements
+
+
+class FakeLswifiInformationElement:
+    def __init__(self, decoded):
+        self.decoded = decoded
+
+
 class FakeLswifiBss:
     def __init__(
         self,
@@ -2880,6 +3063,21 @@ class FakeLswifiBss:
         phy_type=None,
         band="",
         frequency_mhz="",
+        channel_frequency="",
+        security="",
+        auth="",
+        encryption="",
+        pmf="",
+        country_code="",
+        spatial_streams="",
+        stations="",
+        utilization="",
+        modes=None,
+        amendments=None,
+        vendor="",
+        model="",
+        ap_name="",
+        information_elements=None,
     ):
         self.ssid = ssid
         self.bssid = bssid
@@ -2889,6 +3087,21 @@ class FakeLswifiBss:
         self.phy_type = phy_type
         self.band = band
         self.frequency_mhz = frequency_mhz
+        self.channel_frequency = channel_frequency
+        self.security = security
+        self.auth = auth
+        self.encryption = encryption
+        self.pmf = pmf
+        self.country_code = country_code
+        self.spatial_streams = spatial_streams
+        self.stations = stations
+        self.utilization = utilization
+        self.modes = modes
+        self.amendments = amendments
+        self.vendor = vendor
+        self.model = model
+        self.apname = ap_name
+        self.information_elements = information_elements or []
 
 
 def build_row(point_id, ssid, bssid, signal_dbm, channel, band=None):

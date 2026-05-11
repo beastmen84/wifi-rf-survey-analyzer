@@ -13,6 +13,7 @@ from constants import (
     RAW_SCAN_FIELDNAMES,
     REQUIRED_RAW_SCAN_FIELDNAMES,
     REQUIRED_SURVEY_FIELDNAMES,
+    SCAN_DETAIL_FIELDNAMES,
     SURVEY_FIELDNAMES,
     SURVEY_SCHEMA_VERSION,
 )
@@ -67,7 +68,7 @@ class SurveySession:
         }
 
         for net in networks:
-            self.rows.append({
+            row = {
                 "point_id": point_id,
                 "timestamp": timestamp,
                 "x": x,
@@ -88,7 +89,9 @@ class SurveySession:
                 "band": get_row_band(net),
                 "radio": net["radio"],
                 "is_relevant": "1" if str(net.get("ssid", "")).lower() in relevant_ssids else "0"
-            })
+            }
+            row.update(copy_scan_detail_fields(net))
+            self.rows.append(row)
 
         for net in raw_networks or networks:
             self.add_raw_scan_rows(point_id, timestamp, x, y, net)
@@ -99,7 +102,7 @@ class SurveySession:
     def add_raw_scan_rows(self, point_id, timestamp, x, y, network):
         raw_samples = network.get("raw_samples") or []
         for sample in raw_samples:
-            self.raw_scan_rows.append({
+            row = {
                 "point_id": point_id,
                 "scan_attempt": sample.get("scan_attempt", ""),
                 "timestamp": timestamp,
@@ -114,7 +117,9 @@ class SurveySession:
                 "band": get_row_band(sample),
                 "radio": sample.get("radio", ""),
                 "backend": sample.get("backend", "")
-            })
+            }
+            row.update(copy_scan_detail_fields(sample))
+            self.raw_scan_rows.append(row)
 
     def delete_point(self, timestamp, x, y):
         kept_rows = []
@@ -294,6 +299,13 @@ def build_default_metadata(csv_file=None):
         metadata[RAW_DATA_FILE_METADATA_KEY] = build_default_raw_data_filename(csv_file)
 
     return metadata
+
+
+def copy_scan_detail_fields(network):
+    return {
+        field: network.get(field, "")
+        for field in SCAN_DETAIL_FIELDNAMES
+    }
 
 
 def build_new_point_id():

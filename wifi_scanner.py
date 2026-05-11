@@ -8,9 +8,9 @@ from collections import Counter
 from statistics import median
 
 from app_logging import log_event, log_exception
-from constants import WIFI_SCAN_ATTEMPTS, WIFI_SCAN_DELAY_SECONDS
+from constants import SCAN_DETAIL_FIELDNAMES, WIFI_SCAN_ATTEMPTS, WIFI_SCAN_DELAY_SECONDS
 from utils import dbm_to_percent, percent_to_dbm
-from wifi_band import infer_band_from_channel, infer_band_from_frequency_mhz, normalize_band
+from wifi_band import infer_band_from_channel, infer_band_from_frequency_mhz, normalize_band, normalize_frequency_mhz
 
 
 def scan_wifi(backend="auto", show_errors=True):
@@ -139,12 +139,22 @@ def lswifi_value(value, default=""):
     return getattr(value, "value", value if value is not None else default)
 
 
+def clean_scan_text(value):
+    value = lswifi_value(value, "")
+    text = str(value if value is not None else "").strip()
+
+    if text.lower() in {"", "--", "-", "none", "unknown", "n/a", "na"}:
+        return ""
+
+    return text
+
+
 def parse_lswifi_bss_list(bss_list):
     networks = []
 
     for item in bss_list:
-        ssid = str(lswifi_value(getattr(item, "ssid", ""))).strip()
-        bssid = str(lswifi_value(getattr(item, "bssid", ""))).strip()
+        ssid = clean_scan_text(getattr(item, "ssid", ""))
+        bssid = clean_scan_text(getattr(item, "bssid", ""))
 
         if not ssid or not bssid:
             continue
@@ -154,10 +164,12 @@ def parse_lswifi_bss_list(bss_list):
         except (TypeError, ValueError):
             continue
 
-        channel = str(lswifi_value(getattr(item, "channel_number", ""))).strip()
+        channel = clean_scan_text(getattr(item, "channel_number", ""))
+        frequency_mhz = get_lswifi_frequency_mhz(item)
         channel_width_mhz = get_lswifi_channel_width_mhz(item)
-        band = get_lswifi_band(item, channel)
+        band = get_lswifi_band(item, channel, frequency_mhz)
         radio = format_lswifi_radio(getattr(item, "phy_type", None))
+        extra_details = get_lswifi_extra_details(item, frequency_mhz)
 
         networks.append({
             "ssid": ssid,
@@ -167,7 +179,8 @@ def parse_lswifi_bss_list(bss_list):
             "channel": channel,
             "channel_width_mhz": channel_width_mhz,
             "band": band,
-            "radio": radio
+            "radio": radio,
+            **extra_details,
         })
 
     return networks
@@ -184,18 +197,153 @@ def get_lswifi_channel_width_mhz(item):
     return ""
 
 
-def get_lswifi_band(item, channel):
+def get_lswifi_frequency_mhz(item):
+    for attribute_name in (
+        "frequency_mhz",
+        "center_frequency_mhz",
+        "channel_frequency",
+        "frequency",
+        "center_frequency",
+        "ch_center_frequency",
+        "channel_number",
+    ):
+        raw_value = getattr(item, attribute_name, None)
+        if attribute_name == "channel_number" and not hasattr(raw_value, "frequency"):
+            continue
+
+        for value in get_lswifi_frequency_candidates(raw_value):
+            frequency = format_frequency_mhz(value)
+            if frequency:
+                return frequency
+
+    return ""
+
+
+def get_lswifi_frequency_candidates(value):
+    if value is None:
+        return []
+
+    candidates = []
+    for attribute_name in ("frequency", "value"):
+        if hasattr(value, attribute_name):
+            candidates.append(getattr(value, attribute_name))
+
+    candidates.append(value)
+    return candidates
+
+
+def format_frequency_mhz(value):
+    frequency = normalize_frequency_mhz(value)
+    if frequency is None:
+        return ""
+
+    if abs(frequency - round(frequency)) < 0.001:
+        return str(int(round(frequency)))
+
+    return f"{frequency:.3f}".rstrip("0").rstrip(".")
+
+
+def get_lswifi_band(item, channel, frequency_mhz=""):
     for attribute_name in ("band", "frequency_band", "wifi_band"):
         band = normalize_band(lswifi_value(getattr(item, attribute_name, ""), ""))
         if band:
             return band
 
-    for attribute_name in ("frequency_mhz", "frequency", "center_frequency", "center_frequency_mhz"):
+    if frequency_mhz:
+        band = infer_band_from_frequency_mhz(frequency_mhz)
+        if band:
+            return band
+
+    for attribute_name in ("channel_frequency", "frequency_mhz", "frequency", "center_frequency", "center_frequency_mhz"):
         band = infer_band_from_frequency_mhz(lswifi_value(getattr(item, attribute_name, ""), ""))
         if band:
             return band
 
     return infer_band_from_channel(channel)
+
+
+def get_lswifi_extra_details(item, frequency_mhz=""):
+    return {
+        "frequency_mhz": frequency_mhz,
+        "security": get_lswifi_text(item, "security"),
+        "auth": get_lswifi_text(item, "auth", "authentication"),
+        "encryption": get_lswifi_text(item, "encryption", "cipher"),
+        "pmf": get_lswifi_text(item, "pmf"),
+        "country_code": get_lswifi_text(item, "country_code"),
+        "spatial_streams": get_lswifi_text(item, "spatial_streams"),
+        "stations": get_lswifi_text(item, "stations"),
+        "channel_utilization": get_lswifi_text(item, "utilization", "channel_utilization"),
+        "wifi_modes": get_lswifi_list_text(item, "modes"),
+        "amendments": get_lswifi_list_text(item, "amendments"),
+        "vendor": get_lswifi_vendor(item),
+        "model": get_lswifi_model(item),
+        "ap_name": get_lswifi_text(item, "apname", "ap_name", "device_name"),
+    }
+
+
+def get_lswifi_text(item, *attribute_names):
+    for attribute_name in attribute_names:
+        text = clean_scan_text(getattr(item, attribute_name, None))
+        if text:
+            return text
+
+    return ""
+
+
+def get_lswifi_list_text(item, attribute_name):
+    value = getattr(item, attribute_name, None)
+    elements = getattr(value, "elements", None)
+    if elements is not None:
+        return format_scan_list(elements)
+
+    if isinstance(value, (list, tuple, set)):
+        return format_scan_list(value)
+
+    return clean_scan_text(value)
+
+
+def format_scan_list(values):
+    clean_values = sorted({
+        str(value).strip()
+        for value in values
+        if str(value).strip()
+    })
+    return "/".join(clean_values)
+
+
+def get_lswifi_vendor(item):
+    vendor = get_lswifi_text(item, "vendor", "manufacturer", "oui_vendor", "bssid_vendor")
+    if vendor:
+        return vendor
+
+    return extract_lswifi_information_element_value(item, "manufacturer")
+
+
+def get_lswifi_model(item):
+    model = get_lswifi_text(item, "model", "model_name", "model_number")
+    if model:
+        return model
+
+    return (
+        extract_lswifi_information_element_value(item, "model name")
+        or extract_lswifi_information_element_value(item, "model number")
+    )
+
+
+def extract_lswifi_information_element_value(item, label):
+    label_pattern = re.escape(label).replace(r"\ ", r"\s+")
+    pattern = re.compile(rf"^\s*{label_pattern}\s*:\s*(.+)$", re.IGNORECASE | re.MULTILINE)
+
+    for information_element in getattr(item, "information_elements", []) or []:
+        decoded = clean_scan_text(getattr(information_element, "decoded", ""))
+        if not decoded:
+            continue
+
+        match = pattern.search(decoded)
+        if match:
+            return clean_scan_text(match.group(1))
+
+    return ""
 
 
 def normalize_channel_width_mhz(value):
@@ -281,6 +429,7 @@ def merge_wifi_scans(networks, samples_total=1):
             "channel_width_mhz": most_common_non_empty(samples, "channel_width_mhz"),
             "band": most_common_non_empty(samples, "band") or infer_band_from_channel(representative.get("channel")),
             "radio": most_common_non_empty(samples, "radio"),
+            **{field: most_common_non_empty(samples, field) for field in SCAN_DETAIL_FIELDNAMES},
             "raw_samples": samples
         })
 
@@ -316,9 +465,12 @@ def parse_netsh_output(output):
     current_signal = None
     current_channel = None
     current_radio = None
+    current_auth = None
+    current_encryption = None
 
     def append_current_network():
         if current_ssid and current_bssid and current_signal is not None:
+            security = " / ".join(value for value in (current_auth, current_encryption) if value)
             networks.append({
                 "ssid": current_ssid,
                 "bssid": current_bssid,
@@ -327,7 +479,10 @@ def parse_netsh_output(output):
                 "channel": current_channel,
                 "channel_width_mhz": "",
                 "band": infer_band_from_channel(current_channel),
-                "radio": current_radio
+                "radio": current_radio,
+                "security": security,
+                "auth": current_auth or "",
+                "encryption": current_encryption or "",
             })
 
     for line in output.splitlines():
@@ -341,6 +496,8 @@ def parse_netsh_output(output):
             current_signal = None
             current_channel = None
             current_radio = None
+            current_auth = None
+            current_encryption = None
             continue
 
         bssid_match = re.match(r"BSSID\s+\d+\s+:\s+(.*)", line)
@@ -350,6 +507,16 @@ def parse_netsh_output(output):
             current_signal = None
             current_channel = None
             current_radio = None
+            continue
+
+        auth_match = re.match(r"Authentication\s+:\s+(.*)", line)
+        if auth_match:
+            current_auth = auth_match.group(1).strip()
+            continue
+
+        encryption_match = re.match(r"Encryption\s+:\s+(.*)", line)
+        if encryption_match:
+            current_encryption = encryption_match.group(1).strip()
             continue
 
         signal_match = re.match(r"Signal\s+:\s+(\d+)%", line)

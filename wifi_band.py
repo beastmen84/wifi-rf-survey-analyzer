@@ -25,18 +25,45 @@ def normalize_band(value):
     return ""
 
 
-def infer_band_from_frequency_mhz(value):
-    try:
-        frequency = float(str(value).strip())
-    except (TypeError, ValueError):
-        return ""
+def normalize_frequency_mhz(value):
+    text = str(value or "").strip().lower().replace(",", ".")
+    if not text:
+        return None
 
-    if frequency > 100000000:
+    match = re.search(r"[-+]?\d+(?:\.\d+)?", text)
+    if not match:
+        return None
+
+    try:
+        frequency = float(match.group(0))
+    except (TypeError, ValueError):
+        return None
+
+    if "ghz" in text:
+        frequency *= 1000.0
+    elif "khz" in text:
+        frequency /= 1000.0
+    elif "mhz" not in text and "hz" in text:
+        frequency /= 1000000.0
+    elif frequency > 100000000:
         frequency /= 1000000.0
     elif frequency > 100000:
         frequency /= 1000.0
     elif 2 <= frequency <= 8:
         frequency *= 1000.0
+
+    return frequency
+
+
+def infer_band_from_frequency_mhz(value):
+    frequency = normalize_frequency_mhz(value)
+    if frequency is None:
+        return ""
+
+    try:
+        frequency = float(frequency)
+    except (TypeError, ValueError):
+        return ""
 
     if 2400 <= frequency <= 2500:
         return "2.4"
