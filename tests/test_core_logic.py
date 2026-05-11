@@ -14,7 +14,7 @@ from PIL import Image
 from app_logging import MaxLogLevelFilter
 from app_restart import build_restart_command
 from app_settings import get_last_survey_directory, save_last_survey_path
-from constants import RAW_DATA_FILE_METADATA_KEY
+from constants import RAW_DATA_FILE_METADATA_KEY, SURVEY_FIELDNAMES
 from i18n import translate
 from ap_groups import (
     AP_ROLE_EXTERNAL,
@@ -560,6 +560,116 @@ class SurveyStoreTests(unittest.TestCase):
                 SurveySession(build_raw_scan_file_path(survey_file, session.metadata))
 
             self.assertEqual(str(error.exception), "raw_scan_file")
+
+    def test_opening_custom_scan_sidecar_as_survey_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            raw_scan_file = os.path.join(temp_dir, "custom_raw.scan")
+            with open(raw_scan_file, "w", newline="", encoding="utf-8") as f:
+                f.write("point_id,scan_attempt,timestamp,x,y,ssid,bssid,signal_percent,signal_dbm,channel,channel_width_mhz,radio,backend\n")
+
+            with self.assertRaises(SurveyFormatError) as error:
+                SurveySession(raw_scan_file)
+
+            self.assertEqual(str(error.exception), "raw_scan_file")
+
+    def test_delete_point_removes_aggregate_rows_and_linked_raw_rows(self):
+        session = SurveySession()
+        main_row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -50, 1)
+        guest_row = build_row("p1", "GUEST", "70:4f:57:aa:bb:11", -55, 1)
+        other_row = build_row("p2", "MAIN", "90:11:22:33:44:10", -60, 6)
+        session.rows = [main_row, guest_row, other_row]
+        session.raw_scan_rows = [
+            build_raw_row("p1", "MAIN", "70:4f:57:aa:bb:10", -50, 1),
+            build_raw_row("p1", "GUEST", "70:4f:57:aa:bb:11", -55, 1),
+            build_raw_row("p2", "MAIN", "90:11:22:33:44:10", -60, 6),
+        ]
+
+        removed_rows = session.delete_point("p1", 10, 20)
+
+        self.assertEqual(removed_rows, 2)
+        self.assertEqual([row["point_id"] for row in session.rows], ["p2"])
+        self.assertEqual([row["point_id"] for row in session.raw_scan_rows], ["p2"])
+        self.assertTrue(session.dirty)
+
+    def test_delete_point_without_match_leaves_session_clean(self):
+        session = SurveySession()
+        session.rows = [build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -50, 1)]
+        session.raw_scan_rows = [build_raw_row("p1", "MAIN", "70:4f:57:aa:bb:10", -50, 1)]
+        session.dirty = False
+
+        removed_rows = session.delete_point("missing", 10, 20)
+
+        self.assertEqual(removed_rows, 0)
+        self.assertEqual(len(session.rows), 1)
+        self.assertEqual(len(session.raw_scan_rows), 1)
+        self.assertFalse(session.dirty)
+
+    def test_ap_aliases_merge_legacy_aliases_with_group_aliases(self):
+        session = SurveySession()
+        session.set_ap_aliases({
+            "legacy-key": "Legacy AP",
+            "empty-key": " ",
+            "office-ap": "Old group alias",
+        })
+        session.set_ap_groups([
+            build_manual_ap_group(
+                "office-ap",
+                ["70:4f:57:aa:bb:10"],
+                alias="Office AP",
+            )
+        ])
+
+        aliases = session.get_ap_aliases()
+
+        self.assertEqual(aliases["legacy-key"], "Legacy AP")
+        self.assertEqual(aliases["office-ap"], "Office AP")
+        self.assertNotIn("empty-key", aliases)
+
+    def test_missing_raw_sidecar_is_allowed_but_malformed_sidecar_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            survey_file = os.path.join(temp_dir, "office.csv")
+            session = SurveySession()
+            session.add_points(
+                10,
+                20,
+                [{
+                    "ssid": "MAIN",
+                    "bssid": "70:4f:57:aa:bb:10",
+                    "signal_percent": "80",
+                    "signal_dbm": -50,
+                    "channel": "6",
+                    "radio": "802.11ax",
+                }],
+                relevant_ssids={"MAIN"},
+            )
+            session.save(survey_file)
+            raw_scan_file = build_raw_scan_file_path(survey_file, session.metadata)
+
+            os.remove(raw_scan_file)
+            loaded = SurveySession(survey_file)
+            self.assertEqual(loaded.raw_scan_rows, [])
+
+            with open(raw_scan_file, "w", newline="", encoding="utf-8") as f:
+                f.write("point_id,ssid\n")
+
+            with self.assertRaises(SurveyFormatError) as error:
+                SurveySession(survey_file)
+
+            self.assertEqual(str(error.exception), "invalid_raw_scan_format")
+
+    def test_invalid_survey_header_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            survey_file = os.path.join(temp_dir, "office.csv")
+            with open(survey_file, "w", newline="", encoding="utf-8") as f:
+                f.write("# app=wifi_heatmap\n")
+                f.write("# schema_version=2\n")
+                f.write(",".join(field for field in SURVEY_FIELDNAMES if field != "bssid"))
+                f.write("\n")
+
+            with self.assertRaises(SurveyFormatError) as error:
+                SurveySession(survey_file)
+
+            self.assertEqual(str(error.exception), "invalid_survey_format")
 
 
 class ApRoleFilteringTests(unittest.TestCase):

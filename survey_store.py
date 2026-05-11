@@ -313,7 +313,7 @@ def build_raw_scan_file_path(csv_file, metadata=None):
 
 def is_raw_scan_file(csv_file):
     path = Path(csv_file)
-    return path.name.endswith("_raw_data.scan")
+    return path.suffix.lower() == ".scan"
 
 
 def validate_survey_file(csv_file):
