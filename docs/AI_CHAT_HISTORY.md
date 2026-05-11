@@ -36,10 +36,10 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the latest live-map bugfix pass is 33
+- The current code test baseline after the latest live-map viewport pass is 35
   passing tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
-  `f5c09bb Toggle settings popup from anchor button`.
+  `d3af4a6 Fix live map refresh state callback`.
 - Current AP positioning and scale calibration pick points with left click while
   their modal map-pick mode is active; normal map dragging is disabled during
   the pick and the click must not create a measurement point.
@@ -837,9 +837,16 @@ Language:
   `refresh_global_state()` call after setting the live-rendering state. Live tab
   and render-completion callbacks now use the existing session/UI refresh path,
   with a regression test covering those callbacks.
+- Refined live-map pan behavior: the cursor stays normal by default, switches
+  to a closed hand through a Qt override cursor only while the user is actively
+  dragging a pannable zoomed map, and returns to normal on release/leave.
+- Continuous live-map gradient overlays are now refreshed after
+  `QGraphicsView` content scrolling as well as after zoom/resize, so the color
+  scale remains anchored to the viewport bottom-right while panning.
 
 Recent commits:
 
+- `d3af4a6` Fix live map refresh state callback.
 - `f5c09bb` Toggle settings popup from anchor button.
 - `ad8feca` Tighten Qt live map viewport behavior.
 - `87d7741` Polish Qt live map toolbar and AP markers.
@@ -909,5 +916,6 @@ Current tests cover, among other things:
 - AP marker icon scaling;
 - live marker sizing, live gradient legend painting/overlay behavior, and live
   AP position marker handling;
+- live pan cursor state and gradient overlay reanchoring after content scroll;
 - live refresh callbacks that update tab state and finish/fail render state;
 - settings popup toggle suppression.

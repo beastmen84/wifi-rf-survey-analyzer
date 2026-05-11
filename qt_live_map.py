@@ -19,6 +19,7 @@ from PySide6.QtGui import (
     QPolygonF,
 )
 from PySide6.QtWidgets import (
+    QApplication,
     QGraphicsEllipseItem,
     QGraphicsItemGroup,
     QGraphicsPathItem,
@@ -105,6 +106,7 @@ class LiveMapView(QGraphicsView):
         self.ap_marker_items = []
         self.zoom_level = 1.0
         self._pan_last_pos = None
+        self._pan_cursor_active = False
         self.ap_position_icon = load_ap_position_icon()
         self.gradient_legend = LiveGradientLegendWidget(self.viewport())
         self.gradient_legend.setFixedSize(150, 220)
@@ -124,7 +126,7 @@ class LiveMapView(QGraphicsView):
         self.marker_items = []
         self.ap_marker_items = []
         self.zoom_level = 1.0
-        self._pan_last_pos = None
+        self.end_pan()
         self.clear_gradient_legend()
 
     def set_payload(self, payload):
@@ -268,8 +270,7 @@ class LiveMapView(QGraphicsView):
         factor = zoom_level / self.zoom_level
         self.zoom_level = zoom_level
         self.scale(factor, factor)
-        if self.gradient_legend.isVisible():
-            self.position_gradient_legend()
+        self.refresh_viewport_overlays()
 
     def fit_to_view(self):
         if self.pixmap_item is None:
@@ -278,8 +279,7 @@ class LiveMapView(QGraphicsView):
         self.fitInView(self.scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
         transform = self.transform()
         self.zoom_level = max(transform.m11(), transform.m22())
-        if self.gradient_legend.isVisible():
-            self.position_gradient_legend()
+        self.refresh_viewport_overlays()
 
     def set_gradient_legend(self, scale_payload):
         self.gradient_legend.set_scale_payload(scale_payload)
@@ -300,11 +300,20 @@ class LiveMapView(QGraphicsView):
             max(12, viewport_size.width() - width - 14),
             max(12, viewport_size.height() - height - 14),
         )
+        self.gradient_legend.raise_()
+        self.gradient_legend.update()
+
+    def refresh_viewport_overlays(self):
+        if not self.gradient_legend.isHidden():
+            self.position_gradient_legend()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        if self.gradient_legend.isVisible():
-            self.position_gradient_legend()
+        self.refresh_viewport_overlays()
+
+    def scrollContentsBy(self, dx, dy):
+        super().scrollContentsBy(dx, dy)
+        self.refresh_viewport_overlays()
 
     def can_pan(self):
         return (
@@ -317,8 +326,7 @@ class LiveMapView(QGraphicsView):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton and self.can_pan():
-            self._pan_last_pos = event.position().toPoint()
-            self.viewport().setCursor(Qt.CursorShape.ClosedHandCursor)
+            self.begin_pan(event.position().toPoint())
             event.accept()
             return
 
@@ -338,17 +346,29 @@ class LiveMapView(QGraphicsView):
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton and self._pan_last_pos is not None:
-            self._pan_last_pos = None
-            self.viewport().setCursor(Qt.CursorShape.ArrowCursor)
+            self.end_pan()
             event.accept()
             return
 
         super().mouseReleaseEvent(event)
 
     def leaveEvent(self, event):
+        self.end_pan()
+        super().leaveEvent(event)
+
+    def begin_pan(self, position):
+        self._pan_last_pos = position
+        self.viewport().setCursor(Qt.CursorShape.ClosedHandCursor)
+        if not self._pan_cursor_active:
+            QApplication.setOverrideCursor(Qt.CursorShape.ClosedHandCursor)
+            self._pan_cursor_active = True
+
+    def end_pan(self):
         self._pan_last_pos = None
         self.viewport().setCursor(Qt.CursorShape.ArrowCursor)
-        super().leaveEvent(event)
+        if self._pan_cursor_active:
+            QApplication.restoreOverrideCursor()
+            self._pan_cursor_active = False
 
     def wheelEvent(self, event):
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:

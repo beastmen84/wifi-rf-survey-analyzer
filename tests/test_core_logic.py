@@ -4,7 +4,7 @@ import os
 import tempfile
 import time
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QApplication, QDialog, QGraphicsItem, QGraphicsView, QWidget
 from PIL import Image
@@ -415,6 +415,42 @@ class LiveMapViewTests(unittest.TestCase):
         view.clear_gradient_legend()
 
         self.assertTrue(view.gradient_legend.isHidden())
+        view.deleteLater()
+
+    def test_live_gradient_overlay_reanchors_after_content_scroll(self):
+        view = LiveMapView()
+        view.resize(500, 360)
+        view.set_gradient_legend({
+            "kind": "gradient",
+            "cmap": "RdYlGn",
+            "min": -90,
+            "max": -40,
+            "suffix": " dBm",
+        })
+        anchored_pos = view.gradient_legend.pos()
+
+        view.gradient_legend.move(0, 0)
+        view.scrollContentsBy(24, 18)
+
+        self.assertEqual(view.gradient_legend.pos(), anchored_pos)
+        view.deleteLater()
+
+    def test_live_pan_uses_closed_hand_cursor_only_while_dragging(self):
+        if QApplication.overrideCursor() is not None:
+            self.skipTest("existing override cursor would make the cursor stack ambiguous")
+
+        view = LiveMapView()
+        view.begin_pan(QPoint(10, 10))
+        try:
+            override_cursor = QApplication.overrideCursor()
+            self.assertEqual(view.viewport().cursor().shape(), Qt.CursorShape.ClosedHandCursor)
+            self.assertIsNotNone(override_cursor)
+            self.assertEqual(override_cursor.shape(), Qt.CursorShape.ClosedHandCursor)
+        finally:
+            view.end_pan()
+
+        self.assertEqual(view.viewport().cursor().shape(), Qt.CursorShape.ArrowCursor)
+        self.assertIsNone(QApplication.overrideCursor())
         view.deleteLater()
 
     def test_live_view_shows_positioned_ap_markers(self):
