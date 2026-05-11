@@ -39,7 +39,7 @@ Read this section first in a new chat.
 - The current code test baseline after the latest live-map side-panel pass is 39
   passing tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
-  `50633a8 Compact live options side tab`.
+  `def9360 Refine live options side panel spacing`.
 - Current AP positioning and scale calibration pick points with left click while
   their modal map-pick mode is active; normal map dragging is disabled during
   the pick and the click must not create a measurement point.
@@ -877,9 +877,18 @@ Language:
   a theme-colored line; checkbox indicators align with the option labels above;
   and dropdown width calculation reserves extra arrow/padding space so labels
   such as `All AP groups` are not clipped.
+- Live option dropdown rows are ordered by their visible label text, with
+  checkbox-only rows kept below the dropdown section. The expanded side-panel
+  keeps a consistent minimum height across map types and centers the option
+  block vertically, so views with fewer options do not get very different
+  internal spacing.
+- Live map option lists should contain only values valid for that map type. For
+  example, interference analysis does not offer `All` bands; it only offers
+  `2.4 GHz` and `5 GHz`.
 
 Recent commits:
 
+- `def9360` Refine live options side panel spacing.
 - `50633a8` Compact live options side tab.
 - `7719619` Align live map options in side panel.
 - `90edb05` Simplify live map status text.

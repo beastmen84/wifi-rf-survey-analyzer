@@ -610,6 +610,18 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertGreater(expanded_geometry.width(), collapsed_geometry.width() * 3)
             self.assertGreater(expanded_geometry.right(), collapsed_geometry.right())
             self.assertLess(expanded_geometry.width(), window.spx(440))
+
+            expanded_heights = []
+            for map_type in ("signal", "interference", "channel", "dominant"):
+                index = window.live_map_type_combo.findData(map_type)
+                window.live_map_type_combo.blockSignals(True)
+                window.live_map_type_combo.setCurrentIndex(index)
+                window.live_map_type_combo.blockSignals(False)
+                window.update_live_option_state()
+                window.position_live_options_overlay()
+                expanded_heights.append(window.live_options_overlay.geometry().height())
+            self.assertEqual(len(set(expanded_heights)), 1)
+            self.assertGreaterEqual(expanded_heights[0], window.spx(214))
         finally:
             window.deleteLater()
 
@@ -629,11 +641,17 @@ class WorkspaceLiveStateTests(unittest.TestCase):
                 item_index = window.live_options_layout.indexOf(widget)
                 return window.live_options_layout.getItemPosition(item_index)
 
+            def combo_values(combo):
+                return [combo.itemData(index) for index in range(combo.count())]
+
             set_map_type("signal")
-            self.assertEqual(grid_position(window.live_band_label)[:2], (0, 0))
-            self.assertEqual(grid_position(window.live_band_combo)[:2], (0, 1))
-            self.assertEqual(grid_position(window.live_ap_group_label)[:2], (3, 0))
-            self.assertEqual(grid_position(window.live_ap_group_combo)[:2], (3, 1))
+            self.assertEqual(combo_values(window.live_band_combo), ["all", "2.4", "5"])
+            self.assertEqual(grid_position(window.live_ap_group_label)[:2], (0, 0))
+            self.assertEqual(grid_position(window.live_ap_group_combo)[:2], (0, 1))
+            self.assertEqual(grid_position(window.live_band_label)[:2], (1, 0))
+            self.assertEqual(grid_position(window.live_band_combo)[:2], (1, 1))
+            self.assertEqual(grid_position(window.live_interpolation_label)[:2], (2, 0))
+            self.assertEqual(grid_position(window.live_aggregation_label)[:2], (3, 0))
             self.assertEqual(grid_position(window.live_options_separator), (4, 0, 1, 2))
             self.assertEqual(grid_position(window.live_usable_check), (5, 0, 1, 2))
             self.assertEqual(window.live_band_combo.width(), window.live_interpolation_combo.width())
@@ -649,8 +667,14 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertTrue(window.live_interference_mode_combo.isHidden())
 
             set_map_type("interference")
+            self.assertEqual(combo_values(window.live_band_combo), ["2.4", "5"])
+            self.assertEqual(window.current_combo_value(window.live_band_combo), "2.4")
+            self.assertEqual(window.live_band_combo.width(), window.live_interference_mode_combo.width())
+            self.assertEqual(grid_position(window.live_band_label)[:2], (0, 0))
+            self.assertEqual(grid_position(window.live_band_combo)[:2], (0, 1))
             self.assertEqual(grid_position(window.live_interference_mode_label)[:2], (1, 0))
             self.assertEqual(grid_position(window.live_interference_mode_combo)[:2], (1, 1))
+            self.assertEqual(grid_position(window.live_interpolation_label)[:2], (2, 0))
             self.assertFalse(window.live_band_combo.isHidden())
             self.assertFalse(window.live_interference_mode_combo.isHidden())
             self.assertFalse(window.live_interpolation_combo.isHidden())
@@ -661,12 +685,17 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(window.live_options_layout.indexOf(window.live_options_separator), -1)
 
             set_map_type("channel")
+            self.assertEqual(combo_values(window.live_band_combo), ["all", "2.4", "5"])
+            self.assertEqual(grid_position(window.live_ap_group_label)[:2], (0, 0))
+            self.assertEqual(grid_position(window.live_band_label)[:2], (1, 0))
             self.assertFalse(window.live_band_combo.isHidden())
             self.assertFalse(window.live_ap_group_combo.isHidden())
             self.assertTrue(window.live_interference_mode_combo.isHidden())
             self.assertTrue(window.live_interpolation_combo.isHidden())
 
             set_map_type("dominant")
+            self.assertEqual(combo_values(window.live_band_combo), ["all", "2.4", "5"])
+            self.assertEqual(grid_position(window.live_band_label)[:2], (0, 0))
             self.assertFalse(window.live_band_combo.isHidden())
             self.assertTrue(window.live_aggregation_combo.isHidden())
             self.assertTrue(window.live_interference_mode_combo.isHidden())

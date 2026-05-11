@@ -844,9 +844,11 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_options_toggle_button.setFixedSize(self.spx(26), self.spx(78))
         self.live_options_toggle_button.clicked.connect(self.toggle_live_options_panel)
         overlay_layout.addWidget(self.live_options_toggle_button)
+        overlay_layout.setAlignment(self.live_options_toggle_button, Qt.AlignmentFlag.AlignVCenter)
 
         self.live_options_body = QWidget()
         self.live_options_body.setObjectName("liveOptionsBody")
+        self.live_options_body.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.live_options_layout = QGridLayout(self.live_options_body)
         self.live_options_layout.setContentsMargins(self.spx(4), self.spx(2), self.spx(8), self.spx(4))
         self.live_options_layout.setHorizontalSpacing(self.spx(12))
@@ -854,6 +856,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_options_layout.setColumnMinimumWidth(0, self.spx(118))
         self.live_options_layout.setColumnStretch(1, 0)
         overlay_layout.addWidget(self.live_options_body)
+        overlay_layout.setAlignment(self.live_options_body, Qt.AlignmentFlag.AlignVCenter)
         self.live_options_body.setVisible(False)
         self.live_options_separator = QFrame()
         self.live_options_separator.setObjectName("liveOptionsSeparator")
@@ -893,11 +896,12 @@ class WifiHeatmapQtApp(QMainWindow):
 
         margin = self.spx(16)
         if self.live_options_panel_expanded:
+            expanded_min_height = self.spx(214)
             desired_width = max(self.spx(288), self.live_options_overlay.sizeHint().width())
             width = min(desired_width, max(self.spx(288), container_width - margin * 2))
             height = min(
-                max(self.spx(166), self.live_options_overlay.sizeHint().height()),
-                max(self.spx(166), container_height - margin * 2),
+                max(expanded_min_height, self.live_options_overlay.sizeHint().height()),
+                max(expanded_min_height, container_height - margin * 2),
             )
         else:
             width = max(self.spx(34), self.live_options_toggle_button.width() + self.spx(8))
@@ -1559,14 +1563,6 @@ class WifiHeatmapQtApp(QMainWindow):
 
     def refresh_live_static_options(self):
         self.set_combo_items(
-            self.live_band_combo,
-            [
-                ("all", self.tr("all_bands_option")),
-                ("2.4", "2.4 GHz"),
-                ("5", "5 GHz"),
-            ],
-        )
-        self.set_combo_items(
             self.live_map_type_combo,
             [
                 ("signal", self.tr("map_type_signal")),
@@ -1575,6 +1571,7 @@ class WifiHeatmapQtApp(QMainWindow):
                 ("dominant", self.tr("map_type_dominant")),
             ],
         )
+        self.refresh_live_band_options(self.current_combo_value(self.live_map_type_combo, "signal"))
         self.set_combo_items(
             self.live_aggregation_combo,
             [
@@ -1597,6 +1594,25 @@ class WifiHeatmapQtApp(QMainWindow):
                 ("all", self.tr("interference_mode_all")),
             ],
         )
+
+    def live_band_items_for_map_type(self, map_type):
+        items = [
+            ("all", self.tr("all_bands_option")),
+            ("2.4", "2.4 GHz"),
+            ("5", "5 GHz"),
+        ]
+        if map_type == "interference":
+            return items[1:]
+        return items
+
+    def refresh_live_band_options(self, map_type=None):
+        map_type = map_type or self.current_combo_value(self.live_map_type_combo, "signal")
+        current_band = self.current_combo_value(self.live_band_combo, "all")
+        items = self.live_band_items_for_map_type(map_type)
+        available = {str(value) for value, _label in items}
+        if current_band not in available:
+            current_band = "2.4" if "2.4" in available else (str(items[0][0]) if items else "")
+        self.set_combo_items(self.live_band_combo, items, current_value=current_band)
 
     def set_combo_items(self, combo, items, current_value=None):
         current = combo.currentData() if current_value is None else current_value
@@ -1737,11 +1753,12 @@ class WifiHeatmapQtApp(QMainWindow):
 
     def update_live_option_state(self):
         map_type = self.current_combo_value(self.live_map_type_combo, "signal")
-        self.reflow_live_option_controls(map_type)
+        self.refresh_live_band_options(map_type)
         is_signal = map_type == "signal"
         is_interference = map_type == "interference"
         is_channel = map_type == "channel"
         is_dominant = map_type == "dominant"
+        self.reflow_live_option_controls(map_type)
         can_use_controls = self.can_use_live_controls()
         self.set_labeled_live_control_state(
             self.live_band_label,
@@ -1780,12 +1797,6 @@ class WifiHeatmapQtApp(QMainWindow):
             visible=(is_signal or is_channel) and self.live_ap_group_combo.count() > 1,
             enabled=can_filter_ap_group,
         )
-        if is_interference and self.current_combo_value(self.live_band_combo) == "all":
-            index = self.live_band_combo.findData("2.4")
-            if index >= 0:
-                self.live_band_combo.blockSignals(True)
-                self.live_band_combo.setCurrentIndex(index)
-                self.live_band_combo.blockSignals(False)
 
     def set_labeled_live_control_state(self, label, widget, visible, enabled):
         label.setVisible(visible)
@@ -1834,19 +1845,34 @@ class WifiHeatmapQtApp(QMainWindow):
             self.live_options_separator.show()
             row += 1
 
-        add_labeled(self.live_band_label, self.live_band_combo)
+        dropdown_controls = [(self.live_band_label, self.live_band_combo)]
 
         if map_type == "signal":
-            add_labeled(self.live_aggregation_label, self.live_aggregation_combo)
-            add_labeled(self.live_interpolation_label, self.live_interpolation_combo)
-            add_labeled(self.live_ap_group_label, self.live_ap_group_combo)
+            dropdown_controls.extend(
+                [
+                    (self.live_aggregation_label, self.live_aggregation_combo),
+                    (self.live_interpolation_label, self.live_interpolation_combo),
+                ]
+            )
+            if self.live_ap_group_combo.count() > 1:
+                dropdown_controls.append((self.live_ap_group_label, self.live_ap_group_combo))
+        elif map_type == "interference":
+            dropdown_controls.extend(
+                [
+                    (self.live_interference_mode_label, self.live_interference_mode_combo),
+                    (self.live_interpolation_label, self.live_interpolation_combo),
+                ]
+            )
+        elif map_type == "channel":
+            if self.live_ap_group_combo.count() > 1:
+                dropdown_controls.append((self.live_ap_group_label, self.live_ap_group_combo))
+
+        for label, widget in sorted(dropdown_controls, key=lambda pair: pair[0].text().casefold()):
+            add_labeled(label, widget)
+
+        if map_type == "signal":
             add_separator()
             add_checkbox(self.live_usable_check)
-        elif map_type == "interference":
-            add_labeled(self.live_interference_mode_label, self.live_interference_mode_combo)
-            add_labeled(self.live_interpolation_label, self.live_interpolation_combo)
-        elif map_type == "channel":
-            add_labeled(self.live_ap_group_label, self.live_ap_group_combo)
 
         self.update_live_option_dropdown_widths(dropdowns)
 
