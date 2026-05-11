@@ -36,10 +36,10 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the latest live-map viewport pass is 35
+- The current code test baseline after the latest live-map options pass is 38
   passing tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
-  `d3af4a6 Fix live map refresh state callback`.
+  `32ffc79 Keep live map overlay anchored while panning`.
 - Current AP positioning and scale calibration pick points with left click while
   their modal map-pick mode is active; normal map dragging is disabled during
   the pick and the click must not create a measurement point.
@@ -201,12 +201,13 @@ Live tab:
   groups are excluded from the filter list.
 - When an AP group filter is selected and that physical AP has a saved
   position, its live AP marker is highlighted.
-- Qt live controls are now map-type-specific: coverage shows aggregation,
-  interpolation, usable threshold and AP group; interference shows interference
-  mode and interpolation; AP channels shows AP group; dominant AP hides the
-  continuous-map controls.
-- Live update/auto-update actions are separated into their own action panel
-  instead of being mixed into the filter grid.
+- Qt live toolbar is intentionally one row: map type and SSID on the left,
+  `Update now` and `Auto update` on the right.
+- Map-specific live options live in a floating overlay over the live map, with
+  a bottom-center open/close pill like the survey measurement-points panel.
+  Coverage shows band, aggregation, interpolation, usable threshold and AP
+  group; interference shows band, interference mode and interpolation; AP
+  channels shows band and AP group; dominant AP shows only band.
 - Qt live point markers are scene-sized 14 px markers like the survey view, so
   they scale with map zoom instead of staying a fixed screen size.
 - Live map panning no longer uses Qt's always-hand `ScrollHandDrag`; the cursor
@@ -843,9 +844,15 @@ Language:
 - Continuous live-map gradient overlays are now refreshed after
   `QGraphicsView` content scrolling as well as after zoom/resize, so the color
   scale remains anchored to the viewport bottom-right while panning.
+- Reworked the live-map controls into a cleaner hierarchy: the live toolbar is
+  now a single row with only map type, SSID, `Update now`, and `Auto update`,
+  while band/aggregation/interpolation/interference/AP-group options moved into
+  a floating map options overlay that changes by map type. The continuous
+  gradient scale was made more saturated and slightly wider.
 
 Recent commits:
 
+- `32ffc79` Keep live map overlay anchored while panning.
 - `d3af4a6` Fix live map refresh state callback.
 - `f5c09bb` Toggle settings popup from anchor button.
 - `ad8feca` Tighten Qt live map viewport behavior.
@@ -870,7 +877,6 @@ Recent commits:
 - `d7bc7d2` Tune centered file dialog styling.
 - `a415364` Center file dialogs and dim modal parents.
 - `04e015b` Rescan selected survey points.
-- `c76451d` Refine survey quality workflow.
 
 ## Likely Next Steps
 
@@ -916,6 +922,7 @@ Current tests cover, among other things:
 - AP marker icon scaling;
 - live marker sizing, live gradient legend painting/overlay behavior, and live
   AP position marker handling;
+- live toolbar/options overlay placement and map-type-specific option visibility;
 - live pan cursor state and gradient overlay reanchoring after content scroll;
 - live refresh callbacks that update tab state and finish/fail render state;
 - settings popup toggle suppression.

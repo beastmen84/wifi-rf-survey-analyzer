@@ -31,6 +31,7 @@ from qt_live_map import (
     LiveGradientLegendWidget,
     LiveMapView,
     build_ap_position_marker_infos,
+    gradient_stops,
 )
 from qt_app import WifiHeatmapQtApp
 from qt_windowing import pop_modal_dim, push_modal_dim
@@ -389,6 +390,24 @@ class LiveMapViewTests(unittest.TestCase):
         self.assertFalse(pixmap.isNull())
         widget.deleteLater()
 
+    def test_gradient_scale_uses_saturated_heatmap_stops(self):
+        self.assertEqual(
+            gradient_stops("RdYlGn"),
+            (
+                (0.0, "#00c853"),
+                (0.5, "#ffea00"),
+                (1.0, "#ff1744"),
+            ),
+        )
+        self.assertEqual(
+            gradient_stops("RdYlGn_r"),
+            (
+                (0.0, "#ff1744"),
+                (0.5, "#ffea00"),
+                (1.0, "#00c853"),
+            ),
+        )
+
     def test_live_view_hosts_compact_gradient_overlay(self):
         view = LiveMapView()
         view.resize(500, 360)
@@ -524,6 +543,66 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             window.on_live_option_changed()
             window.finish_live_preview(None)
             window.fail_live_preview("render failed")
+        finally:
+            window.deleteLater()
+
+    def test_live_toolbar_keeps_map_options_in_overlay(self):
+        window = WifiHeatmapQtApp()
+        try:
+            self.assertIs(window.live_map_type_combo.parent(), window.live_toolbar_frame)
+            self.assertIs(window.live_ssid_combo.parent(), window.live_toolbar_frame)
+            self.assertIs(window.live_update_button.parent(), window.live_toolbar_frame)
+            self.assertIs(window.live_band_combo.parent(), window.live_options_body)
+            self.assertTrue(window.live_options_body.isHidden())
+
+            window.toggle_live_options_panel()
+
+            self.assertFalse(window.live_options_body.isHidden())
+            self.assertEqual(window.live_options_toggle_button.text(), window.tr("live_options_hide"))
+        finally:
+            window.deleteLater()
+
+    def test_live_options_overlay_is_specific_to_map_type(self):
+        window = WifiHeatmapQtApp()
+        try:
+            window.set_combo_items(window.live_ap_group_combo, [("", "All"), ("ap-1", "AP 1")])
+
+            def set_map_type(value):
+                index = window.live_map_type_combo.findData(value)
+                window.live_map_type_combo.blockSignals(True)
+                window.live_map_type_combo.setCurrentIndex(index)
+                window.live_map_type_combo.blockSignals(False)
+                window.update_live_option_state()
+
+            set_map_type("signal")
+            self.assertFalse(window.live_band_combo.isHidden())
+            self.assertFalse(window.live_aggregation_combo.isHidden())
+            self.assertFalse(window.live_interpolation_combo.isHidden())
+            self.assertFalse(window.live_usable_check.isHidden())
+            self.assertFalse(window.live_ap_group_combo.isHidden())
+            self.assertTrue(window.live_interference_mode_combo.isHidden())
+
+            set_map_type("interference")
+            self.assertFalse(window.live_band_combo.isHidden())
+            self.assertFalse(window.live_interference_mode_combo.isHidden())
+            self.assertFalse(window.live_interpolation_combo.isHidden())
+            self.assertTrue(window.live_aggregation_combo.isHidden())
+            self.assertTrue(window.live_usable_check.isHidden())
+            self.assertTrue(window.live_ap_group_combo.isHidden())
+
+            set_map_type("channel")
+            self.assertFalse(window.live_band_combo.isHidden())
+            self.assertFalse(window.live_ap_group_combo.isHidden())
+            self.assertTrue(window.live_interference_mode_combo.isHidden())
+            self.assertTrue(window.live_interpolation_combo.isHidden())
+
+            set_map_type("dominant")
+            self.assertFalse(window.live_band_combo.isHidden())
+            self.assertTrue(window.live_aggregation_combo.isHidden())
+            self.assertTrue(window.live_interference_mode_combo.isHidden())
+            self.assertTrue(window.live_interpolation_combo.isHidden())
+            self.assertTrue(window.live_usable_check.isHidden())
+            self.assertTrue(window.live_ap_group_combo.isHidden())
         finally:
             window.deleteLater()
 

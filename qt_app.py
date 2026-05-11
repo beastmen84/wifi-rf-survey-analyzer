@@ -138,6 +138,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.points_overlay_resize_active = False
         self.points_overlay_resize_start_y = 0
         self.points_overlay_resize_start_height = 0
+        self.live_options_panel_expanded = False
         self.restart_requested = False
 
         self.setWindowTitle(self.tr("app_title"))
@@ -628,6 +629,10 @@ class WifiHeatmapQtApp(QMainWindow):
             QTimer.singleShot(0, self.position_points_overlay)
             return False
 
+        if source is getattr(self, "live_view_container", None) and event.type() == QEvent.Type.Resize:
+            QTimer.singleShot(0, self.position_live_options_overlay)
+            return False
+
         if source is getattr(self, "points_panel_resize_button", None):
             if event.type() == QEvent.Type.MouseButtonPress and event.button() == Qt.MouseButton.LeftButton:
                 self.points_overlay_resize_active = True
@@ -689,19 +694,6 @@ class WifiHeatmapQtApp(QMainWindow):
         layout.setContentsMargins(self.spx(16), self.spx(16), self.spx(16), self.spx(16))
         layout.setSpacing(self.spx(12))
 
-        controls_row = QHBoxLayout()
-        controls_row.setContentsMargins(0, 0, 0, 0)
-        controls_row.setSpacing(self.spx(12))
-        layout.addLayout(controls_row)
-
-        controls = QFrame()
-        controls.setObjectName("summaryPanel")
-        controls_layout = QGridLayout(controls)
-        self.live_controls_layout = controls_layout
-        controls_layout.setContentsMargins(self.spx(14), self.spx(12), self.spx(14), self.spx(12))
-        controls_layout.setHorizontalSpacing(self.spx(10))
-        controls_layout.setVerticalSpacing(self.spx(8))
-
         self.live_ssid_label = QLabel()
         self.live_ssid_combo = QComboBox()
         self.live_ssid_combo.setMinimumWidth(self.spx(220))
@@ -722,8 +714,12 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_auto_check = QCheckBox()
         self.live_auto_check.setChecked(True)
         self.live_update_button = QPushButton()
+        self.live_update_button.setObjectName("compactButton")
+        self.live_update_button.setMinimumWidth(self.spx(132))
         self.live_update_button.clicked.connect(self.update_live_preview)
         self.live_option_widgets = (
+            self.live_band_label,
+            self.live_band_combo,
             self.live_aggregation_label,
             self.live_aggregation_combo,
             self.live_interpolation_label,
@@ -748,29 +744,33 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_usable_check.toggled.connect(lambda *_args: self.on_live_option_changed())
         self.live_auto_check.toggled.connect(lambda *_args: self.on_live_option_changed())
 
-        controls_layout.addWidget(self.live_ssid_label, 0, 0)
-        controls_layout.addWidget(self.live_ssid_combo, 0, 1)
-        controls_layout.addWidget(self.live_band_label, 0, 2)
-        controls_layout.addWidget(self.live_band_combo, 0, 3)
-        controls_layout.addWidget(self.live_map_type_label, 0, 4)
-        controls_layout.addWidget(self.live_map_type_combo, 0, 5)
-        controls_layout.setColumnStretch(8, 1)
-        controls_row.addWidget(controls, 1)
-
-        actions = QFrame()
-        actions.setObjectName("summaryPanel")
-        actions_layout = QVBoxLayout(actions)
-        actions_layout.setContentsMargins(self.spx(14), self.spx(12), self.spx(14), self.spx(12))
-        actions_layout.setSpacing(self.spx(8))
-        self.live_update_button.setMinimumWidth(self.spx(220))
-        actions_layout.addWidget(self.live_auto_check)
-        actions_layout.addWidget(self.live_update_button)
-        actions_layout.addStretch(1)
-        controls_row.addWidget(actions, 0)
+        toolbar = QFrame()
+        toolbar.setObjectName("summaryPanel")
+        self.live_toolbar_frame = toolbar
+        toolbar_layout = QHBoxLayout(toolbar)
+        toolbar_layout.setContentsMargins(self.spx(14), self.spx(10), self.spx(14), self.spx(10))
+        toolbar_layout.setSpacing(self.spx(10))
+        toolbar_layout.addWidget(self.live_map_type_label)
+        toolbar_layout.addWidget(self.live_map_type_combo)
+        toolbar_layout.addWidget(self.live_ssid_label)
+        toolbar_layout.addWidget(self.live_ssid_combo)
+        toolbar_layout.addStretch(1)
+        toolbar_layout.addWidget(self.live_update_button)
+        toolbar_layout.addWidget(self.live_auto_check)
+        layout.addWidget(toolbar)
 
         live_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.live_view_container = QFrame()
+        self.live_view_container.setObjectName("floorplanContainer")
+        self.live_view_container.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.live_view_container.installEventFilter(self)
+        live_view_layout = QVBoxLayout(self.live_view_container)
+        live_view_layout.setContentsMargins(0, 0, 0, 0)
+        live_view_layout.setSpacing(0)
         self.live_view = LiveMapView()
-        live_splitter.addWidget(self.live_view)
+        live_view_layout.addWidget(self.live_view)
+        self.build_live_options_overlay()
+        live_splitter.addWidget(self.live_view_container)
 
         self.live_legend_frame = QFrame()
         self.live_legend_frame.setObjectName("summaryPanel")
@@ -797,7 +797,81 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_status_label.setObjectName("mutedText")
         status_row.addWidget(self.live_status_label, 1)
         layout.addLayout(status_row)
+        QTimer.singleShot(0, self.position_live_options_overlay)
         return tab
+
+    def build_live_options_overlay(self):
+        self.live_options_overlay = QFrame(self.live_view_container)
+        self.live_options_overlay.setObjectName("floatingLiveOptionsPanelCollapsed")
+        self.live_options_overlay.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        overlay_layout = QVBoxLayout(self.live_options_overlay)
+        overlay_layout.setContentsMargins(self.spx(8), self.spx(8), self.spx(8), self.spx(8))
+        overlay_layout.setSpacing(self.spx(8))
+
+        handle_row = QHBoxLayout()
+        handle_row.setContentsMargins(0, 0, 0, 0)
+        handle_row.addStretch(1)
+        self.live_options_toggle_button = QPushButton()
+        self.live_options_toggle_button.setObjectName("liveOptionsPanelToggle")
+        self.live_options_toggle_button.clicked.connect(self.toggle_live_options_panel)
+        handle_row.addWidget(self.live_options_toggle_button)
+        handle_row.addStretch(1)
+        overlay_layout.addLayout(handle_row)
+
+        self.live_options_body = QWidget()
+        self.live_options_body.setObjectName("liveOptionsBody")
+        self.live_options_layout = QGridLayout(self.live_options_body)
+        self.live_options_layout.setContentsMargins(self.spx(6), self.spx(2), self.spx(6), self.spx(4))
+        self.live_options_layout.setHorizontalSpacing(self.spx(10))
+        self.live_options_layout.setVerticalSpacing(self.spx(8))
+        overlay_layout.addWidget(self.live_options_body)
+        self.live_options_body.setVisible(False)
+        self.update_live_options_panel_toggle()
+
+    def toggle_live_options_panel(self):
+        self.live_options_panel_expanded = not self.live_options_panel_expanded
+        self.live_options_body.setVisible(self.live_options_panel_expanded)
+        self.update_live_options_panel_toggle()
+        self.position_live_options_overlay()
+
+    def update_live_options_panel_toggle(self):
+        if not hasattr(self, "live_options_toggle_button"):
+            return
+
+        key = "live_options_hide" if self.live_options_panel_expanded else "live_options_show"
+        self.live_options_toggle_button.setText(self.tr(key))
+        if hasattr(self, "live_options_overlay"):
+            self.live_options_overlay.setObjectName(
+                "floatingLiveOptionsPanel" if self.live_options_panel_expanded else "floatingLiveOptionsPanelCollapsed"
+            )
+            self.live_options_overlay.style().unpolish(self.live_options_overlay)
+            self.live_options_overlay.style().polish(self.live_options_overlay)
+            self.live_options_overlay.update()
+
+    def position_live_options_overlay(self):
+        if not hasattr(self, "live_options_overlay"):
+            return
+
+        container_width = self.live_view_container.width()
+        container_height = self.live_view_container.height()
+        if container_width <= 0 or container_height <= 0:
+            return
+
+        margin = self.spx(16)
+        if self.live_options_panel_expanded:
+            width = min(max(self.spx(620), int(container_width * 0.64)), max(self.spx(320), container_width - margin * 2))
+            height = min(
+                max(self.spx(96), self.live_options_overlay.sizeHint().height()),
+                max(self.spx(96), container_height - margin * 2),
+            )
+        else:
+            width = min(self.spx(260), max(self.spx(220), container_width - margin * 2))
+            height = max(self.spx(50), self.live_options_toggle_button.sizeHint().height() + self.spx(16))
+
+        x = max(margin, (container_width - width) // 2)
+        y = max(margin, container_height - height - margin)
+        self.live_options_overlay.setGeometry(x, y, width, height)
+        self.live_options_overlay.raise_()
 
     def apply_styles(self):
         palette = QT_THEMES.get(self.theme, QT_THEMES["light"])
@@ -848,6 +922,15 @@ class WifiHeatmapQtApp(QMainWindow):
                 background: transparent;
                 border: 0;
             }}
+            QFrame#floatingLiveOptionsPanel {{
+                background: {palette["panel"]};
+                border: 1px solid {palette["border"]};
+                border-radius: {s(10)}px;
+            }}
+            QFrame#floatingLiveOptionsPanelCollapsed {{
+                background: transparent;
+                border: 0;
+            }}
             QDialog#settingsMenuPanel, QWidget#settingsMenuPanel {{
                 background: {palette["panel"]};
                 color: {palette["text"]};
@@ -873,7 +956,20 @@ class WifiHeatmapQtApp(QMainWindow):
             QWidget#pointsTableBody {{
                 background: transparent;
             }}
+            QWidget#liveOptionsBody {{
+                background: transparent;
+            }}
             QPushButton#pointsPanelToggle {{
+                min-width: {s(190)}px;
+                min-height: {s(30)}px;
+                padding: {s(6)}px {s(18)}px;
+                border-radius: {s(15)}px;
+                background: {palette["metric_info"]};
+                color: #FFFFFF;
+                border: 1px solid {palette["metric_info"]};
+                font-weight: 700;
+            }}
+            QPushButton#liveOptionsPanelToggle {{
                 min-width: {s(190)}px;
                 min-height: {s(30)}px;
                 padding: {s(6)}px {s(18)}px;
@@ -1225,6 +1321,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.delete_selected_button.setText(self.tr("delete_selected"))
         self.delete_last_button.setText(self.tr("delete_last"))
         self.update_points_panel_toggle()
+        self.update_live_options_panel_toggle()
         self.manage_relevant_button.setText(self.tr("manage_relevant_networks"))
         self.clear_relevant_button.setText(self.tr("forget_saved_network"))
         self.tabs.setTabText(0, self.tr("survey_tab"))
@@ -1569,6 +1666,7 @@ class WifiHeatmapQtApp(QMainWindow):
             self.live_ap_group_combo,
             self.live_usable_check,
             self.live_auto_check,
+            self.live_options_toggle_button,
         ):
             widget.setEnabled(can_render)
         self.live_update_button.setEnabled(can_render and not self.live_rendering)
@@ -1592,7 +1690,14 @@ class WifiHeatmapQtApp(QMainWindow):
         is_signal = map_type == "signal"
         is_interference = map_type == "interference"
         is_channel = map_type == "channel"
+        is_dominant = map_type == "dominant"
         can_use_controls = self.can_use_live_controls()
+        self.set_labeled_live_control_state(
+            self.live_band_label,
+            self.live_band_combo,
+            visible=is_signal or is_interference or is_channel or is_dominant,
+            enabled=can_use_controls,
+        )
         self.set_labeled_live_control_state(
             self.live_aggregation_label,
             self.live_aggregation_combo,
@@ -1639,31 +1744,45 @@ class WifiHeatmapQtApp(QMainWindow):
 
     def reflow_live_option_controls(self, map_type):
         for widget in self.live_option_widgets:
-            self.live_controls_layout.removeWidget(widget)
+            self.live_options_layout.removeWidget(widget)
 
         column = 0
+        row = 0
+        max_columns = 6
 
         def add_labeled(label, widget, width=1):
-            nonlocal column
-            self.live_controls_layout.addWidget(label, 1, column)
-            self.live_controls_layout.addWidget(widget, 1, column + 1, 1, width)
+            nonlocal column, row
+            required_width = 2 + (width - 1)
+            if column and column + required_width > max_columns:
+                row += 1
+                column = 0
+            self.live_options_layout.addWidget(label, row, column)
+            self.live_options_layout.addWidget(widget, row, column + 1, 1, width)
             column += 2 + (width - 1)
+
+        def add_standalone(widget, width=2):
+            nonlocal column, row
+            if column and column + width > max_columns:
+                row += 1
+                column = 0
+            self.live_options_layout.addWidget(widget, row, column, 1, width)
+            column += width
+
+        add_labeled(self.live_band_label, self.live_band_combo)
 
         if map_type == "signal":
             add_labeled(self.live_aggregation_label, self.live_aggregation_combo)
             add_labeled(self.live_interpolation_label, self.live_interpolation_combo)
-            self.live_controls_layout.addWidget(self.live_usable_check, 1, column, 1, 2)
-            column += 2
+            add_standalone(self.live_usable_check)
             add_labeled(self.live_ap_group_label, self.live_ap_group_combo, width=2)
-            return
-
-        if map_type == "interference":
+        elif map_type == "interference":
             add_labeled(self.live_interference_mode_label, self.live_interference_mode_combo)
             add_labeled(self.live_interpolation_label, self.live_interpolation_combo)
-            return
-
-        if map_type == "channel":
+        elif map_type == "channel":
             add_labeled(self.live_ap_group_label, self.live_ap_group_combo, width=2)
+
+        if hasattr(self, "live_options_overlay"):
+            QTimer.singleShot(0, self.position_live_options_overlay)
 
     def on_workspace_tab_changed(self, index):
         self.refresh_session_labels()

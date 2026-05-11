@@ -465,7 +465,7 @@ class LiveGradientLegendWidget(QWidget):
         painter.drawRoundedRect(panel_rect, 6, 6)
 
         margin = 10
-        bar_width = 18
+        bar_width = 22
         label_gap = 8
         rect = QRectF(margin, margin, bar_width, max(40, self.height() - margin * 2))
         gradient = QLinearGradient(rect.topLeft(), rect.bottomLeft())
@@ -506,15 +506,15 @@ class LiveGradientLegendWidget(QWidget):
 def gradient_stops(cmap):
     if cmap == "RdYlGn_r":
         return (
-            (0.0, "#e31a1c"),
-            (0.5, "#ffd21f"),
-            (1.0, "#00a65a"),
+            (0.0, "#ff1744"),
+            (0.5, "#ffea00"),
+            (1.0, "#00c853"),
         )
 
     return (
-        (0.0, "#00a65a"),
-        (0.5, "#ffd21f"),
-        (1.0, "#e31a1c"),
+        (0.0, "#00c853"),
+        (0.5, "#ffea00"),
+        (1.0, "#ff1744"),
     )
 
 
