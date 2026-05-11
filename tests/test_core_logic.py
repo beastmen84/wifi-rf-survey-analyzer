@@ -380,6 +380,26 @@ class LiveMapViewTests(unittest.TestCase):
         self.assertFalse(pixmap.isNull())
         widget.deleteLater()
 
+    def test_live_view_hosts_compact_gradient_overlay(self):
+        view = LiveMapView()
+        view.resize(500, 360)
+
+        view.set_gradient_legend({
+            "kind": "gradient",
+            "cmap": "RdYlGn",
+            "min": -90,
+            "max": -40,
+            "suffix": " dBm",
+        })
+
+        self.assertFalse(view.gradient_legend.isHidden())
+        self.assertLessEqual(view.gradient_legend.width(), 160)
+
+        view.clear_gradient_legend()
+
+        self.assertTrue(view.gradient_legend.isHidden())
+        view.deleteLater()
+
 
 class ApMetadataTests(unittest.TestCase):
     def test_metadata_warning_detects_unexpected_channel(self):

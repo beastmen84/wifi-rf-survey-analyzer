@@ -36,7 +36,7 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the latest live-map pass is 26 passing
+- The current code test baseline after the latest live-map pass is 27 passing
   tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
   `53e50c1 Keep AP marker icons sharp`.
@@ -193,9 +193,13 @@ Live tab:
   behavior has been refined iteratively, so inspect `qt_live_map.py` and
   `qt_floorplan.py` before changing it.
 - Continuous Qt live coverage/interference maps use a right-side gradient color
-  scale instead of a swatch/list legend.
+  scale overlay inside the map view instead of a right-side legend panel.
 - Qt live signal coverage and AP channel maps have an AP group filter. Test AP
   groups are excluded from the filter list.
+- Qt live controls are now map-type-specific: coverage shows aggregation,
+  interpolation, usable threshold and AP group; interference shows interference
+  mode and interpolation; AP channels shows AP group; dominant AP hides the
+  continuous-map controls.
 - Qt live point markers are scene-sized 14 px markers like the survey view, so
   they scale with map zoom instead of staying a fixed screen size.
 - Continuous live rendering uses a worker thread and Matplotlib Agg; GUI updates
@@ -790,9 +794,15 @@ Language:
   color scales, and the live controls include an AP group filter for coverage
   and AP channel views. Added tests for live marker sizing and gradient legend
   painting.
+- Continued the Qt live-map refinement: coverage/interference no longer reserve
+  a sidebar for the color scale, because the colorbar is now a compact overlay
+  hosted by `LiveMapView`; the second live control row is pruned per map type;
+  and live continuous maps expose the same RBF/Linear interpolation choice used
+  by generated map export.
 
 Recent commits:
 
+- `67d16b9` Refine Qt live map controls and legend.
 - `53e50c1` Keep AP marker icons sharp.
 - `c836d44` Constrain app bar icon height only.
 - `fb423ef` Align app bar icon buttons.
@@ -856,4 +866,4 @@ Current tests cover, among other things:
 - UI scale and restart command helpers;
 - dialog/windowing behavior;
 - AP marker icon scaling;
-- live marker sizing and live gradient legend painting.
+- live marker sizing and live gradient legend painting/overlay behavior.

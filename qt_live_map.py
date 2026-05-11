@@ -6,7 +6,18 @@ from io import BytesIO
 import pandas as pd
 from PIL import Image
 from PySide6.QtCore import QObject, QPointF, QRectF, QSize, Qt, Signal, Slot
-from PySide6.QtGui import QBrush, QColor, QIcon, QLinearGradient, QPainter, QPainterPath, QPen, QPixmap, QPolygonF
+from PySide6.QtGui import (
+    QBrush,
+    QColor,
+    QIcon,
+    QLinearGradient,
+    QPainter,
+    QPainterPath,
+    QPalette,
+    QPen,
+    QPixmap,
+    QPolygonF,
+)
 from PySide6.QtWidgets import (
     QGraphicsEllipseItem,
     QGraphicsPathItem,
@@ -90,6 +101,9 @@ class LiveMapView(QGraphicsView):
         self.pixmap_item = None
         self.marker_items = []
         self.zoom_level = 1.0
+        self.gradient_legend = LiveGradientLegendWidget(self.viewport())
+        self.gradient_legend.setFixedSize(150, 220)
+        self.gradient_legend.hide()
 
         self.setObjectName("liveMapView")
         self.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform)
@@ -103,6 +117,7 @@ class LiveMapView(QGraphicsView):
         self.pixmap_item = None
         self.marker_items = []
         self.zoom_level = 1.0
+        self.clear_gradient_legend()
 
     def set_payload(self, payload):
         self.clear()
@@ -190,6 +205,31 @@ class LiveMapView(QGraphicsView):
         transform = self.transform()
         self.zoom_level = max(transform.m11(), transform.m22())
 
+    def set_gradient_legend(self, scale_payload):
+        self.gradient_legend.set_scale_payload(scale_payload)
+        self.position_gradient_legend()
+        self.gradient_legend.show()
+        self.gradient_legend.raise_()
+
+    def clear_gradient_legend(self):
+        self.gradient_legend.clear()
+        self.gradient_legend.hide()
+
+    def position_gradient_legend(self):
+        viewport_size = self.viewport().size()
+        width = max(132, min(160, viewport_size.width() // 4))
+        height = max(156, min(230, viewport_size.height() - 28))
+        self.gradient_legend.setFixedSize(width, height)
+        self.gradient_legend.move(
+            max(12, viewport_size.width() - width - 14),
+            14,
+        )
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if self.gradient_legend.isVisible():
+            self.position_gradient_legend()
+
     def wheelEvent(self, event):
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             if event.angleDelta().y() > 0:
@@ -254,9 +294,10 @@ class LiveGradientLegendWidget(QWidget):
         super().__init__(parent)
         self.scale_payload = {}
         self.setMinimumHeight(180)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, False)
 
     def sizeHint(self):
-        return QSize(220, 260)
+        return QSize(150, 220)
 
     def set_scale_payload(self, scale_payload):
         self.scale_payload = dict(scale_payload or {})
@@ -274,16 +315,25 @@ class LiveGradientLegendWidget(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        margin = 12
-        bar_width = 34
-        label_gap = 12
+        background = QColor(self.palette().color(QPalette.ColorRole.Window))
+        background.setAlpha(235)
+        border = QColor(self.palette().color(QPalette.ColorRole.Mid))
+        text = QColor(self.palette().color(QPalette.ColorRole.WindowText))
+        panel_rect = QRectF(0.5, 0.5, self.width() - 1, self.height() - 1)
+        painter.setPen(QPen(border, 1))
+        painter.setBrush(QBrush(background))
+        painter.drawRoundedRect(panel_rect, 6, 6)
+
+        margin = 10
+        bar_width = 18
+        label_gap = 8
         rect = QRectF(margin, margin, bar_width, max(40, self.height() - margin * 2))
         gradient = QLinearGradient(rect.topLeft(), rect.bottomLeft())
         for position, color in gradient_stops(str(self.scale_payload.get("cmap", ""))):
             gradient.setColorAt(position, QColor(color))
 
         painter.fillRect(rect, QBrush(gradient))
-        painter.setPen(QPen(QColor("#5b6472"), 1))
+        painter.setPen(QPen(border, 1))
         painter.drawRoundedRect(rect, 3, 3)
 
         suffix = str(self.scale_payload.get("suffix", ""))
@@ -293,7 +343,7 @@ class LiveGradientLegendWidget(QWidget):
         text_left = rect.right() + label_gap
         text_width = max(20, self.width() - int(text_left) - margin)
 
-        painter.setPen(QColor("#1f2933"))
+        painter.setPen(text)
         metrics = painter.fontMetrics()
         painter.drawText(
             QRectF(text_left, rect.top() - 2, text_width, metrics.height() + 4),

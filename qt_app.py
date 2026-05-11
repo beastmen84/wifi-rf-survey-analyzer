@@ -72,7 +72,6 @@ from qt_ap_groups import open_qt_ap_group_manager
 from qt_floorplan import FloorplanView
 from qt_help_dialog import open_qt_help_dialog
 from qt_live_map import (
-    LiveGradientLegendWidget,
     LiveMapRenderWorker,
     LiveMapView,
     create_marker_icon,
@@ -702,6 +701,8 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_map_type_combo = QComboBox()
         self.live_aggregation_label = QLabel()
         self.live_aggregation_combo = QComboBox()
+        self.live_interpolation_label = QLabel()
+        self.live_interpolation_combo = QComboBox()
         self.live_interference_mode_label = QLabel()
         self.live_interference_mode_combo = QComboBox()
         self.live_ap_group_label = QLabel()
@@ -718,6 +719,7 @@ class WifiHeatmapQtApp(QMainWindow):
             self.live_band_combo,
             self.live_map_type_combo,
             self.live_aggregation_combo,
+            self.live_interpolation_combo,
             self.live_interference_mode_combo,
             self.live_ap_group_combo,
         ):
@@ -735,8 +737,10 @@ class WifiHeatmapQtApp(QMainWindow):
         controls_layout.addWidget(self.live_update_button, 0, 7)
         controls_layout.addWidget(self.live_aggregation_label, 1, 0)
         controls_layout.addWidget(self.live_aggregation_combo, 1, 1)
-        controls_layout.addWidget(self.live_interference_mode_label, 1, 2)
-        controls_layout.addWidget(self.live_interference_mode_combo, 1, 3)
+        controls_layout.addWidget(self.live_interference_mode_label, 1, 0)
+        controls_layout.addWidget(self.live_interference_mode_combo, 1, 1)
+        controls_layout.addWidget(self.live_interpolation_label, 1, 2)
+        controls_layout.addWidget(self.live_interpolation_combo, 1, 3)
         controls_layout.addWidget(self.live_usable_check, 1, 4, 1, 2)
         controls_layout.addWidget(self.live_ap_group_label, 1, 6)
         controls_layout.addWidget(self.live_ap_group_combo, 1, 7)
@@ -759,12 +763,10 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_legend_list = QListWidget()
         self.live_legend_list.setAlternatingRowColors(True)
         self.live_legend_list.setWordWrap(True)
-        self.live_gradient_legend = LiveGradientLegendWidget()
-        self.live_gradient_legend.hide()
         legend_layout.addWidget(self.live_legend_title)
         legend_layout.addWidget(self.live_legend_list, 1)
-        legend_layout.addWidget(self.live_gradient_legend, 1)
         live_splitter.addWidget(self.live_legend_frame)
+        self.live_legend_frame.hide()
         live_splitter.setStretchFactor(0, 1)
         live_splitter.setStretchFactor(1, 0)
         layout.addWidget(live_splitter, 1)
@@ -1224,6 +1226,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_band_label.setText(self.tr("band"))
         self.live_map_type_label.setText(self.tr("map_type"))
         self.live_aggregation_label.setText(self.tr("aggregation"))
+        self.live_interpolation_label.setText(self.tr("interpolation"))
         self.live_interference_mode_label.setText(self.tr("interference_mode"))
         self.live_ap_group_label.setText(self.tr("ap_group_filter"))
         self.live_usable_check.setText(self.tr("usable_only"))
@@ -1402,6 +1405,13 @@ class WifiHeatmapQtApp(QMainWindow):
             ],
         )
         self.set_combo_items(
+            self.live_interpolation_combo,
+            [
+                ("rbf", self.tr("interpolation_rbf")),
+                ("linear", self.tr("interpolation_linear")),
+            ],
+        )
+        self.set_combo_items(
             self.live_interference_mode_combo,
             [
                 ("intra_ssid", self.tr("interference_mode_intra_ssid")),
@@ -1523,6 +1533,7 @@ class WifiHeatmapQtApp(QMainWindow):
             self.live_band_combo,
             self.live_map_type_combo,
             self.live_aggregation_combo,
+            self.live_interpolation_combo,
             self.live_interference_mode_combo,
             self.live_ap_group_combo,
             self.live_usable_check,
@@ -1551,23 +1562,51 @@ class WifiHeatmapQtApp(QMainWindow):
         map_type = self.current_combo_value(self.live_map_type_combo, "signal")
         is_signal = map_type == "signal"
         is_interference = map_type == "interference"
+        is_channel = map_type == "channel"
         can_use_controls = self.can_use_live_controls()
-        self.live_aggregation_combo.setEnabled(can_use_controls and is_signal)
-        self.live_interference_mode_combo.setEnabled(can_use_controls and is_interference)
+        self.set_labeled_live_control_state(
+            self.live_aggregation_label,
+            self.live_aggregation_combo,
+            visible=is_signal,
+            enabled=can_use_controls and is_signal,
+        )
+        self.set_labeled_live_control_state(
+            self.live_interference_mode_label,
+            self.live_interference_mode_combo,
+            visible=is_interference,
+            enabled=can_use_controls and is_interference,
+        )
+        self.set_labeled_live_control_state(
+            self.live_interpolation_label,
+            self.live_interpolation_combo,
+            visible=is_signal or is_interference,
+            enabled=can_use_controls and (is_signal or is_interference),
+        )
+        self.live_usable_check.setVisible(is_signal)
         self.live_usable_check.setEnabled(can_use_controls and is_signal)
         can_filter_ap_group = (
             can_use_controls
-            and map_type in {"signal", "channel"}
+            and (is_signal or is_channel)
             and self.live_ap_group_combo.count() > 1
         )
-        self.live_ap_group_label.setEnabled(can_filter_ap_group)
-        self.live_ap_group_combo.setEnabled(can_filter_ap_group)
+        self.set_labeled_live_control_state(
+            self.live_ap_group_label,
+            self.live_ap_group_combo,
+            visible=(is_signal or is_channel) and self.live_ap_group_combo.count() > 1,
+            enabled=can_filter_ap_group,
+        )
         if is_interference and self.current_combo_value(self.live_band_combo) == "all":
             index = self.live_band_combo.findData("2.4")
             if index >= 0:
                 self.live_band_combo.blockSignals(True)
                 self.live_band_combo.setCurrentIndex(index)
                 self.live_band_combo.blockSignals(False)
+
+    def set_labeled_live_control_state(self, label, widget, visible, enabled):
+        label.setVisible(visible)
+        widget.setVisible(visible)
+        label.setEnabled(enabled)
+        widget.setEnabled(enabled)
 
     def on_workspace_tab_changed(self, index):
         if index == 1:
@@ -1661,7 +1700,7 @@ class WifiHeatmapQtApp(QMainWindow):
             band=self.current_combo_value(self.live_band_combo, "all"),
             map_type=map_type,
             interference_mode=self.current_combo_value(self.live_interference_mode_combo, "intra_ssid"),
-            interpolation="rbf",
+            interpolation=self.current_combo_value(self.live_interpolation_combo, "rbf"),
             aggregation=self.current_combo_value(self.live_aggregation_combo, "max"),
             color_scale="fixed",
             usable_only=self.live_usable_check.isChecked(),
@@ -1703,7 +1742,7 @@ class WifiHeatmapQtApp(QMainWindow):
             band=self.current_combo_value(self.live_band_combo, "all"),
             map_type=map_type,
             interference_mode=self.current_combo_value(self.live_interference_mode_combo, "intra_ssid"),
-            interpolation="rbf",
+            interpolation=self.current_combo_value(self.live_interpolation_combo, "rbf"),
             aggregation=self.current_combo_value(self.live_aggregation_combo, "max"),
             color_scale="fixed",
             usable_only=self.live_usable_check.isChecked(),
@@ -1796,7 +1835,7 @@ class WifiHeatmapQtApp(QMainWindow):
 
     def update_live_legend(self, scale_payload):
         self.live_legend_list.clear()
-        self.live_gradient_legend.clear()
+        self.live_view.clear_gradient_legend()
         if not scale_payload:
             self.clear_live_legend()
             return
@@ -1804,7 +1843,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_legend_title.setText(str(scale_payload.get("title") or ""))
         kind = scale_payload.get("kind")
         if kind == "swatches":
-            self.live_gradient_legend.hide()
+            self.live_legend_frame.show()
             self.live_legend_list.show()
             for item in scale_payload.get("items", []):
                 list_item = QListWidgetItem(str(item.get("label", "")))
@@ -1817,16 +1856,15 @@ class WifiHeatmapQtApp(QMainWindow):
             return
 
         if kind == "gradient":
-            self.live_legend_list.hide()
-            self.live_gradient_legend.show()
-            self.live_gradient_legend.set_scale_payload(scale_payload)
+            self.live_legend_frame.hide()
+            self.live_view.set_gradient_legend(scale_payload)
 
     def clear_live_legend(self):
         self.live_legend_title.setText("")
         self.live_legend_list.clear()
-        self.live_gradient_legend.clear()
+        self.live_view.clear_gradient_legend()
+        self.live_legend_frame.hide()
         self.live_legend_list.show()
-        self.live_gradient_legend.hide()
 
     def show_start_page(self):
         self.stack.setCurrentWidget(self.start_page)
