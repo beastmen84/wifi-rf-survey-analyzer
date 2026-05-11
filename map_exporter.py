@@ -1122,12 +1122,12 @@ def add_live_pdf_colorbar(fig, side_ax, mappable, label):
 
 
 def add_live_pdf_swatch_list(side_ax, legend_items, title, y=0.66):
+    if not legend_items:
+        return
+
     x_start = 0.50
     side_ax.text(x_start, y, title, fontsize=9.5, fontweight="bold", va="top")
     y -= 0.12
-    if not legend_items:
-        side_ax.text(x_start, y, "-", fontsize=8, va="top")
-        return
 
     max_items = 18
     rows_per_column = 5

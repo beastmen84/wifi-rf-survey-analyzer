@@ -79,6 +79,8 @@ from map_exporter import (
     MapExportResult,
     annotate_interference_problem_numbers,
     build_interference_problem_report_pages,
+    build_live_pdf_channel_figure,
+    build_live_pdf_dominant_figure,
     build_problem_report_pages,
     generate_live_pdf_export,
     get_interference_problem_df,
@@ -2098,6 +2100,41 @@ class LivePdfExportTests(unittest.TestCase):
 
             self.assertEqual(labels, ["1", "2"])
             self.assertEqual(positions, [(30.0, 40.0), (10.0, 20.0)])
+        finally:
+            plt.close(fig)
+
+    def test_channel_pdf_omits_legend_when_point_labels_are_none(self):
+        fig = build_live_pdf_channel_figure(
+            rows_to_dataframe(self.build_live_pdf_rows()),
+            Image.new("RGB", (120, 100), "white"),
+            MapConfig(ssid="MAIN", band="2.4", map_type="channel", point_label_mode="none"),
+            lambda key, **kwargs: translate("en", key, **kwargs),
+            "en",
+            {},
+            [],
+        )
+        try:
+            side_texts = [text.get_text() for text in fig.axes[1].texts]
+            self.assertNotIn("AP channels", side_texts)
+            self.assertNotIn("-", side_texts)
+        finally:
+            plt.close(fig)
+
+    def test_dominant_pdf_omits_legend_when_point_labels_are_none(self):
+        fig, _dominant_df = build_live_pdf_dominant_figure(
+            rows_to_dataframe(self.build_live_pdf_rows()),
+            Image.new("RGB", (120, 100), "white"),
+            MapConfig(ssid="MAIN", band="2.4", map_type="dominant", point_label_mode="none"),
+            lambda key, **kwargs: translate("en", key, **kwargs),
+            "en",
+            {},
+            [],
+            None,
+        )
+        try:
+            side_texts = [text.get_text() for text in fig.axes[1].texts]
+            self.assertNotIn("Dominant AP", side_texts)
+            self.assertNotIn("-", side_texts)
         finally:
             plt.close(fig)
 
