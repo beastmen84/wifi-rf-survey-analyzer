@@ -25,7 +25,6 @@ try:
         QListWidget,
         QListWidgetItem,
         QMainWindow,
-        QMenu,
         QMessageBox,
         QPushButton,
         QSizePolicy,
@@ -759,14 +758,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_pdf_export_button.setObjectName("compactButton")
         self.live_pdf_export_button.setMinimumWidth(self.spx(118))
         self.live_pdf_export_button.setEnabled(False)
-        self.live_pdf_export_menu = QMenu(self.live_pdf_export_button)
-        self.live_pdf_inline_action = self.live_pdf_export_menu.addAction("")
-        self.live_pdf_inline_action.setData("inline")
-        self.live_pdf_inline_action.triggered.connect(lambda _checked=False: self.export_live_pdf("inline"))
-        self.live_pdf_lab_action = self.live_pdf_export_menu.addAction("")
-        self.live_pdf_lab_action.setData("reportlab")
-        self.live_pdf_lab_action.triggered.connect(lambda _checked=False: self.export_live_pdf("reportlab"))
-        self.live_pdf_export_button.setMenu(self.live_pdf_export_menu)
+        self.live_pdf_export_button.clicked.connect(self.export_live_pdf)
         self.live_update_button = QPushButton()
         self.live_update_button.setObjectName("compactButton")
         self.live_update_button.setMinimumWidth(self.spx(132))
@@ -1460,8 +1452,6 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_usable_check.setText(self.tr("usable_only"))
         self.live_auto_check.setText(self.tr("live_auto_update"))
         self.live_pdf_export_button.setText(self.tr("live_export_pdf"))
-        self.live_pdf_inline_action.setText(self.tr("live_export_pdf_inline"))
-        self.live_pdf_lab_action.setText(self.tr("live_export_pdf_lab"))
         self.live_update_button.setText(self.tr("live_update_now"))
         self.refresh_live_static_options()
         self.points_table.setHorizontalHeaderLabels([
@@ -2777,7 +2767,7 @@ class WifiHeatmapQtApp(QMainWindow):
 
         return True
 
-    def export_live_pdf(self, pdf_backend="inline"):
+    def export_live_pdf(self):
         if self.session is None:
             return False
 
@@ -2790,7 +2780,7 @@ class WifiHeatmapQtApp(QMainWindow):
 
         map_file = self.session.metadata.get("map_file", "")
         config = self.build_live_map_config()
-        output_file = self.choose_live_pdf_output_file(config, pdf_backend=pdf_backend)
+        output_file = self.choose_live_pdf_output_file(config)
         if not output_file:
             return False
 
@@ -2811,7 +2801,6 @@ class WifiHeatmapQtApp(QMainWindow):
                 ap_groups=self.session.get_ap_groups(),
                 px_per_meter=self.get_px_per_meter(),
                 output_file=output_file,
-                pdf_backend=pdf_backend,
             )
         except MapExportError as exc:
             map_error = exc
@@ -2836,14 +2825,11 @@ class WifiHeatmapQtApp(QMainWindow):
         self.status.showMessage(self.tr("live_pdf_exported"))
         return True
 
-    def choose_live_pdf_output_file(self, config, pdf_backend="inline"):
+    def choose_live_pdf_output_file(self, config):
         if self.session is None or not self.session.csv_file:
             return ""
 
         default_path = build_live_pdf_output_path(self.session.csv_file, config)
-        if pdf_backend == "reportlab":
-            default = Path(default_path)
-            default_path = str(default.with_name(f"{default.stem}_lab{default.suffix}"))
         output_file, _selected_filter = get_centered_save_file_name(
             self,
             self.tr("save_live_pdf_title"),

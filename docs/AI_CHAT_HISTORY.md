@@ -942,15 +942,17 @@ Language:
   scale/legend sit in a full-width band below the map. Map markers use
   survey-like sizing, positioned AP markers use the Wi-Fi icon on the map only,
   and flattened pages are written as inline PDF images rather than selectable
-  page image objects. `Export PDF` opens a menu with `PDF inline` and
-  experimental `PDF Lab (ReportLab)` backends, then asks for the destination
-  path before rendering. Interference and Dominant AP add one or more
-  problem-report pages; Coverage does not, and AP Channels remains map-only
-  until a diagnostic rule is defined.
+  page image objects. `Export PDF` asks for the destination path before
+  rendering. Interference and Dominant AP add one or more problem-report pages;
+  Coverage does not, and AP Channels remains map-only until a diagnostic rule
+  is defined.
 - Live PDF problem reports now use paged card layouts instead of compressed
   tables, so long interference diagnoses wrap instead of being clipped at the
   right edge. The live PDF completion popup reports only the created file path;
   the older generated-map popup still keeps the detailed interference summary.
+- The temporary ReportLab live PDF backend was removed. With the current
+  flattened-page exporter it produced the same output as the custom inline
+  writer while adding dependency and UI noise.
 - A quick live-map data logic pass confirmed current scoping: Coverage uses
   SSID, band, optional AP group filter, aggregation, interpolation and usable
   threshold; Interference uses SSID, 2.4/5 GHz band, intra/all-network mode,
@@ -962,7 +964,6 @@ Language:
 
 Recent commits:
 
-- `a3b77d1` Add experimental ReportLab live PDF backend.
 - `1c3100c` Ask where to save live PDF exports.
 - `bcb0dcf` Move live PDF summary below map.
 - `db2eb08` Avoid selectable live PDF page images.
