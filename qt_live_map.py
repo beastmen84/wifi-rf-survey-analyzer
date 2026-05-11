@@ -20,6 +20,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import (
     QGraphicsEllipseItem,
+    QGraphicsItemGroup,
     QGraphicsPathItem,
     QGraphicsPixmapItem,
     QGraphicsPolygonItem,
@@ -176,6 +177,9 @@ class LiveMapView(QGraphicsView):
             self.ap_marker_items.append(item)
 
     def create_ap_marker_item(self, info):
+        if info.get("highlight"):
+            return self.create_highlighted_ap_marker_item(info)
+
         if self.ap_position_icon and not self.ap_position_icon.isNull():
             pixmap = self.ap_position_icon
             item = QGraphicsPixmapItem(pixmap)
@@ -191,6 +195,32 @@ class LiveMapView(QGraphicsView):
         item.setBrush(QBrush(QColor(str(info.get("color") or "#0d6efd"))))
         item.setPen(QPen(Qt.GlobalColor.white, 1.6))
         return item
+
+    def create_highlighted_ap_marker_item(self, info):
+        group = QGraphicsItemGroup()
+        ring_radius = AP_MARKER_BASE_SIZE / 2 + 6
+        ring = QGraphicsEllipseItem(-ring_radius, -ring_radius, ring_radius * 2, ring_radius * 2)
+        ring.setBrush(QBrush(Qt.BrushStyle.NoBrush))
+        ring.setPen(QPen(QColor("#f1c40f"), 3.0))
+        group.addToGroup(ring)
+
+        if self.ap_position_icon and not self.ap_position_icon.isNull():
+            pixmap = self.ap_position_icon
+            icon = QGraphicsPixmapItem(pixmap)
+            icon.setTransformationMode(Qt.TransformationMode.SmoothTransformation)
+            icon.setOffset(-pixmap.width() / 2, -pixmap.height() / 2)
+            max_source_size = max(pixmap.width(), pixmap.height())
+            if max_source_size > 0:
+                icon.setScale(AP_MARKER_BASE_SIZE / max_source_size)
+            group.addToGroup(icon)
+        else:
+            radius = AP_MARKER_BASE_SIZE / 2
+            marker = QGraphicsEllipseItem(-radius, -radius, radius * 2, radius * 2)
+            marker.setBrush(QBrush(QColor(str(info.get("color") or "#0d6efd"))))
+            marker.setPen(QPen(Qt.GlobalColor.white, 1.6))
+            group.addToGroup(marker)
+
+        return group
 
     def create_marker_item(self, info):
         shape = str(info.get("shape") or "circle")
@@ -238,6 +268,8 @@ class LiveMapView(QGraphicsView):
         factor = zoom_level / self.zoom_level
         self.zoom_level = zoom_level
         self.scale(factor, factor)
+        if self.gradient_legend.isVisible():
+            self.position_gradient_legend()
 
     def fit_to_view(self):
         if self.pixmap_item is None:
@@ -246,6 +278,8 @@ class LiveMapView(QGraphicsView):
         self.fitInView(self.scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
         transform = self.transform()
         self.zoom_level = max(transform.m11(), transform.m22())
+        if self.gradient_legend.isVisible():
+            self.position_gradient_legend()
 
     def set_gradient_legend(self, scale_payload):
         self.gradient_legend.set_scale_payload(scale_payload)
@@ -264,7 +298,7 @@ class LiveMapView(QGraphicsView):
         self.gradient_legend.setFixedSize(width, height)
         self.gradient_legend.move(
             max(12, viewport_size.width() - width - 14),
-            14,
+            max(12, viewport_size.height() - height - 14),
         )
 
     def resizeEvent(self, event):
@@ -477,7 +511,13 @@ def midpoint_label(scale_payload, suffix):
 def render_live_map_payload(df, config, bg_image, translations, aliases=None, ap_groups=None, px_per_meter=None):
     if config.is_channel:
         payload = build_channel_payload(df, config, bg_image, translations, aliases or {})
-        return attach_ap_position_markers(payload, ap_groups or [], aliases or {}, translations)
+        return attach_ap_position_markers(
+            payload,
+            ap_groups or [],
+            aliases or {},
+            translations,
+            selected_group=config.ap_group_filter,
+        )
 
     if config.is_dominant:
         payload = build_dominant_payload(
@@ -505,19 +545,31 @@ def render_live_map_payload(df, config, bg_image, translations, aliases=None, ap
         ),
         get_color_scale_limits,
     )
-    return attach_ap_position_markers(payload, ap_groups or [], aliases or {}, translations)
+    return attach_ap_position_markers(
+        payload,
+        ap_groups or [],
+        aliases or {},
+        translations,
+        selected_group=config.ap_group_filter,
+    )
 
 
-def attach_ap_position_markers(payload, ap_groups, aliases, translations):
+def attach_ap_position_markers(payload, ap_groups, aliases, translations, selected_group=""):
     if not payload:
         return payload
 
-    payload["ap_infos"] = build_ap_position_marker_infos(ap_groups, aliases, translations)
+    payload["ap_infos"] = build_ap_position_marker_infos(
+        ap_groups,
+        aliases,
+        translations,
+        selected_group=selected_group,
+    )
     return payload
 
 
-def build_ap_position_marker_infos(ap_groups, aliases, translations):
+def build_ap_position_marker_infos(ap_groups, aliases, translations, selected_group=""):
     ap_infos = []
+    selected_group = str(selected_group or "")
     for group in ap_groups or []:
         if normalize_ap_role(group.get("role")) == AP_ROLE_TEST:
             continue
@@ -535,6 +587,7 @@ def build_ap_position_marker_infos(ap_groups, aliases, translations):
             "x": x,
             "y": y,
             "label": label,
+            "highlight": bool(selected_group and group_id == selected_group),
             "tooltip": build_ap_position_tooltip(group, label, x, y, translations),
         })
     return ap_infos

@@ -401,6 +401,14 @@ class LiveMapViewTests(unittest.TestCase):
 
         self.assertFalse(view.gradient_legend.isHidden())
         self.assertLessEqual(view.gradient_legend.width(), 160)
+        self.assertGreaterEqual(
+            view.gradient_legend.x(),
+            view.viewport().width() - view.gradient_legend.width() - 20,
+        )
+        self.assertGreaterEqual(
+            view.gradient_legend.y(),
+            view.viewport().height() - view.gradient_legend.height() - 20,
+        )
 
         view.clear_gradient_legend()
 
@@ -431,6 +439,16 @@ class LiveMapViewTests(unittest.TestCase):
         )
 
         self.assertEqual([marker["label"] for marker in markers], ["visible"])
+
+    def test_live_ap_position_markers_highlight_selected_group(self):
+        markers = build_ap_position_marker_infos(
+            [{"group_id": "visible", "position": {"x": 10, "y": 20}, "role": "internal"}],
+            aliases={},
+            translations={},
+            selected_group="visible",
+        )
+
+        self.assertTrue(markers[0]["highlight"])
 
 
 class ApMetadataTests(unittest.TestCase):

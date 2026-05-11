@@ -693,6 +693,7 @@ class WifiHeatmapQtApp(QMainWindow):
         controls = QFrame()
         controls.setObjectName("summaryPanel")
         controls_layout = QGridLayout(controls)
+        self.live_controls_layout = controls_layout
         controls_layout.setContentsMargins(self.spx(14), self.spx(12), self.spx(14), self.spx(12))
         controls_layout.setHorizontalSpacing(self.spx(10))
         controls_layout.setVerticalSpacing(self.spx(8))
@@ -718,6 +719,17 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_auto_check.setChecked(True)
         self.live_update_button = QPushButton()
         self.live_update_button.clicked.connect(self.update_live_preview)
+        self.live_option_widgets = (
+            self.live_aggregation_label,
+            self.live_aggregation_combo,
+            self.live_interpolation_label,
+            self.live_interpolation_combo,
+            self.live_interference_mode_label,
+            self.live_interference_mode_combo,
+            self.live_usable_check,
+            self.live_ap_group_label,
+            self.live_ap_group_combo,
+        )
 
         for combo in (
             self.live_ssid_combo,
@@ -738,15 +750,6 @@ class WifiHeatmapQtApp(QMainWindow):
         controls_layout.addWidget(self.live_band_combo, 0, 3)
         controls_layout.addWidget(self.live_map_type_label, 0, 4)
         controls_layout.addWidget(self.live_map_type_combo, 0, 5)
-        controls_layout.addWidget(self.live_aggregation_label, 1, 0)
-        controls_layout.addWidget(self.live_aggregation_combo, 1, 1)
-        controls_layout.addWidget(self.live_interference_mode_label, 1, 0)
-        controls_layout.addWidget(self.live_interference_mode_combo, 1, 1)
-        controls_layout.addWidget(self.live_interpolation_label, 1, 2)
-        controls_layout.addWidget(self.live_interpolation_combo, 1, 3)
-        controls_layout.addWidget(self.live_usable_check, 1, 4, 1, 2)
-        controls_layout.addWidget(self.live_ap_group_label, 1, 6)
-        controls_layout.addWidget(self.live_ap_group_combo, 1, 7)
         controls_layout.setColumnStretch(8, 1)
         controls_row.addWidget(controls, 1)
 
@@ -789,20 +792,6 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_status_label = QLabel()
         self.live_status_label.setObjectName("mutedText")
         status_row.addWidget(self.live_status_label, 1)
-        self.live_zoom_out_button = QPushButton("-")
-        self.live_zoom_in_button = QPushButton("+")
-        self.live_fit_button = QPushButton()
-        for button in (self.live_zoom_out_button, self.live_zoom_in_button, self.live_fit_button):
-            button.setObjectName("compactButton")
-        self.live_zoom_out_button.setMaximumWidth(self.spx(42))
-        self.live_zoom_in_button.setMaximumWidth(self.spx(42))
-        self.live_fit_button.setMaximumWidth(self.spx(80))
-        self.live_fit_button.clicked.connect(self.live_view.fit_to_view)
-        self.live_zoom_out_button.clicked.connect(self.live_view.zoom_out)
-        self.live_zoom_in_button.clicked.connect(self.live_view.zoom_in)
-        status_row.addWidget(self.live_zoom_out_button)
-        status_row.addWidget(self.live_zoom_in_button)
-        status_row.addWidget(self.live_fit_button)
         layout.addLayout(status_row)
         return tab
 
@@ -1246,7 +1235,6 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_usable_check.setText(self.tr("usable_only"))
         self.live_auto_check.setText(self.tr("live_auto_update"))
         self.live_update_button.setText(self.tr("live_update_now"))
-        self.live_fit_button.setText(self.tr("fit"))
         self.refresh_live_static_options()
         self.points_table.setHorizontalHeaderLabels([
             "#",
@@ -1555,9 +1543,6 @@ class WifiHeatmapQtApp(QMainWindow):
         ):
             widget.setEnabled(can_render)
         self.live_update_button.setEnabled(can_render and not self.live_rendering)
-        self.live_zoom_out_button.setEnabled(self.live_view.pixmap_item is not None)
-        self.live_zoom_in_button.setEnabled(self.live_view.pixmap_item is not None)
-        self.live_fit_button.setEnabled(self.live_view.pixmap_item is not None)
         self.update_live_option_state()
 
         if not can_render and not self.live_rendering:
@@ -1574,6 +1559,7 @@ class WifiHeatmapQtApp(QMainWindow):
 
     def update_live_option_state(self):
         map_type = self.current_combo_value(self.live_map_type_combo, "signal")
+        self.reflow_live_option_controls(map_type)
         is_signal = map_type == "signal"
         is_interference = map_type == "interference"
         is_channel = map_type == "channel"
@@ -1622,14 +1608,43 @@ class WifiHeatmapQtApp(QMainWindow):
         label.setEnabled(enabled)
         widget.setEnabled(enabled)
 
+    def reflow_live_option_controls(self, map_type):
+        for widget in self.live_option_widgets:
+            self.live_controls_layout.removeWidget(widget)
+
+        column = 0
+
+        def add_labeled(label, widget, width=1):
+            nonlocal column
+            self.live_controls_layout.addWidget(label, 1, column)
+            self.live_controls_layout.addWidget(widget, 1, column + 1, 1, width)
+            column += 2 + (width - 1)
+
+        if map_type == "signal":
+            add_labeled(self.live_aggregation_label, self.live_aggregation_combo)
+            add_labeled(self.live_interpolation_label, self.live_interpolation_combo)
+            self.live_controls_layout.addWidget(self.live_usable_check, 1, column, 1, 2)
+            column += 2
+            add_labeled(self.live_ap_group_label, self.live_ap_group_combo, width=2)
+            return
+
+        if map_type == "interference":
+            add_labeled(self.live_interference_mode_label, self.live_interference_mode_combo)
+            add_labeled(self.live_interpolation_label, self.live_interpolation_combo)
+            return
+
+        if map_type == "channel":
+            add_labeled(self.live_ap_group_label, self.live_ap_group_combo, width=2)
+
     def on_workspace_tab_changed(self, index):
+        self.refresh_global_state()
         if index == 1:
             self.refresh_live_controls()
             self.maybe_update_live_preview()
 
     def on_live_option_changed(self):
         self.update_live_option_state()
-        self.refresh_live_controls()
+        self.refresh_global_state()
         self.maybe_update_live_preview()
 
     def maybe_update_live_preview(self):
@@ -1657,7 +1672,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_rendering = True
         self.live_dirty = False
         self.live_status_label.setText(self.tr("live_preview_rendering"))
-        self.refresh_live_controls()
+        self.refresh_global_state()
 
         thread = QThread(self)
         worker = LiveMapRenderWorker(
@@ -1818,7 +1833,7 @@ class WifiHeatmapQtApp(QMainWindow):
             self.live_view.clear()
             self.clear_live_legend()
             self.live_status_label.setText(self.tr("live_preview_insufficient"))
-        self.refresh_live_controls()
+        self.refresh_global_state()
 
         if self.live_dirty and self.live_auto_check.isChecked():
             QTimer.singleShot(0, self.update_live_preview)
@@ -1828,7 +1843,7 @@ class WifiHeatmapQtApp(QMainWindow):
         log_event(f"qt live render failed message={message}", logger_name="main")
         self.live_status_label.setText(f"{self.tr('error')}: {message}")
         self.clear_live_legend()
-        self.refresh_live_controls()
+        self.refresh_global_state()
 
     def cleanup_live_render_thread(self):
         finished_thread = self.sender()
@@ -2022,16 +2037,34 @@ class WifiHeatmapQtApp(QMainWindow):
         self.maybe_update_live_preview()
 
     def zoom_in(self):
-        self.floorplan_view.zoom_in()
-        self.status.showMessage(self.tr("zoom", zoom=self.floorplan_view.zoom_level))
+        view = self.current_zoom_view()
+        if view is None:
+            return
+
+        view.zoom_in()
+        self.status.showMessage(self.tr("zoom", zoom=view.zoom_level))
 
     def zoom_out(self):
-        self.floorplan_view.zoom_out()
-        self.status.showMessage(self.tr("zoom", zoom=self.floorplan_view.zoom_level))
+        view = self.current_zoom_view()
+        if view is None:
+            return
+
+        view.zoom_out()
+        self.status.showMessage(self.tr("zoom", zoom=view.zoom_level))
 
     def fit_floorplan(self):
-        self.floorplan_view.fit_to_view()
-        self.status.showMessage(self.tr("zoom", zoom=self.floorplan_view.zoom_level))
+        view = self.current_zoom_view()
+        if view is None:
+            return
+
+        view.fit_to_view()
+        self.status.showMessage(self.tr("zoom", zoom=view.zoom_level))
+
+    def current_zoom_view(self):
+        if self.tabs.currentIndex() == 1:
+            return self.live_view if self.live_view.pixmap_item is not None else None
+
+        return self.floorplan_view if self.floorplan_view.has_floorplan() else None
 
     def start_scale_calibration(self):
         if self.session is None:
@@ -2880,13 +2913,17 @@ class WifiHeatmapQtApp(QMainWindow):
         self.clear_relevant_button.setEnabled(
             can_use_session and bool(self.relevant_ssids or self.known_ssids)
         )
+        live_tab_active = self.tabs.currentIndex() == 1
         has_map = self.floorplan_view.has_floorplan()
+        has_zoom_map = self.live_view.pixmap_item is not None if live_tab_active else has_map
         has_scale = self.has_calibrated_scale()
-        self.zoom_in_button.setEnabled(has_map and not self.scan_in_progress)
-        self.zoom_out_button.setEnabled(has_map and not self.scan_in_progress)
-        self.fit_view_button.setEnabled(has_map and not self.scan_in_progress)
-        self.calibrate_button.setEnabled(has_map and not self.scan_in_progress and not has_scale)
-        self.delete_scale_button.setEnabled(can_use_session and has_scale)
+        self.zoom_in_button.setEnabled(has_zoom_map and not self.scan_in_progress)
+        self.zoom_out_button.setEnabled(has_zoom_map and not self.scan_in_progress)
+        self.fit_view_button.setEnabled(has_zoom_map and not self.scan_in_progress)
+        self.calibrate_button.setEnabled(
+            has_map and not live_tab_active and not self.scan_in_progress and not has_scale
+        )
+        self.delete_scale_button.setEnabled(can_use_session and not live_tab_active and has_scale)
         self.update_save_action_state()
         self.refresh_live_controls()
         self.update_point_action_state()
