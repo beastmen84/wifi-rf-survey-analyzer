@@ -8,6 +8,7 @@ from PySide6.QtCore import QObject, QPointF, QRectF, QSize, Qt, Signal, Slot
 from PySide6.QtGui import (
     QBrush,
     QColor,
+    QFont,
     QIcon,
     QLinearGradient,
     QPainter,
@@ -24,7 +25,9 @@ from PySide6.QtWidgets import (
     QGraphicsPathItem,
     QGraphicsPixmapItem,
     QGraphicsPolygonItem,
+    QGraphicsRectItem,
     QGraphicsScene,
+    QGraphicsSimpleTextItem,
     QGraphicsView,
     QWidget,
 )
@@ -43,7 +46,13 @@ from ap_positioning import (
 from constants import SURVEY_FIELDNAMES
 from heatmap_tools import get_channel_map_points, get_dominant_ap_points
 from live_renderer import render_live_continuous_map
-from map_rendering import get_channel_color, get_channel_sort_key, get_limited_bssid_color_map
+from map_rendering import (
+    get_channel_color,
+    get_channel_sort_key,
+    get_limited_bssid_color_map,
+    should_label_channel_point,
+    should_label_dominant_point,
+)
 from qt_floorplan import AP_MARKER_BASE_SIZE, load_ap_position_icon
 from qt_tooltips import build_html_tooltip
 
@@ -225,6 +234,39 @@ class LiveMapView(QGraphicsView):
         return group
 
     def create_marker_item(self, info):
+        marker = self.create_marker_shape_item(info)
+        label = str(info.get("label") or "").strip()
+        if not label:
+            return marker
+
+        group = QGraphicsItemGroup()
+        group.addToGroup(marker)
+
+        font = QFont("Segoe UI", 7)
+        font.setBold(True)
+        text = QGraphicsSimpleTextItem(label)
+        text.setFont(font)
+        text.setBrush(QBrush(QColor("#111111")))
+        text_rect = text.boundingRect()
+        radius = LIVE_POINT_MARKER_BASE_SIZE / 2
+        text_x = radius + 4
+        text_y = -text_rect.height() / 2
+        text.setPos(text_x, text_y)
+
+        bg_rect = QRectF(
+            text_x - 2,
+            text_y - 1,
+            text_rect.width() + 4,
+            text_rect.height() + 2,
+        )
+        background = QGraphicsRectItem(bg_rect)
+        background.setBrush(QBrush(QColor(255, 255, 255, 218)))
+        background.setPen(QPen(QColor("#333333"), 0.5))
+        group.addToGroup(background)
+        group.addToGroup(text)
+        return group
+
+    def create_marker_shape_item(self, info):
         shape = str(info.get("shape") or "circle")
         color = QColor(str(info.get("color") or "#111111"))
         outline = QColor(str(info.get("outline") or "#ffffff"))
@@ -643,12 +685,13 @@ def build_channel_payload(df, config, bg_image, translations, aliases):
 
     point_infos = []
     legend_items_by_label = {}
+    previous_channel = None
     for _index, row in channel_df.iterrows():
         channel = row.get("channel", "")
         color = get_channel_color(channel, config.band)
         label = format_channel_legend_label(row, aliases)
         sort_key = get_channel_sort_key(channel, config.band) + (str(label).casefold(),)
-        point_infos.append({
+        point_info = {
             "x": float(row["x"]),
             "y": float(row["y"]),
             "color": color,
@@ -657,12 +700,16 @@ def build_channel_payload(df, config, bg_image, translations, aliases):
             "legend_label": label,
             "legend_sort_key": sort_key,
             "tooltip": build_channel_tooltip(row, config, translations, aliases),
-        })
+        }
+        if should_label_channel_point(row, previous_channel, config.point_label_mode, config.band):
+            point_info["label"] = format_channel_point_label(row)
+        point_infos.append(point_info)
         legend_items_by_label.setdefault(label, {
             "label": label,
             "color": color,
             "sort_key": sort_key,
         })
+        previous_channel = channel
 
     legend_items = sorted(legend_items_by_label.values(), key=lambda item: item["sort_key"])
     return {
@@ -694,6 +741,8 @@ def build_dominant_payload(df, config, bg_image, translations, aliases, ap_group
     has_roaming_overlap = False
     has_position_warning = False
 
+    previous_group = None
+    previous_roaming_overlap = False
     for _index, row in dominant_df.iterrows():
         position_analysis = analyze_dominant_ap_position(row, ap_groups, px_per_meter=px_per_meter)
         position_warning_color = get_ap_position_warning_color(position_analysis)
@@ -704,7 +753,7 @@ def build_dominant_payload(df, config, bg_image, translations, aliases, ap_group
             format_ap_label(row.get("dominant_bssid", ""), aliases, row.get("dominant_ap_group", "")),
         )
         color = color_map.get(row.get("dominant_ap_group", ""), "#7f8c8d")
-        point_infos.append({
+        point_info = {
             "x": float(row["x"]),
             "y": float(row["y"]),
             "color": color,
@@ -713,11 +762,21 @@ def build_dominant_payload(df, config, bg_image, translations, aliases, ap_group
             "shape": "triangle" if position_warning_color else "circle",
             "legend_label": label,
             "tooltip": build_dominant_tooltip(row, config, translations, aliases, position_analysis),
-        })
+        }
+        if should_label_dominant_point(
+            row,
+            previous_group,
+            previous_roaming_overlap,
+            config.point_label_mode,
+        ):
+            point_info["label"] = label
+        point_infos.append(point_info)
         legend_items_by_label.setdefault(label, {
             "label": label,
             "color": color,
         })
+        previous_group = row.get("dominant_ap_group", "")
+        previous_roaming_overlap = bool(row.get("roaming_overlap"))
 
     legend_items = sorted(legend_items_by_label.values(), key=lambda item: item["label"].casefold())
     if has_roaming_overlap:
@@ -895,6 +954,10 @@ def format_channel_legend_label(row, aliases):
         f"CH {format_value(row.get('channel'))} - "
         f"{format_ap_label(row.get('bssid', ''), aliases, row.get('ap_group', ''))}"
     )
+
+
+def format_channel_point_label(row):
+    return f"CH {format_value(row.get('channel'))}"
 
 
 def format_group_label(group_id, aliases):

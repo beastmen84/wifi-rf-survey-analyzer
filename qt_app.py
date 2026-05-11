@@ -739,6 +739,8 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_interpolation_combo = QComboBox()
         self.live_interference_mode_label = QLabel()
         self.live_interference_mode_combo = QComboBox()
+        self.live_point_labels_label = QLabel()
+        self.live_point_labels_combo = QComboBox()
         self.live_ap_group_label = QLabel()
         self.live_ap_group_combo = QComboBox()
         self.live_ap_group_combo.setMinimumWidth(self.spx(220))
@@ -760,6 +762,8 @@ class WifiHeatmapQtApp(QMainWindow):
             self.live_interpolation_combo,
             self.live_interference_mode_label,
             self.live_interference_mode_combo,
+            self.live_point_labels_label,
+            self.live_point_labels_combo,
             self.live_usable_check,
             self.live_ap_group_label,
             self.live_ap_group_combo,
@@ -772,6 +776,7 @@ class WifiHeatmapQtApp(QMainWindow):
             self.live_aggregation_combo,
             self.live_interpolation_combo,
             self.live_interference_mode_combo,
+            self.live_point_labels_combo,
             self.live_ap_group_combo,
         ):
             combo.currentIndexChanged.connect(lambda *_args: self.on_live_option_changed())
@@ -1391,6 +1396,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_aggregation_label.setText(self.tr("aggregation"))
         self.live_interpolation_label.setText(self.tr("interpolation"))
         self.live_interference_mode_label.setText(self.tr("interference_mode"))
+        self.live_point_labels_label.setText(self.tr("point_labels"))
         self.live_ap_group_label.setText(self.tr("ap_group_filter"))
         self.live_usable_check.setText(self.tr("usable_only"))
         self.live_auto_check.setText(self.tr("live_auto_update"))
@@ -1598,6 +1604,15 @@ class WifiHeatmapQtApp(QMainWindow):
                 ("all", self.tr("interference_mode_all")),
             ],
         )
+        self.set_combo_items(
+            self.live_point_labels_combo,
+            [
+                ("auto", self.tr("point_labels_auto")),
+                ("critical", self.tr("point_labels_critical")),
+                ("all", self.tr("point_labels_all")),
+                ("none", self.tr("point_labels_none")),
+            ],
+        )
 
     def live_band_items_for_map_type(self, map_type):
         items = [
@@ -1639,6 +1654,7 @@ class WifiHeatmapQtApp(QMainWindow):
             "aggregation": "max",
             "interpolation": "rbf",
             "interference_mode": "intra_ssid",
+            "point_label_mode": "auto",
             "ap_group_filter": "",
             "usable_only": False,
         }
@@ -1652,6 +1668,7 @@ class WifiHeatmapQtApp(QMainWindow):
                 self.live_interference_mode_combo,
                 "intra_ssid",
             ),
+            "point_label_mode": self.current_combo_value(self.live_point_labels_combo, "auto"),
             "ap_group_filter": self.current_combo_value(self.live_ap_group_combo, ""),
             "usable_only": self.live_usable_check.isChecked(),
         }
@@ -1676,6 +1693,7 @@ class WifiHeatmapQtApp(QMainWindow):
                 self.live_interference_mode_combo,
                 state.get("interference_mode", "intra_ssid"),
             )
+            self.set_combo_value_silent(self.live_point_labels_combo, state.get("point_label_mode", "auto"))
             self.live_usable_check.blockSignals(True)
             self.live_usable_check.setChecked(bool(state.get("usable_only", False)))
             self.live_usable_check.blockSignals(False)
@@ -1805,6 +1823,7 @@ class WifiHeatmapQtApp(QMainWindow):
             self.live_aggregation_combo,
             self.live_interpolation_combo,
             self.live_interference_mode_combo,
+            self.live_point_labels_combo,
             self.live_ap_group_combo,
             self.live_usable_check,
             self.live_auto_check,
@@ -1867,6 +1886,12 @@ class WifiHeatmapQtApp(QMainWindow):
             self.live_interpolation_combo,
             visible=is_signal or is_interference,
             enabled=can_use_controls and (is_signal or is_interference),
+        )
+        self.set_labeled_live_control_state(
+            self.live_point_labels_label,
+            self.live_point_labels_combo,
+            visible=is_channel or is_dominant,
+            enabled=can_use_controls and (is_channel or is_dominant),
         )
         self.live_usable_check.setVisible(is_signal)
         self.live_usable_check.setEnabled(can_use_controls and is_signal)
@@ -1949,8 +1974,11 @@ class WifiHeatmapQtApp(QMainWindow):
                 ]
             )
         elif map_type == "channel":
+            dropdown_controls.append((self.live_point_labels_label, self.live_point_labels_combo))
             if self.live_ap_group_combo.count() > 1:
                 dropdown_controls.append((self.live_ap_group_label, self.live_ap_group_combo))
+        elif map_type == "dominant":
+            dropdown_controls.append((self.live_point_labels_label, self.live_point_labels_combo))
 
         for label, widget in sorted(dropdown_controls, key=lambda pair: pair[0].text().casefold()):
             add_labeled(label, widget)
@@ -2058,6 +2086,7 @@ class WifiHeatmapQtApp(QMainWindow):
             interpolation=self.current_combo_value(self.live_interpolation_combo, "rbf"),
             aggregation=self.current_combo_value(self.live_aggregation_combo, "max"),
             color_scale="fixed",
+            point_label_mode=self.current_combo_value(self.live_point_labels_combo, "auto"),
             usable_only=self.live_usable_check.isChecked(),
             ap_group_filter=ap_group_filter,
             ap_group_map=ap_group_map,
@@ -2100,6 +2129,7 @@ class WifiHeatmapQtApp(QMainWindow):
             interpolation=self.current_combo_value(self.live_interpolation_combo, "rbf"),
             aggregation=self.current_combo_value(self.live_aggregation_combo, "max"),
             color_scale="fixed",
+            point_label_mode=self.current_combo_value(self.live_point_labels_combo, "auto"),
             usable_only=self.live_usable_check.isChecked(),
             ap_group_filter=ap_group_filter,
             ap_group_map=serialize_ap_group_map(build_bssid_to_manual_group_map(groups)),

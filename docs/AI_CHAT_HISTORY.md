@@ -36,10 +36,10 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the latest live-map tooltip pass is 45
+- The current code test baseline after the latest live-map point-label pass is 47
   passing tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
-  `4968864 Keep SSID in live coverage tooltips`.
+  `ba954c4 Hide empty live interference tooltip rows`.
 - Current AP positioning and scale calibration pick points with left click while
   their modal map-pick mode is active; normal map dragging is disabled during
   the pick and the click must not create a measurement point.
@@ -245,9 +245,10 @@ Visual/UX decisions:
 - Live interference point tooltips hide main-interferer rows when no strongest
   interferer exists. No-interferer points still show x/y, risk, serving AP and
   serving channel.
-- The old/default `point_labels_auto` option belongs to generated PNG/reference
-  labels in `qt_map_generation.py`; live maps currently use real markers with
-  hover tooltips instead of permanent point labels.
+- The `point_labels_auto` option is used by generated PNG/reference labels and
+  by Qt live AP Channels / Dominant AP. In live maps it does not hide markers:
+  it controls which discrete markers receive a compact permanent label in
+  addition to hover tooltips.
 
 ## Interference Logic
 
@@ -905,6 +906,10 @@ Language:
   Interference.
 - Live interference tooltips now omit the Main interferer and Interferer channel
   rows when the calculated point has no strongest interferer.
+- Qt live AP Channels and Dominant AP now expose `Point labels` in the map
+  options overlay. Default is `auto`; the available values are auto, critical,
+  all, and none. The setting is remembered separately for each live map type
+  during the open survey.
 - A quick live-map data logic pass confirmed current scoping: Coverage uses
   SSID, band, optional AP group filter, aggregation, interpolation and usable
   threshold; Interference uses SSID, 2.4/5 GHz band, intra/all-network mode,
@@ -916,6 +921,7 @@ Language:
 
 Recent commits:
 
+- `ba954c4` Hide empty live interference tooltip rows.
 - `4968864` Keep SSID in live coverage tooltips.
 - `6ead043` Unify survey and live tooltip layout.
 - `127ff1d` Remember live map options per view.

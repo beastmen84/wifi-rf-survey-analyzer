@@ -33,6 +33,8 @@ from qt_live_map import (
     LiveGradientLegendWidget,
     LiveMapView,
     build_ap_position_marker_infos,
+    build_channel_payload,
+    build_dominant_payload,
     build_live_tooltip,
     gradient_stops,
 )
@@ -613,6 +615,65 @@ class LiveMapViewTests(unittest.TestCase):
         self.assertIn("Interferer channel", tooltip)
         self.assertIn("33:44:10", tooltip)
 
+    def test_live_channel_point_labels_follow_auto_and_none_modes(self):
+        rows = [
+            build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -50, 1),
+            build_row("p2", "MAIN", "70:4f:57:aa:bb:10", -52, 1),
+            build_row("p3", "MAIN", "70:4f:57:aa:bb:20", -54, 6),
+        ]
+        payload = build_channel_payload(
+            rows_to_dataframe(rows),
+            MapConfig(ssid="MAIN", band="2.4", map_type="channel", point_label_mode="auto"),
+            Image.new("RGB", (100, 100), "white"),
+            {"channel_title": "AP channels"},
+            {},
+        )
+
+        self.assertEqual(
+            [point.get("label") for point in payload["point_infos"] if point.get("label")],
+            ["CH 1", "CH 6"],
+        )
+
+        payload = build_channel_payload(
+            rows_to_dataframe(rows),
+            MapConfig(ssid="MAIN", band="2.4", map_type="channel", point_label_mode="none"),
+            Image.new("RGB", (100, 100), "white"),
+            {"channel_title": "AP channels"},
+            {},
+        )
+
+        self.assertFalse(any(point.get("label") for point in payload["point_infos"]))
+
+    def test_live_dominant_point_labels_follow_auto_and_none_modes(self):
+        rows = [
+            build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -50, 1),
+            build_row("p2", "MAIN", "70:4f:57:aa:bb:10", -52, 1),
+            build_row("p3", "MAIN", "80:11:22:33:44:10", -54, 6),
+        ]
+        payload = build_dominant_payload(
+            rows_to_dataframe(rows),
+            MapConfig(ssid="MAIN", band="2.4", map_type="dominant", point_label_mode="auto"),
+            Image.new("RGB", (100, 100), "white"),
+            {"dominant_title": "Dominant AP"},
+            {},
+            [],
+            None,
+        )
+
+        self.assertEqual(len([point for point in payload["point_infos"] if point.get("label")]), 2)
+
+        payload = build_dominant_payload(
+            rows_to_dataframe(rows),
+            MapConfig(ssid="MAIN", band="2.4", map_type="dominant", point_label_mode="none"),
+            Image.new("RGB", (100, 100), "white"),
+            {"dominant_title": "Dominant AP"},
+            {},
+            [],
+            None,
+        )
+
+        self.assertFalse(any(point.get("label") for point in payload["point_infos"]))
+
     def test_live_ap_position_markers_skip_test_groups(self):
         markers = build_ap_position_marker_infos(
             [
@@ -782,6 +843,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertFalse(window.live_ap_group_combo.isHidden())
             self.assertFalse(window.live_options_separator.isHidden())
             self.assertTrue(window.live_interference_mode_combo.isHidden())
+            self.assertTrue(window.live_point_labels_combo.isHidden())
 
             set_map_type("interference")
             self.assertEqual(combo_values(window.live_band_combo), ["2.4", "5"])
@@ -798,22 +860,28 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertTrue(window.live_aggregation_combo.isHidden())
             self.assertTrue(window.live_usable_check.isHidden())
             self.assertTrue(window.live_ap_group_combo.isHidden())
+            self.assertTrue(window.live_point_labels_combo.isHidden())
             self.assertTrue(window.live_options_separator.isHidden())
             self.assertEqual(window.live_options_layout.indexOf(window.live_options_separator), -1)
 
             set_map_type("channel")
             self.assertEqual(combo_values(window.live_band_combo), ["all", "2.4", "5"])
+            self.assertEqual(combo_values(window.live_point_labels_combo), ["auto", "critical", "all", "none"])
             self.assertEqual(grid_position(window.live_ap_group_label)[:2], (0, 0))
             self.assertEqual(grid_position(window.live_band_label)[:2], (1, 0))
+            self.assertEqual(grid_position(window.live_point_labels_label)[:2], (2, 0))
             self.assertFalse(window.live_band_combo.isHidden())
             self.assertFalse(window.live_ap_group_combo.isHidden())
+            self.assertFalse(window.live_point_labels_combo.isHidden())
             self.assertTrue(window.live_interference_mode_combo.isHidden())
             self.assertTrue(window.live_interpolation_combo.isHidden())
 
             set_map_type("dominant")
             self.assertEqual(combo_values(window.live_band_combo), ["all", "2.4", "5"])
             self.assertEqual(grid_position(window.live_band_label)[:2], (0, 0))
+            self.assertEqual(grid_position(window.live_point_labels_label)[:2], (1, 0))
             self.assertFalse(window.live_band_combo.isHidden())
+            self.assertFalse(window.live_point_labels_combo.isHidden())
             self.assertTrue(window.live_aggregation_combo.isHidden())
             self.assertTrue(window.live_interference_mode_combo.isHidden())
             self.assertTrue(window.live_interpolation_combo.isHidden())
@@ -868,12 +936,29 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(window.current_combo_value(window.live_interference_mode_combo), "all")
             self.assertEqual(window.current_combo_value(window.live_interpolation_combo), "rbf")
 
+            set_map_type("channel")
+            self.assertEqual(window.current_combo_value(window.live_point_labels_combo), "auto")
+            set_combo_value(window.live_point_labels_combo, "all")
+            window.update_live_option_state()
+
+            set_map_type("dominant")
+            self.assertEqual(window.current_combo_value(window.live_point_labels_combo), "auto")
+            set_combo_value(window.live_point_labels_combo, "none")
+            window.update_live_option_state()
+
+            set_map_type("channel")
+            self.assertEqual(window.current_combo_value(window.live_point_labels_combo), "all")
+            set_map_type("dominant")
+            self.assertEqual(window.current_combo_value(window.live_point_labels_combo), "none")
+
             window.reset_live_option_memory()
             set_map_type("signal")
             self.assertEqual(window.current_combo_value(window.live_band_combo), "all")
             self.assertEqual(window.current_combo_value(window.live_aggregation_combo), "max")
             self.assertEqual(window.current_combo_value(window.live_interpolation_combo), "rbf")
             self.assertFalse(window.live_usable_check.isChecked())
+            set_map_type("channel")
+            self.assertEqual(window.current_combo_value(window.live_point_labels_combo), "auto")
         finally:
             window.deleteLater()
 
