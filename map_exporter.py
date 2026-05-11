@@ -22,6 +22,7 @@ from ap_groups import (
     build_dominant_ap_group_labels,
     format_ap_label,
     normalize_ap_role,
+    resolve_ap_alias,
 )
 from ap_positioning import (
     AP_POSITION_STRONG_FAR,
@@ -1445,19 +1446,10 @@ def build_interference_problem_report_page(
         point_x = card_left + 0.083
         ax.text(
             point_x,
-            card_top - 0.026,
-            f"{tr('interference_summary_point')} {int(row.get('report_number', row_index + 1) or row_index + 1)}",
-            fontsize=10.8,
-            fontweight="bold",
-            va="top",
-            color="#111827",
-        )
-        ax.text(
-            point_x,
-            card_top - 0.054,
-            f"x/y: {format_report_value(row.get('x'))}, {format_report_value(row.get('y'))}",
-            fontsize=8.4,
-            va="top",
+            badge_y + badge_size / 2,
+            f"({format_report_value(row.get('x'))}, {format_report_value(row.get('y'))})",
+            fontsize=9.2,
+            va="center",
             color="#6b7280",
         )
 
@@ -1488,7 +1480,6 @@ def build_interference_problem_report_page(
             value_top,
             tr("interference_summary_serving_ap"),
             format_interference_ap_label(row, "serving", aliases),
-            tr("interference_summary_serving_channel"),
             format_report_channel_with_width(
                 row.get("serving_channel"),
                 row.get("serving_channel_width_mhz"),
@@ -1500,7 +1491,6 @@ def build_interference_problem_report_page(
             value_top,
             tr("interference_summary_interferer"),
             format_interference_ap_label(row, "strongest_interferer", aliases),
-            tr("interference_summary_interferer_channel"),
             format_report_channel_with_width(
                 row.get("strongest_interferer_channel"),
                 row.get("strongest_interferer_channel_width_mhz"),
@@ -1509,9 +1499,10 @@ def build_interference_problem_report_page(
     return fig
 
 
-def draw_interference_report_ap_block(ax, x, y, label, value, channel_label, channel_value):
+def draw_interference_report_ap_block(ax, x, y, label, value, channel_value):
     ax.text(x, y, clean_report_text(label), fontsize=6.9, va="top", color="#6b7280")
-    for line_index, line in enumerate(wrap_report_text(value, width=44, max_lines=2)):
+    value_lines = wrap_report_text(value, width=58, max_lines=2)
+    for line_index, line in enumerate(value_lines):
         ax.text(
             x,
             y - 0.020 - line_index * 0.020,
@@ -1520,11 +1511,11 @@ def draw_interference_report_ap_block(ax, x, y, label, value, channel_label, cha
             va="top",
             color="#111827",
         )
-    channel_text = f"{clean_report_text(channel_label)}: {clean_report_text(channel_value)}"
+    channel_y = y - 0.023 - len(value_lines) * 0.020
     ax.text(
         x,
-        y - 0.067,
-        channel_text,
+        channel_y,
+        clean_report_text(channel_value),
         fontsize=8.0,
         va="top",
         color="#374151",
@@ -1537,7 +1528,8 @@ def format_interference_ap_label(row, prefix, aliases):
     bssid = row.get(bssid_key, "")
     if clean_report_text(bssid) == "-":
         return "-"
-    return format_ap_label(bssid, aliases, row.get(group_key, ""))
+    alias = resolve_ap_alias(bssid, aliases, row.get(group_key, ""))
+    return f"{alias} ({bssid})" if alias else str(bssid)
 
 
 def format_report_channel_with_width(channel, width):

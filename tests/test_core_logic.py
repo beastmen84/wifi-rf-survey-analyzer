@@ -936,12 +936,14 @@ class LivePdfExportTests(unittest.TestCase):
         )
         try:
             first_page_text = "\n".join(text.get_text() for text in figures[0].axes[0].texts)
-            self.assertIn("Point 1", first_page_text)
-            self.assertIn("x/y: 10, 20", first_page_text)
+            self.assertIn("(10, 20)", first_page_text)
             self.assertIn("Risk: 100.0%", first_page_text)
-            self.assertIn("Serving AP (aa:bb:10)", first_page_text)
+            self.assertIn("Serving AP (70:4f:57:aa:bb:10)", first_page_text)
             self.assertIn("CH 6 / 20 MHz", first_page_text)
-            self.assertIn("Neighbor AP (33:44:10)", first_page_text)
+            self.assertIn("Neighbor AP (80:11:22:33:44:10)", first_page_text)
+            self.assertNotIn("Point 1", first_page_text)
+            self.assertNotIn("Serving channel:", first_page_text)
+            self.assertNotIn("Interfering channel:", first_page_text)
             self.assertNotIn("Diagnosis", first_page_text)
         finally:
             for fig in figures:

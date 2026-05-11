@@ -952,9 +952,11 @@ Language:
   the older generated-map popup still keeps the detailed interference summary.
 - Interference live PDF problem cards no longer spend space on generic
   diagnosis text. They show the same useful fields as live tooltips: risk,
-  coordinates, serving AP/channel and main interferer/channel. The map page
-  labels the same problem points with numbered square callouts matching the
-  report card order.
+  coordinates, serving AP/channel and main interferer/channel. Coordinates sit
+  beside the numbered badge, AP labels keep the full BSSID for readability, and
+  channels sit directly below their AP without repeated channel-label prefixes.
+  The map page labels the same problem points with numbered square callouts
+  matching the report card order.
 - The temporary ReportLab live PDF backend was removed. With the current
   flattened-page exporter it produced the same output as the custom inline
   writer while adding dependency and UI noise.
