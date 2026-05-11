@@ -36,10 +36,10 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the latest live-map point-label pass is 50
+- The current code test baseline after the latest live-map export pass is 51
   passing tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
-  `562b878 Move live point labels into legend`.
+  `ab2dae0 Clear live legend selection from map background`.
 - Current AP positioning and scale calibration pick points with left click while
   their modal map-pick mode is active; normal map dragging is disabled during
   the pick and the click must not create a measurement point.
@@ -54,7 +54,7 @@ script and has evolved toward a V2 "RF analysis platform":
 - load a PDF/image floor plan;
 - collect Wi-Fi scans at measurement points;
 - store aggregated measurements plus raw scan samples;
-- generate PNG maps and CSV reports;
+- export live-map PDFs and legacy PNG/CSV map reports;
 - show live maps while adding points;
 - manage AP groups, aliases, roles, and physical AP positions;
 - evaluate scan/survey quality.
@@ -197,6 +197,10 @@ Live tab:
   panel.
 - The live gradient scale uses saturated red/yellow/green stops to stay visually
   aligned with the heatmap colors.
+- Continuous live coverage/interference options include color scale,
+  interpolation, smoothing and max distance. Coverage also has aggregation,
+  usable-only and AP group filtering; Interference has 2.4/5 GHz band and
+  intra-SSID/all-network mode.
 - Qt live signal coverage and AP channel maps have an AP group filter. Test AP
   groups are excluded from the filter list.
 - When an AP group filter is selected and that physical AP has a saved
@@ -379,7 +383,7 @@ Current GUI:
   - survey quality dashboard;
   - scale calibration;
   - help;
-  - generate heatmap/map;
+  - live-map PDF export in the Live Map toolbar;
   - theme selector;
   - language selector.
 - Sidebar is intentionally lighter:
@@ -922,6 +926,18 @@ Language:
   click highlights the referenced marker, double click focuses the map on it.
   Clicking empty map space clears the highlighted marker and the selected
   legend row.
+- The top app bar no longer exposes `Generate heatmap`; export now starts from
+  the Live Map toolbar as `Export PDF`, next to `Update now` with a separator.
+  Project and View app-bar sections get extra stretch space for longer labels.
+- Live coverage/interference regained the continuous-map controls that existed
+  before the Qt pass: color scale, smoothing and max distance. The values are
+  stored per live map type with the other live options and are used by preview
+  rendering and live PDF export.
+- Live PDF export renders the current live-map configuration at full floor-plan
+  extent, independent from viewport zoom/pan. Page 1 places the map and its
+  scale/legend in separate canvas space so the legend does not overlap the map.
+  Interference and Dominant AP add a second problem-report page; Coverage does
+  not, and AP Channels remains map-only until a diagnostic rule is defined.
 - A quick live-map data logic pass confirmed current scoping: Coverage uses
   SSID, band, optional AP group filter, aggregation, interpolation and usable
   threshold; Interference uses SSID, 2.4/5 GHz band, intra/all-network mode,
@@ -933,6 +949,7 @@ Language:
 
 Recent commits:
 
+- `ab2dae0` Clear live legend selection from map background.
 - `562b878` Move live point labels into legend.
 - `b92ceea` Sync live label legend visibility.
 - `a9a7e05` Simplify live point label choices.

@@ -11,13 +11,20 @@ matplotlib.use("Agg", force=True)
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.backends.backend_pdf import PdfPages
 
 from ap_groups import (
     AP_ROLE_TEST,
     build_dominant_ap_group_labels,
+    format_ap_label,
     normalize_ap_role,
 )
-from ap_positioning import analyze_dominant_ap_position
+from ap_positioning import (
+    AP_POSITION_STRONG_FAR,
+    AP_POSITION_UNEXPECTED_DOMINANT,
+    AP_POSITION_WEAK_CLOSE,
+    analyze_dominant_ap_position,
+)
 from constants import HEATMAP_GRID_SIZE
 from heatmap_tools import (
     add_ap_group_metadata,
@@ -44,7 +51,10 @@ from map_rendering import (
     build_dominant_ap_legend_handles,
     build_interference_legend_handles,
     get_channel_color,
+    get_channel_sort_key,
     get_limited_bssid_color_map,
+    should_label_channel_point,
+    should_label_dominant_point,
 )
 from utils import sanitize_filename
 
@@ -113,6 +123,338 @@ def generate_map_export(
         )
 
     return generate_signal_map(df, bg_image, csv_file, config, tr, language)
+
+
+def generate_live_pdf_export(
+    df,
+    bg_image,
+    csv_file,
+    config,
+    tr,
+    language="it",
+    aliases=None,
+    ap_groups=None,
+    px_per_meter=None,
+):
+    config = config.normalized()
+    aliases = aliases or {}
+    ap_groups = ap_groups or []
+    if not config.ssid:
+        raise MapExportError(tr("warning"), tr("select_ssid_heatmap"))
+
+    output_file = build_live_pdf_output_path(csv_file, config)
+    figures = []
+    summary = {}
+
+    if config.is_interference:
+        map_fig, risk_df = build_live_pdf_interference_figure(
+            df,
+            bg_image,
+            config,
+            tr,
+            language,
+            aliases,
+            ap_groups,
+        )
+        summary = build_interference_summary(risk_df, output_file, "", config.band, tr, language)
+        figures.append(map_fig)
+        figures.append(build_interference_problem_report_page(risk_df, config, tr, language))
+    elif config.is_channel:
+        figures.append(build_live_pdf_channel_figure(df, bg_image, config, tr, language, aliases, ap_groups))
+    elif config.is_dominant:
+        map_fig, dominant_df = build_live_pdf_dominant_figure(
+            df,
+            bg_image,
+            config,
+            tr,
+            language,
+            aliases,
+            ap_groups,
+            px_per_meter,
+        )
+        figures.append(map_fig)
+        figures.append(build_dominant_problem_report_page(dominant_df, config, tr, language, aliases))
+    else:
+        figures.append(build_live_pdf_signal_figure(df, bg_image, config, tr, language, aliases, ap_groups))
+
+    try:
+        with PdfPages(output_file) as pdf:
+            for fig in figures:
+                pdf.savefig(fig)
+    finally:
+        for fig in figures:
+            plt.close(fig)
+
+    return MapExportResult(output_file=output_file, map_type=config.map_type, summary=summary)
+
+
+def build_live_pdf_signal_figure(df, bg_image, config, tr, language, aliases, ap_groups):
+    rows = df[df["ssid"].str.lower() == config.ssid.lower()]
+    rows = filter_by_band(rows, config.band)
+    rows = add_ap_group_metadata(rows, config.ap_group_map, config.ap_group_roles)
+    rows = rows[rows["ap_role"] != AP_ROLE_TEST]
+    if config.ap_group_filter:
+        rows = rows[rows["ap_group"] == config.ap_group_filter]
+    raw_rows = len(rows)
+    rows = collapse_heatmap_points(rows, aggregation=config.aggregation)
+
+    if len(rows) < 3:
+        raise_insufficient_data(tr, config.band, language)
+
+    x = rows["x"].values
+    y = rows["y"].values
+    signal = rows["signal_dbm"].values
+    confidence = get_scan_confidence_values(rows)
+    grid_x, grid_y = build_grid(bg_image)
+    grid_z = interpolate_signal_grid(
+        x,
+        y,
+        signal,
+        grid_x,
+        grid_y,
+        method=config.interpolation,
+        confidence=confidence,
+    )
+    grid_z = smooth_heatmap_grid(grid_z, sigma=config.smoothing_sigma)
+    grid_z = apply_distance_mask(grid_z, grid_x, grid_y, x, y, config.max_distance_px)
+
+    if config.usable_only:
+        grid_z = apply_signal_threshold(grid_z, min_signal_dbm=-70)
+
+    distance_alpha = get_distance_alpha(
+        grid_x,
+        grid_y,
+        x,
+        y,
+        config.max_distance_px,
+        point_confidence=confidence,
+    )
+    heatmap_alpha = np.where(np.isfinite(grid_z), distance_alpha * 0.55, 0)
+    vmin, vmax = get_live_signal_color_scale_limits(grid_z, config)
+    title = f"{tr('export_signal_title')} - {config.ssid}"
+    fig, ax, side_ax = create_live_pdf_map_figure(bg_image, title)
+    layer = ax.imshow(
+        grid_z.T,
+        extent=(0, bg_image.size[0], bg_image.size[1], 0),
+        alpha=heatmap_alpha.T,
+        cmap="RdYlGn",
+        vmin=vmin,
+        vmax=vmax,
+        interpolation="bilinear",
+        zorder=2,
+    )
+    ax.scatter(x, y, c="black", s=14, edgecolors="white", linewidths=0.35, zorder=4)
+    draw_ap_position_markers(ax, ap_groups, aliases, config.ap_group_filter)
+    add_live_pdf_side_header(
+        side_ax,
+        title,
+        config,
+        tr,
+        language,
+        [
+            (tr("export_points"), len(rows)),
+            (tr("export_measurements"), raw_rows),
+            (tr("aggregation"), tr(f"aggregation_{config.aggregation}")),
+            (tr("interpolation"), tr(f"interpolation_{config.interpolation}")),
+        ],
+    )
+    add_live_pdf_colorbar(fig, side_ax, layer, tr("export_signal_colorbar"))
+    add_live_pdf_ap_marker_note(side_ax, ap_groups, aliases, config.ap_group_filter, y=0.08)
+    return fig
+
+
+def build_live_pdf_interference_figure(df, bg_image, config, tr, language, aliases, ap_groups):
+    if config.band not in {"2.4", "5"}:
+        raise MapExportError(tr("warning"), tr("interference_requires_band"))
+
+    risk_df = calculate_interference_points(
+        df,
+        config.ssid,
+        config.band,
+        mode=config.interference_mode,
+        include_details=True,
+        ap_group_map=config.ap_group_map,
+        ap_group_roles=config.ap_group_roles,
+    )
+    if len(risk_df) < 3:
+        raise_insufficient_data(tr, config.band, language)
+
+    x = risk_df["x"].values
+    y = risk_df["y"].values
+    risk = risk_df["risk"].values
+    confidence = get_scan_confidence_values(risk_df)
+    grid_x, grid_y = build_grid(bg_image)
+    grid_z = interpolate_signal_grid(
+        x,
+        y,
+        risk,
+        grid_x,
+        grid_y,
+        method=config.interpolation,
+        confidence=confidence,
+    )
+    grid_z = smooth_heatmap_grid(grid_z, sigma=config.smoothing_sigma)
+    grid_z = apply_distance_mask(grid_z, grid_x, grid_y, x, y, config.max_distance_px)
+    distance_alpha = get_distance_alpha(
+        grid_x,
+        grid_y,
+        x,
+        y,
+        config.max_distance_px,
+        point_confidence=confidence,
+    )
+    heatmap_alpha = np.where(np.isfinite(grid_z), distance_alpha * 0.58, 0)
+    vmin, vmax = get_risk_color_scale_limits(grid_z, config)
+    title = f"{tr('export_interference_title')} - {config.ssid}"
+    fig, ax, side_ax = create_live_pdf_map_figure(bg_image, title)
+    layer = ax.imshow(
+        grid_z.T,
+        extent=(0, bg_image.size[0], bg_image.size[1], 0),
+        alpha=heatmap_alpha.T,
+        cmap="RdYlGn_r",
+        vmin=vmin,
+        vmax=vmax,
+        interpolation="bilinear",
+        zorder=2,
+    )
+    point_sizes = np.clip(16 + (risk * 0.24), 16, 40)
+    ax.scatter(
+        x,
+        y,
+        c=risk,
+        s=point_sizes,
+        cmap="RdYlGn_r",
+        vmin=vmin,
+        vmax=vmax,
+        edgecolors="black",
+        linewidths=0.42,
+        zorder=4,
+    )
+    draw_ap_position_markers(ax, ap_groups, aliases, "")
+    add_live_pdf_side_header(
+        side_ax,
+        title,
+        config,
+        tr,
+        language,
+        [
+            (tr("interference_mode"), get_interference_mode_label(config, tr)),
+            (tr("interference_top_risk"), f"{float(risk_df['risk'].max()):.1f}%"),
+            (tr("interpolation"), tr(f"interpolation_{config.interpolation}")),
+        ],
+    )
+    add_live_pdf_colorbar(fig, side_ax, layer, tr("interference_colorbar"))
+    add_live_pdf_ap_marker_note(side_ax, ap_groups, aliases, "", y=0.08)
+    return fig, risk_df
+
+
+def build_live_pdf_channel_figure(df, bg_image, config, tr, language, aliases, ap_groups):
+    channel_df = get_channel_map_points(
+        df,
+        config.ssid,
+        config.band,
+        ap_group_map=config.ap_group_map,
+        ap_group_roles=config.ap_group_roles,
+    )
+    if config.ap_group_filter and not channel_df.empty:
+        channel_df = channel_df[channel_df["ap_group"] == config.ap_group_filter]
+    if channel_df.empty:
+        raise_insufficient_data(tr, config.band, language)
+
+    title = f"{tr('export_channel_title')} - {config.ssid}"
+    fig, ax, side_ax = create_live_pdf_map_figure(bg_image, title)
+    colors = [get_channel_color(row["channel"], config.band) for _index, row in channel_df.iterrows()]
+    ax.scatter(
+        channel_df["x"].values,
+        channel_df["y"].values,
+        c=colors,
+        s=32,
+        edgecolors="black",
+        linewidths=0.42,
+        zorder=4,
+    )
+    draw_ap_position_markers(ax, ap_groups, aliases, config.ap_group_filter)
+    legend_items = build_channel_point_legend_items(channel_df, config, aliases)
+    add_live_pdf_side_header(
+        side_ax,
+        title,
+        config,
+        tr,
+        language,
+        [(tr("export_points"), len(channel_df))],
+    )
+    add_live_pdf_swatch_list(side_ax, legend_items, tr("channel_map_legend_title"), y=0.66)
+    add_live_pdf_ap_marker_note(side_ax, ap_groups, aliases, config.ap_group_filter, y=0.08)
+    return fig
+
+
+def build_live_pdf_dominant_figure(df, bg_image, config, tr, language, aliases, ap_groups, px_per_meter):
+    dominant_df = get_dominant_ap_points(
+        df,
+        config.ssid,
+        config.band,
+        ap_group_map=config.ap_group_map,
+        ap_group_roles=config.ap_group_roles,
+    )
+    if dominant_df.empty:
+        raise_insufficient_data(tr, config.band, language)
+
+    dominant_df = add_ap_position_report_columns(dominant_df, ap_groups, aliases, px_per_meter)
+    dominant_df["ap_position_has_warning"] = dominant_df["ap_position_warnings"].astype(str).str.len() > 0
+    title = f"{tr('export_dominant_title')} - {config.ssid}"
+    fig, ax, side_ax = create_live_pdf_map_figure(bg_image, title)
+    color_map, _visible_ap_groups, _hidden_ap_count = get_limited_bssid_color_map(dominant_df)
+    colors = [
+        color_map.get(row["dominant_ap_group"], "#7f8c8d")
+        for _index, row in dominant_df.iterrows()
+    ]
+    edge_colors = [
+        "#f1c40f" if row.get("roaming_overlap") else "black"
+        for _index, row in dominant_df.iterrows()
+    ]
+    line_widths = [
+        1.2 if row.get("roaming_overlap") else 0.42
+        for _index, row in dominant_df.iterrows()
+    ]
+    warning_mask = dominant_df["ap_position_has_warning"]
+    if (~warning_mask).any():
+        ax.scatter(
+            dominant_df.loc[~warning_mask, "x"].values,
+            dominant_df.loc[~warning_mask, "y"].values,
+            c=[color for color, is_warning in zip(colors, warning_mask) if not is_warning],
+            s=34,
+            edgecolors=[color for color, is_warning in zip(edge_colors, warning_mask) if not is_warning],
+            linewidths=[width for width, is_warning in zip(line_widths, warning_mask) if not is_warning],
+            marker="o",
+            zorder=4,
+        )
+    if warning_mask.any():
+        ax.scatter(
+            dominant_df.loc[warning_mask, "x"].values,
+            dominant_df.loc[warning_mask, "y"].values,
+            c=[color for color, is_warning in zip(colors, warning_mask) if is_warning],
+            s=42,
+            edgecolors=[color for color, is_warning in zip(edge_colors, warning_mask) if is_warning],
+            linewidths=[width for width, is_warning in zip(line_widths, warning_mask) if is_warning],
+            marker="^",
+            zorder=4,
+        )
+    draw_ap_position_markers(ax, ap_groups, aliases, "")
+    legend_items = build_dominant_point_legend_items(dominant_df, config, aliases, color_map)
+    add_live_pdf_side_header(
+        side_ax,
+        title,
+        config,
+        tr,
+        language,
+        [
+            (tr("export_points"), len(dominant_df)),
+            (tr("export_roaming_overlap"), int(dominant_df["roaming_overlap"].sum())),
+        ],
+    )
+    add_live_pdf_swatch_list(side_ax, legend_items, tr("dominant_map_legend_title"), y=0.66)
+    add_live_pdf_ap_marker_note(side_ax, ap_groups, aliases, "", y=0.08)
+    return fig, dominant_df
 
 
 def generate_signal_map(df, bg_image, csv_file, config, tr, language):
@@ -522,6 +864,31 @@ def build_report_output_path(map_output_file):
     return str(output_path.with_name(f"{output_path.stem}_report.csv"))
 
 
+def build_live_pdf_output_path(csv_file, config):
+    csv_path = Path(csv_file)
+    token = {
+        "signal": "coverage",
+        "interference": f"interference_{format_band_token(config.band)}",
+        "channel": f"channels_{format_band_token(config.band)}",
+        "dominant": f"dominant_{format_band_token(config.band)}",
+    }.get(config.map_type, sanitize_filename(config.map_type))
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    file_name = (
+        f"{sanitize_filename(csv_path.stem)}_"
+        f"{sanitize_filename(config.ssid)}_"
+        f"{token}_{timestamp}.pdf"
+    )
+    return str(csv_path.with_name(file_name))
+
+
+def format_band_token(band):
+    return {
+        "all": "all",
+        "2.4": "2.4ghz",
+        "5": "5ghz",
+    }.get(band, sanitize_filename(str(band or "all")))
+
+
 def get_color_scale_limits(grid_z, config):
     if config.color_scale != "auto":
         return -90, -35
@@ -537,6 +904,312 @@ def get_color_scale_limits(grid_z, config):
         return center - 5, center + 5
 
     return vmin, vmax
+
+
+def get_live_signal_color_scale_limits(grid_z, config):
+    if config.color_scale != "auto":
+        return -90, -40
+    return get_color_scale_limits(grid_z, config)
+
+
+def get_risk_color_scale_limits(grid_z, config):
+    if config.color_scale != "auto":
+        return 0, 100
+
+    valid_values = grid_z[np.isfinite(grid_z)]
+    if len(valid_values) == 0:
+        return 0, 100
+
+    vmin = max(0.0, float(np.percentile(valid_values, 5)))
+    vmax = min(100.0, float(np.percentile(valid_values, 95)))
+    if vmax - vmin < 5:
+        center = (vmin + vmax) / 2
+        return max(0, center - 2.5), min(100, center + 2.5)
+
+    return vmin, vmax
+
+
+def create_live_pdf_map_figure(bg_image, title):
+    width, height = bg_image.size
+    side_width = max(280, min(430, int(width * 0.28)))
+    total_width = width + side_width
+    dpi = 100
+    fig = plt.figure(figsize=(total_width / dpi, height / dpi), dpi=dpi)
+    map_fraction = width / total_width
+    ax = fig.add_axes([0, 0, map_fraction, 1])
+    ax.imshow(np.array(bg_image), zorder=1)
+    ax.set_xlim(0, width)
+    ax.set_ylim(height, 0)
+    ax.set_title("")
+    ax.axis("off")
+
+    side_left = map_fraction + 0.025
+    side_width_fraction = max(0.01, 1.0 - side_left - 0.025)
+    side_ax = fig.add_axes([side_left, 0.04, side_width_fraction, 0.92])
+    side_ax.axis("off")
+    side_ax.text(0, 1.0, title, fontsize=13, fontweight="bold", va="top", wrap=True)
+    return fig, ax, side_ax
+
+
+def add_live_pdf_side_header(side_ax, title, config, tr, language, extra_rows=None):
+    y = 0.89
+    rows = [
+        ("SSID", config.ssid),
+        (tr("band"), format_band_label(config.band, language)),
+    ]
+    if config.is_continuous:
+        rows.append((tr("color_scale"), tr(f"color_scale_{config.color_scale}")))
+    rows.extend(extra_rows or [])
+    for label, value in rows:
+        side_ax.text(0, y, f"{label}: {value}", fontsize=8.5, va="top", wrap=True)
+        y -= 0.045
+
+
+def add_live_pdf_colorbar(fig, side_ax, mappable, label):
+    bbox = side_ax.get_position()
+    cax = fig.add_axes([
+        bbox.x0 + bbox.width * 0.06,
+        bbox.y0 + bbox.height * 0.2,
+        bbox.width * 0.18,
+        bbox.height * 0.44,
+    ])
+    cbar = fig.colorbar(mappable, cax=cax)
+    cbar.set_label(label, fontsize=8)
+    cbar.ax.tick_params(labelsize=7)
+
+
+def add_live_pdf_swatch_list(side_ax, legend_items, title, y=0.66):
+    side_ax.text(0, y, title, fontsize=9.5, fontweight="bold", va="top")
+    y -= 0.05
+    if not legend_items:
+        side_ax.text(0, y, "-", fontsize=8, va="top")
+        return
+
+    max_items = 18
+    for item in legend_items[:max_items]:
+        marker = "^" if item.get("shape") == "triangle" else "o"
+        side_ax.scatter(
+            [0.035],
+            [y + 0.006],
+            s=38,
+            marker=marker,
+            color=item.get("color", "#7f8c8d"),
+            edgecolors="black",
+            linewidths=0.4,
+            transform=side_ax.transAxes,
+            clip_on=False,
+        )
+        side_ax.text(0.09, y, str(item.get("label", "")), fontsize=7.4, va="top", wrap=True)
+        y -= 0.04
+    if len(legend_items) > max_items:
+        side_ax.text(0.09, y, f"+{len(legend_items) - max_items}", fontsize=7.4, va="top")
+
+
+def add_live_pdf_ap_marker_note(side_ax, ap_groups, aliases, selected_group="", y=0.08):
+    visible_count = len(build_visible_ap_position_groups(ap_groups))
+    if visible_count == 0:
+        return
+
+    side_ax.scatter(
+        [0.035],
+        [y + 0.006],
+        s=48,
+        marker="P",
+        color="#0d6efd",
+        edgecolors="white",
+        linewidths=0.6,
+        transform=side_ax.transAxes,
+        clip_on=False,
+    )
+    side_ax.text(0.09, y, "AP position", fontsize=7.6, va="top")
+
+
+def draw_ap_position_markers(ax, ap_groups, aliases, selected_group=""):
+    for group in build_visible_ap_position_groups(ap_groups):
+        position = group.get("position") or {}
+        try:
+            x = float(position.get("x"))
+            y = float(position.get("y"))
+        except (TypeError, ValueError):
+            continue
+
+        group_id = str(group.get("group_id", ""))
+        ax.scatter(
+            [x],
+            [y],
+            marker="P",
+            s=82,
+            c="#0d6efd",
+            edgecolors="white",
+            linewidths=0.8,
+            zorder=6,
+        )
+        if selected_group and group_id == str(selected_group):
+            ax.scatter(
+                [x],
+                [y],
+                marker="o",
+                s=210,
+                facecolors="none",
+                edgecolors="#f1c40f",
+                linewidths=2.2,
+                zorder=7,
+            )
+
+
+def build_visible_ap_position_groups(ap_groups):
+    visible = []
+    for group in ap_groups or []:
+        if normalize_ap_role(group.get("role")) == AP_ROLE_TEST:
+            continue
+        position = group.get("position") or {}
+        try:
+            float(position.get("x"))
+            float(position.get("y"))
+        except (TypeError, ValueError):
+            continue
+        visible.append(group)
+    return visible
+
+
+def build_channel_point_legend_items(channel_df, config, aliases):
+    if config.point_label_mode == "none":
+        return []
+
+    items = []
+    previous_channel = None
+    for _index, row in channel_df.iterrows():
+        channel = row.get("channel", "")
+        if should_label_channel_point(row, previous_channel, config.point_label_mode, config.band):
+            label = (
+                f"CH {format_report_value(channel)} - "
+                f"{format_ap_label(row.get('bssid', ''), aliases, row.get('ap_group', ''))}"
+            )
+            items.append({
+                "label": label,
+                "color": get_channel_color(channel, config.band),
+                "sort_key": get_channel_sort_key(channel, config.band) + (label.casefold(),),
+            })
+        previous_channel = channel
+    return sorted(items, key=lambda item: item.get("sort_key", ()))
+
+
+def build_dominant_point_legend_items(dominant_df, config, aliases, color_map):
+    if config.point_label_mode == "none":
+        return []
+
+    items = []
+    group_labels = build_dominant_ap_group_labels(dominant_df, aliases)
+    previous_group = None
+    previous_roaming_overlap = False
+    for _index, row in dominant_df.iterrows():
+        group = row.get("dominant_ap_group", "")
+        if should_label_dominant_point(row, previous_group, previous_roaming_overlap, config.point_label_mode):
+            label = group_labels.get(
+                group,
+                format_ap_label(row.get("dominant_bssid", ""), aliases, group),
+            )
+            items.append({
+                "label": label,
+                "color": color_map.get(group, "#7f8c8d"),
+                "shape": "triangle" if row.get("ap_position_has_warning") else "circle",
+            })
+        previous_group = group
+        previous_roaming_overlap = bool(row.get("roaming_overlap"))
+    return items
+
+
+def build_interference_problem_report_page(risk_df, config, tr, language):
+    problem_df = risk_df[risk_df["risk"] >= 30].sort_values("risk", ascending=False).head(12)
+    rows = []
+    for _index, row in problem_df.iterrows():
+        rows.append([
+            f"{format_report_value(row.get('x'))}, {format_report_value(row.get('y'))}",
+            f"{float(row.get('risk', 0) or 0):.1f}%",
+            format_report_value(row.get("serving_channel", "")),
+            format_report_value(row.get("strongest_interferer_channel", "")),
+            get_interference_diagnosis(row, tr),
+        ])
+
+    return build_problem_report_page(
+        tr("live_pdf_problem_report_title"),
+        f"{tr('export_interference_title')} - {config.ssid} - {format_band_label(config.band, language)}",
+        [tr("interference_summary_point"), tr("reference_risk"), tr("interference_summary_serving_channel"),
+         tr("interference_summary_interferer_channel"), tr("interference_summary_diagnosis")],
+        rows,
+        tr("live_pdf_no_interference_issues"),
+    )
+
+
+def build_dominant_problem_report_page(dominant_df, config, tr, language, aliases):
+    group_labels = build_dominant_ap_group_labels(dominant_df, aliases)
+    rows = []
+    for _index, row in dominant_df.iterrows():
+        issues = []
+        if bool(row.get("roaming_overlap")):
+            issues.append(tr("dominant_map_roaming_overlap"))
+        warnings = [
+            warning
+            for warning in str(row.get("ap_position_warnings", "")).split(";")
+            if warning
+        ]
+        issues.extend(translate_ap_position_warning(warning, tr) for warning in warnings)
+        if not issues:
+            continue
+
+        group = row.get("dominant_ap_group", "")
+        rows.append([
+            f"{format_report_value(row.get('x'))}, {format_report_value(row.get('y'))}",
+            group_labels.get(group, format_ap_label(row.get("dominant_bssid", ""), aliases, group)),
+            format_report_value(row.get("delta_db"), suffix=" dB"),
+            "; ".join(issues),
+        ])
+
+    return build_problem_report_page(
+        tr("live_pdf_problem_report_title"),
+        f"{tr('export_dominant_title')} - {config.ssid} - {format_band_label(config.band, language)}",
+        [tr("interference_summary_point"), tr("dominant_map_legend_title"), tr("reference_delta"),
+         tr("live_pdf_issue")],
+        rows[:14],
+        tr("live_pdf_no_dominant_issues"),
+    )
+
+
+def build_problem_report_page(title, subtitle, headers, rows, empty_message):
+    fig, ax = plt.subplots(figsize=(11.69, 8.27), dpi=100)
+    ax.axis("off")
+    ax.text(0.03, 0.96, title, fontsize=16, fontweight="bold", va="top")
+    ax.text(0.03, 0.91, subtitle, fontsize=10, va="top")
+    if not rows:
+        ax.text(0.03, 0.82, empty_message, fontsize=11, va="top")
+        return fig
+
+    table = ax.table(
+        cellText=rows,
+        colLabels=headers,
+        cellLoc="left",
+        colLoc="left",
+        loc="upper left",
+        bbox=[0.03, 0.08, 0.94, 0.78],
+    )
+    table.auto_set_font_size(False)
+    table.set_fontsize(8)
+    table.scale(1, 1.25)
+    for (row_index, _column_index), cell in table.get_celld().items():
+        cell.set_edgecolor("#d0d0d0")
+        cell.set_linewidth(0.45)
+        if row_index == 0:
+            cell.set_text_props(weight="bold")
+            cell.set_facecolor("#f1f3f5")
+    return fig
+
+
+def translate_ap_position_warning(warning, tr):
+    return {
+        AP_POSITION_STRONG_FAR: tr("ap_position_strong_far"),
+        AP_POSITION_WEAK_CLOSE: tr("ap_position_weak_close"),
+        AP_POSITION_UNEXPECTED_DOMINANT: tr("ap_position_unexpected_dominant"),
+    }.get(warning, warning)
 
 
 def get_reference_label_terms(tr):

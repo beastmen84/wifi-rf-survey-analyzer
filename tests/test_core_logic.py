@@ -13,6 +13,7 @@ from PIL import Image
 from app_logging import MaxLogLevelFilter
 from app_restart import build_restart_command
 from app_settings import get_last_survey_directory, save_last_survey_path
+from i18n import translate
 from ap_groups import (
     build_bssid_to_manual_group_map,
     build_manual_ap_group,
@@ -21,6 +22,7 @@ from ap_groups import (
 from ap_metadata_checks import build_ap_metadata_warnings
 from heatmap_tools import calculate_interference_points
 from live_renderer import build_signal_payload
+from map_exporter import generate_live_pdf_export
 from map_config import MapConfig
 from qt_quality_dashboard import (
     build_summary,
@@ -798,6 +800,45 @@ class LiveMapViewTests(unittest.TestCase):
         self.assertTrue(markers[0]["highlight"])
 
 
+class LivePdfExportTests(unittest.TestCase):
+    def test_live_pdf_export_uses_current_config_and_writes_pdf(self):
+        rows = []
+        for point_id, x, y, signal in (
+            ("p1", "10", "10", -45),
+            ("p2", "90", "20", -62),
+            ("p3", "40", "80", -74),
+        ):
+            row = build_row(point_id, "MAIN", f"70:4f:57:aa:bb:{point_id[-1]}", signal, 6)
+            row["x"] = x
+            row["y"] = y
+            rows.append(row)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            csv_file = os.path.join(temp_dir, "survey.csv")
+            result = generate_live_pdf_export(
+                rows_to_dataframe(rows),
+                Image.new("RGB", (120, 100), "white"),
+                csv_file,
+                MapConfig(
+                    ssid="MAIN",
+                    band="2.4",
+                    map_type="signal",
+                    interpolation="linear",
+                    color_scale="auto",
+                    smoothing_sigma=0,
+                    max_distance_px=300,
+                ),
+                lambda key, **kwargs: translate("en", key, **kwargs),
+                language="en",
+            )
+
+            self.assertEqual(result.map_type, "signal")
+            self.assertTrue(result.output_file.endswith(".pdf"))
+            self.assertTrue(os.path.exists(result.output_file))
+            with open(result.output_file, "rb") as pdf_file:
+                self.assertEqual(pdf_file.read(4), b"%PDF")
+
+
 class SettingsMenuTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -950,20 +991,25 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             set_map_type("signal")
             self.assertEqual(combo_values(window.live_band_combo), ["all", "2.4", "5"])
             self.assertEqual(grid_position(window.live_ap_group_label)[:2], (0, 0))
-            self.assertEqual(grid_position(window.live_ap_group_combo)[:2], (0, 1))
             self.assertEqual(grid_position(window.live_band_label)[:2], (1, 0))
-            self.assertEqual(grid_position(window.live_band_combo)[:2], (1, 1))
-            self.assertEqual(grid_position(window.live_interpolation_label)[:2], (2, 0))
-            self.assertEqual(grid_position(window.live_aggregation_label)[:2], (3, 0))
-            self.assertEqual(grid_position(window.live_options_separator), (4, 0, 1, 2))
-            self.assertEqual(grid_position(window.live_usable_check), (5, 0, 1, 2))
+            self.assertEqual(grid_position(window.live_color_scale_label)[:2], (2, 0))
+            self.assertEqual(grid_position(window.live_interpolation_label)[:2], (3, 0))
+            self.assertEqual(grid_position(window.live_max_distance_label)[:2], (4, 0))
+            self.assertEqual(grid_position(window.live_aggregation_label)[:2], (5, 0))
+            self.assertEqual(grid_position(window.live_smoothing_label)[:2], (6, 0))
+            self.assertEqual(grid_position(window.live_options_separator), (7, 0, 1, 2))
+            self.assertEqual(grid_position(window.live_usable_check), (8, 0, 1, 2))
             self.assertEqual(window.live_band_combo.width(), window.live_interpolation_combo.width())
+            self.assertEqual(window.live_band_combo.width(), window.live_max_distance_spin.width())
             required_group_width = window.live_ap_group_combo.fontMetrics().horizontalAdvance("All AP groups")
             self.assertGreater(window.live_ap_group_combo.width(), required_group_width + window.spx(70))
             self.assertLess(window.live_band_combo.width(), window.spx(300))
             self.assertFalse(window.live_band_combo.isHidden())
             self.assertFalse(window.live_aggregation_combo.isHidden())
+            self.assertFalse(window.live_color_scale_combo.isHidden())
             self.assertFalse(window.live_interpolation_combo.isHidden())
+            self.assertFalse(window.live_max_distance_spin.isHidden())
+            self.assertFalse(window.live_smoothing_spin.isHidden())
             self.assertFalse(window.live_usable_check.isHidden())
             self.assertFalse(window.live_ap_group_combo.isHidden())
             self.assertFalse(window.live_options_separator.isHidden())
@@ -976,12 +1022,18 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(window.live_band_combo.width(), window.live_interference_mode_combo.width())
             self.assertEqual(grid_position(window.live_band_label)[:2], (0, 0))
             self.assertEqual(grid_position(window.live_band_combo)[:2], (0, 1))
-            self.assertEqual(grid_position(window.live_interference_mode_label)[:2], (1, 0))
-            self.assertEqual(grid_position(window.live_interference_mode_combo)[:2], (1, 1))
-            self.assertEqual(grid_position(window.live_interpolation_label)[:2], (2, 0))
+            self.assertEqual(grid_position(window.live_color_scale_label)[:2], (1, 0))
+            self.assertEqual(grid_position(window.live_interference_mode_label)[:2], (2, 0))
+            self.assertEqual(grid_position(window.live_interference_mode_combo)[:2], (2, 1))
+            self.assertEqual(grid_position(window.live_interpolation_label)[:2], (3, 0))
+            self.assertEqual(grid_position(window.live_max_distance_label)[:2], (4, 0))
+            self.assertEqual(grid_position(window.live_smoothing_label)[:2], (5, 0))
             self.assertFalse(window.live_band_combo.isHidden())
+            self.assertFalse(window.live_color_scale_combo.isHidden())
             self.assertFalse(window.live_interference_mode_combo.isHidden())
             self.assertFalse(window.live_interpolation_combo.isHidden())
+            self.assertFalse(window.live_max_distance_spin.isHidden())
+            self.assertFalse(window.live_smoothing_spin.isHidden())
             self.assertTrue(window.live_aggregation_combo.isHidden())
             self.assertTrue(window.live_usable_check.isHidden())
             self.assertTrue(window.live_ap_group_combo.isHidden())
@@ -1000,6 +1052,9 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertFalse(window.live_point_labels_combo.isHidden())
             self.assertTrue(window.live_interference_mode_combo.isHidden())
             self.assertTrue(window.live_interpolation_combo.isHidden())
+            self.assertTrue(window.live_color_scale_combo.isHidden())
+            self.assertTrue(window.live_max_distance_spin.isHidden())
+            self.assertTrue(window.live_smoothing_spin.isHidden())
 
             set_map_type("dominant")
             self.assertEqual(combo_values(window.live_band_combo), ["all", "2.4", "5"])
@@ -1010,6 +1065,9 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertTrue(window.live_aggregation_combo.isHidden())
             self.assertTrue(window.live_interference_mode_combo.isHidden())
             self.assertTrue(window.live_interpolation_combo.isHidden())
+            self.assertTrue(window.live_color_scale_combo.isHidden())
+            self.assertTrue(window.live_max_distance_spin.isHidden())
+            self.assertTrue(window.live_smoothing_spin.isHidden())
             self.assertTrue(window.live_usable_check.isHidden())
             self.assertTrue(window.live_ap_group_combo.isHidden())
         finally:
@@ -1037,7 +1095,14 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             set_map_type("signal")
             set_combo_value(window.live_band_combo, "all")
             set_combo_value(window.live_aggregation_combo, "median")
+            set_combo_value(window.live_color_scale_combo, "auto")
             set_combo_value(window.live_interpolation_combo, "linear")
+            window.live_smoothing_spin.blockSignals(True)
+            window.live_smoothing_spin.setValue(4.5)
+            window.live_smoothing_spin.blockSignals(False)
+            window.live_max_distance_spin.blockSignals(True)
+            window.live_max_distance_spin.setValue(260)
+            window.live_max_distance_spin.blockSignals(False)
             window.live_usable_check.blockSignals(True)
             window.live_usable_check.setChecked(True)
             window.live_usable_check.blockSignals(False)
@@ -1046,20 +1111,29 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             set_map_type("interference")
             self.assertEqual(window.current_combo_value(window.live_band_combo), "2.4")
             set_combo_value(window.live_band_combo, "5")
+            set_combo_value(window.live_color_scale_combo, "fixed")
             set_combo_value(window.live_interference_mode_combo, "all")
             set_combo_value(window.live_interpolation_combo, "rbf")
+            window.live_smoothing_spin.blockSignals(True)
+            window.live_smoothing_spin.setValue(2.0)
+            window.live_smoothing_spin.blockSignals(False)
             window.update_live_option_state()
 
             set_map_type("signal")
             self.assertEqual(window.current_combo_value(window.live_band_combo), "all")
             self.assertEqual(window.current_combo_value(window.live_aggregation_combo), "median")
+            self.assertEqual(window.current_combo_value(window.live_color_scale_combo), "auto")
             self.assertEqual(window.current_combo_value(window.live_interpolation_combo), "linear")
+            self.assertEqual(window.live_smoothing_spin.value(), 4.5)
+            self.assertEqual(window.current_live_max_distance_px(), 260)
             self.assertTrue(window.live_usable_check.isChecked())
 
             set_map_type("interference")
             self.assertEqual(window.current_combo_value(window.live_band_combo), "5")
+            self.assertEqual(window.current_combo_value(window.live_color_scale_combo), "fixed")
             self.assertEqual(window.current_combo_value(window.live_interference_mode_combo), "all")
             self.assertEqual(window.current_combo_value(window.live_interpolation_combo), "rbf")
+            self.assertEqual(window.live_smoothing_spin.value(), 2.0)
 
             set_map_type("channel")
             self.assertEqual(window.current_combo_value(window.live_point_labels_combo), "auto")
@@ -1081,6 +1155,9 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(window.current_combo_value(window.live_band_combo), "all")
             self.assertEqual(window.current_combo_value(window.live_aggregation_combo), "max")
             self.assertEqual(window.current_combo_value(window.live_interpolation_combo), "rbf")
+            self.assertEqual(window.current_combo_value(window.live_color_scale_combo), "fixed")
+            self.assertEqual(window.live_smoothing_spin.value(), 3.0)
+            self.assertEqual(window.current_live_max_distance_px(), 180)
             self.assertFalse(window.live_usable_check.isChecked())
             set_map_type("channel")
             self.assertEqual(window.current_combo_value(window.live_point_labels_combo), "auto")

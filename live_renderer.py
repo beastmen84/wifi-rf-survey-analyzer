@@ -41,7 +41,7 @@ def render_live_continuous_map(df, config, bg_image, translations, point_tooltip
             return clone_cached_result(cached)
 
     if config.is_interference:
-        payload = build_interference_payload(df, config, bg_image, translations, point_tooltip_builder)
+        payload = build_interference_payload(df, config, bg_image, translations, point_tooltip_builder, color_scale_limits)
     else:
         payload = build_signal_payload(df, config, bg_image, translations, point_tooltip_builder, color_scale_limits)
 
@@ -132,7 +132,7 @@ def build_signal_payload(df, config, bg_image, translations, point_tooltip_build
     return {"fig": fig, "point_infos": point_infos, "scale_payload": scale_payload}
 
 
-def build_interference_payload(df, config, bg_image, translations, point_tooltip_builder):
+def build_interference_payload(df, config, bg_image, translations, point_tooltip_builder, color_scale_limits):
     if config.band not in {"2.4", "5"}:
         return None
 
@@ -174,12 +174,13 @@ def build_interference_payload(df, config, bg_image, translations, point_tooltip
         point_confidence=confidence
     )
     heatmap_alpha = np.where(np.isfinite(grid_z), distance_alpha * 0.58, 0)
+    vmin, vmax = color_scale_limits(grid_z, config)
     scale_payload = {
         "kind": "gradient",
         "title": translations["interference_title"],
         "cmap": "RdYlGn_r",
-        "min": 0,
-        "max": 100,
+        "min": vmin,
+        "max": vmax,
         "suffix": "%",
     }
 
@@ -189,8 +190,8 @@ def build_interference_payload(df, config, bg_image, translations, point_tooltip
         extent=(0, width, height, 0),
         alpha=heatmap_alpha.T,
         cmap="RdYlGn_r",
-        vmin=0,
-        vmax=100,
+        vmin=vmin,
+        vmax=vmax,
         interpolation="bilinear"
     )
     point_infos = [

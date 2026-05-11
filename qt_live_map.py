@@ -849,6 +849,18 @@ def build_dominant_payload(df, config, bg_image, translations, aliases, ap_group
 
 
 def get_color_scale_limits(grid_z, config):
+    if getattr(config, "is_interference", False):
+        if getattr(config, "color_scale", "fixed") == "auto":
+            finite_values = grid_z[pd.notna(grid_z)]
+            if len(finite_values):
+                vmin = float(finite_values.min())
+                vmax = float(finite_values.max())
+                if vmax - vmin < 5:
+                    center = (vmin + vmax) / 2
+                    return max(0, center - 2.5), min(100, center + 2.5)
+                return max(0, vmin), min(100, vmax)
+        return 0, 100
+
     if getattr(config, "color_scale", "fixed") == "auto":
         finite_values = grid_z[pd.notna(grid_z)]
         if len(finite_values):

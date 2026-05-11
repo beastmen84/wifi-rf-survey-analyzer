@@ -15,6 +15,7 @@ try:
         QCheckBox,
         QComboBox,
         QDialog,
+        QDoubleSpinBox,
         QFrame,
         QGridLayout,
         QHBoxLayout,
@@ -64,7 +65,8 @@ from ap_groups import (
     serialize_ap_group_map,
     serialize_ap_group_roles,
 )
-from map_exporter import MapExportError, generate_map_export
+from constants import HEATMAP_MAX_DISTANCE_PX, HEATMAP_SMOOTHING_SIGMA
+from map_exporter import MapExportError, generate_live_pdf_export, generate_map_export
 from map_config import MapConfig
 from quality_engine import (
     QUALITY_GOOD,
@@ -171,6 +173,8 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_map_option_memory = {}
         self.live_current_map_type = "signal"
         self.live_option_state_syncing = False
+        self.live_distance_spin_uses_meters = False
+        self.live_distance_last_px_per_meter = None
         self.restart_requested = False
 
         self.setWindowTitle(self.tr("app_title"))
@@ -327,7 +331,7 @@ class WifiHeatmapQtApp(QMainWindow):
             self.load_plan_button,
         ):
             project_row.addWidget(button)
-        layout.addWidget(project_section)
+        layout.addWidget(project_section, 1)
 
         view_section, self.view_section_label, view_row = self.build_app_bar_section()
         self.zoom_out_button = self.create_app_bar_button(self.zoom_out, "appBarIconButton")
@@ -346,24 +350,19 @@ class WifiHeatmapQtApp(QMainWindow):
             self.calibrate_button,
         ):
             view_row.addWidget(button)
-        layout.addWidget(view_section)
+        layout.addWidget(view_section, 1)
 
         analysis_section, self.analysis_section_label, analysis_row = self.build_app_bar_section()
         self.ap_groups_button = self.create_app_bar_button(self.open_ap_group_manager)
         self.quality_button = self.create_app_bar_button(self.open_quality_dashboard)
         self.help_button = self.create_app_bar_button(self.open_help_dialog)
-        self.generate_map_button = self.create_app_bar_button(
-            self.open_generate_map_dialog,
-            "primaryAppBarButton",
-        )
         for button in (
             self.ap_groups_button,
             self.quality_button,
             self.help_button,
-            self.generate_map_button,
         ):
             analysis_row.addWidget(button)
-        layout.addWidget(analysis_section, 1)
+        layout.addWidget(analysis_section)
 
         self.settings_menu_button = self.create_app_bar_button(self.open_settings_menu, "appBarSettingsButton")
         self.settings_menu_button.setMinimumHeight(self.app_bar_control_height())
@@ -741,6 +740,12 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_interference_mode_combo = QComboBox()
         self.live_point_labels_label = QLabel()
         self.live_point_labels_combo = QComboBox()
+        self.live_color_scale_label = QLabel()
+        self.live_color_scale_combo = QComboBox()
+        self.live_smoothing_label = QLabel()
+        self.live_smoothing_spin = QDoubleSpinBox()
+        self.live_max_distance_label = QLabel()
+        self.live_max_distance_spin = QDoubleSpinBox()
         self.live_ap_group_label = QLabel()
         self.live_ap_group_combo = QComboBox()
         self.live_ap_group_combo.setMinimumWidth(self.spx(220))
@@ -749,19 +754,43 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_usable_check.setContentsMargins(0, 0, 0, 0)
         self.live_auto_check = QCheckBox()
         self.live_auto_check.setChecked(True)
+        self.live_pdf_export_button = QPushButton()
+        self.live_pdf_export_button.setObjectName("compactButton")
+        self.live_pdf_export_button.setMinimumWidth(self.spx(118))
+        self.live_pdf_export_button.setEnabled(False)
+        self.live_pdf_export_button.clicked.connect(self.export_live_pdf)
         self.live_update_button = QPushButton()
         self.live_update_button.setObjectName("compactButton")
         self.live_update_button.setMinimumWidth(self.spx(132))
         self.live_update_button.clicked.connect(self.update_live_preview)
+        self.live_export_separator = QFrame()
+        self.live_export_separator.setObjectName("toolbarSeparator")
+        self.live_export_separator.setFrameShape(QFrame.Shape.VLine)
+        self.live_export_separator.setFrameShadow(QFrame.Shadow.Plain)
+        self.live_export_separator.setFixedHeight(self.spx(28))
+        self.live_smoothing_spin.setRange(0.0, 12.0)
+        self.live_smoothing_spin.setSingleStep(0.5)
+        self.live_smoothing_spin.setDecimals(1)
+        self.live_smoothing_spin.setValue(float(HEATMAP_SMOOTHING_SIGMA))
+        self.live_max_distance_spin.setRange(40.0, 1000.0)
+        self.live_max_distance_spin.setSingleStep(20.0)
+        self.live_max_distance_spin.setDecimals(0)
+        self.live_max_distance_spin.setValue(float(HEATMAP_MAX_DISTANCE_PX))
         self.live_option_widgets = (
             self.live_band_label,
             self.live_band_combo,
             self.live_aggregation_label,
             self.live_aggregation_combo,
+            self.live_color_scale_label,
+            self.live_color_scale_combo,
             self.live_interpolation_label,
             self.live_interpolation_combo,
             self.live_interference_mode_label,
             self.live_interference_mode_combo,
+            self.live_smoothing_label,
+            self.live_smoothing_spin,
+            self.live_max_distance_label,
+            self.live_max_distance_spin,
             self.live_point_labels_label,
             self.live_point_labels_combo,
             self.live_usable_check,
@@ -774,12 +803,15 @@ class WifiHeatmapQtApp(QMainWindow):
             self.live_band_combo,
             self.live_map_type_combo,
             self.live_aggregation_combo,
+            self.live_color_scale_combo,
             self.live_interpolation_combo,
             self.live_interference_mode_combo,
             self.live_point_labels_combo,
             self.live_ap_group_combo,
         ):
             combo.currentIndexChanged.connect(lambda *_args: self.on_live_option_changed())
+        for spin in (self.live_smoothing_spin, self.live_max_distance_spin):
+            spin.valueChanged.connect(lambda *_args: self.on_live_option_changed())
         self.live_usable_check.toggled.connect(lambda *_args: self.on_live_option_changed())
         self.live_auto_check.toggled.connect(lambda *_args: self.on_live_option_changed())
 
@@ -794,6 +826,8 @@ class WifiHeatmapQtApp(QMainWindow):
         toolbar_layout.addWidget(self.live_ssid_label)
         toolbar_layout.addWidget(self.live_ssid_combo)
         toolbar_layout.addStretch(1)
+        toolbar_layout.addWidget(self.live_export_separator)
+        toolbar_layout.addWidget(self.live_pdf_export_button)
         toolbar_layout.addWidget(self.live_update_button)
         toolbar_layout.addWidget(self.live_auto_check)
         layout.addWidget(toolbar)
@@ -1015,6 +1049,13 @@ class WifiHeatmapQtApp(QMainWindow):
                 border: 0;
                 min-height: {s(1)}px;
                 max-height: {s(1)}px;
+            }}
+            QFrame#toolbarSeparator {{
+                color: {palette["border"]};
+                background: {palette["border"]};
+                border: 0;
+                min-width: {s(1)}px;
+                max-width: {s(1)}px;
             }}
             QCheckBox#liveOptionCheckbox {{
                 margin-left: 0;
@@ -1382,7 +1423,6 @@ class WifiHeatmapQtApp(QMainWindow):
         self.ap_groups_button.setText(self.tr("ap_groups_title"))
         self.quality_button.setText(self.tr("quality_dashboard_title"))
         self.help_button.setText(self.tr("help"))
-        self.generate_map_button.setText(self.tr("generate_heatmap"))
         self.focus_point_button.setText(self.tr("go_to_point"))
         self.rescan_point_button.setText(self.tr("rescan_point"))
         self.delete_selected_button.setText(self.tr("delete_selected"))
@@ -1397,12 +1437,16 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_band_label.setText(self.tr("band"))
         self.live_map_type_label.setText(self.tr("map_type"))
         self.live_aggregation_label.setText(self.tr("aggregation"))
+        self.live_color_scale_label.setText(self.tr("color_scale"))
         self.live_interpolation_label.setText(self.tr("interpolation"))
         self.live_interference_mode_label.setText(self.tr("interference_mode"))
+        self.live_smoothing_label.setText(self.tr("smoothing"))
+        self.update_live_max_distance_label()
         self.live_point_labels_label.setText(self.tr("point_labels"))
         self.live_ap_group_label.setText(self.tr("ap_group_filter"))
         self.live_usable_check.setText(self.tr("usable_only"))
         self.live_auto_check.setText(self.tr("live_auto_update"))
+        self.live_pdf_export_button.setText(self.tr("live_export_pdf"))
         self.live_update_button.setText(self.tr("live_update_now"))
         self.refresh_live_static_options()
         self.points_table.setHorizontalHeaderLabels([
@@ -1594,6 +1638,13 @@ class WifiHeatmapQtApp(QMainWindow):
             ],
         )
         self.set_combo_items(
+            self.live_color_scale_combo,
+            [
+                ("fixed", self.tr("color_scale_fixed")),
+                ("auto", self.tr("color_scale_auto")),
+            ],
+        )
+        self.set_combo_items(
             self.live_interpolation_combo,
             [
                 ("rbf", self.tr("interpolation_rbf")),
@@ -1639,6 +1690,45 @@ class WifiHeatmapQtApp(QMainWindow):
             current_band = "2.4" if "2.4" in available else (str(items[0][0]) if items else "")
         self.set_combo_items(self.live_band_combo, items, current_value=current_band)
 
+    def update_live_max_distance_label(self):
+        if not hasattr(self, "live_max_distance_label"):
+            return
+
+        if self.get_px_per_meter():
+            self.live_max_distance_label.setText(self.tr("max_distance_m"))
+        else:
+            self.live_max_distance_label.setText(self.tr("max_distance_px"))
+
+    def current_live_max_distance_px(self):
+        px_per_meter = self.get_px_per_meter() or self.live_distance_last_px_per_meter
+        if getattr(self, "live_distance_spin_uses_meters", False) and px_per_meter:
+            return max(1, int(round(self.live_max_distance_spin.value() * px_per_meter)))
+
+        return max(1, int(round(self.live_max_distance_spin.value())))
+
+    def set_live_max_distance_px_silent(self, max_distance_px):
+        px_per_meter = self.get_px_per_meter()
+        self.live_max_distance_spin.blockSignals(True)
+        try:
+            if px_per_meter:
+                self.live_distance_spin_uses_meters = True
+                self.live_distance_last_px_per_meter = px_per_meter
+                self.live_max_distance_spin.setRange(1.0, 50.0)
+                self.live_max_distance_spin.setSingleStep(0.5)
+                self.live_max_distance_spin.setDecimals(1)
+                self.live_max_distance_spin.setSuffix(" m")
+                self.live_max_distance_spin.setValue(max(1.0, float(max_distance_px) / px_per_meter))
+            else:
+                self.live_distance_spin_uses_meters = False
+                self.live_max_distance_spin.setRange(40.0, 1000.0)
+                self.live_max_distance_spin.setSingleStep(20.0)
+                self.live_max_distance_spin.setDecimals(0)
+                self.live_max_distance_spin.setSuffix(" px")
+                self.live_max_distance_spin.setValue(float(max_distance_px or HEATMAP_MAX_DISTANCE_PX))
+        finally:
+            self.live_max_distance_spin.blockSignals(False)
+        self.update_live_max_distance_label()
+
     def set_combo_value_silent(self, combo, value):
         index = combo.findData(value)
         if index < 0 and combo.count():
@@ -1654,17 +1744,21 @@ class WifiHeatmapQtApp(QMainWindow):
         return {
             "band": "2.4" if map_type == "interference" else "all",
             "aggregation": "max",
+            "color_scale": "fixed",
             "interpolation": "rbf",
             "interference_mode": "intra_ssid",
             "point_label_mode": "auto",
             "ap_group_filter": "",
             "usable_only": False,
+            "smoothing_sigma": HEATMAP_SMOOTHING_SIGMA,
+            "max_distance_px": HEATMAP_MAX_DISTANCE_PX,
         }
 
     def current_live_option_state(self):
         return {
             "band": self.current_combo_value(self.live_band_combo, "all"),
             "aggregation": self.current_combo_value(self.live_aggregation_combo, "max"),
+            "color_scale": self.current_combo_value(self.live_color_scale_combo, "fixed"),
             "interpolation": self.current_combo_value(self.live_interpolation_combo, "rbf"),
             "interference_mode": self.current_combo_value(
                 self.live_interference_mode_combo,
@@ -1673,6 +1767,8 @@ class WifiHeatmapQtApp(QMainWindow):
             "point_label_mode": self.current_combo_value(self.live_point_labels_combo, "auto"),
             "ap_group_filter": self.current_combo_value(self.live_ap_group_combo, ""),
             "usable_only": self.live_usable_check.isChecked(),
+            "smoothing_sigma": float(self.live_smoothing_spin.value()),
+            "max_distance_px": self.current_live_max_distance_px(),
         }
 
     def remember_live_option_state(self, map_type=None):
@@ -1690,12 +1786,17 @@ class WifiHeatmapQtApp(QMainWindow):
         try:
             self.refresh_live_band_options(map_type, preferred_band=state.get("band"))
             self.set_combo_value_silent(self.live_aggregation_combo, state.get("aggregation", "max"))
+            self.set_combo_value_silent(self.live_color_scale_combo, state.get("color_scale", "fixed"))
             self.set_combo_value_silent(self.live_interpolation_combo, state.get("interpolation", "rbf"))
             self.set_combo_value_silent(
                 self.live_interference_mode_combo,
                 state.get("interference_mode", "intra_ssid"),
             )
             self.set_combo_value_silent(self.live_point_labels_combo, state.get("point_label_mode", "auto"))
+            self.live_smoothing_spin.blockSignals(True)
+            self.live_smoothing_spin.setValue(float(state.get("smoothing_sigma", HEATMAP_SMOOTHING_SIGMA)))
+            self.live_smoothing_spin.blockSignals(False)
+            self.set_live_max_distance_px_silent(state.get("max_distance_px", HEATMAP_MAX_DISTANCE_PX))
             self.live_usable_check.blockSignals(True)
             self.live_usable_check.setChecked(bool(state.get("usable_only", False)))
             self.live_usable_check.blockSignals(False)
@@ -1823,8 +1924,11 @@ class WifiHeatmapQtApp(QMainWindow):
             self.live_band_combo,
             self.live_map_type_combo,
             self.live_aggregation_combo,
+            self.live_color_scale_combo,
             self.live_interpolation_combo,
             self.live_interference_mode_combo,
+            self.live_smoothing_spin,
+            self.live_max_distance_spin,
             self.live_point_labels_combo,
             self.live_ap_group_combo,
             self.live_usable_check,
@@ -1833,6 +1937,7 @@ class WifiHeatmapQtApp(QMainWindow):
         ):
             widget.setEnabled(can_render)
         self.live_update_button.setEnabled(can_render and not self.live_rendering)
+        self.live_pdf_export_button.setEnabled(can_render and not self.live_rendering)
         self.update_live_option_state()
 
         if not can_render and not self.live_rendering:
@@ -1863,6 +1968,8 @@ class WifiHeatmapQtApp(QMainWindow):
         is_interference = map_type == "interference"
         is_channel = map_type == "channel"
         is_dominant = map_type == "dominant"
+        is_continuous = is_signal or is_interference
+        self.set_live_max_distance_px_silent(self.current_live_max_distance_px())
         self.reflow_live_option_controls(map_type)
         can_use_controls = self.can_use_live_controls()
         self.set_labeled_live_control_state(
@@ -1886,8 +1993,26 @@ class WifiHeatmapQtApp(QMainWindow):
         self.set_labeled_live_control_state(
             self.live_interpolation_label,
             self.live_interpolation_combo,
-            visible=is_signal or is_interference,
-            enabled=can_use_controls and (is_signal or is_interference),
+            visible=is_continuous,
+            enabled=can_use_controls and is_continuous,
+        )
+        self.set_labeled_live_control_state(
+            self.live_color_scale_label,
+            self.live_color_scale_combo,
+            visible=is_continuous,
+            enabled=can_use_controls and is_continuous,
+        )
+        self.set_labeled_live_control_state(
+            self.live_smoothing_label,
+            self.live_smoothing_spin,
+            visible=is_continuous,
+            enabled=can_use_controls and is_continuous,
+        )
+        self.set_labeled_live_control_state(
+            self.live_max_distance_label,
+            self.live_max_distance_spin,
+            visible=is_continuous,
+            enabled=can_use_controls and is_continuous,
         )
         self.set_labeled_live_control_state(
             self.live_point_labels_label,
@@ -1927,6 +2052,7 @@ class WifiHeatmapQtApp(QMainWindow):
         width = max(self.spx(132), min(self.spx(280), text_width + self.spx(86)))
         for combo in combos:
             combo.setFixedWidth(width)
+        return width
 
     def reflow_live_option_controls(self, map_type):
         for widget in self.live_option_widgets:
@@ -1936,6 +2062,7 @@ class WifiHeatmapQtApp(QMainWindow):
 
         row = 0
         dropdowns = []
+        value_widgets = []
 
         def add_labeled(label, widget):
             nonlocal row
@@ -1944,6 +2071,8 @@ class WifiHeatmapQtApp(QMainWindow):
             self.live_options_layout.addWidget(widget, row, 1)
             if isinstance(widget, QComboBox):
                 dropdowns.append(widget)
+            elif isinstance(widget, QDoubleSpinBox):
+                value_widgets.append(widget)
             row += 1
 
         def add_checkbox(widget):
@@ -1963,7 +2092,10 @@ class WifiHeatmapQtApp(QMainWindow):
             dropdown_controls.extend(
                 [
                     (self.live_aggregation_label, self.live_aggregation_combo),
+                    (self.live_color_scale_label, self.live_color_scale_combo),
                     (self.live_interpolation_label, self.live_interpolation_combo),
+                    (self.live_max_distance_label, self.live_max_distance_spin),
+                    (self.live_smoothing_label, self.live_smoothing_spin),
                 ]
             )
             if self.live_ap_group_combo.count() > 1:
@@ -1971,8 +2103,11 @@ class WifiHeatmapQtApp(QMainWindow):
         elif map_type == "interference":
             dropdown_controls.extend(
                 [
+                    (self.live_color_scale_label, self.live_color_scale_combo),
                     (self.live_interference_mode_label, self.live_interference_mode_combo),
                     (self.live_interpolation_label, self.live_interpolation_combo),
+                    (self.live_max_distance_label, self.live_max_distance_spin),
+                    (self.live_smoothing_label, self.live_smoothing_spin),
                 ]
             )
         elif map_type == "channel":
@@ -1989,7 +2124,9 @@ class WifiHeatmapQtApp(QMainWindow):
             add_separator()
             add_checkbox(self.live_usable_check)
 
-        self.update_live_option_dropdown_widths(dropdowns)
+        control_width = self.update_live_option_dropdown_widths(dropdowns)
+        for widget in value_widgets:
+            widget.setFixedWidth(control_width)
 
         if hasattr(self, "live_options_overlay"):
             QTimer.singleShot(0, self.position_live_options_overlay)
@@ -2087,9 +2224,11 @@ class WifiHeatmapQtApp(QMainWindow):
             interference_mode=self.current_combo_value(self.live_interference_mode_combo, "intra_ssid"),
             interpolation=self.current_combo_value(self.live_interpolation_combo, "rbf"),
             aggregation=self.current_combo_value(self.live_aggregation_combo, "max"),
-            color_scale="fixed",
+            color_scale=self.current_combo_value(self.live_color_scale_combo, "fixed"),
             point_label_mode=self.current_combo_value(self.live_point_labels_combo, "auto"),
             usable_only=self.live_usable_check.isChecked(),
+            smoothing_sigma=float(self.live_smoothing_spin.value()),
+            max_distance_px=self.current_live_max_distance_px(),
             ap_group_filter=ap_group_filter,
             ap_group_map=ap_group_map,
             ap_group_roles=ap_group_roles,
@@ -2130,9 +2269,11 @@ class WifiHeatmapQtApp(QMainWindow):
             interference_mode=self.current_combo_value(self.live_interference_mode_combo, "intra_ssid"),
             interpolation=self.current_combo_value(self.live_interpolation_combo, "rbf"),
             aggregation=self.current_combo_value(self.live_aggregation_combo, "max"),
-            color_scale="fixed",
+            color_scale=self.current_combo_value(self.live_color_scale_combo, "fixed"),
             point_label_mode=self.current_combo_value(self.live_point_labels_combo, "auto"),
             usable_only=self.live_usable_check.isChecked(),
+            smoothing_sigma=float(self.live_smoothing_spin.value()),
+            max_distance_px=self.current_live_max_distance_px(),
             ap_group_filter=ap_group_filter,
             ap_group_map=serialize_ap_group_map(build_bssid_to_manual_group_map(groups)),
             ap_group_roles=serialize_ap_group_roles(build_ap_group_role_map(groups)),
@@ -2604,6 +2745,59 @@ class WifiHeatmapQtApp(QMainWindow):
                 self.status.showMessage(self.tr("save_failed"))
             return saved
 
+        return True
+
+    def export_live_pdf(self):
+        if self.session is None:
+            return False
+
+        if not self.can_render_live_preview():
+            QMessageBox.warning(self, self.tr("warning"), self.tr("live_preview_empty"))
+            return False
+
+        if not self.ensure_saved_for_map_export():
+            return False
+
+        map_file = self.session.metadata.get("map_file", "")
+        config = self.build_live_map_config()
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        result = None
+        map_error = None
+        unexpected_error = None
+        try:
+            bg_image = load_floorplan_image(map_file)
+            result = generate_live_pdf_export(
+                self.session.to_dataframe(),
+                bg_image,
+                self.session.csv_file,
+                config,
+                self.tr,
+                language=self.language,
+                aliases=self.session.get_ap_aliases(),
+                ap_groups=self.session.get_ap_groups(),
+                px_per_meter=self.get_px_per_meter(),
+            )
+        except MapExportError as exc:
+            map_error = exc
+        except Exception as exc:
+            unexpected_error = exc
+        finally:
+            QApplication.restoreOverrideCursor()
+
+        if map_error is not None:
+            QMessageBox.warning(self, map_error.title, map_error.message)
+            return False
+        if unexpected_error is not None:
+            log_exception("qt live PDF export failed", unexpected_error, logger_name="main")
+            QMessageBox.critical(self, self.tr("error"), str(unexpected_error))
+            return False
+
+        QMessageBox.information(
+            self,
+            self.tr("live_pdf_exported"),
+            self.format_map_export_result_message(result),
+        )
+        self.status.showMessage(self.tr("live_pdf_exported"))
         return True
 
     def generate_map_from_dialog(self, dialog):
@@ -3281,7 +3475,6 @@ class WifiHeatmapQtApp(QMainWindow):
         self.ap_groups_button.setEnabled(can_use_session)
         self.quality_button.setEnabled(can_use_session)
         self.help_button.setEnabled(True)
-        self.generate_map_button.setEnabled(can_use_session)
         self.manage_relevant_button.setEnabled(can_use_session and bool(self.available_relevant_ssids()))
         self.clear_relevant_button.setEnabled(
             can_use_session and bool(self.relevant_ssids or self.known_ssids)
