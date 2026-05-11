@@ -19,6 +19,8 @@ from ap_groups import (
 )
 from ap_metadata_checks import build_ap_metadata_warnings
 from heatmap_tools import calculate_interference_points
+from live_renderer import build_signal_payload
+from map_config import MapConfig
 from qt_quality_dashboard import (
     build_summary,
     format_point_confidence,
@@ -529,6 +531,30 @@ class LiveMapViewTests(unittest.TestCase):
 
         self.assertEqual(len(view.ap_marker_items), 1)
         view.deleteLater()
+
+    def test_live_signal_tooltip_rows_keep_selected_ssid_after_aggregation(self):
+        rows = [
+            build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1),
+            build_row("p2", "MAIN", "70:4f:57:aa:bb:11", -65, 1),
+            build_row("p3", "MAIN", "70:4f:57:aa:bb:12", -70, 1),
+        ]
+        for index, row in enumerate(rows):
+            row["timestamp"] = f"p{index + 1}"
+            row["x"] = str(20 + index * 30)
+            row["y"] = str(20 + (index % 2) * 30)
+        tooltip_ssids = []
+
+        payload = build_signal_payload(
+            rows_to_dataframe(rows),
+            MapConfig(ssid="MAIN", band="all", map_type="signal", interpolation="linear"),
+            Image.new("RGB", (120, 90), "white"),
+            {"signal_title": "Signal coverage"},
+            lambda _map_type, row, _raw_rows: tooltip_ssids.append(row.get("ssid")) or "tooltip",
+            lambda _grid_z, _config: (-90, -40),
+        )
+        payload["fig"].clf()
+
+        self.assertEqual(tooltip_ssids, ["MAIN", "MAIN", "MAIN"])
 
     def test_live_ap_position_markers_skip_test_groups(self):
         markers = build_ap_position_marker_infos(

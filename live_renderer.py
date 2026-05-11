@@ -65,6 +65,7 @@ def build_signal_payload(df, config, bg_image, translations, point_tooltip_build
         rows = rows[rows["ap_group"] == config.ap_group_filter]
     raw_rows = len(rows)
     rows = collapse_heatmap_points(rows, aggregation=config.aggregation)
+    rows["ssid"] = config.ssid
 
     if len(rows) < 3:
         return None

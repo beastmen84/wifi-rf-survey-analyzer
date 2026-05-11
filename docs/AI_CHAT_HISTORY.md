@@ -36,10 +36,10 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the latest live-map side-panel pass is 42
+- The current code test baseline after the latest live-map side-panel pass is 43
   passing tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
-  `127ff1d Remember live map options per view`.
+  `6ead043 Unify survey and live tooltip layout`.
 - Current AP positioning and scale calibration pick points with left click while
   their modal map-pick mode is active; normal map dragging is disabled during
   the pick and the click must not create a measurement point.
@@ -238,6 +238,10 @@ Visual/UX decisions:
 - Survey map point and AP-position tooltips now use the same compact HTML table
   layout as live map tooltips, via shared `qt_tooltips.py` helpers. Keep future
   tooltip layout changes shared where practical.
+- Live coverage point tooltips must keep the selected SSID after heatmap point
+  aggregation. `collapse_heatmap_points()` intentionally drops non-aggregated
+  string columns, so `live_renderer.build_signal_payload()` reattaches
+  `config.ssid` before building point tooltips.
 
 ## Interference Logic
 
@@ -896,6 +900,7 @@ Language:
 
 Recent commits:
 
+- `6ead043` Unify survey and live tooltip layout.
 - `127ff1d` Remember live map options per view.
 - `4379b18` Normalize live map option layouts.
 - `def9360` Refine live options side panel spacing.
