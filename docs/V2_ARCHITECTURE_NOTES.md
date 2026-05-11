@@ -1,6 +1,6 @@
 # WiFi Heatmap - V2 Architecture Notes
 
-Last updated: 2026-05-10
+Last updated: 2026-05-11
 
 This document is the forward-looking V2 roadmap. Completed items are kept only
 as context; the actionable backlog is in the "Remaining Work" section.
@@ -19,6 +19,14 @@ analysis platform that:
 
 The heatmap should be the result of a validated RF dataset, not just
 interpolated colors.
+
+Current status:
+
+- the Tk to Qt migration is substantially complete;
+- Help content and structure are intentionally postponed until the V2 workflow
+  is stable;
+- the current focus is validating the last live-map exports and closing
+  remaining V2 analysis/reporting gaps.
 
 ## Implemented V2 Foundation
 
@@ -195,14 +203,77 @@ Implemented:
 
 Implemented:
 
-- separate live map tab;
-- signal/interference continuous rendering;
-- AP channels and dominant AP marker views;
-- live zoom and drag;
-- structured mouseover tooltips;
-- hover legend highlight;
-- cached/fingerprinted rendering;
-- worker rendering with Matplotlib Agg and Tk main-thread GUI updates.
+- dedicated Qt live map tab;
+- Coverage, Interference, AP Channels and Dominant AP views;
+- worker rendering with Matplotlib Agg and Qt main-thread GUI updates;
+- cached/fingerprinted rendering to avoid unnecessary redraws;
+- app-bar zoom/focus controls work on the active live map;
+- duplicate bottom-right live zoom controls removed;
+- scale calibration controls disabled while the Live tab is active;
+- map markers use scene-sized survey-style sizing;
+- normal cursor by default and closed-hand cursor only while panning;
+- positioned physical AP markers shown on live maps, excluding test/hidden APs;
+- AP group filter highlights the matching AP marker when a position exists;
+- continuous maps use a bottom-right color scale overlay bound to the viewport;
+- map-specific options live in a compact left overlay with a vertical tab;
+- each map exposes only values that make sense for that map;
+- live-map options are remembered per survey/map type;
+- AP Channels and Dominant AP use legend-controlled point labels
+  (`Auto` / `All` / `None`) rather than labels drawn directly on the map;
+- discrete-map legends support click-to-highlight, double-click-to-focus and
+  empty-map-click deselection;
+- tooltips use the newer compact Qt layout;
+- Coverage tooltips preserve the selected SSID;
+- Interference tooltips omit empty main-interferer rows.
+
+### Live PDF Export
+
+Implemented:
+
+- live export starts from the Live Map toolbar through `Export PDF`;
+- export asks the user where to save the PDF;
+- export uses the current live-map type and options;
+- map rendering uses the full floor-plan extent, independent of viewport
+  zoom/pan;
+- page 1 is arranged as map first, then summary/scale/legend below the map;
+- continuous Coverage and Interference exports honor color scale, smoothing and
+  max-distance settings;
+- exported map pages are flattened to avoid accidental page-image selection in
+  PDF viewers;
+- map markers use survey-like sizing;
+- positioned AP markers use the Wi-Fi marker on the map;
+- completion popup reports only the created file path;
+- Coverage export intentionally has no problem-report page;
+- Interference and Dominant AP exports can add paged problem-report cards;
+- AP Channels export is map-only until a diagnostic rule is defined;
+- Interference report cards show risk, coordinates, serving AP/channel and main
+  interferer/channel;
+- Interference map page labels problem points with numbered square callouts
+  matching the report-card order.
+
+### Qt Migration Status
+
+Implemented:
+
+- PySide6 is the active UI stack;
+- `main.py` is the lightweight Qt launcher/start screen;
+- `qt_app.py` contains the main Qt workspace and workflow logic;
+- legacy Tkinter entry points and Tk dialogs have been retired from the active
+  codebase;
+- the launcher imports the heavier workspace module in a background Qt worker
+  before enabling new/open actions;
+- Qt workspace covers project/session behavior, floor-plan loading, saved map
+  restore, point marker overlay, pan/zoom and fit-to-window;
+- Qt AP Group Manager covers group table/search, alias/role edits, metadata
+  editing, BSSID split, conflict details, AP positioning and save behavior;
+- Qt point creation/scanning runs scans in a background Qt thread and saves all
+  detected networks;
+- relevant SSID prompts, missing network dialogs, points table controls, Survey
+  Quality Dashboard, scale calibration, generated map dialogs, live maps,
+  settings/theme/language handling and start-screen behavior are available in
+  Qt;
+- Help is available in first-pass form, but the content/structure rework remains
+  postponed.
 
 ### UI/Workflow Foundation
 
@@ -211,10 +282,13 @@ Implemented:
 - fullscreen main app by default;
 - start screen with scaled layout;
 - toolbar-based workflow;
+- balanced top app-bar sections for Project, Analysis and View actions;
 - new/open/save survey handling;
 - dirty-state save button highlighting;
 - save prompt before close/new/open;
 - map generation requires saved survey;
+- top app-bar `Generate heatmap` was removed from the live-map workflow;
+- live-map export now lives beside live-map update controls;
 - generated PNG/report names depend on survey filename, map type, band and
   timestamp;
 - map/output files are saved beside the survey CSV;
@@ -297,23 +371,25 @@ Possible additions:
 - likely mesh/roaming ambiguity detection;
 - "points to rescan" recommendation list.
 
-### 5. Live View V2
+### 5. Live Map Validation And Final Polish
 
-Current live view is useful, but it can become the main working surface.
+The live-map Qt implementation is now the main working surface. Remaining work
+is mostly validation and targeted polish rather than migration.
 
-Potential upgrades:
+Suggested next steps:
 
-- preserve live map options as defaults for PNG generation;
-- faster switching between map types;
-- per-map option panels;
-- live overlay for quality warnings;
-- live overlay for AP positions;
-- live AP group filter improvements;
-- optional hover pinning so a tooltip can stay open while inspecting details.
+- export and review Coverage, AP Channels and Dominant AP from real surveys;
+- align the remaining live PDF outputs with the current Interference export
+  quality;
+- verify legends/scales on different floor-plan sizes and aspect ratios;
+- verify AP group filters and positioned AP markers across all live map types;
+- tune performance only if large real surveys expose measurable lag;
+- consider optional hover pinning later if tooltip inspection still feels
+  difficult.
 
 ### 6. Generated Report Improvements
 
-The generated maps are now useful, but reports can become more actionable.
+Live-map PDF export now exists, but reporting can become more complete.
 
 Possible additions:
 
@@ -322,7 +398,8 @@ Possible additions:
 - quality warning export;
 - interference ranking per AP group;
 - dominant AP transition summary;
-- PDF report generation later.
+- AP Channels diagnostics if a clear rule is defined;
+- consistent PDF output for generated/non-live map workflows where useful.
 
 ### 7. Testing And Validation
 
@@ -355,88 +432,28 @@ Needed later:
 - explain relevant SSIDs, raw scans, confidence and quality states;
 - keep text concise and visual where possible.
 
-### 9. PySide6 Migration
-
-Decision updated:
-
-- PySide6 migration should happen early, while the tool is not yet distributed;
-- Qt is now the active UI stack;
-- the old Tkinter/ttkbootstrap UI has been retired from the active codebase;
-- new GUI work should target Qt.
-
-Reason:
-
-- AP Group Manager, live maps and quality dashboards need stronger table,
-  layout and interaction primitives than Tkinter comfortably provides;
-- postponing the migration would make every future GUI feature more expensive
-  to port;
-- the current user base is still controlled, so this is the right moment for a
-  heavy UI change.
-
-PySide6 is the target UI stack for:
-
-- complex editable tables;
-- dockable panels;
-- multi-panel dashboards;
-- larger datasets;
-- richer validation workflows.
-
-Current state:
-
-- `main.py` is the lightweight PySide6 launcher/start screen;
-- `qt_app.py` contains the main Qt workspace window and workflow logic;
-- the legacy Tkinter entry point and legacy Tk dialogs have been removed;
-- the launcher shows immediately and imports the heavier workspace module in a
-  background Qt worker before enabling new/open actions;
-- `qt_app.py` includes project/session shell behavior, floorplan loading, saved
-  map restore, point marker overlay, pan/zoom and fit-to-window.
-- `qt_ap_groups.py` contains the first Qt AP Group Manager migration: group
-  table/search, alias/role edits, metadata editing, BSSID split, conflict
-  details, AP positioning from the Qt floorplan and save behavior are available.
-- Qt point creation/scanning is also available in first-pass form: right-click
-  on the Qt floorplan starts an Auto scan in a background Qt thread, relevant
-  SSID prompts are Qt dialogs, all detected networks are saved, and the Qt
-  points table includes quality/focus/delete controls.
-- `qt_point_workflow.py` contains the Qt scan worker and relevant/missing
-  network dialogs.
-- Qt live map, generated map export, Survey Quality Dashboard, scale
-  calibration, Help and the toolbar theme selector are now available in
-  first-pass form.
-
-Completed migration sequence:
-
-```text
-1. Keep Tkinter stable as fallback during the transition
-2. Build the Qt shell in main.py
-3. Move survey state, loading/saving and floorplan viewing to Qt
-4. Move AP Group Manager to Qt
-5. Move live map tab to Qt
-6. Move quality dashboard and map generation dialogs to Qt
-7. Move remaining smaller workflow dialogs/actions to Qt
-8. Retire Tkinter after practical feature parity
-```
-
 ## Suggested Next Priorities
 
 Near-term:
 
-1. Add more targeted tests for point scanning, survey save/load and sidecar
+1. Validate/export the remaining live map PDFs and adjust only concrete visual
+   or data-logic issues found in those outputs.
+2. Add more targeted tests for point scanning, survey save/load and sidecar
    handling.
-2. Keep the Qt code modular while the visual redesign proceeds.
-3. Remove or rewrite any stale documentation that still describes retired
-   transition behavior.
+3. Revisit AP Group Manager UX for large surveys after live export validation
+   is complete.
 
 Medium-term:
 
 4. Expand survey quality recommendations.
-5. Improve generated reporting.
+5. Improve combined/generated reporting beyond individual live-map exports.
 6. Use AP metadata more deeply in diagnostics.
 
 Long-term:
 
-9. Rework Help after feature workflows stabilize.
-10. Add advanced RF/AI-assisted suggestions.
-11. Add richer deployment/reporting outputs.
+7. Rework Help after feature workflows stabilize.
+8. Add advanced RF/AI-assisted suggestions.
+9. Add richer deployment/reporting outputs.
 
 ## Final Vision
 
