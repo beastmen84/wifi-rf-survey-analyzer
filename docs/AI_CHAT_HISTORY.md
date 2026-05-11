@@ -1,6 +1,6 @@
 # AI Chat History And Project Context
 
-Last updated: 2026-05-10
+Last updated: 2026-05-11
 
 This file is the continuity handoff for future AI chats. Read it before making
 changes. It is not a full transcript: it is the technical history, decisions,
@@ -23,6 +23,28 @@ current architecture, and active rules that matter for continuing the work.
   postpone that for now.
 - Existing code is the source of truth. If this file and code disagree, inspect
   code and update this file.
+
+## Current State Snapshot
+
+Read this section first in a new chat.
+
+- Active UI is PySide6 only. `main.py` is the launcher/start screen and
+  `qt_app.py` is the main workspace.
+- Legacy Tkinter/ttkbootstrap files were removed from the active path. Any old
+  Tk notes in the chronological work log are historical only.
+- Current CSV format is schema V2 only; do not spend effort on pre-V2 CSV
+  migration unless the user explicitly changes direction.
+- The app stores aggregated survey rows in the main CSV and raw scan samples in
+  a linked `<survey_stem>_raw_data.scan` sidecar.
+- The current code test baseline before this handoff refresh was 24 passing
+  tests with `.\.venv\Scripts\python.exe -m pytest -q`.
+- Latest code commit before this documentation refresh:
+  `53e50c1 Keep AP marker icons sharp`.
+- Current AP positioning and scale calibration pick points with left click while
+  their modal map-pick mode is active; normal map dragging is disabled during
+  the pick and the click must not create a measurement point.
+- Normal survey point creation is still right click on the survey map.
+- Do not regenerate the executable unless the user explicitly asks.
 
 ## Project Summary
 
@@ -167,11 +189,11 @@ Live tab:
 - Supports AP channels and dominant AP with real point markers and legend box.
 - Supports zoom and drag.
 - Tooltips show structured information.
-- Legacy Tk live maps highlight the matching legend entry on hover. The Qt
-  first pass has native tooltips and a static legend; hover-to-legend highlight
-  is still optional/pending.
+- Discrete Qt live maps use marker tooltips and legend/category panels; hover
+  behavior has been refined iteratively, so inspect `qt_live_map.py` and
+  `qt_floorplan.py` before changing it.
 - Continuous live rendering uses a worker thread and Matplotlib Agg; GUI updates
-  happen on the Tk main thread.
+  happen on the Qt main thread.
 - Result caching/fingerprinting exists in `live_renderer.py`.
 - Confidence is used as interpolation weight for continuous maps.
 
@@ -180,8 +202,9 @@ Visual/UX decisions:
 - Right click on survey map creates a measurement point.
 - Left click drag moves the map.
 - Left click on empty survey map deselects selected point.
-- AP positioning also uses right click when a position-pick operation is active;
-  that click is consumed and must not create a measurement point.
+- Scale calibration and AP positioning use left click while their dedicated
+  pick mode is active. Normal map dragging is disabled during those modes, and
+  the click is consumed so it must not create a measurement point.
 - Point labels in generated PNG maps became reference numbers plus a reference
   table, because dense surveys make direct labels unreadable.
 - On live maps labels are mostly mouseover/tooltips, not always-visible labels.
@@ -233,7 +256,7 @@ Implemented:
   - test/hidden.
 - Physical AP position:
   - button "Posiziona su mappa";
-  - right click on floor plan to store position;
+  - left click on floor plan to store position while AP placement mode is active;
   - saved in AP group metadata;
   - dirty state updated.
 - AP metadata:
@@ -244,8 +267,8 @@ Implemented:
   - expected channels;
   - notes.
 - Reset to automatic grouping.
-- AP Group Manager is now Qt-based; visual refinement and dense-table workflow
-  improvements remain future work.
+- AP Group Manager is now Qt-based. Many dense-table and dialog refinements
+  have already been done, but it remains an active UX area.
 
 Grouping caveat:
 
@@ -253,7 +276,7 @@ Grouping caveat:
 - The manual AP Group Manager is the long-term answer: automatic suggestions
   are allowed, but user edits must not be overwritten for known BSSIDs.
 
-Recent commits around AP groups:
+Earlier commits around AP groups:
 
 - `23968a9` Extract AP grouping helpers.
 - `73ae3d7` Prepare manual AP group model.
@@ -395,9 +418,9 @@ Language:
   details and save-to-session behavior.
 - Completed the remaining first-pass Qt AP Group Manager workflows: metadata
   editing now uses guided Qt controls for vendor/model/mounting, expected
-  bands/channels and notes; AP positioning now saves current groups, closes the
-  manager, and lets the user right-click the Qt floorplan to store physical AP
-  position markers.
+  bands/channels and notes; AP positioning saves current groups, closes the
+  manager, and lets the user place physical AP markers on the Qt floorplan. The
+  current interaction is left-click placement while AP placement mode is active.
 - Added first-pass Qt point creation/scanning: right-clicking the Qt floorplan
   starts an Auto Wi-Fi scan in a background Qt thread, saves all detected
   networks through `SurveySession.add_points`, manages relevant SSID prompts in
@@ -408,7 +431,7 @@ Language:
   mode, auto-update and manual update controls. Signal coverage and AP
   interference render in a background Qt thread through `qt_live_map.py`, using
   the existing AP group role/filter logic and the shared live renderer. Channel
-  and dominant AP live views still need to be migrated in a later step.
+  and dominant AP live views were added in the following step.
 - Added Qt live AP Channels and Dominant AP map modes. Discrete modes use real
   measurement markers on the floor plan, AP aliases/groups, AP roles, channel
   width when available, AP-position warning triangles for dominant AP, and a Qt
@@ -426,10 +449,11 @@ Language:
   It uses stdlib `unittest` and covers manual AP group overrides, interference
   ignoring same-physical-AP BSSIDs, missing relevant SSID quality state, and AP
   metadata channel warnings.
-- Added Qt scale calibration. The `Calibra scala` toolbar action now starts a
-  right-click two-point calibration mode on the Qt floor plan, stores
+- Added Qt scale calibration. The `Calibra scala` toolbar action starts a
+  two-point calibration mode on the Qt floor plan, stores
   `px_per_meter` in survey metadata, updates live/export distance handling and
-  avoids creating survey points while calibration is active.
+  avoids creating survey points while calibration is active. The current
+  interaction is left-click selection while calibration mode is active.
 - Added first-pass Qt Help dialog. The toolbar now has a Help action that opens
   translated workflow, live map, generated map, scan and command tabs using the
   existing help text.
@@ -631,8 +655,8 @@ Language:
   Duplicate/Split now uses real `QCheckBox` widgets instead of native list-item
   check indicators so checkbox visibility follows the app theme; the metadata
   dialog was tightened with compact field layout, smaller spacing, and bounded
-  All/None buttons; AP placement ignores left-click drag while waiting for the
-  required right-click map position.
+  All/None buttons; AP placement now uses left click during placement mode and
+  suppresses normal left-drag behavior until placement is complete.
 - Console logging in source-run mode now splits streams: `INFO` and lower go to
   stdout, while `WARNING`, `ERROR`, and `CRITICAL` go to stderr. This avoids
   PyCharm coloring normal informational logs red while preserving warning/error
@@ -750,54 +774,73 @@ Language:
 - AP position markers now keep the original high-resolution `images/wifi.png`
   pixmap and scale the graphics item instead of pre-rendering it to 20x20,
   preventing pixelated AP icons when the map is zoomed.
+- Audited this handoff file for the next chat: refreshed the date, added a
+  current-state snapshot, corrected stale Tk/right-click notes, updated recent
+  commits and replaced old verification commands with the current compile/test
+  baseline.
 
 Recent commits:
 
-- `d3cf068` Add Qt discrete live maps.
-- `58d4a3a` Add Qt live map preview.
-- `ce08bea` Add AI chat continuity notes.
-- `7dfb5be` Hide test AP groups from map analysis.
-- `1d35a5d` Use AP roles in interference analysis.
-- `dad858e` Add AP group roles.
-- `235c699` Add survey quality dashboard.
-- `82a62b5` Use scan confidence in continuous rendering.
-- `261ef02` Update help for AP positioning.
-- `f1cfc07` Show AP position warnings in dominant PNG.
-- `7b45326` Add AP position fields to dominant report.
-- `0995279` Use triangle markers for AP position warnings.
-- `826b92c` Highlight AP position warnings in live map.
-- `162958a` Add AP position analysis to dominant tooltips.
-- `cea47b6` Reposition AP placement action.
-- `06fdb88` Emphasize AP group row selection.
-- `5fa18a3` Clarify survey quality dashboard.
+- `53e50c1` Keep AP marker icons sharp.
+- `c836d44` Constrain app bar icon height only.
+- `fb423ef` Align app bar icon buttons.
+- `b4d31f1` Harden modal dimming cleanup.
+- `456f045` Polish quality dashboard labels.
+- `a94f6c3` Show relevant SSIDs in quality table.
+- `f4026e5` Refine survey quality confidence.
+- `8f603e0` Fix relevant network manager save.
+- `769f95c` Add relevant network manager.
+- `ab5ba52` Remember last survey directory.
+- `3ca4758` Avoid duplicate quality detail counts.
+- `590ca3e` Reorganize quality dashboard summary.
+- `0c8ec4a` Highlight centered file dialog selection.
+- `35f1a75` Align centered file dialog controls.
+- `c37c710` Scope quality AP position counts to relevant SSIDs.
+- `d7bc7d2` Tune centered file dialog styling.
+- `a415364` Center file dialogs and dim modal parents.
+- `04e015b` Rescan selected survey points.
 - `c76451d` Refine survey quality workflow.
+- `5fa18a3` Clarify survey quality dashboard.
 
 ## Likely Next Steps
 
 Good next steps, in likely order:
 
-1. Add more targeted tests as new V2 modules are split out, especially around
-   point scanning and survey save/load.
-2. Decide whether mounting metadata should influence AP position warnings or
+1. Continue Qt visual refinement only where it improves the real workflow:
+   survey map focus, AP Group Manager readability, Quality Dashboard clarity,
+   live map tooltips/legends and consistent dialog sizing.
+2. Add targeted tests around point scanning, survey save/load with raw `.scan`
+   sidecar, relevant SSID changes, AP group metadata and AP positioning.
+3. Validate the current workflow with a fresh real survey before adding large
+   features, because old CSV migration support was intentionally removed.
+4. Decide whether mounting metadata should influence AP position warnings or
    remain documentation only.
-3. Improve live map performance only if user sees real lag on large surveys.
-4. Rework Help structure later, after the feature set stabilizes.
-5. Continue visual redesign on the Qt-only UI.
+5. Improve live map performance only if the user sees real lag on large surveys;
+   do not trade away map quality prematurely.
+6. Rework Help structure later, after the Qt layout and feature set stabilize.
 
 ## Verification Patterns Used
 
 Typical checks after code edits:
 
 ```powershell
-.\.venv\Scripts\python.exe -m py_compile .\main.py .\heatmap_tools.py .\live_renderer.py .\i18n.py
+.\.venv\Scripts\python.exe -m compileall -q .
+.\.venv\Scripts\python.exe -m pytest -q
 git diff --check
 git status --short
 ```
 
-For logic changes, run a small `python -c` test with a synthetic DataFrame.
-Recent tests checked that:
+For logic changes, prefer committed tests in `tests/test_core_logic.py` over
+one-off scripts. A small `python -c` check is acceptable as a quick local probe,
+but should not replace real tests when behavior is being fixed.
+
+Current tests cover, among other things:
 
 - a `test` AP stronger than others is ignored;
 - the visible AP becomes dominant/serving;
 - test APs are counted as ignored in interference;
-- role columns are preserved in outputs.
+- role columns are preserved in outputs;
+- AP metadata/channel warnings;
+- UI scale and restart command helpers;
+- dialog/windowing behavior;
+- AP marker icon scaling.
