@@ -39,7 +39,7 @@ Read this section first in a new chat.
 - The current code test baseline after the latest live-map options pass is 38
   passing tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
-  `2153fd7 Fix live gradient legend saturation`.
+  `4698135 Tone down live gradient colors`.
 - Current AP positioning and scale calibration pick points with left click while
   their modal map-pick mode is active; normal map dragging is disabled during
   the pick and the click must not create a measurement point.
@@ -856,9 +856,13 @@ Language:
 - Tuned the live gradient legend colors down from the first fully saturated
   neon pass to a middle palette: green `#25a865`, yellow `#f2d33b`, red
   `#d94343`.
+- Reduced the live gradient legend overlay width by roughly 20%: target width
+  is now 112-128 px instead of 132-160 px, keeping the same height and label
+  layout.
 
 Recent commits:
 
+- `4698135` Tone down live gradient colors.
 - `2153fd7` Fix live gradient legend saturation.
 - `1769058` Move live map options into overlay.
 - `32ffc79` Keep live map overlay anchored while panning.

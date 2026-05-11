@@ -109,7 +109,7 @@ class LiveMapView(QGraphicsView):
         self._pan_cursor_active = False
         self.ap_position_icon = load_ap_position_icon()
         self.gradient_legend = LiveGradientLegendWidget(self.viewport())
-        self.gradient_legend.setFixedSize(150, 220)
+        self.gradient_legend.setFixedSize(122, 220)
         self.gradient_legend.hide()
 
         self.setObjectName("liveMapView")
@@ -293,7 +293,7 @@ class LiveMapView(QGraphicsView):
 
     def position_gradient_legend(self):
         viewport_size = self.viewport().size()
-        width = max(132, min(160, viewport_size.width() // 4))
+        width = max(112, min(128, viewport_size.width() // 5))
         height = max(156, min(230, viewport_size.height() - 28))
         self.gradient_legend.setFixedSize(width, height)
         self.gradient_legend.move(
@@ -437,7 +437,7 @@ class LiveGradientLegendWidget(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, False)
 
     def sizeHint(self):
-        return QSize(150, 220)
+        return QSize(122, 220)
 
     def set_scale_payload(self, scale_payload):
         self.scale_payload = dict(scale_payload or {})

@@ -432,7 +432,8 @@ class LiveMapViewTests(unittest.TestCase):
         })
 
         self.assertFalse(view.gradient_legend.isHidden())
-        self.assertLessEqual(view.gradient_legend.width(), 160)
+        self.assertLessEqual(view.gradient_legend.width(), 128)
+        self.assertGreaterEqual(view.gradient_legend.width(), 112)
         self.assertGreaterEqual(
             view.gradient_legend.x(),
             view.viewport().width() - view.gradient_legend.width() - 20,
