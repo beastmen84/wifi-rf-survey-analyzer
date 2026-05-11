@@ -14,14 +14,21 @@ from PIL import Image
 from app_logging import MaxLogLevelFilter
 from app_restart import build_restart_command
 from app_settings import get_last_survey_directory, save_last_survey_path
+from constants import RAW_DATA_FILE_METADATA_KEY
 from i18n import translate
 from ap_groups import (
+    AP_ROLE_EXTERNAL,
+    AP_ROLE_INTERNAL,
+    AP_ROLE_TEST,
+    build_ap_group_role_map,
     build_bssid_to_manual_group_map,
     build_manual_ap_group,
     resolve_ap_group_key,
+    serialize_ap_group_map,
+    serialize_ap_group_roles,
 )
 from ap_metadata_checks import build_ap_metadata_warnings
-from heatmap_tools import calculate_interference_points
+from heatmap_tools import calculate_interference_points, get_channel_map_points, get_dominant_ap_points
 from live_renderer import build_signal_payload
 from map_exporter import (
     MapExportResult,
@@ -54,7 +61,12 @@ import qt_app as qt_app_module
 from qt_app import WifiHeatmapQtApp
 from qt_windowing import pop_modal_dim, push_modal_dim
 from quality_engine import QUALITY_GOOD, QUALITY_MISSING_RELEVANT, evaluate_point_quality
-from survey_store import get_survey_point_summaries_from_rows
+from survey_store import (
+    SurveyFormatError,
+    SurveySession,
+    build_raw_scan_file_path,
+    get_survey_point_summaries_from_rows,
+)
 from ui_scaling import (
     detect_screen_resolution,
     effective_scale_for_percent,
@@ -208,6 +220,228 @@ class SurveyPointSummaryTests(unittest.TestCase):
         self.assertEqual(len(summaries), 1)
         self.assertEqual(summaries[0]["best_signal_dbm"], -68)
         self.assertEqual(summaries[0]["signal_scope"], "relevant")
+
+
+class SurveyStoreTests(unittest.TestCase):
+    def test_session_roundtrips_v2_metadata_and_raw_scan_sidecar(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            survey_file = os.path.join(temp_dir, "office.csv")
+            session = SurveySession()
+            session.add_points(
+                100,
+                120,
+                [
+                    {
+                        "ssid": "MAIN",
+                        "bssid": "70:4f:57:aa:bb:10",
+                        "signal_percent": "80",
+                        "signal_dbm": -50,
+                        "signal_median_dbm": -51,
+                        "signal_max_dbm": -48,
+                        "signal_min_dbm": -54,
+                        "signal_samples_dbm": "-50;-52;-48",
+                        "samples_seen": "3",
+                        "samples_total": "5",
+                        "scan_confidence": "0.6",
+                        "channel": "6",
+                        "channel_width_mhz": "20",
+                        "radio": "802.11ax",
+                        "raw_samples": [
+                            {
+                                "scan_attempt": "1",
+                                "ssid": "MAIN",
+                                "bssid": "70:4f:57:aa:bb:10",
+                                "signal_percent": "78",
+                                "signal_dbm": "-52",
+                                "channel": "6",
+                                "channel_width_mhz": "20",
+                                "radio": "802.11ax",
+                                "backend": "netsh",
+                            },
+                            {
+                                "scan_attempt": "2",
+                                "ssid": "MAIN",
+                                "bssid": "70:4f:57:aa:bb:10",
+                                "signal_percent": "82",
+                                "signal_dbm": "-48",
+                                "channel": "6",
+                                "channel_width_mhz": "20",
+                                "radio": "802.11ax",
+                                "backend": "lswifi",
+                            },
+                        ],
+                    }
+                ],
+                relevant_ssids={"MAIN"},
+            )
+            session.set_ap_groups([
+                build_manual_ap_group(
+                    "office-ap",
+                    ["70:4F:57:AA:BB:10"],
+                    alias="Office AP",
+                    position={"x": 21.4, "y": 44.6},
+                    role=AP_ROLE_EXTERNAL,
+                    metadata={
+                        "vendor": "Acme",
+                        "model": "AX-1",
+                        "expected_bands": "2.4,5",
+                        "expected_channels": "6,36",
+                        "notes": "Mounted in office",
+                    },
+                )
+            ])
+
+            session.save(survey_file)
+
+            raw_scan_file = build_raw_scan_file_path(survey_file, session.metadata)
+            self.assertTrue(os.path.exists(raw_scan_file))
+            self.assertEqual(
+                session.metadata[RAW_DATA_FILE_METADATA_KEY],
+                os.path.basename(raw_scan_file),
+            )
+
+            loaded = SurveySession(survey_file)
+
+            self.assertFalse(loaded.dirty)
+            self.assertEqual(len(loaded.rows), 1)
+            self.assertEqual(loaded.rows[0]["is_relevant"], "1")
+            self.assertEqual(loaded.rows[0]["signal_median_dbm"], "-51")
+            self.assertEqual(len(loaded.raw_scan_rows), 2)
+            self.assertEqual(
+                {row["backend"] for row in loaded.raw_scan_rows},
+                {"netsh", "lswifi"},
+            )
+            self.assertEqual(loaded.metadata[RAW_DATA_FILE_METADATA_KEY], os.path.basename(raw_scan_file))
+
+            groups = loaded.get_ap_groups()
+            self.assertEqual(len(groups), 1)
+            self.assertEqual(groups[0]["group_id"], "office-ap")
+            self.assertEqual(groups[0]["alias"], "Office AP")
+            self.assertEqual(groups[0]["bssids"], ["70:4f:57:aa:bb:10"])
+            self.assertEqual(groups[0]["position"], {"x": 21, "y": 45})
+            self.assertEqual(groups[0]["role"], AP_ROLE_EXTERNAL)
+            self.assertEqual(groups[0]["metadata"]["expected_channels"], "6,36")
+
+    def test_opening_raw_scan_sidecar_as_survey_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            survey_file = os.path.join(temp_dir, "office.csv")
+            session = SurveySession()
+            session.add_points(
+                10,
+                20,
+                [{
+                    "ssid": "MAIN",
+                    "bssid": "70:4f:57:aa:bb:10",
+                    "signal_percent": "80",
+                    "signal_dbm": -50,
+                    "channel": "6",
+                    "radio": "802.11ax",
+                }],
+                relevant_ssids={"MAIN"},
+            )
+            session.save(survey_file)
+
+            with self.assertRaises(SurveyFormatError) as error:
+                SurveySession(build_raw_scan_file_path(survey_file, session.metadata))
+
+            self.assertEqual(str(error.exception), "raw_scan_file")
+
+
+class ApRoleFilteringTests(unittest.TestCase):
+    def build_role_filter_inputs(self):
+        internal_bssid = "70:4f:57:aa:bb:10"
+        test_bssid = "80:11:22:33:44:10"
+        neighbor_bssid = "90:11:22:33:44:10"
+        groups = [
+            build_manual_ap_group("internal-ap", [internal_bssid], role=AP_ROLE_INTERNAL),
+            build_manual_ap_group("test-ap", [test_bssid], role=AP_ROLE_TEST),
+            build_manual_ap_group("neighbor-ap", [neighbor_bssid], role=AP_ROLE_EXTERNAL),
+        ]
+        group_map = serialize_ap_group_map(build_bssid_to_manual_group_map(groups))
+        role_map = serialize_ap_group_roles(build_ap_group_role_map(groups))
+        return internal_bssid, test_bssid, neighbor_bssid, group_map, role_map
+
+    def test_channel_and_dominant_maps_ignore_test_hidden_ap_groups(self):
+        internal_bssid, test_bssid, _neighbor_bssid, group_map, role_map = self.build_role_filter_inputs()
+        rows = [
+            build_row("p1", "MAIN", internal_bssid, -70, 1),
+            build_row("p1", "MAIN", test_bssid, -30, 6),
+        ]
+        df = rows_to_dataframe(rows)
+
+        channel_df = get_channel_map_points(df, "MAIN", "2.4", group_map, role_map)
+        dominant_df = get_dominant_ap_points(df, "MAIN", "2.4", group_map, role_map)
+
+        self.assertEqual(channel_df.iloc[0]["bssid"], internal_bssid)
+        self.assertEqual(channel_df.iloc[0]["channel"], 1)
+        self.assertEqual(dominant_df.iloc[0]["dominant_bssid"], internal_bssid)
+        self.assertEqual(dominant_df.iloc[0]["dominant_ap_group"], "internal-ap")
+
+    def test_signal_coverage_ignores_test_hidden_ap_groups_before_aggregation(self):
+        internal_bssid, test_bssid, _neighbor_bssid, group_map, role_map = self.build_role_filter_inputs()
+        rows = []
+        for point_id, x, y, signal in (
+            ("p1", "10", "10", -70),
+            ("p2", "50", "20", -71),
+            ("p3", "30", "60", -72),
+        ):
+            internal_row = build_row(point_id, "MAIN", internal_bssid, signal, 1)
+            internal_row["x"] = x
+            internal_row["y"] = y
+            test_row = build_row(point_id, "MAIN", test_bssid, -30, 6)
+            test_row["x"] = x
+            test_row["y"] = y
+            rows.extend([internal_row, test_row])
+
+        payload = build_signal_payload(
+            rows_to_dataframe(rows),
+            MapConfig(
+                ssid="MAIN",
+                band="2.4",
+                map_type="signal",
+                ap_group_map=group_map,
+                ap_group_roles=role_map,
+                smoothing_sigma=0,
+                max_distance_px=200,
+            ),
+            Image.new("RGB", (100, 80), "white"),
+            {"signal_title": "Signal", "source_rows": "Rows"},
+            lambda _map_type, row, _raw_rows: str(row["signal_dbm"]),
+            lambda _grid_z, _config: (-90, -30),
+        )
+
+        try:
+            self.assertIsNotNone(payload)
+            self.assertEqual(len(payload["point_infos"]), 3)
+            self.assertNotIn("-30", {point["tooltip"] for point in payload["point_infos"]})
+        finally:
+            if payload and "fig" in payload:
+                plt.close(payload["fig"])
+
+    def test_interference_uses_internal_serving_ap_and_counts_ignored_test_ap(self):
+        internal_bssid, test_bssid, neighbor_bssid, group_map, role_map = self.build_role_filter_inputs()
+        rows = [
+            build_row("p1", "MAIN", internal_bssid, -50, 1),
+            build_row("p1", "MAIN", test_bssid, -20, 1),
+            build_row("p1", "NEIGHBOR", neighbor_bssid, -55, 1),
+        ]
+
+        risk_df = calculate_interference_points(
+            rows_to_dataframe(rows),
+            "MAIN",
+            "2.4",
+            mode="all",
+            include_details=True,
+            ap_group_map=group_map,
+            ap_group_roles=role_map,
+        )
+
+        self.assertEqual(len(risk_df), 1)
+        row = risk_df.iloc[0]
+        self.assertEqual(row["serving_bssid"], internal_bssid)
+        self.assertEqual(row["test_ap_ignored_count"], 1)
+        self.assertEqual(row["strongest_interferer_bssid"], neighbor_bssid)
+        self.assertNotIn(test_bssid, row["interfering_bssids"])
 
 
 class UiScalingTests(unittest.TestCase):
