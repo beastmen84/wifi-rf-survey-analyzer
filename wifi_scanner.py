@@ -217,9 +217,9 @@ def merge_wifi_scans(networks, samples_total=1):
 
     for network in networks:
         key = (
-            network.get("ssid"),
-            network.get("bssid"),
-            network.get("channel")
+            normalize_merge_text(network.get("ssid")),
+            normalize_merge_text(network.get("bssid")).lower(),
+            normalize_merge_text(network.get("channel")),
         )
         merged_networks.setdefault(key, []).append(network)
 
@@ -261,6 +261,10 @@ def merge_wifi_scans(networks, samples_total=1):
         })
 
     return aggregated_networks
+
+
+def normalize_merge_text(value):
+    return str(value or "").strip()
 
 
 def most_common_non_empty(samples, key):

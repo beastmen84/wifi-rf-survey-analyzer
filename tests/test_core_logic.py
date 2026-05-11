@@ -97,6 +97,13 @@ from ui_scaling import (
     scale_px,
     ui_scale_diagnostics,
 )
+from wifi_scanner import (
+    annotate_raw_scan_samples,
+    merge_wifi_scans,
+    normalize_channel_width_mhz,
+    parse_lswifi_bss_list,
+    parse_netsh_output,
+)
 
 
 class ApGroupTests(unittest.TestCase):
@@ -745,6 +752,107 @@ class LiveMapDataLogicTests(unittest.TestCase):
         self.assertEqual(intra.iloc[0]["interferer_count"], 0)
         self.assertGreater(all_networks.iloc[0]["risk"], 0)
         self.assertEqual(all_networks.iloc[0]["strongest_interferer_bssid"], neighbor_bssid)
+
+
+class WifiScannerTests(unittest.TestCase):
+    def test_parse_netsh_output_handles_multiple_bssids_per_ssid(self):
+        output = """
+SSID 1 : MAIN
+    Network type            : Infrastructure
+    Authentication          : WPA2-Personal
+    Encryption              : CCMP
+    BSSID 1                 : 70:4f:57:aa:bb:10
+         Signal             : 82%
+         Radio type         : 802.11ax
+         Channel            : 6
+    BSSID 2                 : 70:4f:57:aa:bb:11
+         Signal             : 64%
+         Radio type         : 802.11ax
+         Channel            : 11
+SSID 2 : GUEST
+    BSSID 1                 : 90:11:22:33:44:10
+         Signal             : 50%
+         Radio type         : 802.11n
+         Channel            : 1
+"""
+
+        networks = parse_netsh_output(output)
+
+        self.assertEqual(len(networks), 3)
+        self.assertEqual(networks[0]["ssid"], "MAIN")
+        self.assertEqual(networks[0]["bssid"], "70:4f:57:aa:bb:10")
+        self.assertEqual(networks[0]["signal_dbm"], -59.0)
+        self.assertEqual(networks[1]["channel"], "11")
+        self.assertEqual(networks[2]["ssid"], "GUEST")
+
+    def test_parse_lswifi_bss_list_normalizes_width_and_radio(self):
+        networks = parse_lswifi_bss_list([
+            FakeLswifiBss(
+                ssid="MAIN",
+                bssid="70:4f:57:aa:bb:10",
+                rssi="-61",
+                channel_number=36,
+                channel_width="80+80 MHz",
+                phy_type=FakeLswifiPhy(amendment="ax"),
+            ),
+            FakeLswifiBss(ssid="", bssid="80:11:22:33:44:10", rssi="-70", channel_number=1),
+        ])
+
+        self.assertEqual(len(networks), 1)
+        self.assertEqual(networks[0]["signal_dbm"], -61.0)
+        self.assertEqual(networks[0]["signal_percent"], 78)
+        self.assertEqual(networks[0]["channel"], "36")
+        self.assertEqual(networks[0]["channel_width_mhz"], 160)
+        self.assertEqual(networks[0]["radio"], "802.11ax")
+
+    def test_merge_wifi_scans_aggregates_samples_and_confidence(self):
+        samples = [
+            {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -52, "channel": "6", "channel_width_mhz": "20", "radio": "802.11ax"},
+            {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -48, "channel": "6", "channel_width_mhz": "20", "radio": "802.11ax"},
+            {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -55, "channel": "6", "channel_width_mhz": "40", "radio": "802.11ax"},
+        ]
+
+        networks = merge_wifi_scans(samples, samples_total=5)
+
+        self.assertEqual(len(networks), 1)
+        self.assertEqual(networks[0]["signal_dbm"], -52.0)
+        self.assertEqual(networks[0]["signal_median_dbm"], -52.0)
+        self.assertEqual(networks[0]["signal_max_dbm"], -48)
+        self.assertEqual(networks[0]["signal_min_dbm"], -55)
+        self.assertEqual(networks[0]["signal_samples_dbm"], "-52;-48;-55")
+        self.assertEqual(networks[0]["samples_seen"], 3)
+        self.assertEqual(networks[0]["samples_total"], 5)
+        self.assertEqual(networks[0]["scan_confidence"], 0.6)
+        self.assertEqual(networks[0]["channel_width_mhz"], "20")
+        self.assertIs(networks[0]["raw_samples"][0], samples[0])
+
+    def test_merge_wifi_scans_groups_bssid_case_insensitively(self):
+        networks = merge_wifi_scans(
+            [
+                {"ssid": "MAIN", "bssid": "70:4F:57:AA:BB:10", "signal_dbm": -60, "channel": "6"},
+                {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -50, "channel": "6"},
+            ],
+            samples_total=2,
+        )
+
+        self.assertEqual(len(networks), 1)
+        self.assertEqual(networks[0]["signal_median_dbm"], -55.0)
+        self.assertEqual(networks[0]["samples_seen"], 2)
+
+    def test_annotate_raw_scan_samples_updates_samples_in_place(self):
+        samples = [{"ssid": "MAIN"}, {"ssid": "GUEST"}]
+
+        annotated = annotate_raw_scan_samples(samples, 3, "netsh")
+
+        self.assertIs(annotated, samples)
+        self.assertEqual({sample["scan_attempt"] for sample in samples}, {3})
+        self.assertEqual({sample["backend"] for sample in samples}, {"netsh"})
+
+    def test_normalize_channel_width_mhz_handles_common_text_values(self):
+        self.assertEqual(normalize_channel_width_mhz("20 MHz"), 20)
+        self.assertEqual(normalize_channel_width_mhz("80+80 MHz"), 160)
+        self.assertEqual(normalize_channel_width_mhz("--"), "")
+        self.assertEqual(normalize_channel_width_mhz("unknown"), "")
 
 
 class UiScalingTests(unittest.TestCase):
@@ -1968,6 +2076,30 @@ class ApMetadataTests(unittest.TestCase):
         self.assertEqual(len(warnings), 1)
         self.assertEqual(warnings[0]["group_id"], "corridor")
         self.assertEqual(warnings[0]["unexpected_bands"], ["5"])
+
+
+class FakeLswifiPhy:
+    def __init__(self, amendment="", name=""):
+        self.amendment = amendment
+        self.name = name
+
+
+class FakeLswifiBss:
+    def __init__(
+        self,
+        ssid,
+        bssid,
+        rssi,
+        channel_number,
+        channel_width="",
+        phy_type=None,
+    ):
+        self.ssid = ssid
+        self.bssid = bssid
+        self.rssi = rssi
+        self.channel_number = channel_number
+        self.channel_width = channel_width
+        self.phy_type = phy_type
 
 
 def build_row(point_id, ssid, bssid, signal_dbm, channel):
