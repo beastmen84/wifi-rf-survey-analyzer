@@ -36,10 +36,10 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the latest live-map point-label pass is 47
+- The current code test baseline after the latest live-map point-label pass is 48
   passing tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
-  `a9a7e05 Simplify live point label choices`.
+  `b92ceea Sync live label legend visibility`.
 - Current AP positioning and scale calibration pick points with left click while
   their modal map-pick mode is active; normal map dragging is disabled during
   the pick and the click must not create a measurement point.
@@ -246,13 +246,13 @@ Visual/UX decisions:
   interferer exists. No-interferer points still show x/y, risk, serving AP and
   serving channel.
 - The `point_labels_auto` option is used by generated PNG/reference labels and
-  by Qt live AP Channels / Dominant AP. In live maps it does not hide markers:
-  it controls which discrete markers receive a compact permanent label in
-  addition to hover tooltips. The live UI intentionally exposes only Auto, All,
+  by Qt live AP Channels / Dominant AP. In live maps it does not hide markers
+  and does not draw permanent labels on map points: it controls which point rows
+  appear in the side legend. The live UI intentionally exposes only Auto, All,
   and None for these two maps; Critical remains an internal/export-supported
-  mode but is not shown in the live dropdown. The live side legend for these
-  maps is built from the labeled points; when point labels are `None`, the side
-  legend is hidden.
+  mode but is not shown in the live dropdown. When point labels are `None`, the
+  side legend is hidden. Legend rows carry marker targets: click highlights the
+  referenced point, and double click centers/focuses the live map on it.
 
 ## Interference Logic
 
@@ -915,7 +915,9 @@ Language:
   auto, all, and none. The setting is remembered separately for each live map
   type during the open survey. Their side legend follows the same setting: Auto
   lists only automatically labeled points, All lists every labeled point, and
-  None hides the side legend.
+  None hides the side legend. These labels are legend-only; map markers keep
+  hover tooltips but no permanent text labels. Legend rows are interactive:
+  click highlights the referenced marker, double click focuses the map on it.
 - A quick live-map data logic pass confirmed current scoping: Coverage uses
   SSID, band, optional AP group filter, aggregation, interpolation and usable
   threshold; Interference uses SSID, 2.4/5 GHz band, intra/all-network mode,
@@ -927,6 +929,7 @@ Language:
 
 Recent commits:
 
+- `b92ceea` Sync live label legend visibility.
 - `a9a7e05` Simplify live point label choices.
 - `37a47e8` Restore live discrete point label options.
 - `ba954c4` Hide empty live interference tooltip rows.

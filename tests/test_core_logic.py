@@ -629,11 +629,9 @@ class LiveMapViewTests(unittest.TestCase):
             {},
         )
 
-        self.assertEqual(
-            [point.get("label") for point in payload["point_infos"] if point.get("label")],
-            ["CH 1", "CH 6"],
-        )
+        self.assertFalse(any(point.get("label") for point in payload["point_infos"]))
         self.assertEqual(len(payload["scale_payload"]["items"]), 2)
+        self.assertEqual([item["marker_id"] for item in payload["scale_payload"]["items"]], ["channel-0", "channel-2"])
 
         payload = build_channel_payload(
             rows_to_dataframe(rows),
@@ -643,11 +641,13 @@ class LiveMapViewTests(unittest.TestCase):
             {},
         )
 
-        self.assertEqual(
-            [point.get("label") for point in payload["point_infos"] if point.get("label")],
-            ["CH 1", "CH 1", "CH 6"],
-        )
+        self.assertFalse(any(point.get("label") for point in payload["point_infos"]))
         self.assertEqual(len(payload["scale_payload"]["items"]), 3)
+        self.assertEqual([item["marker_id"] for item in payload["scale_payload"]["items"]], [
+            "channel-0",
+            "channel-1",
+            "channel-2",
+        ])
 
         payload = build_channel_payload(
             rows_to_dataframe(rows),
@@ -676,8 +676,12 @@ class LiveMapViewTests(unittest.TestCase):
             None,
         )
 
-        self.assertEqual(len([point for point in payload["point_infos"] if point.get("label")]), 2)
+        self.assertFalse(any(point.get("label") for point in payload["point_infos"]))
         self.assertEqual(len(payload["scale_payload"]["items"]), 2)
+        self.assertEqual([item["marker_id"] for item in payload["scale_payload"]["items"]], [
+            "dominant-0",
+            "dominant-2",
+        ])
 
         payload = build_dominant_payload(
             rows_to_dataframe(rows),
@@ -689,8 +693,13 @@ class LiveMapViewTests(unittest.TestCase):
             None,
         )
 
-        self.assertEqual(len([point for point in payload["point_infos"] if point.get("label")]), 3)
+        self.assertFalse(any(point.get("label") for point in payload["point_infos"]))
         self.assertEqual(len(payload["scale_payload"]["items"]), 3)
+        self.assertEqual([item["marker_id"] for item in payload["scale_payload"]["items"]], [
+            "dominant-0",
+            "dominant-1",
+            "dominant-2",
+        ])
 
         payload = build_dominant_payload(
             rows_to_dataframe(rows),
@@ -704,6 +713,28 @@ class LiveMapViewTests(unittest.TestCase):
 
         self.assertFalse(any(point.get("label") for point in payload["point_infos"]))
         self.assertIsNone(payload["scale_payload"])
+
+    def test_live_legend_marker_actions_highlight_and_focus_points(self):
+        view = LiveMapView()
+        try:
+            view.resize(320, 240)
+            view.set_payload({
+                "image": Image.new("RGB", (200, 160), "white"),
+                "point_infos": [
+                    {"marker_id": "p1", "x": 40, "y": 50, "color": "#111111"},
+                    {"marker_id": "p2", "x": 90, "y": 80, "color": "#d62728"},
+                ],
+                "scale_payload": None,
+            })
+
+            self.assertTrue(view.highlight_marker("p2"))
+            self.assertIsNotNone(view.marker_highlight_item)
+            self.assertEqual(view.marker_highlight_item.pos(), view.marker_items_by_id["p2"].scenePos())
+            self.assertTrue(view.focus_marker("p1"))
+            self.assertEqual(view.marker_highlight_item.pos(), view.marker_items_by_id["p1"].scenePos())
+            self.assertFalse(view.highlight_marker("missing"))
+        finally:
+            view.deleteLater()
 
     def test_live_ap_position_markers_skip_test_groups(self):
         markers = build_ap_position_marker_infos(

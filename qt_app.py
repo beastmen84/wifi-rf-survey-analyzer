@@ -823,6 +823,8 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_legend_list = QListWidget()
         self.live_legend_list.setAlternatingRowColors(True)
         self.live_legend_list.setWordWrap(True)
+        self.live_legend_list.itemClicked.connect(self.on_live_legend_item_clicked)
+        self.live_legend_list.itemDoubleClicked.connect(self.on_live_legend_item_double_clicked)
         legend_layout.addWidget(self.live_legend_title)
         legend_layout.addWidget(self.live_legend_list, 1)
         live_splitter.addWidget(self.live_legend_frame)
@@ -2229,6 +2231,7 @@ class WifiHeatmapQtApp(QMainWindow):
                     shape=item.get("shape", "circle"),
                     outline_only=bool(item.get("outline_only")),
                 ))
+                list_item.setData(Qt.ItemDataRole.UserRole, dict(item))
                 self.live_legend_list.addItem(list_item)
             return
 
@@ -2239,9 +2242,24 @@ class WifiHeatmapQtApp(QMainWindow):
     def clear_live_legend(self):
         self.live_legend_title.setText("")
         self.live_legend_list.clear()
+        self.live_view.clear_marker_highlight()
         self.live_view.clear_gradient_legend()
         self.live_legend_frame.hide()
         self.live_legend_list.show()
+
+    def on_live_legend_item_clicked(self, item):
+        payload = item.data(Qt.ItemDataRole.UserRole) if item else None
+        marker_id = payload.get("marker_id") if isinstance(payload, dict) else ""
+        if marker_id:
+            self.live_view.highlight_marker(marker_id)
+        else:
+            self.live_view.clear_marker_highlight()
+
+    def on_live_legend_item_double_clicked(self, item):
+        payload = item.data(Qt.ItemDataRole.UserRole) if item else None
+        marker_id = payload.get("marker_id") if isinstance(payload, dict) else ""
+        if marker_id:
+            self.live_view.focus_marker(marker_id)
 
     def show_start_page(self):
         self.stack.setCurrentWidget(self.start_page)

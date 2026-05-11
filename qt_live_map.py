@@ -8,7 +8,6 @@ from PySide6.QtCore import QObject, QPointF, QRectF, QSize, Qt, Signal, Slot
 from PySide6.QtGui import (
     QBrush,
     QColor,
-    QFont,
     QIcon,
     QLinearGradient,
     QPainter,
@@ -25,9 +24,7 @@ from PySide6.QtWidgets import (
     QGraphicsPathItem,
     QGraphicsPixmapItem,
     QGraphicsPolygonItem,
-    QGraphicsRectItem,
     QGraphicsScene,
-    QGraphicsSimpleTextItem,
     QGraphicsView,
     QWidget,
 )
@@ -112,6 +109,8 @@ class LiveMapView(QGraphicsView):
         self.setScene(self.scene)
         self.pixmap_item = None
         self.marker_items = []
+        self.marker_items_by_id = {}
+        self.marker_highlight_item = None
         self.ap_marker_items = []
         self.zoom_level = 1.0
         self._pan_last_pos = None
@@ -133,6 +132,8 @@ class LiveMapView(QGraphicsView):
         self.scene.clear()
         self.pixmap_item = None
         self.marker_items = []
+        self.marker_items_by_id = {}
+        self.marker_highlight_item = None
         self.ap_marker_items = []
         self.zoom_level = 1.0
         self.end_pan()
@@ -154,7 +155,7 @@ class LiveMapView(QGraphicsView):
         self.fit_to_view()
 
     def add_markers(self, point_infos):
-        for info in point_infos:
+        for index, info in enumerate(point_infos):
             try:
                 x = float(info.get("x"))
                 y = float(info.get("y"))
@@ -162,6 +163,9 @@ class LiveMapView(QGraphicsView):
                 continue
 
             item = self.create_marker_item(info)
+            marker_id = str(info.get("marker_id") or f"marker-{index}")
+            item.setData(0, marker_id)
+            item.setData(1, {"x": x, "y": y})
             item.setPos(x, y)
             item.setZValue(20)
             tooltip = info.get("tooltip")
@@ -169,6 +173,7 @@ class LiveMapView(QGraphicsView):
                 item.setToolTip(str(tooltip))
             self.scene.addItem(item)
             self.marker_items.append(item)
+            self.marker_items_by_id[marker_id] = item
 
     def add_ap_markers(self, ap_infos):
         for info in ap_infos:
@@ -234,39 +239,6 @@ class LiveMapView(QGraphicsView):
         return group
 
     def create_marker_item(self, info):
-        marker = self.create_marker_shape_item(info)
-        label = str(info.get("label") or "").strip()
-        if not label:
-            return marker
-
-        group = QGraphicsItemGroup()
-        group.addToGroup(marker)
-
-        font = QFont("Segoe UI", 7)
-        font.setBold(True)
-        text = QGraphicsSimpleTextItem(label)
-        text.setFont(font)
-        text.setBrush(QBrush(QColor("#111111")))
-        text_rect = text.boundingRect()
-        radius = LIVE_POINT_MARKER_BASE_SIZE / 2
-        text_x = radius + 4
-        text_y = -text_rect.height() / 2
-        text.setPos(text_x, text_y)
-
-        bg_rect = QRectF(
-            text_x - 2,
-            text_y - 1,
-            text_rect.width() + 4,
-            text_rect.height() + 2,
-        )
-        background = QGraphicsRectItem(bg_rect)
-        background.setBrush(QBrush(QColor(255, 255, 255, 218)))
-        background.setPen(QPen(QColor("#333333"), 0.5))
-        group.addToGroup(background)
-        group.addToGroup(text)
-        return group
-
-    def create_marker_shape_item(self, info):
         shape = str(info.get("shape") or "circle")
         color = QColor(str(info.get("color") or "#111111"))
         outline = QColor(str(info.get("outline") or "#ffffff"))
@@ -297,6 +269,36 @@ class LiveMapView(QGraphicsView):
             item.setBrush(QBrush(color))
             item.setPen(QPen(outline, outline_width))
         return item
+
+    def clear_marker_highlight(self):
+        if self.marker_highlight_item is not None:
+            self.scene.removeItem(self.marker_highlight_item)
+            self.marker_highlight_item = None
+
+    def highlight_marker(self, marker_id):
+        self.clear_marker_highlight()
+        item = self.marker_items_by_id.get(str(marker_id or ""))
+        if item is None:
+            return False
+
+        radius = LIVE_POINT_MARKER_BASE_SIZE / 2 + 6
+        highlight = QGraphicsEllipseItem(-radius, -radius, radius * 2, radius * 2)
+        highlight.setBrush(QBrush(Qt.BrushStyle.NoBrush))
+        highlight.setPen(QPen(QColor("#f1c40f"), 3.0))
+        highlight.setPos(item.scenePos())
+        highlight.setZValue(35)
+        self.scene.addItem(highlight)
+        self.marker_highlight_item = highlight
+        return True
+
+    def focus_marker(self, marker_id):
+        item = self.marker_items_by_id.get(str(marker_id or ""))
+        if item is None:
+            return False
+
+        self.highlight_marker(marker_id)
+        self.centerOn(item.scenePos())
+        return True
 
     def zoom_in(self):
         self.set_zoom(self.zoom_level * 1.25)
@@ -669,7 +671,6 @@ def build_ap_position_tooltip(group, label, x, y, translations):
         "#0d6efd",
     )
 
-
 def build_channel_payload(df, config, bg_image, translations, aliases):
     channel_df = get_channel_map_points(
         df,
@@ -687,11 +688,13 @@ def build_channel_payload(df, config, bg_image, translations, aliases):
     legend_items = []
     previous_channel = None
     for _index, row in channel_df.iterrows():
+        marker_id = f"channel-{len(point_infos)}"
         channel = row.get("channel", "")
         color = get_channel_color(channel, config.band)
         label = format_channel_legend_label(row, aliases)
         sort_key = get_channel_sort_key(channel, config.band) + (str(label).casefold(),)
         point_info = {
+            "marker_id": marker_id,
             "x": float(row["x"]),
             "y": float(row["y"]),
             "color": color,
@@ -702,17 +705,19 @@ def build_channel_payload(df, config, bg_image, translations, aliases):
             "tooltip": build_channel_tooltip(row, config, translations, aliases),
         }
         if should_label_channel_point(row, previous_channel, config.point_label_mode, config.band):
-            point_info["label"] = format_channel_point_label(row)
             legend_items.append({
                 "label": label,
                 "color": color,
                 "sort_key": sort_key,
+                "marker_id": marker_id,
+                "x": float(row["x"]),
+                "y": float(row["y"]),
             })
         point_infos.append(point_info)
         previous_channel = channel
 
     scale_payload = None
-    if config.point_label_mode != "none":
+    if config.point_label_mode != "none" and legend_items:
         scale_payload = {
             "kind": "swatches",
             "title": translations.get("channel_title", "AP channels"),
@@ -740,22 +745,20 @@ def build_dominant_payload(df, config, bg_image, translations, aliases, ap_group
     group_labels = build_dominant_ap_group_labels(dominant_df, aliases)
     legend_items = []
     point_infos = []
-    has_roaming_overlap = False
-    has_position_warning = False
 
     previous_group = None
     previous_roaming_overlap = False
     for _index, row in dominant_df.iterrows():
+        marker_id = f"dominant-{len(point_infos)}"
         position_analysis = analyze_dominant_ap_position(row, ap_groups, px_per_meter=px_per_meter)
         position_warning_color = get_ap_position_warning_color(position_analysis)
-        has_position_warning = has_position_warning or bool(position_warning_color)
-        has_roaming_overlap = has_roaming_overlap or bool(row.get("roaming_overlap"))
         label = group_labels.get(
             row.get("dominant_ap_group", ""),
             format_ap_label(row.get("dominant_bssid", ""), aliases, row.get("dominant_ap_group", "")),
         )
         color = color_map.get(row.get("dominant_ap_group", ""), "#7f8c8d")
         point_info = {
+            "marker_id": marker_id,
             "x": float(row["x"]),
             "y": float(row["y"]),
             "color": color,
@@ -771,30 +774,20 @@ def build_dominant_payload(df, config, bg_image, translations, aliases, ap_group
             previous_roaming_overlap,
             config.point_label_mode,
         ):
-            point_info["label"] = label
             legend_items.append({
                 "label": label,
                 "color": color,
+                "shape": "triangle" if position_warning_color else "circle",
+                "marker_id": marker_id,
+                "x": float(row["x"]),
+                "y": float(row["y"]),
             })
         point_infos.append(point_info)
         previous_group = row.get("dominant_ap_group", "")
         previous_roaming_overlap = bool(row.get("roaming_overlap"))
 
-    if config.point_label_mode != "none" and has_roaming_overlap:
-        legend_items.append({
-            "label": translations.get("roaming_overlap", "Delta <= 5 dB"),
-            "color": "#f1c40f",
-            "outline_only": True,
-        })
-    if config.point_label_mode != "none" and has_position_warning:
-        legend_items.append({
-            "label": translations.get("ap_position_warning_legend", "Triangle = suspicious AP position"),
-            "color": "#d62728",
-            "shape": "triangle",
-        })
-
     scale_payload = None
-    if config.point_label_mode != "none":
+    if config.point_label_mode != "none" and legend_items:
         scale_payload = {
             "kind": "swatches",
             "title": translations.get("dominant_title", "Dominant AP"),
@@ -958,10 +951,6 @@ def format_channel_legend_label(row, aliases):
         f"CH {format_value(row.get('channel'))} - "
         f"{format_ap_label(row.get('bssid', ''), aliases, row.get('ap_group', ''))}"
     )
-
-
-def format_channel_point_label(row):
-    return f"CH {format_value(row.get('channel'))}"
 
 
 def format_group_label(group_id, aliases):
