@@ -1,5 +1,7 @@
-import unittest
+import ast
 import string
+import unittest
+from pathlib import Path
 
 from i18n import (
     DEFAULT_LANGUAGE,
@@ -18,6 +20,30 @@ def format_fields(text):
         for _literal, field_name, _format_spec, _conversion in string.Formatter().parse(text)
         if field_name
     }
+
+
+def iter_app_source_paths():
+    root = Path(__file__).resolve().parents[1]
+    for path in root.glob("*.py"):
+        if path.name != "i18n.py":
+            yield path
+
+
+def collect_static_translation_keys():
+    keys = set()
+    for path in iter_app_source_paths():
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            key_arg = None
+            if isinstance(node.func, ast.Name) and node.func.id == "translate" and len(node.args) >= 2:
+                key_arg = node.args[1]
+            elif isinstance(node.func, ast.Attribute) and node.func.attr == "tr" and node.args:
+                key_arg = node.args[0]
+            if isinstance(key_arg, ast.Constant) and isinstance(key_arg.value, str):
+                keys.add(key_arg.value)
+    return keys
 
 
 class I18nTests(unittest.TestCase):
@@ -60,3 +86,6 @@ class I18nTests(unittest.TestCase):
         self.assertEqual(normalize_language("missing"), DEFAULT_LANGUAGE)
         self.assertEqual(translate("missing", "save"), TRANSLATIONS[DEFAULT_LANGUAGE]["save"])
         self.assertEqual(translate("it", "__missing_key__"), "__missing_key__")
+
+    def test_static_app_translation_keys_exist(self):
+        self.assertFalse(collect_static_translation_keys() - set(TRANSLATIONS[DEFAULT_LANGUAGE]))

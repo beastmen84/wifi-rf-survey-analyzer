@@ -45,7 +45,6 @@ TRANSLATIONS = {
     "language": "Language",
     "ui_scale": "UI scale",
     "ui_scale_auto": "Auto ({percent}%)",
-    "ui_scale_saved_restart": "UI scale saved. The full effect will be visible the next time the app starts.",
     "ui_scale_restart_title": "Restart required",
     "ui_scale_restart_message": "Applying UI scale {scale} requires restarting the app.\n\nSave this choice and restart now?",
     "save_and_restart": "Save and restart",
@@ -71,32 +70,18 @@ TRANSLATIONS = {
     "live_preview_insufficient": "Live map: insufficient data for this view.",
     "live_preview_rendering": "Updating live map...",
     "live_preview_updated": "Live map updated.",
-    "live_missing_band_points": "{missing}/{total} points without {band} data",
-    "live_missing_data_title": "Missing data",
-    "live_missing_point_tooltip": "No {band} data\nSSID: {ssid}\nx={x}, y={y}",
-    "live_legend_signal": "black = measured point",
-    "live_legend_channel": "color = channel",
-    "live_legend_dominant": "color = dominant AP, yellow outline = delta <= 5 dB",
-    "live_legend_interference": "green/yellow/red = low/medium/high risk",
     "ap_group_filter": "AP group",
     "all_ap_groups_option": "All AP groups",
-    "live_zoom": "Live zoom",
     "footer_survey_info": "CSV: {csv} | Map: {map} | Points: {points} | Last: {last}",
     "unsaved_survey": "Unsaved survey",
     "no_map": "No map",
-    "no_scan": "No scan",
-    "scan_quality_empty": "Scan quality: -",
-    "backend_used_empty": "Backend used: -",
     "load_plan": "Load plan",
     "generate_heatmap": "Generate heatmap",
     "generate": "Generate",
-    "open_csv": "Open CSV",
     "save": "Save",
     "save_clean_tooltip": "Survey saved",
     "save_dirty_tooltip": "There are unsaved changes",
-    "options": "Options",
     "ap_aliases": "AP groups",
-    "quality_dashboard_button": "Quality",
     "quality_dashboard_title": "Survey quality",
     "quality_dashboard_hint": "Quickly check which points deserve a rescan before generating or interpreting maps.",
     "quality_dashboard_status_ok_title": "Survey looks consistent",
@@ -116,9 +101,6 @@ TRANSLATIONS = {
     "quality_dashboard_metric_ap_position_warnings": "AP position warnings",
     "quality_dashboard_metric_ap_missing_positions": "APs without position",
     "quality_dashboard_metric_ap_metadata_warnings": "AP config warnings",
-    "quality_dashboard_context": "Relevant networks: {relevant} | Placed APs: {ap_positions} | Excluded test APs: {test_aps}",
-    "quality_dashboard_ap_context": "AP position warnings: {ap_warnings} | Active APs without position: {missing_positions} ({missing_list})",
-    "quality_dashboard_ap_metadata_context": "AP configuration warnings: {warnings} ({warning_list})",
     "quality_dashboard_context_relevant_networks": "Relevant networks",
     "quality_dashboard_context_ap_positions": "AP position status",
     "quality_dashboard_context_test_aps": "Excluded test APs",
@@ -151,17 +133,11 @@ TRANSLATIONS = {
     "delete_scale_confirm": "Do you want to delete the saved scale calibration for this survey?",
     "delete_scale_done": "Scale deleted. You can run a new calibration.",
     "max_distance_m": "Max distance (m)",
-    "ap_aliases_title": "AP aliases",
     "ap_groups_title": "AP Group Manager",
-    "ap_aliases_empty": "No BSSID detected in the survey.",
-    "ap_aliases_hint": "Double click the Alias column to edit. Virtual BSSIDs from the same AP are grouped, so one alias is used in tooltips and legends.",
     "ap_groups_hint": "Select a group and use the buttons to edit alias, role, BSSID, metadata, or position. The Management column shows whether the group is automatic or locked by manual edits.",
     "ap_group_bssid_title": "Group BSSID",
     "ap_group_bssid_hint": "Select the BSSIDs that belong to this physical AP. Selected BSSIDs are automatically removed from other groups.",
     "ap_group_bssid_warning_focus_hint": "BSSIDs involved in the warning are shown first. Uncheck the ones that do not belong to this physical AP and save to split the group.",
-    "ap_group_bssid_row": "{bssid} - SSID: {ssids} - CH: {channels}",
-    "ap_group_bssid_row_with_group": "{bssid} - SSID: {ssids} - CH: {channels} - Group: {group}",
-    "ap_group_bssid_warning_row": "! {row}",
     "ap_group_bssid_other_group": "Other group",
     "ap_group_empty_selection": "The group must contain at least one BSSID.",
     "ap_group_split": "Duplicate/Split",
@@ -190,7 +166,6 @@ TRANSLATIONS = {
     "ap_group_metadata_model": "Model",
     "ap_group_metadata_mounting": "Mounting",
     "ap_group_metadata_expected_bands": "Expected bands",
-    "ap_group_metadata_expected_channels": "Expected channels",
     "ap_group_metadata_band": "Band",
     "ap_group_metadata_channels": "Channels",
     "ap_group_metadata_selected_channels": "Active selection",
@@ -214,7 +189,6 @@ TRANSLATIONS = {
     "ap_position_cancelled": "AP positioning cancelled.",
     "ap_position_distance": "AP distance",
     "ap_position_nearest": "Nearest physical AP",
-    "ap_position_nearest_value": "{ap} ({distance})",
     "ap_position_analysis": "Position analysis",
     "ap_position_distance_m": "{distance} m",
     "ap_position_distance_px": "{distance} px",
@@ -240,26 +214,16 @@ TRANSLATIONS = {
     "ap_alias_ssids": "Seen SSIDs",
     "ap_alias_channels": "Channels",
     "ap_alias_value": "Alias",
-    "ap_group_locked": "Locked",
     "ap_group_management": "Management",
     "ap_group_state_manual": "Manual",
     "ap_group_state_auto": "Auto",
     "ap_alias_search": "Search",
-    "ap_alias_saved": "AP aliases saved.",
     "ap_groups_saved": "AP groups saved.",
     "yes": "Yes",
-    "no": "No",
-    "edit_alias": "Edit alias",
     "help": "Help",
     "fit": "Fit",
-    "survey": "Survey",
     "map": "Map",
-    "points": "Points",
-    "last": "Last",
-    "last_scan": "Last scan",
     "saved_network": "Relevant networks",
-    "saved_network_none": "No relevant network defined",
-    "saved_network_all": "All networks",
     "relevant_networks_none": "No relevant network defined",
     "manage_relevant_networks": "Manage",
     "manage_relevant_networks_title": "Manage relevant networks",
@@ -268,8 +232,6 @@ TRANSLATIONS = {
     "relevant_networks_updated": "Relevant networks updated.",
     "forget_saved_network": "Clear",
     "relevant_networks_cleared": "Relevant networks cleared.",
-    "points_legend": "Point legend",
-    "detected_points": "Detected points",
     "best_dbm": "Best dBm",
     "quality": "Quality",
     "quality_good": "OK",
@@ -284,11 +246,7 @@ TRANSLATIONS = {
     "point_rescanned": "Point rescanned: x={x}, y={y}, old rows removed={rows}, new networks={count}.",
     "delete_selected": "Delete selected",
     "delete_last": "Delete last",
-    "scan": "Scan",
-    "appearance": "Appearance",
     "band": "Band",
-    "ap_filter": "AP",
-    "ap_filter_all": "All",
     "all_bands_option": "All",
     "map_type": "Map type",
     "map_type_signal": "Signal coverage",
@@ -297,7 +255,6 @@ TRANSLATIONS = {
     "map_type_dominant": "Dominant AP",
     "channel_map_legend_title": "AP channels",
     "channel_map_intermediate_24": "Intermediate channels",
-    "channel_map_other": "Other channels",
     "dominant_map_legend_title": "Dominant AP",
     "dominant_map_roaming_overlap": "Δ <= 5 dB",
     "point_labels": "Point labels",
@@ -320,9 +277,6 @@ TRANSLATIONS = {
     "second_ap_role": "Second AP role",
     "second_confidence": "Second confidence",
     "serving_ap": "Serving AP",
-    "interfering_ap": "Interfering AP",
-    "interference_roles": "AP roles",
-    "interferer_confidence": "Interferer confidence",
     "export_signal_title": "Wi-Fi signal coverage",
     "export_channel_title": "Wi-Fi AP channels",
     "export_dominant_title": "Wi-Fi dominant AP",
@@ -380,23 +334,19 @@ TRANSLATIONS = {
     "color_scale_fixed": "Fixed",
     "color_scale_auto": "Automatic",
     "smoothing": "Smoothing",
-    "attempts": "Attempts: {count}",
     "theme": "Theme",
     "qt_theme_light": "Sand Blue",
     "qt_theme_soft": "Soft Olive",
     "qt_theme_dark": "Slate Blue",
     "qt_theme_contrast": "Graphite Green",
-    "apply_theme": "Apply theme",
     "close": "Close",
     "cancel": "Cancel",
     "select_plan_title": "Select floor plan",
-    "pdf_or_images": "PDF or images",
     "images": "Images",
     "load_plan_first": "Load a floor plan first.",
     "warning": "Warning",
     "empty_csv": "The survey is empty.",
     "no_ssid": "No SSID available.",
-    "select_ssid": "Select an SSID in the Heatmap panel.",
     "select_ssid_heatmap": "Select an SSID to generate the heatmap.",
     "insufficient_data_title": "Insufficient data",
     "insufficient_data": "At least 3 points are required to generate a heatmap on {band}.",
@@ -407,41 +357,21 @@ TRANSLATIONS = {
     "heatmap_generated": "Heatmap generated",
     "file_created": "File created:\n{path}",
     "files_created": "Files created:\n{paths}",
-    "csv_not_saved": "CSV not saved yet.",
     "unsaved_changes_title": "Unsaved survey",
     "unsaved_changes": "There are unsaved changes.\n\nDo you want to save the survey before exiting?",
     "survey_saved": "Survey saved: {name}",
-    "theme_applied": "Theme applied: {theme}",
     "best": "Best",
     "confidence": "confidence",
-    "filter": "Filter",
-    "all_networks": "All networks",
-    "networks_to_save": "Networks to save",
-    "detected_networks_count": "Networks detected: {count}",
-    "connected_network": "Connected network: {ssid}",
     "connected_ssid_option": "{ssid} (connected)",
-    "remember_choice": "Remember choice",
     "relevant_networks_title": "Relevant networks",
     "relevant_networks_first_message": "Select the SSIDs that are relevant for this survey. All networks will be saved, but these will be checked at the next points.",
     "new_relevant_networks_title": "New networks detected",
     "new_relevant_networks_message": "New SSIDs were detected. Select any that are relevant for this survey.",
     "missing_relevant_networks_title": "Relevant networks missing",
     "missing_relevant_networks_message": "These relevant networks were not detected:\n{ssids}\n\nDo you want to save the point anyway, retry the scan, or cancel?",
-    "remembered_network_missing_title": "Remembered network unavailable",
-    "remembered_network_missing": (
-        "The saved network was not detected:\n{ssid}\n\n"
-        "Press OK to select another network or Cancel to cancel the point."
-    ),
-    "scan_quality_no_data": "Scan quality: no data",
-    "scan_quality_suspicious": "Scan quality: suspicious",
-    "scan_quality_reduced": "Scan quality: reduced",
-    "scan_quality_good": "Scan quality: good",
-    "scan_quality_missing_relevant": "Scan quality: missing {ssids}",
-    "backend_used": "Backend used: {backend}",
     "cancelled": "cancelled",
     "no_networks_found": "No networks found. Check that Wi-Fi is enabled.",
     "error": "Error",
-    "no_matching_ssid": "No network found with this SSID.",
     "point_saved": "Point saved: x={x}, y={y}, networks saved={count}",
     "scanning": "Wi-Fi scan in progress at x={x}, y={y}...",
     "map_loaded_points": "Plan loaded. Restored points={count}. Survey: {name}",
@@ -454,16 +384,6 @@ TRANSLATIONS = {
     "point_deleted": "Point deleted: x={x}, y={y}, removed rows={rows}",
     "zoom": "Zoom: {zoom:.0%}",
     "all_bands_label": "all bands",
-    "start_step_plan": "1. Load a PDF or image floor plan",
-    "start_step_points": "2. Create points with right click",
-    "start_step_heatmap": "3. Export PDF from the Live map",
-    "start_shortcuts": "Hold left button: pan map | Ctrl + wheel: zoom",
-    "mouse_right_action": "Create point",
-    "mouse_left_action": "Pan map / place AP",
-    "mouse_marker_action": "Select point",
-    "mouse_wheel_action": "Vertical scroll",
-    "mouse_shift_scroll_action": "Horizontal scroll",
-    "mouse_ctrl_scroll_action": "Zoom",
     "help_title": "Quick help",
     "help_commands": "Commands",
     "help_workflow": "Workflow",
@@ -519,52 +439,7 @@ TRANSLATIONS = {
         "Shift + wheel: horizontal scroll.\n"
         "Ctrl + wheel: zoom."
     ),
-    "help_workflow_text": (
-        "1. Create a new survey or open an existing CSV.\n"
-        "2. Load the floor plan.\n"
-        "3. Create real points while walking the route.\n"
-        "4. Save the survey.\n"
-        "5. Choose SSID, band, and map type.\n"
-        "6. Export the Live map PDF when the view is ready."
-    ),
-    "help_live_text": (
-        "The Live map shows a survey preview and can export the current view to PDF.\n"
-        "Signal coverage and AP interference are calculated in the background.\n"
-        "AP channels and Dominant AP use real markers and the side legend.\n"
-        "Update now forces a recalculation with the current options."
-    ),
-    "help_heatmap_text": (
-        "Smooth RBF produces more continuous maps; linear is more conservative.\n"
-        "Best aggregation shows the strongest signal at the point; mean and median are more stable.\n"
-        "Fixed scale helps compare maps; automatic scale improves readability for one map.\n"
-        "Max distance limits areas generated far from real points.\n"
-        "Only >= -70 dBm highlights normally usable areas.\n"
-        "AP interference generates a PNG and CSV report with diagnosis of the worst point.\n"
-        "AP channels shows only real points, colored by channel.\n"
-        "Dominant AP generates a PNG and CSV report with best AP, second AP, and dB delta."
-    ),
-    "help_scan_text": (
-        "Auto tries lswifi and falls back to netsh.\n"
-        "lswifi usually sees more BSSIDs and is preferred when available.\n"
-        "lswifi can provide channel_width_mhz and band/frequency data, useful for better 5/6 GHz interference estimates.\n"
-        "If a scan finds far fewer networks than the previous good scan, it is marked suspicious.\n"
-        "In that case, retry before saving the point."
-    ),
-    "suspicious_scan_title": "Suspicious Wi-Fi scan",
-    "suspicious_scan_message": (
-        "This scan found far fewer networks than the previous one.\n\n"
-        "Now: {current} detections\n"
-        "Last good scan: {previous} detections\n\n"
-        "Choose whether to keep this scan, retry, or cancel the point."
-    ),
     "keep_scan": "Keep scan",
     "retry_scan": "Retry",
     "cancel_point": "Cancel point",
-    "retrying_scan": "Retrying Wi-Fi scan at x={x}, y={y}...",
-    "use_suspicious_scan_title": "Use suspicious scan?",
-    "use_suspicious_scan_message": (
-        "Do you want to use this incomplete scan anyway?\n\n"
-        "Yes: save the found data.\n"
-        "No: cancel the point."
-    ),
 }

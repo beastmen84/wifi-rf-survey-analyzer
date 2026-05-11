@@ -45,7 +45,6 @@ TRANSLATIONS = {
     "language": "Lingua",
     "ui_scale": "Scala UI",
     "ui_scale_auto": "Auto ({percent}%)",
-    "ui_scale_saved_restart": "Scala UI salvata. L'effetto completo sarà visibile alla prossima apertura dell'app.",
     "ui_scale_restart_title": "Riavvio richiesto",
     "ui_scale_restart_message": "Per applicare la scala UI {scale} serve riavviare l'app.\n\nVuoi salvare la scelta e riavviare ora?",
     "save_and_restart": "Salva e riavvia",
@@ -71,32 +70,18 @@ TRANSLATIONS = {
     "live_preview_insufficient": "Mappa live: dati insufficienti per questa vista.",
     "live_preview_rendering": "Aggiornamento mappa live...",
     "live_preview_updated": "Mappa live aggiornata.",
-    "live_missing_band_points": "{missing}/{total} punti senza dati {band}",
-    "live_missing_data_title": "Dati mancanti",
-    "live_missing_point_tooltip": "Nessun dato {band}\nSSID: {ssid}\nx={x}, y={y}",
-    "live_legend_signal": "nero = punto misurato",
-    "live_legend_channel": "colore = canale",
-    "live_legend_dominant": "colore = AP dominante, bordo giallo = delta <= 5 dB",
-    "live_legend_interference": "verde/giallo/rosso = rischio basso/medio/alto",
     "ap_group_filter": "Gruppo AP",
     "all_ap_groups_option": "Tutti i gruppi AP",
-    "live_zoom": "Zoom live",
     "footer_survey_info": "CSV: {csv} | Mappa: {map} | Punti: {points} | Ultimo: {last}",
     "unsaved_survey": "Rilievo non salvato",
     "no_map": "Nessuna mappa",
-    "no_scan": "Nessuna scansione",
-    "scan_quality_empty": "Qualità scansione: -",
-    "backend_used_empty": "Backend usato: -",
     "load_plan": "Carica pianta",
     "generate_heatmap": "Genera heatmap",
     "generate": "Genera",
-    "open_csv": "Apri CSV",
     "save": "Salva",
     "save_clean_tooltip": "Rilievo salvato",
     "save_dirty_tooltip": "Ci sono modifiche non salvate",
-    "options": "Opzioni",
     "ap_aliases": "Gruppi AP",
-    "quality_dashboard_button": "Qualità",
     "quality_dashboard_title": "Qualità rilievo",
     "quality_dashboard_hint": "Controlla rapidamente quali punti meritano una nuova scansione prima di generare o interpretare le mappe.",
     "quality_dashboard_status_ok_title": "Rilievo coerente",
@@ -116,9 +101,6 @@ TRANSLATIONS = {
     "quality_dashboard_metric_ap_position_warnings": "Warning posizione AP",
     "quality_dashboard_metric_ap_missing_positions": "AP senza posizione",
     "quality_dashboard_metric_ap_metadata_warnings": "Warning configurazione AP",
-    "quality_dashboard_context": "Reti rilevanti: {relevant} | AP posizionati: {ap_positions} | AP test esclusi: {test_aps}",
-    "quality_dashboard_ap_context": "Warning posizione AP: {ap_warnings} | AP attivi senza posizione: {missing_positions} ({missing_list})",
-    "quality_dashboard_ap_metadata_context": "Warning configurazione AP: {warnings} ({warning_list})",
     "quality_dashboard_context_relevant_networks": "Reti rilevanti",
     "quality_dashboard_context_ap_positions": "Stato posizioni AP",
     "quality_dashboard_context_test_aps": "AP test esclusi",
@@ -151,17 +133,11 @@ TRANSLATIONS = {
     "delete_scale_confirm": "Vuoi eliminare la calibrazione della scala salvata per questo rilievo?",
     "delete_scale_done": "Scala eliminata. Puoi eseguire una nuova calibrazione.",
     "max_distance_m": "Distanza max (m)",
-    "ap_aliases_title": "Alias AP",
     "ap_groups_title": "AP Group Manager",
-    "ap_aliases_empty": "Nessun BSSID rilevato nel rilievo.",
-    "ap_aliases_hint": "Doppio click nella colonna Alias per modificare. I BSSID virtuali dello stesso AP vengono raggruppati, così l'alias si assegna una sola volta e viene usato in tooltip e legende.",
     "ap_groups_hint": "Seleziona un gruppo e usa i pulsanti per modificare alias, ruolo, BSSID, metadati o posizione. La colonna Gestione indica se il gruppo è automatico o bloccato da modifiche manuali.",
     "ap_group_bssid_title": "BSSID del gruppo",
     "ap_group_bssid_hint": "Seleziona i BSSID che appartengono a questo AP fisico. I BSSID selezionati verranno rimossi automaticamente dagli altri gruppi.",
     "ap_group_bssid_warning_focus_hint": "I BSSID coinvolti nel warning sono mostrati per primi. Deseleziona quelli che non appartengono a questo AP fisico e salva per separare il gruppo.",
-    "ap_group_bssid_row": "{bssid} - SSID: {ssids} - CH: {channels}",
-    "ap_group_bssid_row_with_group": "{bssid} - SSID: {ssids} - CH: {channels} - Gruppo: {group}",
-    "ap_group_bssid_warning_row": "! {row}",
     "ap_group_bssid_other_group": "Altro gruppo",
     "ap_group_empty_selection": "Il gruppo deve contenere almeno un BSSID.",
     "ap_group_split": "Duplica/Split",
@@ -190,7 +166,6 @@ TRANSLATIONS = {
     "ap_group_metadata_model": "Modello",
     "ap_group_metadata_mounting": "Montaggio",
     "ap_group_metadata_expected_bands": "Bande attese",
-    "ap_group_metadata_expected_channels": "Canali attesi",
     "ap_group_metadata_band": "Banda",
     "ap_group_metadata_channels": "Canali",
     "ap_group_metadata_selected_channels": "Selezione attiva",
@@ -214,7 +189,6 @@ TRANSLATIONS = {
     "ap_position_cancelled": "Posizionamento AP annullato.",
     "ap_position_distance": "Distanza AP",
     "ap_position_nearest": "AP fisico più vicino",
-    "ap_position_nearest_value": "{ap} ({distance})",
     "ap_position_analysis": "Analisi posizione",
     "ap_position_distance_m": "{distance} m",
     "ap_position_distance_px": "{distance} px",
@@ -240,26 +214,16 @@ TRANSLATIONS = {
     "ap_alias_ssids": "SSID visti",
     "ap_alias_channels": "Canali",
     "ap_alias_value": "Alias",
-    "ap_group_locked": "Bloccato",
     "ap_group_management": "Gestione",
     "ap_group_state_manual": "Manuale",
     "ap_group_state_auto": "Auto",
     "ap_alias_search": "Cerca",
-    "ap_alias_saved": "Alias AP salvati.",
     "ap_groups_saved": "Gruppi AP salvati.",
     "yes": "Si",
-    "no": "No",
-    "edit_alias": "Modifica alias",
     "help": "Help",
     "fit": "Fit",
-    "survey": "Rilievo",
     "map": "Mappa",
-    "points": "Punti",
-    "last": "Ultimo",
-    "last_scan": "Ultima scansione",
     "saved_network": "Reti rilevanti",
-    "saved_network_none": "Nessuna rete rilevante definita",
-    "saved_network_all": "Tutte le reti",
     "relevant_networks_none": "Nessuna rete rilevante definita",
     "manage_relevant_networks": "Gestisci",
     "manage_relevant_networks_title": "Gestisci reti rilevanti",
@@ -268,8 +232,6 @@ TRANSLATIONS = {
     "relevant_networks_updated": "Reti rilevanti aggiornate.",
     "forget_saved_network": "Azzera",
     "relevant_networks_cleared": "Reti rilevanti azzerate.",
-    "points_legend": "Legenda punti",
-    "detected_points": "Punti rilevati",
     "best_dbm": "Migliore dBm",
     "quality": "Qualità",
     "quality_good": "OK",
@@ -284,11 +246,7 @@ TRANSLATIONS = {
     "point_rescanned": "Punto rimisurato: x={x}, y={y}, vecchie righe rimosse={rows}, nuove reti={count}.",
     "delete_selected": "Elimina selezionato",
     "delete_last": "Elimina ultimo",
-    "scan": "Scansione",
-    "appearance": "Aspetto",
     "band": "Banda",
-    "ap_filter": "AP",
-    "ap_filter_all": "Tutti",
     "all_bands_option": "Tutte",
     "map_type": "Tipo mappa",
     "map_type_signal": "Copertura segnale",
@@ -297,7 +255,6 @@ TRANSLATIONS = {
     "map_type_dominant": "AP dominante",
     "channel_map_legend_title": "Canali AP",
     "channel_map_intermediate_24": "Canali intermedi",
-    "channel_map_other": "Altri canali",
     "dominant_map_legend_title": "AP dominante",
     "dominant_map_roaming_overlap": "Δ <= 5 dB",
     "point_labels": "Etichette punti",
@@ -320,9 +277,6 @@ TRANSLATIONS = {
     "second_ap_role": "Ruolo secondo AP",
     "second_confidence": "Conf. secondo",
     "serving_ap": "AP servente",
-    "interfering_ap": "AP interferente",
-    "interference_roles": "Ruoli AP",
-    "interferer_confidence": "Conf. interferente",
     "export_signal_title": "Copertura segnale Wi-Fi",
     "export_channel_title": "Canali AP Wi-Fi",
     "export_dominant_title": "AP dominante Wi-Fi",
@@ -380,23 +334,19 @@ TRANSLATIONS = {
     "color_scale_fixed": "Fissa",
     "color_scale_auto": "Automatica",
     "smoothing": "Smoothing",
-    "attempts": "Tentativi: {count}",
     "theme": "Tema",
     "qt_theme_light": "Sand Blue",
     "qt_theme_soft": "Soft Olive",
     "qt_theme_dark": "Slate Blue",
     "qt_theme_contrast": "Graphite Green",
-    "apply_theme": "Applica tema",
     "close": "Chiudi",
     "cancel": "Annulla",
     "select_plan_title": "Seleziona pianta",
-    "pdf_or_images": "PDF o immagini",
     "images": "Immagini",
     "load_plan_first": "Carica prima una pianta.",
     "warning": "Attenzione",
     "empty_csv": "Il rilievo è vuoto.",
     "no_ssid": "Nessun SSID disponibile.",
-    "select_ssid": "Seleziona un SSID.",
     "select_ssid_heatmap": "Seleziona un SSID per generare la heatmap.",
     "insufficient_data_title": "Dati insufficienti",
     "insufficient_data": "Servono almeno 3 punti per generare una heatmap nella banda {band}.",
@@ -407,41 +357,21 @@ TRANSLATIONS = {
     "heatmap_generated": "Heatmap generata",
     "file_created": "File creato:\n{path}",
     "files_created": "File creati:\n{paths}",
-    "csv_not_saved": "CSV non ancora salvato.",
     "unsaved_changes_title": "Rilievo non salvato",
     "unsaved_changes": "Ci sono modifiche non salvate.\n\nVuoi salvare il rilievo prima di uscire?",
     "survey_saved": "Rilievo salvato: {name}",
-    "theme_applied": "Tema applicato: {theme}",
     "best": "Migliore",
     "confidence": "confidenza",
-    "filter": "Filtro",
-    "all_networks": "Tutte le reti",
-    "networks_to_save": "Reti da salvare",
-    "detected_networks_count": "Reti rilevate: {count}",
-    "connected_network": "Rete connessa: {ssid}",
     "connected_ssid_option": "{ssid} (connessa)",
-    "remember_choice": "Ricorda scelta",
     "relevant_networks_title": "Reti rilevanti",
     "relevant_networks_first_message": "Seleziona gli SSID rilevanti per questo rilievo. Tutte le reti verranno salvate, ma queste saranno controllate nei punti successivi.",
     "new_relevant_networks_title": "Nuove reti rilevate",
     "new_relevant_networks_message": "Sono stati rilevati nuovi SSID. Se qualcuno è rilevante per il rilievo, selezionalo.",
     "missing_relevant_networks_title": "Reti rilevanti mancanti",
     "missing_relevant_networks_message": "Queste reti rilevanti non sono state rilevate:\n{ssids}\n\nVuoi salvare comunque il punto, ritentare la scansione o annullare?",
-    "remembered_network_missing_title": "Rete ricordata non disponibile",
-    "remembered_network_missing": (
-        "La rete salvata non è stata rilevata:\n{ssid}\n\n"
-        "Premi OK per selezionare un'altra rete oppure Annulla per annullare il punto."
-    ),
-    "scan_quality_no_data": "Qualità scansione: nessun dato",
-    "scan_quality_suspicious": "Qualità scansione: sospetta",
-    "scan_quality_reduced": "Qualità scansione: ridotta",
-    "scan_quality_good": "Qualità scansione: buona",
-    "scan_quality_missing_relevant": "Qualità scansione: mancano {ssids}",
-    "backend_used": "Backend usato: {backend}",
     "cancelled": "annullato",
     "no_networks_found": "Nessuna rete trovata. Verifica che il Wi-Fi sia attivo.",
     "error": "Errore",
-    "no_matching_ssid": "Nessuna rete trovata con questo SSID.",
     "point_saved": "Punto salvato: x={x}, y={y}, reti registrate={count}",
     "scanning": "Scansione Wi-Fi in corso nel punto x={x}, y={y}...",
     "map_loaded_points": "Pianta caricata. Punti ripristinati={count}. Rilievo: {name}",
@@ -454,16 +384,6 @@ TRANSLATIONS = {
     "point_deleted": "Punto eliminato: x={x}, y={y}, righe rimosse={rows}",
     "zoom": "Zoom: {zoom:.0%}",
     "all_bands_label": "tutte le bande",
-    "start_step_plan": "1. Carica una pianta PDF o immagine",
-    "start_step_points": "2. Crea punti con tasto destro",
-    "start_step_heatmap": "3. Esporta il PDF dalla Mappa live",
-    "start_shortcuts": "Tasto sinistro premuto: trascina mappa | Ctrl + rotella: zoom",
-    "mouse_right_action": "Crea punto",
-    "mouse_left_action": "Trascina mappa / posiziona AP",
-    "mouse_marker_action": "Seleziona punto",
-    "mouse_wheel_action": "Scorrimento verticale",
-    "mouse_shift_scroll_action": "Scorrimento orizzontale",
-    "mouse_ctrl_scroll_action": "Zoom",
     "help_title": "Guida rapida",
     "help_commands": "Comandi",
     "help_workflow": "Flusso",
@@ -519,52 +439,7 @@ TRANSLATIONS = {
         "Shift + rotella: scorrimento orizzontale.\n"
         "Ctrl + rotella: zoom."
     ),
-    "help_workflow_text": (
-        "1. Crea un nuovo rilievo o apri un CSV esistente.\n"
-        "2. Carica la pianta dell'ambiente.\n"
-        "3. Crea i punti reali camminando lungo il percorso.\n"
-        "4. Salva il rilievo.\n"
-        "5. Scegli SSID, banda e tipo mappa.\n"
-        "6. Esporta il PDF della Mappa live quando la vista è pronta."
-    ),
-    "help_live_text": (
-        "La Mappa live mostra una preview del rilievo e può esportare il PDF della vista corrente.\n"
-        "Copertura segnale e Interferenza AP vengono calcolate in background.\n"
-        "Canali AP e AP dominante usano i marker reali e la legenda laterale.\n"
-        "Aggiorna ora forza un ricalcolo con le opzioni correnti."
-    ),
-    "help_heatmap_text": (
-        "RBF morbida produce mappe più continue; lineare è più conservativa.\n"
-        "Aggregazione migliore mostra il segnale migliore del punto; media e mediana sono più stabili.\n"
-        "Scala fissa permette confronti tra mappe; automatica rende più leggibile una singola mappa.\n"
-        "Distanza max limita le aree generate lontano dai punti reali.\n"
-        "Solo >= -70 dBm evidenzia le zone normalmente utilizzabili.\n"
-        "Interferenza AP genera PNG e report CSV con diagnosi del punto peggiore.\n"
-        "Canali AP mostra solo i punti reali, colorati per canale.\n"
-        "AP dominante genera PNG e report CSV con AP migliore, secondo AP e differenza dB."
-    ),
-    "help_scan_text": (
-        "Auto prova lswifi e usa netsh come fallback.\n"
-        "lswifi di solito vede più BSSID ed è preferibile quando disponibile.\n"
-        "lswifi può fornire channel_width_mhz e band/frequenza, utile per stimare meglio le interferenze 5/6 GHz.\n"
-        "Se una scansione trova molte meno reti della precedente, il programma la segnala come sospetta.\n"
-        "In quel caso conviene riprovare prima di salvare il punto."
-    ),
-    "suspicious_scan_title": "Scansione Wi-Fi sospetta",
-    "suspicious_scan_message": (
-        "La scansione ha trovato molte meno reti della precedente.\n\n"
-        "Ora: {current} rilevamenti\n"
-        "Ultima scansione buona: {previous} rilevamenti\n\n"
-        "Scegli se mantenere questa scansione, riprovare o annullare il punto."
-    ),
     "keep_scan": "Mantieni scansione",
     "retry_scan": "Riprova",
     "cancel_point": "Annulla punto",
-    "retrying_scan": "Riprovo scansione Wi-Fi nel punto x={x}, y={y}...",
-    "use_suspicious_scan_title": "Usare scansione sospetta?",
-    "use_suspicious_scan_message": (
-        "Vuoi usare comunque questa scansione incompleta?\n\n"
-        "Sì: salva i dati trovati.\n"
-        "No: annulla il punto."
-    ),
 }
