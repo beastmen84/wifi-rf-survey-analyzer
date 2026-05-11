@@ -23,7 +23,14 @@ from ap_groups import (
 from ap_metadata_checks import build_ap_metadata_warnings
 from heatmap_tools import calculate_interference_points
 from live_renderer import build_signal_payload
-from map_exporter import MapExportResult, build_problem_report_pages, generate_live_pdf_export
+from map_exporter import (
+    MapExportResult,
+    annotate_interference_problem_numbers,
+    build_interference_problem_report_pages,
+    build_problem_report_pages,
+    generate_live_pdf_export,
+    get_interference_problem_df,
+)
 import matplotlib.pyplot as plt
 from map_config import MapConfig
 from qt_quality_dashboard import (
@@ -886,6 +893,77 @@ class LivePdfExportTests(unittest.TestCase):
         finally:
             for fig in figures:
                 plt.close(fig)
+
+    def test_interference_problem_report_uses_tooltip_fields(self):
+        risk_df = rows_to_dataframe([
+            {
+                "x": 10,
+                "y": 20,
+                "risk": 100,
+                "serving_bssid": "70:4f:57:aa:bb:10",
+                "serving_ap_group": "serving-group",
+                "serving_channel": 6,
+                "serving_channel_width_mhz": 20,
+                "strongest_interferer_bssid": "80:11:22:33:44:10",
+                "strongest_interferer_ap_group": "interferer-group",
+                "strongest_interferer_channel": 6,
+                "strongest_interferer_channel_width_mhz": 20,
+            },
+            {
+                "x": 30,
+                "y": 40,
+                "risk": 40,
+                "serving_bssid": "70:4f:57:aa:bb:20",
+                "serving_ap_group": "serving-group-2",
+                "serving_channel": 11,
+                "serving_channel_width_mhz": "",
+                "strongest_interferer_bssid": "80:11:22:33:44:20",
+                "strongest_interferer_ap_group": "interferer-group-2",
+                "strongest_interferer_channel": 10,
+                "strongest_interferer_channel_width_mhz": "",
+            },
+        ])
+
+        figures = build_interference_problem_report_pages(
+            risk_df,
+            MapConfig(ssid="MAIN", band="2.4", map_type="interference"),
+            lambda key, **kwargs: translate("en", key, **kwargs),
+            "en",
+            {
+                "serving-group": "Serving AP",
+                "interferer-group": "Neighbor AP",
+            },
+        )
+        try:
+            first_page_text = "\n".join(text.get_text() for text in figures[0].axes[0].texts)
+            self.assertIn("Point 1", first_page_text)
+            self.assertIn("x/y: 10, 20", first_page_text)
+            self.assertIn("Risk: 100.0%", first_page_text)
+            self.assertIn("Serving AP (aa:bb:10)", first_page_text)
+            self.assertIn("CH 6 / 20 MHz", first_page_text)
+            self.assertIn("Neighbor AP (33:44:10)", first_page_text)
+            self.assertNotIn("Diagnosis", first_page_text)
+        finally:
+            for fig in figures:
+                plt.close(fig)
+
+    def test_interference_problem_numbers_follow_report_order(self):
+        risk_df = rows_to_dataframe([
+            {"x": 10, "y": 20, "risk": 40},
+            {"x": 30, "y": 40, "risk": 100},
+            {"x": 50, "y": 60, "risk": 20},
+        ])
+        problem_df = get_interference_problem_df(risk_df)
+        fig, ax = plt.subplots()
+        try:
+            annotate_interference_problem_numbers(ax, problem_df)
+            labels = [text.get_text() for text in ax.texts]
+            positions = [text.xy for text in ax.texts]
+
+            self.assertEqual(labels, ["1", "2"])
+            self.assertEqual(positions, [(30.0, 40.0), (10.0, 20.0)])
+        finally:
+            plt.close(fig)
 
 
 class SettingsMenuTests(unittest.TestCase):

@@ -950,6 +950,11 @@ Language:
   tables, so long interference diagnoses wrap instead of being clipped at the
   right edge. The live PDF completion popup reports only the created file path;
   the older generated-map popup still keeps the detailed interference summary.
+- Interference live PDF problem cards no longer spend space on generic
+  diagnosis text. They show the same useful fields as live tooltips: risk,
+  coordinates, serving AP/channel and main interferer/channel. The map page
+  labels the same problem points with numbered square callouts matching the
+  report card order.
 - The temporary ReportLab live PDF backend was removed. With the current
   flattened-page exporter it produced the same output as the custom inline
   writer while adding dependency and UI noise.

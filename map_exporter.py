@@ -67,6 +67,9 @@ LIVE_PDF_POINT_SIZE = 105
 LIVE_PDF_POINT_WARNING_SIZE = 132
 LIVE_PDF_AP_ICON_SIZE_PX = 22
 LIVE_PDF_INFO_HEIGHT_PX = 360
+INTERFERENCE_PROBLEM_RISK_THRESHOLD = 30
+INTERFERENCE_PROBLEM_REPORT_LIMIT = 12
+INTERFERENCE_PROBLEM_ROWS_PER_PAGE = 4
 _PDF_AP_ICON_CACHE = None
 
 
@@ -179,7 +182,7 @@ def generate_live_pdf_export(
         )
         summary = build_interference_summary(risk_df, output_file, "", config.band, tr, language)
         figures.append(map_fig)
-        figures.extend(build_interference_problem_report_pages(risk_df, config, tr, language))
+        figures.extend(build_interference_problem_report_pages(risk_df, config, tr, language, aliases))
     elif config.is_channel:
         figures.append(build_live_pdf_channel_figure(df, bg_image, config, tr, language, aliases, ap_groups))
     elif config.is_dominant:
@@ -463,6 +466,7 @@ def build_live_pdf_interference_figure(df, bg_image, config, tr, language, alias
         zorder=4,
     )
     draw_ap_position_markers(ax, ap_groups, aliases, "")
+    annotate_interference_problem_numbers(ax, get_interference_problem_df(risk_df))
     add_live_pdf_side_header(
         side_ax,
         title,
@@ -1284,26 +1288,264 @@ def build_dominant_point_legend_items(dominant_df, config, aliases, color_map):
     return items
 
 
-def build_interference_problem_report_pages(risk_df, config, tr, language):
-    problem_df = risk_df[risk_df["risk"] >= 30].sort_values("risk", ascending=False).head(12)
-    rows = []
-    for _index, row in problem_df.iterrows():
-        rows.append([
-            f"{format_report_value(row.get('x'))}, {format_report_value(row.get('y'))}",
-            f"{float(row.get('risk', 0) or 0):.1f}%",
-            format_report_value(row.get("serving_channel", "")),
-            format_report_value(row.get("strongest_interferer_channel", "")),
-            get_interference_diagnosis(row, tr),
-        ])
+def get_interference_problem_df(risk_df):
+    if risk_df.empty or "risk" not in risk_df.columns:
+        return risk_df.head(0).copy()
 
-    return build_problem_report_pages(
-        tr("live_pdf_problem_report_title"),
-        f"{tr('export_interference_title')} - {config.ssid} - {format_band_label(config.band, language)}",
-        [tr("interference_summary_point"), tr("reference_risk"), tr("interference_summary_serving_channel"),
-         tr("interference_summary_interferer_channel"), tr("interference_summary_diagnosis")],
-        rows,
-        tr("live_pdf_no_interference_issues"),
+    problem_df = (
+        risk_df[risk_df["risk"] >= INTERFERENCE_PROBLEM_RISK_THRESHOLD]
+        .sort_values("risk", ascending=False)
+        .head(INTERFERENCE_PROBLEM_REPORT_LIMIT)
+        .copy()
     )
+    problem_df["report_number"] = range(1, len(problem_df) + 1)
+    return problem_df
+
+
+def annotate_interference_problem_numbers(ax, problem_df):
+    for _index, row in problem_df.iterrows():
+        try:
+            x = float(row.get("x"))
+            y = float(row.get("y"))
+        except (TypeError, ValueError):
+            continue
+
+        ax.annotate(
+            str(int(row.get("report_number", 0) or 0)),
+            xy=(x, y),
+            xytext=(11, -11),
+            textcoords="offset points",
+            ha="center",
+            va="center",
+            fontsize=8.4,
+            fontweight="bold",
+            color="#ffffff",
+            bbox={
+                "boxstyle": "square,pad=0.22",
+                "facecolor": "#111827",
+                "edgecolor": "#ffffff",
+                "linewidth": 0.8,
+            },
+            zorder=8,
+            clip_on=False,
+        )
+
+
+def build_interference_problem_report_pages(risk_df, config, tr, language, aliases):
+    problem_df = get_interference_problem_df(risk_df)
+    title = tr("live_pdf_problem_report_title")
+    subtitle = f"{tr('export_interference_title')} - {config.ssid} - {format_band_label(config.band, language)}"
+    if problem_df.empty:
+        return [build_interference_problem_report_page(
+            title,
+            subtitle,
+            [],
+            tr("live_pdf_no_interference_issues"),
+            tr,
+            aliases,
+        )]
+
+    pages = []
+    page_count = int(np.ceil(len(problem_df) / INTERFERENCE_PROBLEM_ROWS_PER_PAGE))
+    for page_index in range(page_count):
+        start = page_index * INTERFERENCE_PROBLEM_ROWS_PER_PAGE
+        stop = start + INTERFERENCE_PROBLEM_ROWS_PER_PAGE
+        pages.append(build_interference_problem_report_page(
+            title,
+            subtitle,
+            list(problem_df.iloc[start:stop].to_dict("records")),
+            tr("live_pdf_no_interference_issues"),
+            tr,
+            aliases,
+            page_number=page_index + 1,
+            page_count=page_count,
+        ))
+    return pages
+
+
+def build_interference_problem_report_page(
+    title,
+    subtitle,
+    rows,
+    empty_message,
+    tr,
+    aliases,
+    page_number=None,
+    page_count=None,
+):
+    fig = plt.figure(figsize=(11.69, 8.27), dpi=100)
+    fig.patch.set_facecolor("white")
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.axis("off")
+
+    ax.text(0.05, 0.94, title, fontsize=17, fontweight="bold", va="top", color="#111827")
+    ax.text(0.05, 0.895, subtitle, fontsize=10.5, va="top", color="#4b5563")
+    if page_count and page_count > 1:
+        ax.text(0.95, 0.94, f"{page_number}/{page_count}", fontsize=10, ha="right", va="top", color="#6b7280")
+    ax.plot([0.05, 0.95], [0.855, 0.855], color="#2f6fed", linewidth=1.1, alpha=0.75)
+
+    if not rows:
+        ax.text(0.05, 0.79, empty_message, fontsize=11, va="top", color="#374151")
+        return fig
+
+    card_left = 0.05
+    card_width = 0.90
+    content_top = 0.82
+    content_bottom = 0.07
+    gap = 0.018
+    card_height = (content_top - content_bottom - gap * (len(rows) - 1)) / len(rows)
+
+    for row_index, row in enumerate(rows):
+        card_top = content_top - row_index * (card_height + gap)
+        card_bottom = card_top - card_height
+        risk = float(row.get("risk", 0) or 0)
+        risk_color = "#d73027" if risk >= 60 else "#f59e0b"
+
+        ax.add_patch(plt.Rectangle(
+            (card_left, card_bottom),
+            card_width,
+            card_height,
+            facecolor="#fbfcfd",
+            edgecolor="#d1d5db",
+            linewidth=0.8,
+        ))
+        ax.add_patch(plt.Rectangle(
+            (card_left, card_bottom),
+            0.006,
+            card_height,
+            facecolor=risk_color,
+            edgecolor=risk_color,
+            linewidth=0,
+        ))
+
+        badge_size = 0.044
+        badge_x = card_left + 0.022
+        badge_y = card_top - 0.065
+        ax.add_patch(plt.Rectangle(
+            (badge_x, badge_y),
+            badge_size,
+            badge_size,
+            facecolor="#111827",
+            edgecolor="#ffffff",
+            linewidth=0.9,
+        ))
+        ax.text(
+            badge_x + badge_size / 2,
+            badge_y + badge_size / 2,
+            str(int(row.get("report_number", row_index + 1) or row_index + 1)),
+            fontsize=10.2,
+            fontweight="bold",
+            ha="center",
+            va="center",
+            color="#ffffff",
+        )
+
+        point_x = card_left + 0.083
+        ax.text(
+            point_x,
+            card_top - 0.026,
+            f"{tr('interference_summary_point')} {int(row.get('report_number', row_index + 1) or row_index + 1)}",
+            fontsize=10.8,
+            fontweight="bold",
+            va="top",
+            color="#111827",
+        )
+        ax.text(
+            point_x,
+            card_top - 0.054,
+            f"x/y: {format_report_value(row.get('x'))}, {format_report_value(row.get('y'))}",
+            fontsize=8.4,
+            va="top",
+            color="#6b7280",
+        )
+
+        risk_x = card_left + card_width - 0.19
+        ax.add_patch(plt.Rectangle(
+            (risk_x, card_top - 0.061),
+            0.145,
+            0.038,
+            facecolor="#fff7ed" if risk < 60 else "#fef2f2",
+            edgecolor=risk_color,
+            linewidth=0.8,
+        ))
+        ax.text(
+            risk_x + 0.0725,
+            card_top - 0.042,
+            f"{tr('reference_risk')}: {risk:.1f}%",
+            fontsize=8.6,
+            fontweight="bold",
+            ha="center",
+            va="center",
+            color="#111827",
+        )
+
+        value_top = card_top - 0.088
+        draw_interference_report_ap_block(
+            ax,
+            card_left + 0.040,
+            value_top,
+            tr("interference_summary_serving_ap"),
+            format_interference_ap_label(row, "serving", aliases),
+            tr("interference_summary_serving_channel"),
+            format_report_channel_with_width(
+                row.get("serving_channel"),
+                row.get("serving_channel_width_mhz"),
+            ),
+        )
+        draw_interference_report_ap_block(
+            ax,
+            card_left + 0.485,
+            value_top,
+            tr("interference_summary_interferer"),
+            format_interference_ap_label(row, "strongest_interferer", aliases),
+            tr("interference_summary_interferer_channel"),
+            format_report_channel_with_width(
+                row.get("strongest_interferer_channel"),
+                row.get("strongest_interferer_channel_width_mhz"),
+            ),
+        )
+    return fig
+
+
+def draw_interference_report_ap_block(ax, x, y, label, value, channel_label, channel_value):
+    ax.text(x, y, clean_report_text(label), fontsize=6.9, va="top", color="#6b7280")
+    for line_index, line in enumerate(wrap_report_text(value, width=44, max_lines=2)):
+        ax.text(
+            x,
+            y - 0.020 - line_index * 0.020,
+            line,
+            fontsize=8.3,
+            va="top",
+            color="#111827",
+        )
+    channel_text = f"{clean_report_text(channel_label)}: {clean_report_text(channel_value)}"
+    ax.text(
+        x,
+        y - 0.067,
+        channel_text,
+        fontsize=8.0,
+        va="top",
+        color="#374151",
+    )
+
+
+def format_interference_ap_label(row, prefix, aliases):
+    bssid_key = "serving_bssid" if prefix == "serving" else f"{prefix}_bssid"
+    group_key = "serving_ap_group" if prefix == "serving" else f"{prefix}_ap_group"
+    bssid = row.get(bssid_key, "")
+    if clean_report_text(bssid) == "-":
+        return "-"
+    return format_ap_label(bssid, aliases, row.get(group_key, ""))
+
+
+def format_report_channel_with_width(channel, width):
+    channel_label = format_report_value(channel)
+    width_label = format_report_value(width)
+    if width_label == "-":
+        return f"CH {channel_label}"
+    return f"CH {channel_label} / {width_label} MHz"
 
 
 def build_dominant_problem_report_pages(dominant_df, config, tr, language, aliases):
