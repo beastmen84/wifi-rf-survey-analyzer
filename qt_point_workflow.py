@@ -1,9 +1,11 @@
 """Qt dialogs and worker used while adding a measured survey point."""
 
-from PySide6.QtCore import QObject, Signal, Slot
+from PySide6.QtCore import QObject, QThread, Qt, Signal, Slot
 from PySide6.QtWidgets import (
+    QApplication,
     QCheckBox,
     QDialog,
+    QMessageBox,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -12,8 +14,204 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app_logging import log_event, log_exception
 from ui_scaling import widget_px
-from wifi_scanner import scan_wifi
+from wifi_scanner import get_connected_ssid, scan_wifi
+
+
+class PointCaptureMixin:
+    def create_point_from_floorplan(self, x, y):
+        if self.session is None:
+            self.new_survey()
+            if self.session is None:
+                return
+
+        if not self.floorplan_view.has_floorplan():
+            QMessageBox.warning(self, self.tr("warning"), self.tr("load_plan_first"))
+            return
+
+        if self.scan_in_progress:
+            return
+
+        self.pending_rescan_point = None
+        self.start_wifi_scan(x, y)
+
+    def start_wifi_scan(self, x, y):
+        self.pending_scan_point = (int(x), int(y))
+        self.set_scan_busy(True, self.tr("scanning", x=int(x), y=int(y)))
+        log_event(f"qt point scan start x={int(x)} y={int(y)}", logger_name="main")
+
+        thread = QThread(self)
+        worker = WifiScanWorker("auto")
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.finished.connect(self.finish_wifi_scan)
+        worker.finished.connect(thread.quit)
+        worker.finished.connect(worker.deleteLater)
+        worker.failed.connect(self.fail_wifi_scan)
+        worker.failed.connect(thread.quit)
+        worker.failed.connect(worker.deleteLater)
+        thread.finished.connect(self.cleanup_wifi_scan_thread)
+        thread.finished.connect(thread.deleteLater)
+        self.scan_thread = thread
+        self.scan_worker = worker
+        thread.start()
+
+    def finish_wifi_scan(self, networks, backend_used):
+        try:
+            x, y = self.pending_scan_point or (None, None)
+            self.set_scan_busy(False)
+            self.last_scan_backend_used = backend_used
+            log_event(f"qt point scan finished backend={backend_used} networks={len(networks or [])}", logger_name="main")
+
+            if x is None or y is None:
+                return
+
+            if not networks:
+                self.pending_scan_point = None
+                self.pending_rescan_point = None
+                QMessageBox.critical(self, self.tr("error"), self.tr("no_networks_found"))
+                return
+
+            action = self.validate_relevant_networks(networks)
+            log_event(f"qt point relevant validation action={action}", logger_name="main")
+            if action == "retry":
+                self.start_wifi_scan(x, y)
+                return
+            if action == "cancel":
+                self.pending_scan_point = None
+                self.pending_rescan_point = None
+                self.status.showMessage(self.tr("cancelled"))
+                return
+
+            rescan_point = self.pending_rescan_point
+            self.pending_scan_point = None
+            self.pending_rescan_point = None
+            removed_rows = 0
+            if rescan_point:
+                removed_rows = self.delete_point(rescan_point, refresh=False)
+            self.save_survey_point(
+                x,
+                y,
+                networks,
+                status_message=self.tr(
+                    "point_rescanned" if rescan_point else "point_saved",
+                    x=x,
+                    y=y,
+                    count=len(networks),
+                    rows=removed_rows,
+                ),
+            )
+        except Exception as exc:
+            log_exception("finish_wifi_scan failed", exc, logger_name="main")
+            self.pending_scan_point = None
+            self.pending_rescan_point = None
+            self.set_scan_busy(False)
+            QMessageBox.critical(self, self.tr("error"), str(exc))
+
+    def fail_wifi_scan(self, message):
+        log_event(f"qt point scan failed message={message}", logger_name="main")
+        self.set_scan_busy(False)
+        self.pending_scan_point = None
+        self.pending_rescan_point = None
+        QMessageBox.critical(self, self.tr("error"), message)
+
+    def cleanup_wifi_scan_thread(self):
+        finished_thread = self.sender()
+        if finished_thread is self.scan_thread:
+            self.scan_thread = None
+            self.scan_worker = None
+        log_event("qt point scan thread cleaned up", logger_name="main")
+
+    def set_scan_busy(self, is_busy, message=None):
+        self.scan_in_progress = is_busy
+        if is_busy:
+            QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        else:
+            if QApplication.overrideCursor() is not None:
+                QApplication.restoreOverrideCursor()
+
+        if message:
+            self.status.showMessage(message)
+        self.refresh_session_labels()
+
+    def validate_relevant_networks(self, networks):
+        detected_ssids = self.get_detected_ssids(networks)
+        if not detected_ssids:
+            return "keep"
+
+        if not self.relevant_ssids and not self.known_ssids:
+            dialog = RelevantNetworksDialog(
+                self,
+                detected_ssids,
+                self.tr("relevant_networks_title"),
+                self.tr("relevant_networks_first_message"),
+                connected_ssid=get_connected_ssid(),
+            )
+            if dialog.exec() != QDialog.DialogCode.Accepted:
+                return "cancel"
+
+            self.set_relevant_ssids(dialog.selected_ssids())
+            self.known_ssids |= detected_ssids
+            self.save_known_ssids()
+            return "keep"
+
+        missing_ssids = sorted(self.relevant_ssids - detected_ssids, key=str.casefold)
+        if self.relevant_ssids and missing_ssids:
+            dialog = MissingRelevantNetworksDialog(self, missing_ssids)
+            if dialog.exec() != QDialog.DialogCode.Accepted:
+                return "cancel"
+            return dialog.action
+
+        new_ssids = sorted(detected_ssids - self.known_ssids, key=str.casefold)
+        if new_ssids:
+            dialog = RelevantNetworksDialog(
+                self,
+                new_ssids,
+                self.tr("new_relevant_networks_title"),
+                self.tr("new_relevant_networks_message"),
+                connected_ssid=get_connected_ssid(),
+            )
+            if dialog.exec() != QDialog.DialogCode.Accepted:
+                return "cancel"
+
+            selected = dialog.selected_ssids()
+            if selected:
+                self.set_relevant_ssids(self.relevant_ssids | selected)
+            self.known_ssids |= detected_ssids
+            self.save_known_ssids()
+
+        return "keep"
+
+    def get_detected_ssids(self, networks):
+        return {
+            str(network.get("ssid", "")).strip()
+            for network in networks or []
+            if str(network.get("ssid", "")).strip()
+        }
+
+    def save_survey_point(self, x, y, networks, status_message=None):
+        if self.session is None:
+            return
+
+        if not networks:
+            QMessageBox.critical(self, self.tr("error"), self.tr("no_networks_found"))
+            return
+
+        log_event(f"qt save point start x={x} y={y} networks={len(networks or [])}", logger_name="main")
+        timestamp = self.session.add_points(
+            x,
+            y,
+            networks,
+            raw_networks=networks,
+            relevant_ssids=self.relevant_ssids,
+        )
+        self.refresh_session_labels()
+        self.refresh_points_table()
+        self.status.showMessage(status_message or self.tr("point_saved", x=x, y=y, count=len(networks)))
+        self.points_table.selectRow(0)
+        self.maybe_update_live_preview()
+        log_event(f"qt save point done timestamp={timestamp}", logger_name="main")
 
 
 class WifiScanWorker(QObject):
