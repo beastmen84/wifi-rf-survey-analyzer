@@ -476,6 +476,22 @@ class SettingsMenuTests(unittest.TestCase):
         window.deleteLater()
 
 
+class WorkspaceLiveStateTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.qt_app = QApplication.instance() or QApplication([])
+
+    def test_live_refresh_callbacks_use_existing_session_refresh(self):
+        window = WifiHeatmapQtApp()
+        try:
+            window.on_workspace_tab_changed(1)
+            window.on_live_option_changed()
+            window.finish_live_preview(None)
+            window.fail_live_preview("render failed")
+        finally:
+            window.deleteLater()
+
+
 class ApMetadataTests(unittest.TestCase):
     def test_metadata_warning_detects_unexpected_channel(self):
         bssid = "70:4f:57:aa:bb:10"

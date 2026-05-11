@@ -1666,14 +1666,12 @@ class WifiHeatmapQtApp(QMainWindow):
             add_labeled(self.live_ap_group_label, self.live_ap_group_combo, width=2)
 
     def on_workspace_tab_changed(self, index):
-        self.refresh_global_state()
+        self.refresh_session_labels()
         if index == 1:
-            self.refresh_live_controls()
             self.maybe_update_live_preview()
 
     def on_live_option_changed(self):
-        self.update_live_option_state()
-        self.refresh_global_state()
+        self.refresh_session_labels()
         self.maybe_update_live_preview()
 
     def maybe_update_live_preview(self):
@@ -1701,7 +1699,7 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_rendering = True
         self.live_dirty = False
         self.live_status_label.setText(self.tr("live_preview_rendering"))
-        self.refresh_global_state()
+        self.refresh_session_labels()
 
         thread = QThread(self)
         worker = LiveMapRenderWorker(
@@ -1862,7 +1860,7 @@ class WifiHeatmapQtApp(QMainWindow):
             self.live_view.clear()
             self.clear_live_legend()
             self.live_status_label.setText(self.tr("live_preview_insufficient"))
-        self.refresh_global_state()
+        self.refresh_session_labels()
 
         if self.live_dirty and self.live_auto_check.isChecked():
             QTimer.singleShot(0, self.update_live_preview)
@@ -1872,7 +1870,7 @@ class WifiHeatmapQtApp(QMainWindow):
         log_event(f"qt live render failed message={message}", logger_name="main")
         self.live_status_label.setText(f"{self.tr('error')}: {message}")
         self.clear_live_legend()
-        self.refresh_global_state()
+        self.refresh_session_labels()
 
     def cleanup_live_render_thread(self):
         finished_thread = self.sender()

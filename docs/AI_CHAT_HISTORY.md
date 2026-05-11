@@ -36,10 +36,10 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the latest settings-menu pass is 32
+- The current code test baseline after the latest live-map bugfix pass is 33
   passing tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
-  `53e50c1 Keep AP marker icons sharp`.
+  `f5c09bb Toggle settings popup from anchor button`.
 - Current AP positioning and scale calibration pick points with left click while
   their modal map-pick mode is active; normal map dragging is disabled during
   the pick and the click must not create a measurement point.
@@ -832,9 +832,15 @@ Language:
 - Fixed Settings popup toggling on startup and workspace screens: clicking the
   Settings button while the popup is open now closes it rather than reopening a
   new panel after Qt dismisses the popup.
+- Fixed the live-map UI getting stuck on `Aggiornamento mappa live...`: log
+  inspection showed the render path was raising `AttributeError` on a stale
+  `refresh_global_state()` call after setting the live-rendering state. Live tab
+  and render-completion callbacks now use the existing session/UI refresh path,
+  with a regression test covering those callbacks.
 
 Recent commits:
 
+- `f5c09bb` Toggle settings popup from anchor button.
 - `ad8feca` Tighten Qt live map viewport behavior.
 - `87d7741` Polish Qt live map toolbar and AP markers.
 - `78a210e` Specialize Qt live map views.
@@ -858,7 +864,6 @@ Recent commits:
 - `a415364` Center file dialogs and dim modal parents.
 - `04e015b` Rescan selected survey points.
 - `c76451d` Refine survey quality workflow.
-- `5fa18a3` Clarify survey quality dashboard.
 
 ## Likely Next Steps
 
@@ -904,4 +909,5 @@ Current tests cover, among other things:
 - AP marker icon scaling;
 - live marker sizing, live gradient legend painting/overlay behavior, and live
   AP position marker handling;
+- live refresh callbacks that update tab state and finish/fail render state;
 - settings popup toggle suppression.
