@@ -388,6 +388,17 @@ class LiveMapViewTests(unittest.TestCase):
         widget.render(pixmap)
 
         self.assertFalse(pixmap.isNull())
+        image = pixmap.toImage()
+        top = image.pixelColor(20, 20)
+        middle = image.pixelColor(20, 130)
+        bottom = image.pixelColor(20, 240)
+        self.assertGreater(top.green(), 180)
+        self.assertLess(top.red(), 80)
+        self.assertGreater(middle.red(), 220)
+        self.assertGreater(middle.green(), 200)
+        self.assertLess(middle.blue(), 80)
+        self.assertGreater(bottom.red(), 220)
+        self.assertLess(bottom.green(), 90)
         widget.deleteLater()
 
     def test_gradient_scale_uses_saturated_heatmap_stops(self):

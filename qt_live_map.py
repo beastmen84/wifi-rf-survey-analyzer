@@ -474,6 +474,7 @@ class LiveGradientLegendWidget(QWidget):
 
         painter.fillRect(rect, QBrush(gradient))
         painter.setPen(QPen(border, 1))
+        painter.setBrush(QBrush(Qt.BrushStyle.NoBrush))
         painter.drawRoundedRect(rect, 3, 3)
 
         suffix = str(self.scale_payload.get("suffix", ""))

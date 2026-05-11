@@ -39,7 +39,7 @@ Read this section first in a new chat.
 - The current code test baseline after the latest live-map options pass is 38
   passing tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
-  `32ffc79 Keep live map overlay anchored while panning`.
+  `1769058 Move live map options into overlay`.
 - Current AP positioning and scale calibration pick points with left click while
   their modal map-pick mode is active; normal map dragging is disabled during
   the pick and the click must not create a measurement point.
@@ -849,9 +849,14 @@ Language:
   while band/aggregation/interpolation/interference/AP-group options moved into
   a floating map options overlay that changes by map type. The continuous
   gradient scale was made more saturated and slightly wider.
+- Fixed the live gradient legend still appearing desaturated: the color stops
+  were saturated, but the bar border was drawn with the panel brush still
+  active, repainting the bar with the light panel background. The border now
+  uses `NoBrush`, and tests sample rendered pixels for saturated green/yellow/red.
 
 Recent commits:
 
+- `1769058` Move live map options into overlay.
 - `32ffc79` Keep live map overlay anchored while panning.
 - `d3af4a6` Fix live map refresh state callback.
 - `f5c09bb` Toggle settings popup from anchor button.
@@ -920,8 +925,8 @@ Current tests cover, among other things:
 - UI scale and restart command helpers;
 - dialog/windowing behavior;
 - AP marker icon scaling;
-- live marker sizing, live gradient legend painting/overlay behavior, and live
-  AP position marker handling;
+- live marker sizing, saturated live gradient legend painting/overlay behavior,
+  and live AP position marker handling;
 - live toolbar/options overlay placement and map-type-specific option visibility;
 - live pan cursor state and gradient overlay reanchoring after content scroll;
 - live refresh callbacks that update tab state and finish/fail render state;
