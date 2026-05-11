@@ -830,6 +830,9 @@ class LivePdfExportTests(unittest.TestCase):
                 ),
                 lambda key, **kwargs: translate("en", key, **kwargs),
                 language="en",
+                ap_groups=[
+                    {"group_id": "ap-main", "position": {"x": 20, "y": 30}, "role": "internal"},
+                ],
             )
 
             self.assertEqual(result.map_type, "signal")
@@ -935,6 +938,19 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertIs(window.live_map_type_combo.parent(), window.live_toolbar_frame)
             self.assertIs(window.live_ssid_combo.parent(), window.live_toolbar_frame)
             self.assertIs(window.live_update_button.parent(), window.live_toolbar_frame)
+            app_bar_layout = window.app_bar.layout()
+            self.assertEqual(app_bar_layout.stretch(0), 1)
+            self.assertEqual(app_bar_layout.stretch(1), 0)
+            self.assertEqual(app_bar_layout.stretch(2), 1)
+            toolbar_layout = window.live_toolbar_frame.layout()
+            self.assertLess(
+                toolbar_layout.indexOf(window.live_pdf_export_button),
+                toolbar_layout.indexOf(window.live_export_separator),
+            )
+            self.assertLess(
+                toolbar_layout.indexOf(window.live_export_separator),
+                toolbar_layout.indexOf(window.live_update_button),
+            )
             self.assertIs(window.live_band_combo.parent(), window.live_options_body)
             self.assertTrue(window.live_options_body.isHidden())
             window.live_view_container.resize(900, 600)
@@ -994,11 +1010,12 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(grid_position(window.live_band_label)[:2], (1, 0))
             self.assertEqual(grid_position(window.live_color_scale_label)[:2], (2, 0))
             self.assertEqual(grid_position(window.live_interpolation_label)[:2], (3, 0))
-            self.assertEqual(grid_position(window.live_max_distance_label)[:2], (4, 0))
-            self.assertEqual(grid_position(window.live_aggregation_label)[:2], (5, 0))
-            self.assertEqual(grid_position(window.live_smoothing_label)[:2], (6, 0))
-            self.assertEqual(grid_position(window.live_options_separator), (7, 0, 1, 2))
-            self.assertEqual(grid_position(window.live_usable_check), (8, 0, 1, 2))
+            self.assertEqual(grid_position(window.live_aggregation_label)[:2], (4, 0))
+            self.assertEqual(grid_position(window.live_options_separator), (5, 0, 1, 2))
+            self.assertEqual(grid_position(window.live_max_distance_label)[:2], (6, 0))
+            self.assertEqual(grid_position(window.live_smoothing_label)[:2], (7, 0))
+            self.assertEqual(grid_position(window.live_checkbox_separator), (8, 0, 1, 2))
+            self.assertEqual(grid_position(window.live_usable_check), (9, 0, 1, 2))
             self.assertEqual(window.live_band_combo.width(), window.live_interpolation_combo.width())
             self.assertEqual(window.live_band_combo.width(), window.live_max_distance_spin.width())
             required_group_width = window.live_ap_group_combo.fontMetrics().horizontalAdvance("All AP groups")
@@ -1013,6 +1030,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertFalse(window.live_usable_check.isHidden())
             self.assertFalse(window.live_ap_group_combo.isHidden())
             self.assertFalse(window.live_options_separator.isHidden())
+            self.assertFalse(window.live_checkbox_separator.isHidden())
             self.assertTrue(window.live_interference_mode_combo.isHidden())
             self.assertTrue(window.live_point_labels_combo.isHidden())
 
@@ -1026,8 +1044,9 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(grid_position(window.live_interference_mode_label)[:2], (2, 0))
             self.assertEqual(grid_position(window.live_interference_mode_combo)[:2], (2, 1))
             self.assertEqual(grid_position(window.live_interpolation_label)[:2], (3, 0))
-            self.assertEqual(grid_position(window.live_max_distance_label)[:2], (4, 0))
-            self.assertEqual(grid_position(window.live_smoothing_label)[:2], (5, 0))
+            self.assertEqual(grid_position(window.live_options_separator), (4, 0, 1, 2))
+            self.assertEqual(grid_position(window.live_max_distance_label)[:2], (5, 0))
+            self.assertEqual(grid_position(window.live_smoothing_label)[:2], (6, 0))
             self.assertFalse(window.live_band_combo.isHidden())
             self.assertFalse(window.live_color_scale_combo.isHidden())
             self.assertFalse(window.live_interference_mode_combo.isHidden())
@@ -1038,8 +1057,9 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertTrue(window.live_usable_check.isHidden())
             self.assertTrue(window.live_ap_group_combo.isHidden())
             self.assertTrue(window.live_point_labels_combo.isHidden())
-            self.assertTrue(window.live_options_separator.isHidden())
-            self.assertEqual(window.live_options_layout.indexOf(window.live_options_separator), -1)
+            self.assertFalse(window.live_options_separator.isHidden())
+            self.assertTrue(window.live_checkbox_separator.isHidden())
+            self.assertEqual(window.live_options_layout.indexOf(window.live_checkbox_separator), -1)
 
             set_map_type("channel")
             self.assertEqual(combo_values(window.live_band_combo), ["all", "2.4", "5"])
@@ -1055,6 +1075,8 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertTrue(window.live_color_scale_combo.isHidden())
             self.assertTrue(window.live_max_distance_spin.isHidden())
             self.assertTrue(window.live_smoothing_spin.isHidden())
+            self.assertTrue(window.live_options_separator.isHidden())
+            self.assertTrue(window.live_checkbox_separator.isHidden())
 
             set_map_type("dominant")
             self.assertEqual(combo_values(window.live_band_combo), ["all", "2.4", "5"])
@@ -1070,6 +1092,8 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertTrue(window.live_smoothing_spin.isHidden())
             self.assertTrue(window.live_usable_check.isHidden())
             self.assertTrue(window.live_ap_group_combo.isHidden())
+            self.assertTrue(window.live_options_separator.isHidden())
+            self.assertTrue(window.live_checkbox_separator.isHidden())
         finally:
             window.deleteLater()
 

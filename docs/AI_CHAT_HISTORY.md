@@ -209,9 +209,10 @@ Live tab:
   `Update now` and `Auto update` on the right.
 - Map-specific live options live in a floating overlay over the live map, with
   a compact vertical side tab on the left of the viewport. Coverage shows band,
-  aggregation, interpolation, usable threshold and AP group; interference shows
-  band, interference mode and interpolation; AP channels shows band and AP
-  group; dominant AP shows only band.
+  aggregation, color scale, interpolation, smoothing, max distance, usable
+  threshold and AP group; interference shows band, color scale, interference
+  mode, interpolation, smoothing and max distance; AP channels shows band and
+  AP group; dominant AP shows only band.
 - Qt live point markers are scene-sized 14 px markers like the survey view, so
   they scale with map zoom instead of staying a fixed screen size.
 - Live map panning no longer uses Qt's always-hand `ScrollHandDrag`; the cursor
@@ -927,17 +928,22 @@ Language:
   Clicking empty map space clears the highlighted marker and the selected
   legend row.
 - The top app bar no longer exposes `Generate heatmap`; export now starts from
-  the Live Map toolbar as `Export PDF`, next to `Update now` with a separator.
-  Project and View app-bar sections get extra stretch space for longer labels.
+  the Live Map toolbar as `Export PDF`, separated from `Update now` and
+  `Auto update`. Project and Analysis app-bar sections get extra stretch space
+  for longer labels, while View stays compact.
 - Live coverage/interference regained the continuous-map controls that existed
   before the Qt pass: color scale, smoothing and max distance. The values are
-  stored per live map type with the other live options and are used by preview
-  rendering and live PDF export.
+  stored per live map type with the other live options, displayed as their own
+  numeric section in the live options overlay, and used by preview rendering
+  and live PDF export.
 - Live PDF export renders the current live-map configuration at full floor-plan
   extent, independent from viewport zoom/pan. Page 1 places the map and its
   scale/legend in separate canvas space so the legend does not overlap the map.
-  Interference and Dominant AP add a second problem-report page; Coverage does
-  not, and AP Channels remains map-only until a diagnostic rule is defined.
+  Map markers use survey-like sizing, positioned AP markers use the Wi-Fi icon,
+  and pages are flattened before PDF writing to avoid accidental vector-object
+  selection in PDF viewers. Interference and Dominant AP add a second
+  problem-report page; Coverage does not, and AP Channels remains map-only
+  until a diagnostic rule is defined.
 - A quick live-map data logic pass confirmed current scoping: Coverage uses
   SSID, band, optional AP group filter, aggregation, interpolation and usable
   threshold; Interference uses SSID, 2.4/5 GHz band, intra/all-network mode,

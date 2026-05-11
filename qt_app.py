@@ -350,7 +350,7 @@ class WifiHeatmapQtApp(QMainWindow):
             self.calibrate_button,
         ):
             view_row.addWidget(button)
-        layout.addWidget(view_section, 1)
+        layout.addWidget(view_section)
 
         analysis_section, self.analysis_section_label, analysis_row = self.build_app_bar_section()
         self.ap_groups_button = self.create_app_bar_button(self.open_ap_group_manager)
@@ -362,7 +362,7 @@ class WifiHeatmapQtApp(QMainWindow):
             self.help_button,
         ):
             analysis_row.addWidget(button)
-        layout.addWidget(analysis_section)
+        layout.addWidget(analysis_section, 1)
 
         self.settings_menu_button = self.create_app_bar_button(self.open_settings_menu, "appBarSettingsButton")
         self.settings_menu_button.setMinimumHeight(self.app_bar_control_height())
@@ -826,8 +826,8 @@ class WifiHeatmapQtApp(QMainWindow):
         toolbar_layout.addWidget(self.live_ssid_label)
         toolbar_layout.addWidget(self.live_ssid_combo)
         toolbar_layout.addStretch(1)
-        toolbar_layout.addWidget(self.live_export_separator)
         toolbar_layout.addWidget(self.live_pdf_export_button)
+        toolbar_layout.addWidget(self.live_export_separator)
         toolbar_layout.addWidget(self.live_update_button)
         toolbar_layout.addWidget(self.live_auto_check)
         layout.addWidget(toolbar)
@@ -909,6 +909,11 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_options_separator.setFrameShape(QFrame.Shape.NoFrame)
         self.live_options_separator.setFixedHeight(self.spx(1))
         self.live_options_separator.hide()
+        self.live_checkbox_separator = QFrame()
+        self.live_checkbox_separator.setObjectName("liveOptionsSeparator")
+        self.live_checkbox_separator.setFrameShape(QFrame.Shape.NoFrame)
+        self.live_checkbox_separator.setFixedHeight(self.spx(1))
+        self.live_checkbox_separator.hide()
         self.update_live_options_panel_toggle()
 
     def toggle_live_options_panel(self):
@@ -2057,8 +2062,9 @@ class WifiHeatmapQtApp(QMainWindow):
     def reflow_live_option_controls(self, map_type):
         for widget in self.live_option_widgets:
             self.live_options_layout.removeWidget(widget)
-        self.live_options_layout.removeWidget(self.live_options_separator)
-        self.live_options_separator.hide()
+        for separator in (self.live_options_separator, self.live_checkbox_separator):
+            self.live_options_layout.removeWidget(separator)
+            separator.hide()
 
         row = 0
         dropdowns = []
@@ -2080,13 +2086,14 @@ class WifiHeatmapQtApp(QMainWindow):
             self.live_options_layout.addWidget(widget, row, 0, 1, 2, Qt.AlignmentFlag.AlignLeft)
             row += 1
 
-        def add_separator():
+        def add_separator(separator):
             nonlocal row
-            self.live_options_layout.addWidget(self.live_options_separator, row, 0, 1, 2)
-            self.live_options_separator.show()
+            self.live_options_layout.addWidget(separator, row, 0, 1, 2)
+            separator.show()
             row += 1
 
         dropdown_controls = [(self.live_band_label, self.live_band_combo)]
+        numeric_controls = []
 
         if map_type == "signal":
             dropdown_controls.extend(
@@ -2094,6 +2101,10 @@ class WifiHeatmapQtApp(QMainWindow):
                     (self.live_aggregation_label, self.live_aggregation_combo),
                     (self.live_color_scale_label, self.live_color_scale_combo),
                     (self.live_interpolation_label, self.live_interpolation_combo),
+                ]
+            )
+            numeric_controls.extend(
+                [
                     (self.live_max_distance_label, self.live_max_distance_spin),
                     (self.live_smoothing_label, self.live_smoothing_spin),
                 ]
@@ -2106,6 +2117,10 @@ class WifiHeatmapQtApp(QMainWindow):
                     (self.live_color_scale_label, self.live_color_scale_combo),
                     (self.live_interference_mode_label, self.live_interference_mode_combo),
                     (self.live_interpolation_label, self.live_interpolation_combo),
+                ]
+            )
+            numeric_controls.extend(
+                [
                     (self.live_max_distance_label, self.live_max_distance_spin),
                     (self.live_smoothing_label, self.live_smoothing_spin),
                 ]
@@ -2120,8 +2135,13 @@ class WifiHeatmapQtApp(QMainWindow):
         for label, widget in sorted(dropdown_controls, key=lambda pair: pair[0].text().casefold()):
             add_labeled(label, widget)
 
+        if numeric_controls:
+            add_separator(self.live_options_separator)
+            for label, widget in sorted(numeric_controls, key=lambda pair: pair[0].text().casefold()):
+                add_labeled(label, widget)
+
         if map_type == "signal":
-            add_separator()
+            add_separator(self.live_checkbox_separator)
             add_checkbox(self.live_usable_check)
 
         control_width = self.update_live_option_dropdown_widths(dropdowns)

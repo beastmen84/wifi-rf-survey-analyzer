@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from io import BytesIO
 from pathlib import Path
 
 import matplotlib
@@ -11,7 +12,8 @@ matplotlib.use("Agg", force=True)
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.offsetbox import AnnotationBbox, OffsetImage
+from PIL import Image as PILImage
 
 from ap_groups import (
     AP_ROLE_TEST,
@@ -57,6 +59,12 @@ from map_rendering import (
     should_label_dominant_point,
 )
 from utils import sanitize_filename
+
+
+LIVE_PDF_POINT_SIZE = 105
+LIVE_PDF_POINT_WARNING_SIZE = 132
+LIVE_PDF_AP_ICON_SIZE_PX = 22
+_PDF_AP_ICON_CACHE = None
 
 
 @dataclass
@@ -178,14 +186,45 @@ def generate_live_pdf_export(
         figures.append(build_live_pdf_signal_figure(df, bg_image, config, tr, language, aliases, ap_groups))
 
     try:
-        with PdfPages(output_file) as pdf:
-            for fig in figures:
-                pdf.savefig(fig)
+        write_figures_as_flat_pdf(figures, output_file)
     finally:
         for fig in figures:
             plt.close(fig)
 
     return MapExportResult(output_file=output_file, map_type=config.map_type, summary=summary)
+
+
+def write_figures_as_flat_pdf(figures, output_file):
+    pages = [render_figure_to_pdf_page(fig) for fig in figures]
+    if not pages:
+        return
+
+    try:
+        pages[0].save(
+            output_file,
+            "PDF",
+            resolution=150.0,
+            save_all=True,
+            append_images=pages[1:],
+        )
+    finally:
+        for page in pages:
+            page.close()
+
+
+def render_figure_to_pdf_page(fig):
+    buffer = BytesIO()
+    fig.savefig(
+        buffer,
+        format="png",
+        dpi=150,
+        facecolor="white",
+        edgecolor="white",
+        transparent=False,
+    )
+    buffer.seek(0)
+    with PILImage.open(buffer) as image:
+        return image.convert("RGB")
 
 
 def build_live_pdf_signal_figure(df, bg_image, config, tr, language, aliases, ap_groups):
@@ -243,7 +282,15 @@ def build_live_pdf_signal_figure(df, bg_image, config, tr, language, aliases, ap
         interpolation="bilinear",
         zorder=2,
     )
-    ax.scatter(x, y, c="black", s=14, edgecolors="white", linewidths=0.35, zorder=4)
+    ax.scatter(
+        x,
+        y,
+        c="black",
+        s=LIVE_PDF_POINT_SIZE,
+        edgecolors="white",
+        linewidths=0.9,
+        zorder=4,
+    )
     draw_ap_position_markers(ax, ap_groups, aliases, config.ap_group_filter)
     add_live_pdf_side_header(
         side_ax,
@@ -317,7 +364,7 @@ def build_live_pdf_interference_figure(df, bg_image, config, tr, language, alias
         interpolation="bilinear",
         zorder=2,
     )
-    point_sizes = np.clip(16 + (risk * 0.24), 16, 40)
+    point_sizes = np.clip(LIVE_PDF_POINT_SIZE + (risk * 0.85), LIVE_PDF_POINT_SIZE, 185)
     ax.scatter(
         x,
         y,
@@ -327,7 +374,7 @@ def build_live_pdf_interference_figure(df, bg_image, config, tr, language, alias
         vmin=vmin,
         vmax=vmax,
         edgecolors="black",
-        linewidths=0.42,
+        linewidths=0.75,
         zorder=4,
     )
     draw_ap_position_markers(ax, ap_groups, aliases, "")
@@ -368,9 +415,9 @@ def build_live_pdf_channel_figure(df, bg_image, config, tr, language, aliases, a
         channel_df["x"].values,
         channel_df["y"].values,
         c=colors,
-        s=32,
+        s=LIVE_PDF_POINT_SIZE,
         edgecolors="black",
-        linewidths=0.42,
+        linewidths=0.75,
         zorder=4,
     )
     draw_ap_position_markers(ax, ap_groups, aliases, config.ap_group_filter)
@@ -413,7 +460,7 @@ def build_live_pdf_dominant_figure(df, bg_image, config, tr, language, aliases, 
         for _index, row in dominant_df.iterrows()
     ]
     line_widths = [
-        1.2 if row.get("roaming_overlap") else 0.42
+        1.35 if row.get("roaming_overlap") else 0.75
         for _index, row in dominant_df.iterrows()
     ]
     warning_mask = dominant_df["ap_position_has_warning"]
@@ -422,7 +469,7 @@ def build_live_pdf_dominant_figure(df, bg_image, config, tr, language, aliases, 
             dominant_df.loc[~warning_mask, "x"].values,
             dominant_df.loc[~warning_mask, "y"].values,
             c=[color for color, is_warning in zip(colors, warning_mask) if not is_warning],
-            s=34,
+            s=LIVE_PDF_POINT_SIZE,
             edgecolors=[color for color, is_warning in zip(edge_colors, warning_mask) if not is_warning],
             linewidths=[width for width, is_warning in zip(line_widths, warning_mask) if not is_warning],
             marker="o",
@@ -433,7 +480,7 @@ def build_live_pdf_dominant_figure(df, bg_image, config, tr, language, aliases, 
             dominant_df.loc[warning_mask, "x"].values,
             dominant_df.loc[warning_mask, "y"].values,
             c=[color for color, is_warning in zip(colors, warning_mask) if is_warning],
-            s=42,
+            s=LIVE_PDF_POINT_WARNING_SIZE,
             edgecolors=[color for color, is_warning in zip(edge_colors, warning_mask) if is_warning],
             linewidths=[width for width, is_warning in zip(line_widths, warning_mask) if is_warning],
             marker="^",
@@ -1010,17 +1057,7 @@ def add_live_pdf_ap_marker_note(side_ax, ap_groups, aliases, selected_group="", 
     if visible_count == 0:
         return
 
-    side_ax.scatter(
-        [0.035],
-        [y + 0.006],
-        s=48,
-        marker="P",
-        color="#0d6efd",
-        edgecolors="white",
-        linewidths=0.6,
-        transform=side_ax.transAxes,
-        clip_on=False,
-    )
+    add_pdf_ap_icon(side_ax, 0.035, y + 0.006, xycoords=side_ax.transAxes, icon_size_px=18)
     side_ax.text(0.09, y, "AP position", fontsize=7.6, va="top")
 
 
@@ -1034,27 +1071,67 @@ def draw_ap_position_markers(ax, ap_groups, aliases, selected_group=""):
             continue
 
         group_id = str(group.get("group_id", ""))
-        ax.scatter(
-            [x],
-            [y],
-            marker="P",
-            s=82,
-            c="#0d6efd",
-            edgecolors="white",
-            linewidths=0.8,
-            zorder=6,
-        )
+        add_pdf_ap_icon(ax, x, y, zorder=6)
         if selected_group and group_id == str(selected_group):
             ax.scatter(
                 [x],
                 [y],
                 marker="o",
-                s=210,
+                s=235,
                 facecolors="none",
                 edgecolors="#f1c40f",
                 linewidths=2.2,
                 zorder=7,
             )
+
+
+def load_pdf_ap_icon():
+    global _PDF_AP_ICON_CACHE
+    if _PDF_AP_ICON_CACHE is not None:
+        return _PDF_AP_ICON_CACHE
+
+    icon_path = Path(__file__).resolve().parent / "images" / "wifi.png"
+    if not icon_path.exists():
+        _PDF_AP_ICON_CACHE = False
+        return None
+
+    _PDF_AP_ICON_CACHE = plt.imread(str(icon_path))
+    return _PDF_AP_ICON_CACHE
+
+
+def add_pdf_ap_icon(ax, x, y, xycoords="data", icon_size_px=LIVE_PDF_AP_ICON_SIZE_PX, zorder=6):
+    icon = load_pdf_ap_icon()
+    if icon is None or icon is False:
+        scatter_kwargs = {}
+        if xycoords != "data":
+            scatter_kwargs["transform"] = xycoords
+        ax.scatter(
+            [x],
+            [y],
+            marker="o",
+            s=LIVE_PDF_POINT_SIZE,
+            c="#0d6efd",
+            edgecolors="white",
+            linewidths=0.9,
+            zorder=zorder,
+            clip_on=False,
+            **scatter_kwargs,
+        )
+        return
+
+    zoom = icon_size_px / max(icon.shape[0], icon.shape[1])
+    image = OffsetImage(icon, zoom=zoom)
+    artist = AnnotationBbox(
+        image,
+        (x, y),
+        xycoords=xycoords,
+        frameon=False,
+        pad=0,
+        box_alignment=(0.5, 0.5),
+        annotation_clip=False,
+        zorder=zorder,
+    )
+    ax.add_artist(artist)
 
 
 def build_visible_ap_position_groups(ap_groups):
