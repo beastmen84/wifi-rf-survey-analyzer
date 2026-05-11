@@ -739,6 +739,8 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_ap_group_combo = QComboBox()
         self.live_ap_group_combo.setMinimumWidth(self.spx(220))
         self.live_usable_check = QCheckBox()
+        self.live_usable_check.setObjectName("liveOptionCheckbox")
+        self.live_usable_check.setContentsMargins(0, 0, 0, 0)
         self.live_auto_check = QCheckBox()
         self.live_auto_check.setChecked(True)
         self.live_update_button = QPushButton()
@@ -833,13 +835,13 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_options_overlay.setObjectName("floatingLiveOptionsPanelCollapsed")
         self.live_options_overlay.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         overlay_layout = QHBoxLayout(self.live_options_overlay)
-        overlay_layout.setContentsMargins(self.spx(8), self.spx(8), self.spx(8), self.spx(8))
-        overlay_layout.setSpacing(self.spx(8))
+        overlay_layout.setContentsMargins(self.spx(4), self.spx(6), self.spx(6), self.spx(6))
+        overlay_layout.setSpacing(self.spx(7))
 
         self.live_options_toggle_button = VerticalTabButton()
         self.live_options_toggle_button.setObjectName("liveOptionsPanelToggle")
         self.live_options_toggle_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        self.live_options_toggle_button.setFixedSize(self.spx(34), self.spx(92))
+        self.live_options_toggle_button.setFixedSize(self.spx(26), self.spx(78))
         self.live_options_toggle_button.clicked.connect(self.toggle_live_options_panel)
         overlay_layout.addWidget(self.live_options_toggle_button)
 
@@ -853,6 +855,11 @@ class WifiHeatmapQtApp(QMainWindow):
         self.live_options_layout.setColumnStretch(1, 0)
         overlay_layout.addWidget(self.live_options_body)
         self.live_options_body.setVisible(False)
+        self.live_options_separator = QFrame()
+        self.live_options_separator.setObjectName("liveOptionsSeparator")
+        self.live_options_separator.setFrameShape(QFrame.Shape.NoFrame)
+        self.live_options_separator.setFixedHeight(self.spx(1))
+        self.live_options_separator.hide()
         self.update_live_options_panel_toggle()
 
     def toggle_live_options_panel(self):
@@ -893,10 +900,10 @@ class WifiHeatmapQtApp(QMainWindow):
                 max(self.spx(166), container_height - margin * 2),
             )
         else:
-            width = max(self.spx(46), self.live_options_toggle_button.width() + self.spx(12))
-            height = max(self.spx(98), self.live_options_toggle_button.height() + self.spx(12))
+            width = max(self.spx(34), self.live_options_toggle_button.width() + self.spx(8))
+            height = max(self.spx(86), self.live_options_toggle_button.height() + self.spx(8))
 
-        x = margin
+        x = self.spx(3)
         y = max(margin, (container_height - height) // 2)
         self.live_options_overlay.setGeometry(x, y, width, height)
         self.live_options_overlay.raise_()
@@ -987,6 +994,20 @@ class WifiHeatmapQtApp(QMainWindow):
             QWidget#liveOptionsBody {{
                 background: transparent;
             }}
+            QFrame#liveOptionsSeparator {{
+                background: {palette["border"]};
+                border: 0;
+                min-height: {s(1)}px;
+                max-height: {s(1)}px;
+            }}
+            QCheckBox#liveOptionCheckbox {{
+                margin-left: 0;
+                padding-left: 0;
+                spacing: {s(8)}px;
+            }}
+            QCheckBox#liveOptionCheckbox::indicator {{
+                margin-left: 0;
+            }}
             QPushButton#pointsPanelToggle {{
                 min-width: {s(190)}px;
                 min-height: {s(30)}px;
@@ -998,11 +1019,11 @@ class WifiHeatmapQtApp(QMainWindow):
                 font-weight: 700;
             }}
             QPushButton#liveOptionsPanelToggle {{
-                min-width: {s(30)}px;
-                max-width: {s(34)}px;
-                min-height: {s(88)}px;
-                max-height: {s(102)}px;
-                padding: {s(4)}px {s(2)}px;
+                min-width: {s(26)}px;
+                max-width: {s(30)}px;
+                min-height: {s(76)}px;
+                max-height: {s(90)}px;
+                padding: {s(3)}px {s(1)}px;
                 border-radius: {s(5)}px;
                 background: {palette["metric_info"]};
                 color: #FFFFFF;
@@ -1780,13 +1801,15 @@ class WifiHeatmapQtApp(QMainWindow):
             for index in range(combo.count()):
                 text_width = max(text_width, metrics.horizontalAdvance(combo.itemText(index)))
 
-        width = max(self.spx(124), min(self.spx(240), text_width + self.spx(58)))
+        width = max(self.spx(132), min(self.spx(280), text_width + self.spx(86)))
         for combo in combos:
             combo.setFixedWidth(width)
 
     def reflow_live_option_controls(self, map_type):
         for widget in self.live_option_widgets:
             self.live_options_layout.removeWidget(widget)
+        self.live_options_layout.removeWidget(self.live_options_separator)
+        self.live_options_separator.hide()
 
         row = 0
         dropdowns = []
@@ -1805,12 +1828,19 @@ class WifiHeatmapQtApp(QMainWindow):
             self.live_options_layout.addWidget(widget, row, 0, 1, 2, Qt.AlignmentFlag.AlignLeft)
             row += 1
 
+        def add_separator():
+            nonlocal row
+            self.live_options_layout.addWidget(self.live_options_separator, row, 0, 1, 2)
+            self.live_options_separator.show()
+            row += 1
+
         add_labeled(self.live_band_label, self.live_band_combo)
 
         if map_type == "signal":
             add_labeled(self.live_aggregation_label, self.live_aggregation_combo)
             add_labeled(self.live_interpolation_label, self.live_interpolation_combo)
             add_labeled(self.live_ap_group_label, self.live_ap_group_combo)
+            add_separator()
             add_checkbox(self.live_usable_check)
         elif map_type == "interference":
             add_labeled(self.live_interference_mode_label, self.live_interference_mode_combo)

@@ -616,7 +616,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
     def test_live_options_overlay_is_specific_to_map_type(self):
         window = WifiHeatmapQtApp()
         try:
-            window.set_combo_items(window.live_ap_group_combo, [("", "All"), ("ap-1", "AP 1")])
+            window.set_combo_items(window.live_ap_group_combo, [("", "All AP groups"), ("ap-1", "AP 1")])
 
             def set_map_type(value):
                 index = window.live_map_type_combo.findData(value)
@@ -634,14 +634,18 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(grid_position(window.live_band_combo)[:2], (0, 1))
             self.assertEqual(grid_position(window.live_ap_group_label)[:2], (3, 0))
             self.assertEqual(grid_position(window.live_ap_group_combo)[:2], (3, 1))
-            self.assertEqual(grid_position(window.live_usable_check), (4, 0, 1, 2))
+            self.assertEqual(grid_position(window.live_options_separator), (4, 0, 1, 2))
+            self.assertEqual(grid_position(window.live_usable_check), (5, 0, 1, 2))
             self.assertEqual(window.live_band_combo.width(), window.live_interpolation_combo.width())
-            self.assertLess(window.live_band_combo.width(), window.spx(260))
+            required_group_width = window.live_ap_group_combo.fontMetrics().horizontalAdvance("All AP groups")
+            self.assertGreater(window.live_ap_group_combo.width(), required_group_width + window.spx(70))
+            self.assertLess(window.live_band_combo.width(), window.spx(300))
             self.assertFalse(window.live_band_combo.isHidden())
             self.assertFalse(window.live_aggregation_combo.isHidden())
             self.assertFalse(window.live_interpolation_combo.isHidden())
             self.assertFalse(window.live_usable_check.isHidden())
             self.assertFalse(window.live_ap_group_combo.isHidden())
+            self.assertFalse(window.live_options_separator.isHidden())
             self.assertTrue(window.live_interference_mode_combo.isHidden())
 
             set_map_type("interference")
@@ -653,6 +657,8 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertTrue(window.live_aggregation_combo.isHidden())
             self.assertTrue(window.live_usable_check.isHidden())
             self.assertTrue(window.live_ap_group_combo.isHidden())
+            self.assertTrue(window.live_options_separator.isHidden())
+            self.assertEqual(window.live_options_layout.indexOf(window.live_options_separator), -1)
 
             set_map_type("channel")
             self.assertFalse(window.live_band_combo.isHidden())

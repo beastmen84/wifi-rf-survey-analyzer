@@ -39,7 +39,7 @@ Read this section first in a new chat.
 - The current code test baseline after the latest live-map side-panel pass is 39
   passing tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
-  `7719619 Align live map options in side panel`.
+  `50633a8 Compact live options side tab`.
 - Current AP positioning and scale calibration pick points with left click while
   their modal map-pick mode is active; normal map dragging is disabled during
   the pick and the click must not create a measurement point.
@@ -204,10 +204,10 @@ Live tab:
 - Qt live toolbar is intentionally one row: map type and SSID on the left,
   `Update now` and `Auto update` on the right.
 - Map-specific live options live in a floating overlay over the live map, with
-  a bottom-center open/close pill like the survey measurement-points panel.
-  Coverage shows band, aggregation, interpolation, usable threshold and AP
-  group; interference shows band, interference mode and interpolation; AP
-  channels shows band and AP group; dominant AP shows only band.
+  a compact vertical side tab on the left of the viewport. Coverage shows band,
+  aggregation, interpolation, usable threshold and AP group; interference shows
+  band, interference mode and interpolation; AP channels shows band and AP
+  group; dominant AP shows only band.
 - Qt live point markers are scene-sized 14 px markers like the survey view, so
   they scale with map zoom instead of staying a fixed screen size.
 - Live map panning no longer uses Qt's always-hand `ScrollHandDrag`; the cursor
@@ -872,9 +872,15 @@ Language:
   the live options panel share the same fixed width, computed from the widest
   dropdown item in the active option set and capped so they do not stretch
   across the whole panel. Checkbox rows sit below all dropdown rows.
+- Latest live options side-panel refinement: the side tab is narrower and
+  closer to the viewport edge; dropdown and checkbox sections are separated by
+  a theme-colored line; checkbox indicators align with the option labels above;
+  and dropdown width calculation reserves extra arrow/padding space so labels
+  such as `All AP groups` are not clipped.
 
 Recent commits:
 
+- `50633a8` Compact live options side tab.
 - `7719619` Align live map options in side panel.
 - `90edb05` Simplify live map status text.
 - `ee96a1f` Shrink live gradient legend panel.
