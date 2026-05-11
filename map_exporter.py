@@ -491,9 +491,8 @@ def build_live_pdf_channel_figure(df, bg_image, config, tr, language, aliases, a
         config.band,
         ap_group_map=config.ap_group_map,
         ap_group_roles=config.ap_group_roles,
+        ap_group_filter=config.ap_group_filter,
     )
-    if config.ap_group_filter and not channel_df.empty:
-        channel_df = channel_df[channel_df["ap_group"] == config.ap_group_filter]
     if channel_df.empty:
         raise_insufficient_data(tr, config.band, language)
 
@@ -668,6 +667,7 @@ def generate_channel_map(df, bg_image, csv_file, config, tr, language):
         band,
         ap_group_map=config.ap_group_map,
         ap_group_roles=config.ap_group_roles,
+        ap_group_filter=config.ap_group_filter,
     )
 
     if channel_df.empty:

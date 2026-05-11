@@ -64,7 +64,7 @@ def collapse_heatmap_points(df, aggregation="max"):
     )
 
 
-def get_channel_map_points(df, ssid, band, ap_group_map=None, ap_group_roles=None):
+def get_channel_map_points(df, ssid, band, ap_group_map=None, ap_group_roles=None, ap_group_filter=None):
     rows = df[df["ssid"].str.lower() == ssid.lower()].copy()
     rows = filter_by_band(rows, band)
     rows["x"] = pd.to_numeric(rows["x"], errors="coerce")
@@ -82,6 +82,8 @@ def get_channel_map_points(df, ssid, band, ap_group_map=None, ap_group_roles=Non
 
     rows = add_ap_group_metadata(rows, ap_group_map, ap_group_roles)
     rows = rows[rows["ap_role"] != AP_ROLE_TEST]
+    if ap_group_filter:
+        rows = rows[rows["ap_group"] == str(ap_group_filter)]
     if rows.empty:
         return rows
 

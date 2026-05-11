@@ -652,6 +652,101 @@ class ApRoleFilteringTests(unittest.TestCase):
         self.assertNotIn(test_bssid, row["interfering_bssids"])
 
 
+class LiveMapDataLogicTests(unittest.TestCase):
+    def test_map_config_normalizes_interference_without_changing_other_maps(self):
+        interference_config = MapConfig(
+            map_type="interference",
+            band="all",
+            point_label_mode="all",
+        ).normalized()
+        signal_config = MapConfig(
+            map_type="signal",
+            band="all",
+            point_label_mode="all",
+        ).normalized()
+
+        self.assertEqual(interference_config.band, "2.4")
+        self.assertEqual(interference_config.point_label_mode, "critical")
+        self.assertEqual(signal_config.band, "all")
+        self.assertEqual(signal_config.point_label_mode, "all")
+
+    def test_channel_payload_ap_group_filter_applies_before_strongest_selection(self):
+        selected_bssid = "70:4f:57:aa:bb:10"
+        stronger_bssid = "90:11:22:33:44:10"
+        groups = [
+            build_manual_ap_group("selected-ap", [selected_bssid]),
+            build_manual_ap_group("stronger-ap", [stronger_bssid]),
+        ]
+        group_map = serialize_ap_group_map(build_bssid_to_manual_group_map(groups))
+        role_map = serialize_ap_group_roles(build_ap_group_role_map(groups))
+        selected_row = build_row("p1", "MAIN", selected_bssid, -70, 1)
+        stronger_row = build_row("p1", "MAIN", stronger_bssid, -40, 6)
+        rows = rows_to_dataframe([selected_row, stronger_row])
+
+        unfiltered = build_channel_payload(
+            rows,
+            MapConfig(
+                ssid="MAIN",
+                band="2.4",
+                map_type="channel",
+                point_label_mode="all",
+                ap_group_map=group_map,
+                ap_group_roles=role_map,
+            ),
+            Image.new("RGB", (100, 100), "white"),
+            {"channel_title": "AP channels"},
+            {},
+        )
+        filtered = build_channel_payload(
+            rows,
+            MapConfig(
+                ssid="MAIN",
+                band="2.4",
+                map_type="channel",
+                point_label_mode="all",
+                ap_group_filter="selected-ap",
+                ap_group_map=group_map,
+                ap_group_roles=role_map,
+            ),
+            Image.new("RGB", (100, 100), "white"),
+            {"channel_title": "AP channels"},
+            {},
+        )
+
+        self.assertIn("CH 6", unfiltered["point_infos"][0]["legend_label"])
+        self.assertIn("CH 1", filtered["point_infos"][0]["legend_label"])
+        self.assertEqual(filtered["point_infos"][0]["legend_label"], filtered["scale_payload"]["items"][0]["label"])
+
+    def test_interference_intra_ssid_ignores_other_ssids_while_all_counts_them(self):
+        serving_bssid = "70:4f:57:aa:bb:10"
+        neighbor_bssid = "90:11:22:33:44:10"
+        rows = [
+            build_row("p1", "MAIN", serving_bssid, -50, 1),
+            build_row("p1", "NEIGHBOR", neighbor_bssid, -45, 1),
+        ]
+        df = rows_to_dataframe(rows)
+
+        intra = calculate_interference_points(
+            df,
+            "MAIN",
+            "2.4",
+            mode="intra_ssid",
+            include_details=True,
+        )
+        all_networks = calculate_interference_points(
+            df,
+            "MAIN",
+            "2.4",
+            mode="all",
+            include_details=True,
+        )
+
+        self.assertEqual(intra.iloc[0]["risk"], 0)
+        self.assertEqual(intra.iloc[0]["interferer_count"], 0)
+        self.assertGreater(all_networks.iloc[0]["risk"], 0)
+        self.assertEqual(all_networks.iloc[0]["strongest_interferer_bssid"], neighbor_bssid)
+
+
 class UiScalingTests(unittest.TestCase):
     def test_ui_scale_helpers_are_predictable(self):
         self.assertEqual(normalize_ui_scale_mode("125%"), "125")
