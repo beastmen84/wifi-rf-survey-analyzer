@@ -628,7 +628,8 @@ class WorkspaceLiveStateTests(unittest.TestCase):
     def test_live_options_overlay_is_specific_to_map_type(self):
         window = WifiHeatmapQtApp()
         try:
-            window.set_combo_items(window.live_ap_group_combo, [("", "All AP groups"), ("ap-1", "AP 1")])
+            window.live_ap_group_filter_items = lambda: [("ap-1", "AP 1")]
+            window.refresh_live_ap_group_filter()
 
             def set_map_type(value):
                 index = window.live_map_type_combo.findData(value)
@@ -702,6 +703,61 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertTrue(window.live_interpolation_combo.isHidden())
             self.assertTrue(window.live_usable_check.isHidden())
             self.assertTrue(window.live_ap_group_combo.isHidden())
+        finally:
+            window.deleteLater()
+
+    def test_live_options_remember_values_per_map_type(self):
+        window = WifiHeatmapQtApp()
+        try:
+            window.live_ap_group_filter_items = lambda: [("ap-1", "AP 1")]
+            window.refresh_live_ap_group_filter()
+
+            def set_map_type(value):
+                index = window.live_map_type_combo.findData(value)
+                window.live_map_type_combo.blockSignals(True)
+                window.live_map_type_combo.setCurrentIndex(index)
+                window.live_map_type_combo.blockSignals(False)
+                window.update_live_option_state()
+
+            def set_combo_value(combo, value):
+                index = combo.findData(value)
+                combo.blockSignals(True)
+                combo.setCurrentIndex(index)
+                combo.blockSignals(False)
+
+            set_map_type("signal")
+            set_combo_value(window.live_band_combo, "all")
+            set_combo_value(window.live_aggregation_combo, "median")
+            set_combo_value(window.live_interpolation_combo, "linear")
+            window.live_usable_check.blockSignals(True)
+            window.live_usable_check.setChecked(True)
+            window.live_usable_check.blockSignals(False)
+            window.update_live_option_state()
+
+            set_map_type("interference")
+            self.assertEqual(window.current_combo_value(window.live_band_combo), "2.4")
+            set_combo_value(window.live_band_combo, "5")
+            set_combo_value(window.live_interference_mode_combo, "all")
+            set_combo_value(window.live_interpolation_combo, "rbf")
+            window.update_live_option_state()
+
+            set_map_type("signal")
+            self.assertEqual(window.current_combo_value(window.live_band_combo), "all")
+            self.assertEqual(window.current_combo_value(window.live_aggregation_combo), "median")
+            self.assertEqual(window.current_combo_value(window.live_interpolation_combo), "linear")
+            self.assertTrue(window.live_usable_check.isChecked())
+
+            set_map_type("interference")
+            self.assertEqual(window.current_combo_value(window.live_band_combo), "5")
+            self.assertEqual(window.current_combo_value(window.live_interference_mode_combo), "all")
+            self.assertEqual(window.current_combo_value(window.live_interpolation_combo), "rbf")
+
+            window.reset_live_option_memory()
+            set_map_type("signal")
+            self.assertEqual(window.current_combo_value(window.live_band_combo), "all")
+            self.assertEqual(window.current_combo_value(window.live_aggregation_combo), "max")
+            self.assertEqual(window.current_combo_value(window.live_interpolation_combo), "rbf")
+            self.assertFalse(window.live_usable_check.isChecked())
         finally:
             window.deleteLater()
 

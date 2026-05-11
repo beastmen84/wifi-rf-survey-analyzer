@@ -36,10 +36,10 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the latest live-map side-panel pass is 39
+- The current code test baseline after the latest live-map side-panel pass is 40
   passing tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
-  `def9360 Refine live options side panel spacing`.
+  `4379b18 Normalize live map option layouts`.
 - Current AP positioning and scale calibration pick points with left click while
   their modal map-pick mode is active; normal map dragging is disabled during
   the pick and the click must not create a measurement point.
@@ -885,9 +885,15 @@ Language:
 - Live map option lists should contain only values valid for that map type. For
   example, interference analysis does not offer `All` bands; it only offers
   `2.4 GHz` and `5 GHz`.
+- Live map options keep per-map-type memory for the currently open survey. When
+  switching between Coverage, Interference, AP Channels and Dominant AP, each
+  view restores the user's last choices for that view. A new/opened survey
+  resets this memory to defaults: `All` bands where valid, and `2.4 GHz` for
+  Interference.
 
 Recent commits:
 
+- `4379b18` Normalize live map option layouts.
 - `def9360` Refine live options side panel spacing.
 - `50633a8` Compact live options side tab.
 - `7719619` Align live map options in side panel.

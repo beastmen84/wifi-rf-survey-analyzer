@@ -167,6 +167,9 @@ class WifiHeatmapQtApp(QMainWindow):
         self.points_overlay_resize_start_y = 0
         self.points_overlay_resize_start_height = 0
         self.live_options_panel_expanded = False
+        self.live_map_option_memory = {}
+        self.live_current_map_type = "signal"
+        self.live_option_state_syncing = False
         self.restart_requested = False
 
         self.setWindowTitle(self.tr("app_title"))
@@ -1605,14 +1608,85 @@ class WifiHeatmapQtApp(QMainWindow):
             return items[1:]
         return items
 
-    def refresh_live_band_options(self, map_type=None):
+    def refresh_live_band_options(self, map_type=None, preferred_band=None):
         map_type = map_type or self.current_combo_value(self.live_map_type_combo, "signal")
-        current_band = self.current_combo_value(self.live_band_combo, "all")
+        current_band = (
+            preferred_band
+            if preferred_band is not None
+            else self.current_combo_value(self.live_band_combo, "all")
+        )
         items = self.live_band_items_for_map_type(map_type)
         available = {str(value) for value, _label in items}
         if current_band not in available:
             current_band = "2.4" if "2.4" in available else (str(items[0][0]) if items else "")
         self.set_combo_items(self.live_band_combo, items, current_value=current_band)
+
+    def set_combo_value_silent(self, combo, value):
+        index = combo.findData(value)
+        if index < 0 and combo.count():
+            index = 0
+        if index < 0:
+            return
+
+        combo.blockSignals(True)
+        combo.setCurrentIndex(index)
+        combo.blockSignals(False)
+
+    def default_live_option_state(self, map_type):
+        return {
+            "band": "2.4" if map_type == "interference" else "all",
+            "aggregation": "max",
+            "interpolation": "rbf",
+            "interference_mode": "intra_ssid",
+            "ap_group_filter": "",
+            "usable_only": False,
+        }
+
+    def current_live_option_state(self):
+        return {
+            "band": self.current_combo_value(self.live_band_combo, "all"),
+            "aggregation": self.current_combo_value(self.live_aggregation_combo, "max"),
+            "interpolation": self.current_combo_value(self.live_interpolation_combo, "rbf"),
+            "interference_mode": self.current_combo_value(
+                self.live_interference_mode_combo,
+                "intra_ssid",
+            ),
+            "ap_group_filter": self.current_combo_value(self.live_ap_group_combo, ""),
+            "usable_only": self.live_usable_check.isChecked(),
+        }
+
+    def remember_live_option_state(self, map_type=None):
+        if self.live_option_state_syncing:
+            return
+
+        map_type = map_type or self.current_combo_value(self.live_map_type_combo, "signal")
+        self.live_map_option_memory[map_type] = self.current_live_option_state()
+
+    def restore_live_option_state(self, map_type):
+        state = dict(self.default_live_option_state(map_type))
+        state.update(self.live_map_option_memory.get(map_type, {}))
+
+        self.live_option_state_syncing = True
+        try:
+            self.refresh_live_band_options(map_type, preferred_band=state.get("band"))
+            self.set_combo_value_silent(self.live_aggregation_combo, state.get("aggregation", "max"))
+            self.set_combo_value_silent(self.live_interpolation_combo, state.get("interpolation", "rbf"))
+            self.set_combo_value_silent(
+                self.live_interference_mode_combo,
+                state.get("interference_mode", "intra_ssid"),
+            )
+            self.live_usable_check.blockSignals(True)
+            self.live_usable_check.setChecked(bool(state.get("usable_only", False)))
+            self.live_usable_check.blockSignals(False)
+            self.refresh_live_ap_group_filter()
+            self.set_combo_value_silent(self.live_ap_group_combo, state.get("ap_group_filter", ""))
+        finally:
+            self.live_option_state_syncing = False
+
+    def reset_live_option_memory(self):
+        self.live_map_option_memory = {}
+        self.live_current_map_type = self.current_combo_value(self.live_map_type_combo, "signal")
+        self.restore_live_option_state(self.live_current_map_type)
 
     def set_combo_items(self, combo, items, current_value=None):
         current = combo.currentData() if current_value is None else current_value
@@ -1753,7 +1827,16 @@ class WifiHeatmapQtApp(QMainWindow):
 
     def update_live_option_state(self):
         map_type = self.current_combo_value(self.live_map_type_combo, "signal")
-        self.refresh_live_band_options(map_type)
+        previous_map_type = self.live_current_map_type
+        map_type_changed = map_type != previous_map_type
+        if map_type_changed:
+            self.remember_live_option_state(previous_map_type)
+            self.live_current_map_type = map_type
+            self.restore_live_option_state(map_type)
+        else:
+            self.refresh_live_band_options(map_type)
+            self.refresh_live_ap_group_filter()
+
         is_signal = map_type == "signal"
         is_interference = map_type == "interference"
         is_channel = map_type == "channel"
@@ -1797,6 +1880,7 @@ class WifiHeatmapQtApp(QMainWindow):
             visible=(is_signal or is_channel) and self.live_ap_group_combo.count() > 1,
             enabled=can_filter_ap_group,
         )
+        self.remember_live_option_state(map_type)
 
     def set_labeled_live_control_state(self, label, widget, visible, enabled):
         label.setVisible(visible)
@@ -2144,6 +2228,7 @@ class WifiHeatmapQtApp(QMainWindow):
             return False
         self.session = SurveySession()
         self.load_session_ssid_state()
+        self.reset_live_option_memory()
         self.floorplan_view.clear_floorplan()
         self.live_view.clear()
         self.show_workspace_page()
@@ -2170,6 +2255,7 @@ class WifiHeatmapQtApp(QMainWindow):
             return False
 
         self.load_session_ssid_state()
+        self.reset_live_option_memory()
         save_last_survey_path(csv_file)
         self.live_view.clear()
         self.show_workspace_page()
