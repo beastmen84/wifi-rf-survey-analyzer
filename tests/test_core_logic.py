@@ -2969,6 +2969,7 @@ class ApMetadataTests(unittest.TestCase):
         self.assertEqual(parse_expected_bands("24, 5, 6"), {"2.4", "5", "6"})
 
     def test_expected_channel_helpers_include_6ghz_channels(self):
+        self.assertEqual(EXPECTED_CHANNELS_BY_BAND["6"][:3], ("1", "2", "5"))
         self.assertIn("2", EXPECTED_CHANNELS_BY_BAND["6"])
         self.assertIn("233", EXPECTED_CHANNELS_BY_BAND["6"])
         self.assertEqual(infer_expected_channel_bands("5", {"6"}), ["6"])

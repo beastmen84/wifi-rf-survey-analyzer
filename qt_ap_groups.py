@@ -75,7 +75,7 @@ EXPECTED_CHANNEL_GROUPS = (
     )),
     ("ap_group_metadata_channel_group_5_high", ("149", "153", "157", "161", "165")),
 )
-EXPECTED_6GHZ_CHANNELS = tuple(str(channel) for channel in ([2] + list(range(1, 234, 4))))
+EXPECTED_6GHZ_CHANNELS = tuple(str(channel) for channel in sorted([2] + list(range(1, 234, 4))))
 
 EXPECTED_CHANNEL_GROUPS_BY_BAND = {
     "2.4": EXPECTED_CHANNEL_GROUPS[:1],
