@@ -507,15 +507,15 @@ class LiveGradientLegendWidget(QWidget):
 def gradient_stops(cmap):
     if cmap == "RdYlGn_r":
         return (
-            (0.0, "#ff1744"),
-            (0.5, "#ffea00"),
-            (1.0, "#00c853"),
+            (0.0, "#d94343"),
+            (0.5, "#f2d33b"),
+            (1.0, "#25a865"),
         )
 
     return (
-        (0.0, "#00c853"),
-        (0.5, "#ffea00"),
-        (1.0, "#ff1744"),
+        (0.0, "#25a865"),
+        (0.5, "#f2d33b"),
+        (1.0, "#d94343"),
     )
 
 

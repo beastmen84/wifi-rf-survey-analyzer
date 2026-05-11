@@ -39,7 +39,7 @@ Read this section first in a new chat.
 - The current code test baseline after the latest live-map options pass is 38
   passing tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
-  `1769058 Move live map options into overlay`.
+  `2153fd7 Fix live gradient legend saturation`.
 - Current AP positioning and scale calibration pick points with left click while
   their modal map-pick mode is active; normal map dragging is disabled during
   the pick and the click must not create a measurement point.
@@ -853,9 +853,13 @@ Language:
   were saturated, but the bar border was drawn with the panel brush still
   active, repainting the bar with the light panel background. The border now
   uses `NoBrush`, and tests sample rendered pixels for saturated green/yellow/red.
+- Tuned the live gradient legend colors down from the first fully saturated
+  neon pass to a middle palette: green `#25a865`, yellow `#f2d33b`, red
+  `#d94343`.
 
 Recent commits:
 
+- `2153fd7` Fix live gradient legend saturation.
 - `1769058` Move live map options into overlay.
 - `32ffc79` Keep live map overlay anchored while panning.
 - `d3af4a6` Fix live map refresh state callback.

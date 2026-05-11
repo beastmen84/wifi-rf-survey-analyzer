@@ -392,30 +392,30 @@ class LiveMapViewTests(unittest.TestCase):
         top = image.pixelColor(20, 20)
         middle = image.pixelColor(20, 130)
         bottom = image.pixelColor(20, 240)
-        self.assertGreater(top.green(), 180)
-        self.assertLess(top.red(), 80)
+        self.assertGreater(top.green(), 150)
+        self.assertLess(top.red(), 90)
         self.assertGreater(middle.red(), 220)
-        self.assertGreater(middle.green(), 200)
-        self.assertLess(middle.blue(), 80)
-        self.assertGreater(bottom.red(), 220)
-        self.assertLess(bottom.green(), 90)
+        self.assertGreater(middle.green(), 190)
+        self.assertLess(middle.blue(), 95)
+        self.assertGreater(bottom.red(), 190)
+        self.assertLess(bottom.green(), 120)
         widget.deleteLater()
 
     def test_gradient_scale_uses_saturated_heatmap_stops(self):
         self.assertEqual(
             gradient_stops("RdYlGn"),
             (
-                (0.0, "#00c853"),
-                (0.5, "#ffea00"),
-                (1.0, "#ff1744"),
+                (0.0, "#25a865"),
+                (0.5, "#f2d33b"),
+                (1.0, "#d94343"),
             ),
         )
         self.assertEqual(
             gradient_stops("RdYlGn_r"),
             (
-                (0.0, "#ff1744"),
-                (0.5, "#ffea00"),
-                (1.0, "#00c853"),
+                (0.0, "#d94343"),
+                (0.5, "#f2d33b"),
+                (1.0, "#25a865"),
             ),
         )
 
