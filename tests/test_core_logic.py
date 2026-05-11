@@ -6,6 +6,7 @@ import tempfile
 import time
 from pathlib import Path
 
+import numpy as np
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtTest import QTest
@@ -51,13 +52,21 @@ from ap_positioning import (
     analyze_dominant_ap_position,
 )
 from heatmap_tools import (
+    apply_distance_mask,
+    apply_signal_threshold,
     calculate_interference_points,
     channel_overlap_weight,
     channel_width_overlap_weight,
+    get_confidence_rbf_smoothing,
     get_channel_map_points,
+    get_distance_alpha,
     get_dominant_ap_points,
     get_interference_data_quality,
+    get_scan_confidence_values,
+    interpolate_signal_grid,
+    normalize_confidence_array,
     signal_interference_weight,
+    smooth_heatmap_grid,
 )
 from live_renderer import build_signal_payload
 from map_exporter import (
@@ -1037,6 +1046,95 @@ class LiveMapDataLogicTests(unittest.TestCase):
         self.assertEqual(intra.iloc[0]["interferer_count"], 0)
         self.assertGreater(all_networks.iloc[0]["risk"], 0)
         self.assertEqual(all_networks.iloc[0]["strongest_interferer_bssid"], neighbor_bssid)
+
+
+class HeatmapMathTests(unittest.TestCase):
+    def test_scan_confidence_values_default_clip_and_coerce(self):
+        df = rows_to_dataframe([
+            {"scan_confidence": "1.5"},
+            {"scan_confidence": "0.01"},
+            {"scan_confidence": "bad"},
+        ])
+
+        values = get_scan_confidence_values(df, default=0.75)
+
+        self.assertEqual(values.tolist(), [1.0, 0.05, 0.75])
+        self.assertEqual(get_scan_confidence_values([{}, {}], default=0.8).tolist(), [0.8, 0.8])
+
+    def test_normalize_confidence_array_validates_length_and_finite_values(self):
+        self.assertIsNone(normalize_confidence_array(None, 2))
+        self.assertIsNone(normalize_confidence_array([0.5], 2))
+
+        values = normalize_confidence_array([float("nan"), 0.01, 2.0], 3)
+
+        self.assertEqual(values.tolist(), [1.0, 0.05, 1.0])
+
+    def test_confidence_rbf_smoothing_increases_for_low_confidence_points(self):
+        smoothing = get_confidence_rbf_smoothing([1.0, 0.5, 0.05], 3, base_smoothing=4.0)
+
+        self.assertAlmostEqual(smoothing[0], 4.0)
+        self.assertGreater(smoothing[1], smoothing[0])
+        self.assertGreater(smoothing[2], smoothing[1])
+        self.assertEqual(get_confidence_rbf_smoothing([1.0], 2, base_smoothing=4.0), 4.0)
+
+    def test_smooth_heatmap_grid_preserves_nan_voids_without_zero_bleed(self):
+        grid = np.full((5, 5), np.nan)
+        grid[2, 2] = -50
+
+        smoothed = smooth_heatmap_grid(grid, sigma=1.0)
+
+        self.assertTrue(np.isfinite(smoothed[2, 2]))
+        self.assertAlmostEqual(smoothed[2, 2], -50.0, places=5)
+        self.assertTrue(np.isnan(smooth_heatmap_grid(np.full((2, 2), np.nan), sigma=1.0)).all())
+
+    def test_distance_mask_and_alpha_respect_radius_fade_and_confidence(self):
+        grid_x, grid_y = np.meshgrid(np.array([0.0, 5.0, 10.0, 15.0]), np.array([0.0]), indexing="ij")
+        grid_z = np.arange(4, dtype=float).reshape(4, 1)
+
+        masked = apply_distance_mask(grid_z, grid_x, grid_y, np.array([0.0]), np.array([0.0]), max_distance_px=10)
+        alpha = get_distance_alpha(
+            grid_x,
+            grid_y,
+            np.array([0.0]),
+            np.array([0.0]),
+            max_distance_px=10,
+            fade_ratio=0.5,
+            point_confidence=[0.5],
+            min_confidence_alpha=0.4,
+        )
+
+        self.assertTrue(np.isfinite(masked[2, 0]))
+        self.assertTrue(np.isnan(masked[3, 0]))
+        self.assertAlmostEqual(alpha[0, 0], 0.7)
+        self.assertAlmostEqual(alpha[1, 0], 0.7)
+        self.assertAlmostEqual(alpha[2, 0], 0.0)
+        self.assertAlmostEqual(alpha[3, 0], 0.0)
+
+    def test_apply_signal_threshold_masks_only_weak_values(self):
+        grid = np.array([[-72.0, -70.0], [-65.0, np.nan]])
+
+        thresholded = apply_signal_threshold(grid, min_signal_dbm=-70)
+
+        self.assertTrue(np.isnan(thresholded[0, 0]))
+        self.assertEqual(thresholded[0, 1], -70.0)
+        self.assertEqual(thresholded[1, 0], -65.0)
+        self.assertTrue(np.isnan(thresholded[1, 1]))
+
+    def test_interpolation_falls_back_to_nearest_for_sparse_points(self):
+        grid_x, grid_y = np.meshgrid(np.array([0.0, 10.0]), np.array([0.0, 10.0]), indexing="ij")
+
+        grid = interpolate_signal_grid(
+            np.array([0.0, 10.0]),
+            np.array([0.0, 10.0]),
+            np.array([-50.0, -70.0]),
+            grid_x,
+            grid_y,
+            method="rbf",
+        )
+
+        self.assertEqual(grid.shape, grid_x.shape)
+        self.assertEqual(grid[0, 0], -50.0)
+        self.assertEqual(grid[1, 1], -70.0)
 
 
 class WifiScannerTests(unittest.TestCase):
