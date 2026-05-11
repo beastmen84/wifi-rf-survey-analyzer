@@ -558,6 +558,34 @@ class WorkspaceLiveStateTests(unittest.TestCase):
         finally:
             window.deleteLater()
 
+    def test_live_status_does_not_append_map_scale_details(self):
+        window = WifiHeatmapQtApp()
+        try:
+            self.assertEqual(
+                window.format_live_status({
+                    "scale_payload": {
+                        "kind": "gradient",
+                        "title": "AP interference",
+                        "min": 0,
+                        "max": 100,
+                        "suffix": "%",
+                    }
+                }),
+                window.tr("live_preview_updated"),
+            )
+            self.assertEqual(
+                window.format_live_status({
+                    "scale_payload": {
+                        "kind": "swatches",
+                        "title": "AP channels",
+                        "items": [{"label": "CH 1"}, {"label": "CH 6"}],
+                    }
+                }),
+                window.tr("live_preview_updated"),
+            )
+        finally:
+            window.deleteLater()
+
     def test_live_toolbar_keeps_map_options_in_overlay(self):
         window = WifiHeatmapQtApp()
         try:

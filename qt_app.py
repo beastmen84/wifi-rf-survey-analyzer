@@ -1999,16 +1999,6 @@ class WifiHeatmapQtApp(QMainWindow):
         log_event("qt live render thread cleaned up", logger_name="main")
 
     def format_live_status(self, payload):
-        scale = payload.get("scale_payload", {}) if payload else {}
-        title = scale.get("title") or self.tr("live_preview_updated")
-        if scale.get("kind") == "gradient":
-            suffix = scale.get("suffix", "")
-            return (
-                f"{self.tr('live_preview_updated')} "
-                f"{title}: {scale.get('min')}{suffix} / {scale.get('max')}{suffix}"
-            )
-        if scale.get("kind") == "swatches":
-            return f"{self.tr('live_preview_updated')} {title}: {len(scale.get('items', []))}"
         return self.tr("live_preview_updated")
 
     def update_live_legend(self, scale_payload):

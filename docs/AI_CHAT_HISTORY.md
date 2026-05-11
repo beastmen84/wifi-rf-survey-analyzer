@@ -36,10 +36,10 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the latest live-map options pass is 38
+- The current code test baseline after the latest live-map status pass is 39
   passing tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
-  `4698135 Tone down live gradient colors`.
+  `ee96a1f Shrink live gradient legend panel`.
 - Current AP positioning and scale calibration pick points with left click while
   their modal map-pick mode is active; normal map dragging is disabled during
   the pick and the click must not create a measurement point.
@@ -859,9 +859,14 @@ Language:
 - Reduced the live gradient legend overlay width by roughly 20%: target width
   is now 112-128 px instead of 132-160 px, keeping the same height and label
   layout.
+- Live-map footer/status text is intentionally minimal: successful renders show
+  only `Live map updated` / `Mappa live aggiornata`, without appending map type,
+  color scale min/max, or swatch counts. Rendering, insufficient-data and error
+  statuses remain explicit.
 
 Recent commits:
 
+- `ee96a1f` Shrink live gradient legend panel.
 - `4698135` Tone down live gradient colors.
 - `2153fd7` Fix live gradient legend saturation.
 - `1769058` Move live map options into overlay.
@@ -936,6 +941,7 @@ Current tests cover, among other things:
 - live marker sizing, saturated live gradient legend painting/overlay behavior,
   and live AP position marker handling;
 - live toolbar/options overlay placement and map-type-specific option visibility;
+- minimal live status text after successful renders;
 - live pan cursor state and gradient overlay reanchoring after content scroll;
 - live refresh callbacks that update tab state and finish/fail render state;
 - settings popup toggle suppression.
