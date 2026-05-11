@@ -633,6 +633,21 @@ class LiveMapViewTests(unittest.TestCase):
             [point.get("label") for point in payload["point_infos"] if point.get("label")],
             ["CH 1", "CH 6"],
         )
+        self.assertEqual(len(payload["scale_payload"]["items"]), 2)
+
+        payload = build_channel_payload(
+            rows_to_dataframe(rows),
+            MapConfig(ssid="MAIN", band="2.4", map_type="channel", point_label_mode="all"),
+            Image.new("RGB", (100, 100), "white"),
+            {"channel_title": "AP channels"},
+            {},
+        )
+
+        self.assertEqual(
+            [point.get("label") for point in payload["point_infos"] if point.get("label")],
+            ["CH 1", "CH 1", "CH 6"],
+        )
+        self.assertEqual(len(payload["scale_payload"]["items"]), 3)
 
         payload = build_channel_payload(
             rows_to_dataframe(rows),
@@ -643,6 +658,7 @@ class LiveMapViewTests(unittest.TestCase):
         )
 
         self.assertFalse(any(point.get("label") for point in payload["point_infos"]))
+        self.assertIsNone(payload["scale_payload"])
 
     def test_live_dominant_point_labels_follow_auto_and_none_modes(self):
         rows = [
@@ -661,6 +677,20 @@ class LiveMapViewTests(unittest.TestCase):
         )
 
         self.assertEqual(len([point for point in payload["point_infos"] if point.get("label")]), 2)
+        self.assertEqual(len(payload["scale_payload"]["items"]), 2)
+
+        payload = build_dominant_payload(
+            rows_to_dataframe(rows),
+            MapConfig(ssid="MAIN", band="2.4", map_type="dominant", point_label_mode="all"),
+            Image.new("RGB", (100, 100), "white"),
+            {"dominant_title": "Dominant AP"},
+            {},
+            [],
+            None,
+        )
+
+        self.assertEqual(len([point for point in payload["point_infos"] if point.get("label")]), 3)
+        self.assertEqual(len(payload["scale_payload"]["items"]), 3)
 
         payload = build_dominant_payload(
             rows_to_dataframe(rows),
@@ -673,6 +703,7 @@ class LiveMapViewTests(unittest.TestCase):
         )
 
         self.assertFalse(any(point.get("label") for point in payload["point_infos"]))
+        self.assertIsNone(payload["scale_payload"])
 
     def test_live_ap_position_markers_skip_test_groups(self):
         markers = build_ap_position_marker_infos(

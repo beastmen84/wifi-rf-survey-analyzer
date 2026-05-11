@@ -684,7 +684,7 @@ def build_channel_payload(df, config, bg_image, translations, aliases):
         return None
 
     point_infos = []
-    legend_items_by_label = {}
+    legend_items = []
     previous_channel = None
     for _index, row in channel_df.iterrows():
         channel = row.get("channel", "")
@@ -703,23 +703,25 @@ def build_channel_payload(df, config, bg_image, translations, aliases):
         }
         if should_label_channel_point(row, previous_channel, config.point_label_mode, config.band):
             point_info["label"] = format_channel_point_label(row)
+            legend_items.append({
+                "label": label,
+                "color": color,
+                "sort_key": sort_key,
+            })
         point_infos.append(point_info)
-        legend_items_by_label.setdefault(label, {
-            "label": label,
-            "color": color,
-            "sort_key": sort_key,
-        })
         previous_channel = channel
 
-    legend_items = sorted(legend_items_by_label.values(), key=lambda item: item["sort_key"])
-    return {
-        "image": bg_image.copy(),
-        "point_infos": point_infos,
-        "scale_payload": {
+    scale_payload = None
+    if config.point_label_mode != "none":
+        scale_payload = {
             "kind": "swatches",
             "title": translations.get("channel_title", "AP channels"),
             "items": legend_items,
-        },
+        }
+    return {
+        "image": bg_image.copy(),
+        "point_infos": point_infos,
+        "scale_payload": scale_payload,
     }
 
 
@@ -736,7 +738,7 @@ def build_dominant_payload(df, config, bg_image, translations, aliases, ap_group
 
     color_map, _visible_ap_groups, _hidden_ap_count = get_limited_bssid_color_map(dominant_df)
     group_labels = build_dominant_ap_group_labels(dominant_df, aliases)
-    legend_items_by_label = {}
+    legend_items = []
     point_infos = []
     has_roaming_overlap = False
     has_position_warning = False
@@ -770,36 +772,38 @@ def build_dominant_payload(df, config, bg_image, translations, aliases, ap_group
             config.point_label_mode,
         ):
             point_info["label"] = label
+            legend_items.append({
+                "label": label,
+                "color": color,
+            })
         point_infos.append(point_info)
-        legend_items_by_label.setdefault(label, {
-            "label": label,
-            "color": color,
-        })
         previous_group = row.get("dominant_ap_group", "")
         previous_roaming_overlap = bool(row.get("roaming_overlap"))
 
-    legend_items = sorted(legend_items_by_label.values(), key=lambda item: item["label"].casefold())
-    if has_roaming_overlap:
+    if config.point_label_mode != "none" and has_roaming_overlap:
         legend_items.append({
             "label": translations.get("roaming_overlap", "Delta <= 5 dB"),
             "color": "#f1c40f",
             "outline_only": True,
         })
-    if has_position_warning:
+    if config.point_label_mode != "none" and has_position_warning:
         legend_items.append({
             "label": translations.get("ap_position_warning_legend", "Triangle = suspicious AP position"),
             "color": "#d62728",
             "shape": "triangle",
         })
 
-    return {
-        "image": bg_image.copy(),
-        "point_infos": point_infos,
-        "scale_payload": {
+    scale_payload = None
+    if config.point_label_mode != "none":
+        scale_payload = {
             "kind": "swatches",
             "title": translations.get("dominant_title", "Dominant AP"),
             "items": legend_items,
-        },
+        }
+    return {
+        "image": bg_image.copy(),
+        "point_infos": point_infos,
+        "scale_payload": scale_payload,
     }
 
 

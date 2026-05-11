@@ -39,7 +39,7 @@ Read this section first in a new chat.
 - The current code test baseline after the latest live-map point-label pass is 47
   passing tests with `.\.venv\Scripts\python.exe -m pytest -q`.
 - Latest code commit before this documentation refresh:
-  `37a47e8 Restore live discrete point label options`.
+  `a9a7e05 Simplify live point label choices`.
 - Current AP positioning and scale calibration pick points with left click while
   their modal map-pick mode is active; normal map dragging is disabled during
   the pick and the click must not create a measurement point.
@@ -250,7 +250,9 @@ Visual/UX decisions:
   it controls which discrete markers receive a compact permanent label in
   addition to hover tooltips. The live UI intentionally exposes only Auto, All,
   and None for these two maps; Critical remains an internal/export-supported
-  mode but is not shown in the live dropdown.
+  mode but is not shown in the live dropdown. The live side legend for these
+  maps is built from the labeled points; when point labels are `None`, the side
+  legend is hidden.
 
 ## Interference Logic
 
@@ -911,7 +913,9 @@ Language:
 - Qt live AP Channels and Dominant AP now expose `Point labels` in the map
   options overlay. Default is `auto`; the available live dropdown values are
   auto, all, and none. The setting is remembered separately for each live map
-  type during the open survey.
+  type during the open survey. Their side legend follows the same setting: Auto
+  lists only automatically labeled points, All lists every labeled point, and
+  None hides the side legend.
 - A quick live-map data logic pass confirmed current scoping: Coverage uses
   SSID, band, optional AP group filter, aggregation, interpolation and usable
   threshold; Interference uses SSID, 2.4/5 GHz band, intra/all-network mode,
@@ -923,6 +927,7 @@ Language:
 
 Recent commits:
 
+- `a9a7e05` Simplify live point label choices.
 - `37a47e8` Restore live discrete point label options.
 - `ba954c4` Hide empty live interference tooltip rows.
 - `4968864` Keep SSID in live coverage tooltips.
