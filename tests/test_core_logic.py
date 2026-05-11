@@ -1,4 +1,5 @@
 import unittest
+import json
 import logging
 import os
 import tempfile
@@ -1904,6 +1905,85 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(file_message, window.tr("file_created", path="export.pdf"))
             self.assertNotIn(window.tr("interference_summary_title"), file_message)
             self.assertIn(window.tr("interference_summary_title"), full_message)
+        finally:
+            window.deleteLater()
+
+    def test_relevant_ssid_state_loads_from_session_metadata(self):
+        window = WifiHeatmapQtApp()
+        try:
+            session = SurveySession()
+            session.metadata[qt_app_module.RELEVANT_SSIDS_METADATA_KEY] = json.dumps(["MAIN", "Guest"])
+            session.metadata[qt_app_module.KNOWN_SSIDS_METADATA_KEY] = json.dumps(["MAIN", "Guest", "IoT"])
+            window.session = session
+
+            window.load_session_ssid_state()
+
+            self.assertEqual(window.relevant_ssids, {"MAIN", "Guest"})
+            self.assertEqual(window.known_ssids, {"MAIN", "Guest", "IoT"})
+        finally:
+            window.deleteLater()
+
+    def test_set_relevant_ssids_persists_metadata_and_updates_existing_row_flags(self):
+        window = WifiHeatmapQtApp()
+        try:
+            main_row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -50, 1)
+            guest_row = build_row("p1", "Guest", "70:4f:57:aa:bb:11", -55, 1)
+            iot_row = build_row("p1", "IoT", "70:4f:57:aa:bb:12", -60, 1)
+            session = SurveySession()
+            session.rows = [main_row, guest_row, iot_row]
+            session.dirty = False
+            window.session = session
+            window.known_ssids = {"Old"}
+
+            window.set_relevant_ssids({" MAIN ", "guest", ""})
+
+            self.assertEqual(window.relevant_ssids, {"MAIN", "guest"})
+            self.assertEqual(window.known_ssids, {"Old", "MAIN", "guest"})
+            self.assertEqual(json.loads(session.metadata[qt_app_module.RELEVANT_SSIDS_METADATA_KEY]), ["MAIN", "guest"])
+            self.assertEqual([row["is_relevant"] for row in session.rows], ["1", "1", "0"])
+            self.assertTrue(session.dirty)
+        finally:
+            window.deleteLater()
+
+    def test_clear_relevant_ssids_removes_metadata_and_resets_row_flags(self):
+        window = WifiHeatmapQtApp()
+        try:
+            session = SurveySession()
+            session.rows = [
+                build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -50, 1),
+                build_row("p1", "Guest", "70:4f:57:aa:bb:11", -55, 1),
+            ]
+            session.metadata[qt_app_module.RELEVANT_SSIDS_METADATA_KEY] = json.dumps(["MAIN"])
+            session.metadata[qt_app_module.KNOWN_SSIDS_METADATA_KEY] = json.dumps(["MAIN", "Guest"])
+            session.dirty = False
+            window.session = session
+            window.relevant_ssids = {"MAIN"}
+            window.known_ssids = {"MAIN", "Guest"}
+
+            window.clear_relevant_ssids()
+
+            self.assertEqual(window.relevant_ssids, set())
+            self.assertEqual(window.known_ssids, set())
+            self.assertNotIn(qt_app_module.RELEVANT_SSIDS_METADATA_KEY, session.metadata)
+            self.assertNotIn(qt_app_module.KNOWN_SSIDS_METADATA_KEY, session.metadata)
+            self.assertEqual([row["is_relevant"] for row in session.rows], ["0", "0"])
+            self.assertTrue(session.dirty)
+        finally:
+            window.deleteLater()
+
+    def test_available_relevant_ssids_combines_known_current_and_session_ssids(self):
+        window = WifiHeatmapQtApp()
+        try:
+            session = SurveySession()
+            session.rows = [
+                build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -50, 1),
+                build_row("p1", "Guest", "70:4f:57:aa:bb:11", -55, 1),
+            ]
+            window.session = session
+            window.relevant_ssids = {"IoT"}
+            window.known_ssids = {"Old"}
+
+            self.assertEqual(window.available_relevant_ssids(), {"MAIN", "Guest", "IoT", "Old"})
         finally:
             window.deleteLater()
 
