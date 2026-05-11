@@ -745,8 +745,8 @@ Language:
 - Hardened Qt modal dimming. The delayed dim push now ignores dialogs that have
   already closed/hidden, tracks active dialogs by token instead of a fragile
   counter, and removes dim overlays through an idempotent cleanup path.
-- Aligned the Qt app bar View buttons: `+` and `-` now share the same fixed row
-  height as the other app bar buttons and no longer get extra vertical padding.
+- Aligned the Qt app bar View buttons without changing text-button sizing:
+  `+` and `-` now have their own fixed height and no extra vertical padding.
 
 Recent commits:
 
