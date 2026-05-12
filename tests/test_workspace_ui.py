@@ -24,6 +24,106 @@ class SettingsMenuTests(unittest.TestCase):
         window.deleteLater()
 
 
+class APGroupManagerDialogTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.qt_app = QApplication.instance() or QApplication([])
+
+    def make_bssid_dialog(self):
+        class FakeApp:
+            def channel_sort_key(self, channel):
+                try:
+                    return int(str(channel))
+                except ValueError:
+                    return 9999
+
+        class FakeManager(QDialog):
+            def __init__(self):
+                super().__init__()
+                self.app = FakeApp()
+
+            def tr(self, key, **kwargs):
+                return translate("en", key, **kwargs)
+
+            def prepare_action_button(self, button):
+                button.setObjectName("apDialogActionButton")
+
+        manager = FakeManager()
+        current_group = {
+            "group_id": "current-ap",
+            "alias": "Current AP",
+            "bssids": ["70:4f:57:aa:bb:10", "70:4f:57:aa:bb:11"],
+        }
+        groups = [
+            current_group,
+            {
+                "group_id": "neighbor-ap",
+                "alias": "Neighbor AP",
+                "bssids": ["70:4f:57:aa:bb:20"],
+            },
+        ]
+        detected_by_bssid = {
+            "70:4f:57:aa:bb:10": {"ssids": ["MAIN"], "channels": ["1"], "bands": ["2.4"]},
+            "70:4f:57:aa:bb:11": {"ssids": ["MAIN-6"], "channels": ["5"], "bands": ["6"]},
+            "70:4f:57:aa:bb:20": {"ssids": ["Guest"], "channels": ["36"], "bands": ["5"]},
+        }
+        dialog = BssidSelectionDialog(
+            manager,
+            current_group,
+            groups,
+            detected_by_bssid,
+            focus_bssids=["70:4f:57:aa:bb:20"],
+        )
+        return manager, dialog
+
+    def set_combo_value(self, combo, value):
+        index = combo.findData(value)
+        self.assertNotEqual(index, -1)
+        combo.setCurrentIndex(index)
+        QApplication.processEvents()
+
+    def test_bssid_dialog_filters_and_visible_selection_actions(self):
+        manager, dialog = self.make_bssid_dialog()
+        try:
+            self.assertEqual(set(dialog.visible_bssids), {
+                "70:4f:57:aa:bb:10",
+                "70:4f:57:aa:bb:11",
+                "70:4f:57:aa:bb:20",
+            })
+
+            self.set_combo_value(dialog.scope_combo, "current")
+            self.assertEqual(set(dialog.visible_bssids), {
+                "70:4f:57:aa:bb:10",
+                "70:4f:57:aa:bb:11",
+            })
+
+            self.set_combo_value(dialog.band_combo, "6")
+            self.assertEqual(dialog.visible_bssids, ["70:4f:57:aa:bb:11"])
+
+            dialog.clear_visible_button.click()
+            self.assertEqual(dialog.selected_bssids(), ["70:4f:57:aa:bb:10"])
+
+            dialog.select_visible_button.click()
+            self.assertEqual(set(dialog.selected_bssids()), {
+                "70:4f:57:aa:bb:10",
+                "70:4f:57:aa:bb:11",
+            })
+
+            self.set_combo_value(dialog.band_combo, "")
+            self.set_combo_value(dialog.scope_combo, "other")
+            self.assertEqual(dialog.visible_bssids, ["70:4f:57:aa:bb:20"])
+
+            self.set_combo_value(dialog.scope_combo, "focus")
+            self.assertEqual(dialog.visible_bssids, ["70:4f:57:aa:bb:20"])
+
+            dialog.search_edit.setText("Guest")
+            QApplication.processEvents()
+            self.assertEqual(dialog.visible_bssids, ["70:4f:57:aa:bb:20"])
+        finally:
+            dialog.deleteLater()
+            manager.deleteLater()
+
+
 class WorkspaceLiveStateTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

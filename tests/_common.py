@@ -101,7 +101,7 @@ from qt_ui.qt_quality_dashboard import (
     get_effective_ap_groups,
 )
 from qt_ui.qt_floorplan import AP_MARKER_BASE_SIZE, FloorplanView, format_ap_tooltip, format_point_tooltip
-from qt_ui.qt_ap_groups import EXPECTED_CHANNELS_BY_BAND, infer_expected_channel_bands
+from qt_ui.qt_ap_groups import BssidSelectionDialog, EXPECTED_CHANNELS_BY_BAND, infer_expected_channel_bands
 from qt_ui.qt_live_map import (
     LIVE_POINT_MARKER_BASE_SIZE,
     LiveGradientLegendWidget,

@@ -264,12 +264,16 @@ class APGroupManagerDialog(QDialog):
                 color: {palette["metric_danger"]};
                 font-weight: 700;
             }}
-            QLineEdit {{
+            QLineEdit, QComboBox {{
                 background: {palette["panel"]};
                 color: {palette["text"]};
                 border: 1px solid {palette["border"]};
                 border-radius: {s(5)}px;
                 padding: {s(6)}px {s(8)}px;
+            }}
+            QComboBox::drop-down {{
+                width: {s(24)}px;
+                border: 0;
             }}
             QGroupBox {{
                 color: {palette["text"]};
@@ -1105,6 +1109,8 @@ class BssidSelectionDialog(QDialog):
         self.detected_by_bssid = detected_by_bssid
         self.focus_bssids = {normalize_bssid(bssid) for bssid in focus_bssids if normalize_bssid(bssid)}
         self.checked_by_bssid = {}
+        self.current_bssids = {normalize_bssid(bssid) for bssid in self.group.get("bssids", [])}
+        self.visible_bssids = []
 
         self.setWindowTitle(manager.tr("ap_group_bssid_title"))
         self.resize(widget_px(self, 1180), widget_px(self, 720))
@@ -1130,7 +1136,57 @@ class BssidSelectionDialog(QDialog):
         search_row.addWidget(self.search_edit, 1)
         layout.addLayout(search_row)
 
-        self.table = QTableWidget(0, 5)
+        filter_row = QHBoxLayout()
+        filter_row.setSpacing(widget_px(self, 8))
+        filter_row.addWidget(QLabel(self.manager.tr("ap_group_bssid_scope")))
+        self.scope_combo = QComboBox()
+        self.scope_combo.addItem(self.manager.tr("ap_group_bssid_scope_all"), "all")
+        self.scope_combo.addItem(self.manager.tr("ap_group_bssid_scope_current"), "current")
+        self.scope_combo.addItem(self.manager.tr("ap_group_bssid_scope_other"), "other")
+        self.scope_combo.addItem(self.manager.tr("ap_group_bssid_scope_unassigned"), "unassigned")
+        self.scope_combo.addItem(self.manager.tr("ap_group_bssid_scope_checked"), "checked")
+        if self.focus_bssids:
+            self.scope_combo.addItem(self.manager.tr("ap_group_bssid_scope_warning"), "focus")
+        self.scope_combo.currentIndexChanged.connect(self.render_items)
+        filter_row.addWidget(self.scope_combo)
+
+        filter_row.addWidget(QLabel(self.manager.tr("band")))
+        self.band_combo = QComboBox()
+        self.band_combo.addItem(self.manager.tr("ap_group_bssid_filter_all"), "")
+        for band in self.available_bands():
+            self.band_combo.addItem(format_band_label(band), band)
+        self.band_combo.currentIndexChanged.connect(self.render_items)
+        filter_row.addWidget(self.band_combo)
+
+        filter_row.addWidget(QLabel(self.manager.tr("ap_alias_channels")))
+        self.channel_combo = QComboBox()
+        self.channel_combo.addItem(self.manager.tr("ap_group_bssid_filter_all"), "")
+        for channel in self.available_channels():
+            self.channel_combo.addItem(channel, channel)
+        self.channel_combo.currentIndexChanged.connect(self.render_items)
+        filter_row.addWidget(self.channel_combo)
+
+        self.count_label = QLabel()
+        self.count_label.setObjectName("apDialogLabel")
+        filter_row.addStretch(1)
+        filter_row.addWidget(self.count_label)
+        layout.addLayout(filter_row)
+
+        action_row = QHBoxLayout()
+        action_row.setSpacing(widget_px(self, 6))
+        self.select_visible_button = QPushButton(self.manager.tr("ap_group_bssid_select_visible"))
+        self.clear_visible_button = QPushButton(self.manager.tr("ap_group_bssid_clear_visible"))
+        self.invert_visible_button = QPushButton(self.manager.tr("ap_group_bssid_invert_visible"))
+        for button in (self.select_visible_button, self.clear_visible_button, self.invert_visible_button):
+            self.manager.prepare_action_button(button)
+            action_row.addWidget(button)
+        self.select_visible_button.clicked.connect(lambda _checked=False: self.set_visible_checked(True))
+        self.clear_visible_button.clicked.connect(lambda _checked=False: self.set_visible_checked(False))
+        self.invert_visible_button.clicked.connect(self.invert_visible_checked)
+        action_row.addStretch(1)
+        layout.addLayout(action_row)
+
+        self.table = QTableWidget(0, 6)
         self.table.setAlternatingRowColors(True)
         self.table.setShowGrid(False)
         self.table.setWordWrap(True)
@@ -1142,6 +1198,7 @@ class BssidSelectionDialog(QDialog):
             "",
             self.manager.tr("ap_alias_bssids"),
             self.manager.tr("ap_alias_ssids"),
+            self.manager.tr("band"),
             self.manager.tr("ap_alias_channels"),
             self.manager.tr("ap_group_bssid_other_group"),
         ])
@@ -1162,24 +1219,28 @@ class BssidSelectionDialog(QDialog):
         buttons.addWidget(cancel_button)
         layout.addLayout(buttons)
 
-        current_bssids = {normalize_bssid(bssid) for bssid in self.group.get("bssids", [])}
         for bssid in self.detected_by_bssid:
             clean_bssid = normalize_bssid(bssid)
-            self.checked_by_bssid[clean_bssid] = clean_bssid in current_bssids
+            self.checked_by_bssid[clean_bssid] = clean_bssid in self.current_bssids
 
     def render_items(self):
         query = self.search_edit.text().strip().lower()
+        scope = self.current_combo_value(self.scope_combo)
+        band_filter = self.current_combo_value(self.band_combo)
+        channel_filter = self.current_combo_value(self.channel_combo)
         self.table.setRowCount(0)
         all_bssids = sorted(
             self.detected_by_bssid.keys(),
             key=lambda bssid: (0 if normalize_bssid(bssid) in self.focus_bssids else 1, bssid),
         )
+        self.visible_bssids = []
 
         for bssid in all_bssids:
             row_data = self.build_bssid_row_data(bssid)
-            if query and query not in " ".join(row_data.values()).lower():
-                continue
             clean_bssid = normalize_bssid(bssid)
+            if not self.bssid_matches_filters(clean_bssid, row_data, query, scope, band_filter, channel_filter):
+                continue
+            self.visible_bssids.append(clean_bssid)
             row = self.table.rowCount()
             self.table.insertRow(row)
 
@@ -1200,6 +1261,7 @@ class BssidSelectionDialog(QDialog):
             values = [
                 row_data["bssid"],
                 row_data["ssids"],
+                row_data["bands"],
                 row_data["channels"],
                 row_data["other_group"],
             ]
@@ -1207,7 +1269,7 @@ class BssidSelectionDialog(QDialog):
                 item = QTableWidgetItem(value)
                 item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
                 item.setData(Qt.ItemDataRole.UserRole, clean_bssid)
-                if offset in {1, 3, 4}:
+                if offset in {1, 3, 4, 5}:
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 else:
                     item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
@@ -1215,22 +1277,92 @@ class BssidSelectionDialog(QDialog):
             self.table.setRowHeight(row, widget_px(self, 38))
 
         self.apply_table_column_widths()
+        self.update_filter_action_state()
 
     def set_bssid_checked(self, bssid, checked):
         self.checked_by_bssid[bssid] = bool(checked)
 
+    def set_visible_checked(self, checked):
+        for bssid in self.visible_bssids:
+            self.checked_by_bssid[bssid] = bool(checked)
+        self.render_items()
+
+    def invert_visible_checked(self):
+        for bssid in self.visible_bssids:
+            self.checked_by_bssid[bssid] = not self.checked_by_bssid.get(bssid, False)
+        self.render_items()
+
     def build_bssid_row_data(self, bssid):
         detected_group = self.detected_by_bssid.get(bssid, {})
         ssids = ", ".join(detected_group.get("ssids", [])) or "-"
+        bands = ", ".join(format_band_label(band) for band in detected_group.get("bands", [])) or "-"
         channels = ", ".join(detected_group.get("channels", [])) or "-"
         other_group = self.format_other_group_label(bssid)
         return {
             "bssid": bssid,
             "ssids": ssids,
+            "bands": bands,
             "channels": channels,
             "other_group": other_group or "-",
             "focus": "!" if normalize_bssid(bssid) in self.focus_bssids else "",
+            "_bands": set(detected_group.get("bands", [])),
+            "_channels": set(str(channel) for channel in detected_group.get("channels", [])),
         }
+
+    def bssid_matches_filters(self, clean_bssid, row_data, query, scope, band_filter, channel_filter):
+        if query:
+            haystack = " ".join(
+                str(value)
+                for key, value in row_data.items()
+                if not key.startswith("_")
+            ).lower()
+            if query not in haystack:
+                return False
+
+        if scope == "current" and clean_bssid not in self.current_bssids:
+            return False
+        if scope == "other" and row_data["other_group"] == "-":
+            return False
+        if scope == "unassigned" and (clean_bssid in self.current_bssids or row_data["other_group"] != "-"):
+            return False
+        if scope == "checked" and not self.checked_by_bssid.get(clean_bssid, False):
+            return False
+        if scope == "focus" and clean_bssid not in self.focus_bssids:
+            return False
+        if band_filter and band_filter not in row_data["_bands"]:
+            return False
+        if channel_filter and channel_filter not in row_data["_channels"]:
+            return False
+        return True
+
+    def current_combo_value(self, combo):
+        return combo.currentData() if combo.currentIndex() >= 0 else ""
+
+    def available_bands(self):
+        bands = set()
+        for detected_group in self.detected_by_bssid.values():
+            bands.update(detected_group.get("bands", []))
+        return sorted(bands)
+
+    def available_channels(self):
+        channels = {
+            str(channel)
+            for detected_group in self.detected_by_bssid.values()
+            for channel in detected_group.get("channels", [])
+            if str(channel)
+        }
+        return sorted(channels, key=self.manager.app.channel_sort_key)
+
+    def update_filter_action_state(self):
+        visible_count = len(self.visible_bssids)
+        total_count = len(self.detected_by_bssid)
+        self.count_label.setText(
+            self.manager.tr("ap_group_bssid_visible_count", visible=visible_count, total=total_count)
+        )
+        enabled = bool(self.visible_bssids)
+        self.select_visible_button.setEnabled(enabled)
+        self.clear_visible_button.setEnabled(enabled)
+        self.invert_visible_button.setEnabled(enabled)
 
     def format_other_group_label(self, bssid):
         clean_bssid = normalize_bssid(bssid)
@@ -1248,8 +1380,9 @@ class BssidSelectionDialog(QDialog):
         fixed_widths = {
             0: widget_px(self, 48),
             1: max(widget_px(self, 190), min(self.table.columnWidth(1) + widget_px(self, 16), widget_px(self, 240))),
-            3: max(widget_px(self, 92), min(self.table.columnWidth(3) + widget_px(self, 18), widget_px(self, 130))),
-            4: max(widget_px(self, 150), min(self.table.columnWidth(4) + widget_px(self, 18), widget_px(self, 260))),
+            3: max(widget_px(self, 80), min(self.table.columnWidth(3) + widget_px(self, 18), widget_px(self, 130))),
+            4: max(widget_px(self, 92), min(self.table.columnWidth(4) + widget_px(self, 18), widget_px(self, 130))),
+            5: max(widget_px(self, 150), min(self.table.columnWidth(5) + widget_px(self, 18), widget_px(self, 260))),
         }
         reserved_width = sum(fixed_widths.values())
         ssid_width = max(widget_px(self, 260), viewport_width - reserved_width)

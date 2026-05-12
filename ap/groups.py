@@ -2,6 +2,8 @@
 
 import pandas as pd
 
+from wifi.band import get_row_band
+
 AP_GROUPS_METADATA_KEY = "ap_groups"
 AP_METADATA_FIELDS = (
     "vendor",
@@ -88,6 +90,7 @@ def build_detected_ap_groups(rows, channel_sort_key=None):
             "bssids": set(),
             "ssids": set(),
             "channels": set(),
+            "bands": set(),
             "vendors": set(),
             "models": set(),
         })
@@ -97,6 +100,9 @@ def build_detected_ap_groups(rows, channel_sort_key=None):
             group["ssids"].add(row["ssid"])
         if row.get("channel"):
             group["channels"].add(str(row["channel"]))
+        band = get_row_band(row)
+        if band:
+            group["bands"].add(band)
         if row.get("vendor"):
             group["vendors"].add(str(row["vendor"]).strip())
         if row.get("model"):
@@ -111,6 +117,7 @@ def build_detected_ap_groups(rows, channel_sort_key=None):
             "bssids": sorted(group["bssids"]),
             "ssids": sorted(group["ssids"]),
             "channels": sorted(group["channels"], key=sort_channels),
+            "bands": sorted(group["bands"]),
             "vendors": sorted(value for value in group["vendors"] if value),
             "models": sorted(value for value in group["models"] if value),
         })
