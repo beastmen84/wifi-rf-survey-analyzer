@@ -35,7 +35,8 @@ def get_connected_ssid():
             text=True,
             encoding="utf-8",
             errors="ignore",
-            timeout=5
+            timeout=5,
+            **hidden_subprocess_kwargs(),
         )
 
         for line in result.stdout.splitlines():
@@ -54,6 +55,19 @@ def get_connected_ssid():
     return None
 
 
+def hidden_subprocess_kwargs():
+    if not sys.platform.startswith("win") or not hasattr(subprocess, "STARTUPINFO"):
+        return {}
+
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= getattr(subprocess, "STARTF_USESHOWWINDOW", 0)
+    kwargs = {"startupinfo": startupinfo}
+    creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    if creationflags:
+        kwargs["creationflags"] = creationflags
+    return kwargs
+
+
 def scan_wifi_netsh(show_errors=True):
     try:
         log_event("scan_wifi_netsh start", logger_name="wifi_scanner")
@@ -65,7 +79,8 @@ def scan_wifi_netsh(show_errors=True):
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
-                errors="ignore"
+                errors="ignore",
+                **hidden_subprocess_kwargs(),
             )
             scans.extend(annotate_raw_scan_samples(parse_netsh_output(result.stdout), attempt + 1, "netsh"))
 

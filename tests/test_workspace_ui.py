@@ -1,4 +1,6 @@
 from tests._common import *
+from PySide6.QtWidgets import QPushButton
+from qt_ui.qt_point_workflow import MissingRelevantNetworksDialog
 
 
 class SettingsMenuTests(unittest.TestCase):
@@ -267,6 +269,38 @@ class APGroupManagerDialogTests(unittest.TestCase):
         finally:
             dialog.deleteLater()
             manager.deleteLater()
+
+
+class PointCaptureDialogTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.qt_app = QApplication.instance() or QApplication([])
+
+    class FakeApp(QDialog):
+        def tr(self, key, **kwargs):
+            return translate("it", key, **kwargs)
+
+    def test_missing_relevant_network_buttons_use_compact_layout(self):
+        app = self.FakeApp()
+        dialog = MissingRelevantNetworksDialog(app, ["AICS-WIFI-UFF6"])
+        try:
+            buttons = [
+                button
+                for button in dialog.findChildren(QPushButton)
+                if button.text() in {
+                    app.tr("keep_scan"),
+                    app.tr("retry_scan"),
+                    app.tr("cancel_point"),
+                }
+            ]
+
+            self.assertEqual(len(buttons), 3)
+            self.assertTrue(all(button.objectName() == "compactButton" for button in buttons))
+            total_button_width = sum(button.minimumWidth() for button in buttons)
+            self.assertLess(total_button_width, dialog.minimumWidth())
+        finally:
+            dialog.deleteLater()
+            app.deleteLater()
 
 
 class WorkspaceLiveStateTests(unittest.TestCase):

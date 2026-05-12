@@ -42,7 +42,10 @@ class PointCaptureMixin:
         log_event(f"qt point scan start x={int(x)} y={int(y)}", logger_name="main")
 
         thread = QThread(self)
-        worker = WifiScanWorker("auto")
+        worker = WifiScanWorker(
+            "auto",
+            include_connected_ssid=not self.relevant_ssids and not self.known_ssids,
+        )
         worker.moveToThread(thread)
         thread.started.connect(worker.run)
         worker.finished.connect(self.finish_wifi_scan)
@@ -57,7 +60,7 @@ class PointCaptureMixin:
         self.scan_worker = worker
         thread.start()
 
-    def finish_wifi_scan(self, networks, backend_used):
+    def finish_wifi_scan(self, networks, backend_used, connected_ssid=""):
         try:
             x, y = self.pending_scan_point or (None, None)
             self.set_scan_busy(False)
@@ -73,7 +76,7 @@ class PointCaptureMixin:
                 QMessageBox.critical(self, self.tr("error"), self.tr("no_networks_found"))
                 return
 
-            action = self.validate_relevant_networks(networks)
+            action = self.validate_relevant_networks(networks, connected_ssid=connected_ssid)
             log_event(f"qt point relevant validation action={action}", logger_name="main")
             if action == "retry":
                 self.start_wifi_scan(x, y)
@@ -135,7 +138,7 @@ class PointCaptureMixin:
             self.status.showMessage(message)
         self.refresh_session_labels()
 
-    def validate_relevant_networks(self, networks):
+    def validate_relevant_networks(self, networks, connected_ssid=""):
         detected_ssids = self.get_detected_ssids(networks)
         if not detected_ssids:
             return "keep"
@@ -146,7 +149,7 @@ class PointCaptureMixin:
                 detected_ssids,
                 self.tr("relevant_networks_title"),
                 self.tr("relevant_networks_first_message"),
-                connected_ssid=get_connected_ssid(),
+                connected_ssid=connected_ssid,
             )
             if dialog.exec() != QDialog.DialogCode.Accepted:
                 return "cancel"
@@ -170,7 +173,7 @@ class PointCaptureMixin:
                 new_ssids,
                 self.tr("new_relevant_networks_title"),
                 self.tr("new_relevant_networks_message"),
-                connected_ssid=get_connected_ssid(),
+                connected_ssid=connected_ssid,
             )
             if dialog.exec() != QDialog.DialogCode.Accepted:
                 return "cancel"
@@ -215,22 +218,24 @@ class PointCaptureMixin:
 
 
 class WifiScanWorker(QObject):
-    finished = Signal(list, str)
+    finished = Signal(list, str, str)
     failed = Signal(str)
 
-    def __init__(self, backend="auto"):
+    def __init__(self, backend="auto", include_connected_ssid=False):
         super().__init__()
         self.backend = backend
+        self.include_connected_ssid = include_connected_ssid
 
     @Slot()
     def run(self):
         try:
             networks, backend_used = scan_wifi(self.backend, show_errors=False)
+            connected_ssid = get_connected_ssid() if self.include_connected_ssid else ""
         except Exception as exc:
             self.failed.emit(str(exc))
             return
 
-        self.finished.emit(networks, backend_used)
+        self.finished.emit(networks, backend_used, connected_ssid or "")
 
 
 class RelevantNetworksDialog(QDialog):
@@ -299,6 +304,8 @@ class RelevantNetworksDialog(QDialog):
         buttons.addStretch(1)
         save_button = QPushButton(self.app.tr("save"))
         cancel_button = QPushButton(self.app.tr("cancel"))
+        prepare_dialog_action_button(self, save_button)
+        prepare_dialog_action_button(self, cancel_button)
         save_button.clicked.connect(self.accept)
         cancel_button.clicked.connect(self.reject)
         buttons.addWidget(save_button)
@@ -343,6 +350,8 @@ class MissingRelevantNetworksDialog(QDialog):
         keep_button = QPushButton(self.app.tr("keep_scan"))
         retry_button = QPushButton(self.app.tr("retry_scan"))
         cancel_button = QPushButton(self.app.tr("cancel_point"))
+        for button in (keep_button, retry_button, cancel_button):
+            prepare_dialog_action_button(self, button)
         keep_button.clicked.connect(lambda: self.choose("keep"))
         retry_button.clicked.connect(lambda: self.choose("retry"))
         cancel_button.clicked.connect(lambda: self.choose("cancel"))
@@ -354,3 +363,9 @@ class MissingRelevantNetworksDialog(QDialog):
     def choose(self, action):
         self.action = action
         self.accept()
+
+
+def prepare_dialog_action_button(dialog, button):
+    button.setObjectName("compactButton")
+    button.setMinimumHeight(widget_px(dialog, 30))
+    button.setMinimumWidth(max(widget_px(dialog, 112), button.sizeHint().width()))

@@ -1,6 +1,33 @@
 from tests._common import *
+from unittest.mock import patch
+import wifi.scanner as scanner_module
 
 class WifiScannerTests(unittest.TestCase):
+    def test_get_connected_ssid_hides_netsh_window_on_windows(self):
+        calls = []
+
+        class Result:
+            stdout = """
+Name                   : Wi-Fi
+SSID                   : MAIN
+BSSID                  : 70:4f:57:aa:bb:10
+"""
+
+        def fake_run(*_args, **kwargs):
+            calls.append(kwargs)
+            return Result()
+
+        with patch.object(scanner_module.subprocess, "run", side_effect=fake_run):
+            ssid = scanner_module.get_connected_ssid()
+
+        self.assertEqual(ssid, "MAIN")
+        self.assertEqual(len(calls), 1)
+        if scanner_module.sys.platform.startswith("win") and hasattr(scanner_module.subprocess, "STARTUPINFO"):
+            self.assertIn("startupinfo", calls[0])
+            creationflags = getattr(scanner_module.subprocess, "CREATE_NO_WINDOW", 0)
+            if creationflags:
+                self.assertEqual(calls[0].get("creationflags"), creationflags)
+
     def test_parse_netsh_output_handles_multiple_bssids_per_ssid(self):
         output = """
 SSID 1 : MAIN
