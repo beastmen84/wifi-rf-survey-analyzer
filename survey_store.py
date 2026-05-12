@@ -23,7 +23,7 @@ from ap.groups import (
     normalize_ap_position,
     normalize_ap_role,
 )
-from wifi_band import get_row_band
+from wifi.band import get_row_band
 
 
 class SurveyFormatError(ValueError):

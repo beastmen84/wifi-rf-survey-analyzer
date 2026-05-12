@@ -13,7 +13,7 @@ from ap.groups import (
     resolve_ap_group_key,
 )
 from i18n import translate
-from wifi_band import channel_center_frequency_mhz, get_row_band, normalize_band
+from wifi.band import channel_center_frequency_mhz, get_row_band, normalize_band
 
 
 def filter_by_band(df, band):

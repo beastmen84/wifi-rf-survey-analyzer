@@ -2,7 +2,7 @@
 
 from matplotlib.lines import Line2D
 
-from wifi_band import get_row_band, normalize_band
+from wifi.band import get_row_band, normalize_band
 
 MAX_REFERENCE_ROWS = 10
 MAX_LEGEND_ITEMS = 8

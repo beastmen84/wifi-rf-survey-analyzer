@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 
 from app_logging import log_event, log_exception
 from ui_scaling import widget_px
-from wifi_scanner import get_connected_ssid, scan_wifi
+from wifi.scanner import get_connected_ssid, scan_wifi
 
 
 class PointCaptureMixin:

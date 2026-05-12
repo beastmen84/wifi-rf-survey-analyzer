@@ -140,14 +140,14 @@ from ui_scaling import (
     scale_px,
     ui_scale_diagnostics,
 )
-from wifi_scanner import (
+from wifi.scanner import (
     annotate_raw_scan_samples,
     merge_wifi_scans,
     normalize_channel_width_mhz,
     parse_lswifi_bss_list,
     parse_netsh_output,
 )
-from wifi_band import infer_band_from_frequency_mhz, normalize_frequency_mhz
+from wifi.band import infer_band_from_frequency_mhz, normalize_frequency_mhz
 
 
 

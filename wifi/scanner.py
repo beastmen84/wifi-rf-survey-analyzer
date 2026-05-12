@@ -9,8 +9,8 @@ from statistics import median
 
 from app_logging import log_event, log_exception
 from constants import SCAN_DETAIL_FIELDNAMES, WIFI_SCAN_ATTEMPTS, WIFI_SCAN_DELAY_SECONDS
-from utils import dbm_to_percent, percent_to_dbm
-from wifi_band import get_row_band, infer_band_from_channel, infer_band_from_frequency_mhz, normalize_band, normalize_frequency_mhz
+from wifi.signal import dbm_to_percent, percent_to_dbm
+from wifi.band import get_row_band, infer_band_from_channel, infer_band_from_frequency_mhz, normalize_band, normalize_frequency_mhz
 
 
 def scan_wifi(backend="auto", show_errors=True):

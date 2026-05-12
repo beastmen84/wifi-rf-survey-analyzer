@@ -9,7 +9,7 @@ except ModuleNotFoundError as exc:
     raise SystemExit(1) from exc
 
 from qt_ui.qt_point_workflow import RelevantNetworksDialog
-from wifi_scanner import get_connected_ssid
+from wifi.scanner import get_connected_ssid
 
 
 RELEVANT_SSIDS_METADATA_KEY = "relevant_ssids"

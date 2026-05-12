@@ -9,7 +9,7 @@ from ap.groups import (
     normalize_ap_role,
     resolve_ap_group_key,
 )
-from wifi_band import get_row_band, infer_band_from_channel as infer_wifi_band_from_channel
+from wifi.band import get_row_band, infer_band_from_channel as infer_wifi_band_from_channel
 
 
 def build_ap_metadata_warnings(rows, ap_groups, channel_sort_key=None):

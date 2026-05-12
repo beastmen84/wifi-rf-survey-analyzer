@@ -9,7 +9,7 @@ from ap.groups import (
     resolve_ap_group_key,
 )
 from ap.metadata import normalize_channel, sort_bands, sort_channels
-from wifi_band import get_row_band
+from wifi.band import get_row_band
 
 
 def build_ap_group_conflicts(rows, ap_groups, channel_sort_key=None):

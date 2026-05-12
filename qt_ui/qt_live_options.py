@@ -16,7 +16,7 @@ from ap.groups import (
     resolve_ap_group_key,
 )
 from constants import HEATMAP_MAX_DISTANCE_PX, HEATMAP_SMOOTHING_SIGMA
-from wifi_band import row_matches_band
+from wifi.band import row_matches_band
 
 
 class LiveOptionsMixin:
