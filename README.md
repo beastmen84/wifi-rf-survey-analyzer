@@ -1,191 +1,261 @@
 # WiFi Heatmap
 
-A Python desktop application for real-world Wi-Fi RF surveying, live map analysis, and RF visualization.
+Desktop application for Wi-Fi RF surveying, live map analysis, AP behavior
+inspection, and PDF reporting.
 
-The project focuses on practical analysis from live Wi-Fi measurements collected directly in real environments. It is intended as a transparent, customizable alternative to closed survey tools, with emphasis on scan reliability, AP behavior, and map readability.
+The project is aimed at practical field surveys: collect real measurements on a
+floor plan, preserve the raw scan data, model AP groups and roles, validate the
+survey quality, and export maps that explain what was found.
 
-## Current Features
+## Current Status
 
-### Survey Workflow
+- Active UI: PySide6.
+- Main entry point: `main.py`.
+- Main workspace: `qt_ui/qt_app.py`.
+- Current survey format: V2 CSV plus a linked `.scan` raw-data sidecar.
+- Legacy Tkinter UI and old PNG/CSV map export are no longer part of the active
+  workflow.
+- Help content still needs a final rewrite after the V2 workflow is stable.
 
-- Start a new survey or open an existing CSV survey.
-- Load a floorplan image or PDF.
-- Store the floorplan path in survey metadata so reopening the CSV reloads the map automatically.
-- Place measurement points directly on the floorplan.
-- Delete the selected point or the last point.
-- Pan, zoom, and fit the floorplan.
-- Save on demand, with dirty-state tracking and save prompt on close.
-- Export live-map PDF reports in the same folder as the saved survey CSV.
+## Main Workflow
 
-### User Interface
+1. Start a new survey or open an existing V2 survey CSV.
+2. Load a floor plan image or PDF.
+3. Optionally calibrate scale by selecting two known points and entering meters.
+4. Select relevant SSIDs for quality checks and focused analysis.
+5. Place measurement points on the floor plan.
+6. The app performs repeated Wi-Fi scans and stores all detected networks.
+7. Review points, AP groups, metadata warnings, and survey quality.
+8. Use the Live Map tab for Coverage, Interference, AP Channels, and Dominant AP.
+9. Export the current live map as a PDF report.
 
-- PySide6 UI with a lightweight launcher in `main.py` and the main workspace in `qt_ui/qt_app.py`.
-- Source modules are grouped by domain under packages such as `qt_ui/`, `maps/`, `ap/`, `wifi/`, `exporting/`, `survey/`, and `app_core/`.
-- Start screen with new/open/exit actions and visual mouse shortcut help.
-- Main UI split into survey and live map tabs.
-- Toolbar controls for saving, opening CSV, AP groups, scale calibration, help, live PDF export, theme, and language.
-- English and Italian language selector.
-- Theme selector.
-- Help dialog with workflow, live map, heatmap, and scan guidance.
-- Centered modal dialogs.
-
-### Wi-Fi Scanning
-
-- Automatic scan backend selection.
-- lswifi support with fallback behavior.
-- Multiple scan attempts per point.
-- Delay between scan attempts to reduce partial WLAN scan results.
-- Aggregation by BSSID and channel.
-- Median, min, max, and sample list for RSSI values.
-- Confidence fields per measurement.
-- Suspicious scan warning when a new scan sees far fewer networks than the previous good scan.
-- Relevant SSID workflow: all networks are saved, while selected SSIDs drive warnings and quality checks.
-
-Collected fields include:
-
-- timestamp
-- x/y coordinates
-- SSID
-- BSSID
-- signal percent
-- signal dBm
-- median/max/min dBm
-- raw signal samples
-- samples seen / total
-- scan confidence
-- channel
-- channel width
-- radio / PHY type
-
-### Data Storage
+## Survey Data
 
 Survey data is stored in a readable CSV file with metadata comments at the top.
+Raw scan rows are stored in a linked sidecar file:
 
-Metadata can include:
+```text
+survey.csv
+survey_raw_data.scan
+```
 
-- floorplan path
-- remembered capture filter
-- AP aliases
-- scale calibration (`px_per_meter`)
-- app creation fields
+The main CSV stores aggregated point measurements. The raw sidecar preserves the
+scan samples used to build those measurements.
 
-The current application expects V2 survey CSV files created by this tool.
+Stored metadata can include:
 
-### AP Aliases
+- floor-plan path;
+- raw sidecar path;
+- scale calibration (`px_per_meter`);
+- relevant SSIDs;
+- AP groups, roles, aliases, metadata, and positions;
+- creation/version fields.
 
-- Dedicated AP alias dialog.
-- Search and sortable columns.
-- Inline alias editing.
-- Alias state persisted in CSV metadata.
-- Aliases are used in tooltips, legends, AP channel maps, dominant AP maps, and interference analysis where available.
+Collected scan fields include:
 
-### Scale Calibration
+- timestamp;
+- point x/y coordinates;
+- SSID and BSSID;
+- signal percent and dBm;
+- median/min/max dBm;
+- raw signal samples;
+- samples seen / total attempts;
+- scan confidence;
+- channel and channel width;
+- band and frequency where available;
+- optional lswifi details such as security, PMF, vendor, model, AP name,
+  country code, station count, channel utilization, Wi-Fi modes, and amendments.
 
-- Toolbar action to calibrate the map scale.
-- Select two known points on the floorplan and enter the real distance in meters.
-- Stores `px_per_meter` in the survey metadata.
-- Distance controls switch from pixels to meters when a survey is calibrated.
-- The calibrated distance is used by live maps and PDF exports.
+## Wi-Fi Scanning
 
-## Live Map System
+The scanner uses `lswifi` when available and falls back to Windows `netsh`.
+Each measurement point can run multiple scan attempts to reduce partial scan
+results and beacon timing artifacts.
 
-The application includes a live rendering pipeline that updates while measurements are collected.
+The scanner records all visible networks. Relevant SSIDs are a separate user
+selection used to decide which networks matter for quality checks and map
+interpretation.
 
-Live map types:
+2.4 GHz, 5 GHz, and 6 GHz bands are supported in the data model and live maps.
+When explicit band/frequency data is unavailable, the app falls back to
+conservative channel-based inference.
 
-- Signal coverage
-- AP interference
-- AP channels
-- Dominant AP / roaming view
+## AP Groups And Roles
 
-Live map features:
+The AP Group Manager builds automatic groups from detected BSSIDs, then lets the
+user refine them manually.
 
-- Separate survey and live map tabs.
-- Auto-update and manual refresh.
-- Live zoom and pan.
-- AP group filter for signal and channel views.
-- Band selection.
-- Interference mode selection.
-- Smoothing, interpolation, aggregation, color scale, usability threshold, and max distance controls where relevant.
-- Mouseover tooltips for point details.
-- Missing-data markers.
-- Horizontal scale/legend area based on the active map type.
-- Background rendering for heavier live maps.
-- Grid caching and result caching.
+Supported AP group data:
 
-## Live Map PDF Export
+- alias;
+- role;
+- BSSID membership;
+- expected bands and channels;
+- vendor/model/AP name metadata;
+- physical AP position on the floor plan.
 
-### Signal Coverage
+Supported roles:
 
-- 2.4 GHz, 5 GHz, or combined view.
-- Interpolation.
-- Smoothing.
-- Distance-aware masking.
-- Adjustable color scale.
-- Optional threshold filter for usable coverage.
-- Export to PDF from the live map toolbar.
+- `internal`: APs that belong to the surveyed network.
+- `external`: neighboring APs that can be observed but are outside the managed
+  network.
+- `interferer`: APs that should be treated as interference sources.
+- `test/hidden`: APs intentionally hidden from user-facing analysis.
 
-### AP Interference
+Test/hidden AP groups are excluded from coverage, channel, dominant AP, and AP
+group filter logic. Grouping also prevents guest/main SSIDs on the same physical
+AP from being treated as mutual interference when they are modeled correctly.
 
-- Band-specific interference maps.
-- Intra-SSID or all-SSID analysis.
-- Channel overlap awareness.
-- Channel width support where available.
-- Risk percentage visualization.
-- Second-page issue cards for high-risk points.
+## Survey Quality
 
-### AP Channels
+The quality system flags points and project-level issues before maps are trusted.
 
-- Real-point map without interpolation.
-- Points colored by AP/channel.
-- Channel-width labels where available.
-- Compact PDF legend for visible channels/APs.
-- AP aliases supported.
+Current checks include:
 
-### Dominant AP / Roaming
+- missing relevant SSIDs;
+- low scan confidence;
+- unstable signal samples;
+- sparse measurement data;
+- AP metadata inconsistencies;
+- AP group conflicts;
+- AP positioning warnings for dominant AP analysis.
 
-- Real-point map showing the strongest AP group at each measurement point.
-- Roaming overlap detection.
-- Reference table for labels.
-- AP aliases supported.
+The Survey Quality Dashboard summarizes good/review points, relevant SSID
+coverage, AP group state, and actionable warnings.
 
-## Rendering Engine
+## Live Maps
 
-The rendering pipeline uses:
+The Live Map tab renders the current survey using the selected SSID, band, AP
+group, and map-specific options.
 
-- NumPy
-- Pandas
-- SciPy
-- Matplotlib
-- Pillow
+Available live maps:
 
-The renderer includes:
+- Coverage;
+- Interference;
+- AP Channels;
+- Dominant AP / roaming.
 
-- High-resolution interpolation grid
-- Grid caching
-- Result caching
-- Distance alpha masking
-- Spatial smoothing
-- Point collapsing / aggregation
-- Live image payload generation
-- Background worker rendering for live continuous maps
+Live map behavior:
 
-## Real RF Challenges Addressed
+- manual update and auto update;
+- app-bar zoom, pan, and fit controls;
+- map-specific left options overlay;
+- per-survey memory for map options;
+- continuous color scale overlay for Coverage and Interference;
+- discrete legends for AP Channels and Dominant AP;
+- click-to-highlight and double-click-to-focus in discrete legends;
+- background rendering and result caching for heavier maps;
+- positioned AP markers on maps where useful.
 
-The project explicitly handles or exposes several practical Wi-Fi survey problems:
+Continuous maps support interpolation, smoothing, color scale, max distance, and
+usable-signal filtering where relevant. Interference and discrete maps expose
+only the options that make sense for that map type.
 
-- Inconsistent scan results from Windows WLAN scans.
-- Missing AP detections.
-- Beacon timing issues.
-- Dual-band ambiguity.
-- Multi-BSSID / multi-SSID enterprise deployments.
-- Guest SSIDs sharing the same physical AP/channel.
-- Spatial interpolation artifacts.
-- Channel overlap and channel width uncertainty.
-- Temporal RSSI fluctuations.
-- Dense point labeling readability.
+## PDF Export
 
-## Technologies Used
+The active export workflow is PDF export from the Live Map toolbar.
+
+Export behavior:
+
+- asks where to save the file;
+- uses the current live map type and options;
+- renders the full floor-plan extent, independent of current viewport zoom/pan;
+- includes scale or legend information without overlapping the map;
+- flattens map pages to avoid accidental page-image selection in PDF viewers;
+- uses survey-style point sizing;
+- includes positioned AP markers where applicable.
+
+Map-specific PDF behavior:
+
+- Coverage: map page only, no problem report.
+- Interference: map page plus paged issue cards for high-risk points.
+- AP Channels: map page with compact de-duplicated legend.
+- Dominant AP: map page and dominant/AP-position reporting where applicable.
+
+## Project Structure
+
+The codebase is grouped by domain:
+
+```text
+main.py                 application entry point
+app_core/               settings, logging, restart, constants, filename helpers
+ap/                     AP grouping, metadata checks, conflicts, positioning
+exporting/              live-map PDF export, report pages, PDF writer
+maps/                   map config, heatmap math, rendering, quality engine
+qt_ui/                  PySide6 UI, workspace, dialogs, live-map view
+survey/                 survey CSV and raw sidecar persistence
+translations/           language dictionaries and i18n helpers
+wifi/                   scanner backends, band helpers, signal conversion
+tests/                  unit and UI-level regression tests
+```
+
+## Installation
+
+Create and activate a virtual environment:
+
+```bash
+python -m venv .venv
+```
+
+Windows:
+
+```bash
+.venv\Scripts\activate
+```
+
+Linux / macOS:
+
+```bash
+source .venv/bin/activate
+```
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+## Running
+
+```bash
+python main.py
+```
+
+`main.py` opens a lightweight start screen and loads the heavier Qt workspace in
+the background before enabling survey actions.
+
+## Testing
+
+Run the full test suite:
+
+```bash
+python -m pytest tests
+```
+
+Useful focused test groups:
+
+```bash
+python -m pytest tests/test_live_maps.py
+python -m pytest tests/test_survey_quality.py
+python -m pytest tests/test_scanner_services.py
+python -m pytest tests/test_workspace_ui.py
+```
+
+## Building
+
+Build the Windows executable with PyInstaller:
+
+```bash
+python -m PyInstaller -y WifiHeatmap.spec
+```
+
+Output:
+
+```text
+dist/WifiHeatmap/WifiHeatmap.exe
+```
+
+## Technologies
 
 - Python
 - PySide6
@@ -197,99 +267,30 @@ The project explicitly handles or exposes several practical Wi-Fi survey problem
 - Matplotlib
 - lswifi
 - PyInstaller
+- pytest
 
-## Installation
+## Remaining Work
 
-```bash
-git clone https://github.com/YOUR_USERNAME/wifi_heatmap.git
-cd wifi_heatmap
-python -m venv .venv
-```
+Near-term work is tracked in `docs/V2_ARCHITECTURE_NOTES.md`.
 
-### Windows
+Current priorities include:
 
-```bash
-.venv\Scripts\activate
-```
+- validate and polish the remaining live-map PDF exports on real surveys;
+- improve AP Group Manager ergonomics for large surveys;
+- expand combined reporting beyond one map at a time;
+- use AP metadata more deeply in diagnostics;
+- rewrite Help content after the workflow stabilizes.
 
-### Linux / macOS
+## Philosophy
 
-```bash
-source .venv/bin/activate
-```
+Most professional Wi-Fi survey tools are expensive, closed-source, and difficult
+to customize.
 
-### Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-## Running the Application
-
-The application entry point is:
-
-```bash
-python main.py
-```
-
-`main.py` shows the startup screen quickly and loads the heavier Qt workspace
-components in the background before enabling the survey actions.
-
-## Building the Executable
-
-```bash
-python -m PyInstaller -y WifiHeatmap.spec
-```
-
-The Windows build output is generated under:
-
-```text
-dist/WifiHeatmap/WifiHeatmap.exe
-```
-
-## Typical Workflow
-
-1. Start a new survey or open an existing CSV.
-2. Load the floorplan.
-3. Optionally calibrate the scale if a known real distance is available.
-4. Move through the environment.
-5. Right-click the measurement positions on the map.
-6. Save the survey.
-7. Use the live map tab while collecting data.
-8. Export the final live-map PDF.
-
-## Example Use Cases
-
-- Office Wi-Fi analysis
-- AP placement validation
-- Dead-zone identification
-- 2.4 GHz vs 5 GHz comparison
-- Channel overlap analysis
-- Roaming / dominant AP analysis
-- Educational RF analysis
-- Home network optimization
-
-## Planned Improvements
-
-Future development may include:
-
-- More advanced RF statistics and quality indicators.
-- Better scan diagnostics and troubleshooting guidance.
-- Configurable AP grouping rules beyond the current automatic grouping.
-- Optional project/session settings file.
-- More performance tuning for very large surveys.
-- Internal floorplan annotation tools.
-
-## Project Philosophy
-
-Most professional Wi-Fi survey tools are expensive, closed-source, and difficult to customize.
-
-This project explores how far a transparent Python-based solution can go while remaining understandable and adaptable.
-
-The goal is not only generating good-looking heatmaps, but understanding the underlying RF behavior and scan reliability challenges.
+This project explores how far a transparent Python-based tool can go while
+remaining understandable, inspectable, and adaptable. The goal is not only
+generating good-looking heatmaps, but explaining the RF behavior and scan
+reliability behind them.
 
 ## Author
 
 Davide Marchi
-
-Experimental Wi-Fi heatmapping and RF visualization project focused on real-world environments and practical wireless analysis.
