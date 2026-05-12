@@ -143,8 +143,11 @@ Implemented:
 - conflict checks use explicit/frequency-derived scan band data, so low-number
   6 GHz channels are not treated as 2.4 GHz when the row carries band/frequency;
 - warning details dialog;
-- shortcut from warning details to Duplicate/Split, with conflicting BSSIDs
+- shortcut from warning details to AP group correction, with conflicting BSSIDs
   shown first;
+- AP group table filters by warning state, role, band and manual/auto state;
+- BSSID management dialog filters by current/other/unassigned/selected/warning
+  BSSIDs, band, channel and search text;
 - user-facing `Auto` / `Manual` management state.
 
 Important decision:
@@ -307,8 +310,9 @@ Implemented:
   before enabling new/open actions;
 - Qt workspace covers project/session behavior, floor-plan loading, saved map
   restore, point marker overlay, pan/zoom and fit-to-window;
-- Qt AP Group Manager covers group table/search, alias/role edits, metadata
-  editing, BSSID split, conflict details, AP positioning and save behavior;
+- Qt AP Group Manager covers group table/search/filtering, alias/role edits,
+  metadata editing, BSSID management, conflict details, AP positioning and save
+  behavior;
 - Qt point creation/scanning runs scans in a background Qt thread and saves all
   detected networks;
 - relevant SSID prompts, missing network dialogs, points table controls, Survey
@@ -347,13 +351,17 @@ Why it matters:
 - manual split/merge must stay fast and understandable;
 - dense AP tables need stronger filtering and batch-edit workflows.
 
+Completed in this area:
+
+- AP group table filters by warning state, role, band, manual/auto state and
+  search text;
+- BSSID selection dialog filters by search text, current/other/unassigned/
+  selected/warning state, band and channel;
+- BSSID selection dialog supports visible-row select, clear and invert actions.
+
 Suggested next steps:
 
-- improve BSSID selection dialog for large lists;
-- add filters by SSID, channel, band, role, current group and warning state;
 - add quick actions:
-  - select only warning BSSIDs;
-  - invert selection;
   - split selected into new group;
   - move selected to existing group;
 - add clearer conflict explanation by band/channel;

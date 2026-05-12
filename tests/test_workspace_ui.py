@@ -29,8 +29,23 @@ class APGroupManagerDialogTests(unittest.TestCase):
     def setUpClass(cls):
         cls.qt_app = QApplication.instance() or QApplication([])
 
+    class FakeApp(QDialog):
+        def __init__(self, session):
+            super().__init__()
+            self.session = session
+            self.theme = "light"
+
+        def tr(self, key, **kwargs):
+            return translate("en", key, **kwargs)
+
+        def channel_sort_key(self, channel):
+            try:
+                return int(str(channel))
+            except ValueError:
+                return 9999
+
     def make_bssid_dialog(self):
-        class FakeApp:
+        class FakeChannelApp:
             def channel_sort_key(self, channel):
                 try:
                     return int(str(channel))
@@ -40,7 +55,7 @@ class APGroupManagerDialogTests(unittest.TestCase):
         class FakeManager(QDialog):
             def __init__(self):
                 super().__init__()
-                self.app = FakeApp()
+                self.app = FakeChannelApp()
 
             def tr(self, key, **kwargs):
                 return translate("en", key, **kwargs)
@@ -76,11 +91,73 @@ class APGroupManagerDialogTests(unittest.TestCase):
         )
         return manager, dialog
 
+    def make_ap_manager_dialog(self):
+        session = SurveySession()
+        session.rows = [
+            build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -50, 1),
+            build_row("p2", "MAIN", "70:4f:57:aa:bb:11", -51, 6),
+            build_row("p3", "Guest", "80:4f:57:aa:bb:20", -55, 36),
+            build_row("p4", "MAIN-6", "90:4f:57:aa:cc:30", -60, 5, band="6"),
+        ]
+        session.set_ap_groups([
+            build_manual_ap_group(
+                "warning-ap",
+                ["70:4f:57:aa:bb:10", "70:4f:57:aa:bb:11"],
+                alias="Warning AP",
+                locked=True,
+            ),
+            build_manual_ap_group(
+                "neighbor-ap",
+                ["80:4f:57:aa:bb:20"],
+                alias="Neighbor AP",
+                locked=True,
+                role=AP_ROLE_EXTERNAL,
+            ),
+        ])
+        app = self.FakeApp(session)
+        dialog = APGroupManagerDialog(app)
+        return app, dialog
+
     def set_combo_value(self, combo, value):
         index = combo.findData(value)
         self.assertNotEqual(index, -1)
         combo.setCurrentIndex(index)
         QApplication.processEvents()
+
+    def test_ap_manager_table_filters_status_role_band_and_state(self):
+        app, dialog = self.make_ap_manager_dialog()
+        try:
+            self.assertEqual(len(dialog.visible_group_ids), 3)
+
+            self.set_combo_value(dialog.status_filter_combo, "warning")
+            self.assertEqual(dialog.visible_group_ids, ["warning-ap"])
+
+            dialog.clear_filters()
+            self.set_combo_value(dialog.role_filter_combo, AP_ROLE_EXTERNAL)
+            self.assertEqual(dialog.visible_group_ids, ["neighbor-ap"])
+
+            dialog.clear_filters()
+            self.set_combo_value(dialog.band_filter_combo, "6")
+            self.assertEqual(len(dialog.visible_group_ids), 1)
+            visible_group = dialog.get_group_by_id(dialog.visible_group_ids[0])
+            self.assertEqual(visible_group.get("bands"), ["6"])
+
+            dialog.clear_filters()
+            self.set_combo_value(dialog.state_filter_combo, "auto")
+            self.assertEqual(len(dialog.visible_group_ids), 1)
+            visible_group = dialog.get_group_by_id(dialog.visible_group_ids[0])
+            self.assertFalse(visible_group.get("locked"))
+
+            dialog.clear_filters()
+            dialog.search_edit.setText("Neighbor")
+            QApplication.processEvents()
+            self.assertEqual(dialog.visible_group_ids, ["neighbor-ap"])
+
+            dialog.clear_filters()
+            self.assertEqual(len(dialog.visible_group_ids), 3)
+        finally:
+            dialog.deleteLater()
+            app.deleteLater()
 
     def test_bssid_dialog_filters_and_visible_selection_actions(self):
         manager, dialog = self.make_bssid_dialog()

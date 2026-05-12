@@ -102,6 +102,7 @@ class APGroupManagerDialog(QDialog):
         self.groups = []
         self.detected_by_bssid = {}
         self.group_conflicts_by_id = {}
+        self.visible_group_ids = []
         self.sort_column = "ssids"
         self.sort_reverse = False
 
@@ -118,6 +119,11 @@ class APGroupManagerDialog(QDialog):
 
     def tr(self, key, **kwargs):
         return self.app.tr(key, **kwargs)
+
+    def make_filter_label(self, key):
+        label = QLabel(self.tr(key))
+        label.setObjectName("apDialogLabel")
+        return label
 
     def build_state(self):
         detected_groups = build_detected_ap_groups(self.session.rows, self.app.channel_sort_key)
@@ -156,6 +162,50 @@ class APGroupManagerDialog(QDialog):
         self.conflict_label.setObjectName("apConflictLabel")
         search_row.addWidget(self.conflict_label)
         layout.addLayout(search_row)
+
+        filter_row = QHBoxLayout()
+        filter_row.setSpacing(widget_px(self, 8))
+        filter_row.addWidget(self.make_filter_label("ap_group_filter_status"))
+        self.status_filter_combo = QComboBox()
+        self.status_filter_combo.addItem(self.tr("ap_group_filter_status_all"), "all")
+        self.status_filter_combo.addItem(self.tr("ap_group_filter_status_warning"), "warning")
+        self.status_filter_combo.addItem(self.tr("ap_group_filter_status_ok"), "ok")
+        self.status_filter_combo.currentIndexChanged.connect(self.render_rows)
+        filter_row.addWidget(self.status_filter_combo)
+
+        filter_row.addWidget(self.make_filter_label("ap_group_filter_role"))
+        self.role_filter_combo = QComboBox()
+        self.role_filter_combo.addItem(self.tr("ap_group_filter_role_all"), "all")
+        for role in AP_ROLE_CHOICES:
+            self.role_filter_combo.addItem(self.tr(f"ap_group_role_{role}"), role)
+        self.role_filter_combo.currentIndexChanged.connect(self.render_rows)
+        filter_row.addWidget(self.role_filter_combo)
+
+        filter_row.addWidget(self.make_filter_label("ap_group_filter_band"))
+        self.band_filter_combo = QComboBox()
+        self.band_filter_combo.addItem(self.tr("ap_group_filter_band_all"), "all")
+        for band in self.available_filter_bands():
+            self.band_filter_combo.addItem(format_band_label(band), band)
+        self.band_filter_combo.currentIndexChanged.connect(self.render_rows)
+        filter_row.addWidget(self.band_filter_combo)
+
+        filter_row.addWidget(self.make_filter_label("ap_group_filter_state"))
+        self.state_filter_combo = QComboBox()
+        self.state_filter_combo.addItem(self.tr("ap_group_filter_state_all"), "all")
+        self.state_filter_combo.addItem(self.tr("ap_group_state_manual"), "manual")
+        self.state_filter_combo.addItem(self.tr("ap_group_state_auto"), "auto")
+        self.state_filter_combo.currentIndexChanged.connect(self.render_rows)
+        filter_row.addWidget(self.state_filter_combo)
+
+        self.clear_filters_button = QPushButton(self.tr("ap_group_clear_filters"))
+        self.clear_filters_button.clicked.connect(self.clear_filters)
+        self.prepare_action_button(self.clear_filters_button)
+        filter_row.addWidget(self.clear_filters_button)
+        filter_row.addStretch(1)
+        self.visible_count_label = QLabel()
+        self.visible_count_label.setObjectName("apDialogLabel")
+        filter_row.addWidget(self.visible_count_label)
+        layout.addLayout(filter_row)
 
         self.table = QTableWidget(0, len(AP_GROUP_COLUMNS))
         self.table.setAlternatingRowColors(True)
@@ -438,6 +488,7 @@ class APGroupManagerDialog(QDialog):
         group["metadata"] = normalize_ap_metadata(group.get("metadata"))
         seen_ssids = set()
         seen_channels = set()
+        seen_bands = set()
         display_groups = set()
         for bssid in group.get("bssids", []):
             detected_group = self.detected_by_bssid.get(bssid)
@@ -445,10 +496,12 @@ class APGroupManagerDialog(QDialog):
                 continue
             seen_ssids.update(detected_group["ssids"])
             seen_channels.update(detected_group["channels"])
+            seen_bands.update(detected_group.get("bands", []))
             display_groups.update(detected_group["display_groups"])
 
         group["ssids"] = sorted(seen_ssids)
         group["channels"] = sorted(seen_channels, key=self.app.channel_sort_key)
+        group["bands"] = sort_bands(seen_bands)
         group["display_groups"] = sorted(display_groups) or [group["group_id"]]
 
     def refresh_group_checks(self):
@@ -470,8 +523,17 @@ class APGroupManagerDialog(QDialog):
     def render_rows(self):
         selected_group_id = self.current_group_id()
         query = self.search_edit.text().strip().lower()
-        visible_groups = [group for group in self.groups if self.group_matches_search(group, query)]
+        status_filter = self.current_combo_value(self.status_filter_combo)
+        role_filter = self.current_combo_value(self.role_filter_combo)
+        band_filter = self.current_combo_value(self.band_filter_combo)
+        state_filter = self.current_combo_value(self.state_filter_combo)
+        visible_groups = [
+            group
+            for group in self.groups
+            if self.group_matches_filters(group, query, status_filter, role_filter, band_filter, state_filter)
+        ]
         visible_groups.sort(key=lambda group: self.sort_value(group, self.sort_column), reverse=self.sort_reverse)
+        self.visible_group_ids = [group["group_id"] for group in visible_groups]
 
         self.table.setRowCount(0)
         for group in visible_groups:
@@ -493,6 +555,7 @@ class APGroupManagerDialog(QDialog):
             self.table.setRowHeight(row, self.row_height_for_values(values))
 
         self.apply_table_column_widths()
+        self.update_visible_count_label()
         self.update_action_state()
 
     def get_group_display_values(self, group):
@@ -541,6 +604,50 @@ class APGroupManagerDialog(QDialog):
             " ".join(group["channels"]),
         ]).lower()
         return query in haystack
+
+    def group_matches_filters(self, group, query, status_filter, role_filter, band_filter, state_filter):
+        if not self.group_matches_search(group, query):
+            return False
+
+        has_warning = bool(self.group_conflicts_by_id.get(group["group_id"]))
+        if status_filter == "warning" and not has_warning:
+            return False
+        if status_filter == "ok" and has_warning:
+            return False
+        if role_filter != "all" and normalize_ap_role(group.get("role")) != role_filter:
+            return False
+        if band_filter != "all" and band_filter not in group.get("bands", []):
+            return False
+        if state_filter == "manual" and not group.get("locked"):
+            return False
+        if state_filter == "auto" and group.get("locked"):
+            return False
+        return True
+
+    def current_combo_value(self, combo):
+        return combo.currentData() if combo.currentIndex() >= 0 else "all"
+
+    def available_filter_bands(self):
+        bands = set()
+        for detected_group in self.detected_by_bssid.values():
+            bands.update(detected_group.get("bands", []))
+        return sort_bands(bands)
+
+    def clear_filters(self):
+        self.search_edit.clear()
+        for combo in (
+            self.status_filter_combo,
+            self.role_filter_combo,
+            self.band_filter_combo,
+            self.state_filter_combo,
+        ):
+            combo.setCurrentIndex(0)
+        self.render_rows()
+
+    def update_visible_count_label(self):
+        self.visible_count_label.setText(
+            self.tr("ap_group_visible_count", visible=len(self.visible_group_ids), total=len(self.groups))
+        )
 
     def sort_value(self, group, column):
         if column == "status":
