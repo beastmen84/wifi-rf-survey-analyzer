@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
-from constants import (
+from app_core.constants import (
     APP_ID,
     RAW_DATA_FILE_METADATA_KEY,
     RAW_SCAN_FIELDNAMES,

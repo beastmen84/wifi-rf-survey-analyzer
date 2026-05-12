@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from constants import HEATMAP_MAX_DISTANCE_PX, HEATMAP_SMOOTHING_SIGMA
+from app_core.constants import HEATMAP_MAX_DISTANCE_PX, HEATMAP_SMOOTHING_SIGMA
 
 
 @dataclass(frozen=True)

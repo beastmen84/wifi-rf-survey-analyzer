@@ -29,7 +29,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app_logging import log_event, log_exception
+from app_core.logging import log_event, log_exception
 from ap.groups import AP_ROLE_TEST, build_dominant_ap_group_labels, format_ap_label, normalize_ap_role
 from ap.positioning import (
     AP_POSITION_MISSING,
@@ -40,7 +40,7 @@ from ap.positioning import (
     AP_POSITION_WEAK_CLOSE,
     analyze_dominant_ap_position,
 )
-from constants import SURVEY_FIELDNAMES
+from app_core.constants import SURVEY_FIELDNAMES
 from maps.heatmap import get_channel_map_points, get_dominant_ap_points
 from maps.live_renderer import render_live_continuous_map
 from maps.rendering import (

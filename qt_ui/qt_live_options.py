@@ -15,7 +15,7 @@ from ap.groups import (
     normalize_ap_role,
     resolve_ap_group_key,
 )
-from constants import HEATMAP_MAX_DISTANCE_PX, HEATMAP_SMOOTHING_SIGMA
+from app_core.constants import HEATMAP_MAX_DISTANCE_PX, HEATMAP_SMOOTHING_SIGMA
 from wifi.band import row_matches_band
 
 

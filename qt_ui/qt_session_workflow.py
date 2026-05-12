@@ -9,9 +9,9 @@ except ModuleNotFoundError as exc:
     print("PySide6 is required for main.py. Run: pip install -r requirements.txt")
     raise SystemExit(1) from exc
 
-from app_settings import get_last_survey_directory, save_last_survey_path
+from app_core.settings import get_last_survey_directory, save_last_survey_path
 from qt_ui.qt_windowing import get_centered_open_file_name, get_centered_save_file_name
-from survey_store import SurveyFormatError, SurveySession
+from survey.store import SurveyFormatError, SurveySession
 
 
 class SurveySessionWorkflowMixin:

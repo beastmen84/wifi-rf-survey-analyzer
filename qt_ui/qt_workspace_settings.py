@@ -6,13 +6,13 @@ from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QCursor
 from PySide6.QtWidgets import QApplication, QComboBox, QDialog, QLabel, QMessageBox, QVBoxLayout
 
-from app_logging import log_event, log_exception
-from app_restart import start_replacement_process
-from app_settings import save_theme, save_ui_scale
-from i18n import LANGUAGE_OPTIONS, normalize_language
+from app_core.logging import log_event, log_exception
+from app_core.restart import start_replacement_process
+from app_core.settings import save_theme, save_ui_scale
+from translations.i18n import LANGUAGE_OPTIONS, normalize_language
 from qt_ui.qt_theme import QT_THEME_OPTIONS, QT_THEMES
 from qt_ui.qt_windowing import SKIP_CENTERING_PROPERTY
-from ui_scaling import (
+from qt_ui.scaling import (
     UI_SCALE_OPTIONS,
     detect_auto_ui_scale_percent,
     format_ui_scale_diagnostics,

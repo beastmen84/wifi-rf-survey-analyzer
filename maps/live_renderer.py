@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 
-from constants import HEATMAP_GRID_SIZE
+from app_core.constants import HEATMAP_GRID_SIZE
 from ap.groups import AP_ROLE_TEST
 from maps.heatmap import (
     add_ap_group_metadata,

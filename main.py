@@ -8,7 +8,7 @@ except ModuleNotFoundError as exc:
     print("PySide6 is required for main.py. Run: pip install -r requirements.txt")
     raise SystemExit(1) from exc
 
-from app_logging import configure_logging, log_event, log_unhandled_exception
+from app_core.logging import configure_logging, log_event, log_unhandled_exception
 from qt_ui.qt_startup import StartWindow
 from qt_ui.qt_windowing import install_dialog_centering
 

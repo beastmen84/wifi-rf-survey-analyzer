@@ -1,4 +1,4 @@
-"""Small utility helpers shared across file naming workflows."""
+"""Filename normalization helpers."""
 
 import re
 

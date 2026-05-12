@@ -14,8 +14,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app_logging import log_event, log_exception
-from ui_scaling import widget_px
+from app_core.logging import log_event, log_exception
+from qt_ui.scaling import widget_px
 from wifi.scanner import get_connected_ssid, scan_wifi
 
 

@@ -3,7 +3,7 @@ import string
 import unittest
 from pathlib import Path
 
-from i18n import (
+from translations.i18n import (
     DEFAULT_LANGUAGE,
     LANGUAGE_LABELS,
     LANGUAGE_OPTIONS,
@@ -24,8 +24,18 @@ def format_fields(text):
 
 def iter_app_source_paths():
     root = Path(__file__).resolve().parents[1]
-    for path in root.glob("*.py"):
-        if path.name != "i18n.py":
+    source_roots = (
+        root / "ap",
+        root / "app_core",
+        root / "exporting",
+        root / "maps",
+        root / "qt_ui",
+        root / "survey",
+        root / "wifi",
+    )
+    yield root / "main.py"
+    for source_root in source_roots:
+        for path in source_root.glob("*.py"):
             yield path
 
 

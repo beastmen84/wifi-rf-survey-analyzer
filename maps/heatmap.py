@@ -12,7 +12,7 @@ from ap.groups import (
     normalize_ap_role_map,
     resolve_ap_group_key,
 )
-from i18n import translate
+from translations.i18n import translate
 from wifi.band import channel_center_frequency_mhz, get_row_band, normalize_band
 
 

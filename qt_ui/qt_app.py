@@ -35,13 +35,13 @@ except ModuleNotFoundError as exc:
     print("PySide6 is required for main.py. Run: pip install -r requirements.txt")
     raise SystemExit(1) from exc
 
-from i18n import DEFAULT_LANGUAGE, LANGUAGE_OPTIONS, translate
-from app_logging import configure_logging, log_event, log_exception, log_unhandled_exception
-from app_settings import (
+from translations.i18n import DEFAULT_LANGUAGE, LANGUAGE_OPTIONS, translate
+from app_core.logging import configure_logging, log_event, log_exception, log_unhandled_exception
+from app_core.settings import (
     get_saved_theme,
     get_saved_ui_scale,
 )
-from constants import HEATMAP_MAX_DISTANCE_PX, HEATMAP_SMOOTHING_SIGMA
+from app_core.constants import HEATMAP_MAX_DISTANCE_PX, HEATMAP_SMOOTHING_SIGMA
 from qt_ui.qt_ap_workflow import ApWorkflowMixin
 from qt_ui.qt_floorplan import FloorplanView
 from qt_ui.qt_floorplan_workflow import FloorplanWorkflowMixin
@@ -64,7 +64,7 @@ from qt_ui.qt_windowing import (
     install_dialog_centering,
 )
 from qt_ui.qt_workspace_settings import WorkspaceSettingsMixin
-from ui_scaling import (
+from qt_ui.scaling import (
     format_ui_scale_diagnostics,
     normalize_ui_scale_mode,
     resolve_ui_scale,

@@ -15,7 +15,7 @@ from ap.groups import (
     serialize_ap_group_map,
     serialize_ap_group_roles,
 )
-from app_logging import log_event
+from app_core.logging import log_event
 from maps.config import MapConfig
 from qt_ui.qt_live_map import LiveMapRenderWorker, create_marker_icon
 

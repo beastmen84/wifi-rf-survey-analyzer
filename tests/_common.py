@@ -13,11 +13,11 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QGraphicsItem, QGraphicsView, QListWidgetItem, QWidget
 from PIL import Image
 
-from app_logging import MaxLogLevelFilter
-from app_restart import build_restart_command
-from app_settings import get_last_survey_directory, save_last_survey_path
-from constants import RAW_DATA_FILE_METADATA_KEY, SURVEY_FIELDNAMES
-from i18n import translate
+from app_core.logging import MaxLogLevelFilter
+from app_core.restart import build_restart_command
+from app_core.settings import get_last_survey_directory, save_last_survey_path
+from app_core.constants import RAW_DATA_FILE_METADATA_KEY, SURVEY_FIELDNAMES
+from translations.i18n import translate
 from ap.groups import (
     AP_ROLE_EXTERNAL,
     AP_ROLE_INTERNAL,
@@ -124,13 +124,13 @@ from maps.quality import (
     QUALITY_UNSTABLE_SIGNAL,
     evaluate_point_quality,
 )
-from survey_store import (
+from survey.store import (
     SurveyFormatError,
     SurveySession,
     build_raw_scan_file_path,
     get_survey_point_summaries_from_rows,
 )
-from ui_scaling import (
+from qt_ui.scaling import (
     detect_screen_resolution,
     effective_scale_for_percent,
     format_ui_scale_diagnostics,

@@ -3,7 +3,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QTextBrowser, QTabWidget, QVBoxLayout, QWidget
 
-from ui_scaling import widget_font, widget_px
+from qt_ui.scaling import widget_font, widget_px
 
 
 def open_qt_help_dialog(parent, tr):

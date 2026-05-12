@@ -45,7 +45,7 @@ from ap.groups import (
     normalize_bssid,
 )
 from qt_ui.qt_theme import QT_THEMES
-from ui_scaling import widget_font, widget_px
+from qt_ui.scaling import widget_font, widget_px
 
 
 AP_GROUP_COLUMNS = (

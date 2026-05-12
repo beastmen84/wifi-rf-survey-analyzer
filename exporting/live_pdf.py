@@ -18,7 +18,7 @@ from ap.groups import (
     format_ap_label,
     normalize_ap_role,
 )
-from constants import HEATMAP_GRID_SIZE
+from app_core.constants import HEATMAP_GRID_SIZE
 from maps.heatmap import (
     add_ap_group_metadata,
     apply_distance_mask,
@@ -56,7 +56,7 @@ from exporting.reports import (
     get_interference_problem_df,
 )
 from exporting.pdf_writer import write_figures_as_live_pdf
-from utils import sanitize_filename
+from app_core.filenames import sanitize_filename
 
 
 LIVE_PDF_POINT_SIZE = 105

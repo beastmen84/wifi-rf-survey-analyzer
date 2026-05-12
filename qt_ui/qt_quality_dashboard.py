@@ -50,7 +50,7 @@ from maps.quality import (
     normalize_ssid,
     parse_float,
 )
-from ui_scaling import widget_px
+from qt_ui.scaling import widget_px
 
 
 QUALITY_SEVERITY = {
