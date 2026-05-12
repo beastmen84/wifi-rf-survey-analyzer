@@ -1,6 +1,6 @@
 # WiFi Heatmap - V2 Architecture Notes
 
-Last updated: 2026-05-11
+Last updated: 2026-05-12
 
 This document is the forward-looking V2 roadmap. Completed items are kept only
 as context; the actionable backlog is in the "Remaining Work" section.
@@ -25,8 +25,12 @@ Current status:
 - the Tk to Qt migration is substantially complete;
 - Help content and structure are intentionally postponed until the V2 workflow
   is stable;
-- the current focus is validating the last live-map exports and closing
-  remaining V2 analysis/reporting gaps.
+- the current focus is validating real-survey live PDF exports and using the
+  resulting diagnostics to decide only targeted fixes;
+- the 2026-05-12 operational test survey is a useful baseline: all 25 points
+  passed quality, all raw samples came from `lswifi`, relevant AP positions were
+  complete, and the remaining findings are AP setup/anomaly diagnostics rather
+  than point-rescan problems.
 
 ## Implemented V2 Foundation
 
@@ -69,6 +73,9 @@ Current format decision:
 Implemented:
 
 - repeated lswifi/netsh scans;
+- default `auto` scanning prefers `lswifi` and falls back to `netsh`;
+- connected-SSID lookup follows the same rule: `lswifi` first, `netsh`
+  fallback;
 - aggregation per BSSID/channel;
 - median dBm;
 - min/max dBm;
@@ -173,7 +180,7 @@ Implemented:
 Implemented:
 
 - AP physical position saved per AP group;
-- right click on floor plan assigns AP position while positioning mode is
+- left click on floor plan assigns AP position while positioning mode is
   active;
 - AP position is saved in survey metadata;
 - dirty state updates correctly;
@@ -188,6 +195,17 @@ Current warning logic:
 - unexpected dominant AP;
 - missing AP position;
 - no scale calibration.
+
+Latest real-survey result:
+
+- with AP positions added, the quality dashboard reported complete relevant AP
+  positioning (`8/8`);
+- detected AP metadata warnings were unexpected channel `40` on `CORR. UFF. 12`
+  and unexpected channel `153` on `SINCE`;
+- detected AP-position warnings were `UNEXPECTED_DOMINANT`, mostly where
+  `CORR. UFF. 4` appeared dominant far from its physical marker while nearer
+  APs existed. These should be reviewed on Dominant AP live/PDF output before
+  tuning thresholds.
 
 ### AP Metadata
 
@@ -438,11 +456,14 @@ is mostly validation and targeted polish rather than migration.
 
 Suggested next steps:
 
-- export and review Coverage, AP Channels and Dominant AP from real surveys;
+- export and review Coverage, AP Channels and Dominant AP from the latest real
+  operational survey;
 - align the remaining live PDF outputs with the current Interference export
   quality;
 - verify legends/scales on different floor-plan sizes and aspect ratios;
 - verify AP group filters and positioned AP markers across all live map types;
+- inspect whether the AP-position warning triangles and report wording make the
+  `UNEXPECTED_DOMINANT` cases actionable enough;
 - tune performance only if large real surveys expose measurable lag;
 - consider optional hover pinning later if tooltip inspection still feels
   difficult.
@@ -498,24 +519,26 @@ Needed later:
 
 Near-term:
 
-1. Validate/export the remaining live map PDFs and adjust only concrete visual
-   or data-logic issues found in those outputs.
-2. Add more targeted tests for point scanning, survey save/load and sidecar
+1. Continue the current real-survey PDF validation round: Coverage, AP Channels
+   and Dominant AP, using the saved AP positions and metadata warnings.
+2. Decide from those outputs whether AP-position diagnostics need threshold,
+   copy, marker or report-layout tuning.
+3. Add more targeted tests for point scanning, survey save/load and sidecar
    handling.
-3. Revisit AP Group Manager UX for large surveys after live export validation
+4. Revisit AP Group Manager UX for large surveys after live export validation
    is complete.
 
 Medium-term:
 
-4. Expand survey quality recommendations.
-5. Improve combined/generated reporting beyond individual live-map exports.
-6. Use AP metadata more deeply in diagnostics.
+5. Expand survey quality recommendations.
+6. Improve combined/generated reporting beyond individual live-map exports.
+7. Use AP metadata more deeply in diagnostics.
 
 Long-term:
 
-7. Rework Help after feature workflows stabilize.
-8. Add advanced RF/AI-assisted suggestions.
-9. Add richer deployment/reporting outputs.
+8. Rework Help after feature workflows stabilize.
+9. Add advanced RF/AI-assisted suggestions.
+10. Add richer deployment/reporting outputs.
 
 ## Final Vision
 

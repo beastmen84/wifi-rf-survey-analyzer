@@ -1,6 +1,6 @@
 # AI Chat History And Project Context
 
-Last updated: 2026-05-11
+Last updated: 2026-05-12
 
 This file is the continuity handoff for future AI chats. Read it before making
 changes. It is not a full transcript: it is the technical history, decisions,
@@ -36,10 +36,22 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the latest live-map export pass is 51
-  passing tests with `.\.venv\Scripts\python.exe -m pytest -q`.
+- The current code test baseline after the latest scanner/live-map pass is 159
+  passing tests with `.\.venv\Scripts\python.exe -m pytest`.
 - Latest code commit before this documentation refresh:
-  `ab2dae0 Clear live legend selection from map background`.
+  `9a5eb02 Prefer lswifi for connected SSID lookup`.
+- Latest real-data validation used `test operativo V2.csv` /
+  `test operativo V2_raw_data.scan` after all physical AP positions were added:
+  25 points, 524 aggregate rows, 2529 raw rows, all raw samples from `lswifi`,
+  and all 25 points evaluated as `GOOD`.
+- That validation showed all relevant AP groups had positions (`8/8`) and
+  surfaced setup/anomaly warnings rather than point-rescan issues: unexpected
+  channels on `CORR. UFF. 12` and `SINCE`, plus several
+  `UNEXPECTED_DOMINANT` AP-position warnings to review on the live/exported
+  Dominant AP map.
+- Immediate next direction is to continue validating/exporting the remaining
+  live-map PDFs from this real survey, then only adjust concrete data-logic or
+  visual issues found in those outputs.
 - Current AP positioning and scale calibration pick points with left click while
   their modal map-pick mode is active; normal map dragging is disabled during
   the pick and the click must not create a measurement point.
@@ -54,7 +66,7 @@ script and has evolved toward a V2 "RF analysis platform":
 - load a PDF/image floor plan;
 - collect Wi-Fi scans at measurement points;
 - store aggregated measurements plus raw scan samples;
-- export live-map PDFs and legacy PNG/CSV map reports;
+- export live-map PDFs;
 - show live maps while adding points;
 - manage AP groups, aliases, roles, and physical AP positions;
 - evaluate scan/survey quality.
@@ -142,6 +154,11 @@ Backend behavior:
 - `auto` tries `lswifi` first and falls back to `netsh`.
 - `lswifi` is used through the Python package/API, not by spawning the packaged
   exe, to avoid opening a second executable instance.
+- Connected-SSID lookup also follows the same rule: try `lswifi` first and use
+  `netsh` only as fallback.
+- During point capture, the relevant-network dialog uses the already-collected
+  `lswifi` scan data to identify the connected SSID when available, instead of
+  making an extra `netsh` call after a successful `lswifi` scan.
 - Both lswifi and netsh use repeated scans:
   - 5 attempts;
   - 1.5 seconds between attempts.
@@ -260,6 +277,11 @@ Visual/UX decisions:
   referenced point, and double click centers/focuses the live map on it. A
   plain click on empty live map space clears both the marker highlight and the
   selected legend row.
+- The live discrete legend column remains manually resizable with a splitter.
+  Default width is auto-fit from the current legend content, but switching map
+  type, such as AP Channels to Dominant AP, resets the manual-width flag so the
+  new legend content auto-fits again. The column has a minimum width and cannot
+  be collapsed by dragging.
 
 ## Interference Logic
 
@@ -363,6 +385,10 @@ Current warning logic in `ap_positioning.py`:
 - `UNEXPECTED_DOMINANT`: dominant AP is much farther than nearest positioned AP.
 - If scale is not calibrated, status is `NO_SCALE`.
 - If no AP position exists, status is `MISSING_POSITION`.
+- In the 2026-05-12 real survey, `UNEXPECTED_DOMINANT` warning behavior looked
+  useful for review: several corridor points were dominated by `CORR. UFF. 4`
+  despite nearer positioned APs such as `IT OFFICE` or `CORR. UFF. 12`. Treat
+  this as a diagnostic to inspect on maps/PDFs before changing thresholds.
 
 Distance calibration:
 
@@ -971,9 +997,31 @@ Language:
   became the final survey-output workflow. `qt_map_generation.py`,
   `generate_map_export`, and the old generated-map dialog methods are gone;
   `map_exporter.py` now focuses on live PDF rendering and report pages.
+- Discrete live map legends were refined after real-use feedback: AP Channels
+  and Dominant AP legends sort predictably, auto-fit by default, remain
+  manually resizable, and do not collapse from splitter dragging.
+- Point capture scanning was simplified after UI testing: when `auto` succeeds
+  with `lswifi`, the new/relevant networks prompt no longer triggers an
+  additional `netsh` call. Connected-SSID lookup also prefers `lswifi` and uses
+  `netsh` only as fallback.
+- Real operational survey validation on 2026-05-12:
+  - `test operativo V2.csv`;
+  - 25 measurement points;
+  - all raw samples from `lswifi`;
+  - all points `GOOD`;
+  - AP positions complete for relevant groups (`8/8`);
+  - AP metadata warnings found `CORR. UFF. 12` on unexpected channel `40`
+    and `SINCE` on unexpected channel `153`;
+  - AP-position diagnostics found 8 `UNEXPECTED_DOMINANT` cases, mostly
+    `CORR. UFF. 4` being dominant far from its physical marker.
 
 Recent commits:
 
+- `9a5eb02` Prefer lswifi for connected SSID lookup.
+- `b469b45` Refresh live legend fit on map changes.
+- `3a6b462` Restore live legend resizing and simplify scans.
+- `4158535` Fix point capture dialogs and hidden scans.
+- `8ba78bd` Refine live map quality and legends.
 - `1c3100c` Ask where to save live PDF exports.
 - `bcb0dcf` Move live PDF summary below map.
 - `db2eb08` Avoid selectable live PDF page images.
@@ -1026,13 +1074,14 @@ Recent commits:
 
 Good next steps, in likely order:
 
-1. Continue Qt visual refinement only where it improves the real workflow:
-   survey map focus, AP Group Manager readability, Quality Dashboard clarity,
-   live map tooltips/legends and consistent dialog sizing.
-2. Add targeted tests around point scanning, survey save/load with raw `.scan`
+1. Continue the real-survey PDF validation round: export/review Coverage,
+   AP Channels and Dominant AP, then fix only concrete visual or data-logic
+   issues found in those outputs.
+2. Inspect the new AP setup diagnostics from `test operativo V2`: unexpected
+   channels on `CORR. UFF. 12` / `SINCE` and `UNEXPECTED_DOMINANT` cases,
+   before changing AP-position thresholds.
+3. Add targeted tests around point scanning, survey save/load with raw `.scan`
    sidecar, relevant SSID changes, AP group metadata and AP positioning.
-3. Validate the current workflow with a fresh real survey before adding large
-   features, because old CSV migration support was intentionally removed.
 4. Decide whether mounting metadata should influence AP position warnings or
    remain documentation only.
 5. Improve live map performance only if the user sees real lag on large surveys;
@@ -1045,7 +1094,7 @@ Typical checks after code edits:
 
 ```powershell
 .\.venv\Scripts\python.exe -m compileall -q .
-.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m pytest
 git diff --check
 git status --short
 ```
@@ -1074,3 +1123,5 @@ Current tests cover, among other things:
 - settings popup toggle suppression;
 - live PDF backend writing, paged problem-report cards, and file-only live PDF
   completion messages.
+- scanner behavior where `lswifi` is preferred for connected-SSID lookup and
+  `netsh` remains fallback only.
