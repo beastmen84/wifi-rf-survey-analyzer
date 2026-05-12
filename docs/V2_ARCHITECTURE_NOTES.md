@@ -362,6 +362,9 @@ Completed in this area:
 - selected BSSID rows can be moved to an existing AP group.
 - conflict warning details now explain possible causes, recommended checks and
   observed band/channel/BSSID evidence.
+- AP group conflict detection ignores pure channel changes where the same BSSID
+  set is observed on multiple channels over time; unexpected configured channels
+  remain covered by AP metadata warnings.
 
 Suggested next steps:
 

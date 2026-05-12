@@ -42,6 +42,10 @@ def build_ap_group_conflicts(rows, ap_groups, channel_sort_key=None):
             if len(channels) <= 1:
                 continue
 
+            channel_bssid_sets = [channels[channel] for channel in channels]
+            if len({frozenset(bssids) for bssids in channel_bssid_sets}) == 1:
+                continue
+
             conflicts.append({
                 "group_id": group_id,
                 "band": band,

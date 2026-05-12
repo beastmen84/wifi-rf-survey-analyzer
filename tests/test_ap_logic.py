@@ -140,6 +140,20 @@ class ApGroupTests(unittest.TestCase):
         self.assertEqual(conflicts[0]["band"], "6")
         self.assertEqual(conflicts[0]["channels"], ["1", "9"])
 
+    def test_ap_group_conflicts_ignore_same_bssid_set_channel_changes(self):
+        bssids = ["70:4f:57:aa:bb:10", "72:4f:57:aa:bb:10"]
+        groups = [build_manual_ap_group("office-ap", bssids)]
+        rows = [
+            build_row("p1", "MAIN", bssids[0], -50, 36),
+            build_row("p1", "GUEST", bssids[1], -51, 36),
+            build_row("p2", "MAIN", bssids[0], -45, 40),
+            build_row("p2", "GUEST", bssids[1], -46, 40),
+        ]
+
+        conflicts = build_ap_group_conflicts(rows, groups)
+
+        self.assertEqual(conflicts, [])
+
 
 class InterferenceTests(unittest.TestCase):
     def test_interference_ignores_same_physical_ap_group(self):
