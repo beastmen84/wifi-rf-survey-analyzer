@@ -18,7 +18,6 @@ try:
         QLabel,
         QListWidget,
         QMainWindow,
-        QMessageBox,
         QPushButton,
         QSizePolicy,
         QSplitter,
@@ -43,7 +42,7 @@ from app_settings import (
     get_saved_ui_scale,
 )
 from constants import HEATMAP_MAX_DISTANCE_PX, HEATMAP_SMOOTHING_SIGMA
-from qt_ap_groups import open_qt_ap_group_manager
+from qt_ap_workflow import ApWorkflowMixin
 from qt_floorplan import FloorplanView
 from qt_floorplan_workflow import FloorplanWorkflowMixin
 from qt_help_dialog import open_qt_help_dialog
@@ -61,7 +60,6 @@ from qt_relevant_networks import (
 from qt_survey_points import SurveyPointTableMixin
 from qt_session_workflow import SurveySessionWorkflowMixin
 from qt_theme import QT_THEMES
-from qt_tooltips import build_html_tooltip
 from qt_windowing import (
     install_dialog_centering,
 )
@@ -104,6 +102,7 @@ class WifiHeatmapQtApp(
     PointCaptureMixin,
     SurveyPointTableMixin,
     RelevantNetworksMixin,
+    ApWorkflowMixin,
     LivePreviewMixin,
     LiveOptionsMixin,
     LivePdfExportMixin,
@@ -1444,17 +1443,6 @@ class WifiHeatmapQtApp(
         self.resize_points_table_columns()
         self.refresh_session_labels()
 
-    def open_ap_group_manager(self):
-        if self.session is None:
-            return
-
-        if open_qt_ap_group_manager(self):
-            self.refresh_session_labels()
-            self.refresh_points_table()
-            if not self.floorplan_view.pending_ap_position_group_id:
-                self.status.showMessage(self.tr("ap_groups_saved"))
-            self.maybe_update_live_preview()
-
     def open_quality_dashboard(self):
         if self.session is None:
             return
@@ -1463,81 +1451,6 @@ class WifiHeatmapQtApp(
 
     def open_help_dialog(self):
         open_qt_help_dialog(self, self.tr)
-
-    def start_ap_positioning(self, group_id):
-        if self.session is None:
-            return False
-
-        if not self.floorplan_view.has_floorplan():
-            QMessageBox.warning(self, self.tr("warning"), self.tr("load_plan_first"))
-            return False
-
-        label = self.get_ap_group_display_name(group_id)
-        started = self.floorplan_view.start_ap_position_pick(group_id, label)
-        if started:
-            self.tabs.setCurrentIndex(0)
-            self.status.showMessage(self.tr("ap_position_pick", group=label))
-        return started
-
-    def save_ap_position(self, group_id, x, y):
-        if self.session is None:
-            return
-
-        groups = self.session.get_ap_groups()
-        updated = False
-        for group in groups:
-            if str(group.get("group_id", "")) == str(group_id):
-                group["position"] = {"x": int(x), "y": int(y)}
-                group["locked"] = True
-                updated = True
-                break
-
-        if not updated:
-            QMessageBox.warning(self, self.tr("warning"), self.tr("ap_group_not_found"))
-            return
-
-        self.session.set_ap_groups(groups)
-        self.refresh_session_labels()
-        self.refresh_points_table()
-        self.status.showMessage(
-            self.tr("ap_position_saved", group=self.get_ap_group_display_name(group_id), x=x, y=y)
-        )
-        self.maybe_update_live_preview()
-
-    def cancel_ap_positioning(self):
-        self.status.showMessage(self.tr("ap_position_cancelled"))
-
-    def get_ap_group_display_name(self, group_id):
-        if self.session is None:
-            return str(group_id)
-
-        group_id = str(group_id)
-        for group in self.session.get_ap_groups():
-            if str(group.get("group_id", "")) == group_id:
-                alias = str(group.get("alias", "")).strip()
-                return alias or group_id
-
-        return group_id
-
-    def format_ap_position_tooltip(self, group, label, x, y):
-        return build_html_tooltip(
-            self.tr("ap_group_position_tooltip_title"),
-            [
-                (self.tr("ap_alias_group"), group.get("group_id", "-")),
-                (self.tr("ap_alias_value"), label),
-                ("x/y", f"{x}, {y}"),
-                (self.tr("ap_alias_bssids"), ", ".join(group.get("bssids", [])) or "-"),
-            ],
-            "#0d6efd",
-        )
-
-
-    def channel_sort_key(self, channel):
-        try:
-            return int(str(channel).strip())
-        except (TypeError, ValueError):
-            return 9999
-
 
 def main():
     configure_logging()
