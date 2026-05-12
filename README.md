@@ -84,7 +84,7 @@ The current application expects V2 survey CSV files created by this tool.
 - Select two known points on the floorplan and enter the real distance in meters.
 - Stores `px_per_meter` in the survey metadata.
 - Distance controls switch from pixels to meters when a survey is calibrated.
-- The calibrated distance is used by live maps and generated PNG maps.
+- The calibrated distance is used by live maps and PDF exports.
 
 ## Live Map System
 
@@ -112,7 +112,7 @@ Live map features:
 - Background rendering for heavier live maps.
 - Grid caching and result caching.
 
-## Generated Map Types
+## Live Map PDF Export
 
 ### Signal Coverage
 
@@ -122,7 +122,7 @@ Live map features:
 - Distance-aware masking.
 - Adjustable color scale.
 - Optional threshold filter for usable coverage.
-- Export to PNG.
+- Export to PDF from the live map toolbar.
 
 ### AP Interference
 
@@ -131,16 +131,14 @@ Live map features:
 - Channel overlap awareness.
 - Channel width support where available.
 - Risk percentage visualization.
-- Worst-point summary dialog.
-- CSV report export.
-- Reference table below the generated map for highlighted points.
+- Second-page issue cards for high-risk points.
 
 ### AP Channels
 
 - Real-point map without interpolation.
 - Points colored by AP/channel.
 - Channel-width labels where available.
-- Reference table for labels.
+- Compact PDF legend for visible channels/APs.
 - AP aliases supported.
 
 ### Dominant AP / Roaming
@@ -257,7 +255,7 @@ dist/WifiHeatmap/WifiHeatmap.exe
 5. Right-click the measurement positions on the map.
 6. Save the survey.
 7. Use the live map tab while collecting data.
-8. Generate final PNG maps and CSV reports.
+8. Export the final live-map PDF.
 
 ## Example Use Cases
 
@@ -274,7 +272,6 @@ dist/WifiHeatmap/WifiHeatmap.exe
 
 Future development may include:
 
-- Richer live-map defaults shared with the PNG generation dialog.
 - More advanced RF statistics and quality indicators.
 - Better scan diagnostics and troubleshooting guidance.
 - Configurable AP grouping rules beyond the current automatic grouping.

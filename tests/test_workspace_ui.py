@@ -81,11 +81,9 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             )
 
             file_message = window.format_map_export_files_message(result)
-            full_message = window.format_map_export_result_message(result)
 
             self.assertEqual(file_message, window.tr("file_created", path="export.pdf"))
             self.assertNotIn(window.tr("interference_summary_title"), file_message)
-            self.assertIn(window.tr("interference_summary_title"), full_message)
         finally:
             window.deleteLater()
 
@@ -478,27 +476,6 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(window.current_combo_value(window.live_point_labels_combo), "auto")
         finally:
             window.deleteLater()
-
-
-class MapGenerationDialogTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.qt_app = QApplication.instance() or QApplication([])
-
-    def test_generated_map_dialog_includes_6ghz_band_and_roundtrips_config(self):
-        dialog = MapGenerationDialog(
-            None,
-            ["MAIN"],
-            lambda key, **kwargs: key.format(**kwargs) if kwargs else key,
-            MapConfig(ssid="MAIN", band="6", map_type="interference"),
-        )
-        try:
-            values = [dialog.band_combo.itemData(index) for index in range(dialog.band_combo.count())]
-            self.assertEqual(values, ["all", "2.4", "5", "6"])
-            self.assertEqual(dialog.current_combo_value(dialog.band_combo), "6")
-            self.assertEqual(dialog.get_config().band, "6")
-        finally:
-            dialog.deleteLater()
 
 
 

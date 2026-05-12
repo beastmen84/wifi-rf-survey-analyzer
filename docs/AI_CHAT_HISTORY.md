@@ -948,8 +948,7 @@ Language:
   is defined.
 - Live PDF problem reports now use paged card layouts instead of compressed
   tables, so long interference diagnoses wrap instead of being clipped at the
-  right edge. The live PDF completion popup reports only the created file path;
-  the older generated-map popup still keeps the detailed interference summary.
+  right edge. The live PDF completion popup reports only the created file path.
 - Interference live PDF problem cards no longer spend space on generic
   diagnosis text. They show the same useful fields as live tooltips: risk,
   coordinates, serving AP/channel and main interferer/channel. Coordinates sit
@@ -968,6 +967,10 @@ Language:
   dominant/second AP per point for SSID/band plus AP-position warnings. All
   live map data paths exclude AP groups marked as Test/hidden from displayed AP
   results.
+- The legacy generated PNG/CSV export path was removed after the live PDF export
+  became the final survey-output workflow. `qt_map_generation.py`,
+  `generate_map_export`, and the old generated-map dialog methods are gone;
+  `map_exporter.py` now focuses on live PDF rendering and report pages.
 
 Recent commits:
 

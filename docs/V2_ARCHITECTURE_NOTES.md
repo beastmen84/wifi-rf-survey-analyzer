@@ -175,8 +175,8 @@ Implemented:
 - AP position is saved in survey metadata;
 - dirty state updates correctly;
 - dominant AP tooltips show distance to AP;
-- dominant AP PNG report includes AP position status and warnings;
-- live and generated dominant maps show triangle warning markers.
+- dominant AP PDF report includes AP position status and warnings;
+- live and exported dominant maps show triangle warning markers.
 
 Current warning logic:
 
@@ -325,11 +325,10 @@ Implemented:
 - new/open/save survey handling;
 - dirty-state save button highlighting;
 - save prompt before close/new/open;
-- map generation requires saved survey;
-- top app-bar `Generate heatmap` was removed from the live-map workflow;
+- PDF export requires saved survey;
+- top app-bar `Generate heatmap` and the legacy PNG/CSV export workflow were removed;
 - live-map export now lives beside live-map update controls;
-- generated PNG/report names depend on survey filename, map type, band and
-  timestamp;
+- exported PDF names depend on survey filename, map type, band and timestamp;
 - map/output files are saved beside the survey CSV;
 - language selector IT/EN;
 - theme selector reduced to a small set of sensible themes.

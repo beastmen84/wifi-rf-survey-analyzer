@@ -114,7 +114,6 @@ from qt_live_map import (
 )
 import qt_app as qt_app_module
 from qt_app import WifiHeatmapQtApp
-from qt_map_generation import MapGenerationDialog
 from qt_windowing import pop_modal_dim, push_modal_dim
 from quality_engine import (
     QUALITY_GOOD,

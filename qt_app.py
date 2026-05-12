@@ -52,12 +52,8 @@ from app_settings import (
     save_theme,
     save_ui_scale,
 )
-from ap_groups import (
-    serialize_ap_group_map,
-    serialize_ap_group_roles,
-)
 from constants import HEATMAP_MAX_DISTANCE_PX, HEATMAP_SMOOTHING_SIGMA
-from map_exporter import MapExportError, build_live_pdf_output_path, generate_live_pdf_export, generate_map_export
+from map_exporter import MapExportError, build_live_pdf_output_path, generate_live_pdf_export
 from qt_ap_groups import open_qt_ap_group_manager
 from qt_floorplan import FloorplanView
 from qt_help_dialog import open_qt_help_dialog
@@ -67,7 +63,6 @@ from qt_live_map import (
     LiveMapView,
     load_floorplan_image,
 )
-from qt_map_generation import MapGenerationDialog
 from qt_point_workflow import PointCaptureMixin
 from qt_quality_dashboard import open_qt_quality_dashboard
 from qt_relevant_networks import (
@@ -1908,31 +1903,6 @@ class WifiHeatmapQtApp(PointCaptureMixin, SurveyPointTableMixin, RelevantNetwork
             self.tr(message_key),
         )
 
-    def open_generate_map_dialog(self):
-        if self.session is None:
-            return
-
-        map_file = self.session.metadata.get("map_file", "")
-        if not map_file or not os.path.exists(map_file):
-            QMessageBox.warning(self, self.tr("warning"), self.tr("load_plan_first"))
-            return
-
-        ssids = self.session.get_ssids()
-        if not ssids:
-            QMessageBox.warning(self, self.tr("warning"), self.tr("no_ssid"))
-            return
-
-        dialog = MapGenerationDialog(
-            self,
-            ssids,
-            self.tr,
-            current_config=self.build_export_default_config(),
-            px_per_meter=self.get_px_per_meter(),
-        )
-        while dialog.exec() == QDialog.DialogCode.Accepted:
-            if self.generate_map_from_dialog(dialog):
-                break
-
     def ensure_saved_for_map_export(self):
         if self.session is None:
             return False
@@ -2026,102 +1996,6 @@ class WifiHeatmapQtApp(PointCaptureMixin, SurveyPointTableMixin, RelevantNetwork
         if Path(output_file).suffix.lower() != ".pdf":
             output_file = f"{output_file}.pdf"
         return output_file
-
-    def generate_map_from_dialog(self, dialog):
-        if self.session is None:
-            return False
-
-        config = dialog.get_config(
-            ap_group_map=serialize_ap_group_map(self.get_current_ap_group_map()),
-            ap_group_roles=serialize_ap_group_roles(self.get_current_ap_group_roles()),
-        )
-        if not config.ssid:
-            QMessageBox.warning(self, self.tr("warning"), self.tr("select_ssid_heatmap"))
-            return False
-
-        if not self.ensure_saved_for_map_export():
-            return False
-
-        map_file = self.session.metadata.get("map_file", "")
-        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
-        result = None
-        map_error = None
-        unexpected_error = None
-        try:
-            bg_image = load_floorplan_image(map_file)
-            result = generate_map_export(
-                self.session.to_dataframe(),
-                bg_image,
-                self.session.csv_file,
-                config,
-                self.tr,
-                language=self.language,
-                aliases=self.session.get_ap_aliases(),
-                ap_groups=self.session.get_ap_groups(),
-                px_per_meter=self.get_px_per_meter(),
-            )
-        except MapExportError as exc:
-            map_error = exc
-        except Exception as exc:
-            unexpected_error = exc
-        finally:
-            QApplication.restoreOverrideCursor()
-
-        if map_error is not None:
-            QMessageBox.warning(self, map_error.title, map_error.message)
-            return False
-        if unexpected_error is not None:
-            QMessageBox.critical(self, self.tr("error"), str(unexpected_error))
-            return False
-        if result is None:
-            return False
-
-        QMessageBox.information(
-            self,
-            self.tr("heatmap_generated"),
-            self.format_map_export_result_message(result),
-        )
-        self.status.showMessage(self.tr("heatmap_generated"))
-        return True
-
-    def format_map_export_result_message(self, result):
-        files_message = self.format_map_export_files_message(result)
-        if result.map_type != "interference" or not result.summary:
-            return files_message
-
-        summary = result.summary
-        rows = [
-            (self.tr("interference_summary_band"), summary.get("band", "-")),
-            (self.tr("interference_summary_max_risk"), summary.get("max_risk", "-")),
-            (self.tr("interference_summary_point"), summary.get("point", "-")),
-            (self.tr("interference_summary_serving_ap"), summary.get("serving_ap", "-")),
-            (self.tr("interference_summary_serving_role"), summary.get("serving_role", "-")),
-            (self.tr("interference_summary_serving_channel"), summary.get("serving_channel", "-")),
-            (self.tr("interference_summary_serving_width"), summary.get("serving_width", "-")),
-            (self.tr("interference_summary_interferer"), summary.get("interferer", "-")),
-            (self.tr("interference_summary_interferer_role"), summary.get("interferer_role", "-")),
-            (self.tr("interference_summary_interferer_ssid"), summary.get("interferer_ssid", "-")),
-            (self.tr("interference_summary_interferer_channel"), summary.get("interferer_channel", "-")),
-            (self.tr("interference_summary_interferer_width"), summary.get("interferer_width", "-")),
-            (self.tr("interference_summary_interferer_dbm"), summary.get("interferer_dbm", "-")),
-            (self.tr("interference_summary_test_ignored"), summary.get("test_ignored", "-")),
-        ]
-        quality = summary.get("quality", {})
-        quality_text = self.tr(
-            "interference_quality_width_coverage",
-            available=quality.get("available", 0),
-            total=quality.get("total", 0),
-            percent=quality.get("percent", 0),
-        )
-        details = "\n".join(f"{label}: {value or '-'}" for label, value in rows)
-        return (
-            f"{self.tr('interference_summary_title')}\n"
-            f"{details}\n\n"
-            f"{self.tr('interference_summary_diagnosis')}: {summary.get('diagnosis', '-')}\n\n"
-            f"{self.tr('interference_quality_title')}: {quality_text}\n"
-            f"{summary.get('quality_message', '')}\n\n"
-            f"{files_message}"
-        )
 
     def format_map_export_files_message(self, result):
         return (
