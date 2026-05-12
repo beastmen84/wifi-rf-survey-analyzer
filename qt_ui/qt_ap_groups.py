@@ -192,7 +192,7 @@ class APGroupManagerDialog(QDialog):
         action_row = QHBoxLayout()
         action_row.setSpacing(widget_px(self, 6))
         self.reset_button = QPushButton(self.tr("ap_groups_reset_auto"))
-        self.split_button = QPushButton(self.tr("ap_group_split"))
+        self.bssid_management_button = QPushButton(self.tr("ap_group_bssid_management"))
         self.conflict_button = QPushButton(self.tr("ap_group_conflict_details"))
         self.alias_button = QPushButton(self.tr("ap_group_set_alias"))
         self.delete_alias_button = QPushButton(self.tr("ap_group_delete_alias"))
@@ -203,7 +203,7 @@ class APGroupManagerDialog(QDialog):
         self.cancel_button = QPushButton(self.tr("cancel"))
 
         self.reset_button.clicked.connect(self.reset_groups_to_auto)
-        self.split_button.clicked.connect(self.open_bssid_group_dialog_for_selected_group)
+        self.bssid_management_button.clicked.connect(self.open_bssid_group_dialog_for_selected_group)
         self.conflict_button.clicked.connect(self.open_conflict_dialog_for_selected_group)
         self.alias_button.clicked.connect(self.prompt_alias_for_selected_group)
         self.delete_alias_button.clicked.connect(self.delete_alias_for_selected_group)
@@ -215,7 +215,7 @@ class APGroupManagerDialog(QDialog):
 
         for button in (
             self.reset_button,
-            self.split_button,
+            self.bssid_management_button,
             self.conflict_button,
             self.alias_button,
             self.delete_alias_button,
@@ -597,7 +597,7 @@ class APGroupManagerDialog(QDialog):
     def update_action_state(self):
         group = self.selected_group()
         has_group = group is not None
-        self.split_button.setEnabled(has_group)
+        self.bssid_management_button.setEnabled(has_group)
         self.alias_button.setEnabled(has_group)
         self.role_button.setEnabled(has_group)
         self.metadata_button.setEnabled(has_group)
@@ -1428,11 +1428,11 @@ class ConflictDialog(QDialog):
 
         buttons = QHBoxLayout()
         buttons.addStretch(1)
-        split_button = QPushButton(self.manager.tr("ap_group_split_from_warning"))
+        fix_button = QPushButton(self.manager.tr("ap_group_fix_from_warning"))
         close_button = QPushButton(self.manager.tr("close"))
-        split_button.clicked.connect(self.accept)
+        fix_button.clicked.connect(self.accept)
         close_button.clicked.connect(self.reject)
-        buttons.addWidget(split_button)
+        buttons.addWidget(fix_button)
         buttons.addWidget(close_button)
         layout.addLayout(buttons)
 
