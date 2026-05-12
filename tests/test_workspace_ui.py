@@ -159,6 +159,52 @@ class APGroupManagerDialogTests(unittest.TestCase):
             dialog.deleteLater()
             app.deleteLater()
 
+    def test_ap_manager_can_split_bssids_into_new_manual_group(self):
+        app, dialog = self.make_ap_manager_dialog()
+        try:
+            self.assertTrue(dialog.split_bssids_to_new_group(
+                "warning-ap",
+                ["70:4f:57:aa:bb:11"],
+            ))
+
+            source_group = dialog.get_group_by_id("warning-ap")
+            self.assertEqual(source_group["bssids"], ["70:4f:57:aa:bb:10"])
+            split_groups = [
+                group
+                for group in dialog.groups
+                if group.get("group_id") != "warning-ap" and "70:4f:57:aa:bb:11" in group.get("bssids", [])
+            ]
+            self.assertEqual(len(split_groups), 1)
+            self.assertTrue(split_groups[0]["locked"])
+            self.assertEqual(split_groups[0]["role"], AP_ROLE_INTERNAL)
+        finally:
+            dialog.deleteLater()
+            app.deleteLater()
+
+    def test_ap_manager_can_move_bssids_to_existing_group(self):
+        app, dialog = self.make_ap_manager_dialog()
+        try:
+            self.assertTrue(dialog.move_bssids_to_group(
+                "neighbor-ap",
+                ["90:4f:57:aa:cc:30"],
+            ))
+
+            target_group = dialog.get_group_by_id("neighbor-ap")
+            self.assertEqual(target_group["bssids"], [
+                "80:4f:57:aa:bb:20",
+                "90:4f:57:aa:cc:30",
+            ])
+            other_groups_with_bssid = [
+                group
+                for group in dialog.groups
+                if group.get("group_id") != "neighbor-ap"
+                and "90:4f:57:aa:cc:30" in group.get("bssids", [])
+            ]
+            self.assertEqual(other_groups_with_bssid, [])
+        finally:
+            dialog.deleteLater()
+            app.deleteLater()
+
     def test_bssid_dialog_filters_and_visible_selection_actions(self):
         manager, dialog = self.make_bssid_dialog()
         try:

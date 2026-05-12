@@ -357,13 +357,12 @@ Completed in this area:
   search text;
 - BSSID selection dialog filters by search text, current/other/unassigned/
   selected/warning state, band and channel;
-- BSSID selection dialog supports visible-row select, clear and invert actions.
+- BSSID selection dialog supports visible-row select, clear and invert actions;
+- selected BSSID rows can be split into a new manual AP group;
+- selected BSSID rows can be moved to an existing AP group.
 
 Suggested next steps:
 
-- add quick actions:
-  - split selected into new group;
-  - move selected to existing group;
 - add clearer conflict explanation by band/channel;
 - consider a dedicated "unassigned/new BSSID" view.
 

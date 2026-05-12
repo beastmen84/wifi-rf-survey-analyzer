@@ -39,6 +39,8 @@ from ap.groups import (
     AP_ROLE_INTERNAL,
     build_default_manual_groups,
     build_detected_ap_groups,
+    build_manual_ap_group,
+    build_unique_group_id,
     merge_new_bssids_into_manual_groups,
     normalize_ap_metadata,
     normalize_ap_role,
@@ -864,6 +866,129 @@ class APGroupManagerDialog(QDialog):
         self.refresh_all_group_details()
         self.render_rows()
 
+    def split_bssids_to_new_group(self, source_group_id, bssids):
+        selected_bssids = self.normalize_bssid_list(bssids)
+        if not selected_bssids:
+            QMessageBox.warning(self, self.tr("ap_groups_title"), self.tr("ap_group_bssid_select_rows_required"))
+            return False
+
+        source_group = self.get_group_by_id(source_group_id)
+        if source_group:
+            remaining_source_bssids = [
+                bssid for bssid in source_group.get("bssids", []) if normalize_bssid(bssid) not in selected_bssids
+            ]
+            if not remaining_source_bssids:
+                QMessageBox.warning(self, self.tr("ap_groups_title"), self.tr("ap_group_split_source_empty"))
+                return False
+
+        new_group_id = build_unique_group_id(
+            self.suggest_split_group_id(source_group_id, selected_bssids),
+            {str(group.get("group_id", "")) for group in self.groups if str(group.get("group_id", ""))},
+        )
+        role = normalize_ap_role(source_group.get("role")) if source_group else AP_ROLE_INTERNAL
+        self.remove_bssids_from_groups(selected_bssids)
+        self.groups.append(build_manual_ap_group(new_group_id, selected_bssids, locked=True, role=role))
+        self.finish_group_membership_change(new_group_id)
+        return True
+
+    def move_bssids_to_group(self, target_group_id, bssids):
+        target_group = self.get_group_by_id(target_group_id)
+        selected_bssids = self.normalize_bssid_list(bssids)
+        if target_group is None or not selected_bssids:
+            return False
+
+        self.remove_bssids_from_groups(selected_bssids)
+        target_group["bssids"] = sorted(set(target_group.get("bssids", [])) | set(selected_bssids))
+        target_group["locked"] = True
+        self.finish_group_membership_change(target_group_id)
+        return True
+
+    def prompt_move_bssids_to_existing_group(self, source_group_id, bssids):
+        selected_bssids = self.normalize_bssid_list(bssids)
+        if not selected_bssids:
+            QMessageBox.warning(self, self.tr("ap_groups_title"), self.tr("ap_group_bssid_select_rows_required"))
+            return False
+
+        targets = [
+            group
+            for group in self.groups
+            if group.get("group_id") != source_group_id
+        ]
+        if not targets:
+            QMessageBox.warning(self, self.tr("ap_groups_title"), self.tr("ap_group_move_no_target"))
+            return False
+
+        labels_by_group_id = {
+            group["group_id"]: self.format_group_choice_label(group)
+            for group in targets
+        }
+        labels = [labels_by_group_id[group["group_id"]] for group in targets]
+        label, ok = QInputDialog.getItem(
+            self,
+            self.tr("ap_group_move_target_title"),
+            self.tr("ap_group_move_target_prompt"),
+            labels,
+            0,
+            False,
+        )
+        if not ok:
+            return False
+
+        target_group_id = next(
+            group_id
+            for group_id, group_label in labels_by_group_id.items()
+            if group_label == label
+        )
+        return self.move_bssids_to_group(target_group_id, selected_bssids)
+
+    def normalize_bssid_list(self, bssids):
+        return sorted({
+            normalize_bssid(bssid)
+            for bssid in bssids
+            if normalize_bssid(bssid)
+        })
+
+    def remove_bssids_from_groups(self, bssids):
+        bssid_set = set(bssids)
+        for group in self.groups:
+            group["bssids"] = [
+                bssid for bssid in group.get("bssids", []) if normalize_bssid(bssid) not in bssid_set
+            ]
+
+    def finish_group_membership_change(self, selected_group_id=None):
+        self.groups = [item for item in self.groups if item.get("bssids")]
+        self.groups = merge_new_bssids_into_manual_groups(self.groups, self.session.rows)
+        self.refresh_all_group_details()
+        self.render_rows()
+        if selected_group_id:
+            self.select_group_by_id(selected_group_id)
+
+    def suggest_split_group_id(self, source_group_id, selected_bssids):
+        detected_group_ids = {
+            self.detected_by_bssid.get(bssid, {}).get("ap_group")
+            for bssid in selected_bssids
+            if self.detected_by_bssid.get(bssid, {}).get("ap_group")
+        }
+        if len(detected_group_ids) == 1:
+            return next(iter(detected_group_ids))
+        return f"{source_group_id}-split"
+
+    def format_group_choice_label(self, group):
+        alias = str(group.get("alias", "")).strip()
+        group_id = str(group.get("group_id", "")).strip()
+        bssid_count = len(group.get("bssids", []))
+        if alias:
+            return self.tr("ap_group_move_target_with_alias", alias=alias, group=group_id, count=bssid_count)
+        return self.tr("ap_group_move_target_without_alias", group=group_id, count=bssid_count)
+
+    def select_group_by_id(self, group_id):
+        self.table.clearSelection()
+        for row in range(self.table.rowCount()):
+            item = self.table.item(row, 0)
+            if item and item.data(Qt.ItemDataRole.UserRole) == group_id:
+                self.table.selectRow(row)
+                return
+
     def get_group_by_id(self, group_id):
         for group in self.groups:
             if group.get("group_id") == group_id:
@@ -1284,12 +1409,22 @@ class BssidSelectionDialog(QDialog):
         self.select_visible_button = QPushButton(self.manager.tr("ap_group_bssid_select_visible"))
         self.clear_visible_button = QPushButton(self.manager.tr("ap_group_bssid_clear_visible"))
         self.invert_visible_button = QPushButton(self.manager.tr("ap_group_bssid_invert_visible"))
-        for button in (self.select_visible_button, self.clear_visible_button, self.invert_visible_button):
+        self.new_group_button = QPushButton(self.manager.tr("ap_group_bssid_new_group_from_rows"))
+        self.move_rows_button = QPushButton(self.manager.tr("ap_group_bssid_move_rows"))
+        for button in (
+            self.select_visible_button,
+            self.clear_visible_button,
+            self.invert_visible_button,
+            self.new_group_button,
+            self.move_rows_button,
+        ):
             self.manager.prepare_action_button(button)
             action_row.addWidget(button)
         self.select_visible_button.clicked.connect(lambda _checked=False: self.set_visible_checked(True))
         self.clear_visible_button.clicked.connect(lambda _checked=False: self.set_visible_checked(False))
         self.invert_visible_button.clicked.connect(self.invert_visible_checked)
+        self.new_group_button.clicked.connect(self.split_selected_rows_to_new_group)
+        self.move_rows_button.clicked.connect(self.move_selected_rows_to_existing_group)
         action_row.addStretch(1)
         layout.addLayout(action_row)
 
@@ -1299,7 +1434,9 @@ class BssidSelectionDialog(QDialog):
         self.table.setWordWrap(True)
         self.table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table.itemSelectionChanged.connect(self.update_filter_action_state)
         self.table.verticalHeader().setVisible(False)
         self.table.setHorizontalHeaderLabels([
             "",
@@ -1399,6 +1536,27 @@ class BssidSelectionDialog(QDialog):
             self.checked_by_bssid[bssid] = not self.checked_by_bssid.get(bssid, False)
         self.render_items()
 
+    def selected_row_bssids(self):
+        rows = sorted({index.row() for index in self.table.selectedIndexes()})
+        bssids = []
+        for row in rows:
+            item = self.table.item(row, 1)
+            if item:
+                bssids.append(item.data(Qt.ItemDataRole.UserRole))
+        return sorted({
+            normalize_bssid(bssid)
+            for bssid in bssids
+            if normalize_bssid(bssid)
+        })
+
+    def split_selected_rows_to_new_group(self):
+        if self.manager.split_bssids_to_new_group(self.group.get("group_id"), self.selected_row_bssids()):
+            self.accept()
+
+    def move_selected_rows_to_existing_group(self):
+        if self.manager.prompt_move_bssids_to_existing_group(self.group.get("group_id"), self.selected_row_bssids()):
+            self.accept()
+
     def build_bssid_row_data(self, bssid):
         detected_group = self.detected_by_bssid.get(bssid, {})
         ssids = ", ".join(detected_group.get("ssids", [])) or "-"
@@ -1470,6 +1628,9 @@ class BssidSelectionDialog(QDialog):
         self.select_visible_button.setEnabled(enabled)
         self.clear_visible_button.setEnabled(enabled)
         self.invert_visible_button.setEnabled(enabled)
+        has_row_selection = bool(self.selected_row_bssids()) if hasattr(self, "table") else False
+        self.new_group_button.setEnabled(has_row_selection)
+        self.move_rows_button.setEnabled(has_row_selection)
 
     def format_other_group_label(self, bssid):
         clean_bssid = normalize_bssid(bssid)
