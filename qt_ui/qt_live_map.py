@@ -41,9 +41,9 @@ from ap.positioning import (
     analyze_dominant_ap_position,
 )
 from constants import SURVEY_FIELDNAMES
-from heatmap_tools import get_channel_map_points, get_dominant_ap_points
-from live_renderer import render_live_continuous_map
-from map_rendering import (
+from maps.heatmap import get_channel_map_points, get_dominant_ap_points
+from maps.live_renderer import render_live_continuous_map
+from maps.rendering import (
     get_channel_band_prefix,
     get_channel_color,
     get_channel_display_band,

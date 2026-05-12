@@ -7,7 +7,7 @@ except ModuleNotFoundError as exc:
     print("PySide6 is required for main.py. Run: pip install -r requirements.txt")
     raise SystemExit(1) from exc
 
-from quality_engine import (
+from maps.quality import (
     QUALITY_GOOD,
     QUALITY_LOW_CONFIDENCE,
     QUALITY_MISSING_RELEVANT,

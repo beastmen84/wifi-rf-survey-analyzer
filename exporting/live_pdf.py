@@ -19,7 +19,7 @@ from ap.groups import (
     normalize_ap_role,
 )
 from constants import HEATMAP_GRID_SIZE
-from heatmap_tools import (
+from maps.heatmap import (
     add_ap_group_metadata,
     apply_distance_mask,
     apply_signal_threshold,
@@ -34,7 +34,7 @@ from heatmap_tools import (
     interpolate_signal_grid,
     smooth_heatmap_grid,
 )
-from map_rendering import (
+from maps.rendering import (
     get_channel_band_prefix,
     get_channel_color,
     get_channel_display_band,

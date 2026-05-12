@@ -51,7 +51,7 @@ from ap.positioning import (
     AP_POSITION_WEAK_CLOSE,
     analyze_dominant_ap_position,
 )
-from heatmap_tools import (
+from maps.heatmap import (
     apply_distance_mask,
     apply_signal_threshold,
     calculate_interference_points,
@@ -69,8 +69,8 @@ from heatmap_tools import (
     signal_interference_weight,
     smooth_heatmap_grid,
 )
-import live_renderer as live_renderer_module
-from live_renderer import (
+import maps.live_renderer as live_renderer_module
+from maps.live_renderer import (
     build_signal_payload,
     clone_cached_result,
     render_live_continuous_map,
@@ -90,7 +90,7 @@ from exporting.live_pdf import (
     get_interference_problem_df,
 )
 import matplotlib.pyplot as plt
-from map_config import MapConfig
+from maps.config import MapConfig
 from qt_ui.qt_quality_dashboard import (
     build_ap_position_quality_by_point,
     build_dashboard_rows,
@@ -116,7 +116,7 @@ import qt_ui.qt_app as qt_app_module
 import qt_ui.qt_live_export as qt_live_export_module
 from qt_ui.qt_app import WifiHeatmapQtApp
 from qt_ui.qt_windowing import pop_modal_dim, push_modal_dim
-from quality_engine import (
+from maps.quality import (
     QUALITY_GOOD,
     QUALITY_LOW_CONFIDENCE,
     QUALITY_MISSING_RELEVANT,

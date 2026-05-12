@@ -17,7 +17,7 @@ from ap.positioning import (
     AP_POSITION_WEAK_CLOSE,
     analyze_dominant_ap_position,
 )
-from heatmap_tools import format_band_label, get_interference_data_quality
+from maps.heatmap import format_band_label, get_interference_data_quality
 
 
 INTERFERENCE_PROBLEM_RISK_THRESHOLD = 30

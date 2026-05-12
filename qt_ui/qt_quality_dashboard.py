@@ -36,7 +36,7 @@ from ap.positioning import (
     AP_POSITION_WEAK_CLOSE,
     analyze_dominant_ap_position,
 )
-from quality_engine import (
+from maps.quality import (
     QUALITY_GOOD,
     QUALITY_LOW_CONFIDENCE,
     QUALITY_MISSING_RELEVANT,
