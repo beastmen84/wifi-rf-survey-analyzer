@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 
 from app_core.logging import log_event, log_exception
 from qt_ui.scaling import widget_px
-from wifi.scanner import get_connected_ssid, scan_wifi
+from wifi.scanner import scan_wifi
 
 
 class PointCaptureMixin:
@@ -42,10 +42,7 @@ class PointCaptureMixin:
         log_event(f"qt point scan start x={int(x)} y={int(y)}", logger_name="main")
 
         thread = QThread(self)
-        worker = WifiScanWorker(
-            "auto",
-            include_connected_ssid=not self.relevant_ssids and not self.known_ssids,
-        )
+        worker = WifiScanWorker("auto")
         worker.moveToThread(thread)
         thread.started.connect(worker.run)
         worker.finished.connect(self.finish_wifi_scan)
@@ -60,7 +57,7 @@ class PointCaptureMixin:
         self.scan_worker = worker
         thread.start()
 
-    def finish_wifi_scan(self, networks, backend_used, connected_ssid=""):
+    def finish_wifi_scan(self, networks, backend_used):
         try:
             x, y = self.pending_scan_point or (None, None)
             self.set_scan_busy(False)
@@ -76,7 +73,7 @@ class PointCaptureMixin:
                 QMessageBox.critical(self, self.tr("error"), self.tr("no_networks_found"))
                 return
 
-            action = self.validate_relevant_networks(networks, connected_ssid=connected_ssid)
+            action = self.validate_relevant_networks(networks)
             log_event(f"qt point relevant validation action={action}", logger_name="main")
             if action == "retry":
                 self.start_wifi_scan(x, y)
@@ -138,7 +135,7 @@ class PointCaptureMixin:
             self.status.showMessage(message)
         self.refresh_session_labels()
 
-    def validate_relevant_networks(self, networks, connected_ssid=""):
+    def validate_relevant_networks(self, networks):
         detected_ssids = self.get_detected_ssids(networks)
         if not detected_ssids:
             return "keep"
@@ -149,7 +146,6 @@ class PointCaptureMixin:
                 detected_ssids,
                 self.tr("relevant_networks_title"),
                 self.tr("relevant_networks_first_message"),
-                connected_ssid=connected_ssid,
             )
             if dialog.exec() != QDialog.DialogCode.Accepted:
                 return "cancel"
@@ -173,7 +169,6 @@ class PointCaptureMixin:
                 new_ssids,
                 self.tr("new_relevant_networks_title"),
                 self.tr("new_relevant_networks_message"),
-                connected_ssid=connected_ssid,
             )
             if dialog.exec() != QDialog.DialogCode.Accepted:
                 return "cancel"
@@ -218,24 +213,22 @@ class PointCaptureMixin:
 
 
 class WifiScanWorker(QObject):
-    finished = Signal(list, str, str)
+    finished = Signal(list, str)
     failed = Signal(str)
 
-    def __init__(self, backend="auto", include_connected_ssid=False):
+    def __init__(self, backend="auto"):
         super().__init__()
         self.backend = backend
-        self.include_connected_ssid = include_connected_ssid
 
     @Slot()
     def run(self):
         try:
             networks, backend_used = scan_wifi(self.backend, show_errors=False)
-            connected_ssid = get_connected_ssid() if self.include_connected_ssid else ""
         except Exception as exc:
             self.failed.emit(str(exc))
             return
 
-        self.finished.emit(networks, backend_used, connected_ssid or "")
+        self.finished.emit(networks, backend_used)
 
 
 class RelevantNetworksDialog(QDialog):

@@ -269,6 +269,7 @@ class LivePreviewMixin:
             return
 
         if kind == "gradient":
+            self.live_legend_user_resized = False
             self.live_legend_frame.hide()
             self.live_view.set_gradient_legend(scale_payload)
 
@@ -279,11 +280,16 @@ class LivePreviewMixin:
         self.live_view.clear_gradient_legend()
         self.live_legend_frame.hide()
         self.live_legend_list.show()
+        self.live_legend_user_resized = False
 
     def clear_live_marker_selection(self):
         self.live_legend_list.clearSelection()
         self.live_legend_list.setCurrentRow(-1)
         self.live_view.clear_marker_highlight()
+
+    def on_live_splitter_moved(self, position, index):
+        if not self.live_legend_frame.isHidden() and not self.live_legend_list.isHidden():
+            self.live_legend_user_resized = True
 
     def fit_live_legend_width(self, items):
         labels = [str(item.get("label", "")) for item in items or []]
@@ -294,10 +300,33 @@ class LivePreviewMixin:
         title_width = title_metrics.horizontalAdvance(title) if title else 0
         scrollbar_width = self.live_legend_list.verticalScrollBar().sizeHint().width()
         content_width = max(label_width, title_width)
-        target_width = content_width + self.spx(58) + scrollbar_width
-        target_width = max(self.spx(220), min(self.spx(520), target_width))
-        self.live_legend_frame.setMinimumWidth(target_width)
-        self.live_legend_frame.setMaximumWidth(target_width)
+        target_width = content_width + self.spx(96) + scrollbar_width
+        target_width = max(self.spx(240), min(self.spx(760), target_width))
+        self.live_legend_frame.setMinimumWidth(self.spx(240))
+        self.live_legend_frame.setMaximumWidth(16777215)
+        if not self.live_legend_user_resized:
+            self.set_live_legend_width(target_width)
+
+    def set_live_legend_width(self, target_width):
+        splitter = getattr(self, "live_splitter", None)
+        if splitter is None:
+            return
+
+        sizes = splitter.sizes()
+        total_width = sum(sizes)
+        if total_width <= 0:
+            self.live_legend_frame.resize(target_width, self.live_legend_frame.height())
+            return
+
+        map_min_width = max(self.live_view_container.minimumWidth(), self.spx(260))
+        available_legend_width = max(self.live_legend_frame.minimumWidth(), total_width - map_min_width)
+        legend_width = min(target_width, available_legend_width)
+        if legend_width <= 0:
+            return
+
+        was_blocked = splitter.blockSignals(True)
+        splitter.setSizes([max(map_min_width, total_width - legend_width), legend_width])
+        splitter.blockSignals(was_blocked)
 
     def on_live_legend_item_clicked(self, item):
         payload = item.data(Qt.ItemDataRole.UserRole) if item else None

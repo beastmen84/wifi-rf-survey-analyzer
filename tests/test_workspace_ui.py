@@ -522,6 +522,35 @@ class WorkspaceLiveStateTests(unittest.TestCase):
         finally:
             window.deleteLater()
 
+    def test_live_discrete_legend_auto_fits_without_locking_splitter(self):
+        window = WifiHeatmapQtApp()
+        try:
+            payload = {
+                "kind": "swatches",
+                "title": "Dominant AP",
+                "items": [{
+                    "label": "Corr. uff. 12 - AICS-WIFI very long readable legend label",
+                    "marker_id": "p1",
+                    "color": "#1976d2",
+                }],
+            }
+
+            window.update_live_legend(payload)
+
+            self.assertFalse(window.live_legend_frame.isHidden())
+            self.assertEqual(window.live_legend_frame.minimumWidth(), window.spx(240))
+            self.assertGreater(window.live_legend_frame.maximumWidth(), window.spx(5000))
+            self.assertFalse(window.live_splitter.childrenCollapsible())
+            self.assertFalse(window.live_splitter.isCollapsible(0))
+            self.assertFalse(window.live_splitter.isCollapsible(1))
+            self.assertFalse(window.live_legend_user_resized)
+
+            window.on_live_splitter_moved(0, 1)
+
+            self.assertTrue(window.live_legend_user_resized)
+        finally:
+            window.deleteLater()
+
     def test_live_pdf_export_asks_for_destination_path(self):
         window = WifiHeatmapQtApp()
         original_save_file_name = qt_live_export_module.get_centered_save_file_name
