@@ -36,12 +36,13 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the global Qt style polish pass is 167
+- The current code test baseline after the text/i18n fit pass is 170
   passing tests with `.\.venv\Scripts\python.exe -m pytest`.
-- Latest completed code work in this handoff: styled Qt scrollbars were moved
-  into a shared theme helper and applied to the workspace, startup window, file
-  dialogs, and AP Group dialogs; Measurement Points selection now uses the
-  theme accent with white text.
+- Latest completed code work in this handoff: EN/IT user-facing titles,
+  buttons and compact labels were normalized for capitalized wording; compact
+  localized button widths now fit the active translation; point-capture warning
+  dialogs grow when translated button rows need more space; tests cover
+  capitalization and localized compact-button fit.
 - Latest real-data validation used `test operativo V2.csv` /
   `test operativo V2_raw_data.scan` after all physical AP positions were added:
   25 points, 524 aggregate rows, 2529 raw rows, all raw samples from `lswifi`,
@@ -1187,3 +1188,5 @@ Current tests cover, among other things:
   groups, AP positions and AP metadata.
 - Qt point capture saving of scanned aggregate rows/raw rows plus relevant SSID
   flags and UI refresh callbacks.
+- i18n key/placeholder parity, capitalized title/button starts, and localized
+  compact-button fit across supported languages.

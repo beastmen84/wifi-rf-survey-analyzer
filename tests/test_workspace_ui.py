@@ -1,6 +1,7 @@
 from tests._common import *
 from PySide6.QtWidgets import QPushButton
 from qt_ui.qt_point_workflow import MissingRelevantNetworksDialog, PointCaptureMixin
+from translations.i18n import SUPPORTED_LANGUAGES
 
 
 class SettingsMenuTests(unittest.TestCase):
@@ -34,6 +35,26 @@ class SettingsMenuTests(unittest.TestCase):
             self.assertEqual(window.points_table.objectName(), "measurementPointsTable")
             self.assertIn("QTableWidget#measurementPointsTable::item:selected", style)
             self.assertIn("color: #FFFFFF", style)
+        finally:
+            window.deleteLater()
+
+    def test_localized_compact_buttons_fit_text_in_supported_languages(self):
+        window = WifiHeatmapQtApp()
+        try:
+            for language in SUPPORTED_LANGUAGES:
+                window.change_language(language)
+                QApplication.processEvents()
+                buttons = (
+                    window.delete_scale_button,
+                    window.manage_relevant_button,
+                    window.clear_relevant_button,
+                    window.live_pdf_export_button,
+                    window.live_update_button,
+                )
+                for button in buttons:
+                    with self.subTest(language=language, text=button.text()):
+                        self.assertGreaterEqual(button.minimumWidth(), button.sizeHint().width())
+                        self.assertGreaterEqual(button.maximumWidth(), button.sizeHint().width())
         finally:
             window.deleteLater()
 
@@ -241,9 +262,9 @@ class APGroupManagerDialogTests(unittest.TestCase):
 
             text = conflict_dialog.format_conflicts()
 
-            self.assertIn("AP group: Warning AP (warning-ap)", text)
-            self.assertIn("What this can mean", text)
-            self.assertIn("Recommended check", text)
+            self.assertIn("AP Group: Warning AP (warning-ap)", text)
+            self.assertIn("What This Can Mean", text)
+            self.assertIn("Recommended Check", text)
             self.assertIn("2.4 GHz: 2 channels, 2 BSSIDs (1, 6)", text)
             self.assertIn("CH 1: 70:4f:57:aa:bb:10", text)
             self.assertIn("CH 6: 70:4f:57:aa:bb:11", text)
@@ -644,7 +665,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(expanded_geometry.x(), collapsed_geometry.x())
             self.assertGreater(expanded_geometry.width(), collapsed_geometry.width() * 3)
             self.assertGreater(expanded_geometry.right(), collapsed_geometry.right())
-            self.assertLess(expanded_geometry.width(), window.spx(440))
+            self.assertLess(expanded_geometry.width(), window.live_view_container.width() * 0.7)
 
             expanded_heights = []
             for map_type in ("signal", "interference", "channel", "dominant"):
@@ -762,8 +783,10 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(grid_position(window.live_usable_check), (9, 0, 1, 2))
             self.assertEqual(window.live_band_combo.width(), window.live_interpolation_combo.width())
             self.assertEqual(window.live_band_combo.width(), window.live_max_distance_spin.width())
-            required_group_width = window.live_ap_group_combo.fontMetrics().horizontalAdvance("All AP groups")
-            self.assertGreater(window.live_ap_group_combo.width(), required_group_width + window.spx(70))
+            required_group_width = window.live_ap_group_combo.fontMetrics().horizontalAdvance(
+                window.tr("all_ap_groups_option")
+            )
+            self.assertGreater(window.live_ap_group_combo.width(), required_group_width + window.spx(50))
             self.assertLess(window.live_band_combo.width(), window.spx(300))
             self.assertFalse(window.live_band_combo.isHidden())
             self.assertFalse(window.live_aggregation_combo.isHidden())

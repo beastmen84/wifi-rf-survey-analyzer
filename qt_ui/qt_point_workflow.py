@@ -364,6 +364,14 @@ class MissingRelevantNetworksDialog(QDialog):
         buttons.addWidget(cancel_button)
         layout.addLayout(buttons)
 
+        button_spacing = buttons.spacing() if buttons.spacing() >= 0 else layout.spacing()
+        required_width = (
+            sum(button.minimumWidth() for button in (keep_button, retry_button, cancel_button))
+            + button_spacing * 2
+            + widget_px(self, 40)
+        )
+        self.setMinimumWidth(max(self.minimumWidth(), required_width))
+
     def choose(self, action):
         self.action = action
         self.accept()

@@ -317,7 +317,7 @@ class WifiHeatmapQtApp(
         self.delete_scale_button = QPushButton()
         self.delete_scale_button.setObjectName("appBarTitleDangerButton")
         self.delete_scale_button.clicked.connect(self.delete_scale_calibration)
-        self.delete_scale_button.setMaximumWidth(self.spx(116))
+        self.delete_scale_button.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         view_section.title_row.addWidget(self.delete_scale_button)
         for button in (
             self.zoom_out_button,
@@ -380,6 +380,19 @@ class WifiHeatmapQtApp(
         button.clicked.connect(lambda _checked=False: callback())
         return button
 
+    def fit_text_button_width(self, button, min_width=0):
+        button.setMinimumWidth(max(self.spx(min_width), button.sizeHint().width()))
+
+    def fit_localized_button_widths(self):
+        for button, min_width in (
+            (self.delete_scale_button, 0),
+            (self.manage_relevant_button, 0),
+            (self.clear_relevant_button, 0),
+            (self.live_pdf_export_button, 118),
+            (self.live_update_button, 132),
+        ):
+            self.fit_text_button_width(button, min_width)
+
     def create_summary_card(self, title_key, compact=False, action_widget=None):
         card = QFrame()
         card.setObjectName("summaryCardCompact" if compact else "summaryCard")
@@ -432,8 +445,8 @@ class WifiHeatmapQtApp(
         relevant_actions_layout.addWidget(self.clear_relevant_button)
         self.manage_relevant_button.setObjectName("summaryActionButton")
         self.clear_relevant_button.setObjectName("summaryActionButton")
-        self.manage_relevant_button.setMaximumWidth(self.spx(76))
-        self.clear_relevant_button.setMaximumWidth(self.spx(64))
+        for button in (self.manage_relevant_button, self.clear_relevant_button):
+            button.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         self.manage_relevant_button.clicked.connect(self.manage_relevant_ssids)
         self.clear_relevant_button.clicked.connect(self.clear_relevant_ssids)
         csv_card, self.csv_label, _csv_layout = self.create_summary_card("qt_csv")
@@ -1447,6 +1460,7 @@ class WifiHeatmapQtApp(
         self.live_auto_check.setText(self.tr("live_auto_update"))
         self.live_pdf_export_button.setText(self.tr("live_export_pdf"))
         self.live_update_button.setText(self.tr("live_update_now"))
+        self.fit_localized_button_widths()
         self.refresh_live_static_options()
         self.points_table.setHorizontalHeaderLabels([
             "#",

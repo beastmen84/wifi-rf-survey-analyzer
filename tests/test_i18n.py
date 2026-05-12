@@ -56,6 +56,64 @@ def collect_static_translation_keys():
     return keys
 
 
+CAPITALIZED_UI_KEYS = (
+    "new_survey",
+    "open_existing_survey",
+    "invalid_survey_title",
+    "points_panel_show",
+    "points_panel_hide",
+    "live_map_tab",
+    "live_update_now",
+    "save_live_pdf_title",
+    "live_pdf_problem_report_title",
+    "all_ap_groups_option",
+    "load_plan",
+    "generate_heatmap",
+    "quality_dashboard_title",
+    "quality_dashboard_status_ok_title",
+    "quality_dashboard_status_early_title",
+    "quality_dashboard_status_review_title",
+    "quality_dashboard_status_setup_title",
+    "calibrate_scale",
+    "delete_scale",
+    "ap_group_bssid_title",
+    "ap_group_bssid_select_visible",
+    "ap_group_bssid_new_group_from_rows",
+    "ap_group_conflict_title",
+    "ap_group_set_alias",
+    "ap_group_set_role",
+    "ap_group_metadata_title",
+    "ap_group_set_position",
+    "ap_groups_reset_title",
+    "ap_group_clear_filters",
+    "saved_network",
+    "manage_relevant_networks_title",
+    "go_to_point",
+    "delete_selected",
+    "map_type",
+    "map_type_signal",
+    "map_type_interference",
+    "map_type_channel",
+    "map_type_dominant",
+    "point_labels",
+    "export_signal_title",
+    "interference_mode",
+    "interference_summary_title",
+    "select_plan_title",
+    "save_required_title",
+    "help_title",
+    "keep_scan",
+    "cancel_point",
+)
+
+
+def first_alpha(text):
+    for character in text:
+        if character.isalpha():
+            return character
+    return ""
+
+
 class I18nTests(unittest.TestCase):
     def test_supported_languages_match_translation_registry(self):
         self.assertEqual(
@@ -99,3 +157,10 @@ class I18nTests(unittest.TestCase):
 
     def test_static_app_translation_keys_exist(self):
         self.assertFalse(collect_static_translation_keys() - set(TRANSLATIONS[DEFAULT_LANGUAGE]))
+
+    def test_titles_and_buttons_start_capitalized_in_all_languages(self):
+        for language, translations in TRANSLATIONS.items():
+            for key in CAPITALIZED_UI_KEYS:
+                with self.subTest(language=language, key=key):
+                    character = first_alpha(translations[key])
+                    self.assertTrue(character and character.isupper(), translations[key])

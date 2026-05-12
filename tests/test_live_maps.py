@@ -871,9 +871,9 @@ class LivePdfExportTests(unittest.TestCase):
             self.assertIn("(20, 0)", page_texts)
             self.assertNotIn("1. Point: 20, 0", page_text)
             self.assertIn("Dominant AP is not physically nearby", page_text)
-            self.assertIn("AP distance: 80 m", page_text)
+            self.assertIn("AP Distance: 80 m", page_text)
             self.assertIn("Nearest", page_text)
-            self.assertIn("physical AP: Near AP (5 m)", page_text)
+            self.assertIn("Physical AP: Near AP (5 m)", page_text)
         finally:
             for fig in figures:
                 plt.close(fig)

@@ -28,6 +28,9 @@ Current status:
 - the real-survey live PDF validation pass is complete for Coverage, AP
   Channels, Dominant AP and Interference; the current findings are accepted as
   real diagnostics for now rather than layout blockers;
+- the EN/IT text polish pass is complete for the current UI surface: buttons,
+  titles and compact labels use capitalized wording where appropriate, and
+  localized compact controls are checked for fit;
 - the 2026-05-12 operational test survey is a useful baseline: all 25 points
   passed quality, all raw samples came from `lswifi`, relevant AP positions were
   complete, and the remaining findings are AP setup/anomaly diagnostics rather
@@ -373,6 +376,13 @@ Implemented:
   dialogs;
 - Measurement Points table selection uses the full theme accent with white text,
   matching the AP Group table contrast.
+- EN/IT user-facing titles, buttons and compact labels have been normalized for
+  the current Qt surface;
+- compact localized buttons recalculate their minimum width from the active
+  translation, and point-capture warning dialogs grow their minimum width when a
+  translated button row needs more space;
+- i18n/UI tests guard translation key parity, placeholder parity, capitalized
+  title/button starts and compact localized button fit.
 
 ## Remaining Work
 
