@@ -69,9 +69,19 @@ def get_channel_color(channel, band):
 
     sequence = get_channel_sequence_for_band(band)
     if channel_number in sequence:
-        return CATEGORICAL_PALETTE[sequence.index(channel_number) % len(CATEGORICAL_PALETTE)]
+        index = get_channel_palette_offset(band) + sequence.index(channel_number)
+        return CATEGORICAL_PALETTE[index % len(CATEGORICAL_PALETTE)]
 
     return get_indexed_color(channel_number)
+
+
+def get_channel_palette_offset(band):
+    band = normalize_band(band)
+    if band == "5":
+        return len(CHANNEL_SEQUENCE_24)
+    if band == "6":
+        return len(CHANNEL_SEQUENCE_24) + len(CHANNEL_SEQUENCE_5)
+    return 0
 
 
 def get_channel_band_prefix(channel, band=""):

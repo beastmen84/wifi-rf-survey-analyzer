@@ -23,6 +23,7 @@ from maps.heatmap import format_band_label, get_interference_data_quality
 INTERFERENCE_PROBLEM_RISK_THRESHOLD = 30
 INTERFERENCE_PROBLEM_REPORT_LIMIT = 12
 INTERFERENCE_PROBLEM_ROWS_PER_PAGE = 4
+PROBLEM_REPORT_ROWS_PER_PAGE = 4
 
 
 def get_interference_problem_df(risk_df):
@@ -96,6 +97,7 @@ def build_interference_problem_report_pages(risk_df, config, tr, language, alias
             aliases,
             page_number=page_index + 1,
             page_count=page_count,
+            layout_rows=INTERFERENCE_PROBLEM_ROWS_PER_PAGE,
         ))
     return pages
 
@@ -109,6 +111,7 @@ def build_interference_problem_report_page(
     aliases,
     page_number=None,
     page_count=None,
+    layout_rows=INTERFERENCE_PROBLEM_ROWS_PER_PAGE,
 ):
     fig = plt.figure(figsize=(11.69, 8.27), dpi=100)
     fig.patch.set_facecolor("white")
@@ -132,7 +135,7 @@ def build_interference_problem_report_page(
     content_top = 0.82
     content_bottom = 0.07
     gap = 0.018
-    card_height = (content_top - content_bottom - gap * (len(rows) - 1)) / len(rows)
+    card_height = calculate_report_card_height(len(rows), content_top, content_bottom, gap, layout_rows)
 
     for row_index, row in enumerate(rows):
         card_top = content_top - row_index * (card_height + gap)
@@ -293,6 +296,9 @@ def build_dominant_problem_report_pages(dominant_df, config, tr, language, alias
             continue
 
         group = row.get("dominant_ap_group", "")
+        position_detail = format_dominant_position_detail(row, tr)
+        if position_detail:
+            issues.append(position_detail)
         rows.append([
             f"{format_report_value(row.get('x'))}, {format_report_value(row.get('y'))}",
             group_labels.get(group, format_ap_label(row.get("dominant_bssid", ""), aliases, group)),
@@ -328,6 +334,7 @@ def build_problem_report_pages(title, subtitle, headers, rows, empty_message, ro
             page_number=page_index + 1,
             page_count=page_count,
             first_item_number=start + 1,
+            layout_rows=rows_per_page,
         ))
     return pages
 
@@ -363,6 +370,7 @@ def build_problem_report_page(
     page_number=None,
     page_count=None,
     first_item_number=1,
+    layout_rows=PROBLEM_REPORT_ROWS_PER_PAGE,
 ):
     fig = plt.figure(figsize=(11.69, 8.27), dpi=100)
     fig.patch.set_facecolor("white")
@@ -386,7 +394,7 @@ def build_problem_report_page(
     content_top = 0.82
     content_bottom = 0.07
     gap = 0.018
-    card_height = (content_top - content_bottom - gap * (len(rows) - 1)) / len(rows)
+    card_height = calculate_report_card_height(len(rows), content_top, content_bottom, gap, layout_rows)
     first_header = clean_report_text(headers[0]) if headers else ""
     detail_header = clean_report_text(headers[-1]) if headers else ""
 
@@ -456,12 +464,45 @@ def build_problem_report_page(
     return fig
 
 
+def calculate_report_card_height(row_count, content_top, content_bottom, gap, layout_rows=None):
+    slot_count = max(row_count, layout_rows or row_count, 1)
+    return (content_top - content_bottom - gap * (slot_count - 1)) / slot_count
+
+
 def translate_ap_position_warning(warning, tr):
     return {
         AP_POSITION_STRONG_FAR: tr("ap_position_strong_far"),
         AP_POSITION_WEAK_CLOSE: tr("ap_position_weak_close"),
         AP_POSITION_UNEXPECTED_DOMINANT: tr("ap_position_unexpected_dominant"),
     }.get(warning, warning)
+
+
+def format_dominant_position_detail(row, tr):
+    details = []
+    dominant_distance = format_position_report_distance(row, "dominant_ap_distance")
+    if dominant_distance != "-":
+        details.append(f"{tr('ap_position_distance')}: {dominant_distance}")
+
+    nearest_label = clean_report_text(row.get("nearest_physical_ap_label"))
+    nearest_distance = format_position_report_distance(row, "nearest_physical_ap_distance")
+    if nearest_label != "-":
+        if nearest_distance != "-":
+            nearest_label = f"{nearest_label} ({nearest_distance})"
+        details.append(f"{tr('ap_position_nearest')}: {nearest_label}")
+
+    return "; ".join(details)
+
+
+def format_position_report_distance(row, prefix):
+    distance_m = row.get(f"{prefix}_m")
+    if format_report_value(distance_m) != "-":
+        return format_report_value(distance_m, suffix=" m")
+
+    distance_px = row.get(f"{prefix}_px")
+    if format_report_value(distance_px) != "-":
+        return format_report_value(distance_px, suffix=" px")
+
+    return "-"
 
 
 def format_report_value(value, suffix=""):

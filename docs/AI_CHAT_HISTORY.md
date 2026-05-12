@@ -36,7 +36,7 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the latest scanner/live-map pass is 159
+- The current code test baseline after the live-PDF validation pass is 162
   passing tests with `.\.venv\Scripts\python.exe -m pytest`.
 - Latest code commit before this documentation refresh:
   `9a5eb02 Prefer lswifi for connected SSID lookup`.
@@ -1014,6 +1014,17 @@ Language:
     and `SINCE` on unexpected channel `153`;
   - AP-position diagnostics found 8 `UNEXPECTED_DOMINANT` cases, mostly
     `CORR. UFF. 4` being dominant far from its physical marker.
+- First exported live-PDF review from that survey found three concrete polish
+  fixes:
+  - AP Channels all-band legends could reuse the same marker color for
+    different bands/channels, such as 2.4 GHz CH 6 and 5 GHz CH 40;
+  - problem-report cards stretched too tall when the last page contained fewer
+    cards;
+  - Dominant AP report cards named `UNEXPECTED_DOMINANT` but did not show AP
+    distance or nearest physical AP context.
+  These were fixed by making channel colors band-aware, keeping report-card
+  heights based on the nominal page capacity, and appending AP distance plus
+  nearest physical AP details to Dominant AP problem text.
 
 Recent commits:
 

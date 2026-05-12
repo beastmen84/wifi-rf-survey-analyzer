@@ -1,4 +1,6 @@
 from tests._common import *
+from exporting.reports import build_dominant_problem_report_pages
+from maps.rendering import get_channel_color
 
 class LiveMapDataLogicTests(unittest.TestCase):
     def test_map_config_normalizes_interference_without_changing_other_maps(self):
@@ -64,6 +66,10 @@ class LiveMapDataLogicTests(unittest.TestCase):
         self.assertIn("CH 6", unfiltered["point_infos"][0]["legend_label"])
         self.assertIn("CH 1", filtered["point_infos"][0]["legend_label"])
         self.assertEqual(filtered["point_infos"][0]["legend_label"], filtered["scale_payload"]["items"][0]["label"])
+
+    def test_channel_colors_use_band_to_avoid_all_band_collisions(self):
+        self.assertNotEqual(get_channel_color(6, "2.4"), get_channel_color(40, "5"))
+        self.assertNotEqual(get_channel_color(1, "2.4"), get_channel_color(1, "6"))
 
     def test_interference_intra_ssid_ignores_other_ssids_while_all_counts_them(self):
         serving_bssid = "70:4f:57:aa:bb:10"
@@ -820,6 +826,80 @@ class LivePdfExportTests(unittest.TestCase):
             self.assertIn("1/2", first_page_text)
             self.assertIn("1. Point: 10, 20", first_page_text)
             self.assertIn("Diagnosis", first_page_text)
+            last_page_card_heights = [
+                patch.get_height()
+                for patch in figures[1].axes[0].patches
+                if abs(patch.get_width() - 0.90) < 0.001
+            ]
+            self.assertEqual(len(last_page_card_heights), 2)
+            self.assertTrue(all(height < 0.20 for height in last_page_card_heights))
+        finally:
+            for fig in figures:
+                plt.close(fig)
+
+    def test_dominant_problem_report_includes_position_context(self):
+        dominant_df = rows_to_dataframe([
+            {
+                "x": 20,
+                "y": 0,
+                "dominant_ap_group": "far-ap",
+                "dominant_bssid": "70:4f:57:aa:bb:10",
+                "dominant_signal_dbm": -60,
+                "delta_db": 8,
+                "roaming_overlap": False,
+                "ap_position_warnings": AP_POSITION_UNEXPECTED_DOMINANT,
+                "dominant_ap_distance_m": 80,
+                "nearest_physical_ap_label": "Near AP",
+                "nearest_physical_ap_distance_m": 5,
+            }
+        ])
+
+        figures = build_dominant_problem_report_pages(
+            dominant_df,
+            MapConfig(ssid="MAIN", band="2.4", map_type="dominant"),
+            lambda key, **kwargs: translate("en", key, **kwargs),
+            "en",
+            {},
+        )
+        try:
+            page_text = "\n".join(text.get_text() for text in figures[0].axes[0].texts)
+            self.assertIn("Dominant AP is not physically nearby", page_text)
+            self.assertIn("AP distance: 80 m", page_text)
+            self.assertIn("Nearest", page_text)
+            self.assertIn("physical AP: Near AP (5 m)", page_text)
+        finally:
+            for fig in figures:
+                plt.close(fig)
+
+    def test_interference_problem_report_last_page_uses_fixed_card_height(self):
+        risk_df = rows_to_dataframe([
+            {
+                "x": 10 + index,
+                "y": 20 + index,
+                "risk": 100 - index,
+                "serving_bssid": f"70:4f:57:aa:bb:{index:02d}",
+                "serving_channel": 6,
+                "strongest_interferer_bssid": f"80:11:22:33:44:{index:02d}",
+                "strongest_interferer_channel": 6,
+            }
+            for index in range(5)
+        ])
+
+        figures = build_interference_problem_report_pages(
+            risk_df,
+            MapConfig(ssid="MAIN", band="2.4", map_type="interference"),
+            lambda key, **kwargs: translate("en", key, **kwargs),
+            "en",
+            {},
+        )
+        try:
+            last_page_card_heights = [
+                patch.get_height()
+                for patch in figures[-1].axes[0].patches
+                if abs(patch.get_width() - 0.90) < 0.001
+            ]
+            self.assertEqual(len(last_page_card_heights), 1)
+            self.assertLess(last_page_card_heights[0], 0.20)
         finally:
             for fig in figures:
                 plt.close(fig)
