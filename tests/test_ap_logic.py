@@ -154,6 +154,28 @@ class ApGroupTests(unittest.TestCase):
 
         self.assertEqual(conflicts, [])
 
+    def test_ap_channel_changes_classify_clean_and_ambiguous_sequences(self):
+        bssid = "70:4f:57:aa:bb:10"
+        groups = [build_manual_ap_group("office-ap", [bssid])]
+
+        clean_changes = build_ap_channel_changes([
+            build_row("p1", "MAIN", bssid, -50, 36),
+            build_row("p2", "MAIN", bssid, -50, 40),
+            build_row("p3", "MAIN", bssid, -50, 40),
+        ], groups)
+        self.assertEqual(len(clean_changes), 1)
+        self.assertEqual(clean_changes[0]["status"], AP_CHANNEL_CHANGE_CLEAN)
+        self.assertEqual(clean_changes[0]["current_channel"], "40")
+        self.assertEqual(clean_changes[0]["previous_channels"], ["36"])
+
+        ambiguous_changes = build_ap_channel_changes([
+            build_row("p1", "MAIN", bssid, -50, 36),
+            build_row("p2", "MAIN", bssid, -50, 40),
+            build_row("p3", "MAIN", bssid, -50, 36),
+        ], groups)
+        self.assertEqual(len(ambiguous_changes), 1)
+        self.assertEqual(ambiguous_changes[0]["status"], AP_CHANNEL_CHANGE_AMBIGUOUS)
+
 
 class InterferenceTests(unittest.TestCase):
     def test_interference_ignores_same_physical_ap_group(self):
@@ -185,6 +207,69 @@ class InterferenceTests(unittest.TestCase):
         self.assertEqual(row["same_physical_ap_ignored_count"], 1)
         self.assertEqual(row["strongest_interferer_bssid"], neighbor_bssid)
         self.assertGreater(row["risk"], 0)
+
+    def test_interference_uses_final_channel_for_clean_ap_channel_change(self):
+        serving_bssid = "70:4f:57:aa:bb:10"
+        neighbor_bssid = "80:11:22:33:44:10"
+        rows = [
+            build_row("p1", "MAIN", serving_bssid, -50, 36, band="5"),
+            build_row("p1", "NEIGHBOR", neighbor_bssid, -55, 36, band="5"),
+            build_row("p2", "MAIN", serving_bssid, -50, 44, band="5"),
+            build_row("p2", "NEIGHBOR", neighbor_bssid, -55, 36, band="5"),
+        ]
+        groups = [
+            build_manual_ap_group("serving-ap", [serving_bssid]),
+            build_manual_ap_group("neighbor-ap", [neighbor_bssid]),
+        ]
+        group_map = build_bssid_to_manual_group_map(groups)
+
+        risk_df = calculate_interference_points(
+            rows_to_dataframe(rows),
+            "MAIN",
+            "5",
+            mode="all",
+            include_details=True,
+            ap_group_map=tuple(sorted(group_map.items())),
+        )
+
+        p1 = risk_df[risk_df["timestamp"] == "p1"].iloc[0]
+        self.assertEqual(p1["serving_channel"], 44)
+        self.assertEqual(p1["serving_channel_original"], 36)
+        self.assertTrue(p1["serving_channel_adjusted_for_change"])
+        self.assertEqual(p1["serving_channel_change_status"], AP_CHANNEL_CHANGE_CLEAN)
+        self.assertEqual(p1["serving_channel_change_previous_channels"], "36")
+        self.assertEqual(p1["risk"], 0)
+
+    def test_interference_keeps_original_channels_for_ambiguous_channel_changes(self):
+        serving_bssid = "70:4f:57:aa:bb:10"
+        neighbor_bssid = "80:11:22:33:44:10"
+        rows = [
+            build_row("p1", "MAIN", serving_bssid, -50, 36, band="5"),
+            build_row("p1", "NEIGHBOR", neighbor_bssid, -55, 36, band="5"),
+            build_row("p2", "MAIN", serving_bssid, -50, 44, band="5"),
+            build_row("p2", "NEIGHBOR", neighbor_bssid, -55, 36, band="5"),
+            build_row("p3", "MAIN", serving_bssid, -50, 36, band="5"),
+            build_row("p3", "NEIGHBOR", neighbor_bssid, -55, 36, band="5"),
+        ]
+        groups = [
+            build_manual_ap_group("serving-ap", [serving_bssid]),
+            build_manual_ap_group("neighbor-ap", [neighbor_bssid]),
+        ]
+        group_map = build_bssid_to_manual_group_map(groups)
+
+        risk_df = calculate_interference_points(
+            rows_to_dataframe(rows),
+            "MAIN",
+            "5",
+            mode="all",
+            include_details=True,
+            ap_group_map=tuple(sorted(group_map.items())),
+        )
+
+        p1 = risk_df[risk_df["timestamp"] == "p1"].iloc[0]
+        self.assertEqual(p1["serving_channel"], 36)
+        self.assertFalse(p1["serving_channel_adjusted_for_change"])
+        self.assertEqual(p1["risk"], 100)
 
     def test_24ghz_interference_overlap_weights_are_ordered_by_channel_distance(self):
         self.assertEqual(channel_overlap_weight(1, 1, "2.4"), 1.0)

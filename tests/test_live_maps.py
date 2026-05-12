@@ -500,6 +500,40 @@ class LiveMapViewTests(unittest.TestCase):
         self.assertIn("Interferer channel", tooltip)
         self.assertIn("33:44:10", tooltip)
 
+    def test_live_interference_tooltip_mentions_clean_channel_change(self):
+        translations = {
+            "interference_title": "AP interference",
+            "risk": "Risk",
+            "serving_ap": "Serving AP",
+            "serving_channel": "Serving channel",
+            "interferer": "Main interferer",
+            "interferer_channel": "Interferer channel",
+            "channel_change": "Channel Change",
+            "channel_change_note": "{ap} changed channel during the survey ({channels} -> {current}); interference uses current channel {current}.",
+        }
+
+        tooltip = build_live_tooltip(
+            "interference",
+            {
+                "x": 10,
+                "y": 20,
+                "risk": 0,
+                "serving_bssid": "70:4f:57:aa:bb:10",
+                "serving_ap_group": "serving-ap",
+                "serving_channel": 44,
+                "serving_channel_change_status": AP_CHANNEL_CHANGE_CLEAN,
+                "serving_channel_change_previous_channels": "36",
+                "serving_channel_change_current_channel": "44",
+                "strongest_interferer_bssid": "",
+            },
+            None,
+            translations,
+        )
+
+        self.assertIn("Channel Change", tooltip)
+        self.assertIn("changed channel during the survey", tooltip)
+        self.assertIn("36 -&gt; 44", tooltip)
+
     def test_live_channel_point_labels_follow_auto_and_none_modes(self):
         rows = [
             build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -50, 1),

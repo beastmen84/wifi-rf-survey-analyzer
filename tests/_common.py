@@ -32,7 +32,12 @@ from ap.groups import (
     serialize_ap_group_map,
     serialize_ap_group_roles,
 )
-from ap.checks import build_ap_group_conflicts
+from ap.checks import (
+    AP_CHANNEL_CHANGE_AMBIGUOUS,
+    AP_CHANNEL_CHANGE_CLEAN,
+    build_ap_channel_changes,
+    build_ap_group_conflicts,
+)
 from ap.metadata import (
     build_ap_metadata_warnings,
     infer_band_from_channel,

@@ -909,6 +909,9 @@ def build_live_tooltip(map_type, row, raw_rows, translations, aliases=None):
                     ),
                 ),
             ])
+        channel_change_notes = build_interference_channel_change_notes(row, translations, aliases)
+        if channel_change_notes:
+            rows.append((translations.get("channel_change", "Channel Change"), channel_change_notes))
         return build_html_tooltip(
             translations.get("interference_title", "AP interference"),
             rows,
@@ -1104,6 +1107,40 @@ def ap_position_warning_translation_key(warning):
         AP_POSITION_WEAK_CLOSE: "ap_position_weak_close",
         AP_POSITION_UNEXPECTED_DOMINANT: "ap_position_unexpected_dominant",
     }.get(warning, "ap_position_unknown_warning")
+
+
+def build_interference_channel_change_notes(row, translations, aliases):
+    notes = []
+    for prefix in ("serving", "strongest_interferer"):
+        if str(row.get(f"{prefix}_channel_change_status", "")) != "clean":
+            continue
+
+        if prefix == "serving":
+            bssid = row.get("serving_bssid", "")
+            group = row.get("serving_ap_group", "")
+        else:
+            bssid = row.get("strongest_interferer_bssid", "")
+            group = row.get("strongest_interferer_ap_group", "")
+        if format_value(bssid) == "-":
+            continue
+
+        current = format_value(row.get(f"{prefix}_channel_change_current_channel", ""))
+        previous = format_value(row.get(f"{prefix}_channel_change_previous_channels", ""))
+        if current == "-" or previous == "-":
+            continue
+
+        template = translations.get(
+            "channel_change_note",
+            "{ap} changed channel during the survey ({channels} -> {current}); interference uses current channel {current}.",
+        )
+        note = template.format(
+            ap=format_ap_label(bssid, aliases, group),
+            channels=previous,
+            current=current,
+        )
+        if note not in notes:
+            notes.append(note)
+    return notes
 
 
 def format_value(value):

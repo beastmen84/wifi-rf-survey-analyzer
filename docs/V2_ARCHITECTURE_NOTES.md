@@ -31,6 +31,9 @@ Current status:
 - the EN/IT text polish pass is complete for the current UI surface: buttons,
   titles and compact labels use capitalized wording where appropriate, and
   localized compact controls are checked for fit;
+- clean AP channel changes during a survey are now modeled separately from AP
+  group conflicts: they do not create AP Group warnings, but Interference uses
+  the latest channel for that AP group and exposes a channel-change note;
 - the 2026-05-12 operational test survey is a useful baseline: all 25 points
   passed quality, all raw samples came from `lswifi`, relevant AP positions were
   complete, and the remaining findings are AP setup/anomaly diagnostics rather
@@ -255,9 +258,14 @@ Implemented:
 - same AP group ignored as interferer;
 - guest/main SSIDs on the same physical AP do not count as mutual
   interference when grouped correctly;
+- clean channel-change sequences for the same AP group/BSSID set are detected
+  over time; Interference uses the final observed channel/width for that AP
+  group instead of mixing old and current channel states across the map;
+- ambiguous channel sequences are preserved as measured and left for quality
+  guidance rather than silently corrected;
 - interference reports include serving/interferer AP, channels, widths,
   confidence, overlap and diagnosis;
-- tooltips include width in MHz.
+- tooltips include width in MHz and channel-change notes where relevant.
 
 ### Live Map View
 
@@ -467,7 +475,8 @@ Possible additions:
 - coverage completeness by area;
 - scan backend reliability score;
 - repeated scan variance per AP group;
-- channel change detection over time;
+- "what to fix next" guidance for clean/ambiguous AP channel changes detected
+  over time;
 - likely mesh/roaming ambiguity detection;
 - "points to rescan" recommendation list.
 
@@ -517,6 +526,8 @@ Current coverage includes:
 - manual group merge/split preservation;
 - role filtering;
 - channel-width overlap;
+- clean/ambiguous AP channel-change detection and Interference channel override
+  behavior;
 - 6 GHz scan parsing, band-aware filters, legends and exports with synthetic
   hardware-like rows;
 - scanner detail fields and conservative AP metadata prefill;

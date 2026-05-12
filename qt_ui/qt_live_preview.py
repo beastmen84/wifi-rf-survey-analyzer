@@ -180,6 +180,8 @@ class LivePreviewMixin:
             "serving_channel": self.tr("interference_summary_serving_channel"),
             "interferer": self.tr("interference_summary_interferer"),
             "interferer_channel": self.tr("interference_summary_interferer_channel"),
+            "channel_change": self.tr("interference_channel_change"),
+            "channel_change_note": self.tr("interference_channel_change_note"),
             "source_rows": self.tr("rows"),
             "reference_ap": self.tr("reference_ap"),
             "reference_channel": self.tr("reference_channel"),

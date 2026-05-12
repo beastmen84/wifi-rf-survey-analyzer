@@ -349,6 +349,8 @@ TRANSLATIONS = {
     "interference_summary_interferer_width": "Larghezza Interferente",
     "interference_summary_interferer_dbm": "Segnale Interferente",
     "interference_summary_test_ignored": "AP Test Ignorati",
+    "interference_channel_change": "Cambio Canale",
+    "interference_channel_change_note": "{ap} ha cambiato canale durante il rilievo ({channels} -> {current}); l'interferenza usa il canale corrente {current}.",
     "interference_summary_diagnosis": "Diagnosi",
     "interference_diagnosis_low": "Il rischio principale è basso: la coesistenza tra AP non sembra critica in questo punto.",
     "interference_diagnosis_same_channel_strong": "Il problema principale è un interferente forte sullo stesso canale dell'AP servente.",

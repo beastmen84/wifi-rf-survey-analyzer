@@ -36,13 +36,14 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the text/i18n fit pass is 170
+- The current code test baseline after the AP channel-change interference pass is 174
   passing tests with `.\.venv\Scripts\python.exe -m pytest`.
-- Latest completed code work in this handoff: EN/IT user-facing titles,
-  buttons and compact labels were normalized for capitalized wording; compact
-  localized button widths now fit the active translation; point-capture warning
-  dialogs grow when translated button rows need more space; tests cover
-  capitalization and localized compact-button fit.
+- Latest completed code work in this handoff: clean AP channel-change sequences
+  are detected separately from AP Group conflicts. AP Group warnings still
+  ignore pure same-BSSID-set channel changes, but Interference now uses the
+  latest observed channel/width for clean AP group channel changes and exposes a
+  channel-change note in live Interference tooltips. Ambiguous channel sequences
+  are left uncorrected for Quality guidance.
 - Latest real-data validation used `test operativo V2.csv` /
   `test operativo V2_raw_data.scan` after all physical AP positions were added:
   25 points, 524 aggregate rows, 2529 raw rows, all raw samples from `lswifi`,
@@ -1167,6 +1168,8 @@ Current tests cover, among other things:
 - a `test` AP stronger than others is ignored;
 - the visible AP becomes dominant/serving;
 - test APs are counted as ignored in interference;
+- clean AP channel changes use the latest observed channel/width in
+  Interference, while ambiguous channel sequences keep measured channels;
 - role columns are preserved in outputs;
 - AP metadata/channel warnings;
 - UI scale and restart command helpers;
