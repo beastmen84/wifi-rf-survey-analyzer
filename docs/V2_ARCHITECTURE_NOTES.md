@@ -32,8 +32,9 @@ Current status:
   titles and compact labels use capitalized wording where appropriate, and
   localized compact controls are checked for fit;
 - clean AP channel changes during a survey are now modeled separately from AP
-  group conflicts: they do not create AP Group warnings, but Interference uses
-  the latest channel for that AP group and exposes a channel-change note;
+  group conflicts: they do not create AP Group warnings, but channel-sensitive
+  maps use the latest channel for that AP group and expose a channel-change
+  note where the UI has a tooltip;
 - the 2026-05-12 operational test survey is a useful baseline: all 25 points
   passed quality, all raw samples came from `lswifi`, relevant AP positions were
   complete, and the remaining findings are AP setup/anomaly diagnostics rather
@@ -290,6 +291,9 @@ Implemented:
 - live-map options are remembered per survey/map type;
 - AP Channels and Dominant AP use legend-controlled point labels
   (`Auto` / `All` / `None`) rather than labels drawn directly on the map;
+- AP Channels uses the final observed channel/width for clean AP channel
+  changes, matching Interference behavior while keeping ambiguous sequences as
+  measured;
 - discrete-map legends support click-to-highlight, double-click-to-focus and
   empty-map-click deselection;
 - tooltips use the newer compact Qt layout;
@@ -324,6 +328,8 @@ Implemented:
   matching the report-card order;
 - AP Channels all-band legend colors are band-aware, avoiding collisions between
   equal/ambiguous channel numbers across 2.4/5/6 GHz;
+- AP Channels PDF uses the same clean channel-change final-channel handling as
+  the live AP Channels map;
 - Dominant AP problem reports include AP position status/warnings, distance to
   the dominant AP and nearest physical AP context only for AP-position warning
   rows;
@@ -526,8 +532,8 @@ Current coverage includes:
 - manual group merge/split preservation;
 - role filtering;
 - channel-width overlap;
-- clean/ambiguous AP channel-change detection and Interference channel override
-  behavior;
+- clean/ambiguous AP channel-change detection plus final-channel override
+  behavior for Interference and AP Channels;
 - 6 GHz scan parsing, band-aware filters, legends and exports with synthetic
   hardware-like rows;
 - scanner detail fields and conservative AP metadata prefill;

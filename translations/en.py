@@ -350,7 +350,7 @@ TRANSLATIONS = {
     "interference_summary_interferer_dbm": "Interfering Signal",
     "interference_summary_test_ignored": "Ignored Test APs",
     "interference_channel_change": "Channel Change",
-    "interference_channel_change_note": "{ap} changed channel during the survey ({channels} -> {current}); interference uses current channel {current}.",
+    "interference_channel_change_note": "{ap} changed channel during the survey ({channels} -> {current}); channel-sensitive maps use current channel {current}.",
     "interference_summary_diagnosis": "Diagnosis",
     "interference_diagnosis_low": "The main risk is low: AP coexistence does not look critical at this point.",
     "interference_diagnosis_same_channel_strong": "The main issue is a strong interferer on the same channel as the serving AP.",

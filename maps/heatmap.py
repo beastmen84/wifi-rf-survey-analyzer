@@ -65,8 +65,7 @@ def collapse_heatmap_points(df, aggregation="max"):
 
 
 def get_channel_map_points(df, ssid, band, ap_group_map=None, ap_group_roles=None, ap_group_filter=None):
-    rows = df[df["ssid"].str.lower() == ssid.lower()].copy()
-    rows = filter_by_band(rows, band)
+    rows = df.copy()
     rows["x"] = pd.to_numeric(rows["x"], errors="coerce")
     rows["y"] = pd.to_numeric(rows["y"], errors="coerce")
     rows["channel"] = pd.to_numeric(rows["channel"], errors="coerce")
@@ -76,13 +75,16 @@ def get_channel_map_points(df, ssid, band, ap_group_map=None, ap_group_roles=Non
         rows["channel_width_mhz"] = pd.to_numeric(rows["channel_width_mhz"], errors="coerce")
     else:
         rows["channel_width_mhz"] = np.nan
-    rows = rows.dropna(subset=["timestamp", "x", "y", "channel", "signal_dbm", "bssid"])
+    rows = rows.dropna(subset=["timestamp", "x", "y", "channel", "signal_dbm", "ssid", "bssid"])
 
     if rows.empty:
         return rows
 
     rows = add_ap_group_metadata(rows, ap_group_map, ap_group_roles)
     rows = rows[rows["ap_role"] != AP_ROLE_TEST]
+    rows, _channel_changes = apply_clean_ap_channel_change_overrides(rows)
+    rows = filter_by_band(rows, band)
+    rows = rows[rows["ssid"].astype(str).str.lower() == ssid.lower()]
     if ap_group_filter:
         rows = rows[rows["ap_group"] == str(ap_group_filter)]
     if rows.empty:

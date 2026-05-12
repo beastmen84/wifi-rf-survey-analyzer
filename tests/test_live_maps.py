@@ -534,6 +534,45 @@ class LiveMapViewTests(unittest.TestCase):
         self.assertIn("changed channel during the survey", tooltip)
         self.assertIn("36 -&gt; 44", tooltip)
 
+    def test_live_channel_payload_uses_final_channel_and_tooltip_note_for_clean_change(self):
+        bssid = "70:4f:57:aa:bb:10"
+        groups = [build_manual_ap_group("office-ap", [bssid])]
+        group_map = serialize_ap_group_map(build_bssid_to_manual_group_map(groups))
+        rows = [
+            build_row("p1", "MAIN", bssid, -50, 36, band="5"),
+            build_row("p2", "MAIN", bssid, -49, 44, band="5"),
+        ]
+
+        payload = build_channel_payload(
+            rows_to_dataframe(rows),
+            MapConfig(
+                ssid="MAIN",
+                band="5",
+                map_type="channel",
+                point_label_mode="all",
+                ap_group_map=group_map,
+            ),
+            Image.new("RGB", (100, 100), "white"),
+            {
+                "channel_title": "AP channels",
+                "reference_ap": "AP",
+                "reference_channel": "Channel",
+                "ap_group_role": "Role",
+                "best": "Best",
+                "confidence": "Confidence",
+                "channel_change": "Channel Change",
+                "channel_change_note": "{ap} changed channel during the survey ({channels} -> {current}); channel-sensitive maps use current channel {current}.",
+            },
+            {},
+        )
+
+        self.assertEqual(
+            [point["legend_label"].split(" - ")[0].split(" / ")[0] for point in payload["point_infos"]],
+            ["CH 44", "CH 44"],
+        )
+        self.assertIn("Channel Change", payload["point_infos"][0]["tooltip"])
+        self.assertIn("36 -&gt; 44", payload["point_infos"][0]["tooltip"])
+
     def test_live_channel_point_labels_follow_auto_and_none_modes(self):
         rows = [
             build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -50, 1),

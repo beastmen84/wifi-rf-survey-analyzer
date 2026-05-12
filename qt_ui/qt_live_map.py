@@ -931,23 +931,35 @@ def build_live_tooltip(map_type, row, raw_rows, translations, aliases=None):
 
 
 def build_channel_tooltip(row, config, translations, aliases):
+    rows = [
+        ("SSID", config.ssid),
+        ("x/y", f"{format_value(row.get('x'))}, {format_value(row.get('y'))}"),
+        (
+            translations.get("reference_ap", "AP"),
+            format_ap_label(row.get("bssid", ""), aliases, row.get("ap_group", "")),
+        ),
+        (translations.get("ap_group_role", "Role"), format_ap_role(row.get("ap_role"), translations)),
+        (
+            translations.get("reference_channel", "Channel"),
+            format_channel_with_width(row.get("channel"), row.get("channel_width_mhz")),
+        ),
+        (translations.get("best", "Best"), f"{format_value(row.get('signal_dbm'))} dBm"),
+        (translations.get("confidence", "confidence"), format_row_confidence(row)),
+    ]
+    channel_change_note = build_single_channel_change_note(
+        row,
+        "",
+        row.get("bssid", ""),
+        row.get("ap_group", ""),
+        translations,
+        aliases,
+    )
+    if channel_change_note:
+        rows.append((translations.get("channel_change", "Channel Change"), channel_change_note))
+
     return build_html_tooltip(
         translations.get("channel_title", "AP channels"),
-        [
-            ("SSID", config.ssid),
-            ("x/y", f"{format_value(row.get('x'))}, {format_value(row.get('y'))}"),
-            (
-                translations.get("reference_ap", "AP"),
-                format_ap_label(row.get("bssid", ""), aliases, row.get("ap_group", "")),
-            ),
-            (translations.get("ap_group_role", "Role"), format_ap_role(row.get("ap_role"), translations)),
-            (
-                translations.get("reference_channel", "Channel"),
-                format_channel_with_width(row.get("channel"), row.get("channel_width_mhz")),
-            ),
-            (translations.get("best", "Best"), f"{format_value(row.get('signal_dbm'))} dBm"),
-            (translations.get("confidence", "confidence"), format_row_confidence(row)),
-        ],
+        rows,
         get_channel_color(row.get("channel", ""), get_channel_display_band(row, config.band)),
     )
 
@@ -1121,26 +1133,39 @@ def build_interference_channel_change_notes(row, translations, aliases):
         else:
             bssid = row.get("strongest_interferer_bssid", "")
             group = row.get("strongest_interferer_ap_group", "")
-        if format_value(bssid) == "-":
-            continue
-
-        current = format_value(row.get(f"{prefix}_channel_change_current_channel", ""))
-        previous = format_value(row.get(f"{prefix}_channel_change_previous_channels", ""))
-        if current == "-" or previous == "-":
-            continue
-
-        template = translations.get(
-            "channel_change_note",
-            "{ap} changed channel during the survey ({channels} -> {current}); interference uses current channel {current}.",
+        note = build_single_channel_change_note(
+            row,
+            f"{prefix}_",
+            bssid,
+            group,
+            translations,
+            aliases,
         )
-        note = template.format(
-            ap=format_ap_label(bssid, aliases, group),
-            channels=previous,
-            current=current,
-        )
-        if note not in notes:
+        if note and note not in notes:
             notes.append(note)
     return notes
+
+
+def build_single_channel_change_note(row, prefix, bssid, group, translations, aliases):
+    if str(row.get(f"{prefix}channel_change_status", "")) != "clean":
+        return ""
+    if format_value(bssid) == "-":
+        return ""
+
+    current = format_value(row.get(f"{prefix}channel_change_current_channel", ""))
+    previous = format_value(row.get(f"{prefix}channel_change_previous_channels", ""))
+    if current == "-" or previous == "-":
+        return ""
+
+    template = translations.get(
+        "channel_change_note",
+        "{ap} changed channel during the survey ({channels} -> {current}); current channel {current} is used.",
+    )
+    return template.format(
+        ap=format_ap_label(bssid, aliases, group),
+        channels=previous,
+        current=current,
+    )
 
 
 def format_value(value):

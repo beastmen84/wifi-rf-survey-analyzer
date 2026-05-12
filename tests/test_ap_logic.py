@@ -271,6 +271,31 @@ class InterferenceTests(unittest.TestCase):
         self.assertFalse(p1["serving_channel_adjusted_for_change"])
         self.assertEqual(p1["risk"], 100)
 
+    def test_channel_map_uses_final_channel_for_clean_ap_channel_change(self):
+        bssid = "70:4f:57:aa:bb:10"
+        groups = [build_manual_ap_group("office-ap", [bssid])]
+        group_map = build_bssid_to_manual_group_map(groups)
+        rows = [
+            build_row("p1", "MAIN", bssid, -50, 36, band="5"),
+            build_row("p2", "MAIN", bssid, -49, 44, band="5"),
+        ]
+
+        channel_df = get_channel_map_points(
+            rows_to_dataframe(rows),
+            "MAIN",
+            "5",
+            ap_group_map=tuple(sorted(group_map.items())),
+        )
+
+        p1 = channel_df[channel_df["timestamp"] == "p1"].iloc[0]
+        p2 = channel_df[channel_df["timestamp"] == "p2"].iloc[0]
+        self.assertEqual(p1["channel"], 44)
+        self.assertEqual(p1["channel_original"], 36)
+        self.assertTrue(p1["channel_adjusted_for_change"])
+        self.assertEqual(p1["channel_change_status"], AP_CHANNEL_CHANGE_CLEAN)
+        self.assertEqual(p2["channel"], 44)
+        self.assertFalse(p2["channel_adjusted_for_change"])
+
     def test_24ghz_interference_overlap_weights_are_ordered_by_channel_distance(self):
         self.assertEqual(channel_overlap_weight(1, 1, "2.4"), 1.0)
         self.assertEqual(channel_overlap_weight(1, 2, "2.4"), 0.8)
