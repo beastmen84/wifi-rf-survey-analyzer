@@ -23,6 +23,7 @@ from maps.heatmap import format_band_label, get_interference_data_quality
 INTERFERENCE_PROBLEM_RISK_THRESHOLD = 30
 INTERFERENCE_PROBLEM_REPORT_LIMIT = 12
 INTERFERENCE_PROBLEM_ROWS_PER_PAGE = 4
+DOMINANT_PROBLEM_REPORT_LIMIT = 14
 PROBLEM_REPORT_ROWS_PER_PAGE = 4
 
 
@@ -41,6 +42,14 @@ def get_interference_problem_df(risk_df):
 
 
 def annotate_interference_problem_numbers(ax, problem_df):
+    annotate_problem_numbers(ax, problem_df)
+
+
+def annotate_dominant_problem_numbers(ax, problem_df):
+    annotate_problem_numbers(ax, problem_df)
+
+
+def annotate_problem_numbers(ax, problem_df):
     for _index, row in problem_df.iterrows():
         try:
             x = float(row.get("x"))
@@ -280,9 +289,10 @@ def format_report_channel_with_width(channel, width):
 
 
 def build_dominant_problem_report_pages(dominant_df, config, tr, language, aliases):
+    problem_df = get_dominant_problem_df(dominant_df)
     group_labels = build_dominant_ap_group_labels(dominant_df, aliases)
     rows = []
-    for _index, row in dominant_df.iterrows():
+    for _index, row in problem_df.iterrows():
         issues = []
         if bool(row.get("roaming_overlap")):
             issues.append(tr("dominant_map_roaming_overlap"))
@@ -311,9 +321,26 @@ def build_dominant_problem_report_pages(dominant_df, config, tr, language, alias
         f"{tr('export_dominant_title')} - {config.ssid} - {format_band_label(config.band, language)}",
         [tr("interference_summary_point"), tr("dominant_map_legend_title"), tr("reference_delta"),
          tr("live_pdf_issue")],
-        rows[:14],
+        rows[:DOMINANT_PROBLEM_REPORT_LIMIT],
         tr("live_pdf_no_dominant_issues"),
     )
+
+
+def get_dominant_problem_df(dominant_df):
+    if dominant_df.empty:
+        return dominant_df.head(0).copy()
+
+    mask = (
+        dominant_df.get("roaming_overlap", pd.Series(False, index=dominant_df.index))
+        .fillna(False)
+        .astype(bool)
+    )
+    if "ap_position_warnings" in dominant_df:
+        mask = mask | dominant_df["ap_position_warnings"].fillna("").astype(str).str.len().gt(0)
+
+    problem_df = dominant_df[mask].head(DOMINANT_PROBLEM_REPORT_LIMIT).copy()
+    problem_df["report_number"] = range(1, len(problem_df) + 1)
+    return problem_df
 
 
 def build_problem_report_pages(title, subtitle, headers, rows, empty_message, rows_per_page=4):

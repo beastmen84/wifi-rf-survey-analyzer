@@ -36,10 +36,11 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the live-PDF validation pass is 163
+- The current code test baseline after the live-PDF validation pass is 165
   passing tests with `.\.venv\Scripts\python.exe -m pytest`.
-- Latest code commit before this documentation refresh:
-  `9a5eb02 Prefer lswifi for connected SSID lookup`.
+- Latest completed code work in this handoff: Dominant AP live-PDF problem
+  points now get map numbers matching the report cards, and the local venv was
+  audited for likely unused packages.
 - Latest real-data validation used `test operativo V2.csv` /
   `test operativo V2_raw_data.scan` after all physical AP positions were added:
   25 points, 524 aggregate rows, 2529 raw rows, all raw samples from `lswifi`,
@@ -1028,9 +1029,23 @@ Language:
 - A regenerated PDF review showed the Dominant AP position context should not
   be appended to plain roaming-overlap (`Delta <= 5 dB`) rows. It is now shown
   only when the row also has AP-position warnings.
+- Dominant AP live-PDF report points now use the same map/report attribution
+  pattern as Interference: a shared problem DataFrame filters rows with roaming
+  overlap or AP-position warnings, caps them at 14, assigns report numbers, and
+  draws matching square labels on the Dominant AP map. Tests cover helper order
+  and generated PDF map labels.
+- Venv package audit on 2026-05-12 found no broken requirements with
+  `pip check`. Likely removable runtime-unused packages are `ttkbootstrap`,
+  `charset-normalizer`, `scipy-stubs`, `optype`, and `numpy-typing-compat`.
+  `pyinstaller`, `pyinstaller-hooks-contrib`, `altgraph`, `pefile`, and
+  `pywin32-ctypes` are not app runtime dependencies but should be kept if this
+  venv remains the Windows executable build environment. No packages were
+  uninstalled during the audit.
 
 Recent commits:
 
+- `593ffc` Limit dominant PDF position context.
+- `8760b5c` Refine live PDF validation output.
 - `9a5eb02` Prefer lswifi for connected SSID lookup.
 - `b469b45` Refresh live legend fit on map changes.
 - `3a6b462` Restore live legend resizing and simplify scans.

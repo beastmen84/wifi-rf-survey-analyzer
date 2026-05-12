@@ -78,6 +78,7 @@ from maps.live_renderer import (
 )
 from exporting.live_pdf import (
     MapExportResult,
+    annotate_dominant_problem_numbers,
     annotate_interference_problem_numbers,
     build_channel_point_legend_items,
     build_dominant_marker_legend_items,
@@ -87,6 +88,7 @@ from exporting.live_pdf import (
     build_live_pdf_dominant_figure,
     build_problem_report_pages,
     generate_live_pdf_export,
+    get_dominant_problem_df,
     get_interference_problem_df,
 )
 import matplotlib.pyplot as plt

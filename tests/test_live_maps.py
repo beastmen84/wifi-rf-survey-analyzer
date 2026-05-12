@@ -1010,6 +1010,51 @@ class LivePdfExportTests(unittest.TestCase):
         finally:
             plt.close(fig)
 
+    def test_dominant_problem_numbers_follow_report_order(self):
+        dominant_df = rows_to_dataframe([
+            {"x": 10, "y": 20, "roaming_overlap": False, "ap_position_warnings": ""},
+            {"x": 30, "y": 40, "roaming_overlap": True, "ap_position_warnings": ""},
+            {
+                "x": 50,
+                "y": 60,
+                "roaming_overlap": False,
+                "ap_position_warnings": AP_POSITION_UNEXPECTED_DOMINANT,
+            },
+        ])
+        problem_df = get_dominant_problem_df(dominant_df)
+        fig, ax = plt.subplots()
+        try:
+            annotate_dominant_problem_numbers(ax, problem_df)
+            labels = [text.get_text() for text in ax.texts]
+            positions = [text.xy for text in ax.texts]
+
+            self.assertEqual(labels, ["1", "2"])
+            self.assertEqual(positions, [(30.0, 40.0), (50.0, 60.0)])
+        finally:
+            plt.close(fig)
+
+    def test_dominant_pdf_marks_problem_points_with_report_numbers(self):
+        rows = [
+            build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -50, 6, "2.4"),
+            build_row("p1", "MAIN", "80:11:22:33:44:10", -52, 6, "2.4"),
+        ]
+
+        fig, _dominant_df = build_live_pdf_dominant_figure(
+            rows_to_dataframe(rows),
+            Image.new("RGB", (120, 100), "white"),
+            MapConfig(ssid="MAIN", band="2.4", map_type="dominant"),
+            lambda key, **kwargs: translate("en", key, **kwargs),
+            "en",
+            {},
+            [],
+            None,
+        )
+        try:
+            map_labels = [text.get_text() for text in fig.axes[0].texts]
+            self.assertIn("1", map_labels)
+        finally:
+            plt.close(fig)
+
     def test_channel_pdf_omits_legend_when_point_labels_are_none(self):
         fig = build_live_pdf_channel_figure(
             rows_to_dataframe(self.build_live_pdf_rows()),

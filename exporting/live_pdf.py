@@ -46,12 +46,14 @@ from maps.rendering import (
 )
 from exporting.reports import (
     add_ap_position_report_columns,
+    annotate_dominant_problem_numbers,
     annotate_interference_problem_numbers,
     build_dominant_problem_report_pages,
     build_interference_problem_report_pages,
     build_interference_summary,
     build_problem_report_pages,
     format_report_value,
+    get_dominant_problem_df,
     get_interference_mode_label,
     get_interference_problem_df,
 )
@@ -407,6 +409,7 @@ def build_live_pdf_dominant_figure(df, bg_image, config, tr, language, aliases, 
             zorder=4,
         )
     draw_ap_position_markers(ax, ap_groups, aliases, "")
+    annotate_dominant_problem_numbers(ax, get_dominant_problem_df(dominant_df))
     legend_items = build_dominant_point_legend_items(dominant_df, config, aliases, color_map)
     if config.point_label_mode != "none":
         legend_items.extend(build_dominant_marker_legend_items(dominant_df, tr))
