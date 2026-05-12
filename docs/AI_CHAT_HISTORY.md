@@ -36,15 +36,18 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the AP metadata override layout pass is 182
+- The current code test baseline after the Survey Quality Dashboard guidance pass is 184
   passing tests with `.\.venv\Scripts\python.exe -m pytest`.
-- Latest completed code work in this handoff: AP metadata now has per-band
-  analysis-channel overrides. Clean AP channel changes still use the latest
-  observed channel/width by default in Interference and AP Channels, but the
-  user can force a known-good channel per AP group/band for channel-sensitive
-  live/PDF maps. Ambiguous channel sequences stay measured unless this explicit
-  manual override is configured, and live tooltips distinguish automatic and
-  manual channel decisions.
+- Latest completed code work in this handoff: Survey Quality Dashboard now opens
+  maximized, uses compact metric cards, includes sparse-data as a first-class
+  metric, separates point-rescan issues from AP setup diagnostics, and shows a
+  prioritized `What To Fix Next` panel.
+- AP metadata has per-band analysis-channel overrides. Clean AP channel changes
+  still use the latest observed channel/width by default in Interference and AP
+  Channels, but the user can force a known-good channel per AP group/band for
+  channel-sensitive live/PDF maps. Ambiguous channel sequences stay measured
+  unless this explicit manual override is configured, and live tooltips
+  distinguish automatic and manual channel decisions.
 - Latest real-data validation used `test operativo V2.csv` /
   `test operativo V2_raw_data.scan` after all physical AP positions were added:
   25 points, 524 aggregate rows, 2529 raw rows, all raw samples from `lswifi`,
@@ -193,7 +196,13 @@ Quality engine:
 - The points table has a quality column.
 - Tooltip for quality explains breakdown per relevant SSID when useful.
 - Survey Quality Dashboard summarizes points, good/review counts, missing
-  relevant networks, low confidence, unstable points, AP positions.
+  relevant networks, sparse data, low confidence, unstable points, AP positions
+  and AP metadata warnings.
+- The dashboard distinguishes scan-review counts from AP setup/anomaly
+  diagnostics, so setup-only AP findings no longer imply that measurement points
+  must be rescanned.
+- The dashboard includes a prioritized `What To Fix Next` panel and uses a
+  maximized, compact layout with full theme-accent table selection.
 
 ## Map Types And Rendering
 
@@ -1088,10 +1097,16 @@ Language:
   section, uses only channels actually observed for that AP group/band, disables
   unobserved bands, and drops stale override values that are not present in the
   survey observations. Full suite baseline is now 182 passed tests.
+- Reworked Survey Quality Dashboard as the next V2 quality pass: the dialog
+  opens maximized, metric cards are more compact, table selection uses the same
+  strong theme accent as Measurement Points/AP Group, sparse-data has its own
+  metric, setup-only AP diagnostics use setup wording instead of rescan wording,
+  and the old context panel was replaced with prioritized `What To Fix Next`
+  guidance. Full suite baseline is now 184 passed tests.
 
 Recent commits:
 
-- Current commit: Add AP analysis channel overrides.
+- Current commit: Rework survey quality recommendations.
 - `d85552a` Polish AP group filters.
 - `1aab53f` Align dominant report cards.
 - `59dfd76` Mark dominant PDF problem points.
@@ -1156,12 +1171,10 @@ Good next steps, in likely order:
 
 1. Rework Help structure/content now that the main Qt/V2 workflows are stable
    enough to document.
-2. Expand survey quality recommendations into clearer "what to fix next"
-   guidance.
-3. Improve combined/generated reporting beyond individual live-map exports.
-4. Decide whether mounting metadata should influence AP position warnings or
+2. Improve combined/generated reporting beyond individual live-map exports.
+3. Decide whether mounting metadata should influence AP position warnings or
    remain documentation only.
-5. Improve live map performance only if the user sees real lag on large surveys;
+4. Improve live map performance only if the user sees real lag on large surveys;
    do not trade away map quality prematurely.
 
 ## Verification Patterns Used
@@ -1190,6 +1203,7 @@ Current tests cover, among other things:
   channel-change sequences;
 - role columns are preserved in outputs;
 - AP metadata/channel warnings;
+- survey quality recommendation ordering plus scan-review/AP setup status split;
 - UI scale and restart command helpers;
 - dialog/windowing behavior;
 - AP marker icon scaling;

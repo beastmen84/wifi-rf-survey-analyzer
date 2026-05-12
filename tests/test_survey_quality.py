@@ -226,6 +226,39 @@ class QualityTests(unittest.TestCase):
         self.assertIn("ap-1", summary["ap_metadata_warning_labels"])
         self.assertIn("+1", summary["ap_metadata_warning_labels"])
 
+    def test_quality_summary_separates_scan_review_from_ap_setup_warnings(self):
+        row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)
+        app = FakeQualityApp([row], relevant_ssids={"MAIN"})
+
+        summary = build_summary(
+            app,
+            [
+                {"status": QUALITY_SPARSE_DATA, "needs_review": True, "ap_position_warning_count": 0},
+                {"status": QUALITY_GOOD, "needs_review": True, "ap_position_warning_count": 1},
+            ],
+            [],
+            [],
+        )
+
+        self.assertEqual(summary["review_points"], 2)
+        self.assertEqual(summary["scan_review_points"], 1)
+        self.assertEqual(summary["sparse_data"], 1)
+        self.assertEqual(summary["ap_position_warnings"], 1)
+        self.assertEqual(summary["recommendations"][0]["title"], "quality_dashboard_fix_sparse_title")
+        self.assertEqual(quality_status_text_keys(summary)[0], "quality_dashboard_status_review_title")
+
+    def test_quality_status_uses_setup_message_when_only_ap_diagnostics_are_open(self):
+        summary = {
+            "total_points": 12,
+            "review_points": 3,
+            "scan_review_points": 0,
+            "ap_position_warnings": 3,
+            "ap_metadata_warnings": 0,
+            "ap_missing_positions": 0,
+        }
+
+        self.assertEqual(quality_status_text_keys(summary)[0], "quality_dashboard_status_setup_title")
+
 
 class SurveyPointSummaryTests(unittest.TestCase):
     def test_best_signal_prefers_relevant_networks_when_available(self):

@@ -1360,11 +1360,13 @@ class WifiHeatmapQtApp(
                 background: {palette["selection"]};
                 color: {palette["text"]};
             }}
-            QTableWidget#measurementPointsTable {{
+            QTableWidget#measurementPointsTable,
+            QTableWidget#qualityDashboardTable {{
                 selection-background-color: {palette["metric_info"]};
                 selection-color: #FFFFFF;
             }}
-            QTableWidget#measurementPointsTable::item:selected {{
+            QTableWidget#measurementPointsTable::item:selected,
+            QTableWidget#qualityDashboardTable::item:selected {{
                 background: {palette["metric_info"]};
                 color: #FFFFFF;
                 border-bottom: 1px solid {palette["metric_info"]};

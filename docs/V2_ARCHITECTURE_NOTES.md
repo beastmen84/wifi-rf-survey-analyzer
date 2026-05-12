@@ -42,6 +42,8 @@ Current status:
   passed quality, all raw samples came from `lswifi`, relevant AP positions were
   complete, and the remaining findings are AP setup/anomaly diagnostics rather
   than point-rescan problems.
+- the Survey Quality Dashboard now separates point-rescan issues from AP setup
+  diagnostics and includes a prioritized "what to fix next" panel.
 
 ## Implemented V2 Foundation
 
@@ -135,9 +137,17 @@ Implemented:
 - summary of good/review points;
 - missing relevant network information;
 - low confidence/unstable point information;
+- sparse-data count surfaced as its own dashboard metric;
 - AP positioning awareness;
 - AP metadata consistency checks;
-- AP configuration warning list.
+- AP configuration warning list;
+- prioritized "what to fix next" guidance for missing relevant networks, sparse
+  scans, low confidence, unstable signal, AP position warnings, missing AP
+  positions and AP metadata warnings;
+- setup-only AP diagnostics use a setup warning state instead of implying that
+  measurement points need to be rescanned;
+- fullscreen dashboard presentation, compact metric cards and stronger table
+  selection contrast.
 
 ### AP Group Manager
 
@@ -496,6 +506,12 @@ Keep this rule:
 
 ### 4. Survey Quality Engine Expansion
 
+Current implemented expansion:
+
+- the dashboard now provides prioritized "what to fix next" guidance;
+- sparse-data points are counted explicitly;
+- scan-review counts are separated from AP setup diagnostics.
+
 Possible additions:
 
 - point spacing quality;
@@ -505,7 +521,7 @@ Possible additions:
 - "what to fix next" guidance for clean/ambiguous AP channel changes detected
   over time;
 - likely mesh/roaming ambiguity detection;
-- "points to rescan" recommendation list.
+- richer point-spacing or area-completeness recommendation lists.
 
 ### 5. Live Map Validation And Final Polish
 
@@ -593,21 +609,19 @@ Near-term:
    exposes a concrete issue.
 2. Rework Help structure/content now that the main Qt/V2 workflows are stable
    enough to document.
-3. Expand survey quality recommendations into clearer "what to fix next"
-   guidance.
-4. Improve combined/generated reporting beyond individual live-map exports.
+3. Improve combined/generated reporting beyond individual live-map exports.
 
 Medium-term:
 
-5. Use AP metadata more deeply in diagnostics where the rule is clear.
-6. Validate 6 GHz behavior with real 6E/7 hardware data.
-7. Tune performance only after larger real surveys show measurable lag.
+4. Use AP metadata more deeply in diagnostics where the rule is clear.
+5. Validate 6 GHz behavior with real 6E/7 hardware data.
+6. Tune performance only after larger real surveys show measurable lag.
 
 Long-term:
 
-8. Refine the AP physical/radio/BSSID model only if real deployments require it.
-9. Add advanced RF/AI-assisted suggestions.
-10. Add richer deployment/reporting outputs.
+7. Refine the AP physical/radio/BSSID model only if real deployments require it.
+8. Add advanced RF/AI-assisted suggestions.
+9. Add richer deployment/reporting outputs.
 
 ## Final Vision
 

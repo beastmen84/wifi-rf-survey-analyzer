@@ -51,6 +51,8 @@ from maps.quality import (
     parse_float,
 )
 from qt_ui.scaling import widget_px
+from qt_ui.qt_theme import QT_THEMES
+from qt_ui.qt_windowing import SKIP_CENTERING_PROPERTY
 
 
 QUALITY_SEVERITY = {
@@ -74,13 +76,15 @@ class QualityDashboardDialog(QDialog):
         self.app = app
         self.rows = rows
         self.filtered_rows = []
+        self.setObjectName("qualityDashboardDialog")
+        self.setProperty(SKIP_CENTERING_PROPERTY, True)
         self.setWindowTitle(app.tr("quality_dashboard_title"))
-        self.resize(widget_px(self, 1420), widget_px(self, 800))
-        self.setMinimumSize(widget_px(self, 1180), widget_px(self, 700))
+        self.resize(widget_px(self, 1480), widget_px(self, 860))
+        self.setMinimumSize(widget_px(self, 1180), widget_px(self, 720))
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(widget_px(self, 14), widget_px(self, 14), widget_px(self, 14), widget_px(self, 14))
-        layout.setSpacing(widget_px(self, 10))
+        layout.setSpacing(widget_px(self, 8))
 
         hint = QLabel(app.tr("quality_dashboard_hint"))
         hint.setObjectName("mutedText")
@@ -92,8 +96,11 @@ class QualityDashboardDialog(QDialog):
         layout.addLayout(self.build_controls())
 
         self.table = QTableWidget(0, 9)
+        self.table.setObjectName("qualityDashboardTable")
         self.table.setAlternatingRowColors(True)
         self.table.setShowGrid(False)
+        self.table.setWordWrap(False)
+        self.table.setTextElideMode(Qt.TextElideMode.ElideRight)
         self.table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.table.verticalHeader().setVisible(False)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
@@ -127,43 +134,24 @@ class QualityDashboardDialog(QDialog):
         panel = QFrame()
         panel.setObjectName("summaryPanel")
         layout = QVBoxLayout(panel)
-        layout.setContentsMargins(widget_px(self, 14), widget_px(self, 10), widget_px(self, 14), widget_px(self, 10))
-        layout.setSpacing(widget_px(self, 4))
+        layout.setContentsMargins(widget_px(self, 14), widget_px(self, 8), widget_px(self, 14), widget_px(self, 8))
+        layout.setSpacing(widget_px(self, 3))
 
-        title_key, message_key, severity = self.status_text_keys(summary)
+        title_key, message_key, severity = quality_status_text_keys(summary)
         title = QLabel(self.app.tr(title_key))
         title.setObjectName(f"metricValue_{severity}")
-        message = QLabel(self.app.tr(message_key, count=summary["review_points"], total=summary["total_points"]))
+        message = QLabel(
+            self.app.tr(
+                message_key,
+                count=summary.get("scan_review_points", summary["review_points"]),
+                total=summary["total_points"],
+            )
+        )
         message.setObjectName("mutedText")
         message.setWordWrap(True)
         layout.addWidget(title)
         layout.addWidget(message)
         return panel
-
-    def status_text_keys(self, summary):
-        if summary["review_points"]:
-            return (
-                "quality_dashboard_status_review_title",
-                "quality_dashboard_status_review_message",
-                "warning",
-            )
-        if summary["ap_metadata_warnings"] or summary["ap_missing_positions"]:
-            return (
-                "quality_dashboard_status_setup_title",
-                "quality_dashboard_status_setup_message",
-                "warning",
-            )
-        if summary["total_points"] < 5:
-            return (
-                "quality_dashboard_status_early_title",
-                "quality_dashboard_status_early_message",
-                "info",
-            )
-        return (
-            "quality_dashboard_status_ok_title",
-            "quality_dashboard_status_ok_message",
-            "good",
-        )
 
     def configure_table_columns(self):
         header = self.table.horizontalHeader()
@@ -178,23 +166,24 @@ class QualityDashboardDialog(QDialog):
         layout = QHBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(widget_px(self, 10))
-        layout.addWidget(self.build_summary_panel(summary), 3)
-        layout.addWidget(self.build_context_panel(summary), 2)
+        layout.addWidget(self.build_summary_panel(summary), 4)
+        layout.addWidget(self.build_recommendations_panel(summary), 3)
         return panel
 
     def build_summary_panel(self, summary):
         panel = QFrame()
         panel.setObjectName("summaryPanel")
         grid = QGridLayout(panel)
-        grid.setContentsMargins(widget_px(self, 10), widget_px(self, 10), widget_px(self, 10), widget_px(self, 10))
-        grid.setHorizontalSpacing(widget_px(self, 7))
-        grid.setVerticalSpacing(widget_px(self, 7))
+        grid.setContentsMargins(widget_px(self, 9), widget_px(self, 9), widget_px(self, 9), widget_px(self, 9))
+        grid.setHorizontalSpacing(widget_px(self, 6))
+        grid.setVerticalSpacing(widget_px(self, 6))
 
         metrics = [
             ("quality_dashboard_metric_points", summary["total_points"], "info"),
             ("quality_dashboard_metric_ok", summary["good_points"], "good"),
             ("quality_dashboard_metric_review", summary["review_points"], "warning"),
             ("quality_dashboard_metric_missing", summary["missing_relevant"], "danger"),
+            ("quality_dashboard_metric_sparse", summary["sparse_data"], "warning"),
             ("quality_dashboard_metric_low_confidence", summary["low_confidence"], "warning"),
             ("quality_dashboard_metric_unstable", summary["unstable"], "warning"),
             ("quality_dashboard_metric_ap_position_warnings", summary["ap_position_warnings"], "warning"),
@@ -202,79 +191,100 @@ class QualityDashboardDialog(QDialog):
             ("quality_dashboard_metric_ap_metadata_warnings", summary["ap_metadata_warnings"], "warning"),
         ]
 
+        columns = 4
         for index, (label_key, value, severity) in enumerate(metrics):
             metric = self.create_metric_box(self.app.tr(label_key), value, severity if value else "good")
-            metric.setMinimumHeight(widget_px(self, 74))
-            grid.addWidget(metric, index // 3, index % 3)
-            grid.setColumnStretch(index % 3, 1)
+            metric.setMinimumHeight(widget_px(self, 50))
+            grid.addWidget(metric, index // columns, index % columns)
+            grid.setColumnStretch(index % columns, 1)
 
         return panel
 
     def create_metric_box(self, label, value, severity):
         box = QFrame()
         box.setObjectName("metricBox")
-        layout = QVBoxLayout(box)
-        layout.setContentsMargins(widget_px(self, 10), widget_px(self, 8), widget_px(self, 10), widget_px(self, 8))
+        layout = QHBoxLayout(box)
+        layout.setContentsMargins(widget_px(self, 9), widget_px(self, 6), widget_px(self, 9), widget_px(self, 6))
+        layout.setSpacing(widget_px(self, 8))
         label_widget = QLabel(label)
         label_widget.setObjectName("mutedText")
         label_widget.setWordWrap(True)
+        label_widget.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         value_widget = QLabel(str(value))
         value_widget.setObjectName(f"metricValue_{severity}")
+        value_widget.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         layout.addWidget(label_widget)
-        layout.addWidget(value_widget)
+        layout.addWidget(value_widget, 0)
         return box
 
-    def build_context_panel(self, summary):
+    def build_recommendations_panel(self, summary):
         panel = QFrame()
         panel.setObjectName("summaryPanel")
-        grid = QGridLayout(panel)
-        grid.setContentsMargins(widget_px(self, 12), widget_px(self, 10), widget_px(self, 12), widget_px(self, 10))
-        grid.setHorizontalSpacing(widget_px(self, 10))
-        grid.setVerticalSpacing(widget_px(self, 7))
-        self.add_context_row(
-            grid,
-            0,
-            "quality_dashboard_context_relevant_networks",
-            summary["relevant_networks"],
-        )
-        self.add_context_row(
-            grid,
-            1,
-            "quality_dashboard_context_ap_positions",
-            summary["ap_positions"],
-        )
-        self.add_context_row(
-            grid,
-            2,
-            "quality_dashboard_context_test_aps",
-            summary["test_aps"],
-        )
-        self.add_context_row(
-            grid,
-            3,
-            "quality_dashboard_context_missing_positions",
-            summary["missing_position_labels"],
-        )
-        self.add_context_row(
-            grid,
-            4,
-            "quality_dashboard_context_config_warnings",
-            summary["ap_metadata_warning_labels"],
-        )
-        grid.setColumnStretch(0, 0)
-        grid.setColumnStretch(1, 1)
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(widget_px(self, 12), widget_px(self, 9), widget_px(self, 12), widget_px(self, 9))
+        layout.setSpacing(widget_px(self, 6))
+
+        title = QLabel(self.app.tr("quality_dashboard_fix_next_title"))
+        title.setObjectName("sectionTitle")
+        layout.addWidget(title)
+
+        recommendations = summary.get("recommendations", [])
+        visible_recommendations = recommendations[:4]
+        for recommendation in visible_recommendations:
+            layout.addWidget(self.create_recommendation_card(recommendation))
+
+        if len(recommendations) > len(visible_recommendations):
+            more = QLabel(self.app.tr("quality_dashboard_more_issues", count=len(recommendations) - len(visible_recommendations)))
+            more.setObjectName("mutedText")
+            layout.addWidget(more)
+
+        for line in summary.get("context_lines", []):
+            context = QLabel(line)
+            context.setObjectName("mutedText")
+            context.setWordWrap(True)
+            context.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            layout.addWidget(context)
+
+        layout.addStretch(1)
         return panel
 
-    def add_context_row(self, grid, row, label_key, value):
-        label = QLabel(self.app.tr(label_key))
-        label.setObjectName("mutedText")
-        label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
-        value_label = QLabel(str(value))
-        value_label.setWordWrap(True)
-        value_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        value_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        grid.addWidget(label, row, 0)
-        grid.addWidget(value_label, row, 1)
+    def create_recommendation_card(self, recommendation):
+        palette = QT_THEMES.get(getattr(self.app, "theme", "light"), QT_THEMES["light"])
+        severity = recommendation.get("severity", "info")
+        accent = palette.get(
+            {
+                "good": "metric_good",
+                "warning": "metric_warning",
+                "danger": "metric_danger",
+                "info": "metric_info",
+            }.get(severity, "metric_info")
+        )
+
+        card = QFrame()
+        card.setObjectName("qualityRecommendationRow")
+        card.setStyleSheet(
+            f"""
+            QFrame#qualityRecommendationRow {{
+                background: {palette["panel_alt"]};
+                border: 1px solid {palette["border"]};
+                border-left: {widget_px(self, 4)}px solid {accent};
+                border-radius: {widget_px(self, 5)}px;
+            }}
+            """
+        )
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(widget_px(self, 9), widget_px(self, 5), widget_px(self, 8), widget_px(self, 6))
+        layout.setSpacing(widget_px(self, 2))
+
+        title = QLabel(recommendation.get("title", ""))
+        title.setStyleSheet(f"color: {accent}; font-weight: 700; background: transparent;")
+        title.setWordWrap(True)
+        detail = QLabel(recommendation.get("detail", ""))
+        detail.setObjectName("mutedText")
+        detail.setWordWrap(True)
+        layout.addWidget(title)
+        layout.addWidget(detail)
+        return card
 
     def build_controls(self):
         controls = QHBoxLayout()
@@ -318,6 +328,7 @@ class QualityDashboardDialog(QDialog):
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 else:
                     item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                    item.setToolTip(str(value))
                 self.table.setItem(row_index, column_index, item)
             self.table.setRowHeight(row_index, widget_px(self, 38))
 
@@ -374,7 +385,9 @@ def open_qt_quality_dashboard(app):
     )
     rows = build_dashboard_rows(app, point_summaries, quality_by_point_id, ap_position_by_point)
     summary = build_summary(app, rows, ap_metadata_warnings, ap_groups)
-    QualityDashboardDialog(app, rows, summary).exec()
+    dialog = QualityDashboardDialog(app, rows, summary)
+    dialog.showMaximized()
+    dialog.exec()
 
 
 def build_dashboard_rows(app, point_summaries, quality_by_point_id, ap_position_by_point=None):
@@ -477,13 +490,15 @@ def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None):
     if not missing_position_labels:
         missing_position_labels = app.tr("quality_dashboard_missing_positions_none")
 
-    return {
+    summary = {
         "total_points": len(rows),
         "good_points": sum(1 for row in rows if not row["needs_review"]),
         "review_points": sum(1 for row in rows if row["needs_review"]),
+        "scan_review_points": sum(1 for row in rows if row["status"] != QUALITY_GOOD),
         "missing_relevant": status_counts.get(QUALITY_MISSING_RELEVANT, 0),
         "low_confidence": status_counts.get(QUALITY_LOW_CONFIDENCE, 0),
         "unstable": status_counts.get(QUALITY_UNSTABLE_SIGNAL, 0),
+        "sparse_data": status_counts.get(QUALITY_SPARSE_DATA, 0),
         "ap_position_warnings": sum(1 for row in rows if row.get("ap_position_warning_count", 0) > 0),
         "ap_missing_positions": len(missing_position_groups),
         "missing_position_labels": missing_position_labels,
@@ -493,6 +508,137 @@ def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None):
         "ap_metadata_warnings": len(ap_metadata_warnings),
         "ap_metadata_warning_labels": format_ap_metadata_warning_labels(app, ap_metadata_warnings),
     }
+    summary["recommendations"] = build_quality_recommendations(app, summary)
+    summary["context_lines"] = build_quality_context_lines(app, summary)
+    return summary
+
+
+def quality_status_text_keys(summary):
+    if summary.get("scan_review_points", summary.get("review_points", 0)):
+        return (
+            "quality_dashboard_status_review_title",
+            "quality_dashboard_status_review_message",
+            "warning",
+        )
+    if (
+        summary.get("ap_position_warnings", 0)
+        or summary.get("ap_metadata_warnings", 0)
+        or summary.get("ap_missing_positions", 0)
+    ):
+        return (
+            "quality_dashboard_status_setup_title",
+            "quality_dashboard_status_setup_message",
+            "warning",
+        )
+    if summary["total_points"] < 5:
+        return (
+            "quality_dashboard_status_early_title",
+            "quality_dashboard_status_early_message",
+            "info",
+        )
+    return (
+        "quality_dashboard_status_ok_title",
+        "quality_dashboard_status_ok_message",
+        "good",
+    )
+
+
+def build_quality_recommendations(app, summary):
+    recommendations = []
+
+    def add(count, title_key, detail_key, severity, **kwargs):
+        if not count:
+            return
+        recommendations.append({
+            "severity": severity,
+            "title": app.tr(title_key),
+            "detail": app.tr(
+                detail_key,
+                count=count,
+                total=summary["total_points"],
+                **kwargs,
+            ),
+        })
+
+    add(
+        summary["missing_relevant"],
+        "quality_dashboard_fix_missing_title",
+        "quality_dashboard_fix_missing_detail",
+        "danger",
+    )
+    add(
+        summary["sparse_data"],
+        "quality_dashboard_fix_sparse_title",
+        "quality_dashboard_fix_sparse_detail",
+        "warning",
+    )
+    add(
+        summary["low_confidence"],
+        "quality_dashboard_fix_low_confidence_title",
+        "quality_dashboard_fix_low_confidence_detail",
+        "warning",
+    )
+    add(
+        summary["unstable"],
+        "quality_dashboard_fix_unstable_title",
+        "quality_dashboard_fix_unstable_detail",
+        "warning",
+    )
+    add(
+        summary["ap_position_warnings"],
+        "quality_dashboard_fix_ap_position_title",
+        "quality_dashboard_fix_ap_position_detail",
+        "warning",
+    )
+    add(
+        summary["ap_missing_positions"],
+        "quality_dashboard_fix_ap_missing_title",
+        "quality_dashboard_fix_ap_missing_detail",
+        "warning",
+        names=summary["missing_position_labels"],
+    )
+    add(
+        summary["ap_metadata_warnings"],
+        "quality_dashboard_fix_ap_metadata_title",
+        "quality_dashboard_fix_ap_metadata_detail",
+        "warning",
+        details=summary["ap_metadata_warning_labels"],
+    )
+
+    if not recommendations:
+        if summary["total_points"] < 5:
+            recommendations.append({
+                "severity": "info",
+                "title": app.tr("quality_dashboard_fix_more_points_title"),
+                "detail": app.tr(
+                    "quality_dashboard_fix_more_points_detail",
+                    total=summary["total_points"],
+                ),
+            })
+        else:
+            recommendations.append({
+                "severity": "good",
+                "title": app.tr("quality_dashboard_fix_ready_title"),
+                "detail": app.tr("quality_dashboard_fix_ready_detail"),
+            })
+
+    return recommendations
+
+
+def build_quality_context_lines(app, summary):
+    return [
+        app.tr(
+            "quality_dashboard_context_compact_top",
+            networks=summary["relevant_networks"],
+            positions=summary["ap_positions"],
+            test_aps=summary["test_aps"],
+        ),
+        app.tr(
+            "quality_dashboard_context_compact_bottom",
+            missing=summary["missing_position_labels"],
+            config=summary["ap_metadata_warning_labels"],
+        ),
+    ]
 
 
 def filter_ap_groups_for_relevant_ssids(app, ap_groups):
