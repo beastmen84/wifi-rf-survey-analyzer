@@ -15,14 +15,15 @@ The project focuses on practical analysis from live Wi-Fi measurements collected
 - Delete the selected point or the last point.
 - Pan, zoom, and fit the floorplan.
 - Save on demand, with dirty-state tracking and save prompt on close.
-- Export generated maps in the same folder as the saved survey CSV.
+- Export live-map PDF reports in the same folder as the saved survey CSV.
 
 ### User Interface
 
-- PySide6 UI with a lightweight launcher in `main.py` and the main workspace in `qt_app.py`.
+- PySide6 UI with a lightweight launcher in `main.py` and the main workspace in `qt_ui/qt_app.py`.
+- Source modules are grouped by domain under packages such as `qt_ui/`, `maps/`, `ap/`, `wifi/`, `exporting/`, `survey/`, and `app_core/`.
 - Start screen with new/open/exit actions and visual mouse shortcut help.
 - Main UI split into survey and live map tabs.
-- Toolbar controls for saving, opening CSV, AP aliases, scale calibration, help, map generation, theme, and language.
+- Toolbar controls for saving, opening CSV, AP groups, scale calibration, help, live PDF export, theme, and language.
 - English and Italian language selector.
 - Theme selector.
 - Help dialog with workflow, live map, heatmap, and scan guidance.

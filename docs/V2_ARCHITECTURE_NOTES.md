@@ -299,6 +299,8 @@ Implemented:
 - Qt modules live under the `qt_ui/` package; `qt_ui/qt_app.py` contains the
   main workspace shell while workflow-specific mixins cover session, floorplan,
   AP, live map, settings and point-table behavior;
+- non-UI modules are grouped by domain: `app_core/`, `ap/`, `wifi/`,
+  `maps/`, `exporting/`, `survey/` and `translations/`;
 - legacy Tkinter entry points and Tk dialogs have been retired from the active
   codebase;
 - the launcher imports the heavier workspace module in a background Qt worker
