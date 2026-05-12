@@ -36,12 +36,12 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the AP Group Manager polish pass is 166
+- The current code test baseline after the global Qt style polish pass is 167
   passing tests with `.\.venv\Scripts\python.exe -m pytest`.
-- Latest completed code work in this handoff: AP Group Manager/BSSID
-  Management filter rows were tightened, BSSID unassigned filtering was covered
-  by tests, and AP Group dialog scrollbars were styled instead of using native
-  Windows scrollbars.
+- Latest completed code work in this handoff: styled Qt scrollbars were moved
+  into a shared theme helper and applied to the workspace, startup window, file
+  dialogs, and AP Group dialogs; Measurement Points selection now uses the
+  theme accent with white text.
 - Latest real-data validation used `test operativo V2.csv` /
   `test operativo V2_raw_data.scan` after all physical AP positions were added:
   25 points, 524 aggregate rows, 2529 raw rows, all raw samples from `lswifi`,
@@ -1050,9 +1050,15 @@ Language:
   covered the `Unassigned` BSSID scope with a UI test, and added theme-colored
   rounded Qt scrollbar styling to avoid native Windows scrollbar chrome in the
   AP group dialogs.
+- The scrollbar styling was then promoted to shared Qt theme code and reused by
+  the main workspace, startup window, centered file dialogs, and AP Group
+  dialogs. The Measurement Points table now has its own object name and uses
+  the full theme accent plus white text for selected rows, matching the AP
+  Group table contrast.
 
 Recent commits:
 
+- `d85552a` Polish AP group filters.
 - `1aab53f` Align dominant report cards.
 - `59dfd76` Mark dominant PDF problem points.
 - `593ffc` Limit dominant PDF position context.

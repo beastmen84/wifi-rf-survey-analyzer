@@ -108,3 +108,65 @@ QT_THEMES = {
         "selection": "#39483E",
     },
 }
+
+
+def build_scrollbar_stylesheet(palette, scale_px, selector_prefix=""):
+    prefix = f"{selector_prefix} " if selector_prefix else ""
+    return f"""
+            {prefix}QScrollBar:vertical {{
+                background: transparent;
+                width: {scale_px(13)}px;
+                margin: {scale_px(3)}px {scale_px(2)}px {scale_px(3)}px {scale_px(2)}px;
+                border: 0;
+            }}
+            {prefix}QScrollBar::handle:vertical {{
+                background: {palette["badge_border"]};
+                border-radius: {scale_px(5)}px;
+                min-height: {scale_px(36)}px;
+            }}
+            {prefix}QScrollBar::handle:vertical:hover {{
+                background: {palette["metric_info"]};
+            }}
+            {prefix}QScrollBar::add-line:vertical,
+            {prefix}QScrollBar::sub-line:vertical {{
+                height: 0;
+                border: 0;
+                background: transparent;
+            }}
+            {prefix}QScrollBar::add-page:vertical,
+            {prefix}QScrollBar::sub-page:vertical {{
+                background: transparent;
+            }}
+            {prefix}QScrollBar:horizontal {{
+                background: transparent;
+                height: {scale_px(13)}px;
+                margin: {scale_px(2)}px {scale_px(3)}px {scale_px(2)}px {scale_px(3)}px;
+                border: 0;
+            }}
+            {prefix}QScrollBar::handle:horizontal {{
+                background: {palette["badge_border"]};
+                border-radius: {scale_px(5)}px;
+                min-width: {scale_px(36)}px;
+            }}
+            {prefix}QScrollBar::handle:horizontal:hover {{
+                background: {palette["metric_info"]};
+            }}
+            {prefix}QScrollBar::add-line:horizontal,
+            {prefix}QScrollBar::sub-line:horizontal {{
+                width: 0;
+                border: 0;
+                background: transparent;
+            }}
+            {prefix}QScrollBar::add-page:horizontal,
+            {prefix}QScrollBar::sub-page:horizontal {{
+                background: transparent;
+            }}
+            {prefix}QScrollBar::up-arrow:vertical,
+            {prefix}QScrollBar::down-arrow:vertical,
+            {prefix}QScrollBar::left-arrow:horizontal,
+            {prefix}QScrollBar::right-arrow:horizontal {{
+                width: 0;
+                height: 0;
+                background: transparent;
+            }}
+            """

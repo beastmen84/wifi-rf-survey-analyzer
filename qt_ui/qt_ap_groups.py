@@ -46,7 +46,7 @@ from ap.groups import (
     normalize_ap_role,
     normalize_bssid,
 )
-from qt_ui.qt_theme import QT_THEMES
+from qt_ui.qt_theme import QT_THEMES, build_scrollbar_stylesheet
 from qt_ui.scaling import widget_font, widget_px
 
 
@@ -395,62 +395,7 @@ class APGroupManagerDialog(QDialog):
                 border: 1px solid {palette["border"]};
                 border-radius: {s(5)}px;
             }}
-            QScrollBar:vertical {{
-                background: transparent;
-                width: {s(13)}px;
-                margin: {s(3)}px {s(2)}px {s(3)}px {s(2)}px;
-                border: 0;
-            }}
-            QScrollBar::handle:vertical {{
-                background: {palette["badge_border"]};
-                border-radius: {s(5)}px;
-                min-height: {s(36)}px;
-            }}
-            QScrollBar::handle:vertical:hover {{
-                background: {palette["metric_info"]};
-            }}
-            QScrollBar::add-line:vertical,
-            QScrollBar::sub-line:vertical {{
-                height: 0;
-                border: 0;
-                background: transparent;
-            }}
-            QScrollBar::add-page:vertical,
-            QScrollBar::sub-page:vertical {{
-                background: transparent;
-            }}
-            QScrollBar:horizontal {{
-                background: transparent;
-                height: {s(13)}px;
-                margin: {s(2)}px {s(3)}px {s(2)}px {s(3)}px;
-                border: 0;
-            }}
-            QScrollBar::handle:horizontal {{
-                background: {palette["badge_border"]};
-                border-radius: {s(5)}px;
-                min-width: {s(36)}px;
-            }}
-            QScrollBar::handle:horizontal:hover {{
-                background: {palette["metric_info"]};
-            }}
-            QScrollBar::add-line:horizontal,
-            QScrollBar::sub-line:horizontal {{
-                width: 0;
-                border: 0;
-                background: transparent;
-            }}
-            QScrollBar::add-page:horizontal,
-            QScrollBar::sub-page:horizontal {{
-                background: transparent;
-            }}
-            QScrollBar::up-arrow:vertical,
-            QScrollBar::down-arrow:vertical,
-            QScrollBar::left-arrow:horizontal,
-            QScrollBar::right-arrow:horizontal {{
-                width: 0;
-                height: 0;
-                background: transparent;
-            }}
+            {build_scrollbar_stylesheet(palette, s)}
             QTableWidget::item {{
                 border: 0;
                 border-bottom: 1px solid {palette["border"]};

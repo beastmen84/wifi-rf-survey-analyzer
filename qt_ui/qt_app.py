@@ -59,7 +59,7 @@ from qt_ui.qt_relevant_networks import (
 )
 from qt_ui.qt_survey_points import SurveyPointTableMixin
 from qt_ui.qt_session_workflow import SurveySessionWorkflowMixin
-from qt_ui.qt_theme import QT_THEMES
+from qt_ui.qt_theme import QT_THEMES, build_scrollbar_stylesheet
 from qt_ui.qt_windowing import (
     install_dialog_centering,
 )
@@ -510,6 +510,7 @@ class WifiHeatmapQtApp(
         table_layout.setSpacing(self.spx(8))
 
         self.points_table = QTableWidget(0, 8)
+        self.points_table.setObjectName("measurementPointsTable")
         self.points_table.setAlternatingRowColors(True)
         self.points_table.setShowGrid(False)
         self.points_table.setWordWrap(False)
@@ -1346,10 +1347,20 @@ class WifiHeatmapQtApp(
                 background: {palette["selection"]};
                 color: {palette["text"]};
             }}
+            QTableWidget#measurementPointsTable {{
+                selection-background-color: {palette["metric_info"]};
+                selection-color: #FFFFFF;
+            }}
+            QTableWidget#measurementPointsTable::item:selected {{
+                background: {palette["metric_info"]};
+                color: #FFFFFF;
+                border-bottom: 1px solid {palette["metric_info"]};
+            }}
             QTableWidget::item:focus {{
                 border: 0;
                 border-bottom: 1px solid {palette["border"]};
             }}
+            {build_scrollbar_stylesheet(palette, s)}
             QGraphicsView#liveMapView {{
                 background: {palette["live_bg"]};
                 border: 1px solid {palette["border"]};

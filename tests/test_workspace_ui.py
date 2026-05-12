@@ -25,6 +25,18 @@ class SettingsMenuTests(unittest.TestCase):
         self.assertTrue(window.is_settings_button_global_pos(button_pos))
         window.deleteLater()
 
+    def test_workspace_styles_scrollbars_and_measurement_point_selection(self):
+        window = WifiHeatmapQtApp()
+        try:
+            style = window.styleSheet()
+            self.assertIn("QScrollBar::handle:vertical", style)
+            self.assertIn("QScrollBar::add-line:vertical", style)
+            self.assertEqual(window.points_table.objectName(), "measurementPointsTable")
+            self.assertIn("QTableWidget#measurementPointsTable::item:selected", style)
+            self.assertIn("color: #FFFFFF", style)
+        finally:
+            window.deleteLater()
+
 
 class APGroupManagerDialogTests(unittest.TestCase):
     @classmethod

@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from qt_ui.qt_theme import QT_THEMES
+from qt_ui.qt_theme import QT_THEMES, build_scrollbar_stylesheet
 
 
 CENTERED_PROPERTY = "_wifi_heatmap_centered_once"
@@ -248,6 +248,7 @@ def apply_file_dialog_tuning(dialog, parent):
             font-weight: 600;
             font-size: {font_px(13)}px;
         }}
+        {build_scrollbar_stylesheet(palette, px, f"QFileDialog#{FILE_DIALOG_OBJECT_NAME}")}
         """
     )
 
