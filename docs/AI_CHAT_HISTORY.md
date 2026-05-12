@@ -1055,6 +1055,22 @@ Language:
   dialogs. The Measurement Points table now has its own object name and uses
   the full theme accent plus white text for selected rows, matching the AP
   Group table contrast.
+- The user confirmed the live PDF report pass is complete for now and that the
+  real warnings currently look correct. The remaining AP Group polish is also
+  considered done unless larger real surveys expose new friction.
+- Test coverage was reviewed before adding anything new: existing tests already
+  cover V2 survey save/load with raw `.scan` sidecar, relevant SSID metadata,
+  AP group metadata, AP physical position persistence, AP metadata warnings,
+  live PDF report numbering and Dominant/Interference attribution.
+- Added a targeted Qt point-capture workflow test covering the remaining gap:
+  `save_survey_point` now has test coverage for persisting aggregate rows, raw
+  scan rows, relevant SSID flags, UI refresh callbacks, row selection and live
+  preview refresh.
+- The user uninstalled `ttkbootstrap`; no other venv packages were changed.
+- `docs/V2_ARCHITECTURE_NOTES.md` was refreshed to mark live-PDF validation and
+  AP Group UX polish as completed/currently monitored, and to shift the next
+  priorities toward Help, quality recommendations, combined reporting and
+  deeper metadata diagnostics only where rules are clear.
 
 Recent commits:
 
@@ -1120,13 +1136,15 @@ Recent commits:
 
 Good next steps, in likely order:
 
-1. Add targeted tests around point scanning, survey save/load with raw `.scan`
-   sidecar, relevant SSID changes, AP group metadata and AP positioning.
-2. Decide whether mounting metadata should influence AP position warnings or
+1. Rework Help structure/content now that the main Qt/V2 workflows are stable
+   enough to document.
+2. Expand survey quality recommendations into clearer "what to fix next"
+   guidance.
+3. Improve combined/generated reporting beyond individual live-map exports.
+4. Decide whether mounting metadata should influence AP position warnings or
    remain documentation only.
-3. Improve live map performance only if the user sees real lag on large surveys;
+5. Improve live map performance only if the user sees real lag on large surveys;
    do not trade away map quality prematurely.
-4. Rework Help structure later, after the Qt layout and feature set stabilize.
 
 ## Verification Patterns Used
 
@@ -1165,3 +1183,7 @@ Current tests cover, among other things:
   completion messages.
 - scanner behavior where `lswifi` is preferred for connected-SSID lookup and
   `netsh` remains fallback only.
+- survey save/load round-trip for V2 metadata, raw sidecar, relevant SSIDs, AP
+  groups, AP positions and AP metadata.
+- Qt point capture saving of scanned aggregate rows/raw rows plus relevant SSID
+  flags and UI refresh callbacks.

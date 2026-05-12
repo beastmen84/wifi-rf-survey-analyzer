@@ -25,8 +25,9 @@ Current status:
 - the Tk to Qt migration is substantially complete;
 - Help content and structure are intentionally postponed until the V2 workflow
   is stable;
-- the current focus is validating real-survey live PDF exports and using the
-  resulting diagnostics to decide only targeted fixes;
+- the real-survey live PDF validation pass is complete for Coverage, AP
+  Channels, Dominant AP and Interference; the current findings are accepted as
+  real diagnostics for now rather than layout blockers;
 - the 2026-05-12 operational test survey is a useful baseline: all 25 points
   passed quality, all raw samples came from `lswifi`, relevant AP positions were
   complete, and the remaining findings are AP setup/anomaly diagnostics rather
@@ -204,8 +205,8 @@ Latest real-survey result:
   and unexpected channel `153` on `SINCE`;
 - detected AP-position warnings were `UNEXPECTED_DOMINANT`, mostly where
   `CORR. UFF. 4` appeared dominant far from its physical marker while nearer
-  APs existed. These should be reviewed on Dominant AP live/PDF output before
-  tuning thresholds.
+  APs existed. These were reviewed on Dominant AP live/PDF output and currently
+  look like valid diagnostics rather than threshold bugs.
 
 ### AP Metadata
 
@@ -309,7 +310,16 @@ Implemented:
 - Interference report cards show risk, coordinates, serving AP/channel and main
   interferer/channel;
 - Interference map page labels problem points with numbered square callouts
-  matching the report-card order.
+  matching the report-card order;
+- AP Channels all-band legend colors are band-aware, avoiding collisions between
+  equal/ambiguous channel numbers across 2.4/5/6 GHz;
+- Dominant AP problem reports include AP position status/warnings, distance to
+  the dominant AP and nearest physical AP context only for AP-position warning
+  rows;
+- Dominant AP map/report attribution follows the Interference pattern with
+  numbered square callouts on the map and matching numbered cards;
+- Dominant AP report cards are visually aligned with Interference cards:
+  compact number badge, coordinates in parentheses and fixed-height card grid.
 
 ### Qt Migration Status
 
@@ -357,36 +367,38 @@ Implemented:
 - exported PDF names depend on survey filename, map type, band and timestamp;
 - map/output files are saved beside the survey CSV;
 - language selector IT/EN;
-- theme selector reduced to a small set of sensible themes.
+- theme selector reduced to a small set of sensible themes;
+- Qt scrollbar styling is centralized in shared theme code and applied across
+  the main workspace, startup window, centered file dialogs and AP Group
+  dialogs;
+- Measurement Points table selection uses the full theme accent with white text,
+  matching the AP Group table contrast.
 
 ## Remaining Work
 
-### 1. AP Group Manager UX For Large Surveys
+### 1. AP Group Manager UX Monitoring
 
-Why it matters:
+Current status:
 
-- real surveys can contain many BSSIDs;
-- manual split/merge must stay fast and understandable;
-- dense AP tables need stronger filtering and batch-edit workflows.
-
-Completed in this area:
-
+- the planned AP Group Manager usability pass is complete for the current V2
+  scope;
 - AP group table filters by warning state, role, band, manual/auto state and
   search text;
 - BSSID selection dialog filters by search text, current/other/unassigned/
   selected/warning state, band and channel;
 - BSSID selection dialog supports visible-row select, clear and invert actions;
 - selected BSSID rows can be split into a new manual AP group;
-- selected BSSID rows can be moved to an existing AP group.
-- conflict warning details now explain possible causes, recommended checks and
-  observed band/channel/BSSID evidence.
+- selected BSSID rows can be moved to an existing AP group;
+- conflict warning details explain possible causes, recommended checks and
+  observed band/channel/BSSID evidence;
 - AP group conflict detection ignores pure channel changes where the same BSSID
   set is observed on multiple channels over time; unexpected configured channels
   remain covered by AP metadata warnings.
 
-Suggested next steps:
+Remaining stance:
 
-- consider a dedicated "unassigned/new BSSID" view.
+- keep this area in monitoring mode;
+- add more AP Group UX only if a larger real survey shows a concrete bottleneck.
 
 ### 2. AP Group Model Refinement
 
@@ -454,16 +466,19 @@ Possible additions:
 The live-map Qt implementation is now the main working surface. Remaining work
 is mostly validation and targeted polish rather than migration.
 
-Suggested next steps:
+Completed validation:
 
-- export and review Coverage, AP Channels and Dominant AP from the latest real
-  operational survey;
-- align the remaining live PDF outputs with the current Interference export
-  quality;
-- verify legends/scales on different floor-plan sizes and aspect ratios;
-- verify AP group filters and positioned AP markers across all live map types;
-- inspect whether the AP-position warning triangles and report wording make the
-  `UNEXPECTED_DOMINANT` cases actionable enough;
+- Coverage, AP Channels, Dominant AP and Interference were exported from the
+  latest real operational survey;
+- report/legend/card alignment fixes from that pass are implemented;
+- AP-position warning triangles and Dominant AP report wording are readable
+  enough for the current real warnings;
+- current real warnings are considered valid until new data proves otherwise.
+
+Remaining checks:
+
+- verify legends/scales on additional floor-plan sizes and aspect ratios;
+- verify AP group filters and positioned AP markers on larger surveys;
 - tune performance only if large real surveys expose measurable lag;
 - consider optional hover pinning later if tooltip inspection still feels
   difficult.
@@ -486,22 +501,29 @@ Possible additions:
 
 This project now has enough logic that manual testing alone is risky.
 
-Suggested test areas:
+Current coverage includes:
 
 - AP group serialization/deserialization;
 - manual group merge/split preservation;
 - role filtering;
 - channel-width overlap;
-- 6 GHz scans, filters, legends and exports using real hardware data;
+- 6 GHz scan parsing, band-aware filters, legends and exports with synthetic
+  hardware-like rows;
 - scanner detail fields and conservative AP metadata prefill;
 - AP position warning logic;
 - quality engine states;
 - old invalid CSV rejection;
-- raw `.scan` sidecar handling.
+- raw `.scan` sidecar handling;
+- survey save/load round-trip for V2 metadata, raw sidecar, relevant SSIDs, AP
+  groups, AP positions and AP metadata;
+- Qt point-save workflow from scanned networks into aggregate rows/raw rows;
+- live PDF problem reports and numbered Dominant/Interference attribution.
 
-Priority:
+Remaining validation:
 
-- add lightweight unit tests before larger V2 refactors.
+- keep adding targeted tests with each behavioral change;
+- validate real 6E/7 scans when suitable hardware is available;
+- use larger real surveys to expose performance and UX limits.
 
 ### 8. Help System Rework
 
@@ -519,24 +541,23 @@ Needed later:
 
 Near-term:
 
-1. Continue the current real-survey PDF validation round: Coverage, AP Channels
-   and Dominant AP, using the saved AP positions and metadata warnings.
-2. Decide from those outputs whether AP-position diagnostics need threshold,
-   copy, marker or report-layout tuning.
-3. Add more targeted tests for point scanning, survey save/load and sidecar
-   handling.
-4. Revisit AP Group Manager UX for large surveys after live export validation
-   is complete.
+1. Keep AP Group and live-PDF areas in monitoring mode unless new real data
+   exposes a concrete issue.
+2. Rework Help structure/content now that the main Qt/V2 workflows are stable
+   enough to document.
+3. Expand survey quality recommendations into clearer "what to fix next"
+   guidance.
+4. Improve combined/generated reporting beyond individual live-map exports.
 
 Medium-term:
 
-5. Expand survey quality recommendations.
-6. Improve combined/generated reporting beyond individual live-map exports.
-7. Use AP metadata more deeply in diagnostics.
+5. Use AP metadata more deeply in diagnostics where the rule is clear.
+6. Validate 6 GHz behavior with real 6E/7 hardware data.
+7. Tune performance only after larger real surveys show measurable lag.
 
 Long-term:
 
-8. Rework Help after feature workflows stabilize.
+8. Refine the AP physical/radio/BSSID model only if real deployments require it.
 9. Add advanced RF/AI-assisted suggestions.
 10. Add richer deployment/reporting outputs.
 

@@ -1,6 +1,6 @@
 from tests._common import *
 from PySide6.QtWidgets import QPushButton
-from qt_ui.qt_point_workflow import MissingRelevantNetworksDialog
+from qt_ui.qt_point_workflow import MissingRelevantNetworksDialog, PointCaptureMixin
 
 
 class SettingsMenuTests(unittest.TestCase):
@@ -329,6 +329,116 @@ class PointCaptureDialogTests(unittest.TestCase):
         finally:
             dialog.deleteLater()
             app.deleteLater()
+
+
+class PointCaptureWorkflowTests(unittest.TestCase):
+    class FakeStatus:
+        def __init__(self):
+            self.messages = []
+
+        def showMessage(self, message):
+            self.messages.append(message)
+
+    class FakePointsTable:
+        def __init__(self):
+            self.selected_rows = []
+
+        def selectRow(self, row):
+            self.selected_rows.append(row)
+
+    class FakePointCaptureApp(PointCaptureMixin):
+        def __init__(self):
+            self.session = SurveySession()
+            self.relevant_ssids = {"MAIN"}
+            self.status = PointCaptureWorkflowTests.FakeStatus()
+            self.points_table = PointCaptureWorkflowTests.FakePointsTable()
+            self.refresh_session_labels_count = 0
+            self.refresh_points_table_count = 0
+            self.live_preview_updates = 0
+
+        def tr(self, key, **kwargs):
+            return translate("en", key, **kwargs)
+
+        def refresh_session_labels(self):
+            self.refresh_session_labels_count += 1
+
+        def refresh_points_table(self):
+            self.refresh_points_table_count += 1
+
+        def maybe_update_live_preview(self):
+            self.live_preview_updates += 1
+
+    def test_save_survey_point_persists_aggregates_raw_rows_and_relevant_flags(self):
+        app = self.FakePointCaptureApp()
+        networks = [
+            {
+                "ssid": "MAIN",
+                "bssid": "70:4f:57:aa:bb:10",
+                "signal_percent": "80",
+                "signal_dbm": -50,
+                "signal_median_dbm": -51,
+                "signal_max_dbm": -48,
+                "signal_min_dbm": -54,
+                "channel": "6",
+                "channel_width_mhz": "20",
+                "radio": "802.11ax",
+                "frequency_mhz": "2437",
+                "raw_samples": [
+                    {
+                        "scan_attempt": "1",
+                        "ssid": "MAIN",
+                        "bssid": "70:4f:57:aa:bb:10",
+                        "signal_percent": "78",
+                        "signal_dbm": "-52",
+                        "channel": "6",
+                        "channel_width_mhz": "20",
+                        "radio": "802.11ax",
+                        "frequency_mhz": "2437",
+                        "backend": "lswifi",
+                    }
+                ],
+            },
+            {
+                "ssid": "GUEST",
+                "bssid": "80:11:22:33:44:10",
+                "signal_percent": "60",
+                "signal_dbm": -65,
+                "channel": "36",
+                "channel_width_mhz": "80",
+                "radio": "802.11ac",
+                "frequency_mhz": "5180",
+                "raw_samples": [
+                    {
+                        "scan_attempt": "1",
+                        "ssid": "GUEST",
+                        "bssid": "80:11:22:33:44:10",
+                        "signal_percent": "60",
+                        "signal_dbm": "-65",
+                        "channel": "36",
+                        "channel_width_mhz": "80",
+                        "radio": "802.11ac",
+                        "frequency_mhz": "5180",
+                        "backend": "lswifi",
+                    }
+                ],
+            },
+        ]
+
+        app.save_survey_point(10, 20, networks)
+
+        self.assertEqual(len(app.session.rows), 2)
+        self.assertEqual([row["is_relevant"] for row in app.session.rows], ["1", "0"])
+        self.assertEqual(app.session.rows[0]["frequency_mhz"], "2437")
+        self.assertEqual(app.session.rows[1]["band"], "5")
+        self.assertEqual(len(app.session.raw_scan_rows), 2)
+        self.assertEqual({row["backend"] for row in app.session.raw_scan_rows}, {"lswifi"})
+        self.assertEqual({row["point_id"] for row in app.session.raw_scan_rows}, {app.session.rows[0]["point_id"]})
+        self.assertTrue(app.session.dirty)
+        self.assertEqual(app.refresh_session_labels_count, 1)
+        self.assertEqual(app.refresh_points_table_count, 1)
+        self.assertEqual(app.live_preview_updates, 1)
+        self.assertEqual(app.points_table.selected_rows, [0])
+        self.assertIn("Point saved", app.status.messages[-1])
 
 
 class WorkspaceLiveStateTests(unittest.TestCase):
