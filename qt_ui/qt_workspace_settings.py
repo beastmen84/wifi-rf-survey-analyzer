@@ -10,8 +10,8 @@ from app_logging import log_event, log_exception
 from app_restart import start_replacement_process
 from app_settings import save_theme, save_ui_scale
 from i18n import LANGUAGE_OPTIONS, normalize_language
-from qt_theme import QT_THEME_OPTIONS, QT_THEMES
-from qt_windowing import SKIP_CENTERING_PROPERTY
+from qt_ui.qt_theme import QT_THEME_OPTIONS, QT_THEMES
+from qt_ui.qt_windowing import SKIP_CENTERING_PROPERTY
 from ui_scaling import (
     UI_SCALE_OPTIONS,
     detect_auto_ui_scale_percent,

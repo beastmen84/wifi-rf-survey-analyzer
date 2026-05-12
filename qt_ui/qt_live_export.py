@@ -11,8 +11,8 @@ except ModuleNotFoundError as exc:
 
 from app_logging import log_exception
 from map_exporter import MapExportError, build_live_pdf_output_path, generate_live_pdf_export
-from qt_live_map import load_floorplan_image
-from qt_windowing import get_centered_save_file_name
+from qt_ui.qt_live_map import load_floorplan_image
+from qt_ui.qt_windowing import get_centered_save_file_name
 
 
 class LivePdfExportMixin:

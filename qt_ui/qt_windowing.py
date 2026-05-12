@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from qt_theme import QT_THEMES
+from qt_ui.qt_theme import QT_THEMES
 
 
 CENTERED_PROPERTY = "_wifi_heatmap_centered_once"

@@ -6,8 +6,8 @@ except ModuleNotFoundError as exc:
     print("PySide6 is required for main.py. Run: pip install -r requirements.txt")
     raise SystemExit(1) from exc
 
-from qt_ap_groups import open_qt_ap_group_manager
-from qt_tooltips import build_html_tooltip
+from qt_ui.qt_ap_groups import open_qt_ap_group_manager
+from qt_ui.qt_tooltips import build_html_tooltip
 
 
 class ApWorkflowMixin:

@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QGraphicsView,
 )
 
-from qt_tooltips import build_html_tooltip
+from qt_ui.qt_tooltips import build_html_tooltip
 
 
 AP_MARKER_BASE_SIZE = 20
@@ -404,7 +404,7 @@ def load_floorplan_pixmap(file_path):
 
 
 def load_ap_position_icon():
-    icon_path = Path(__file__).with_name("images") / "wifi.png"
+    icon_path = Path(__file__).resolve().parent.parent / "images" / "wifi.png"
     if not icon_path.exists():
         return QPixmap()
 

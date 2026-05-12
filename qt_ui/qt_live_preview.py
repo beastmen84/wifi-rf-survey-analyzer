@@ -17,7 +17,7 @@ from ap_groups import (
 )
 from app_logging import log_event
 from map_config import MapConfig
-from qt_live_map import LiveMapRenderWorker, create_marker_icon
+from qt_ui.qt_live_map import LiveMapRenderWorker, create_marker_icon
 
 
 class LivePreviewMixin:

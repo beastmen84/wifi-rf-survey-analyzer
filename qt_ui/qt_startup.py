@@ -28,8 +28,8 @@ from app_logging import log_event, log_exception
 from app_restart import start_replacement_process
 from app_settings import get_last_survey_directory, get_saved_theme, get_saved_ui_scale, save_theme, save_ui_scale
 from i18n import DEFAULT_LANGUAGE, LANGUAGE_OPTIONS, normalize_language, translate
-from qt_theme import QT_THEME_OPTIONS, QT_THEMES
-from qt_windowing import SKIP_CENTERING_PROPERTY, get_centered_open_file_name
+from qt_ui.qt_theme import QT_THEME_OPTIONS, QT_THEMES
+from qt_ui.qt_windowing import SKIP_CENTERING_PROPERTY, get_centered_open_file_name
 from ui_scaling import (
     UI_SCALE_OPTIONS,
     detect_auto_ui_scale_percent,
@@ -50,7 +50,7 @@ class AppImportWorker(QObject):
     def run(self):
         try:
             log_event("qt app module import start", logger_name="startup")
-            from qt_app import WifiHeatmapQtApp
+            from qt_ui.qt_app import WifiHeatmapQtApp
         except Exception as exc:
             log_exception("qt app module import failed", exc, logger_name="startup")
             self.failed.emit(str(exc))
@@ -207,7 +207,9 @@ class StartWindow(QMainWindow):
 
     def apply_styles(self):
         palette = QT_THEMES.get(self.theme, QT_THEMES["light"])
-        combo_arrow_icon = (Path(__file__).resolve().parent / "images" / "combo_arrow_white.svg").as_posix()
+        combo_arrow_icon = (
+            Path(__file__).resolve().parent.parent / "images" / "combo_arrow_white.svg"
+        ).as_posix()
         s = self.spx
         font = self.sfont
         self.setStyleSheet(

@@ -44,7 +44,7 @@ from ap_groups import (
     normalize_ap_role,
     normalize_bssid,
 )
-from qt_theme import QT_THEMES
+from qt_ui.qt_theme import QT_THEMES
 from ui_scaling import widget_font, widget_px
 
 

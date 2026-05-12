@@ -53,8 +53,8 @@ from map_rendering import (
     should_label_channel_point,
     should_label_dominant_point,
 )
-from qt_floorplan import AP_MARKER_BASE_SIZE, load_ap_position_icon
-from qt_tooltips import build_html_tooltip
+from qt_ui.qt_floorplan import AP_MARKER_BASE_SIZE, load_ap_position_icon
+from qt_ui.qt_tooltips import build_html_tooltip
 
 
 LIVE_POINT_MARKER_BASE_SIZE = 14

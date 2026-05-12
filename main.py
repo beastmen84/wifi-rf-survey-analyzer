@@ -9,8 +9,8 @@ except ModuleNotFoundError as exc:
     raise SystemExit(1) from exc
 
 from app_logging import configure_logging, log_event, log_unhandled_exception
-from qt_startup import StartWindow
-from qt_windowing import install_dialog_centering
+from qt_ui.qt_startup import StartWindow
+from qt_ui.qt_windowing import install_dialog_centering
 
 
 def install_exception_logging():

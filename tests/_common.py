@@ -91,7 +91,7 @@ from map_exporter import (
 )
 import matplotlib.pyplot as plt
 from map_config import MapConfig
-from qt_quality_dashboard import (
+from qt_ui.qt_quality_dashboard import (
     build_ap_position_quality_by_point,
     build_dashboard_rows,
     build_summary,
@@ -100,9 +100,9 @@ from qt_quality_dashboard import (
     get_effective_relevant_ssids,
     get_effective_ap_groups,
 )
-from qt_floorplan import AP_MARKER_BASE_SIZE, FloorplanView, format_ap_tooltip, format_point_tooltip
-from qt_ap_groups import EXPECTED_CHANNELS_BY_BAND, infer_expected_channel_bands
-from qt_live_map import (
+from qt_ui.qt_floorplan import AP_MARKER_BASE_SIZE, FloorplanView, format_ap_tooltip, format_point_tooltip
+from qt_ui.qt_ap_groups import EXPECTED_CHANNELS_BY_BAND, infer_expected_channel_bands
+from qt_ui.qt_live_map import (
     LIVE_POINT_MARKER_BASE_SIZE,
     LiveGradientLegendWidget,
     LiveMapView,
@@ -112,10 +112,10 @@ from qt_live_map import (
     build_live_tooltip,
     gradient_stops,
 )
-import qt_app as qt_app_module
-import qt_live_export as qt_live_export_module
-from qt_app import WifiHeatmapQtApp
-from qt_windowing import pop_modal_dim, push_modal_dim
+import qt_ui.qt_app as qt_app_module
+import qt_ui.qt_live_export as qt_live_export_module
+from qt_ui.qt_app import WifiHeatmapQtApp
+from qt_ui.qt_windowing import pop_modal_dim, push_modal_dim
 from quality_engine import (
     QUALITY_GOOD,
     QUALITY_LOW_CONFIDENCE,

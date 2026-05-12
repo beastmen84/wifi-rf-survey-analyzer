@@ -8,7 +8,7 @@ except ModuleNotFoundError as exc:
     print("PySide6 is required for main.py. Run: pip install -r requirements.txt")
     raise SystemExit(1) from exc
 
-from qt_point_workflow import RelevantNetworksDialog
+from qt_ui.qt_point_workflow import RelevantNetworksDialog
 from wifi_scanner import get_connected_ssid
 
 

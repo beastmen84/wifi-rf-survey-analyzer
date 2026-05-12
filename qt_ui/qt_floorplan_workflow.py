@@ -9,7 +9,7 @@ except ModuleNotFoundError as exc:
     print("PySide6 is required for main.py. Run: pip install -r requirements.txt")
     raise SystemExit(1) from exc
 
-from qt_windowing import get_centered_open_file_name
+from qt_ui.qt_windowing import get_centered_open_file_name
 
 
 class FloorplanWorkflowMixin:

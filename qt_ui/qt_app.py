@@ -42,28 +42,28 @@ from app_settings import (
     get_saved_ui_scale,
 )
 from constants import HEATMAP_MAX_DISTANCE_PX, HEATMAP_SMOOTHING_SIGMA
-from qt_ap_workflow import ApWorkflowMixin
-from qt_floorplan import FloorplanView
-from qt_floorplan_workflow import FloorplanWorkflowMixin
-from qt_help_dialog import open_qt_help_dialog
-from qt_live_export import LivePdfExportMixin
-from qt_live_options import LiveOptionsMixin
-from qt_live_preview import LivePreviewMixin
-from qt_live_map import LiveMapView
-from qt_point_workflow import PointCaptureMixin
-from qt_quality_dashboard import open_qt_quality_dashboard
-from qt_relevant_networks import (
+from qt_ui.qt_ap_workflow import ApWorkflowMixin
+from qt_ui.qt_floorplan import FloorplanView
+from qt_ui.qt_floorplan_workflow import FloorplanWorkflowMixin
+from qt_ui.qt_help_dialog import open_qt_help_dialog
+from qt_ui.qt_live_export import LivePdfExportMixin
+from qt_ui.qt_live_options import LiveOptionsMixin
+from qt_ui.qt_live_preview import LivePreviewMixin
+from qt_ui.qt_live_map import LiveMapView
+from qt_ui.qt_point_workflow import PointCaptureMixin
+from qt_ui.qt_quality_dashboard import open_qt_quality_dashboard
+from qt_ui.qt_relevant_networks import (
     KNOWN_SSIDS_METADATA_KEY,
     RELEVANT_SSIDS_METADATA_KEY,
     RelevantNetworksMixin,
 )
-from qt_survey_points import SurveyPointTableMixin
-from qt_session_workflow import SurveySessionWorkflowMixin
-from qt_theme import QT_THEMES
-from qt_windowing import (
+from qt_ui.qt_survey_points import SurveyPointTableMixin
+from qt_ui.qt_session_workflow import SurveySessionWorkflowMixin
+from qt_ui.qt_theme import QT_THEMES
+from qt_ui.qt_windowing import (
     install_dialog_centering,
 )
-from qt_workspace_settings import WorkspaceSettingsMixin
+from qt_ui.qt_workspace_settings import WorkspaceSettingsMixin
 from ui_scaling import (
     format_ui_scale_diagnostics,
     normalize_ui_scale_mode,
@@ -941,7 +941,9 @@ class WifiHeatmapQtApp(
 
     def apply_styles(self):
         palette = QT_THEMES.get(self.theme, QT_THEMES["light"])
-        combo_arrow_icon = (Path(__file__).resolve().parent / "images" / "combo_arrow_white.svg").as_posix()
+        combo_arrow_icon = (
+            Path(__file__).resolve().parent.parent / "images" / "combo_arrow_white.svg"
+        ).as_posix()
         s = self.spx
         font = self.spt
         self.setStyleSheet(
