@@ -356,7 +356,25 @@ def get_strongest_interferer(interferers):
     if not interferers:
         return {}
 
-    return max(interferers, key=lambda interferer: interferer["contribution"])
+    return max(
+        interferers,
+        key=lambda interferer: (
+            interferer.get("contribution", 0),
+            parse_signal_dbm(interferer.get("signal_dbm")),
+        ),
+    )
+
+
+def parse_signal_dbm(value):
+    try:
+        signal = float(value)
+    except (TypeError, ValueError):
+        return float("-inf")
+
+    if np.isnan(signal):
+        return float("-inf")
+
+    return signal
 
 
 def get_interference_confidence(serving_ap, strongest_interferer):

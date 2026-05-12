@@ -769,6 +769,7 @@ def build_channel_payload(df, config, bg_image, translations, aliases):
 
     scale_payload = None
     if config.point_label_mode != "none" and legend_items:
+        legend_items = sorted(legend_items, key=lambda item: item.get("sort_key", ()))
         scale_payload = {
             "kind": "swatches",
             "title": translations.get("channel_title", "AP channels"),
@@ -829,6 +830,7 @@ def build_dominant_payload(df, config, bg_image, translations, aliases, ap_group
                 "label": label,
                 "color": color,
                 "shape": "triangle" if position_warning_color else "circle",
+                "sort_key": (str(label).casefold(),),
                 "marker_id": marker_id,
                 "x": float(row["x"]),
                 "y": float(row["y"]),
@@ -839,6 +841,7 @@ def build_dominant_payload(df, config, bg_image, translations, aliases, ap_group
 
     scale_payload = None
     if config.point_label_mode != "none" and legend_items:
+        legend_items = sorted(legend_items, key=lambda item: item.get("sort_key", ()))
         scale_payload = {
             "kind": "swatches",
             "title": translations.get("dominant_title", "Dominant AP"),

@@ -265,6 +265,7 @@ class LivePreviewMixin:
                 ))
                 list_item.setData(Qt.ItemDataRole.UserRole, dict(item))
                 self.live_legend_list.addItem(list_item)
+            self.fit_live_legend_width(scale_payload.get("items", []))
             return
 
         if kind == "gradient":
@@ -283,6 +284,20 @@ class LivePreviewMixin:
         self.live_legend_list.clearSelection()
         self.live_legend_list.setCurrentRow(-1)
         self.live_view.clear_marker_highlight()
+
+    def fit_live_legend_width(self, items):
+        labels = [str(item.get("label", "")) for item in items or []]
+        title = self.live_legend_title.text()
+        metrics = self.live_legend_list.fontMetrics()
+        title_metrics = self.live_legend_title.fontMetrics()
+        label_width = max([metrics.horizontalAdvance(label) for label in labels] or [0])
+        title_width = title_metrics.horizontalAdvance(title) if title else 0
+        scrollbar_width = self.live_legend_list.verticalScrollBar().sizeHint().width()
+        content_width = max(label_width, title_width)
+        target_width = content_width + self.spx(58) + scrollbar_width
+        target_width = max(self.spx(220), min(self.spx(520), target_width))
+        self.live_legend_frame.setMinimumWidth(target_width)
+        self.live_legend_frame.setMaximumWidth(target_width)
 
     def on_live_legend_item_clicked(self, item):
         payload = item.data(Qt.ItemDataRole.UserRole) if item else None

@@ -2,12 +2,24 @@ from tests._common import *
 
 class QualityTests(unittest.TestCase):
     def test_quality_marks_missing_relevant_network(self):
+        row = build_row("p1", "OTHER", "70:4f:57:aa:bb:10", -55, 1)
+        row["is_relevant"] = "0"
+
+        quality = evaluate_point_quality([row], relevant_ssids={"MAIN", "GUEST"})
+
+        self.assertEqual(quality["p1"]["status"], QUALITY_MISSING_RELEVANT)
+        self.assertEqual(quality["p1"]["missing_relevant"], ["guest", "main"])
+
+    def test_quality_accepts_any_observed_relevant_network(self):
         rows = [build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)]
 
         quality = evaluate_point_quality(rows, relevant_ssids={"MAIN", "GUEST"})
 
-        self.assertEqual(quality["p1"]["status"], QUALITY_MISSING_RELEVANT)
-        self.assertEqual(quality["p1"]["missing_relevant"], ["guest"])
+        self.assertEqual(quality["p1"]["status"], QUALITY_GOOD)
+        self.assertEqual(
+            [item["ssid"] for item in quality["p1"]["breakdown"]],
+            ["main"],
+        )
 
     def test_quality_ignores_low_confidence_weak_non_dominant_bssid(self):
         strong_row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -52, 1)
@@ -49,14 +61,14 @@ class QualityTests(unittest.TestCase):
 
         self.assertEqual(quality["p1"]["status"], QUALITY_SPARSE_DATA)
 
-    def test_quality_missing_relevant_takes_priority_over_low_confidence(self):
+    def test_quality_checks_present_relevant_network_before_missing_peer_ssid(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -52, 1)
         row["scan_confidence"] = "0.1"
 
         quality = evaluate_point_quality([row], relevant_ssids={"MAIN", "GUEST"})
 
-        self.assertEqual(quality["p1"]["status"], QUALITY_MISSING_RELEVANT)
-        self.assertEqual(quality["p1"]["missing_relevant"], ["guest"])
+        self.assertEqual(quality["p1"]["status"], QUALITY_LOW_CONFIDENCE)
+        self.assertEqual(quality["p1"]["breakdown"][0]["ssid"], "main")
 
     def test_dashboard_confidence_uses_dominant_candidates(self):
         strong_row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -52, 1)

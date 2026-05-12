@@ -94,6 +94,28 @@ class LiveMapDataLogicTests(unittest.TestCase):
         self.assertGreater(all_networks.iloc[0]["risk"], 0)
         self.assertEqual(all_networks.iloc[0]["strongest_interferer_bssid"], neighbor_bssid)
 
+    def test_interference_all_ssid_tiebreaks_main_interferer_by_signal(self):
+        serving_bssid = "70:4f:57:aa:bb:10"
+        same_ssid_bssid = "71:5f:57:aa:bb:10"
+        neighbor_bssid = "90:6f:57:aa:bb:10"
+        rows = [
+            build_row("p1", "MAIN", serving_bssid, -50, 1),
+            build_row("p1", "MAIN", same_ssid_bssid, -50, 1),
+            build_row("p1", "NEIGHBOR", neighbor_bssid, -45, 1),
+        ]
+        df = rows_to_dataframe(rows)
+
+        all_networks = calculate_interference_points(
+            df,
+            "MAIN",
+            "2.4",
+            mode="all",
+            include_details=True,
+        )
+
+        self.assertEqual(all_networks.iloc[0]["risk"], 100)
+        self.assertEqual(all_networks.iloc[0]["strongest_interferer_bssid"], neighbor_bssid)
+
 
 class LiveRendererCacheTests(unittest.TestCase):
     def tearDown(self):
@@ -535,6 +557,24 @@ class LiveMapViewTests(unittest.TestCase):
         self.assertEqual(labels[0].split(" - ")[0], "2.4G CH 5")
         self.assertEqual(labels[1].split(" - ")[0], "6G CH 5")
 
+    def test_live_channel_legend_items_are_sorted_by_channel(self):
+        rows = [
+            build_row("p1", "MAIN", "90:11:22:33:44:10", -50, 11),
+            build_row("p2", "MAIN", "70:4f:57:aa:bb:10", -52, 1),
+            build_row("p3", "MAIN", "80:11:22:33:44:10", -54, 6),
+        ]
+
+        payload = build_channel_payload(
+            rows_to_dataframe(rows),
+            MapConfig(ssid="MAIN", band="2.4", map_type="channel", point_label_mode="all"),
+            Image.new("RGB", (100, 100), "white"),
+            {"channel_title": "AP channels"},
+            {},
+        )
+
+        labels = [item["label"].split(" - ")[0] for item in payload["scale_payload"]["items"]]
+        self.assertEqual(labels, ["CH 1", "CH 6", "CH 11"])
+
     def test_live_dominant_point_labels_follow_auto_and_none_modes(self):
         rows = [
             build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -50, 1),
@@ -554,8 +594,8 @@ class LiveMapViewTests(unittest.TestCase):
         self.assertFalse(any(point.get("label") for point in payload["point_infos"]))
         self.assertEqual(len(payload["scale_payload"]["items"]), 2)
         self.assertEqual([item["marker_id"] for item in payload["scale_payload"]["items"]], [
-            "dominant-0",
             "dominant-2",
+            "dominant-0",
         ])
 
         payload = build_dominant_payload(
@@ -571,9 +611,9 @@ class LiveMapViewTests(unittest.TestCase):
         self.assertFalse(any(point.get("label") for point in payload["point_infos"]))
         self.assertEqual(len(payload["scale_payload"]["items"]), 3)
         self.assertEqual([item["marker_id"] for item in payload["scale_payload"]["items"]], [
+            "dominant-2",
             "dominant-0",
             "dominant-1",
-            "dominant-2",
         ])
 
         payload = build_dominant_payload(
@@ -588,6 +628,34 @@ class LiveMapViewTests(unittest.TestCase):
 
         self.assertFalse(any(point.get("label") for point in payload["point_infos"]))
         self.assertIsNone(payload["scale_payload"])
+
+    def test_live_dominant_legend_items_are_sorted_by_alias(self):
+        rows = [
+            build_row("p1", "MAIN", "90:11:22:33:44:10", -50, 1),
+            build_row("p2", "MAIN", "70:4f:57:aa:bb:10", -52, 1),
+            build_row("p3", "MAIN", "80:aa:bb:cc:dd:10", -54, 1),
+        ]
+        aliases = {
+            "11:22:33:44:1*": "Zulu",
+            "4f:57:aa:bb:1*": "Alpha",
+            "aa:bb:cc:dd:1*": "Middle",
+        }
+
+        payload = build_dominant_payload(
+            rows_to_dataframe(rows),
+            MapConfig(ssid="MAIN", band="2.4", map_type="dominant", point_label_mode="all"),
+            Image.new("RGB", (100, 100), "white"),
+            {"dominant_title": "Dominant AP"},
+            aliases,
+            [],
+            None,
+        )
+
+        labels = [item["label"] for item in payload["scale_payload"]["items"]]
+        self.assertEqual(
+            [label.split(" (")[0] for label in labels],
+            ["Alpha", "Middle", "Zulu"],
+        )
 
     def test_live_legend_marker_actions_highlight_and_focus_points(self):
         view = LiveMapView()
