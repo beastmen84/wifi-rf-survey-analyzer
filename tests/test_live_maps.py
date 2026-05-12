@@ -846,6 +846,25 @@ class LivePdfExportTests(unittest.TestCase):
         finally:
             plt.close(fig)
 
+    def test_channel_pdf_legend_deduplicates_repeated_items(self):
+        channel_df = rows_to_dataframe([
+            {"channel": 6, "band": "2.4", "bssid": "70:4f:57:aa:bb:10", "ap_group": "ap-a"},
+            {"channel": 11, "band": "2.4", "bssid": "70:4f:57:aa:bb:20", "ap_group": "ap-b"},
+            {"channel": 6, "band": "2.4", "bssid": "70:4f:57:aa:bb:10", "ap_group": "ap-a"},
+        ])
+
+        items = build_channel_point_legend_items(
+            channel_df,
+            MapConfig(ssid="MAIN", band="2.4", map_type="channel", point_label_mode="auto"),
+            {"ap-a": "AP A", "ap-b": "AP B"},
+        )
+        labels = [item["label"] for item in items]
+
+        self.assertEqual(len(labels), 2)
+        self.assertEqual(len(labels), len(set(labels)))
+        self.assertTrue(any(label.startswith("CH 6 - AP A") for label in labels))
+        self.assertTrue(any(label.startswith("CH 11 - AP B") for label in labels))
+
     def test_dominant_pdf_omits_legend_when_point_labels_are_none(self):
         fig, _dominant_df = build_live_pdf_dominant_figure(
             rows_to_dataframe(self.build_live_pdf_rows()),
@@ -863,5 +882,47 @@ class LivePdfExportTests(unittest.TestCase):
             self.assertNotIn("-", side_texts)
         finally:
             plt.close(fig)
+
+    def test_dominant_pdf_legend_deduplicates_groups_and_uses_marker_keys(self):
+        dominant_df = rows_to_dataframe([
+            {
+                "dominant_ap_group": "ap-a",
+                "dominant_bssid": "70:4f:57:aa:bb:10",
+                "roaming_overlap": False,
+                "ap_position_has_warning": False,
+            },
+            {
+                "dominant_ap_group": "ap-b",
+                "dominant_bssid": "70:4f:57:aa:bb:20",
+                "roaming_overlap": True,
+                "ap_position_has_warning": False,
+            },
+            {
+                "dominant_ap_group": "ap-a",
+                "dominant_bssid": "70:4f:57:aa:bb:10",
+                "roaming_overlap": False,
+                "ap_position_has_warning": True,
+            },
+        ])
+
+        items = build_dominant_point_legend_items(
+            dominant_df,
+            MapConfig(ssid="MAIN", band="2.4", map_type="dominant", point_label_mode="auto"),
+            {"ap-a": "AP A", "ap-b": "AP B"},
+            {"ap-a": "#111111", "ap-b": "#222222"},
+        )
+        labels = [item["label"] for item in items]
+        marker_items = build_dominant_marker_legend_items(
+            dominant_df,
+            lambda key, **kwargs: translate("en", key, **kwargs),
+        )
+        marker_labels = [item["label"] for item in marker_items]
+
+        self.assertEqual(len(labels), 2)
+        self.assertEqual(sum(label.startswith("AP A") for label in labels), 1)
+        self.assertEqual(sum(label.startswith("AP B") for label in labels), 1)
+        self.assertEqual([item["shape"] for item in items], ["circle", "circle"])
+        self.assertIn("Δ <= 5 dB", marker_labels)
+        self.assertIn("Triangle = suspicious AP position", marker_labels)
 
 

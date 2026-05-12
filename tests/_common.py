@@ -79,6 +79,9 @@ from live_renderer import (
 from map_exporter import (
     MapExportResult,
     annotate_interference_problem_numbers,
+    build_channel_point_legend_items,
+    build_dominant_marker_legend_items,
+    build_dominant_point_legend_items,
     build_interference_problem_report_pages,
     build_live_pdf_channel_figure,
     build_live_pdf_dominant_figure,

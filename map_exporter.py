@@ -581,6 +581,8 @@ def build_live_pdf_dominant_figure(df, bg_image, config, tr, language, aliases, 
         )
     draw_ap_position_markers(ax, ap_groups, aliases, "")
     legend_items = build_dominant_point_legend_items(dominant_df, config, aliases, color_map)
+    if config.point_label_mode != "none":
+        legend_items.extend(build_dominant_marker_legend_items(dominant_df, tr))
     add_live_pdf_side_header(
         side_ax,
         title,
@@ -1143,8 +1145,9 @@ def add_live_pdf_swatch_list(side_ax, legend_items, title, y=0.66):
     side_ax.text(x_start, y, title, fontsize=9.5, fontweight="bold", va="top")
     y -= 0.12
 
-    max_items = 18
-    rows_per_column = 5
+    rows_per_column = 4
+    max_columns = 4
+    max_items = rows_per_column * max_columns
     column_width = 0.12
     for index, item in enumerate(legend_items[:max_items]):
         column = index // rows_per_column
@@ -1157,9 +1160,9 @@ def add_live_pdf_swatch_list(side_ax, legend_items, title, y=0.66):
             [item_y + 0.006],
             s=38,
             marker=marker,
-            color=item.get("color", "#7f8c8d"),
-            edgecolors="black",
-            linewidths=0.4,
+            facecolors=item.get("color", "#7f8c8d"),
+            edgecolors=item.get("outline", "black"),
+            linewidths=float(item.get("outline_width", 0.4)),
             transform=side_ax.transAxes,
             clip_on=False,
         )
@@ -1261,15 +1264,22 @@ def build_channel_point_legend_items(channel_df, config, aliases):
         return []
 
     items = []
+    seen = set()
     previous_channel = None
     for _index, row in channel_df.iterrows():
         channel = row.get("channel", "")
         display_band = get_channel_display_band(row, config.band)
         if should_label_channel_point(row, previous_channel, config.point_label_mode, config.band):
             label = format_channel_point_legend_label(row, config, aliases)
+            color = get_channel_color(channel, display_band)
+            key = (label, color)
+            if key in seen:
+                previous_channel = get_channel_label_identity(row, config.band)
+                continue
+            seen.add(key)
             items.append({
                 "label": label,
-                "color": get_channel_color(channel, display_band),
+                "color": color,
                 "sort_key": get_channel_display_sort_key(channel, display_band) + (label.casefold(),),
             })
         previous_channel = get_channel_label_identity(row, config.band)
@@ -1292,12 +1302,16 @@ def build_dominant_point_legend_items(dominant_df, config, aliases, color_map):
         return []
 
     items = []
+    seen_groups = set()
     group_labels = build_dominant_ap_group_labels(dominant_df, aliases)
     previous_group = None
     previous_roaming_overlap = False
     for _index, row in dominant_df.iterrows():
         group = row.get("dominant_ap_group", "")
-        if should_label_dominant_point(row, previous_group, previous_roaming_overlap, config.point_label_mode):
+        if (
+            group not in seen_groups
+            and should_label_dominant_point(row, previous_group, previous_roaming_overlap, config.point_label_mode)
+        ):
             label = group_labels.get(
                 group,
                 format_ap_label(row.get("dominant_bssid", ""), aliases, group),
@@ -1305,11 +1319,40 @@ def build_dominant_point_legend_items(dominant_df, config, aliases, color_map):
             items.append({
                 "label": label,
                 "color": color_map.get(group, "#7f8c8d"),
-                "shape": "triangle" if row.get("ap_position_has_warning") else "circle",
+                "shape": "circle",
+                "sort_key": (label.casefold(),),
             })
+            seen_groups.add(group)
         previous_group = group
         previous_roaming_overlap = bool(row.get("roaming_overlap"))
+    return sorted(items, key=lambda item: item.get("sort_key", ()))
+
+
+def build_dominant_marker_legend_items(dominant_df, tr):
+    items = []
+    if column_has_true(dominant_df, "roaming_overlap"):
+        items.append({
+            "label": tr("dominant_map_roaming_overlap"),
+            "color": "#ffffff",
+            "outline": "#f1c40f",
+            "outline_width": 1.2,
+            "shape": "circle",
+        })
+    if column_has_true(dominant_df, "ap_position_has_warning"):
+        items.append({
+            "label": tr("ap_position_warning_legend"),
+            "color": "#ffffff",
+            "outline": "black",
+            "outline_width": 0.8,
+            "shape": "triangle",
+        })
     return items
+
+
+def column_has_true(df, column):
+    if column not in df:
+        return False
+    return bool(df[column].fillna(False).astype(bool).any())
 
 
 def get_interference_problem_df(risk_df):
