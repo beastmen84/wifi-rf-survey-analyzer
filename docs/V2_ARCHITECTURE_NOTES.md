@@ -296,7 +296,9 @@ Implemented:
 
 - PySide6 is the active UI stack;
 - `main.py` is the lightweight Qt launcher/start screen;
-- `qt_app.py` contains the main Qt workspace and workflow logic;
+- Qt modules live under the `qt_ui/` package; `qt_ui/qt_app.py` contains the
+  main workspace shell while workflow-specific mixins cover session, floorplan,
+  AP, live map, settings and point-table behavior;
 - legacy Tkinter entry points and Tk dialogs have been retired from the active
   codebase;
 - the launcher imports the heavier workspace module in a background Qt worker
