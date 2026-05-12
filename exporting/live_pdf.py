@@ -243,6 +243,7 @@ def build_live_pdf_interference_figure(df, bg_image, config, tr, language, alias
         include_details=True,
         ap_group_map=config.ap_group_map,
         ap_group_roles=config.ap_group_roles,
+        ap_group_channel_overrides=config.ap_group_channel_overrides,
     )
     if len(risk_df) < 3:
         raise_insufficient_data(tr, config.band, language)
@@ -324,6 +325,7 @@ def build_live_pdf_channel_figure(df, bg_image, config, tr, language, aliases, a
         ap_group_map=config.ap_group_map,
         ap_group_roles=config.ap_group_roles,
         ap_group_filter=config.ap_group_filter,
+        ap_group_channel_overrides=config.ap_group_channel_overrides,
     )
     if channel_df.empty:
         raise_insufficient_data(tr, config.band, language)

@@ -1,8 +1,10 @@
 """AP grouping, aliasing, role, and metadata helpers."""
 
+import re
+
 import pandas as pd
 
-from wifi.band import get_row_band
+from wifi.band import get_row_band, normalize_band
 
 AP_GROUPS_METADATA_KEY = "ap_groups"
 AP_METADATA_FIELDS = (
@@ -11,8 +13,17 @@ AP_METADATA_FIELDS = (
     "mounting",
     "expected_bands",
     "expected_channels",
+    "analysis_channel_override_24",
+    "analysis_channel_override_5",
+    "analysis_channel_override_6",
     "notes",
 )
+AP_ANALYSIS_CHANNEL_OVERRIDE_FIELDS = (
+    ("2.4", "analysis_channel_override_24"),
+    ("5", "analysis_channel_override_5"),
+    ("6", "analysis_channel_override_6"),
+)
+AP_ANALYSIS_CHANNEL_OVERRIDE_FIELD_BY_BAND = dict(AP_ANALYSIS_CHANNEL_OVERRIDE_FIELDS)
 AP_ROLE_INTERNAL = "internal"
 AP_ROLE_EXTERNAL = "external"
 AP_ROLE_INTERFERER = "interferer"
@@ -152,6 +163,24 @@ def normalize_ap_metadata(value):
         for field in AP_METADATA_FIELDS
         if str(value.get(field, "")).strip()
     }
+
+
+def normalize_ap_analysis_channel_override(value):
+    text = str(value or "").strip()
+    if not text:
+        return ""
+
+    match = re.search(r"\d+", text)
+    return str(int(match.group(0))) if match else ""
+
+
+def normalize_ap_analysis_band(value):
+    band = normalize_band(value)
+    return band if band in AP_ANALYSIS_CHANNEL_OVERRIDE_FIELD_BY_BAND else ""
+
+
+def get_ap_analysis_channel_override_field(band):
+    return AP_ANALYSIS_CHANNEL_OVERRIDE_FIELD_BY_BAND.get(normalize_ap_analysis_band(band), "")
 
 
 def build_manual_ap_group(
@@ -355,6 +384,58 @@ def normalize_ap_role_map(ap_group_roles):
 def serialize_ap_group_roles(ap_group_roles):
     normalized = normalize_ap_role_map(ap_group_roles)
     return tuple(sorted(normalized.items()))
+
+
+def build_ap_group_channel_override_map(manual_groups):
+    overrides = {}
+    for group in manual_groups or []:
+        group_id = str(group.get("group_id", ""))
+        if not group_id:
+            continue
+
+        metadata = normalize_ap_metadata(group.get("metadata"))
+        for band, field in AP_ANALYSIS_CHANNEL_OVERRIDE_FIELDS:
+            channel = normalize_ap_analysis_channel_override(metadata.get(field, ""))
+            if channel:
+                overrides[(group_id, band)] = channel
+
+    return overrides
+
+
+def normalize_ap_group_channel_overrides(ap_group_channel_overrides):
+    if isinstance(ap_group_channel_overrides, dict):
+        items = []
+        for key, channel in ap_group_channel_overrides.items():
+            if isinstance(key, (list, tuple)) and len(key) == 2:
+                group_id, band = key
+                items.append((group_id, band, channel))
+    else:
+        items = ap_group_channel_overrides or ()
+
+    overrides = {}
+    for item in items:
+        try:
+            group_id, band, channel = item
+        except (TypeError, ValueError):
+            continue
+
+        clean_group_id = str(group_id or "").strip()
+        clean_band = normalize_ap_analysis_band(band)
+        clean_channel = normalize_ap_analysis_channel_override(channel)
+        if clean_group_id and clean_band and clean_channel:
+            overrides[(clean_group_id, clean_band)] = clean_channel
+
+    return overrides
+
+
+def serialize_ap_group_channel_overrides(ap_group_channel_overrides):
+    normalized = normalize_ap_group_channel_overrides(ap_group_channel_overrides)
+    return tuple(
+        sorted(
+            (group_id, band, channel)
+            for (group_id, band), channel in normalized.items()
+        )
+    )
 
 
 def build_dominant_ap_group_labels(dominant_df, aliases):

@@ -10,8 +10,10 @@ except ModuleNotFoundError as exc:
     raise SystemExit(1) from exc
 
 from ap.groups import (
+    build_ap_group_channel_override_map,
     build_ap_group_role_map,
     build_bssid_to_manual_group_map,
+    serialize_ap_group_channel_overrides,
     serialize_ap_group_map,
     serialize_ap_group_roles,
 )
@@ -101,6 +103,9 @@ class LivePreviewMixin:
         groups = self.session.get_ap_groups() if self.session is not None else []
         ap_group_map = serialize_ap_group_map(build_bssid_to_manual_group_map(groups))
         ap_group_roles = serialize_ap_group_roles(build_ap_group_role_map(groups))
+        ap_group_channel_overrides = serialize_ap_group_channel_overrides(
+            build_ap_group_channel_override_map(groups)
+        )
         map_type = self.current_combo_value(self.live_map_type_combo, "signal")
         ap_group_filter = (
             self.current_combo_value(self.live_ap_group_combo, "")
@@ -122,6 +127,7 @@ class LivePreviewMixin:
             ap_group_filter=ap_group_filter,
             ap_group_map=ap_group_map,
             ap_group_roles=ap_group_roles,
+            ap_group_channel_overrides=ap_group_channel_overrides,
         ).normalized()
 
     def get_current_ap_group_map(self):
@@ -135,6 +141,12 @@ class LivePreviewMixin:
             return {}
 
         return build_ap_group_role_map(self.session.get_ap_groups())
+
+    def get_current_ap_group_channel_overrides(self):
+        if self.session is None:
+            return {}
+
+        return build_ap_group_channel_override_map(self.session.get_ap_groups())
 
     def build_export_default_config(self):
         if self.session is None:
@@ -167,6 +179,9 @@ class LivePreviewMixin:
             ap_group_filter=ap_group_filter,
             ap_group_map=serialize_ap_group_map(build_bssid_to_manual_group_map(groups)),
             ap_group_roles=serialize_ap_group_roles(build_ap_group_role_map(groups)),
+            ap_group_channel_overrides=serialize_ap_group_channel_overrides(
+                build_ap_group_channel_override_map(groups)
+            ),
         ).normalized()
 
     def build_live_renderer_translations(self):
@@ -182,6 +197,7 @@ class LivePreviewMixin:
             "interferer_channel": self.tr("interference_summary_interferer_channel"),
             "channel_change": self.tr("interference_channel_change"),
             "channel_change_note": self.tr("interference_channel_change_note"),
+            "channel_change_manual_note": self.tr("interference_channel_change_manual_note"),
             "source_rows": self.tr("rows"),
             "reference_ap": self.tr("reference_ap"),
             "reference_channel": self.tr("reference_channel"),

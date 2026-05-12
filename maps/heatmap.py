@@ -9,6 +9,7 @@ from ap.checks import AP_CHANNEL_CHANGE_CLEAN, build_ap_channel_changes
 from ap.groups import (
     AP_ROLE_INTERNAL,
     AP_ROLE_TEST,
+    normalize_ap_group_channel_overrides,
     normalize_ap_group_map,
     normalize_ap_role_map,
     resolve_ap_group_key,
@@ -64,7 +65,15 @@ def collapse_heatmap_points(df, aggregation="max"):
     )
 
 
-def get_channel_map_points(df, ssid, band, ap_group_map=None, ap_group_roles=None, ap_group_filter=None):
+def get_channel_map_points(
+    df,
+    ssid,
+    band,
+    ap_group_map=None,
+    ap_group_roles=None,
+    ap_group_filter=None,
+    ap_group_channel_overrides=None,
+):
     rows = df.copy()
     rows["x"] = pd.to_numeric(rows["x"], errors="coerce")
     rows["y"] = pd.to_numeric(rows["y"], errors="coerce")
@@ -82,7 +91,7 @@ def get_channel_map_points(df, ssid, band, ap_group_map=None, ap_group_roles=Non
 
     rows = add_ap_group_metadata(rows, ap_group_map, ap_group_roles)
     rows = rows[rows["ap_role"] != AP_ROLE_TEST]
-    rows, _channel_changes = apply_clean_ap_channel_change_overrides(rows)
+    rows, _channel_changes = apply_ap_channel_analysis_overrides(rows, ap_group_channel_overrides)
     rows = filter_by_band(rows, band)
     rows = rows[rows["ssid"].astype(str).str.lower() == ssid.lower()]
     if ap_group_filter:
@@ -171,15 +180,43 @@ def add_ap_group_metadata(rows, ap_group_map=None, ap_group_roles=None):
     return rows
 
 
-def apply_clean_ap_channel_change_overrides(rows):
+def apply_ap_channel_analysis_overrides(rows, ap_group_channel_overrides=None):
     rows = rows.copy()
     rows["channel_original"] = rows["channel"]
     rows["channel_adjusted_for_change"] = False
     rows["channel_change_status"] = ""
+    rows["channel_change_source"] = ""
     rows["channel_change_current_channel"] = ""
     rows["channel_change_previous_channels"] = ""
+    rows["channel_change_observed_channels"] = ""
 
     channel_changes = build_ap_channel_changes(rows.to_dict("records"))
+    channel_changes_by_key = {
+        (str(change.get("group_id", "")), str(change.get("band", ""))): change
+        for change in channel_changes
+    }
+    manual_overrides = normalize_ap_group_channel_overrides(ap_group_channel_overrides)
+    handled_keys = set()
+
+    for (group_id, band), channel in manual_overrides.items():
+        mask = (rows["ap_group"].astype(str) == group_id) & (rows["band"].astype(str) == band)
+        if not mask.any():
+            continue
+
+        change = channel_changes_by_key.get((group_id, band), {})
+        observed_channels = change.get("channels") or observed_channels_for_rows(rows, mask)
+        previous_channels = [item for item in observed_channels if item != channel]
+        apply_channel_analysis_choice(
+            rows,
+            mask,
+            channel,
+            status=change.get("status", "manual") or "manual",
+            source="manual",
+            previous_channels=previous_channels,
+            observed_channels=observed_channels,
+        )
+        handled_keys.add((group_id, band))
+
     clean_changes = [
         change
         for change in channel_changes
@@ -191,30 +228,79 @@ def apply_clean_ap_channel_change_overrides(rows):
     for change in clean_changes:
         group_id = str(change.get("group_id", ""))
         band = str(change.get("band", ""))
-        current_channel = str(change.get("current_channel", ""))
-        try:
-            current_channel_value = float(current_channel)
-        except ValueError:
+        if (group_id, band) in handled_keys:
             continue
+
+        current_channel = str(change.get("current_channel", ""))
 
         mask = (rows["ap_group"].astype(str) == group_id) & (rows["band"].astype(str) == band)
         if not mask.any():
             continue
 
-        final_width = rows.loc[
-            mask & (rows["channel"].astype(str).str.replace(".0", "", regex=False) == current_channel),
-            "channel_width_mhz",
-        ].dropna()
-        if not final_width.empty:
-            rows.loc[mask, "channel_width_mhz"] = final_width.iloc[-1]
-
-        rows.loc[mask, "channel_change_status"] = AP_CHANNEL_CHANGE_CLEAN
-        rows.loc[mask, "channel_change_current_channel"] = current_channel
-        rows.loc[mask, "channel_change_previous_channels"] = ", ".join(change.get("previous_channels", []))
-        rows.loc[mask & (rows["channel"] != current_channel_value), "channel_adjusted_for_change"] = True
-        rows.loc[mask, "channel"] = current_channel_value
+        apply_channel_analysis_choice(
+            rows,
+            mask,
+            current_channel,
+            status=AP_CHANNEL_CHANGE_CLEAN,
+            source="latest",
+            previous_channels=change.get("previous_channels", []),
+            observed_channels=change.get("channels", []),
+        )
 
     return rows, channel_changes
+
+
+def apply_clean_ap_channel_change_overrides(rows):
+    return apply_ap_channel_analysis_overrides(rows)
+
+
+def apply_channel_analysis_choice(rows, mask, channel, status, source, previous_channels, observed_channels):
+    try:
+        channel_value = float(channel)
+    except (TypeError, ValueError):
+        return
+
+    matching_original_channel = rows["channel"].apply(format_channel_key) == str(channel)
+    final_width = rows.loc[mask & matching_original_channel, "channel_width_mhz"].dropna()
+    if not final_width.empty:
+        rows.loc[mask, "channel_width_mhz"] = final_width.iloc[-1]
+
+    rows.loc[mask, "channel_change_status"] = status
+    rows.loc[mask, "channel_change_source"] = source
+    rows.loc[mask, "channel_change_current_channel"] = str(channel)
+    rows.loc[mask, "channel_change_previous_channels"] = ", ".join(str(item) for item in previous_channels if str(item))
+    rows.loc[mask, "channel_change_observed_channels"] = ", ".join(str(item) for item in observed_channels if str(item))
+    rows.loc[mask & (rows["channel"] != channel_value), "channel_adjusted_for_change"] = True
+    rows.loc[mask, "channel"] = channel_value
+
+
+def observed_channels_for_rows(rows, mask):
+    return sorted(
+        {
+            format_channel_key(channel)
+            for channel in rows.loc[mask, "channel"].dropna()
+            if format_channel_key(channel)
+        },
+        key=numeric_channel_sort_key,
+    )
+
+
+def format_channel_key(channel):
+    try:
+        number = float(channel)
+    except (TypeError, ValueError):
+        return str(channel or "").strip()
+
+    if pd.isna(number):
+        return ""
+    return str(int(number)) if number.is_integer() else str(number)
+
+
+def numeric_channel_sort_key(channel):
+    try:
+        return int(float(channel))
+    except (TypeError, ValueError):
+        return 9999
 
 
 def calculate_interference_points(
@@ -225,6 +311,7 @@ def calculate_interference_points(
     include_details=False,
     ap_group_map=None,
     ap_group_roles=None,
+    ap_group_channel_overrides=None,
 ):
     band = normalize_band(band)
     rows = df.copy()
@@ -239,7 +326,7 @@ def calculate_interference_points(
     rows["signal_dbm"] = pd.to_numeric(rows["signal_dbm"], errors="coerce")
     rows = rows.dropna(subset=["timestamp", "x", "y", "channel", "signal_dbm", "ssid", "bssid"])
     rows = add_ap_group_metadata(rows, ap_group_map, ap_group_roles)
-    rows, channel_changes = apply_clean_ap_channel_change_overrides(rows)
+    rows, channel_changes = apply_ap_channel_analysis_overrides(rows, ap_group_channel_overrides)
 
     if band not in {"2.4", "5", "6"}:
         return pd.DataFrame(columns=["timestamp", "x", "y", "risk"])
@@ -312,8 +399,10 @@ def calculate_interference_points(
                     "channel_original": candidate.get("channel_original", ""),
                     "channel_adjusted_for_change": bool(candidate.get("channel_adjusted_for_change", False)),
                     "channel_change_status": candidate.get("channel_change_status", ""),
+                    "channel_change_source": candidate.get("channel_change_source", ""),
                     "channel_change_current_channel": candidate.get("channel_change_current_channel", ""),
                     "channel_change_previous_channels": candidate.get("channel_change_previous_channels", ""),
+                    "channel_change_observed_channels": candidate.get("channel_change_observed_channels", ""),
                     "channel_width_mhz": candidate.get("channel_width_mhz", np.nan),
                     "band": candidate.get("band", ""),
                     "signal_dbm": candidate["signal_dbm"],
@@ -347,8 +436,10 @@ def calculate_interference_points(
                     serving_ap.get("channel_adjusted_for_change", False)
                 ),
                 "serving_channel_change_status": serving_ap.get("channel_change_status", ""),
+                "serving_channel_change_source": serving_ap.get("channel_change_source", ""),
                 "serving_channel_change_current_channel": serving_ap.get("channel_change_current_channel", ""),
                 "serving_channel_change_previous_channels": serving_ap.get("channel_change_previous_channels", ""),
+                "serving_channel_change_observed_channels": serving_ap.get("channel_change_observed_channels", ""),
                 "serving_channel_width_mhz": clean_report_value(serving_channel_width),
                 "serving_band": serving_ap.get("band", ""),
                 "serving_signal_dbm": serving_ap["signal_dbm"],
@@ -371,11 +462,15 @@ def calculate_interference_points(
                     strongest_interferer.get("channel_adjusted_for_change", False)
                 ),
                 "strongest_interferer_channel_change_status": strongest_interferer.get("channel_change_status", ""),
+                "strongest_interferer_channel_change_source": strongest_interferer.get("channel_change_source", ""),
                 "strongest_interferer_channel_change_current_channel": strongest_interferer.get(
                     "channel_change_current_channel", ""
                 ),
                 "strongest_interferer_channel_change_previous_channels": strongest_interferer.get(
                     "channel_change_previous_channels", ""
+                ),
+                "strongest_interferer_channel_change_observed_channels": strongest_interferer.get(
+                    "channel_change_observed_channels", ""
                 ),
                 "strongest_interferer_channel_width_mhz": clean_report_value(
                     strongest_interferer.get("channel_width_mhz", "")

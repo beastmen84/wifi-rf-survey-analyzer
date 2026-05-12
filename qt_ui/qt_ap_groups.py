@@ -35,13 +35,16 @@ from ap.metadata import (
     sort_channels,
 )
 from ap.groups import (
+    AP_ANALYSIS_CHANNEL_OVERRIDE_FIELDS,
     AP_ROLE_CHOICES,
     AP_ROLE_INTERNAL,
     build_default_manual_groups,
     build_detected_ap_groups,
     build_manual_ap_group,
     build_unique_group_id,
+    get_ap_analysis_channel_override_field,
     merge_new_bssids_into_manual_groups,
+    normalize_ap_analysis_channel_override,
     normalize_ap_metadata,
     normalize_ap_role,
     normalize_bssid,
@@ -1076,6 +1079,7 @@ class MetadataDialog(QDialog):
         self.band_checks = {}
         self.channel_buttons = {}
         self.band_summary_labels = {}
+        self.analysis_channel_combos = {}
         self.selected_channels_by_band = self.initial_selected_channels_by_band()
 
         self.setWindowTitle(manager.tr("ap_group_metadata_title"))
@@ -1120,6 +1124,7 @@ class MetadataDialog(QDialog):
         content_layout.addLayout(form)
 
         self.build_band_channel_section(content_layout)
+        self.build_analysis_channel_section(content_layout)
 
         content_layout.addWidget(QLabel(self.manager.tr("ap_group_metadata_notes")))
         self.notes_edit = QTextEdit()
@@ -1180,6 +1185,42 @@ class MetadataDialog(QDialog):
             section_layout.addWidget(summary, row, 2)
 
         self.update_all_band_row_states()
+
+        parent_layout.addWidget(section)
+
+    def build_analysis_channel_section(self, parent_layout):
+        section = QGroupBox(self.manager.tr("ap_group_metadata_analysis_channels"))
+        section_layout = QGridLayout(section)
+        section_layout.setContentsMargins(widget_px(self, 10), widget_px(self, 10), widget_px(self, 10), widget_px(self, 10))
+        section_layout.setHorizontalSpacing(widget_px(self, 12))
+        section_layout.setVerticalSpacing(widget_px(self, 8))
+
+        hint = QLabel(self.manager.tr("ap_group_metadata_analysis_channel_hint"))
+        hint.setObjectName("apDialogHint")
+        hint.setWordWrap(True)
+        section_layout.addWidget(hint, 0, 0, 1, 3)
+        section_layout.addWidget(self.header_label("ap_group_metadata_band"), 1, 0)
+        section_layout.addWidget(self.header_label("ap_group_metadata_analysis_channel"), 1, 1)
+        section_layout.setColumnStretch(2, 1)
+
+        for row, (band_value, band_label) in enumerate(EXPECTED_BAND_OPTIONS, start=2):
+            label = QLabel(band_label)
+            label.setObjectName("apDialogLabel")
+            section_layout.addWidget(label, row, 0)
+
+            combo = QComboBox()
+            combo.addItem(self.manager.tr("ap_group_metadata_analysis_channel_auto"), "")
+            for channel in EXPECTED_CHANNELS_BY_BAND.get(band_value, ()):
+                combo.addItem(f"CH {channel}", channel)
+
+            field = get_ap_analysis_channel_override_field(band_value)
+            current_channel = normalize_ap_analysis_channel_override(self.metadata.get(field, ""))
+            if current_channel:
+                current_index = combo.findData(current_channel)
+                if current_index >= 0:
+                    combo.setCurrentIndex(current_index)
+            self.analysis_channel_combos[band_value] = combo
+            section_layout.addWidget(combo, row, 1)
 
         parent_layout.addWidget(section)
 
@@ -1261,6 +1302,10 @@ class MetadataDialog(QDialog):
         }
         values["expected_bands"] = ", ".join(sort_bands(expected_bands))
         values["expected_channels"] = ", ".join(expected_channels)
+        for band, combo in self.analysis_channel_combos.items():
+            field = get_ap_analysis_channel_override_field(band)
+            if field:
+                values[field] = combo.currentData() or ""
         values["notes"] = self.notes_edit.toPlainText().strip()
         return normalize_ap_metadata(values)
 
@@ -1791,9 +1836,14 @@ def format_metadata_preview(metadata):
     vendor_model = " ".join(value for value in (metadata.get("vendor"), metadata.get("model")) if value)
     if vendor_model:
         return vendor_model
-    for field in ("mounting", "expected_bands", "expected_channels", "notes"):
+    for field in ("mounting", "expected_bands", "expected_channels"):
         if metadata.get(field):
             return metadata[field]
+    for band, field in AP_ANALYSIS_CHANNEL_OVERRIDE_FIELDS:
+        if metadata.get(field):
+            return f"{format_band_label(band)} CH {metadata[field]}"
+    if metadata.get("notes"):
+        return metadata["notes"]
     return "-"
 
 

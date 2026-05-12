@@ -145,6 +145,7 @@ def build_interference_payload(df, config, bg_image, translations, point_tooltip
         include_details=True,
         ap_group_map=config.ap_group_map,
         ap_group_roles=config.ap_group_roles,
+        ap_group_channel_overrides=config.ap_group_channel_overrides,
     )
     if len(risk_df) < 3:
         return None
@@ -262,6 +263,7 @@ def build_result_cache_key(df, config, bg_image, translations):
         config.ap_group_filter,
         config.ap_group_map,
         config.ap_group_roles,
+        config.ap_group_channel_overrides,
         config.usable_only,
         round(float(config.smoothing_sigma), 4),
         int(config.max_distance_px),

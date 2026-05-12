@@ -730,6 +730,7 @@ def build_channel_payload(df, config, bg_image, translations, aliases):
         ap_group_map=config.ap_group_map,
         ap_group_roles=config.ap_group_roles,
         ap_group_filter=config.ap_group_filter,
+        ap_group_channel_overrides=config.ap_group_channel_overrides,
     )
     if channel_df.empty:
         return None
@@ -1124,9 +1125,6 @@ def ap_position_warning_translation_key(warning):
 def build_interference_channel_change_notes(row, translations, aliases):
     notes = []
     for prefix in ("serving", "strongest_interferer"):
-        if str(row.get(f"{prefix}_channel_change_status", "")) != "clean":
-            continue
-
         if prefix == "serving":
             bssid = row.get("serving_bssid", "")
             group = row.get("serving_ap_group", "")
@@ -1147,19 +1145,36 @@ def build_interference_channel_change_notes(row, translations, aliases):
 
 
 def build_single_channel_change_note(row, prefix, bssid, group, translations, aliases):
-    if str(row.get(f"{prefix}channel_change_status", "")) != "clean":
+    status = str(row.get(f"{prefix}channel_change_status", ""))
+    source = str(row.get(f"{prefix}channel_change_source", ""))
+    if source != "manual" and status != "clean":
         return ""
     if format_value(bssid) == "-":
         return ""
 
     current = format_value(row.get(f"{prefix}channel_change_current_channel", ""))
+    if current == "-":
+        return ""
+
+    if source == "manual":
+        observed = format_value(row.get(f"{prefix}channel_change_observed_channels", ""))
+        template = translations.get(
+            "channel_change_manual_note",
+            "{ap} uses manual analysis channel {current}; observed channels: {channels}.",
+        )
+        return template.format(
+            ap=format_ap_label(bssid, aliases, group),
+            channels=observed,
+            current=current,
+        )
+
     previous = format_value(row.get(f"{prefix}channel_change_previous_channels", ""))
-    if current == "-" or previous == "-":
+    if previous == "-":
         return ""
 
     template = translations.get(
         "channel_change_note",
-        "{ap} changed channel during the survey ({channels} -> {current}); current channel {current} is used.",
+        "{ap} changed channel during the survey ({channels} -> {current}); latest channel {current} is used.",
     )
     return template.format(
         ap=format_ap_label(bssid, aliases, group),

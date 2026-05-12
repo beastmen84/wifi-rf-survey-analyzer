@@ -36,13 +36,15 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the AP Channels channel-change pass is 176
+- The current code test baseline after the AP channel analysis override pass is 180
   passing tests with `.\.venv\Scripts\python.exe -m pytest`.
-- Latest completed code work in this handoff: AP Channels now follows the same
-  clean channel-change behavior as Interference. Clean AP channel changes use
-  the latest observed channel/width in live and PDF AP Channels, with a
-  channel-change note in live tooltips; ambiguous channel sequences stay
-  measured for Quality guidance.
+- Latest completed code work in this handoff: AP metadata now has per-band
+  analysis-channel overrides. Clean AP channel changes still use the latest
+  observed channel/width by default in Interference and AP Channels, but the
+  user can force a known-good channel per AP group/band for channel-sensitive
+  live/PDF maps. Ambiguous channel sequences stay measured unless this explicit
+  manual override is configured, and live tooltips distinguish automatic and
+  manual channel decisions.
 - Latest real-data validation used `test operativo V2.csv` /
   `test operativo V2_raw_data.scan` after all physical AP positions were added:
   25 points, 524 aggregate rows, 2529 raw rows, all raw samples from `lswifi`,
@@ -1072,9 +1074,19 @@ Language:
   AP Group UX polish as completed/currently monitored, and to shift the next
   priorities toward Help, quality recommendations, combined reporting and
   deeper metadata diagnostics only where rules are clear.
+- Added explicit AP metadata analysis-channel overrides per AP group/band.
+  `Interference` and `AP Channels` now use the latest clean channel by default
+  but can use the user-forced channel for clean or ambiguous survey-time channel
+  changes. The override is serialized through `MapConfig`, works in live maps
+  and live PDF exports, and is separate from expected channels so validation
+  warnings are not conflated with the analysis model.
+- Added tests for AP metadata override serialization, Interference manual
+  override behavior on ambiguous changes, AP Channels manual override behavior,
+  and live channel tooltip wording. Full suite baseline is now 180 passed tests.
 
 Recent commits:
 
+- Current commit: Add AP analysis channel overrides.
 - `d85552a` Polish AP group filters.
 - `1aab53f` Align dominant report cards.
 - `59dfd76` Mark dominant PDF problem points.
@@ -1168,8 +1180,9 @@ Current tests cover, among other things:
 - the visible AP becomes dominant/serving;
 - test APs are counted as ignored in interference;
 - clean AP channel changes use the latest observed channel/width in
-  Interference and AP Channels, while ambiguous channel sequences keep measured
-  channels;
+  Interference and AP Channels by default, while manual AP metadata
+  analysis-channel overrides can force a channel for clean or ambiguous
+  channel-change sequences;
 - role columns are preserved in outputs;
 - AP metadata/channel warnings;
 - UI scale and restart command helpers;

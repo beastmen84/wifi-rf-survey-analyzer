@@ -99,6 +99,18 @@ class ApGroupTests(unittest.TestCase):
             [existing_group_id, f"{existing_group_id}#2"],
         )
 
+    def test_ap_group_channel_override_map_reads_metadata(self):
+        group = build_manual_ap_group(
+            "office-ap",
+            ["70:4f:57:aa:bb:10"],
+            metadata={"analysis_channel_override_5": "CH 60"},
+        )
+
+        overrides = build_ap_group_channel_override_map([group])
+
+        self.assertEqual(overrides, {("office-ap", "5"): "60"})
+        self.assertEqual(serialize_ap_group_channel_overrides(overrides), (("office-ap", "5", "60"),))
+
     def test_ap_group_conflicts_detect_same_band_multi_channel_and_ignore_test_groups(self):
         internal_bssids = ["70:4f:57:aa:bb:10", "70:4f:57:aa:bb:11", "70:4f:57:aa:bb:50"]
         test_bssids = ["80:11:22:33:44:10", "80:11:22:33:44:11"]
@@ -271,6 +283,43 @@ class InterferenceTests(unittest.TestCase):
         self.assertFalse(p1["serving_channel_adjusted_for_change"])
         self.assertEqual(p1["risk"], 100)
 
+    def test_interference_uses_manual_channel_override_for_ambiguous_channel_change(self):
+        serving_bssid = "70:4f:57:aa:bb:10"
+        neighbor_bssid = "80:11:22:33:44:10"
+        rows = [
+            build_row("p1", "MAIN", serving_bssid, -50, 60, band="5"),
+            build_row("p1", "NEIGHBOR", neighbor_bssid, -55, 60, band="5"),
+            build_row("p2", "MAIN", serving_bssid, -50, 40, band="5"),
+            build_row("p2", "NEIGHBOR", neighbor_bssid, -55, 60, band="5"),
+            build_row("p3", "MAIN", serving_bssid, -50, 60, band="5"),
+            build_row("p3", "NEIGHBOR", neighbor_bssid, -55, 60, band="5"),
+        ]
+        groups = [
+            build_manual_ap_group("serving-ap", [serving_bssid]),
+            build_manual_ap_group("neighbor-ap", [neighbor_bssid]),
+        ]
+        group_map = build_bssid_to_manual_group_map(groups)
+        channel_overrides = serialize_ap_group_channel_overrides({("serving-ap", "5"): "60"})
+
+        risk_df = calculate_interference_points(
+            rows_to_dataframe(rows),
+            "MAIN",
+            "5",
+            mode="all",
+            include_details=True,
+            ap_group_map=tuple(sorted(group_map.items())),
+            ap_group_channel_overrides=channel_overrides,
+        )
+
+        p2 = risk_df[risk_df["timestamp"] == "p2"].iloc[0]
+        self.assertEqual(p2["serving_channel"], 60)
+        self.assertEqual(p2["serving_channel_original"], 40)
+        self.assertTrue(p2["serving_channel_adjusted_for_change"])
+        self.assertEqual(p2["serving_channel_change_status"], AP_CHANNEL_CHANGE_AMBIGUOUS)
+        self.assertEqual(p2["serving_channel_change_source"], "manual")
+        self.assertEqual(p2["serving_channel_change_observed_channels"], "40, 60")
+        self.assertGreater(p2["risk"], 0)
+
     def test_channel_map_uses_final_channel_for_clean_ap_channel_change(self):
         bssid = "70:4f:57:aa:bb:10"
         groups = [build_manual_ap_group("office-ap", [bssid])]
@@ -295,6 +344,35 @@ class InterferenceTests(unittest.TestCase):
         self.assertEqual(p1["channel_change_status"], AP_CHANNEL_CHANGE_CLEAN)
         self.assertEqual(p2["channel"], 44)
         self.assertFalse(p2["channel_adjusted_for_change"])
+
+    def test_channel_map_uses_manual_channel_override_instead_of_latest_clean_channel(self):
+        bssid = "70:4f:57:aa:bb:10"
+        groups = [build_manual_ap_group("office-ap", [bssid])]
+        group_map = build_bssid_to_manual_group_map(groups)
+        channel_overrides = serialize_ap_group_channel_overrides({("office-ap", "5"): "60"})
+        rows = [
+            build_row("p1", "MAIN", bssid, -50, 60, band="5"),
+            build_row("p2", "MAIN", bssid, -49, 40, band="5"),
+        ]
+
+        channel_df = get_channel_map_points(
+            rows_to_dataframe(rows),
+            "MAIN",
+            "5",
+            ap_group_map=tuple(sorted(group_map.items())),
+            ap_group_channel_overrides=channel_overrides,
+        )
+
+        p1 = channel_df[channel_df["timestamp"] == "p1"].iloc[0]
+        p2 = channel_df[channel_df["timestamp"] == "p2"].iloc[0]
+        self.assertEqual(p1["channel"], 60)
+        self.assertFalse(p1["channel_adjusted_for_change"])
+        self.assertEqual(p2["channel"], 60)
+        self.assertEqual(p2["channel_original"], 40)
+        self.assertTrue(p2["channel_adjusted_for_change"])
+        self.assertEqual(p2["channel_change_status"], AP_CHANNEL_CHANGE_CLEAN)
+        self.assertEqual(p2["channel_change_source"], "manual")
+        self.assertEqual(p2["channel_change_observed_channels"], "40, 60")
 
     def test_24ghz_interference_overlap_weights_are_ordered_by_channel_distance(self):
         self.assertEqual(channel_overlap_weight(1, 1, "2.4"), 1.0)

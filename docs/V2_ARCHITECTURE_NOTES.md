@@ -33,8 +33,11 @@ Current status:
   localized compact controls are checked for fit;
 - clean AP channel changes during a survey are now modeled separately from AP
   group conflicts: they do not create AP Group warnings, but channel-sensitive
-  maps use the latest channel for that AP group and expose a channel-change
-  note where the UI has a tooltip;
+  maps use the latest channel for that AP group by default and expose a
+  channel-change note where the UI has a tooltip;
+- AP metadata can explicitly override the analysis channel per AP group/band,
+  so Interference and AP Channels can use the channel the user knows is the
+  right operational model after a clean or ambiguous survey-time channel change;
 - the 2026-05-12 operational test survey is a useful baseline: all 25 points
   passed quality, all raw samples came from `lswifi`, relevant AP positions were
   complete, and the remaining findings are AP setup/anomaly diagnostics rather
@@ -163,7 +166,8 @@ Implemented:
 - AP group table filters by warning state, role, band and manual/auto state;
 - BSSID management dialog filters by current/other/unassigned/selected/warning
   BSSIDs, band, channel and search text;
-- user-facing `Auto` / `Manual` management state.
+- user-facing `Auto` / `Manual` management state;
+- per-band analysis-channel override in AP metadata for channel-sensitive maps.
 
 Important decision:
 
@@ -225,6 +229,7 @@ Implemented:
 - mounting type;
 - expected bands;
 - expected channels;
+- per-band analysis-channel override for Interference/AP Channels;
 - notes;
 - guided selections for expected bands/channels instead of free text.
 - 6 GHz expected-band metadata includes a 6 GHz channel picker; ambiguous
@@ -237,6 +242,8 @@ Current use:
 - vendor/model can be prefilled for automatic AP group suggestions only when
   scan rows for that group report one unambiguous value;
 - expected bands/channels are used by quality checks;
+- analysis-channel overrides are explicit modeling choices used by
+  channel-sensitive maps, not validation expectations;
 - mounting type is not yet used by RF logic;
 - 6 GHz is supported by metadata checks when scan rows include an explicit
   `band` value or frequency-derived band.
@@ -261,12 +268,17 @@ Implemented:
   interference when grouped correctly;
 - clean channel-change sequences for the same AP group/BSSID set are detected
   over time; Interference uses the final observed channel/width for that AP
-  group instead of mixing old and current channel states across the map;
-- ambiguous channel sequences are preserved as measured and left for quality
-  guidance rather than silently corrected;
+  group by default instead of mixing old and current channel states across the
+  map;
+- manual AP metadata overrides can force the analysis channel for clean or
+  ambiguous channel-change sequences when the user knows the correct operating
+  channel;
+- ambiguous channel sequences are preserved as measured unless an explicit
+  analysis-channel override is configured;
 - interference reports include serving/interferer AP, channels, widths,
   confidence, overlap and diagnosis;
-- tooltips include width in MHz and channel-change notes where relevant.
+- tooltips include width in MHz and automatic/manual channel-change notes where
+  relevant.
 
 ### Live Map View
 
@@ -292,8 +304,8 @@ Implemented:
 - AP Channels and Dominant AP use legend-controlled point labels
   (`Auto` / `All` / `None`) rather than labels drawn directly on the map;
 - AP Channels uses the final observed channel/width for clean AP channel
-  changes, matching Interference behavior while keeping ambiguous sequences as
-  measured;
+  changes by default, matching Interference behavior while keeping ambiguous
+  sequences as measured unless a manual analysis-channel override is configured;
 - discrete-map legends support click-to-highlight, double-click-to-focus and
   empty-map-click deselection;
 - tooltips use the newer compact Qt layout;
@@ -328,8 +340,8 @@ Implemented:
   matching the report-card order;
 - AP Channels all-band legend colors are band-aware, avoiding collisions between
   equal/ambiguous channel numbers across 2.4/5/6 GHz;
-- AP Channels PDF uses the same clean channel-change final-channel handling as
-  the live AP Channels map;
+- AP Channels PDF uses the same automatic/manual channel-change handling as the
+  live AP Channels map;
 - Dominant AP problem reports include AP position status/warnings, distance to
   the dominant AP and nearest physical AP context only for AP-position warning
   rows;
@@ -417,7 +429,10 @@ Current status:
   observed band/channel/BSSID evidence;
 - AP group conflict detection ignores pure channel changes where the same BSSID
   set is observed on multiple channels over time; unexpected configured channels
-  remain covered by AP metadata warnings.
+  remain covered by AP metadata warnings;
+- AP metadata can force the channel used by channel-sensitive maps per AP
+  group/band when a survey-time channel change does not match the intended
+  operational model.
 
 Remaining stance:
 
@@ -471,7 +486,9 @@ Useful next checks:
 
 Keep this rule:
 
-- metadata should assist diagnosis, not silently change measurements.
+- metadata should assist diagnosis, not silently change measurements; the
+  analysis-channel override is allowed because it is an explicit user-selected
+  modeling override.
 
 ### 4. Survey Quality Engine Expansion
 
@@ -532,8 +549,8 @@ Current coverage includes:
 - manual group merge/split preservation;
 - role filtering;
 - channel-width overlap;
-- clean/ambiguous AP channel-change detection plus final-channel override
-  behavior for Interference and AP Channels;
+- clean/ambiguous AP channel-change detection plus automatic latest-channel and
+  manual analysis-channel override behavior for Interference and AP Channels;
 - 6 GHz scan parsing, band-aware filters, legends and exports with synthetic
   hardware-like rows;
 - scanner detail fields and conservative AP metadata prefill;
