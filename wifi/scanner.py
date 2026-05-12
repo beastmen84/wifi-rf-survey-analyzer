@@ -28,6 +28,37 @@ def scan_wifi(backend="auto", show_errors=True):
 
 
 def get_connected_ssid():
+    return get_connected_ssid_lswifi() or get_connected_ssid_netsh()
+
+
+def get_connected_ssid_lswifi():
+    try:
+        from lswifi import wlanapi as lswifi_wlanapi
+
+        interfaces = lswifi_wlanapi.WLAN.get_wireless_interfaces()
+        for _interface_index, interface in interfaces.items():
+            _raw_result, connection = lswifi_wlanapi.WLAN.query_interface(interface, "current_connection")
+            if not isinstance(connection, dict) or connection.get("isState") != "connected":
+                continue
+
+            association = connection.get("wlanAssociationAttributes") or {}
+            ssid = decode_lswifi_ssid(association.get("dot11Ssid"))
+            if ssid:
+                return ssid
+    except Exception:
+        return None
+
+    return None
+
+
+def decode_lswifi_ssid(value):
+    if isinstance(value, bytes):
+        value = value.split(b"\x00", 1)[0].decode("utf-8", errors="ignore")
+
+    return clean_scan_text(value)
+
+
+def get_connected_ssid_netsh():
     try:
         result = subprocess.run(
             ["netsh", "wlan", "show", "interfaces"],

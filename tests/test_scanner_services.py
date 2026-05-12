@@ -17,7 +17,10 @@ BSSID                  : 70:4f:57:aa:bb:10
             calls.append(kwargs)
             return Result()
 
-        with patch.object(scanner_module.subprocess, "run", side_effect=fake_run):
+        with (
+            patch.object(scanner_module, "get_connected_ssid_lswifi", return_value=""),
+            patch.object(scanner_module.subprocess, "run", side_effect=fake_run),
+        ):
             ssid = scanner_module.get_connected_ssid()
 
         self.assertEqual(ssid, "MAIN")
@@ -27,6 +30,19 @@ BSSID                  : 70:4f:57:aa:bb:10
             creationflags = getattr(scanner_module.subprocess, "CREATE_NO_WINDOW", 0)
             if creationflags:
                 self.assertEqual(calls[0].get("creationflags"), creationflags)
+
+    def test_get_connected_ssid_prefers_lswifi_without_netsh(self):
+        with (
+            patch.object(scanner_module, "get_connected_ssid_lswifi", return_value="MAIN"),
+            patch.object(scanner_module.subprocess, "run") as run_mock,
+        ):
+            ssid = scanner_module.get_connected_ssid()
+
+        self.assertEqual(ssid, "MAIN")
+        run_mock.assert_not_called()
+
+    def test_decode_lswifi_ssid_strips_null_padding(self):
+        self.assertEqual(scanner_module.decode_lswifi_ssid(b"MAIN\x00\x00\x00"), "MAIN")
 
     def test_parse_netsh_output_handles_multiple_bssids_per_ssid(self):
         output = """
