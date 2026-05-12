@@ -245,7 +245,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
 
     def test_live_pdf_export_asks_for_destination_path(self):
         window = WifiHeatmapQtApp()
-        original_save_file_name = qt_app_module.get_centered_save_file_name
+        original_save_file_name = qt_live_export_module.get_centered_save_file_name
         try:
             with tempfile.TemporaryDirectory() as temp_dir:
                 class FakeSession:
@@ -260,7 +260,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
                     captured["file_filter"] = file_filter
                     return chosen_path, ""
 
-                qt_app_module.get_centered_save_file_name = fake_save_file_name
+                qt_live_export_module.get_centered_save_file_name = fake_save_file_name
                 window.session = FakeSession()
 
                 output_file = window.choose_live_pdf_output_file(MapConfig(ssid="MAIN", map_type="signal"))
@@ -270,7 +270,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
                 self.assertEqual(captured["file_filter"], window.tr("live_pdf_file_filter"))
                 self.assertIn("MAIN_coverage", captured["default_path"])
         finally:
-            qt_app_module.get_centered_save_file_name = original_save_file_name
+            qt_live_export_module.get_centered_save_file_name = original_save_file_name
             window.deleteLater()
 
     def test_live_options_overlay_is_specific_to_map_type(self):

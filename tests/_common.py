@@ -113,6 +113,7 @@ from qt_live_map import (
     gradient_stops,
 )
 import qt_app as qt_app_module
+import qt_live_export as qt_live_export_module
 from qt_app import WifiHeatmapQtApp
 from qt_windowing import pop_modal_dim, push_modal_dim
 from quality_engine import (
