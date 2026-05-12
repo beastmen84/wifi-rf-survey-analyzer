@@ -83,6 +83,7 @@ class APGroupManagerDialogTests(unittest.TestCase):
             "70:4f:57:aa:bb:10": {"ssids": ["MAIN"], "channels": ["1"], "bands": ["2.4"]},
             "70:4f:57:aa:bb:11": {"ssids": ["MAIN-6"], "channels": ["5"], "bands": ["6"]},
             "70:4f:57:aa:bb:20": {"ssids": ["Guest"], "channels": ["36"], "bands": ["5"]},
+            "90:11:22:33:44:10": {"ssids": ["New"], "channels": ["11"], "bands": ["2.4"]},
         }
         dialog = BssidSelectionDialog(
             manager,
@@ -157,6 +158,17 @@ class APGroupManagerDialogTests(unittest.TestCase):
 
             dialog.clear_filters()
             self.assertEqual(len(dialog.visible_group_ids), 3)
+        finally:
+            dialog.deleteLater()
+            app.deleteLater()
+
+    def test_ap_manager_styles_modern_scrollbars(self):
+        app, dialog = self.make_ap_manager_dialog()
+        try:
+            style = dialog.styleSheet()
+            self.assertIn("QScrollBar::handle:vertical", style)
+            self.assertIn("QScrollBar::add-line:vertical", style)
+            self.assertIn("QScrollBar::handle:horizontal", style)
         finally:
             dialog.deleteLater()
             app.deleteLater()
@@ -236,6 +248,7 @@ class APGroupManagerDialogTests(unittest.TestCase):
                 "70:4f:57:aa:bb:10",
                 "70:4f:57:aa:bb:11",
                 "70:4f:57:aa:bb:20",
+                "90:11:22:33:44:10",
             })
 
             self.set_combo_value(dialog.scope_combo, "current")
@@ -259,6 +272,9 @@ class APGroupManagerDialogTests(unittest.TestCase):
             self.set_combo_value(dialog.band_combo, "")
             self.set_combo_value(dialog.scope_combo, "other")
             self.assertEqual(dialog.visible_bssids, ["70:4f:57:aa:bb:20"])
+
+            self.set_combo_value(dialog.scope_combo, "unassigned")
+            self.assertEqual(dialog.visible_bssids, ["90:11:22:33:44:10"])
 
             self.set_combo_value(dialog.scope_combo, "focus")
             self.assertEqual(dialog.visible_bssids, ["70:4f:57:aa:bb:20"])

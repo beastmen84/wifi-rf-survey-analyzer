@@ -36,11 +36,12 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the live-PDF validation pass is 165
+- The current code test baseline after the AP Group Manager polish pass is 166
   passing tests with `.\.venv\Scripts\python.exe -m pytest`.
-- Latest completed code work in this handoff: Dominant AP live-PDF problem
-  points now get map numbers matching the report cards, and the local venv was
-  audited for likely unused packages.
+- Latest completed code work in this handoff: AP Group Manager/BSSID
+  Management filter rows were tightened, BSSID unassigned filtering was covered
+  by tests, and AP Group dialog scrollbars were styled instead of using native
+  Windows scrollbars.
 - Latest real-data validation used `test operativo V2.csv` /
   `test operativo V2_raw_data.scan` after all physical AP positions were added:
   25 points, 524 aggregate rows, 2529 raw rows, all raw samples from `lswifi`,
@@ -50,9 +51,9 @@ Read this section first in a new chat.
   channels on `CORR. UFF. 12` and `SINCE`, plus several
   `UNEXPECTED_DOMINANT` AP-position warnings to review on the live/exported
   Dominant AP map.
-- Immediate next direction is to continue validating/exporting the remaining
-  live-map PDFs from this real survey, then only adjust concrete data-logic or
-  visual issues found in those outputs.
+- The live-PDF report validation pass is considered closed. The real warnings
+  from the operational survey were reviewed by the user and currently look
+  correct, so do not retune warning thresholds without new data.
 - Current AP positioning and scale calibration pick points with left click while
   their modal map-pick mode is active; normal map dragging is disabled during
   the pick and the click must not create a measurement point.
@@ -1044,9 +1045,15 @@ Language:
   `pywin32-ctypes` are not app runtime dependencies but should be kept if this
   venv remains the Windows executable build environment. No packages were
   uninstalled during the audit.
+- Final AP Group Manager polish tightened the main filter row and the BSSID
+  Management filter/action rows, gave BSSID Save/Cancel compact button sizing,
+  covered the `Unassigned` BSSID scope with a UI test, and added theme-colored
+  rounded Qt scrollbar styling to avoid native Windows scrollbar chrome in the
+  AP group dialogs.
 
 Recent commits:
 
+- `1aab53f` Align dominant report cards.
 - `59dfd76` Mark dominant PDF problem points.
 - `593ffc` Limit dominant PDF position context.
 - `8760b5c` Refine live PDF validation output.
@@ -1107,19 +1114,13 @@ Recent commits:
 
 Good next steps, in likely order:
 
-1. Continue the real-survey PDF validation round: export/review Coverage,
-   AP Channels and Dominant AP, then fix only concrete visual or data-logic
-   issues found in those outputs.
-2. Inspect the new AP setup diagnostics from `test operativo V2`: unexpected
-   channels on `CORR. UFF. 12` / `SINCE` and `UNEXPECTED_DOMINANT` cases,
-   before changing AP-position thresholds.
-3. Add targeted tests around point scanning, survey save/load with raw `.scan`
+1. Add targeted tests around point scanning, survey save/load with raw `.scan`
    sidecar, relevant SSID changes, AP group metadata and AP positioning.
-4. Decide whether mounting metadata should influence AP position warnings or
+2. Decide whether mounting metadata should influence AP position warnings or
    remain documentation only.
-5. Improve live map performance only if the user sees real lag on large surveys;
+3. Improve live map performance only if the user sees real lag on large surveys;
    do not trade away map quality prematurely.
-6. Rework Help structure later, after the Qt layout and feature set stabilize.
+4. Rework Help structure later, after the Qt layout and feature set stabilize.
 
 ## Verification Patterns Used
 

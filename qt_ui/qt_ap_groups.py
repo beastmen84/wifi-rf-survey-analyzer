@@ -96,6 +96,27 @@ def open_qt_ap_group_manager(parent):
     return dialog.exec() == QDialog.DialogCode.Accepted
 
 
+def make_dialog_label(text):
+    label = QLabel(text)
+    label.setObjectName("apDialogLabel")
+    return label
+
+
+def add_filter_pair(layout, owner, label_text, control, min_width=None):
+    if min_width is not None:
+        control.setMinimumWidth(widget_px(owner, min_width))
+    control.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+
+    container = QWidget()
+    container.setObjectName("apFilterPair")
+    pair_layout = QHBoxLayout(container)
+    pair_layout.setContentsMargins(0, 0, 0, 0)
+    pair_layout.setSpacing(widget_px(owner, 6))
+    pair_layout.addWidget(make_dialog_label(label_text))
+    pair_layout.addWidget(control)
+    layout.addWidget(container)
+
+
 class APGroupManagerDialog(QDialog):
     def __init__(self, app):
         super().__init__(app)
@@ -123,9 +144,7 @@ class APGroupManagerDialog(QDialog):
         return self.app.tr(key, **kwargs)
 
     def make_filter_label(self, key):
-        label = QLabel(self.tr(key))
-        label.setObjectName("apDialogLabel")
-        return label
+        return make_dialog_label(self.tr(key))
 
     def build_state(self):
         detected_groups = build_detected_ap_groups(self.session.rows, self.app.channel_sort_key)
@@ -154,10 +173,10 @@ class APGroupManagerDialog(QDialog):
 
         search_row = QHBoxLayout()
         search_row.setSpacing(widget_px(self, 8))
-        search_label = QLabel(self.tr("ap_alias_search"))
-        search_label.setObjectName("apDialogLabel")
+        search_label = self.make_filter_label("ap_alias_search")
         search_row.addWidget(search_label)
         self.search_edit = QLineEdit()
+        self.search_edit.setMinimumHeight(widget_px(self, 34))
         self.search_edit.textChanged.connect(self.render_rows)
         search_row.addWidget(self.search_edit, 1)
         self.conflict_label = QLabel()
@@ -166,38 +185,34 @@ class APGroupManagerDialog(QDialog):
         layout.addLayout(search_row)
 
         filter_row = QHBoxLayout()
-        filter_row.setSpacing(widget_px(self, 8))
-        filter_row.addWidget(self.make_filter_label("ap_group_filter_status"))
+        filter_row.setSpacing(widget_px(self, 14))
         self.status_filter_combo = QComboBox()
         self.status_filter_combo.addItem(self.tr("ap_group_filter_status_all"), "all")
         self.status_filter_combo.addItem(self.tr("ap_group_filter_status_warning"), "warning")
         self.status_filter_combo.addItem(self.tr("ap_group_filter_status_ok"), "ok")
         self.status_filter_combo.currentIndexChanged.connect(self.render_rows)
-        filter_row.addWidget(self.status_filter_combo)
+        add_filter_pair(filter_row, self, self.tr("ap_group_filter_status"), self.status_filter_combo, 146)
 
-        filter_row.addWidget(self.make_filter_label("ap_group_filter_role"))
         self.role_filter_combo = QComboBox()
         self.role_filter_combo.addItem(self.tr("ap_group_filter_role_all"), "all")
         for role in AP_ROLE_CHOICES:
             self.role_filter_combo.addItem(self.tr(f"ap_group_role_{role}"), role)
         self.role_filter_combo.currentIndexChanged.connect(self.render_rows)
-        filter_row.addWidget(self.role_filter_combo)
+        add_filter_pair(filter_row, self, self.tr("ap_group_filter_role"), self.role_filter_combo, 146)
 
-        filter_row.addWidget(self.make_filter_label("ap_group_filter_band"))
         self.band_filter_combo = QComboBox()
         self.band_filter_combo.addItem(self.tr("ap_group_filter_band_all"), "all")
         for band in self.available_filter_bands():
             self.band_filter_combo.addItem(format_band_label(band), band)
         self.band_filter_combo.currentIndexChanged.connect(self.render_rows)
-        filter_row.addWidget(self.band_filter_combo)
+        add_filter_pair(filter_row, self, self.tr("ap_group_filter_band"), self.band_filter_combo, 132)
 
-        filter_row.addWidget(self.make_filter_label("ap_group_filter_state"))
         self.state_filter_combo = QComboBox()
         self.state_filter_combo.addItem(self.tr("ap_group_filter_state_all"), "all")
         self.state_filter_combo.addItem(self.tr("ap_group_state_manual"), "manual")
         self.state_filter_combo.addItem(self.tr("ap_group_state_auto"), "auto")
         self.state_filter_combo.currentIndexChanged.connect(self.render_rows)
-        filter_row.addWidget(self.state_filter_combo)
+        add_filter_pair(filter_row, self, self.tr("ap_group_filter_state"), self.state_filter_combo, 132)
 
         self.clear_filters_button = QPushButton(self.tr("ap_group_clear_filters"))
         self.clear_filters_button.clicked.connect(self.clear_filters)
@@ -316,6 +331,9 @@ class APGroupManagerDialog(QDialog):
                 color: {palette["metric_danger"]};
                 font-weight: 700;
             }}
+            QWidget#apFilterPair {{
+                background: transparent;
+            }}
             QLineEdit, QComboBox {{
                 background: {palette["panel"]};
                 color: {palette["text"]};
@@ -376,6 +394,62 @@ class APGroupManagerDialog(QDialog):
                 selection-color: #FFFFFF;
                 border: 1px solid {palette["border"]};
                 border-radius: {s(5)}px;
+            }}
+            QScrollBar:vertical {{
+                background: transparent;
+                width: {s(13)}px;
+                margin: {s(3)}px {s(2)}px {s(3)}px {s(2)}px;
+                border: 0;
+            }}
+            QScrollBar::handle:vertical {{
+                background: {palette["badge_border"]};
+                border-radius: {s(5)}px;
+                min-height: {s(36)}px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background: {palette["metric_info"]};
+            }}
+            QScrollBar::add-line:vertical,
+            QScrollBar::sub-line:vertical {{
+                height: 0;
+                border: 0;
+                background: transparent;
+            }}
+            QScrollBar::add-page:vertical,
+            QScrollBar::sub-page:vertical {{
+                background: transparent;
+            }}
+            QScrollBar:horizontal {{
+                background: transparent;
+                height: {s(13)}px;
+                margin: {s(2)}px {s(3)}px {s(2)}px {s(3)}px;
+                border: 0;
+            }}
+            QScrollBar::handle:horizontal {{
+                background: {palette["badge_border"]};
+                border-radius: {s(5)}px;
+                min-width: {s(36)}px;
+            }}
+            QScrollBar::handle:horizontal:hover {{
+                background: {palette["metric_info"]};
+            }}
+            QScrollBar::add-line:horizontal,
+            QScrollBar::sub-line:horizontal {{
+                width: 0;
+                border: 0;
+                background: transparent;
+            }}
+            QScrollBar::add-page:horizontal,
+            QScrollBar::sub-page:horizontal {{
+                background: transparent;
+            }}
+            QScrollBar::up-arrow:vertical,
+            QScrollBar::down-arrow:vertical,
+            QScrollBar::left-arrow:horizontal,
+            QScrollBar::right-arrow:horizontal {{
+                width: 0;
+                height: 0;
+                background: transparent;
             }}
             QTableWidget::item {{
                 border: 0;
@@ -1353,24 +1427,29 @@ class BssidSelectionDialog(QDialog):
 
     def build_ui(self):
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(widget_px(self, 14), widget_px(self, 14), widget_px(self, 14), widget_px(self, 14))
+        layout.setSpacing(widget_px(self, 10))
         hint = QLabel(self.manager.tr("ap_group_bssid_hint"))
+        hint.setObjectName("apDialogHint")
         hint.setWordWrap(True)
         layout.addWidget(hint)
         if self.focus_bssids:
             focus_hint = QLabel(self.manager.tr("ap_group_bssid_warning_focus_hint"))
+            focus_hint.setObjectName("apDialogHint")
             focus_hint.setWordWrap(True)
             layout.addWidget(focus_hint)
 
         search_row = QHBoxLayout()
-        search_row.addWidget(QLabel(self.manager.tr("ap_alias_search")))
+        search_row.setSpacing(widget_px(self, 8))
+        search_row.addWidget(make_dialog_label(self.manager.tr("ap_alias_search")))
         self.search_edit = QLineEdit()
+        self.search_edit.setMinimumHeight(widget_px(self, 34))
         self.search_edit.textChanged.connect(self.render_items)
         search_row.addWidget(self.search_edit, 1)
         layout.addLayout(search_row)
 
         filter_row = QHBoxLayout()
-        filter_row.setSpacing(widget_px(self, 8))
-        filter_row.addWidget(QLabel(self.manager.tr("ap_group_bssid_scope")))
+        filter_row.setSpacing(widget_px(self, 14))
         self.scope_combo = QComboBox()
         self.scope_combo.addItem(self.manager.tr("ap_group_bssid_scope_all"), "all")
         self.scope_combo.addItem(self.manager.tr("ap_group_bssid_scope_current"), "current")
@@ -1380,23 +1459,21 @@ class BssidSelectionDialog(QDialog):
         if self.focus_bssids:
             self.scope_combo.addItem(self.manager.tr("ap_group_bssid_scope_warning"), "focus")
         self.scope_combo.currentIndexChanged.connect(self.render_items)
-        filter_row.addWidget(self.scope_combo)
+        add_filter_pair(filter_row, self, self.manager.tr("ap_group_bssid_scope"), self.scope_combo, 178)
 
-        filter_row.addWidget(QLabel(self.manager.tr("band")))
         self.band_combo = QComboBox()
         self.band_combo.addItem(self.manager.tr("ap_group_bssid_filter_all"), "")
         for band in self.available_bands():
             self.band_combo.addItem(format_band_label(band), band)
         self.band_combo.currentIndexChanged.connect(self.render_items)
-        filter_row.addWidget(self.band_combo)
+        add_filter_pair(filter_row, self, self.manager.tr("band"), self.band_combo, 118)
 
-        filter_row.addWidget(QLabel(self.manager.tr("ap_alias_channels")))
         self.channel_combo = QComboBox()
         self.channel_combo.addItem(self.manager.tr("ap_group_bssid_filter_all"), "")
         for channel in self.available_channels():
             self.channel_combo.addItem(channel, channel)
         self.channel_combo.currentIndexChanged.connect(self.render_items)
-        filter_row.addWidget(self.channel_combo)
+        add_filter_pair(filter_row, self, self.manager.tr("ap_alias_channels"), self.channel_combo, 118)
 
         self.count_label = QLabel()
         self.count_label.setObjectName("apDialogLabel")
@@ -1405,7 +1482,8 @@ class BssidSelectionDialog(QDialog):
         layout.addLayout(filter_row)
 
         action_row = QHBoxLayout()
-        action_row.setSpacing(widget_px(self, 6))
+        action_row.setSpacing(widget_px(self, 8))
+        action_row.setContentsMargins(0, widget_px(self, 2), 0, widget_px(self, 2))
         self.select_visible_button = QPushButton(self.manager.tr("ap_group_bssid_select_visible"))
         self.clear_visible_button = QPushButton(self.manager.tr("ap_group_bssid_clear_visible"))
         self.invert_visible_button = QPushButton(self.manager.tr("ap_group_bssid_invert_visible"))
@@ -1457,6 +1535,10 @@ class BssidSelectionDialog(QDialog):
         buttons.addStretch(1)
         save_button = QPushButton(self.manager.tr("save"))
         cancel_button = QPushButton(self.manager.tr("cancel"))
+        save_button.setObjectName("apDialogPrimaryButton")
+        cancel_button.setObjectName("apDialogActionButton")
+        self.manager.prepare_action_button(save_button)
+        self.manager.prepare_action_button(cancel_button)
         save_button.clicked.connect(self.accept)
         cancel_button.clicked.connect(self.reject)
         buttons.addWidget(save_button)
