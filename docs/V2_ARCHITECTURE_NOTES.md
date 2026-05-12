@@ -144,6 +144,11 @@ Implemented:
 - prioritized "what to fix next" guidance for missing relevant networks, sparse
   scans, low confidence, unstable signal, AP position warnings, missing AP
   positions and AP metadata warnings;
+- "what to fix next" cards include direct actions to open relevant live maps
+  and AP Group Manager metadata for the AP group that needs correction;
+- clean/ambiguous AP channel changes are surfaced in the quality dashboard so
+  the user can verify the latest-channel default or set an explicit analysis
+  channel override;
 - setup-only AP diagnostics use a setup warning state instead of implying that
   measurement points need to be rescanned;
 - fullscreen dashboard presentation, compact metric cards and stronger table
@@ -510,7 +515,9 @@ Current implemented expansion:
 
 - the dashboard now provides prioritized "what to fix next" guidance;
 - sparse-data points are counted explicitly;
-- scan-review counts are separated from AP setup diagnostics.
+- scan-review counts are separated from AP setup diagnostics;
+- AP metadata and channel-change recommendations include shortcuts into the
+  live map and AP metadata workflows.
 
 Possible additions:
 
@@ -518,8 +525,6 @@ Possible additions:
 - coverage completeness by area;
 - scan backend reliability score;
 - repeated scan variance per AP group;
-- "what to fix next" guidance for clean/ambiguous AP channel changes detected
-  over time;
 - likely mesh/roaming ambiguity detection;
 - richer point-spacing or area-completeness recommendation lists.
 

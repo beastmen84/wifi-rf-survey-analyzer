@@ -36,12 +36,14 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the Survey Quality Dashboard guidance pass is 184
+- The current code test baseline after the Survey Quality Dashboard action pass is 186
   passing tests with `.\.venv\Scripts\python.exe -m pytest`.
 - Latest completed code work in this handoff: Survey Quality Dashboard now opens
   maximized, uses compact metric cards, includes sparse-data as a first-class
   metric, separates point-rescan issues from AP setup diagnostics, and shows a
-  prioritized `What To Fix Next` panel.
+  prioritized `What To Fix Next` panel. The panel now avoids duplicate context
+  text and provides direct actions into Dominant AP, AP Channels, Interference
+  and AP Group metadata for the problematic AP group where possible.
 - AP metadata has per-band analysis-channel overrides. Clean AP channel changes
   still use the latest observed channel/width by default in Interference and AP
   Channels, but the user can force a known-good channel per AP group/band for
@@ -203,6 +205,10 @@ Quality engine:
   must be rescanned.
 - The dashboard includes a prioritized `What To Fix Next` panel and uses a
   maximized, compact layout with full theme-accent table selection.
+- The dashboard surfaces clean/ambiguous AP channel changes as map-model
+  recommendations, so channel-sensitive live maps can be checked or overridden
+  from AP metadata when the default latest-channel model is not the intended
+  operational model.
 
 ## Map Types And Rendering
 
@@ -1103,10 +1109,16 @@ Language:
   metric, setup-only AP diagnostics use setup wording instead of rescan wording,
   and the old context panel was replaced with prioritized `What To Fix Next`
   guidance. Full suite baseline is now 184 passed tests.
+- Refined the quality recommendations after UI review: duplicate AP metadata
+  detail was removed from the context footer, recommendation cards gained direct
+  actions to open live diagnostic maps or the AP metadata dialog for the
+  problematic group, and clean/ambiguous AP channel changes are now presented as
+  first-class quality recommendations. Full suite baseline is now 186 passed
+  tests.
 
 Recent commits:
 
-- Current commit: Rework survey quality recommendations.
+- Current commit: Add quality dashboard action shortcuts.
 - `d85552a` Polish AP group filters.
 - `1aab53f` Align dominant report cards.
 - `59dfd76` Mark dominant PDF problem points.

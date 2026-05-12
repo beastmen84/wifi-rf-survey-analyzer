@@ -20,6 +20,11 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ap.checks import (
+    AP_CHANNEL_CHANGE_AMBIGUOUS,
+    AP_CHANNEL_CHANGE_CLEAN,
+    build_ap_channel_changes,
+)
 from ap.groups import (
     AP_ROLE_TEST,
     build_default_manual_groups,
@@ -28,7 +33,7 @@ from ap.groups import (
     normalize_ap_role,
     resolve_ap_group_key,
 )
-from ap.metadata import build_ap_metadata_warnings
+from ap.metadata import build_ap_metadata_warnings, infer_band_from_channel, sort_bands
 from ap.positioning import (
     AP_POSITION_NO_SCALE,
     AP_POSITION_STRONG_FAR,
@@ -284,7 +289,64 @@ class QualityDashboardDialog(QDialog):
         detail.setWordWrap(True)
         layout.addWidget(title)
         layout.addWidget(detail)
+        actions = recommendation.get("actions", [])
+        if actions:
+            action_row = QHBoxLayout()
+            action_row.setSpacing(widget_px(self, 6))
+            for action in actions[:4]:
+                button = QPushButton(action.get("label", ""))
+                button.setObjectName("compactButton")
+                button.setMinimumWidth(0)
+                button.clicked.connect(
+                    lambda _checked=False, selected_action=action: self.handle_recommendation_action(selected_action)
+                )
+                action_row.addWidget(button)
+            action_row.addStretch(1)
+            layout.addLayout(action_row)
         return card
+
+    def handle_recommendation_action(self, action):
+        kind = action.get("kind")
+        if kind == "live_map":
+            self.open_live_map_action(action)
+            return
+        if kind == "ap_metadata":
+            self.open_ap_group_action(action.get("group_id"), open_metadata=True)
+            return
+        if kind == "ap_group":
+            self.open_ap_group_action(action.get("group_id"), open_metadata=False)
+            return
+
+    def open_live_map_action(self, action):
+        self.accept()
+        app = self.app
+        if not hasattr(app, "live_map_type_combo"):
+            return
+
+        map_type = action.get("map_type", "signal")
+        band = action.get("band")
+        group_id = "" if map_type == "interference" else action.get("group_id", "")
+        app.tabs.setCurrentIndex(1)
+        set_app_combo_data(app, app.live_map_type_combo, map_type)
+        if hasattr(app, "update_live_option_state"):
+            app.update_live_option_state()
+        if hasattr(app, "refresh_live_band_options"):
+            app.refresh_live_band_options(map_type, preferred_band=band)
+        if band:
+            set_app_combo_data(app, app.live_band_combo, band)
+        if group_id and hasattr(app, "live_ap_group_combo"):
+            if hasattr(app, "refresh_live_ap_group_filter"):
+                app.refresh_live_ap_group_filter()
+            set_app_combo_data(app, app.live_ap_group_combo, group_id)
+        if hasattr(app, "update_live_option_state"):
+            app.update_live_option_state()
+        if hasattr(app, "update_live_preview") and not getattr(app, "live_rendering", False):
+            app.update_live_preview()
+
+    def open_ap_group_action(self, group_id, open_metadata=False):
+        self.accept()
+        if hasattr(self.app, "open_ap_group_manager"):
+            self.app.open_ap_group_manager(focus_group_id=group_id, open_metadata=open_metadata)
 
     def build_controls(self):
         controls = QHBoxLayout()
@@ -383,8 +445,9 @@ def open_qt_quality_dashboard(app):
         ap_groups,
         app.channel_sort_key,
     )
+    ap_channel_changes = build_ap_channel_changes(app.session.rows, ap_groups, app.channel_sort_key)
     rows = build_dashboard_rows(app, point_summaries, quality_by_point_id, ap_position_by_point)
-    summary = build_summary(app, rows, ap_metadata_warnings, ap_groups)
+    summary = build_summary(app, rows, ap_metadata_warnings, ap_groups, ap_channel_changes)
     dialog = QualityDashboardDialog(app, rows, summary)
     dialog.showMaximized()
     dialog.exec()
@@ -459,8 +522,9 @@ def get_effective_ap_groups(app):
     return build_default_manual_groups(app.session.rows)
 
 
-def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None):
+def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None, ap_channel_changes=None):
     ap_metadata_warnings = ap_metadata_warnings or []
+    ap_channel_changes = ap_channel_changes or []
     status_counts = Counter(row["status"] for row in rows)
     ap_groups = ap_groups if ap_groups is not None else get_effective_ap_groups(app)
     visible_ap_groups = [
@@ -502,11 +566,22 @@ def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None):
         "ap_position_warnings": sum(1 for row in rows if row.get("ap_position_warning_count", 0) > 0),
         "ap_missing_positions": len(missing_position_groups),
         "missing_position_labels": missing_position_labels,
+        "missing_position_items": build_ap_group_items(app, missing_position_groups),
         "relevant_networks": relevant_networks,
         "ap_positions": f"{positioned_count}/{len(positioned_ap_groups)}" if positioned_ap_groups else "0/0",
         "test_aps": test_ap_count,
         "ap_metadata_warnings": len(ap_metadata_warnings),
         "ap_metadata_warning_labels": format_ap_metadata_warning_labels(app, ap_metadata_warnings),
+        "ap_metadata_warning_items": build_ap_metadata_warning_items(app, ap_metadata_warnings),
+        "channel_change_count": len(ap_channel_changes),
+        "clean_channel_changes": sum(
+            1 for change in ap_channel_changes if change.get("status") == AP_CHANNEL_CHANGE_CLEAN
+        ),
+        "ambiguous_channel_changes": sum(
+            1 for change in ap_channel_changes if change.get("status") == AP_CHANNEL_CHANGE_AMBIGUOUS
+        ),
+        "channel_change_labels": format_ap_channel_change_labels(app, ap_channel_changes),
+        "channel_change_items": build_ap_channel_change_items(app, ap_channel_changes),
     }
     summary["recommendations"] = build_quality_recommendations(app, summary)
     summary["context_lines"] = build_quality_context_lines(app, summary)
@@ -546,7 +621,7 @@ def quality_status_text_keys(summary):
 def build_quality_recommendations(app, summary):
     recommendations = []
 
-    def add(count, title_key, detail_key, severity, **kwargs):
+    def add(count, title_key, detail_key, severity, actions=None, **kwargs):
         if not count:
             return
         recommendations.append({
@@ -558,6 +633,7 @@ def build_quality_recommendations(app, summary):
                 total=summary["total_points"],
                 **kwargs,
             ),
+            "actions": actions or [],
         })
 
     add(
@@ -585,24 +661,35 @@ def build_quality_recommendations(app, summary):
         "warning",
     )
     add(
+        summary["ap_metadata_warnings"],
+        "quality_dashboard_fix_ap_metadata_title",
+        "quality_dashboard_fix_ap_metadata_detail",
+        "warning",
+        actions=build_ap_metadata_actions(app, summary),
+        details=summary["ap_metadata_warning_labels"],
+    )
+    add_channel_change_recommendation(app, summary, recommendations)
+    add(
         summary["ap_position_warnings"],
         "quality_dashboard_fix_ap_position_title",
         "quality_dashboard_fix_ap_position_detail",
         "warning",
+        actions=[
+            {
+                "kind": "live_map",
+                "label": app.tr("quality_dashboard_action_open_dominant"),
+                "map_type": "dominant",
+                "band": "all",
+            }
+        ],
     )
     add(
         summary["ap_missing_positions"],
         "quality_dashboard_fix_ap_missing_title",
         "quality_dashboard_fix_ap_missing_detail",
         "warning",
+        actions=build_ap_group_actions(app, summary.get("missing_position_items", []), open_metadata=False),
         names=summary["missing_position_labels"],
-    )
-    add(
-        summary["ap_metadata_warnings"],
-        "quality_dashboard_fix_ap_metadata_title",
-        "quality_dashboard_fix_ap_metadata_detail",
-        "warning",
-        details=summary["ap_metadata_warning_labels"],
     )
 
     if not recommendations:
@@ -628,17 +715,186 @@ def build_quality_recommendations(app, summary):
 def build_quality_context_lines(app, summary):
     return [
         app.tr(
-            "quality_dashboard_context_compact_top",
+            "quality_dashboard_context_scope",
             networks=summary["relevant_networks"],
             positions=summary["ap_positions"],
             test_aps=summary["test_aps"],
         ),
-        app.tr(
-            "quality_dashboard_context_compact_bottom",
-            missing=summary["missing_position_labels"],
-            config=summary["ap_metadata_warning_labels"],
-        ),
     ]
+
+
+def add_channel_change_recommendation(app, summary, recommendations):
+    if not summary["channel_change_count"]:
+        return
+
+    has_ambiguous = summary["ambiguous_channel_changes"] > 0
+    first_change = (summary.get("channel_change_items") or [{}])[0]
+    actions = [
+        {
+            "kind": "live_map",
+            "label": app.tr("quality_dashboard_action_open_ap_channels"),
+            "map_type": "channel",
+            "band": first_change.get("band", "all"),
+            "group_id": first_change.get("group_id", ""),
+        },
+        {
+            "kind": "live_map",
+            "label": app.tr("quality_dashboard_action_open_interference"),
+            "map_type": "interference",
+            "band": first_change.get("band", "2.4"),
+            "group_id": first_change.get("group_id", ""),
+        },
+    ]
+    if first_change.get("group_id"):
+        actions.append({
+            "kind": "ap_metadata",
+            "label": app.tr("quality_dashboard_action_open_ap_metadata"),
+            "group_id": first_change["group_id"],
+        })
+
+    recommendations.append({
+        "severity": "warning" if has_ambiguous else "info",
+        "title": app.tr(
+            "quality_dashboard_fix_channel_change_ambiguous_title"
+            if has_ambiguous
+            else "quality_dashboard_fix_channel_change_clean_title"
+        ),
+        "detail": app.tr(
+            "quality_dashboard_fix_channel_change_detail",
+            count=summary["channel_change_count"],
+            clean=summary["clean_channel_changes"],
+            ambiguous=summary["ambiguous_channel_changes"],
+            details=summary["channel_change_labels"],
+        ),
+        "actions": actions,
+    })
+
+
+def build_ap_metadata_actions(app, summary):
+    items = summary.get("ap_metadata_warning_items", [])
+    actions = []
+    first = items[0] if items else {}
+    if first:
+        actions.extend([
+            {
+                "kind": "live_map",
+                "label": app.tr("quality_dashboard_action_open_ap_channels"),
+                "map_type": "channel",
+                "band": first.get("band", "all"),
+                "group_id": first.get("group_id", ""),
+            },
+            {
+                "kind": "live_map",
+                "label": app.tr("quality_dashboard_action_open_interference"),
+                "map_type": "interference",
+                "band": first.get("band", "2.4"),
+                "group_id": first.get("group_id", ""),
+            },
+        ])
+    actions.extend(build_ap_group_actions(app, items, open_metadata=True))
+    return actions
+
+
+def build_ap_group_actions(app, items, open_metadata=False):
+    actions = []
+    for item in items[:2]:
+        group_id = item.get("group_id", "")
+        if not group_id:
+            continue
+        actions.append({
+            "kind": "ap_metadata" if open_metadata else "ap_group",
+            "group_id": group_id,
+            "label": app.tr(
+                "quality_dashboard_action_metadata_for" if open_metadata else "quality_dashboard_action_group_for",
+                ap=item.get("label", group_id),
+            ),
+        })
+    return actions
+
+
+def build_ap_group_items(app, groups):
+    return [
+        {
+            "group_id": str(group.get("group_id", "")),
+            "label": app.get_ap_group_display_name(group.get("group_id", "")),
+        }
+        for group in groups
+        if str(group.get("group_id", ""))
+    ]
+
+
+def build_ap_metadata_warning_items(app, warnings):
+    return [
+        {
+            "group_id": str(warning.get("group_id", "")),
+            "label": app.get_ap_group_display_name(warning.get("group_id", "")),
+            "detail": format_ap_metadata_warning(app, warning),
+            "band": metadata_warning_primary_band(warning),
+        }
+        for warning in warnings
+    ]
+
+
+def build_ap_channel_change_items(app, changes):
+    return [
+        {
+            "group_id": str(change.get("group_id", "")),
+            "label": app.get_ap_group_display_name(change.get("group_id", "")),
+            "band": str(change.get("band", "")) or "all",
+            "status": change.get("status", ""),
+            "channels": change.get("channels", []),
+            "current_channel": change.get("current_channel", ""),
+        }
+        for change in changes
+    ]
+
+
+def format_ap_channel_change_labels(app, changes):
+    if not changes:
+        return app.tr("quality_dashboard_missing_positions_none")
+
+    labels = []
+    for change in changes[:3]:
+        labels.append(app.tr(
+            "quality_dashboard_channel_change_label",
+            ap=app.get_ap_group_display_name(change.get("group_id", "")),
+            band=format_band_label(change.get("band", "")),
+            status=app.tr(
+                "quality_dashboard_channel_change_status_ambiguous"
+                if change.get("status") == AP_CHANNEL_CHANGE_AMBIGUOUS
+                else "quality_dashboard_channel_change_status_clean"
+            ),
+            channels=", ".join(change.get("channels", [])) or "-",
+            current=change.get("current_channel", "") or "-",
+        ))
+    if len(changes) > 3:
+        labels.append(app.tr("quality_dashboard_more_issues", count=len(changes) - 3))
+    return "; ".join(labels)
+
+
+def metadata_warning_primary_band(warning):
+    bands = set(warning.get("unexpected_bands", []) or warning.get("observed_bands", []))
+    for channel in warning.get("unexpected_channels", []):
+        band = infer_band_from_channel(channel)
+        if band:
+            bands.add(band)
+    sorted_bands = sort_bands(bands)
+    return sorted_bands[0] if sorted_bands else "all"
+
+
+def set_app_combo_data(app, combo, value):
+    if hasattr(app, "set_combo_value_silent"):
+        app.set_combo_value_silent(combo, value)
+        return combo.currentData() == value
+    return set_combo_data(combo, value)
+
+
+def set_combo_data(combo, value):
+    index = combo.findData(value)
+    if index >= 0:
+        combo.setCurrentIndex(index)
+        return True
+    return False
 
 
 def filter_ap_groups_for_relevant_ssids(app, ap_groups):

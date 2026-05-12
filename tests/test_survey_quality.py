@@ -226,6 +226,61 @@ class QualityTests(unittest.TestCase):
         self.assertIn("ap-1", summary["ap_metadata_warning_labels"])
         self.assertIn("+1", summary["ap_metadata_warning_labels"])
 
+    def test_quality_metadata_recommendation_has_direct_actions_without_duplicate_context(self):
+        row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 36)
+        app = FakeQualityApp([row], relevant_ssids={"MAIN"})
+        warnings = [
+            {"group_id": "ap-1", "unexpected_channels": ["36"], "expected_channels": ["1"]},
+        ]
+
+        summary = build_summary(
+            app,
+            [{"status": QUALITY_GOOD, "needs_review": False, "ap_position_warning_count": 0}],
+            warnings,
+            [],
+        )
+
+        metadata_recommendation = next(
+            recommendation
+            for recommendation in summary["recommendations"]
+            if recommendation["title"] == "quality_dashboard_fix_ap_metadata_title"
+        )
+        self.assertEqual(summary["ap_metadata_warning_items"][0]["band"], "5")
+        self.assertTrue(any(action["kind"] == "ap_metadata" for action in metadata_recommendation["actions"]))
+        self.assertTrue(any(action.get("map_type") == "channel" for action in metadata_recommendation["actions"]))
+        self.assertEqual(len(summary["context_lines"]), 1)
+        self.assertNotIn("ap-1", summary["context_lines"][0])
+
+    def test_quality_recommends_channel_change_model_review(self):
+        row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 36)
+        app = FakeQualityApp([row], relevant_ssids={"MAIN"})
+        channel_changes = [
+            {
+                "group_id": "ap-1",
+                "band": "5",
+                "status": AP_CHANNEL_CHANGE_CLEAN,
+                "channels": ["36", "40"],
+                "current_channel": "40",
+            }
+        ]
+
+        summary = build_summary(
+            app,
+            [{"status": QUALITY_GOOD, "needs_review": False, "ap_position_warning_count": 0}],
+            [],
+            [],
+            channel_changes,
+        )
+
+        self.assertEqual(summary["channel_change_count"], 1)
+        self.assertEqual(summary["clean_channel_changes"], 1)
+        self.assertEqual(summary["ambiguous_channel_changes"], 0)
+        self.assertIn("ap-1", summary["channel_change_labels"])
+        self.assertTrue(any(
+            recommendation["title"] == "quality_dashboard_fix_channel_change_clean_title"
+            for recommendation in summary["recommendations"]
+        ))
+
     def test_quality_summary_separates_scan_review_from_ap_setup_warnings(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)
         app = FakeQualityApp([row], relevant_ssids={"MAIN"})

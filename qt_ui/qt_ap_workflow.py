@@ -11,11 +11,11 @@ from qt_ui.qt_tooltips import build_html_tooltip
 
 
 class ApWorkflowMixin:
-    def open_ap_group_manager(self):
+    def open_ap_group_manager(self, focus_group_id=None, open_metadata=False):
         if self.session is None:
             return
 
-        if open_qt_ap_group_manager(self):
+        if open_qt_ap_group_manager(self, focus_group_id=focus_group_id, open_metadata=open_metadata):
             self.refresh_session_labels()
             self.refresh_points_table()
             if not self.floorplan_view.pending_ap_position_group_id:

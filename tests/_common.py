@@ -359,6 +359,15 @@ class FakeQualityApp:
             return f"channels {kwargs.get('channels')} expected {kwargs.get('expected')}"
         if key == "quality_dashboard_ap_metadata_bands":
             return f"bands {kwargs.get('bands')} expected {kwargs.get('expected')}"
+        if key == "quality_dashboard_channel_change_status_clean":
+            return "clean"
+        if key == "quality_dashboard_channel_change_status_ambiguous":
+            return "ambiguous"
+        if key == "quality_dashboard_channel_change_label":
+            return (
+                f"{kwargs.get('ap')} {kwargs.get('band')}: {kwargs.get('status')}, "
+                f"channels {kwargs.get('channels')}, current {kwargs.get('current')}"
+            )
         return key.format(**kwargs) if kwargs else key
 
     def get_ap_group_display_name(self, group_id):

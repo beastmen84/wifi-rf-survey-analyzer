@@ -2,7 +2,7 @@
 
 import math
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
@@ -96,8 +96,12 @@ EXPECTED_CHANNELS_BY_BAND = {
 }
 
 
-def open_qt_ap_group_manager(parent):
+def open_qt_ap_group_manager(parent, focus_group_id=None, open_metadata=False):
     dialog = APGroupManagerDialog(parent)
+    if focus_group_id:
+        dialog.focus_group_by_id(focus_group_id)
+    if open_metadata:
+        QTimer.singleShot(0, dialog.open_metadata_dialog_for_selected_group)
     return dialog.exec() == QDialog.DialogCode.Accepted
 
 
@@ -1011,7 +1015,17 @@ class APGroupManagerDialog(QDialog):
             item = self.table.item(row, 0)
             if item and item.data(Qt.ItemDataRole.UserRole) == group_id:
                 self.table.selectRow(row)
-                return
+                self.table.scrollToItem(item, QAbstractItemView.ScrollHint.PositionAtCenter)
+                return True
+        return False
+
+    def focus_group_by_id(self, group_id):
+        group_id = str(group_id or "")
+        if not group_id:
+            return False
+
+        self.clear_filters()
+        return self.select_group_by_id(group_id)
 
     def get_group_by_id(self, group_id):
         for group in self.groups:
