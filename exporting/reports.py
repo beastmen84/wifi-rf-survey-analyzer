@@ -422,7 +422,6 @@ def build_problem_report_page(
     content_bottom = 0.07
     gap = 0.018
     card_height = calculate_report_card_height(len(rows), content_top, content_bottom, gap, layout_rows)
-    first_header = clean_report_text(headers[0]) if headers else ""
     detail_header = clean_report_text(headers[-1]) if headers else ""
 
     for row_index, row in enumerate(rows):
@@ -450,20 +449,40 @@ def build_problem_report_page(
         ))
 
         card_number = first_item_number + row_index
+        badge_size = 0.044
+        badge_x = card_left + 0.022
+        badge_y = card_top - 0.065
+        ax.add_patch(plt.Rectangle(
+            (badge_x, badge_y),
+            badge_size,
+            badge_size,
+            facecolor="#111827",
+            edgecolor="#ffffff",
+            linewidth=0.9,
+        ))
         ax.text(
-            card_left + 0.022,
-            card_top - 0.026,
-            f"{card_number}. {first_header}: {values[0] if values else '-'}",
+            badge_x + badge_size / 2,
+            badge_y + badge_size / 2,
+            str(card_number),
             fontsize=10.2,
             fontweight="bold",
-            va="top",
-            color="#111827",
+            ha="center",
+            va="center",
+            color="#ffffff",
+        )
+        ax.text(
+            card_left + 0.083,
+            badge_y + badge_size / 2,
+            format_problem_report_point_value(values[0] if values else "-"),
+            fontsize=9.2,
+            va="center",
+            color="#6b7280",
         )
 
         metadata = list(zip(headers[1:-1], values[1:-1]))
         for meta_index, (label, value) in enumerate(metadata):
             meta_x = card_left + 0.022 + (meta_index % 2) * 0.205
-            meta_y = card_top - 0.065 - (meta_index // 2) * 0.052
+            meta_y = card_top - 0.100 - (meta_index // 2) * 0.052
             ax.text(meta_x, meta_y, clean_report_text(label), fontsize=6.8, va="top", color="#6b7280")
             for line_index, line in enumerate(wrap_report_text(value, width=24, max_lines=2)):
                 ax.text(
@@ -489,6 +508,13 @@ def build_problem_report_page(
                 color="#111827",
             )
     return fig
+
+
+def format_problem_report_point_value(value):
+    point = clean_report_text(value)
+    if point.startswith("(") and point.endswith(")"):
+        return point
+    return f"({point})"
 
 
 def calculate_report_card_height(row_count, content_top, content_bottom, gap, layout_rows=None):

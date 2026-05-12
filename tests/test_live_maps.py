@@ -822,9 +822,12 @@ class LivePdfExportTests(unittest.TestCase):
         )
         try:
             self.assertEqual(len(figures), 2)
-            first_page_text = "\n".join(text.get_text() for text in figures[0].axes[0].texts)
+            first_page_texts = [text.get_text() for text in figures[0].axes[0].texts]
+            first_page_text = "\n".join(first_page_texts)
             self.assertIn("1/2", first_page_text)
-            self.assertIn("1. Point: 10, 20", first_page_text)
+            self.assertIn("1", first_page_texts)
+            self.assertIn("(10, 20)", first_page_texts)
+            self.assertNotIn("1. Point: 10, 20", first_page_text)
             self.assertIn("Diagnosis", first_page_text)
             last_page_card_heights = [
                 patch.get_height()
@@ -862,7 +865,11 @@ class LivePdfExportTests(unittest.TestCase):
             {},
         )
         try:
-            page_text = "\n".join(text.get_text() for text in figures[0].axes[0].texts)
+            page_texts = [text.get_text() for text in figures[0].axes[0].texts]
+            page_text = "\n".join(page_texts)
+            self.assertIn("1", page_texts)
+            self.assertIn("(20, 0)", page_texts)
+            self.assertNotIn("1. Point: 20, 0", page_text)
             self.assertIn("Dominant AP is not physically nearby", page_text)
             self.assertIn("AP distance: 80 m", page_text)
             self.assertIn("Nearest", page_text)

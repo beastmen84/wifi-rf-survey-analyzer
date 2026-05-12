@@ -1034,6 +1034,9 @@ Language:
   overlap or AP-position warnings, caps them at 14, assigns report numbers, and
   draws matching square labels on the Dominant AP map. Tests cover helper order
   and generated PDF map labels.
+- The Dominant AP report-card layout was then aligned with Interference: each
+  card now shows a black square number badge plus point coordinates in
+  parentheses instead of the old generic `1. Point: x, y` heading.
 - Venv package audit on 2026-05-12 found no broken requirements with
   `pip check`. Likely removable runtime-unused packages are `ttkbootstrap`,
   `charset-normalizer`, `scipy-stubs`, `optype`, and `numpy-typing-compat`.
@@ -1044,6 +1047,7 @@ Language:
 
 Recent commits:
 
+- `59dfd76` Mark dominant PDF problem points.
 - `593ffc` Limit dominant PDF position context.
 - `8760b5c` Refine live PDF validation output.
 - `9a5eb02` Prefer lswifi for connected SSID lookup.
