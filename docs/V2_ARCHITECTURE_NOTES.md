@@ -168,6 +168,8 @@ Implemented:
   BSSIDs, band, channel and search text;
 - user-facing `Auto` / `Manual` management state;
 - per-band analysis-channel override in AP metadata for channel-sensitive maps.
+  The override picker is constrained to channels actually observed for that AP
+  group/band and is disabled for bands not observed on the group.
 
 Important decision:
 
@@ -232,6 +234,8 @@ Implemented:
 - per-band analysis-channel override for Interference/AP Channels;
 - notes;
 - guided selections for expected bands/channels instead of free text.
+- analysis-channel override selection is constrained to observed AP-group
+  channels so the user cannot model against a channel absent from the survey.
 - 6 GHz expected-band metadata includes a 6 GHz channel picker; ambiguous
   low-number channels are assigned according to the selected expected band when
   possible.

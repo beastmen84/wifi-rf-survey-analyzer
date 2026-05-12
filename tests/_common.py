@@ -115,6 +115,7 @@ from qt_ui.qt_ap_groups import (
     BssidSelectionDialog,
     ConflictDialog,
     EXPECTED_CHANNELS_BY_BAND,
+    MetadataDialog,
     infer_expected_channel_bands,
 )
 from qt_ui.qt_live_map import (

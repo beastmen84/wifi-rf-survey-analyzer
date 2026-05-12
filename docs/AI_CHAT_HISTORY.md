@@ -36,7 +36,7 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the AP channel analysis override pass is 180
+- The current code test baseline after the AP metadata override layout pass is 182
   passing tests with `.\.venv\Scripts\python.exe -m pytest`.
 - Latest completed code work in this handoff: AP metadata now has per-band
   analysis-channel overrides. Clean AP channel changes still use the latest
@@ -1083,6 +1083,11 @@ Language:
 - Added tests for AP metadata override serialization, Interference manual
   override behavior on ambiguous changes, AP Channels manual override behavior,
   and live channel tooltip wording. Full suite baseline is now 180 passed tests.
+- Refined the AP metadata dialog layout after user review: the analysis-channel
+  override now sits inside the Expected Bands grid instead of a separate tall
+  section, uses only channels actually observed for that AP group/band, disables
+  unobserved bands, and drops stale override values that are not present in the
+  survey observations. Full suite baseline is now 182 passed tests.
 
 Recent commits:
 

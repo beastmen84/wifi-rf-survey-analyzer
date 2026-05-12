@@ -212,6 +212,7 @@ TRANSLATIONS = {
     "ap_group_metadata_analysis_channel_hint": "Usato dalle mappe sensibili al canale quando questo AP ha cambiato canale durante il rilievo. Lascia Auto per usare l'ultimo canale pulito.",
     "ap_group_metadata_analysis_channel": "Canale Analisi",
     "ap_group_metadata_analysis_channel_auto": "Auto",
+    "ap_group_metadata_analysis_channel_not_observed": "Non Rilevata",
     "ap_group_metadata_notes": "Note",
     "ap_group_set_position": "Posiziona su Mappa",
     "ap_group_position": "Posizione",

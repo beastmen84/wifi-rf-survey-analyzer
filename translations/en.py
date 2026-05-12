@@ -212,6 +212,7 @@ TRANSLATIONS = {
     "ap_group_metadata_analysis_channel_hint": "Used by channel-sensitive maps when this AP changed channel during the survey. Leave Auto to use the latest clean channel.",
     "ap_group_metadata_analysis_channel": "Analysis Channel",
     "ap_group_metadata_analysis_channel_auto": "Auto",
+    "ap_group_metadata_analysis_channel_not_observed": "Not Observed",
     "ap_group_metadata_notes": "Notes",
     "ap_group_set_position": "Place on Map",
     "ap_group_position": "Position",

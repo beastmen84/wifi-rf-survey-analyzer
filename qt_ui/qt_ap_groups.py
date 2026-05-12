@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
 from ap.checks import build_ap_group_conflicts
 from ap.metadata import (
     infer_band_from_channel,
+    normalize_channel,
     parse_expected_bands,
     parse_expected_channels,
     sort_bands,
@@ -51,6 +52,7 @@ from ap.groups import (
 )
 from qt_ui.qt_theme import QT_THEMES, build_scrollbar_stylesheet
 from qt_ui.scaling import widget_font, widget_px
+from wifi.band import get_row_band
 
 
 AP_GROUP_COLUMNS = (
@@ -1080,10 +1082,11 @@ class MetadataDialog(QDialog):
         self.channel_buttons = {}
         self.band_summary_labels = {}
         self.analysis_channel_combos = {}
+        self.observed_channels_by_band = self.build_observed_channels_by_band()
         self.selected_channels_by_band = self.initial_selected_channels_by_band()
 
         self.setWindowTitle(manager.tr("ap_group_metadata_title"))
-        self.resize(widget_px(self, 980), widget_px(self, 620))
+        self.resize(widget_px(self, 980), widget_px(self, 560))
         self.setMinimumSize(widget_px(self, 860), widget_px(self, 560))
         self.setStyleSheet(manager.styleSheet())
         self.build_ui()
@@ -1096,6 +1099,30 @@ class MetadataDialog(QDialog):
             for band in candidate_bands:
                 selected[band].add(channel)
         return selected
+
+    def build_observed_channels_by_band(self):
+        observed = {band: set() for band, _label in EXPECTED_BAND_OPTIONS}
+        bssids = {
+            normalize_bssid(bssid)
+            for bssid in self.group.get("bssids", [])
+            if normalize_bssid(bssid)
+        }
+        if not bssids:
+            return observed
+
+        for row in self.manager.session.rows:
+            if normalize_bssid(row.get("bssid", "")) not in bssids:
+                continue
+
+            band = get_row_band(row)
+            channel = normalize_channel(row.get("channel"))
+            if band in observed and channel:
+                observed[band].add(channel)
+
+        return {
+            band: set(sort_channels(channels, self.manager.app.channel_sort_key))
+            for band, channels in observed.items()
+        }
 
     def build_ui(self):
         outer = QVBoxLayout(self)
@@ -1124,7 +1151,6 @@ class MetadataDialog(QDialog):
         content_layout.addLayout(form)
 
         self.build_band_channel_section(content_layout)
-        self.build_analysis_channel_section(content_layout)
 
         content_layout.addWidget(QLabel(self.manager.tr("ap_group_metadata_notes")))
         self.notes_edit = QTextEdit()
@@ -1161,7 +1187,11 @@ class MetadataDialog(QDialog):
         section_layout.addWidget(self.header_label("ap_group_metadata_band"), 0, 0)
         section_layout.addWidget(self.header_label("ap_group_metadata_channels"), 0, 1)
         section_layout.addWidget(self.header_label("ap_group_metadata_selected_channels"), 0, 2)
+        analysis_header = self.header_label("ap_group_metadata_analysis_channel")
+        analysis_header.setToolTip(self.manager.tr("ap_group_metadata_analysis_channel_hint"))
+        section_layout.addWidget(analysis_header, 0, 3)
         section_layout.setColumnStretch(2, 1)
+        section_layout.setColumnStretch(3, 0)
 
         for row, (band_value, band_label) in enumerate(EXPECTED_BAND_OPTIONS, start=1):
             checkbox = QCheckBox(band_label)
@@ -1184,43 +1214,31 @@ class MetadataDialog(QDialog):
             self.band_summary_labels[band_value] = summary
             section_layout.addWidget(summary, row, 2)
 
-        self.update_all_band_row_states()
-
-        parent_layout.addWidget(section)
-
-    def build_analysis_channel_section(self, parent_layout):
-        section = QGroupBox(self.manager.tr("ap_group_metadata_analysis_channels"))
-        section_layout = QGridLayout(section)
-        section_layout.setContentsMargins(widget_px(self, 10), widget_px(self, 10), widget_px(self, 10), widget_px(self, 10))
-        section_layout.setHorizontalSpacing(widget_px(self, 12))
-        section_layout.setVerticalSpacing(widget_px(self, 8))
-
-        hint = QLabel(self.manager.tr("ap_group_metadata_analysis_channel_hint"))
-        hint.setObjectName("apDialogHint")
-        hint.setWordWrap(True)
-        section_layout.addWidget(hint, 0, 0, 1, 3)
-        section_layout.addWidget(self.header_label("ap_group_metadata_band"), 1, 0)
-        section_layout.addWidget(self.header_label("ap_group_metadata_analysis_channel"), 1, 1)
-        section_layout.setColumnStretch(2, 1)
-
-        for row, (band_value, band_label) in enumerate(EXPECTED_BAND_OPTIONS, start=2):
-            label = QLabel(band_label)
-            label.setObjectName("apDialogLabel")
-            section_layout.addWidget(label, row, 0)
-
             combo = QComboBox()
-            combo.addItem(self.manager.tr("ap_group_metadata_analysis_channel_auto"), "")
-            for channel in EXPECTED_CHANNELS_BY_BAND.get(band_value, ()):
+            combo.setToolTip(self.manager.tr("ap_group_metadata_analysis_channel_hint"))
+            combo.setMinimumWidth(widget_px(self, 136))
+            observed_channels = sort_channels(
+                self.observed_channels_by_band.get(band_value, set()),
+                self.manager.app.channel_sort_key,
+            )
+            if observed_channels:
+                combo.addItem(self.manager.tr("ap_group_metadata_analysis_channel_auto"), "")
+            else:
+                combo.addItem(self.manager.tr("ap_group_metadata_analysis_channel_not_observed"), "")
+                combo.setEnabled(False)
+            for channel in observed_channels:
                 combo.addItem(f"CH {channel}", channel)
 
             field = get_ap_analysis_channel_override_field(band_value)
             current_channel = normalize_ap_analysis_channel_override(self.metadata.get(field, ""))
-            if current_channel:
+            if current_channel and current_channel in observed_channels:
                 current_index = combo.findData(current_channel)
                 if current_index >= 0:
                     combo.setCurrentIndex(current_index)
             self.analysis_channel_combos[band_value] = combo
-            section_layout.addWidget(combo, row, 1)
+            section_layout.addWidget(combo, row, 3)
+
+        self.update_all_band_row_states()
 
         parent_layout.addWidget(section)
 

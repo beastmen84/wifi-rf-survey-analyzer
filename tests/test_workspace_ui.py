@@ -195,6 +195,50 @@ class APGroupManagerDialogTests(unittest.TestCase):
             dialog.deleteLater()
             app.deleteLater()
 
+    def test_metadata_analysis_channel_combo_uses_only_observed_group_channels(self):
+        app, manager = self.make_ap_manager_dialog()
+        try:
+            group = manager.get_group_by_id("warning-ap")
+            dialog = MetadataDialog(manager, group)
+            try:
+                combo_24 = dialog.analysis_channel_combos["2.4"]
+                combo_5 = dialog.analysis_channel_combos["5"]
+                combo_6 = dialog.analysis_channel_combos["6"]
+
+                self.assertEqual(
+                    [combo_24.itemData(index) for index in range(combo_24.count())],
+                    ["", "1", "6"],
+                )
+                self.assertTrue(combo_24.isEnabled())
+                self.assertFalse(combo_5.isEnabled())
+                self.assertFalse(combo_6.isEnabled())
+            finally:
+                dialog.deleteLater()
+        finally:
+            manager.deleteLater()
+            app.deleteLater()
+
+    def test_metadata_analysis_channel_drops_stale_unobserved_override(self):
+        app, manager = self.make_ap_manager_dialog()
+        try:
+            group = manager.get_group_by_id("neighbor-ap")
+            group["metadata"] = {"analysis_channel_override_5": "44"}
+            dialog = MetadataDialog(manager, group)
+            try:
+                combo_5 = dialog.analysis_channel_combos["5"]
+
+                self.assertEqual(
+                    [combo_5.itemData(index) for index in range(combo_5.count())],
+                    ["", "36"],
+                )
+                self.assertEqual(combo_5.currentData(), "")
+                self.assertNotIn("analysis_channel_override_5", dialog.metadata_values())
+            finally:
+                dialog.deleteLater()
+        finally:
+            manager.deleteLater()
+            app.deleteLater()
+
     def test_ap_manager_styles_modern_scrollbars(self):
         app, dialog = self.make_ap_manager_dialog()
         try:
