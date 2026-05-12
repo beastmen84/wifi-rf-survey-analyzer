@@ -110,6 +110,7 @@ def scan_wifi_lswifi(show_errors=True):
         interface_count = max(1, len(interfaces))
 
         for _interface_index, interface in interfaces.items():
+            connected_bssids = get_lswifi_connected_bssids(lswifi_wlanapi, interface)
             for attempt in range(WIFI_SCAN_ATTEMPTS):
                 try:
                     lswifi_wlanapi.WLAN.scan(interface.guid)
@@ -122,7 +123,11 @@ def scan_wifi_lswifi(show_errors=True):
                     interface,
                     False
                 )
-                scans.extend(annotate_raw_scan_samples(parse_lswifi_bss_list(bss_list), attempt + 1, "lswifi"))
+                scans.extend(annotate_raw_scan_samples(
+                    parse_lswifi_bss_list(bss_list, connected_bssids=connected_bssids),
+                    attempt + 1,
+                    "lswifi",
+                ))
 
         networks = merge_wifi_scans(scans, WIFI_SCAN_ATTEMPTS * interface_count)
         log_event(
@@ -150,6 +155,20 @@ def annotate_raw_scan_samples(networks, scan_attempt, backend):
     return networks
 
 
+def get_lswifi_connected_bssids(lswifi_wlanapi, interface):
+    try:
+        connected_bssid = lswifi_wlanapi.WLAN.get_connected_bssid(interface)
+    except Exception:
+        return set()
+
+    normalized = normalize_bssid(clean_scan_text(connected_bssid))
+    return {normalized} if normalized else set()
+
+
+def normalize_bssid(value):
+    return re.sub(r"[^0-9a-f]", "", str(value or "").lower())
+
+
 def lswifi_value(value, default=""):
     return getattr(value, "value", value if value is not None else default)
 
@@ -164,8 +183,13 @@ def clean_scan_text(value):
     return text
 
 
-def parse_lswifi_bss_list(bss_list):
+def parse_lswifi_bss_list(bss_list, connected_bssids=None):
     networks = []
+    connected_bssids = {
+        normalize_bssid(bssid)
+        for bssid in (connected_bssids or set())
+        if normalize_bssid(bssid)
+    }
 
     for item in bss_list:
         ssid = clean_scan_text(getattr(item, "ssid", ""))
@@ -195,6 +219,7 @@ def parse_lswifi_bss_list(bss_list):
             "channel_width_mhz": channel_width_mhz,
             "band": band,
             "radio": radio,
+            "is_connected": normalize_bssid(bssid) in connected_bssids,
             **extra_details,
         })
 
@@ -444,6 +469,7 @@ def merge_wifi_scans(networks, samples_total=1):
             "channel_width_mhz": most_common_non_empty(samples, "channel_width_mhz"),
             "band": most_common_non_empty(samples, "band") or most_common_row_band(samples) or infer_band_from_channel(representative.get("channel")),
             "radio": most_common_non_empty(samples, "radio"),
+            "is_connected": any(bool(sample.get("is_connected")) for sample in samples),
             **{field: most_common_non_empty(samples, field) for field in SCAN_DETAIL_FIELDNAMES},
             "raw_samples": samples
         })

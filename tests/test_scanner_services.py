@@ -131,6 +131,18 @@ SSID 2 : GUEST
         self.assertEqual(networks[0]["band"], "6")
         self.assertEqual(networks[0]["frequency_mhz"], "5975")
 
+    def test_parse_lswifi_bss_list_marks_connected_bssid(self):
+        networks = parse_lswifi_bss_list(
+            [
+                FakeLswifiBss(ssid="MAIN", bssid="70:4F:57:AA:BB:10", rssi="-61", channel_number=36),
+                FakeLswifiBss(ssid="GUEST", bssid="70:4f:57:aa:bb:11", rssi="-70", channel_number=36),
+            ],
+            connected_bssids={"70-4f-57-aa-bb-10"},
+        )
+
+        self.assertTrue(networks[0]["is_connected"])
+        self.assertFalse(networks[1]["is_connected"])
+
     def test_frequency_band_inference_accepts_mhz_khz_hz_and_ghz_values(self):
         self.assertEqual(infer_band_from_frequency_mhz(5975), "6")
         self.assertEqual(infer_band_from_frequency_mhz(5975000), "6")
@@ -207,6 +219,7 @@ SSID 2 : GUEST
         self.assertEqual(networks[0]["vendor"], "Acme")
         self.assertEqual(networks[0]["model"], "AX-1")
         self.assertEqual(networks[0]["ap_name"], "office-ap")
+        self.assertFalse(networks[0]["is_connected"])
         self.assertIs(networks[0]["raw_samples"][0], samples[0])
 
     def test_merge_wifi_scans_keeps_same_channel_different_bands_separate(self):

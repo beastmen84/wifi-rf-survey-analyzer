@@ -140,12 +140,14 @@ class PointCaptureMixin:
         if not detected_ssids:
             return "keep"
 
+        connected_ssid = self.get_connected_ssid_from_scan(networks)
         if not self.relevant_ssids and not self.known_ssids:
             dialog = RelevantNetworksDialog(
                 self,
                 detected_ssids,
                 self.tr("relevant_networks_title"),
                 self.tr("relevant_networks_first_message"),
+                connected_ssid=connected_ssid,
             )
             if dialog.exec() != QDialog.DialogCode.Accepted:
                 return "cancel"
@@ -169,6 +171,7 @@ class PointCaptureMixin:
                 new_ssids,
                 self.tr("new_relevant_networks_title"),
                 self.tr("new_relevant_networks_message"),
+                connected_ssid=connected_ssid,
             )
             if dialog.exec() != QDialog.DialogCode.Accepted:
                 return "cancel"
@@ -187,6 +190,14 @@ class PointCaptureMixin:
             for network in networks or []
             if str(network.get("ssid", "")).strip()
         }
+
+    def get_connected_ssid_from_scan(self, networks):
+        connected_ssids = sorted({
+            str(network.get("ssid", "")).strip()
+            for network in networks or []
+            if network.get("is_connected") and str(network.get("ssid", "")).strip()
+        }, key=str.casefold)
+        return connected_ssids[0] if connected_ssids else ""
 
     def save_survey_point(self, x, y, networks, status_message=None):
         if self.session is None:

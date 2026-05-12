@@ -350,6 +350,7 @@ class LiveOptionsMixin:
         if map_type_changed:
             self.remember_live_option_state(previous_map_type)
             self.live_current_map_type = map_type
+            self.live_legend_user_resized = False
             self.restore_live_option_state(map_type)
         else:
             self.refresh_live_band_options(map_type)

@@ -548,6 +548,15 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             window.on_live_splitter_moved(0, 1)
 
             self.assertTrue(window.live_legend_user_resized)
+
+            dominant_index = window.live_map_type_combo.findData("dominant")
+            window.live_current_map_type = "channel"
+            window.live_map_type_combo.blockSignals(True)
+            window.live_map_type_combo.setCurrentIndex(dominant_index)
+            window.live_map_type_combo.blockSignals(False)
+            window.update_live_option_state()
+
+            self.assertFalse(window.live_legend_user_resized)
         finally:
             window.deleteLater()
 
