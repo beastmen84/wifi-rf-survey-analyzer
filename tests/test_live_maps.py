@@ -871,6 +871,39 @@ class LivePdfExportTests(unittest.TestCase):
             for fig in figures:
                 plt.close(fig)
 
+    def test_dominant_problem_report_omits_position_context_for_delta_only(self):
+        dominant_df = rows_to_dataframe([
+            {
+                "x": 20,
+                "y": 0,
+                "dominant_ap_group": "near-ap",
+                "dominant_bssid": "70:4f:57:aa:bb:10",
+                "dominant_signal_dbm": -60,
+                "delta_db": 5,
+                "roaming_overlap": True,
+                "ap_position_warnings": "",
+                "dominant_ap_distance_m": 4,
+                "nearest_physical_ap_label": "Near AP",
+                "nearest_physical_ap_distance_m": 4,
+            }
+        ])
+
+        figures = build_dominant_problem_report_pages(
+            dominant_df,
+            MapConfig(ssid="MAIN", band="2.4", map_type="dominant"),
+            lambda key, **kwargs: translate("en", key, **kwargs),
+            "en",
+            {},
+        )
+        try:
+            page_text = "\n".join(text.get_text() for text in figures[0].axes[0].texts)
+            self.assertIn("Δ <= 5 dB", page_text)
+            self.assertNotIn("AP distance", page_text)
+            self.assertNotIn("Nearest physical AP", page_text)
+        finally:
+            for fig in figures:
+                plt.close(fig)
+
     def test_interference_problem_report_last_page_uses_fixed_card_height(self):
         risk_df = rows_to_dataframe([
             {

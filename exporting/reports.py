@@ -297,7 +297,7 @@ def build_dominant_problem_report_pages(dominant_df, config, tr, language, alias
 
         group = row.get("dominant_ap_group", "")
         position_detail = format_dominant_position_detail(row, tr)
-        if position_detail:
+        if warnings and position_detail:
             issues.append(position_detail)
         rows.append([
             f"{format_report_value(row.get('x'))}, {format_report_value(row.get('y'))}",

@@ -36,7 +36,7 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the live-PDF validation pass is 162
+- The current code test baseline after the live-PDF validation pass is 163
   passing tests with `.\.venv\Scripts\python.exe -m pytest`.
 - Latest code commit before this documentation refresh:
   `9a5eb02 Prefer lswifi for connected SSID lookup`.
@@ -1025,6 +1025,9 @@ Language:
   These were fixed by making channel colors band-aware, keeping report-card
   heights based on the nominal page capacity, and appending AP distance plus
   nearest physical AP details to Dominant AP problem text.
+- A regenerated PDF review showed the Dominant AP position context should not
+  be appended to plain roaming-overlap (`Delta <= 5 dB`) rows. It is now shown
+  only when the row also has AP-position warnings.
 
 Recent commits:
 
