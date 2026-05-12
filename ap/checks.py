@@ -2,13 +2,13 @@
 
 from collections import defaultdict
 
-from ap_groups import (
+from ap.groups import (
     AP_ROLE_TEST,
     build_bssid_to_manual_group_map,
     normalize_ap_role,
     resolve_ap_group_key,
 )
-from ap_metadata_checks import normalize_channel, sort_bands, sort_channels
+from ap.metadata import normalize_channel, sort_bands, sort_channels
 from wifi_band import get_row_band
 
 

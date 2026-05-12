@@ -2,7 +2,7 @@
 
 import re
 
-from ap_groups import (
+from ap.groups import (
     AP_ROLE_TEST,
     build_bssid_to_manual_group_map,
     normalize_ap_metadata,

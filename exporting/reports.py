@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from ap_groups import build_dominant_ap_group_labels, format_ap_label, normalize_ap_role, resolve_ap_alias
-from ap_positioning import (
+from ap.groups import build_dominant_ap_group_labels, format_ap_label, normalize_ap_role, resolve_ap_alias
+from ap.positioning import (
     AP_POSITION_STRONG_FAR,
     AP_POSITION_UNEXPECTED_DOMINANT,
     AP_POSITION_WEAK_CLOSE,

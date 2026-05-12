@@ -13,7 +13,7 @@ import pandas as pd
 from PIL import Image
 
 from constants import HEATMAP_GRID_SIZE
-from ap_groups import AP_ROLE_TEST
+from ap.groups import AP_ROLE_TEST
 from heatmap_tools import (
     add_ap_group_metadata,
     apply_distance_mask,

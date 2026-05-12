@@ -18,7 +18,7 @@ from app_restart import build_restart_command
 from app_settings import get_last_survey_directory, save_last_survey_path
 from constants import RAW_DATA_FILE_METADATA_KEY, SURVEY_FIELDNAMES
 from i18n import translate
-from ap_groups import (
+from ap.groups import (
     AP_ROLE_EXTERNAL,
     AP_ROLE_INTERNAL,
     AP_ROLE_INTERFERER,
@@ -32,8 +32,8 @@ from ap_groups import (
     serialize_ap_group_map,
     serialize_ap_group_roles,
 )
-from ap_group_checks import build_ap_group_conflicts
-from ap_metadata_checks import (
+from ap.checks import build_ap_group_conflicts
+from ap.metadata import (
     build_ap_metadata_warnings,
     infer_band_from_channel,
     normalize_channel,
@@ -42,7 +42,7 @@ from ap_metadata_checks import (
     sort_bands,
     sort_channels,
 )
-from ap_positioning import (
+from ap.positioning import (
     AP_POSITION_MISSING,
     AP_POSITION_NO_SCALE,
     AP_POSITION_OK,

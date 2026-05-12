@@ -5,7 +5,7 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 from scipy.interpolate import RBFInterpolator, griddata
 
-from ap_groups import (
+from ap.groups import (
     AP_ROLE_INTERNAL,
     AP_ROLE_TEST,
     normalize_ap_group_map,

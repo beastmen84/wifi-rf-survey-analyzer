@@ -17,7 +17,7 @@ from constants import (
     SURVEY_FIELDNAMES,
     SURVEY_SCHEMA_VERSION,
 )
-from ap_groups import (
+from ap.groups import (
     AP_GROUPS_METADATA_KEY,
     normalize_ap_metadata,
     normalize_ap_position,

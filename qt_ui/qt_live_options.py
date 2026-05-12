@@ -7,7 +7,7 @@ except ModuleNotFoundError as exc:
     print("PySide6 is required for main.py. Run: pip install -r requirements.txt")
     raise SystemExit(1) from exc
 
-from ap_groups import (
+from ap.groups import (
     AP_ROLE_TEST,
     build_ap_group_role_map,
     build_bssid_to_manual_group_map,

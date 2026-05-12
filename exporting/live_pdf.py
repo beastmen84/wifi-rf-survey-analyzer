@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 
-from ap_groups import (
+from ap.groups import (
     AP_ROLE_TEST,
     build_dominant_ap_group_labels,
     format_ap_label,

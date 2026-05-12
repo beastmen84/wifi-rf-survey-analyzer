@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from ap_groups import (
+from ap.groups import (
     AP_ROLE_TEST,
     build_default_manual_groups,
     build_bssid_to_manual_group_map,
@@ -28,8 +28,8 @@ from ap_groups import (
     normalize_ap_role,
     resolve_ap_group_key,
 )
-from ap_metadata_checks import build_ap_metadata_warnings
-from ap_positioning import (
+from ap.metadata import build_ap_metadata_warnings
+from ap.positioning import (
     AP_POSITION_NO_SCALE,
     AP_POSITION_STRONG_FAR,
     AP_POSITION_UNEXPECTED_DOMINANT,

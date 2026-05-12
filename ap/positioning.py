@@ -2,7 +2,7 @@
 
 import math
 
-from ap_groups import AP_ROLE_TEST, normalize_ap_role
+from ap.groups import AP_ROLE_TEST, normalize_ap_role
 
 
 AP_POSITION_OK = "OK"

@@ -26,15 +26,15 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ap_group_checks import build_ap_group_conflicts
-from ap_metadata_checks import (
+from ap.checks import build_ap_group_conflicts
+from ap.metadata import (
     infer_band_from_channel,
     parse_expected_bands,
     parse_expected_channels,
     sort_bands,
     sort_channels,
 )
-from ap_groups import (
+from ap.groups import (
     AP_ROLE_CHOICES,
     AP_ROLE_INTERNAL,
     build_default_manual_groups,

@@ -30,8 +30,8 @@ from PySide6.QtWidgets import (
 )
 
 from app_logging import log_event, log_exception
-from ap_groups import AP_ROLE_TEST, build_dominant_ap_group_labels, format_ap_label, normalize_ap_role
-from ap_positioning import (
+from ap.groups import AP_ROLE_TEST, build_dominant_ap_group_labels, format_ap_label, normalize_ap_role
+from ap.positioning import (
     AP_POSITION_MISSING,
     AP_POSITION_NO_SCALE,
     AP_POSITION_OK,
