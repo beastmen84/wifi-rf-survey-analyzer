@@ -44,7 +44,7 @@ from map_rendering import (
     should_label_channel_point,
     should_label_dominant_point,
 )
-from pdf_reports import (
+from exporting.reports import (
     add_ap_position_report_columns,
     annotate_interference_problem_numbers,
     build_dominant_problem_report_pages,
@@ -55,7 +55,7 @@ from pdf_reports import (
     get_interference_mode_label,
     get_interference_problem_df,
 )
-from pdf_writer import write_figures_as_live_pdf
+from exporting.pdf_writer import write_figures_as_live_pdf
 from utils import sanitize_filename
 
 

@@ -76,7 +76,7 @@ from live_renderer import (
     render_live_continuous_map,
     stable_dataframe_fingerprint,
 )
-from map_exporter import (
+from exporting.live_pdf import (
     MapExportResult,
     annotate_interference_problem_numbers,
     build_channel_point_legend_items,
