@@ -104,6 +104,7 @@ from qt_ui.qt_floorplan import AP_MARKER_BASE_SIZE, FloorplanView, format_ap_too
 from qt_ui.qt_ap_groups import (
     APGroupManagerDialog,
     BssidSelectionDialog,
+    ConflictDialog,
     EXPECTED_CHANNELS_BY_BAND,
     infer_expected_channel_bands,
 )

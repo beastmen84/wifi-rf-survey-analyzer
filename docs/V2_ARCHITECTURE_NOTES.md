@@ -360,10 +360,11 @@ Completed in this area:
 - BSSID selection dialog supports visible-row select, clear and invert actions;
 - selected BSSID rows can be split into a new manual AP group;
 - selected BSSID rows can be moved to an existing AP group.
+- conflict warning details now explain possible causes, recommended checks and
+  observed band/channel/BSSID evidence.
 
 Suggested next steps:
 
-- add clearer conflict explanation by band/channel;
 - consider a dedicated "unassigned/new BSSID" view.
 
 ### 2. AP Group Model Refinement

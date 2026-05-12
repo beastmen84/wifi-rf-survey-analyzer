@@ -1016,7 +1016,7 @@ class APGroupManagerDialog(QDialog):
             )
             return
 
-        dialog = ConflictDialog(self, group["group_id"], conflicts)
+        dialog = ConflictDialog(self, group, conflicts)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self.open_bssid_group_dialog(
                 group["group_id"],
@@ -1673,19 +1673,22 @@ class BssidSelectionDialog(QDialog):
 
 
 class ConflictDialog(QDialog):
-    def __init__(self, manager, group_id, conflicts):
+    def __init__(self, manager, group, conflicts):
         super().__init__(manager)
         self.manager = manager
-        self.group_id = group_id
+        self.group = group
+        self.group_id = group.get("group_id", "")
         self.conflicts = conflicts
 
         self.setWindowTitle(manager.tr("ap_group_conflict_title"))
-        self.resize(widget_px(self, 760), widget_px(self, 520))
+        self.resize(widget_px(self, 860), widget_px(self, 600))
+        self.setStyleSheet(manager.styleSheet())
         self.build_ui()
 
     def build_ui(self):
         layout = QVBoxLayout(self)
         hint = QLabel(self.manager.tr("ap_group_conflict_hint"))
+        hint.setObjectName("apDialogHint")
         hint.setWordWrap(True)
         layout.addWidget(hint)
 
@@ -1698,6 +1701,10 @@ class ConflictDialog(QDialog):
         buttons.addStretch(1)
         fix_button = QPushButton(self.manager.tr("ap_group_fix_from_warning"))
         close_button = QPushButton(self.manager.tr("close"))
+        fix_button.setObjectName("apDialogPrimaryButton")
+        close_button.setObjectName("apDialogActionButton")
+        self.manager.prepare_action_button(fix_button)
+        self.manager.prepare_action_button(close_button)
         fix_button.clicked.connect(self.accept)
         close_button.clicked.connect(self.reject)
         buttons.addWidget(fix_button)
@@ -1705,14 +1712,46 @@ class ConflictDialog(QDialog):
         layout.addLayout(buttons)
 
     def format_conflicts(self):
-        lines = []
+        lines = [
+            self.manager.tr("ap_group_conflict_group", group=self.format_group_label()),
+            "",
+            self.manager.tr("ap_group_conflict_diagnosis_title"),
+            self.manager.tr("ap_group_conflict_diagnosis_body"),
+            "",
+            self.manager.tr("ap_group_conflict_recommendation_title"),
+            self.manager.tr("ap_group_conflict_recommendation_body"),
+            "",
+            self.manager.tr("ap_group_conflict_details_title"),
+        ]
         for conflict in self.conflicts:
-            lines.append(self.manager.format_group_conflict_summary(conflict))
+            lines.append(self.format_conflict_summary(conflict))
             for channel in conflict.get("channels", []):
                 bssids = ", ".join(conflict.get("bssids_by_channel", {}).get(channel, []))
                 lines.append(self.manager.tr("ap_group_conflict_channel_row", channel=channel, bssids=bssids))
             lines.append("")
         return "\n".join(lines).strip()
+
+    def format_group_label(self):
+        alias = str(self.group.get("alias", "")).strip()
+        group_id = str(self.group_id).strip()
+        if alias and group_id:
+            return f"{alias} ({group_id})"
+        return alias or group_id or "-"
+
+    def format_conflict_summary(self, conflict):
+        channels = conflict.get("channels", [])
+        bssids = {
+            bssid
+            for channel_bssids in conflict.get("bssids_by_channel", {}).values()
+            for bssid in channel_bssids
+        }
+        return self.manager.tr(
+            "ap_group_conflict_band_summary",
+            band=format_band_label(conflict.get("band", "")),
+            channel_count=len(channels),
+            bssid_count=len(bssids),
+            channels=", ".join(channels),
+        )
 
 
 def format_multiline_list(values):

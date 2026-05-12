@@ -205,6 +205,28 @@ class APGroupManagerDialogTests(unittest.TestCase):
             dialog.deleteLater()
             app.deleteLater()
 
+    def test_conflict_dialog_explains_warning_and_action(self):
+        app, dialog = self.make_ap_manager_dialog()
+        conflict_dialog = None
+        try:
+            group = dialog.get_group_by_id("warning-ap")
+            conflicts = dialog.group_conflicts_by_id["warning-ap"]
+            conflict_dialog = ConflictDialog(dialog, group, conflicts)
+
+            text = conflict_dialog.format_conflicts()
+
+            self.assertIn("AP group: Warning AP (warning-ap)", text)
+            self.assertIn("What this can mean", text)
+            self.assertIn("Recommended check", text)
+            self.assertIn("2.4 GHz: 2 channels, 2 BSSIDs (1, 6)", text)
+            self.assertIn("CH 1: 70:4f:57:aa:bb:10", text)
+            self.assertIn("CH 6: 70:4f:57:aa:bb:11", text)
+        finally:
+            if conflict_dialog is not None:
+                conflict_dialog.deleteLater()
+            dialog.deleteLater()
+            app.deleteLater()
+
     def test_bssid_dialog_filters_and_visible_selection_actions(self):
         manager, dialog = self.make_bssid_dialog()
         try:
