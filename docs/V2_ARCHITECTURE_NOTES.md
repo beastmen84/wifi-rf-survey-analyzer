@@ -26,8 +26,9 @@ Current status:
 - the V2 functional scope is effectively closed for the current release: no
   known AP Group, live-map, PDF, quality-dashboard or core survey blocker is
   open;
-- Help content and structure are the remaining V2 closeout item now that the
-  workflow is stable enough to document;
+- Help content and structure have a first V2 Help Center pass implemented; the
+  remaining closeout is user review, wording/visual polish and a short EN/IT
+  smoke pass;
 - the real-survey live PDF validation pass is complete for Coverage, AP
   Channels, Dominant AP and Interference; the current findings are accepted as
   real diagnostics for now rather than layout blockers;
@@ -455,7 +456,8 @@ Closeout assessment:
 
 - no known V2 blocker remains in the survey core, AP Group workflow, live maps,
   live PDF reports, channel-change handling or Survey Quality Dashboard;
-- the only planned V2 closeout task is the Help System rework;
+- the Help System rework has a first Help Center implementation and needs
+  review/polish before final V2 closeout;
 - the other items below are monitoring or post-V2 expansion candidates and
   should not block calling the current V2 workflow complete.
 
@@ -629,27 +631,34 @@ Remaining validation:
 
 ### 8. Help System Rework
 
-This is the remaining planned V2 closeout item.
+First V2 Help Center pass is implemented.
 
-Needed now:
+Implemented in the first pass:
 
-- restructure help by workflow rather than feature list;
-- add a dedicated live map help tab;
-- add AP Group Manager help;
-- explain relevant SSIDs, raw scans, confidence and quality states;
+- two-column Help Center with vertical navigation and formatted HTML content;
+- workflow-first overview instead of a feature-list-only help page;
+- controls cheat sheet using the existing image assets;
+- dedicated sections for Survey/Scans, Survey Quality, AP Groups, Live Maps,
+  PDF Reports, Warnings and Glossary;
+- explanation of relevant SSIDs, raw scans, confidence and quality states;
 - explain Survey Quality Dashboard "what to fix next" guidance, AP setup
   diagnostics and point-rescan recommendations;
 - explain clean/ambiguous channel changes and manual analysis-channel override;
 - explain live PDF report pages, numbered callouts and when warnings are
   diagnostics rather than survey errors;
+- EN/IT translations and tests for section availability.
+
+Remaining closeout:
+
+- review wording and visual density in the real UI;
+- refine section ordering and formatting after visual inspection;
 - keep text concise and visual where possible.
 
 ## Suggested Next Priorities
 
 V2 closeout:
 
-1. Rework Help structure/content now that the main Qt/V2 workflows are stable
-   enough to document.
+1. Review the new Help Center in the running UI and polish wording/formatting.
 2. Do a short EN/IT Help and UI smoke pass after the Help rework.
 3. Tag the current V2 behavior as complete unless the smoke pass exposes a real
    workflow issue.

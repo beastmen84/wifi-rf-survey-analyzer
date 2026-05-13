@@ -1,5 +1,6 @@
 from tests._common import *
 from PySide6.QtWidgets import QPushButton
+from qt_ui.qt_help_dialog import build_help_html, build_help_sections, help_palette
 from qt_ui.qt_point_workflow import MissingRelevantNetworksDialog, PointCaptureMixin
 from translations.i18n import SUPPORTED_LANGUAGES
 
@@ -77,6 +78,49 @@ class SettingsMenuTests(unittest.TestCase):
             self.assertIn("margin: 0", style)
             self.assertIn("border-bottom:", style)
             self.assertIn("font-weight: 800", style)
+        finally:
+            window.deleteLater()
+
+    def test_help_center_uses_structured_sections_and_control_assets(self):
+        window = WifiHeatmapQtApp()
+        try:
+            expected_keys = [
+                "overview",
+                "controls",
+                "survey",
+                "quality",
+                "ap_groups",
+                "live_maps",
+                "reports",
+                "diagnostics",
+                "glossary",
+            ]
+            sections = build_help_sections(window, window.tr)
+
+            self.assertEqual([section.key for section in sections], expected_keys)
+            self.assertTrue(all(section.nav_title for section in sections))
+            self.assertTrue(all(section.title for section in sections))
+            self.assertIn("right-click.png", sections[1].body_html)
+            self.assertIn("wifi.png", sections[1].body_html)
+
+            html = build_help_html(window, help_palette(window), sections[0])
+            self.assertIn("Recommended Survey Workflow", html)
+            self.assertIn("class=\"callout", html)
+            self.assertIn("class=\"section-card", html)
+        finally:
+            window.deleteLater()
+
+    def test_help_center_sections_exist_in_supported_languages(self):
+        window = WifiHeatmapQtApp()
+        try:
+            for language in SUPPORTED_LANGUAGES:
+                window.change_language(language)
+                sections = build_help_sections(window, window.tr)
+
+                self.assertEqual(len(sections), 9)
+                self.assertTrue(all(section.nav_title.strip() for section in sections))
+                self.assertTrue(all(section.body_html.strip() for section in sections))
+                self.assertIn("control-grid", sections[1].body_html)
         finally:
             window.deleteLater()
 

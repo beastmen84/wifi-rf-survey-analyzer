@@ -491,7 +491,151 @@ TRANSLATIONS = {
     "point_deleted": "Punto eliminato: x={x}, y={y}, righe rimosse={rows}",
     "zoom": "Zoom: {zoom:.0%}",
     "all_bands_label": "tutte le bande",
-    "help_title": "Guida Rapida",
+    "help_title": "Centro Guida",
+    "help_overview_nav": "Workflow Consigliato",
+    "help_overview_title": "Workflow Consigliato Per Il Rilievo",
+    "help_overview_subtitle": "Usa il programma come flusso di validazione: raccogli evidenze, controlla la qualità, sistema il modello AP e poi esporta le mappe.",
+    "help_overview_body": """
+        <div class="callout good"><b>Regola principale:</b> non fidarti di una mappa prima di aver controllato dati del rilievo e modello AP. La heatmap è il risultato finale, non il primo passaggio.</div>
+        <h2>Sequenza consigliata</h2>
+        <ol>
+            <li><b>Crea o apri un rilievo</b>, carica la pianta e calibra la scala prima di valutare le distanze.</li>
+            <li><b>Scegli gli SSID rilevanti</b>. I controlli qualità si concentrano sulle reti che ti interessano davvero.</li>
+            <li><b>Acquisisci i punti di misura</b> in stanze, corridoi e zone di passaggio. Le scansioni ripetute restano salvate come evidenza grezza.</li>
+            <li><b>Apri Qualità Rilievo</b> e risolvi prima i problemi che richiedono rescan dei punti.</li>
+            <li><b>Rivedi Gruppi AP</b>: alias, ruoli, raggruppamento BSSID, posizioni fisiche e metadata attesi.</li>
+            <li><b>Usa Mappa Live</b> per controllare Copertura, Canali AP, AP Dominante e Interferenza con il modello corrente.</li>
+            <li><b>Esporta PDF</b> solo dopo aver rivisto i warning e aver capito se sono problemi di rilievo o diagnostica reale.</li>
+        </ol>
+        <div class="section-card"><b>Come ragiona il programma:</b> punti, raw scan, metadata AP e posizioni fisiche sono trattati come evidenze. I warning non sono automaticamente errori. Indicano quale ipotesi va controllata: qualità punto, gruppo AP, modello canale o posizione fisica.</div>
+    """,
+    "help_controls_nav": "Controlli",
+    "help_controls_title": "Comandi Rapidi",
+    "help_controls_subtitle": "Il workflow V2 usa ancora gesti diretti sulla mappa. Questi sono i controlli più frequenti durante rilievo e revisione.",
+    "help_controls_body": """
+        <div class="callout"><b>Nota:</b> quando la modalità di posizionamento AP è attiva, il clic sinistro sulla pianta assegna la posizione fisica dell'AP invece di selezionare un punto.</div>
+    """,
+    "help_control_right_click_title": "Tasto Destro",
+    "help_control_right_click_text": "Crea un punto di misura sulla mappa del rilievo.",
+    "help_control_left_click_title": "Tasto Sinistro",
+    "help_control_left_click_text": "Seleziona un punto di misura, oppure posiziona un AP quando la modalità AP è attiva.",
+    "help_control_middle_click_title": "Tasto Centrale",
+    "help_control_middle_click_text": "Trascina la pianta dove supportato dalla vista attiva.",
+    "help_control_scroll_title": "Rotella",
+    "help_control_scroll_text": "Scorre liste e pannelli. Nelle mappe usa i controlli zoom dedicati quando disponibili.",
+    "help_control_shift_title": "Shift",
+    "help_control_shift_text": "Usa Shift con la rotella per lo scorrimento orizzontale in tabelle o viste larghe.",
+    "help_control_ctrl_title": "Ctrl",
+    "help_control_ctrl_text": "Usa Ctrl con la rotella per lo zoom sulla pianta.",
+    "help_control_wifi_title": "Marker Wi-Fi",
+    "help_control_wifi_text": "Le posizioni fisiche degli AP usano il marker Wi-Fi nelle mappe live e nei report esportati.",
+    "help_survey_nav": "Rilievo E Scansioni",
+    "help_survey_title": "Punti, Raw Scan E Confidenza",
+    "help_survey_subtitle": "Un punto non è solo un valore di segnale: V2 salva campioni grezzi, li aggrega e misura la confidenza.",
+    "help_survey_body": """
+        <h2>Reti rilevanti</h2>
+        <p>Gli SSID rilevanti indicano al motore qualità quali reti contano. Una rete rilevante mancante pesa diversamente da una rete vicina non importante.</p>
+        <h2>Sidecar raw scan</h2>
+        <p>Il CSV principale salva le righe aggregate. Le scansioni ripetute sono salvate in un sidecar <code>.scan</code> collegato. Questo rende la mappa spiegabile anche dopo.</p>
+        <h2>Backend scanner</h2>
+        <table>
+            <tr><th>Backend</th><th>Uso</th><th>Note</th></tr>
+            <tr><td><span class="pill">Auto</span></td><td>Scelta predefinita</td><td>Prova prima <code>lswifi</code>, poi usa <code>netsh</code> come fallback.</td></tr>
+            <tr><td><span class="pill">lswifi</span></td><td>Scanner preferito</td><td>Di solito cattura più dettagli su BSSID, banda, frequenza, sicurezza e larghezza canale.</td></tr>
+            <tr><td><span class="pill">netsh</span></td><td>Fallback Windows</td><td>Utile quando lswifi non è disponibile, ma in genere espone meno dettagli RF.</td></tr>
+        </table>
+        <div class="callout warning"><b>Scansioni sospette:</b> se una scansione vede molte meno reti rilevanti, riprova prima di salvare il punto. È quasi sempre più rapido che correggere un punto sporco dopo.</div>
+    """,
+    "help_quality_nav": "Qualità Rilievo",
+    "help_quality_title": "Dashboard Qualità Rilievo",
+    "help_quality_subtitle": "La dashboard separa i punti che possono richiedere rescan dalla diagnostica di setup AP.",
+    "help_quality_body": """
+        <h2>Cosa sistemare prima</h2>
+        <p>La dashboard ordina i problemi in modo operativo. I problemi di punto vengono prima perché dati sporchi possono falsare ogni mappa. I problemi AP vengono dopo perché influenzano l'interpretazione.</p>
+        <table>
+            <tr><th>Area</th><th>Significato</th><th>Azione tipica</th></tr>
+            <tr><td>Reti Rilevanti Mancanti</td><td>Un punto non ha visto una rete che dovrebbe contare.</td><td>Vai al punto e rifai la scansione.</td></tr>
+            <tr><td>Bassa Confidenza</td><td>Le scansioni ripetute non hanno prodotto abbastanza evidenza affidabile.</td><td>Rifai il punto o aggiungi punti vicini.</td></tr>
+            <tr><td>Segnale Instabile</td><td>Il segnale è variato troppo durante le scansioni ripetute.</td><td>Controlla movimento, cambi RF temporanei o AP instabili.</td></tr>
+            <tr><td>Finding AP Dominante</td><td>L'AP più forte non è coerente con il modello fisico.</td><td>Apri la mappa AP Dominante e verifica posizioni AP o roaming reale.</td></tr>
+            <tr><td>Warning Config AP</td><td>Bande/canali osservati non coincidono con i metadata.</td><td>Apri metadata AP e decidi se è sbagliato il metadata o il deployment.</td></tr>
+        </table>
+        <div class="callout"><b>Importante:</b> un warning di setup non significa che il punto sia sbagliato. Significa che modello AP, canale atteso o deployment reale vanno controllati.</div>
+    """,
+    "help_ap_groups_nav": "Gruppi AP",
+    "help_ap_groups_title": "Gruppi AP, Ruoli E Metadata",
+    "help_ap_groups_subtitle": "AP Group Manager trasforma BSSID grezzi in un modello di AP fisico che le mappe possono interpretare.",
+    "help_ap_groups_body": """
+        <h2>I suggerimenti automatici non sono verità finale</h2>
+        <p>Il programma raggruppa automaticamente i BSSID, ma deployment reali possono usare più SSID, bande e radio sullo stesso AP fisico. Considera il gruppo automatico come punto di partenza.</p>
+        <h2>Ruoli</h2>
+        <table>
+            <tr><th>Ruolo</th><th>Effetto</th></tr>
+            <tr><td>Interno</td><td>AP normale usato per copertura, AP dominante e interferenza.</td></tr>
+            <tr><td>Esterno</td><td>AP vicino o esterno. Utile come contesto, ma non parte del modello interno pianificato.</td></tr>
+            <tr><td>Interferente</td><td>AP che vuoi soprattutto tracciare come sorgente di interferenza.</td></tr>
+            <tr><td>Test/nascosto</td><td>Escluso dall'analisi utente per non far distorcere mappe da AP temporanei o nascosti.</td></tr>
+        </table>
+        <h2>Metadata e override canale</h2>
+        <p>Bande/canali attesi sono regole di validazione. L'override del canale di analisi è diverso: è una scelta esplicita di modellazione usata dalle mappe sensibili al canale quando il rilievo ha osservato un cambio canale pulito o ambiguo.</p>
+        <div class="callout warning"><b>Non usare gli override per nascondere dati brutti.</b> Usali quando sai che il canale operativo corretto è diverso dallo stato osservato nel rilievo, per esempio per riavvii schedulati degli AP.</div>
+    """,
+    "help_live_maps_nav": "Mappe Live",
+    "help_live_maps_title": "Mappe Live E Opzioni",
+    "help_live_maps_subtitle": "Mappa Live è la superficie principale di revisione dopo controlli qualità e modello AP.",
+    "help_live_maps_body": """
+        <table>
+            <tr><th>Mappa</th><th>Cosa mostra</th><th>Come leggerla</th></tr>
+            <tr><td>Copertura</td><td>Livello segnale continuo per SSID e banda.</td><td>Usa scala colori e distanza max per non sovrainterpretare zone lontane dai punti reali.</td></tr>
+            <tr><td>Canali AP</td><td>Colori discreti dei punti in base al canale servente.</td><td>Usala per verificare piano canali e gestione dei cambi canale.</td></tr>
+            <tr><td>AP Dominante</td><td>Quale gruppo AP è più forte in ogni punto.</td><td>Marker gialli o issue indicano ambiguità roaming o incoerenza con posizione AP.</td></tr>
+            <tr><td>Interferenza</td><td>Rischio di sovrapposizione canale fra AP servente e AP vicini.</td><td>Controlla ruoli AP e override canale prima di fidarti dello score.</td></tr>
+        </table>
+        <h2>Opzioni</h2>
+        <p>Le mappe continue espongono interpolazione, smoothing, scala colori e distanza max. Le mappe discrete usano legende e label punti perché rappresentano misure reali, non superfici interpolate.</p>
+        <div class="section-card"><b>Cambi canale:</b> se lo stesso gruppo AP passa pulitamente da un canale a un altro durante il rilievo, le mappe sensibili al canale usano di default il canale più recente. Se la sequenza è ambigua, le mappe preservano i canali misurati salvo override esplicito.</div>
+    """,
+    "help_reports_nav": "Report PDF",
+    "help_reports_title": "Report PDF Live",
+    "help_reports_subtitle": "L'export PDF cattura le opzioni della Mappa Live corrente e aggiunge pagine diagnostiche dove il tipo mappa ha finding azionabili.",
+    "help_reports_body": """
+        <h2>Pagina mappa</h2>
+        <p>La prima pagina usa tutta l'estensione della pianta, non lo zoom corrente. Legende, scale colori e label punti seguono le opzioni attive della Mappa Live.</p>
+        <h2>Schede problema</h2>
+        <p>Interferenza e AP Dominante possono aggiungere schede problema paginate. I callout quadrati numerati sulla mappa corrispondono alle schede numerate, così puoi attribuire ogni punto a una diagnosi specifica.</p>
+        <div class="callout"><b>Copertura non ha pagina problemi per scelta.</b> È una visualizzazione del segnale. Problemi qualità o setup AP si rivedono in Qualità Rilievo e AP Group Manager.</div>
+        <h2>Comportamento attuale Canali AP</h2>
+        <p>L'export Canali AP è solo mappa finché non esiste una regola diagnostica chiara che meriti schede report.</p>
+    """,
+    "help_diagnostics_nav": "Warning",
+    "help_diagnostics_title": "Warning E Diagnostica",
+    "help_diagnostics_subtitle": "I warning sono inviti a controllare ipotesi, non prova automatica che un punto sia sbagliato.",
+    "help_diagnostics_body": """
+        <table>
+            <tr><th>Finding</th><th>Ragionamento</th><th>Cosa controllare</th></tr>
+            <tr><td>AP Dominante Inatteso</td><td>L'AP più forte non è coerente con posizione fisica o AP più vicino.</td><td>Verifica posizioni AP, alias, calibrazione scala e roaming reale.</td></tr>
+            <tr><td>Ambiguità Roaming</td><td>AP più forte e secondo AP sono vicini in dB.</td><td>Aspettati roaming client poco prevedibile in quella zona.</td></tr>
+            <tr><td>Canale Inatteso</td><td>Il canale osservato non coincide con i metadata AP.</td><td>Controlla configurazione AP o aggiorna i canali attesi.</td></tr>
+            <tr><td>Cambio Canale Pulito</td><td>Lo stesso AP ha cambiato canale nel tempo senza conflitto BSSID.</td><td>Accetta il default canale recente o imposta un override canale analisi.</td></tr>
+            <tr><td>Posizione AP Mancante</td><td>Un gruppo AP rilevante non ha marker fisico.</td><td>Posiziona l'AP per abilitare la diagnostica basata sulle distanze.</td></tr>
+        </table>
+        <div class="callout danger"><b>Non silenziare i warning alla cieca.</b> Un warning che riflette comportamento reale del deployment è evidenza utile e dovrebbe restare visibile finché non lo capisci.</div>
+    """,
+    "help_glossary_nav": "Glossario",
+    "help_glossary_title": "Glossario",
+    "help_glossary_subtitle": "Termini usati dal workflow V2 e dai report.",
+    "help_glossary_body": """
+        <table>
+            <tr><th>Termine</th><th>Significato</th></tr>
+            <tr><td>Gruppo AP</td><td>Il modello del programma per un AP fisico, di solito con più BSSID.</td></tr>
+            <tr><td>BSSID</td><td>Il MAC radio visto dalle scansioni Wi-Fi.</td></tr>
+            <tr><td>SSID Rilevante</td><td>Una rete selezionata come importante per controlli qualità e analisi.</td></tr>
+            <tr><td>Confidenza</td><td>Quanto è affidabile una riga aggregata, in base alle scansioni ripetute.</td></tr>
+            <tr><td>AP Dominante</td><td>Il gruppo AP con segnale osservato più forte in un punto di misura.</td></tr>
+            <tr><td>Override Canale Analisi</td><td>Canale scelto dall'utente per mappe sensibili al canale su uno specifico gruppo AP e banda.</td></tr>
+            <tr><td>Warning Setup</td><td>Problema di modello/deployment che non richiede necessariamente di rifare il punto.</td></tr>
+        </table>
+    """,
     "help_commands": "Comandi",
     "help_workflow": "Flusso",
     "help_workflow_title": "Come Usare il Programma",
