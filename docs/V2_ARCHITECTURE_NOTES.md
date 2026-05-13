@@ -1,6 +1,6 @@
 # WiFi Heatmap - V2 Architecture Notes
 
-Last updated: 2026-05-12
+Last updated: 2026-05-13
 
 This document is the forward-looking V2 roadmap. Completed items are kept only
 as context; the actionable backlog is in the "Remaining Work" section.
@@ -23,8 +23,11 @@ interpolated colors.
 Current status:
 
 - the Tk to Qt migration is substantially complete;
-- Help content and structure are intentionally postponed until the V2 workflow
-  is stable;
+- the V2 functional scope is effectively closed for the current release: no
+  known AP Group, live-map, PDF, quality-dashboard or core survey blocker is
+  open;
+- Help content and structure are the remaining V2 closeout item now that the
+  workflow is stable enough to document;
 - the real-survey live PDF validation pass is complete for Coverage, AP
   Channels, Dominant AP and Interference; the current findings are accepted as
   real diagnostics for now rather than layout blockers;
@@ -46,6 +49,9 @@ Current status:
   diagnostics, defaults to showing only points with findings when findings
   exist, and includes a prioritized "what to fix next" panel with expandable
   per-problem detail rows.
+- the main workspace navigation and dashboard KPI area have been polished for
+  the current Qt surface; remaining UI changes should be treated as targeted
+  polish rather than V2 architecture work.
 
 ## Implemented V2 Foundation
 
@@ -406,8 +412,8 @@ Implemented:
   Quality Dashboard, scale calibration, generated map dialogs, live maps,
   settings/theme/language handling and start-screen behavior are available in
   Qt;
-- Help is available in first-pass form, but the content/structure rework remains
-  postponed.
+- Help is available in first-pass form; the content/structure rework is now the
+  remaining V2 closeout item.
 
 ### UI/Workflow Foundation
 
@@ -431,16 +437,27 @@ Implemented:
   the main workspace, startup window, centered file dialogs and AP Group
   dialogs;
 - Measurement Points table selection uses the full theme accent with white text,
-  matching the AP Group table contrast.
+  matching the AP Group table contrast;
 - EN/IT user-facing titles, buttons and compact labels have been normalized for
   the current Qt surface;
 - compact localized buttons recalculate their minimum width from the active
   translation, and point-capture warning dialogs grow their minimum width when a
   translated button row needs more space;
 - i18n/UI tests guard translation key parity, placeholder parity, capitalized
-  title/button starts and compact localized button fit.
+  title/button starts and compact localized button fit;
+- main workspace Survey/Live Map navigation uses full-width Qt tabs with
+  theme-aware active gradients, centered split-adjacent labels and a faded
+  active underline.
 
 ## Remaining Work
+
+Closeout assessment:
+
+- no known V2 blocker remains in the survey core, AP Group workflow, live maps,
+  live PDF reports, channel-change handling or Survey Quality Dashboard;
+- the only planned V2 closeout task is the Help System rework;
+- the other items below are monitoring or post-V2 expansion candidates and
+  should not block calling the current V2 workflow complete.
 
 ### 1. AP Group Manager UX Monitoring
 
@@ -497,7 +514,7 @@ Conservative next step:
 Currently metadata is partly descriptive and partly used for expected
 band/channel checks.
 
-Useful next checks:
+Post-V2 candidate checks:
 
 - mounting type influencing AP position warnings;
 - expected radio count;
@@ -533,7 +550,7 @@ Current implemented expansion:
 - detail rows include shortcuts into the live map, AP metadata, AP Group
   Manager and point-focus workflows.
 
-Possible additions:
+Post-V2 possible additions:
 
 - point spacing quality;
 - coverage completeness by area;
@@ -545,7 +562,8 @@ Possible additions:
 ### 5. Live Map Validation And Final Polish
 
 The live-map Qt implementation is now the main working surface. Remaining work
-is mostly validation and targeted polish rather than migration.
+is monitoring and targeted polish rather than migration or release-blocking V2
+work.
 
 Completed validation:
 
@@ -556,7 +574,7 @@ Completed validation:
   enough for the current real warnings;
 - current real warnings are considered valid until new data proves otherwise.
 
-Remaining checks:
+Post-V2 monitoring checks:
 
 - verify legends/scales on additional floor-plan sizes and aspect ratios;
 - verify AP group filters and positioned AP markers on larger surveys;
@@ -566,7 +584,8 @@ Remaining checks:
 
 ### 6. Generated Report Improvements
 
-Live-map PDF export now exists, but reporting can become more complete.
+Live-map PDF export now exists and covers the V2 closeout needs. Reporting can
+become more complete as a post-V2 reporting track.
 
 Possible additions:
 
@@ -610,37 +629,45 @@ Remaining validation:
 
 ### 8. Help System Rework
 
-Postponed intentionally.
+This is the remaining planned V2 closeout item.
 
-Needed later:
+Needed now:
 
 - restructure help by workflow rather than feature list;
 - add a dedicated live map help tab;
 - add AP Group Manager help;
 - explain relevant SSIDs, raw scans, confidence and quality states;
+- explain Survey Quality Dashboard "what to fix next" guidance, AP setup
+  diagnostics and point-rescan recommendations;
+- explain clean/ambiguous channel changes and manual analysis-channel override;
+- explain live PDF report pages, numbered callouts and when warnings are
+  diagnostics rather than survey errors;
 - keep text concise and visual where possible.
 
 ## Suggested Next Priorities
 
-Near-term:
+V2 closeout:
 
-1. Keep AP Group and live-PDF areas in monitoring mode unless new real data
-   exposes a concrete issue.
-2. Rework Help structure/content now that the main Qt/V2 workflows are stable
+1. Rework Help structure/content now that the main Qt/V2 workflows are stable
    enough to document.
-3. Improve combined/generated reporting beyond individual live-map exports.
+2. Do a short EN/IT Help and UI smoke pass after the Help rework.
+3. Tag the current V2 behavior as complete unless the smoke pass exposes a real
+   workflow issue.
 
-Medium-term:
+Monitoring:
 
-4. Use AP metadata more deeply in diagnostics where the rule is clear.
-5. Validate 6 GHz behavior with real 6E/7 hardware data.
+4. Keep AP Group, live PDF and Survey Quality in monitoring mode unless new
+   real data exposes a concrete issue.
+5. Validate 6 GHz behavior with real 6E/7 hardware data when available.
 6. Tune performance only after larger real surveys show measurable lag.
 
-Long-term:
+Post-V2 expansion:
 
-7. Refine the AP physical/radio/BSSID model only if real deployments require it.
-8. Add advanced RF/AI-assisted suggestions.
-9. Add richer deployment/reporting outputs.
+7. Improve combined/generated reporting beyond individual live-map exports.
+8. Use AP metadata more deeply in diagnostics where the rule is clear.
+9. Refine the AP physical/radio/BSSID model only if real deployments require it.
+10. Add advanced RF/AI-assisted suggestions.
+11. Add richer deployment/reporting outputs.
 
 ## Final Vision
 
