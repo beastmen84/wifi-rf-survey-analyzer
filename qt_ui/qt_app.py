@@ -431,7 +431,7 @@ class WifiHeatmapQtApp(
     def build_survey_tab(self):
         tab = QWidget()
         layout = QVBoxLayout(tab)
-        layout.setContentsMargins(self.spx(16), self.spx(8), self.spx(16), self.spx(16))
+        layout.setContentsMargins(self.spx(16), 0, self.spx(16), self.spx(16))
         layout.setSpacing(self.spx(12))
 
         summary = QFrame()
@@ -719,7 +719,7 @@ class WifiHeatmapQtApp(
     def build_live_tab(self):
         tab = QWidget()
         layout = QVBoxLayout(tab)
-        layout.setContentsMargins(self.spx(16), self.spx(8), self.spx(16), self.spx(16))
+        layout.setContentsMargins(self.spx(16), 0, self.spx(16), self.spx(16))
         layout.setSpacing(self.spx(12))
 
         self.live_ssid_label = QLabel()
@@ -1349,15 +1349,17 @@ class WifiHeatmapQtApp(
             QTabBar#workspaceTabBar {{
                 background: {palette["toolbar"]};
                 border-bottom: 1px solid {palette["border"]};
+                margin: 0;
+                padding: 0;
             }}
             QTabBar#workspaceTabBar::tab {{
                 background: transparent;
                 color: {palette["muted"]};
                 border: 0;
                 border-bottom: {s(3)}px solid transparent;
-                padding: {s(6)}px {s(28)}px {s(5)}px {s(28)}px;
+                padding: {s(4)}px {s(28)}px {s(3)}px {s(28)}px;
                 min-width: {s(128)}px;
-                margin: {s(2)}px {s(2)}px 0 {s(2)}px;
+                margin: 0 {s(2)}px 0 {s(2)}px;
                 border-top-left-radius: {s(7)}px;
                 border-top-right-radius: {s(7)}px;
                 font-size: {font(9.5)}pt;
