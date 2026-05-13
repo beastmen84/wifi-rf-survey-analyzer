@@ -51,6 +51,9 @@ class SettingsMenuTests(unittest.TestCase):
             self.assertIn("QTabWidget#workspaceTabs::tab-bar", style)
             self.assertIn("alignment: center", style)
             self.assertIn("QTabBar#workspaceTabBar::tab:selected", style)
+            self.assertIn("QTabBar#workspaceTabBar::tab:first:selected", style)
+            self.assertIn("QTabBar#workspaceTabBar::tab:last:selected", style)
+            self.assertIn("border-bottom:", style)
             self.assertIn("font-weight: 800", style)
         finally:
             window.deleteLater()

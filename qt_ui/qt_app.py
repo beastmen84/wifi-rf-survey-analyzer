@@ -1348,27 +1348,47 @@ class WifiHeatmapQtApp(
             }}
             QTabBar#workspaceTabBar {{
                 background: {palette["toolbar"]};
+                border-bottom: 1px solid {palette["border"]};
             }}
             QTabBar#workspaceTabBar::tab {{
-                background: {palette["panel_alt"]};
+                background: transparent;
                 color: {palette["muted"]};
-                border: 1px solid {palette["border"]};
-                padding: {s(10)}px {s(34)}px;
-                min-width: {s(138)}px;
-                margin: {s(8)}px {s(4)}px {s(6)}px {s(4)}px;
-                border-radius: {s(14)}px;
+                border: 0;
+                border-bottom: {s(3)}px solid transparent;
+                padding: {s(6)}px {s(28)}px {s(5)}px {s(28)}px;
+                min-width: {s(128)}px;
+                margin: {s(2)}px {s(2)}px 0 {s(2)}px;
+                border-top-left-radius: {s(7)}px;
+                border-top-right-radius: {s(7)}px;
                 font-size: {font(9.5)}pt;
-                font-weight: 800;
+                font-weight: 700;
             }}
             QTabBar#workspaceTabBar::tab:hover {{
                 background: {palette["button_hover"]};
                 color: {palette["title"]};
-                border: 1px solid {palette["metric_info"]};
+                border-bottom: {s(3)}px solid {palette["badge_border"]};
             }}
             QTabBar#workspaceTabBar::tab:selected {{
-                background: {palette["metric_info"]};
-                color: #FFFFFF;
-                border: 1px solid {palette["metric_info"]};
+                color: {palette["title"]};
+                border-bottom: {s(3)}px solid {palette["metric_info"]};
+                font-weight: 800;
+                font-size: {font(10)}pt;
+            }}
+            QTabBar#workspaceTabBar::tab:first:selected {{
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:0,
+                    stop:0 {palette["badge_bg"]},
+                    stop:0.55 {palette["button_hover"]},
+                    stop:1 transparent
+                );
+            }}
+            QTabBar#workspaceTabBar::tab:last:selected {{
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:0,
+                    stop:0 transparent,
+                    stop:0.45 {palette["button_hover"]},
+                    stop:1 {palette["badge_bg"]}
+                );
             }}
             QTabWidget::pane {{
                 border: 1px solid {palette["border"]};
