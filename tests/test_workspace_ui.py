@@ -107,6 +107,9 @@ class SettingsMenuTests(unittest.TestCase):
             self.assertIn("Recommended Survey Workflow", html)
             self.assertIn("class=\"callout", html)
             self.assertIn("class=\"section-card", html)
+            self.assertIn("b, strong", html)
+            self.assertNotIn("class=\"eyebrow\"", html)
+            self.assertNotIn(">Recommended Workflow</div>", html)
         finally:
             window.deleteLater()
 

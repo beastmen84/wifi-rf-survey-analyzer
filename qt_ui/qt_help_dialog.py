@@ -159,7 +159,6 @@ def build_controls_body(parent, tr):
     controls = [
         ("right-click.png", tr("help_control_right_click_title"), tr("help_control_right_click_text")),
         ("left-click.png", tr("help_control_left_click_title"), tr("help_control_left_click_text")),
-        ("middle-click.png", tr("help_control_middle_click_title"), tr("help_control_middle_click_text")),
         ("scroll.png", tr("help_control_scroll_title"), tr("help_control_scroll_text")),
         ("shift.png", tr("help_control_shift_title"), tr("help_control_shift_text")),
         ("ctrl.png", tr("help_control_ctrl_title"), tr("help_control_ctrl_text")),
@@ -201,7 +200,6 @@ def build_help_html(parent, palette, section):
     font_size = widget_font(parent, 10.5)
     title_size = widget_font(parent, 22)
     heading_size = widget_font(parent, 14)
-    small_size = widget_font(parent, 9.5)
     radius = widget_px(parent, 8)
     gap = widget_px(parent, 12)
     padding = widget_px(parent, 18)
@@ -220,13 +218,6 @@ def build_help_html(parent, palette, section):
         }}
         .page {{
             padding: {padding}px;
-        }}
-        .eyebrow {{
-            color: {palette["metric_info"]};
-            font-size: {small_size:.2f}pt;
-            font-weight: 700;
-            text-transform: uppercase;
-            margin-bottom: {widget_px(parent, 4)}px;
         }}
         h1 {{
             color: {palette["title"]};
@@ -257,7 +248,7 @@ def build_help_html(parent, palette, section):
             border: 1px solid {palette["badge_border"]};
             border-left: {widget_px(parent, 5)}px solid {palette["metric_info"]};
             border-radius: {radius}px;
-            background: {palette["badge_bg"]};
+            background: {palette["panel_alt"]};
             color: {palette["text"]};
             padding: {widget_px(parent, 11)}px {widget_px(parent, 13)}px;
             margin: {gap}px 0;
@@ -270,6 +261,19 @@ def build_help_html(parent, palette, section):
         }}
         .callout.danger {{
             border-left-color: {palette["metric_danger"]};
+        }}
+        b, strong {{
+            color: {palette["metric_info"]};
+            font-weight: 800;
+        }}
+        .callout.good b, .callout.good strong {{
+            color: {palette["metric_good"]};
+        }}
+        .callout.warning b, .callout.warning strong {{
+            color: {palette["metric_warning"]};
+        }}
+        .callout.danger b, .callout.danger strong {{
+            color: {palette["metric_danger"]};
         }}
         .section-card {{
             border: 1px solid {palette["border"]};
@@ -337,7 +341,6 @@ def build_help_html(parent, palette, section):
     </head>
     <body>
         <div class="page">
-            <div class="eyebrow">{escape(section.nav_title)}</div>
             <h1>{escape(section.title)}</h1>
             <p class="subtitle">{escape(section.subtitle)}</p>
             {section.body_html}
