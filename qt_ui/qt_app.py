@@ -98,6 +98,10 @@ class VerticalTabButton(QPushButton):
         painter.restore()
 
 
+def format_workspace_tab_text(text):
+    return str(text or "").upper()
+
+
 class WifiHeatmapQtApp(
     PointCaptureMixin,
     SurveyPointTableMixin,
@@ -271,6 +275,9 @@ class WifiHeatmapQtApp(
         layout.addWidget(self.app_bar)
 
         self.tabs = QTabWidget()
+        self.tabs.setObjectName("workspaceTabs")
+        self.tabs.tabBar().setObjectName("workspaceTabBar")
+        self.tabs.tabBar().setExpanding(False)
         self.tabs.addTab(self.build_survey_tab(), "")
         self.tabs.addTab(self.build_live_tab(), "")
         self.tabs.currentChanged.connect(self.on_workspace_tab_changed)
@@ -1331,6 +1338,38 @@ class WifiHeatmapQtApp(
                 background: {palette["metric_info"]};
                 border: 1px solid {palette["metric_info"]};
             }}
+            QTabWidget#workspaceTabs::pane {{
+                border: 0;
+                top: 0;
+                background: {palette["panel"]};
+            }}
+            QTabWidget#workspaceTabs::tab-bar {{
+                alignment: center;
+            }}
+            QTabBar#workspaceTabBar {{
+                background: {palette["toolbar"]};
+            }}
+            QTabBar#workspaceTabBar::tab {{
+                background: {palette["panel_alt"]};
+                color: {palette["muted"]};
+                border: 1px solid {palette["border"]};
+                padding: {s(10)}px {s(34)}px;
+                min-width: {s(138)}px;
+                margin: {s(8)}px {s(4)}px {s(6)}px {s(4)}px;
+                border-radius: {s(14)}px;
+                font-size: {font(9.5)}pt;
+                font-weight: 800;
+            }}
+            QTabBar#workspaceTabBar::tab:hover {{
+                background: {palette["button_hover"]};
+                color: {palette["title"]};
+                border: 1px solid {palette["metric_info"]};
+            }}
+            QTabBar#workspaceTabBar::tab:selected {{
+                background: {palette["metric_info"]};
+                color: #FFFFFF;
+                border: 1px solid {palette["metric_info"]};
+            }}
             QTabWidget::pane {{
                 border: 1px solid {palette["border"]};
                 top: -1px;
@@ -1450,8 +1489,8 @@ class WifiHeatmapQtApp(
         self.update_live_options_panel_toggle()
         self.manage_relevant_button.setText(self.tr("manage_relevant_networks"))
         self.clear_relevant_button.setText(self.tr("forget_saved_network"))
-        self.tabs.setTabText(0, self.tr("survey_tab"))
-        self.tabs.setTabText(1, self.tr("live_map_tab"))
+        self.tabs.setTabText(0, format_workspace_tab_text(self.tr("survey_tab")))
+        self.tabs.setTabText(1, format_workspace_tab_text(self.tr("live_map_tab")))
         self.live_ssid_label.setText("SSID")
         self.live_band_label.setText(self.tr("band"))
         self.live_map_type_label.setText(self.tr("map_type"))

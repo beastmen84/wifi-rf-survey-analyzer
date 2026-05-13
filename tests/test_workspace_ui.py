@@ -38,6 +38,23 @@ class SettingsMenuTests(unittest.TestCase):
         finally:
             window.deleteLater()
 
+    def test_workspace_primary_tabs_are_centered_and_emphasized(self):
+        window = WifiHeatmapQtApp()
+        try:
+            style = window.styleSheet()
+
+            self.assertEqual(window.tabs.objectName(), "workspaceTabs")
+            self.assertEqual(window.tabs.tabBar().objectName(), "workspaceTabBar")
+            self.assertFalse(window.tabs.tabBar().expanding())
+            self.assertEqual(window.tabs.tabText(0), "SURVEY")
+            self.assertEqual(window.tabs.tabText(1), "LIVE MAP")
+            self.assertIn("QTabWidget#workspaceTabs::tab-bar", style)
+            self.assertIn("alignment: center", style)
+            self.assertIn("QTabBar#workspaceTabBar::tab:selected", style)
+            self.assertIn("font-weight: 800", style)
+        finally:
+            window.deleteLater()
+
     def test_localized_compact_buttons_fit_text_in_supported_languages(self):
         window = WifiHeatmapQtApp()
         try:
