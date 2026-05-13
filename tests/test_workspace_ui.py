@@ -102,6 +102,12 @@ class SettingsMenuTests(unittest.TestCase):
             self.assertTrue(all(section.title for section in sections))
             self.assertIn("right-click.png", sections[1].body_html)
             self.assertIn("wifi.png", sections[1].body_html)
+            self.assertNotIn("middle-click.png", sections[1].body_html)
+            self.assertIn("Decision gates", sections[0].body_html)
+            self.assertIn("KPI meaning", sections[3].body_html)
+            self.assertIn("What to review", sections[4].body_html)
+            self.assertIn("Troubleshooting patterns", sections[7].body_html)
+            self.assertIn("Analysis Channel Override", sections[8].body_html)
 
             html = build_help_html(window, help_palette(window), sections[0])
             self.assertIn("Recommended Survey Workflow", html)
@@ -124,6 +130,7 @@ class SettingsMenuTests(unittest.TestCase):
                 self.assertTrue(all(section.nav_title.strip() for section in sections))
                 self.assertTrue(all(section.body_html.strip() for section in sections))
                 self.assertIn("control-grid", sections[1].body_html)
+                self.assertGreater(sum(section.body_html.count("<h2>") for section in sections), 15)
         finally:
             window.deleteLater()
 

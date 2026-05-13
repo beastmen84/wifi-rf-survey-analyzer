@@ -497,23 +497,38 @@ TRANSLATIONS = {
     "help_overview_subtitle": "Use the application as a validation workflow: collect evidence, review quality, fix the model, then export maps.",
     "help_overview_body": """
         <div class="callout good"><b>Best rule:</b> do not trust a map before the survey data and AP model have passed review. The heatmap is the final output, not the first step.</div>
-        <h2>Suggested sequence</h2>
-        <ol>
-            <li><b>Create or open a survey</b>, load the floor plan and calibrate the scale before judging distances.</li>
-            <li><b>Choose relevant SSIDs</b>. Quality checks focus on the networks you actually care about.</li>
-            <li><b>Collect measurement points</b> across rooms, corridors and transition areas. Repeat scans are kept as raw evidence.</li>
-            <li><b>Open Survey Quality</b> and handle point-rescan findings before spending time on map interpretation.</li>
-            <li><b>Review AP Groups</b>: fix aliases, roles, BSSID grouping, physical AP positions and expected metadata.</li>
-            <li><b>Use Live Map</b> to inspect Coverage, AP Channels, Dominant AP and Interference with the current model.</li>
-            <li><b>Export PDF</b> only when warnings have been reviewed and you know whether they are survey problems or real diagnostics.</li>
-        </ol>
-        <div class="section-card"><b>How the program thinks:</b> survey points, raw scans, AP metadata and AP positions are treated as evidence. Warnings are not automatically errors. They tell you which assumption needs review: point quality, AP grouping, channel model, or physical AP placement.</div>
+        <h2>Operational sequence</h2>
+        <table>
+            <tr><th>Phase</th><th>Goal</th><th>Move forward when</th></tr>
+            <tr><td>Setup</td><td>Create/open the survey, load the plan, calibrate scale, choose relevant SSIDs.</td><td>The floor plan and scale are correct, and the networks to judge are selected.</td></tr>
+            <tr><td>Capture</td><td>Record measurement points in rooms, corridors, transition areas and known weak spots.</td><td>Important areas have enough points and suspicious scans have been retried.</td></tr>
+            <tr><td>Validate</td><td>Open Survey Quality and separate point-rescan issues from AP setup diagnostics.</td><td>Point quality is acceptable and remaining findings are understood.</td></tr>
+            <tr><td>Model APs</td><td>Review AP Groups, aliases, roles, BSSIDs, metadata, AP positions and channel overrides.</td><td>The AP model matches what is deployed or intentionally documented as unknown.</td></tr>
+            <tr><td>Analyze</td><td>Use Live Maps and PDF export to review coverage, channels, roaming and interference.</td><td>Warnings have been reviewed and can be explained.</td></tr>
+        </table>
+        <h2>Decision gates</h2>
+        <ul>
+            <li><b>Before interpreting distances:</b> calibrate the scale. AP-position warnings are weak without a scale.</li>
+            <li><b>Before trusting coverage:</b> verify relevant SSIDs and point quality. Missing relevant networks can make a good area look bad.</li>
+            <li><b>Before trusting interference:</b> verify AP groups, roles and channel-change handling. Channel-sensitive maps depend on the AP model.</li>
+            <li><b>Before exporting:</b> open the related live map and read the warning tooltips or detail rows.</li>
+        </ul>
+        <div class="section-card"><b>How the program thinks:</b> survey points, raw scans, AP metadata and AP positions are treated as evidence. Warnings are not automatically errors. They tell you which assumption needs review: point quality, AP grouping, channel model, physical AP placement or real RF behavior.</div>
     """,
     "help_controls_nav": "Controls",
     "help_controls_title": "Controls Cheat Sheet",
     "help_controls_subtitle": "The V2 workflow still uses direct map gestures. These are the controls you use most often while surveying and reviewing.",
     "help_controls_body": """
         <div class="callout"><b>Tip:</b> when AP positioning mode is active, left click on the plan assigns the physical AP position instead of selecting a survey point.</div>
+        <h2>Context matters</h2>
+        <p>The same gesture can mean different things depending on the active mode. During normal survey work, right click creates measurement points and left click selects existing markers. During AP positioning or scale calibration, left click is captured by that temporary mode.</p>
+        <table>
+            <tr><th>Context</th><th>Left click behavior</th><th>What to watch</th></tr>
+            <tr><td>Normal Survey map</td><td>Selects a point marker or clears selection when the background is clicked.</td><td>If you intend to create a point, use right click instead.</td></tr>
+            <tr><td>Scale calibration</td><td>Picks calibration endpoints.</td><td>Finish the two-point calibration before continuing the survey.</td></tr>
+            <tr><td>AP positioning</td><td>Stores the physical AP marker for the selected AP group.</td><td>The AP position affects Dominant AP diagnostics.</td></tr>
+            <tr><td>Live Map</td><td>Pans when the map is larger than the viewport; clicking background can clear legend selection.</td><td>Zoom/pan does not change the underlying survey data.</td></tr>
+        </table>
     """,
     "help_control_right_click_title": "Right Click",
     "help_control_right_click_text": "Create a measurement point on the Survey map.",
@@ -531,10 +546,20 @@ TRANSLATIONS = {
     "help_survey_title": "Survey Points, Raw Scans And Confidence",
     "help_survey_subtitle": "A point is more than one signal value: V2 stores raw samples, aggregates them and tracks confidence.",
     "help_survey_body": """
+        <h2>What is saved</h2>
+        <p>Each measurement point can contain multiple observed networks. The main CSV stores the aggregated survey rows used by maps. The linked <code>.scan</code> sidecar stores the raw repeated scan evidence behind those aggregates.</p>
         <h2>Relevant networks</h2>
-        <p>Relevant SSIDs tell the quality engine which networks matter. Missing relevant networks are treated differently from unrelated neighbor networks.</p>
+        <p>Relevant SSIDs tell the quality engine which networks matter. A missing relevant network is a survey-quality finding. A missing unrelated neighbor network is usually not.</p>
+        <div class="section-card"><b>Practical rule:</b> set relevant SSIDs early. If you add them only after collecting points, the dashboard may reveal points that need review because the intended networks were not seen there.</div>
         <h2>Raw scan sidecar</h2>
-        <p>The main CSV stores aggregated rows. Repeated scan evidence is saved in a linked <code>.scan</code> sidecar. This makes the map explainable later.</p>
+        <p>The sidecar preserves repeated samples, backend details and scanner-specific fields when available. This is why V2 can explain confidence, unstable signal and sparse data instead of only drawing colors.</p>
+        <table>
+            <tr><th>Stored value</th><th>Why it matters</th></tr>
+            <tr><td>Median dBm</td><td>Reduces the effect of a single temporary signal spike.</td></tr>
+            <tr><td>Min/max dBm</td><td>Shows how much the signal moved during repeated scans.</td></tr>
+            <tr><td>Samples seen/total</td><td>Feeds confidence and sparse-data checks.</td></tr>
+            <tr><td>Band/frequency/channel width</td><td>Improves AP Channels, Interference and 6 GHz interpretation.</td></tr>
+        </table>
         <h2>Scanner backend</h2>
         <table>
             <tr><th>Backend</th><th>Use</th><th>Notes</th></tr>
@@ -543,11 +568,19 @@ TRANSLATIONS = {
             <tr><td><span class="pill">netsh</span></td><td>Windows fallback</td><td>Useful when lswifi is unavailable, but generally exposes less RF detail.</td></tr>
         </table>
         <div class="callout warning"><b>Suspicious scans:</b> if a scan suddenly sees far fewer relevant networks, retry before saving the point. This is usually faster than fixing a bad point later.</div>
+        <h2>Good point placement</h2>
+        <ul>
+            <li>Place points where clients actually work: desks, meeting rooms, corridors, doors and known problem areas.</li>
+            <li>Add points near AP transitions. Dominant AP and roaming findings are only as good as the transition evidence.</li>
+            <li>Avoid collecting while moving. Pause, let the scan complete, then move to the next point.</li>
+        </ul>
     """,
     "help_quality_nav": "Survey Quality",
     "help_quality_title": "Survey Quality Dashboard",
     "help_quality_subtitle": "The dashboard separates points that may need a rescan from AP setup diagnostics.",
     "help_quality_body": """
+        <h2>Read the dashboard in two layers</h2>
+        <p>The first layer is point quality: can these measurement points be trusted? The second layer is AP setup: does the AP model explain what was measured?</p>
         <h2>What to fix first</h2>
         <p>The dashboard prioritizes actionable findings. Point-rescan issues come first because bad data can poison every map. AP setup findings come next because they affect interpretation.</p>
         <table>
@@ -558,6 +591,18 @@ TRANSLATIONS = {
             <tr><td>Dominant AP Findings</td><td>The strongest AP does not match the physical model.</td><td>Open the Dominant AP map and verify AP positions or roaming behavior.</td></tr>
             <tr><td>AP Config Warnings</td><td>Observed bands/channels disagree with metadata.</td><td>Open AP metadata and decide whether metadata or deployment is wrong.</td></tr>
         </table>
+        <h2>KPI meaning</h2>
+        <table>
+            <tr><th>KPI</th><th>Interpretation</th></tr>
+            <tr><td>Total Points</td><td>How much spatial evidence the survey contains.</td></tr>
+            <tr><td>Scan OK / Rescan Needed</td><td>Whether the measurement points themselves are usable.</td></tr>
+            <tr><td>Sparse Data</td><td>Points with too little repeated evidence for strong confidence.</td></tr>
+            <tr><td>Dominant AP Findings</td><td>Roaming or AP-position observations worth reviewing, not automatically bad data.</td></tr>
+            <tr><td>AP Config Warnings</td><td>Metadata/deployment mismatch such as unexpected channels.</td></tr>
+            <tr><td>Channel Changes</td><td>APs whose observed channel sequence affects channel-sensitive analysis.</td></tr>
+        </table>
+        <h2>Detail dialogs</h2>
+        <p>Use <b>Extra Details</b> when a card shows more than a simple OK state. The detail rows keep large surveys manageable: each affected point or AP group gets its own row and action buttons open the right map or editor.</p>
         <div class="callout"><b>Important:</b> a setup warning does not mean the survey point is bad. It means the AP model, expected channel, or real deployment needs review.</div>
     """,
     "help_ap_groups_nav": "AP Groups",
@@ -566,6 +611,15 @@ TRANSLATIONS = {
     "help_ap_groups_body": """
         <h2>Automatic suggestions are not final truth</h2>
         <p>The program groups BSSIDs automatically, but real deployments can use multiple SSIDs, bands and radios on one physical AP. Treat automatic grouping as a starting point.</p>
+        <h2>What to review</h2>
+        <table>
+            <tr><th>Area</th><th>Why it matters</th><th>Typical fix</th></tr>
+            <tr><td>Alias</td><td>Readable names make legends, tooltips and PDF cards usable.</td><td>Rename groups to physical AP names such as corridor, office or room labels.</td></tr>
+            <tr><td>BSSID grouping</td><td>Guest/main SSIDs on the same AP should not interfere with each other.</td><td>Move BSSIDs into the correct physical AP group or split wrong groups.</td></tr>
+            <tr><td>Role</td><td>Roles decide what maps include or ignore.</td><td>Mark temporary APs as Test/hidden, neighbors as External or Interferer.</td></tr>
+            <tr><td>Position</td><td>Dominant AP diagnostics need physical AP coordinates.</td><td>Use Set Position and click the floor plan.</td></tr>
+            <tr><td>Metadata</td><td>Expected bands/channels make AP setup warnings meaningful.</td><td>Set expected bands, expected channels and optional notes.</td></tr>
+        </table>
         <h2>Roles</h2>
         <table>
             <tr><th>Role</th><th>Effect</th></tr>
@@ -576,12 +630,22 @@ TRANSLATIONS = {
         </table>
         <h2>Metadata and channel overrides</h2>
         <p>Expected bands/channels are validation rules. Analysis-channel override is different: it is an explicit modeling choice used by channel-sensitive maps when the survey observed a clean or ambiguous channel change.</p>
+        <table>
+            <tr><th>Metadata field</th><th>Used for</th></tr>
+            <tr><td>Vendor / Model / Mounting / Notes</td><td>Documentation and review context. Mounting is not yet used as an RF formula.</td></tr>
+            <tr><td>Expected Bands</td><td>Helps detect APs observed on bands they should not use, including 6 GHz when band/frequency evidence exists.</td></tr>
+            <tr><td>Expected Channels</td><td>Creates AP setup warnings when observed channels do not match planned operation.</td></tr>
+            <tr><td>Analysis Channel Override</td><td>Forces channel-sensitive maps to use the selected observed channel for that AP group and band.</td></tr>
+        </table>
+        <h2>Clean channel changes</h2>
+        <p>If the same AP group/BSSID set moves cleanly from one channel to another during a survey, AP Group does not treat that as a BSSID conflict. Interference and AP Channels use the latest observed channel by default. Override only when you know the intended operational channel is different.</p>
         <div class="callout warning"><b>Do not use overrides to hide bad data.</b> Use them when you know the operational channel is different from the latest observed survey state, for example after scheduled AP reboot behavior.</div>
     """,
     "help_live_maps_nav": "Live Maps",
     "help_live_maps_title": "Live Maps And Options",
     "help_live_maps_subtitle": "Live Map is the main review surface after survey and AP model checks.",
     "help_live_maps_body": """
+        <h2>Choose the map for the question</h2>
         <table>
             <tr><th>Map</th><th>What it shows</th><th>How to read it</th></tr>
             <tr><td>Coverage</td><td>Continuous signal level by SSID and band.</td><td>Use color scale and max distance to avoid over-reading areas far from real points.</td></tr>
@@ -591,6 +655,17 @@ TRANSLATIONS = {
         </table>
         <h2>Options</h2>
         <p>Continuous maps expose interpolation, smoothing, color scale and max distance. Discrete maps use legends and point labels because they represent actual measurement points rather than interpolated surfaces.</p>
+        <table>
+            <tr><th>Option</th><th>Meaning</th><th>Use carefully when</th></tr>
+            <tr><td>Band</td><td>Limits analysis to 2.4, 5, 6 GHz or all bands where supported.</td><td>Rows without explicit band/frequency can make low-number channels ambiguous.</td></tr>
+            <tr><td>Interpolation</td><td>Controls how continuous surfaces are estimated between real points.</td><td>Large empty floor-plan areas should not be over-interpreted.</td></tr>
+            <tr><td>Smoothing</td><td>Makes coverage/interference surfaces visually calmer.</td><td>High smoothing can hide sharp RF transitions.</td></tr>
+            <tr><td>Max Distance</td><td>Limits continuous rendering to areas near measured points.</td><td>Increase only when point density is good.</td></tr>
+            <tr><td>Point Labels</td><td>Controls labels on discrete maps.</td><td>Use Auto for reports; use All when auditing point attribution.</td></tr>
+            <tr><td>AP Group Filter</td><td>Highlights or limits analysis to a selected AP group where applicable.</td><td>Use it to verify a problematic AP without losing full-survey context.</td></tr>
+        </table>
+        <h2>Reading limits</h2>
+        <p>Live maps update the visualization, not the collected data. If a map looks wrong, check the evidence path: point quality, AP grouping, roles, metadata, scale and AP positions.</p>
         <div class="section-card"><b>Channel changes:</b> if the same AP group cleanly moves from one channel to another during a survey, channel-sensitive maps use the latest channel by default. If the sequence is ambiguous, maps preserve measured channels unless you set an explicit analysis-channel override.</div>
     """,
     "help_reports_nav": "PDF Reports",
@@ -599,8 +674,23 @@ TRANSLATIONS = {
     "help_reports_body": """
         <h2>Map page</h2>
         <p>The first page uses the full floor-plan extent, not the current zoom. Legends, color scales and point labels follow the active Live Map options.</p>
+        <h2>Report by map type</h2>
+        <table>
+            <tr><th>Export</th><th>Pages</th><th>Notes</th></tr>
+            <tr><td>Coverage</td><td>Map page only</td><td>No problem page by design. Use Survey Quality for data problems.</td></tr>
+            <tr><td>AP Channels</td><td>Map page only</td><td>Good for channel-plan review. Diagnostic cards are not added until a clear rule exists.</td></tr>
+            <tr><td>Dominant AP</td><td>Map plus problem cards when findings exist</td><td>Cards explain dominant/nearest AP context and AP-position warnings.</td></tr>
+            <tr><td>Interference</td><td>Map plus problem cards when findings exist</td><td>Cards show serving AP/channel, main interferer/channel, overlap and risk.</td></tr>
+        </table>
         <h2>Problem cards</h2>
         <p>Interference and Dominant AP can add paged report cards. Numbered square callouts on the map match the numbered cards, so a map point can be attributed to a specific diagnostic card.</p>
+        <h2>Before sending a report</h2>
+        <ul>
+            <li>Confirm the selected SSID, band and map type are the ones you intend to document.</li>
+            <li>Check that AP positions are complete when reviewing Dominant AP findings.</li>
+            <li>Review channel-change notes and analysis-channel overrides before exporting Interference or AP Channels.</li>
+            <li>Use report cards as diagnostics. A warning card can describe a real deployment issue, not a software error.</li>
+        </ul>
         <div class="callout"><b>Coverage has no problem page by design.</b> It is a signal visualization. Quality or AP setup problems are reviewed in Survey Quality and AP Group Manager.</div>
         <h2>Current AP Channels behavior</h2>
         <p>AP Channels export is map-only until there is a clear diagnostic rule that deserves report cards.</p>
@@ -609,6 +699,7 @@ TRANSLATIONS = {
     "help_diagnostics_title": "Warnings And Diagnostics",
     "help_diagnostics_subtitle": "Warnings are prompts to review assumptions, not automatic proof that a point is wrong.",
     "help_diagnostics_body": """
+        <h2>Warning categories</h2>
         <table>
             <tr><th>Finding</th><th>Reasoning</th><th>What to check</th></tr>
             <tr><td>Unexpected Dominant AP</td><td>The strongest AP is not coherent with physical AP position or nearest AP context.</td><td>Verify AP positions, aliases, scale calibration and real roaming behavior.</td></tr>
@@ -617,6 +708,16 @@ TRANSLATIONS = {
             <tr><td>Clean Channel Change</td><td>The same AP moved channel over time without BSSID conflict.</td><td>Accept latest-channel default or set an analysis-channel override.</td></tr>
             <tr><td>Missing AP Position</td><td>A relevant AP group has no physical marker.</td><td>Place the AP to enable distance-based diagnostics.</td></tr>
         </table>
+        <h2>Troubleshooting patterns</h2>
+        <table>
+            <tr><th>Symptom</th><th>Likely cause</th><th>Next action</th></tr>
+            <tr><td>Coverage looks too optimistic far from points</td><td>Interpolation is filling unmeasured space.</td><td>Lower max distance or collect more points.</td></tr>
+            <tr><td>Interference appears on an old channel</td><td>AP changed channel during survey or override is missing/wrong.</td><td>Check channel-change detail and AP metadata override.</td></tr>
+            <tr><td>Dominant AP is far from its physical marker</td><td>Wrong AP position, wrong group, client roaming behavior or real RF leakage.</td><td>Open Dominant AP detail, verify closest AP and group aliases.</td></tr>
+            <tr><td>Many points need rescan</td><td>Relevant SSIDs were missing, signal was unstable, or scans were sparse.</td><td>Focus affected points and rescan before interpreting maps.</td></tr>
+            <tr><td>Unexpected channels on one AP</td><td>Metadata is stale, AP config changed, or band/channel evidence is ambiguous.</td><td>Check AP metadata, real controller config and scanner band/frequency data.</td></tr>
+        </table>
+        <div class="section-card"><b>Review order:</b> point quality first, AP grouping second, metadata and positions third, map interpretation last.</div>
         <div class="callout danger"><b>Do not suppress warnings blindly.</b> A warning that reflects real deployment behavior is valuable evidence and should remain visible until you understand it.</div>
     """,
     "help_glossary_nav": "Glossary",
@@ -627,11 +728,19 @@ TRANSLATIONS = {
             <tr><th>Term</th><th>Meaning</th></tr>
             <tr><td>AP Group</td><td>The program's model of one physical AP, usually containing multiple BSSIDs.</td></tr>
             <tr><td>BSSID</td><td>The radio MAC address seen in Wi-Fi scans.</td></tr>
+            <tr><td>SSID</td><td>The Wi-Fi network name. One SSID can be broadcast by many BSSIDs.</td></tr>
             <tr><td>Relevant SSID</td><td>A network selected as important for quality checks and analysis.</td></tr>
             <tr><td>Confidence</td><td>How reliable an aggregated point row is, based on repeated scan evidence.</td></tr>
+            <tr><td>Raw Sidecar</td><td>The linked <code>.scan</code> file containing raw repeated scan samples.</td></tr>
             <tr><td>Dominant AP</td><td>The AP group with the strongest observed signal at a measurement point.</td></tr>
+            <tr><td>Roaming Ambiguity</td><td>A point where the strongest and second AP are close enough that clients may choose either one.</td></tr>
+            <tr><td>Clean Channel Change</td><td>An AP group changing channel over time without evidence of mixed BSSID conflicts.</td></tr>
+            <tr><td>Ambiguous Channel Change</td><td>A channel sequence where the program cannot confidently treat the change as a clean transition.</td></tr>
             <tr><td>Analysis Channel Override</td><td>User-selected channel used by channel-sensitive maps for a specific AP group and band.</td></tr>
             <tr><td>Setup Warning</td><td>A model/deployment issue that does not necessarily require rescanning the point.</td></tr>
+            <tr><td>Point-Rescan Finding</td><td>A quality issue suggesting that the measurement point itself may need another scan.</td></tr>
+            <tr><td>Interpolation</td><td>A visual estimate between measured points. It helps readability but is not a replacement for real measurements.</td></tr>
+            <tr><td>Max Distance</td><td>The rendering limit that prevents continuous maps from extending too far from measured evidence.</td></tr>
         </table>
     """,
     "help_commands": "Commands",

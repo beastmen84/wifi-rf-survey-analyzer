@@ -26,9 +26,9 @@ Current status:
 - the V2 functional scope is effectively closed for the current release: no
   known AP Group, live-map, PDF, quality-dashboard or core survey blocker is
   open;
-- Help content and structure have a first V2 Help Center pass implemented; the
-  remaining closeout is user review, wording/visual polish and a short EN/IT
-  smoke pass;
+- Help content and structure have an expanded V2 Help Center implementation;
+  the remaining closeout is user review, visual-density polish and a short
+  EN/IT smoke pass;
 - the real-survey live PDF validation pass is complete for Coverage, AP
   Channels, Dominant AP and Interference; the current findings are accepted as
   real diagnostics for now rather than layout blockers;
@@ -456,8 +456,8 @@ Closeout assessment:
 
 - no known V2 blocker remains in the survey core, AP Group workflow, live maps,
   live PDF reports, channel-change handling or Survey Quality Dashboard;
-- the Help System rework has a first Help Center implementation and needs
-  review/polish before final V2 closeout;
+- the Help System rework has an expanded Help Center implementation and needs
+  final review/polish before V2 closeout;
 - the other items below are monitoring or post-V2 expansion candidates and
   should not block calling the current V2 workflow complete.
 
@@ -631,27 +631,33 @@ Remaining validation:
 
 ### 8. Help System Rework
 
-First V2 Help Center pass is implemented.
+Expanded V2 Help Center content is implemented.
 
-Implemented in the first pass:
+Implemented:
 
 - two-column Help Center with vertical navigation and formatted HTML content;
 - workflow-first overview instead of a feature-list-only help page;
-- controls cheat sheet using the existing image assets;
+- controls cheat sheet using the existing image assets and current V2 gestures;
 - dedicated sections for Survey/Scans, Survey Quality, AP Groups, Live Maps,
   PDF Reports, Warnings and Glossary;
-- explanation of relevant SSIDs, raw scans, confidence and quality states;
-- explain Survey Quality Dashboard "what to fix next" guidance, AP setup
+- detailed workflow gates, point capture guidance, raw sidecar/aggregation,
+  scanner backend behavior and relevant SSID logic;
+- Survey Quality KPI meanings, "what to fix next" guidance, AP setup
   diagnostics and point-rescan recommendations;
-- explain clean/ambiguous channel changes and manual analysis-channel override;
-- explain live PDF report pages, numbered callouts and when warnings are
-  diagnostics rather than survey errors;
+- AP Group review areas, roles, metadata, clean/ambiguous channel changes and
+  manual analysis-channel override;
+- Live Map option behavior, map-specific interpretation limits and channel
+  change handling;
+- live PDF report pages, numbered callouts, pre-export checks and when warnings
+  are diagnostics rather than survey errors;
+- warning troubleshooting patterns and expanded glossary;
 - EN/IT translations and tests for section availability.
 
 Remaining closeout:
 
 - review wording and visual density in the real UI;
-- refine section ordering and formatting after visual inspection;
+- refine section ordering and formatting only if visual inspection shows a real
+  readability problem;
 - keep text concise and visual where possible.
 
 ## Suggested Next Priorities
