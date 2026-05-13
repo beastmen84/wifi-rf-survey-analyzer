@@ -354,15 +354,6 @@ class QualityDashboardDialog(QDialog):
         if actions or detail_items:
             action_row = QHBoxLayout()
             action_row.setSpacing(widget_px(self, 6))
-            action_limit = 2 if detail_items else 4
-            for action in actions[:action_limit]:
-                button = QPushButton(action.get("label", ""))
-                button.setObjectName("compactButton")
-                button.setMinimumWidth(0)
-                button.clicked.connect(
-                    lambda _checked=False, selected_action=action: self.handle_recommendation_action(selected_action)
-                )
-                action_row.addWidget(button)
             if detail_items:
                 detail_button = QPushButton(
                     self.app.tr("quality_dashboard_expand_details", count=len(detail_items))
@@ -373,9 +364,23 @@ class QualityDashboardDialog(QDialog):
                     self.open_recommendation_details(selected_recommendation)
                 )
                 action_row.addWidget(detail_button)
+            inline_actions, map_actions = split_recommendation_actions(actions, has_details=bool(detail_items))
+            for action in inline_actions:
+                self.add_recommendation_action_button(action_row, action)
             action_row.addStretch(1)
+            for action in map_actions:
+                self.add_recommendation_action_button(action_row, action)
             layout.addLayout(action_row)
         return card
+
+    def add_recommendation_action_button(self, layout, action):
+        button = QPushButton(action.get("label", ""))
+        button.setObjectName("compactButton")
+        button.setMinimumWidth(0)
+        button.clicked.connect(
+            lambda _checked=False, selected_action=action: self.handle_recommendation_action(selected_action)
+        )
+        layout.addWidget(button)
 
     def open_recommendation_details(self, recommendation):
         dialog = RecommendationDetailsDialog(self, recommendation)
@@ -962,6 +967,22 @@ def build_quality_context_lines(app, summary):
             test_aps=summary["test_aps"],
         ),
     ]
+
+
+def split_recommendation_actions(actions, has_details=False):
+    action_limit = 2 if has_details else 4
+    visible_actions = list(actions or [])[:action_limit]
+    inline_actions = [
+        action
+        for action in visible_actions
+        if action.get("kind") != "live_map"
+    ]
+    map_actions = [
+        action
+        for action in visible_actions
+        if action.get("kind") == "live_map"
+    ]
+    return inline_actions, map_actions
 
 
 def add_channel_change_recommendation(app, summary, recommendations):

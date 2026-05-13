@@ -299,6 +299,19 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(metadata_recommendation["detail_items"][-1]["label"], "ap-5")
         self.assertIn("+3", summary["ap_metadata_warning_labels"])
 
+    def test_quality_recommendation_actions_put_details_before_map_buttons(self):
+        inline_actions, map_actions = split_recommendation_actions(
+            [
+                {"kind": "live_map", "map_type": "channel"},
+                {"kind": "live_map", "map_type": "interference"},
+                {"kind": "ap_metadata"},
+            ],
+            has_details=True,
+        )
+
+        self.assertEqual(inline_actions, [])
+        self.assertEqual([action["map_type"] for action in map_actions], ["channel", "interference"])
+
     def test_quality_recommends_channel_change_model_review(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 36)
         app = FakeQualityApp([row], relevant_ssids={"MAIN"})

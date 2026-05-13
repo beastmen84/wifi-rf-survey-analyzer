@@ -109,6 +109,7 @@ from qt_ui.qt_quality_dashboard import (
     get_effective_relevant_ssids,
     get_effective_ap_groups,
     quality_status_text_keys,
+    split_recommendation_actions,
 )
 from qt_ui.qt_floorplan import AP_MARKER_BASE_SIZE, FloorplanView, format_ap_tooltip, format_point_tooltip
 from qt_ui.qt_ap_groups import (
