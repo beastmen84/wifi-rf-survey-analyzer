@@ -1,6 +1,6 @@
 # AI Chat History And Project Context
 
-Last updated: 2026-05-12
+Last updated: 2026-05-13
 
 This file is the continuity handoff for future AI chats. Read it before making
 changes. It is not a full transcript: it is the technical history, decisions,
@@ -19,8 +19,9 @@ current architecture, and active rules that matter for continuing the work.
   reason about.
 - Current UI direction is PySide6. `main.py` is now the active Qt entry point;
   the legacy Tkinter/ttkbootstrap UI has been retired from the active codebase.
-- Help text should eventually be reworked structurally, but the user chose to
-  postpone that for now.
+- The Help Center has now been structurally reworked and expanded for V2.
+  Remaining closeout there is user visual/content review plus targeted polish
+  if that review finds issues.
 - Existing code is the source of truth. If this file and code disagree, inspect
   code and update this file.
 
@@ -36,14 +37,27 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code test baseline after the Survey Quality Dashboard action pass is 186
+- The current code test baseline after the expanded Help Center pass is 197
   passing tests with `.\.venv\Scripts\python.exe -m pytest`.
-- Latest completed code work in this handoff: Survey Quality Dashboard now opens
-  maximized, uses compact metric cards, includes sparse-data as a first-class
-  metric, separates point-rescan issues from AP setup diagnostics, and shows a
-  prioritized `What To Fix Next` panel. The panel now avoids duplicate context
-  text and provides direct actions into Dominant AP, AP Channels, Interference
-  and AP Group metadata for the problematic AP group where possible.
+- V2 functional scope is effectively closed: survey capture/storage, live maps,
+  AP Group Manager, AP metadata, live PDF exports, AP channel-change handling,
+  Quality Dashboard, shared Qt styling and main navigation polish are all in
+  place. The only planned V2 closeout still pending is user review of the new
+  Help Center and any small fixes that review exposes.
+- Latest completed code work in this handoff: the Help Center was rebuilt as a
+  two-column V2 guide with section navigation, formatted HTML content, control
+  icon references from `images/`, EN/IT text, and expanded explanations for the
+  operating workflow, survey/scanning, Quality Dashboard, AP Groups, live maps,
+  PDF reports, warning categories and glossary.
+- Survey Quality Dashboard now opens maximized, uses modern KPI cards, includes
+  sparse-data as a first-class metric, separates point-rescan issues from AP
+  setup diagnostics, and shows a prioritized `What To Fix Next` panel. The
+  panel avoids duplicate context text and provides direct actions into
+  Dominant AP, AP Channels, Interference and AP Group metadata for the
+  problematic AP group where possible.
+- The main workspace Survey/Live Map tabs were polished into full-width split
+  navigation with theme-colored active gradients, stronger active text and a
+  faded underline, while preserving vertical space.
 - AP metadata has per-band analysis-channel overrides. Clean AP channel changes
   still use the latest observed channel/width by default in Interference and AP
   Channels, but the user can force a known-good channel per AP group/band for
@@ -1115,10 +1129,56 @@ Language:
   problematic group, and clean/ambiguous AP channel changes are now presented as
   first-class quality recommendations. Full suite baseline is now 186 passed
   tests.
+- Quality Dashboard details were then made scalable for larger surveys: detail
+  panels use guidance headers instead of repeating dashboard counts, map
+  shortcuts are centralized, metadata/model rows avoid repeated action buttons,
+  and the point table defaults to `Show Only Points To Review` unless that
+  would produce an empty table. KPI summary cards were redesigned with stronger
+  visual hierarchy, status accents, soft elevation and clearer grouping.
+- The main workspace Survey/Live Map navigation was iterated after user visual
+  review. The final behavior uses two full-width split tabs, removes excess
+  vertical padding, keeps the active side highlighted with a center-origin
+  gradient, positions labels closer to the page center, and fades the underline
+  toward the outer window edges.
+- `docs/V2_ARCHITECTURE_NOTES.md` was updated again for V2 closeout: there are
+  no known functional V2 blockers, live PDF/AP Group/Quality work moved to
+  monitoring mode, and Help Center review became the only explicit closeout
+  item before calling V2 complete.
+- The Help Center was reworked from the old tabbed/plain-text dialog into a
+  structured V2 guide with a left navigation rail and rich text pages. The
+  controls page uses the existing icon assets from `images/`, the old V1-style
+  middle-click wording was removed, and content was expanded across EN/IT for
+  workflow, survey/scanning, Quality Dashboard, AP Group/metadata, live maps,
+  PDF reports, diagnostics/warnings and glossary. Full suite baseline is now
+  197 passed tests.
 
 Recent commits:
 
-- Current commit: Add quality dashboard action shortcuts.
+- Latest functional commit before this documentation refresh: `aa7b47e`
+  Expand V2 help content.
+- `44e05b4` Refine help center readability.
+- `4ebb91c` Rework V2 help center.
+- `c643b7c` Update V2 closeout roadmap.
+- `c56d8c3` Fade active workspace tab underline.
+- `b807f4e` Center workspace tab labels near split.
+- `ea6b173` Keep workspace tab gradient on active tab.
+- `0a388f0` Polish workspace tab gradient layout.
+- `7a02d0d` Force workspace tabs to full width.
+- `1d0ebb9` Expand workspace tabs to fill navigation bar.
+- `39984fa` Extend workspace tab selection gradient.
+- `722a951` Tighten workspace tab spacing.
+- `87723c3` Reduce workspace tab top spacing.
+- `5953329` Compact workspace navigation tabs.
+- `b9d7f19` Emphasize workspace navigation tabs.
+- `ab54aea` Redesign quality KPI cards.
+- `10388a8` Align quality dashboard action buttons.
+- `9fad513` Refine quality dashboard and live PDF diagnostics.
+- `59b530e` Add quality dashboard action shortcuts.
+- `7cbc831` Rework survey quality recommendations.
+- `30e8ea5` Refine AP metadata channel override picker.
+- `8c79d90` Add AP analysis channel overrides.
+- `c1c7796` Apply channel change handling to AP channels.
+- `5033362` Handle AP channel changes in interference.
 - `d85552a` Polish AP group filters.
 - `1aab53f` Align dominant report cards.
 - `59dfd76` Mark dominant PDF problem points.
@@ -1181,13 +1241,16 @@ Recent commits:
 
 Good next steps, in likely order:
 
-1. Rework Help structure/content now that the main Qt/V2 workflows are stable
-   enough to document.
-2. Improve combined/generated reporting beyond individual live-map exports.
-3. Decide whether mounting metadata should influence AP position warnings or
-   remain documentation only.
-4. Improve live map performance only if the user sees real lag on large surveys;
-   do not trade away map quality prematurely.
+1. User reviews the new Help Center in the running app with calm visual/content
+   pass, including both EN and IT where useful.
+2. Apply only targeted Help Center polish if that review finds formatting,
+   wording, missing-topic or fit issues.
+3. If the Help review is clean, mark V2 complete. Keep AP Group, live PDF,
+   channel-change handling and Quality Dashboard behavior in monitoring mode
+   until larger real surveys expose new friction.
+4. Post-V2 candidates: combined/generated reporting beyond individual live-map
+   PDFs, deeper metadata diagnostics where rules are clear, real 6 GHz hardware
+   validation, and performance work only if large surveys show real lag.
 
 ## Verification Patterns Used
 
@@ -1235,5 +1298,10 @@ Current tests cover, among other things:
   groups, AP positions and AP metadata.
 - Qt point capture saving of scanned aggregate rows/raw rows plus relevant SSID
   flags and UI refresh callbacks.
+- workspace primary tabs using full-width split geometry, active gradient,
+  split-adjacent label placement and faded active underline.
+- Help Center section structure, navigation labels, existing control icon asset
+  usage, removal of obsolete middle-click guidance, EN/IT content markers and
+  deep workflow/diagnostic guidance text.
 - i18n key/placeholder parity, capitalized title/button starts, and localized
   compact-button fit across supported languages.
