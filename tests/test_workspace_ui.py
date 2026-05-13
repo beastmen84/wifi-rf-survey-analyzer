@@ -45,7 +45,7 @@ class SettingsMenuTests(unittest.TestCase):
 
             self.assertEqual(window.tabs.objectName(), "workspaceTabs")
             self.assertEqual(window.tabs.tabBar().objectName(), "workspaceTabBar")
-            self.assertFalse(window.tabs.tabBar().expanding())
+            self.assertTrue(window.tabs.tabBar().expanding())
             self.assertEqual(window.tabs.tabText(0), "SURVEY")
             self.assertEqual(window.tabs.tabText(1), "LIVE MAP")
             self.assertEqual(window.tabs.widget(0).layout().contentsMargins().top(), 0)
@@ -56,7 +56,7 @@ class SettingsMenuTests(unittest.TestCase):
             window.tabs.setCurrentIndex(0)
             self.assertEqual(window.tabs.tabBar().property("activeWorkspaceTab"), "survey")
             self.assertIn("QTabWidget#workspaceTabs::tab-bar", style)
-            self.assertIn("alignment: center", style)
+            self.assertIn("alignment: left", style)
             self.assertIn('QTabBar#workspaceTabBar[activeWorkspaceTab="survey"]', style)
             self.assertIn('QTabBar#workspaceTabBar[activeWorkspaceTab="live"]', style)
             self.assertIn("QTabBar#workspaceTabBar::tab:selected", style)

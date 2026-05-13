@@ -277,7 +277,7 @@ class WifiHeatmapQtApp(
         self.tabs = QTabWidget()
         self.tabs.setObjectName("workspaceTabs")
         self.tabs.tabBar().setObjectName("workspaceTabBar")
-        self.tabs.tabBar().setExpanding(False)
+        self.tabs.tabBar().setExpanding(True)
         self.tabs.addTab(self.build_survey_tab(), "")
         self.tabs.addTab(self.build_live_tab(), "")
         self.update_workspace_tab_bar_state(0)
@@ -1357,7 +1357,7 @@ class WifiHeatmapQtApp(
                 background: {palette["panel"]};
             }}
             QTabWidget#workspaceTabs::tab-bar {{
-                alignment: center;
+                alignment: left;
             }}
             QTabBar#workspaceTabBar {{
                 background: {palette["toolbar"]};
@@ -1390,7 +1390,7 @@ class WifiHeatmapQtApp(
                 border-bottom: {s(3)}px solid transparent;
                 padding: {s(4)}px {s(28)}px {s(3)}px {s(28)}px;
                 min-width: {s(128)}px;
-                margin: 0 {s(2)}px 0 {s(2)}px;
+                margin: 0;
                 border-top-left-radius: {s(7)}px;
                 border-top-right-radius: {s(7)}px;
                 font-size: {font(9.5)}pt;
