@@ -5,7 +5,7 @@ from pathlib import Path
 
 try:
     from PySide6.QtCore import QEvent, QRect, QSize, Qt, QTimer
-    from PySide6.QtGui import QPalette
+    from PySide6.QtGui import QColor, QLinearGradient, QPalette
     from PySide6.QtWidgets import (
         QAbstractItemView,
         QApplication,
@@ -137,6 +137,31 @@ class WorkspaceTabBar(QTabBar):
         margin = max(8, self.fontMetrics().height() // 2)
         return rect.adjusted(margin, 0, -margin, 0)
 
+    def workspace_underline_rect(self, index):
+        rect = self.tabRect(index)
+        if rect.width() <= 0:
+            size = self.tabSizeHint(index)
+            rect = QRect(size.width() * index, 0, size.width(), size.height())
+        height = self.property("workspaceUnderlineHeight") or max(2, self.fontMetrics().height() // 5)
+        height = int(height)
+        return QRect(rect.left(), rect.bottom() - height + 1, rect.width(), height)
+
+    def workspace_underline_gradient(self, index, rect):
+        accent = QColor(str(self.property("workspaceUnderlineColor") or "#3A6EA5"))
+        faded = QColor(accent)
+        faded.setAlpha(0)
+        if index == 0:
+            gradient = QLinearGradient(rect.left(), 0, rect.right(), 0)
+            gradient.setColorAt(0.0, faded)
+            gradient.setColorAt(0.62, accent.lighter(115))
+            gradient.setColorAt(1.0, accent)
+        else:
+            gradient = QLinearGradient(rect.left(), 0, rect.right(), 0)
+            gradient.setColorAt(0.0, accent)
+            gradient.setColorAt(0.38, accent.lighter(115))
+            gradient.setColorAt(1.0, faded)
+        return gradient
+
     def paintEvent(self, event):
         painter = QStylePainter(self)
         for index in range(self.count()):
@@ -154,6 +179,14 @@ class WorkspaceTabBar(QTabBar):
                 self.workspace_text_rect(index),
                 Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextSingleLine,
                 text,
+            )
+
+        current_index = self.currentIndex()
+        if current_index >= 0:
+            underline_rect = self.workspace_underline_rect(current_index)
+            painter.fillRect(
+                underline_rect,
+                self.workspace_underline_gradient(current_index, underline_rect),
             )
 
     def resizeEvent(self, event):
@@ -1031,6 +1064,9 @@ class WifiHeatmapQtApp(
 
     def apply_styles(self):
         palette = QT_THEMES.get(self.theme, QT_THEMES["light"])
+        self.tabs.tabBar().setProperty("workspaceUnderlineColor", palette["metric_info"])
+        self.tabs.tabBar().setProperty("workspaceUnderlineHeight", self.spx(3))
+        self.tabs.tabBar().update()
         combo_arrow_icon = (
             Path(__file__).resolve().parent.parent / "images" / "combo_arrow_white.svg"
         ).as_posix()
@@ -1442,7 +1478,7 @@ class WifiHeatmapQtApp(
             }}
             QTabBar#workspaceTabBar::tab:selected {{
                 color: {palette["title"]};
-                border-bottom: {s(3)}px solid {palette["metric_info"]};
+                border-bottom: {s(3)}px solid transparent;
                 font-weight: 800;
                 font-size: {font(10)}pt;
             }}
