@@ -280,6 +280,7 @@ class WifiHeatmapQtApp(
         self.tabs.tabBar().setExpanding(False)
         self.tabs.addTab(self.build_survey_tab(), "")
         self.tabs.addTab(self.build_live_tab(), "")
+        self.update_workspace_tab_bar_state(0)
         self.tabs.currentChanged.connect(self.on_workspace_tab_changed)
         layout.addWidget(self.tabs)
 
@@ -293,6 +294,18 @@ class WifiHeatmapQtApp(
         layout.addWidget(footer)
 
         return page
+
+    def update_workspace_tab_bar_state(self, index=None):
+        if index is None:
+            index = self.tabs.currentIndex()
+        state = "live" if index == 1 else "survey"
+        tab_bar = self.tabs.tabBar()
+        if tab_bar.property("activeWorkspaceTab") == state:
+            return
+        tab_bar.setProperty("activeWorkspaceTab", state)
+        tab_bar.style().unpolish(tab_bar)
+        tab_bar.style().polish(tab_bar)
+        tab_bar.update()
 
     def build_app_bar(self):
         bar = QFrame()
@@ -1352,6 +1365,24 @@ class WifiHeatmapQtApp(
                 margin: 0;
                 padding: 0;
             }}
+            QTabBar#workspaceTabBar[activeWorkspaceTab="survey"] {{
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:0,
+                    stop:0 {palette["badge_bg"]},
+                    stop:0.34 {palette["button_hover"]},
+                    stop:0.50 {palette["toolbar"]},
+                    stop:1 {palette["toolbar"]}
+                );
+            }}
+            QTabBar#workspaceTabBar[activeWorkspaceTab="live"] {{
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:0,
+                    stop:0 {palette["toolbar"]},
+                    stop:0.50 {palette["toolbar"]},
+                    stop:0.66 {palette["button_hover"]},
+                    stop:1 {palette["badge_bg"]}
+                );
+            }}
             QTabBar#workspaceTabBar::tab {{
                 background: transparent;
                 color: {palette["muted"]};
@@ -1379,17 +1410,17 @@ class WifiHeatmapQtApp(
             QTabBar#workspaceTabBar::tab:first:selected {{
                 background: qlineargradient(
                     x1:0, y1:0, x2:1, y2:0,
-                    stop:0 {palette["badge_bg"]},
-                    stop:0.55 {palette["button_hover"]},
-                    stop:1 transparent
+                    stop:0 transparent,
+                    stop:0.45 {palette["button_hover"]},
+                    stop:1 {palette["badge_bg"]}
                 );
             }}
             QTabBar#workspaceTabBar::tab:last:selected {{
                 background: qlineargradient(
                     x1:0, y1:0, x2:1, y2:0,
-                    stop:0 transparent,
-                    stop:0.45 {palette["button_hover"]},
-                    stop:1 {palette["badge_bg"]}
+                    stop:0 {palette["badge_bg"]},
+                    stop:0.55 {palette["button_hover"]},
+                    stop:1 transparent
                 );
             }}
             QTabWidget::pane {{
