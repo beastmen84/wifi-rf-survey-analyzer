@@ -5,6 +5,7 @@ from pathlib import Path
 
 try:
     from PySide6.QtCore import QEvent, QRect, QSize, Qt, QTimer
+    from PySide6.QtGui import QPalette
     from PySide6.QtWidgets import (
         QAbstractItemView,
         QApplication,
@@ -25,6 +26,7 @@ try:
         QStatusBar,
         QStyle,
         QStyleOptionButton,
+        QStyleOptionTab,
         QStylePainter,
         QTabBar,
         QTableWidget,
@@ -120,6 +122,39 @@ class WorkspaceTabBar(QTabBar):
             if available_width > 0:
                 hint.setWidth(max(1, available_width // self.count()))
         return hint
+
+    def workspace_text_rect(self, index):
+        rect = self.tabRect(index)
+        if rect.width() <= 0:
+            size = self.tabSizeHint(index)
+            rect = QRect(size.width() * index, 0, size.width(), size.height())
+        if self.count() == 2 and index in (0, 1):
+            half_width = max(1, rect.width() // 2)
+            if index == 0:
+                rect = QRect(rect.right() - half_width + 1, rect.top(), half_width, rect.height())
+            else:
+                rect = QRect(rect.left(), rect.top(), half_width, rect.height())
+        margin = max(8, self.fontMetrics().height() // 2)
+        return rect.adjusted(margin, 0, -margin, 0)
+
+    def paintEvent(self, event):
+        painter = QStylePainter(self)
+        for index in range(self.count()):
+            option = QStyleOptionTab()
+            self.initStyleOption(option, index)
+            text = option.text
+            option.text = ""
+            painter.drawControl(QStyle.ControlElement.CE_TabBarTabShape, option)
+
+            font = painter.font()
+            font.setBold(True)
+            painter.setFont(font)
+            painter.setPen(option.palette.color(QPalette.ColorRole.WindowText))
+            painter.drawText(
+                self.workspace_text_rect(index),
+                Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextSingleLine,
+                text,
+            )
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -1396,13 +1431,9 @@ class WifiHeatmapQtApp(
             }}
             QTabBar#workspaceTabBar::tab:first {{
                 border-top-right-radius: 0;
-                padding: {s(4)}px {s(32)}px {s(3)}px {s(56)}px;
-                text-align: right;
             }}
             QTabBar#workspaceTabBar::tab:last {{
                 border-top-left-radius: 0;
-                padding: {s(4)}px {s(56)}px {s(3)}px {s(32)}px;
-                text-align: left;
             }}
             QTabBar#workspaceTabBar::tab:hover {{
                 background: {palette["button_hover"]};
