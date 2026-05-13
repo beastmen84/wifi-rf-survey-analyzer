@@ -26,6 +26,7 @@ try:
         QStyle,
         QStyleOptionButton,
         QStylePainter,
+        QTabBar,
         QTableWidget,
         QTabWidget,
         QVBoxLayout,
@@ -96,6 +97,33 @@ class VerticalTabButton(QPushButton):
         text_rect = QRect(-self.height() // 2, -self.width() // 2, self.height(), self.width())
         painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, text)
         painter.restore()
+
+
+class WorkspaceTabBar(QTabBar):
+    def _available_width(self):
+        parent = self.parentWidget()
+        if parent is not None and parent.width() > 0:
+            return parent.width()
+        return self.width()
+
+    def sizeHint(self):
+        hint = super().sizeHint()
+        available_width = self._available_width()
+        if available_width > 0:
+            hint.setWidth(available_width)
+        return hint
+
+    def tabSizeHint(self, index):
+        hint = super().tabSizeHint(index)
+        if self.count() > 0:
+            available_width = self._available_width()
+            if available_width > 0:
+                hint.setWidth(max(1, available_width // self.count()))
+        return hint
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.updateGeometry()
 
 
 def format_workspace_tab_text(text):
@@ -275,6 +303,7 @@ class WifiHeatmapQtApp(
         layout.addWidget(self.app_bar)
 
         self.tabs = QTabWidget()
+        self.tabs.setTabBar(WorkspaceTabBar())
         self.tabs.setObjectName("workspaceTabs")
         self.tabs.tabBar().setObjectName("workspaceTabBar")
         self.tabs.tabBar().setExpanding(True)

@@ -38,14 +38,17 @@ class SettingsMenuTests(unittest.TestCase):
         finally:
             window.deleteLater()
 
-    def test_workspace_primary_tabs_are_centered_and_emphasized(self):
+    def test_workspace_primary_tabs_fill_bar_and_track_selection(self):
         window = WifiHeatmapQtApp()
         try:
             style = window.styleSheet()
+            window.tabs.resize(800, 400)
 
             self.assertEqual(window.tabs.objectName(), "workspaceTabs")
             self.assertEqual(window.tabs.tabBar().objectName(), "workspaceTabBar")
             self.assertTrue(window.tabs.tabBar().expanding())
+            self.assertEqual(window.tabs.tabBar().tabSizeHint(0).width(), 400)
+            self.assertEqual(window.tabs.tabBar().tabSizeHint(1).width(), 400)
             self.assertEqual(window.tabs.tabText(0), "SURVEY")
             self.assertEqual(window.tabs.tabText(1), "LIVE MAP")
             self.assertEqual(window.tabs.widget(0).layout().contentsMargins().top(), 0)
