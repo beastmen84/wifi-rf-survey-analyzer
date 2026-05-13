@@ -1177,6 +1177,10 @@ Language:
   titles include the release label, and footer text shows the version. README
   and V2 notes document the beta-to-1.0 path. Full suite baseline is now 198
   passed tests.
+- Regenerated the Windows release artifact after adding version metadata:
+  `dist\WifiHeatmap-v0.9.0-beta.1-win64.zip` (142,099,426 bytes). Zip SHA256:
+  `6152E3B563157E8A3D67D0F8650BC2D50665EF3067CD6AACA54DD105F5477006`. Exe
+  SHA256: `7069012B6839BC11FD8D91D7832346A4C6D8307DF8496C1E33691C52AEF68784`.
 
 Recent commits:
 
