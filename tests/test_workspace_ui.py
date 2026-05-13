@@ -48,6 +48,8 @@ class SettingsMenuTests(unittest.TestCase):
             self.assertFalse(window.tabs.tabBar().expanding())
             self.assertEqual(window.tabs.tabText(0), "SURVEY")
             self.assertEqual(window.tabs.tabText(1), "LIVE MAP")
+            self.assertEqual(window.tabs.widget(0).layout().contentsMargins().top(), window.spx(8))
+            self.assertEqual(window.tabs.widget(1).layout().contentsMargins().top(), window.spx(8))
             self.assertIn("QTabWidget#workspaceTabs::tab-bar", style)
             self.assertIn("alignment: center", style)
             self.assertIn("QTabBar#workspaceTabBar::tab:selected", style)

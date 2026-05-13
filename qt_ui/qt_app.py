@@ -431,7 +431,7 @@ class WifiHeatmapQtApp(
     def build_survey_tab(self):
         tab = QWidget()
         layout = QVBoxLayout(tab)
-        layout.setContentsMargins(self.spx(16), self.spx(16), self.spx(16), self.spx(16))
+        layout.setContentsMargins(self.spx(16), self.spx(8), self.spx(16), self.spx(16))
         layout.setSpacing(self.spx(12))
 
         summary = QFrame()
@@ -719,7 +719,7 @@ class WifiHeatmapQtApp(
     def build_live_tab(self):
         tab = QWidget()
         layout = QVBoxLayout(tab)
-        layout.setContentsMargins(self.spx(16), self.spx(16), self.spx(16), self.spx(16))
+        layout.setContentsMargins(self.spx(16), self.spx(8), self.spx(16), self.spx(16))
         layout.setSpacing(self.spx(12))
 
         self.live_ssid_label = QLabel()
