@@ -25,6 +25,9 @@ Current status:
 - public release versioning is now separate from the internal V2 generation:
   the current beta target is `v0.9.0-beta.1`, while `v1.0.0` should wait for
   Help Center review/polish and a full office validation pass;
+- intermediate beta release candidates should use `v0.9.0-beta.N` while the
+  work remains Help/validation/polish; do not regenerate exe/ZIP for every
+  commit, only when cutting an intentional release candidate;
 - the Tk to Qt migration is substantially complete;
 - the V2 functional scope is effectively closed for the current release: no
   known AP Group, live-map, PDF, quality-dashboard or core survey blocker is
@@ -682,17 +685,22 @@ Monitoring:
 Post-V2 expansion:
 
 7. Improve combined/generated reporting beyond individual live-map exports.
-8. Use AP metadata more deeply in diagnostics where the rule is clear.
-9. Refine the AP physical/radio/BSSID model only if real deployments require it.
-10. Add an AI Advisor next to each live map. It should analyze the measured
+8. Add an AP Profile Library as a `v0.9.1 beta` candidate. It should export and
+   import AP Group metadata between surveys, match known BSSIDs safely, apply
+   trusted metadata to new surveys, flag imported data for review, and avoid
+   overwriting user-edited fields without confirmation. AP positions should be
+   reused automatically only when the floor plan/scale context is compatible.
+9. Use AP metadata more deeply in diagnostics where the rule is clear.
+10. Refine the AP physical/radio/BSSID model only if real deployments require it.
+11. Add an AI Advisor next to each live map. It should analyze the measured
     survey evidence and propose actionable RF changes, such as channel-width or
     channel adjustments to reduce interference. Recommendations must remain
     grounded in visible survey data, explain assumptions/confidence, and stay
     advisory rather than silently mutating AP metadata or map settings.
-11. Add a lightweight Floorplan Creator for technical RF floor maps. Scope
+12. Add a lightweight Floorplan Creator for technical RF floor maps. Scope
     should be scaled geometry, snap, wall thickness, simple shapes, doors and
     measurements; it should not become an interior-design tool.
-12. Add richer deployment/reporting outputs.
+13. Add richer deployment/reporting outputs.
 
 ## Final Vision
 

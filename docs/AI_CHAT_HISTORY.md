@@ -13,8 +13,15 @@ current architecture, and active rules that matter for continuing the work.
 - Shell in PyCharm is PowerShell 7.6.1.
 - Do not regenerate the executable unless the user explicitly asks.
 - The user asked to create a git commit after every completed set of changes.
-- After every future task, update this file with what changed and any decision
-  made, then commit both code and this file together.
+- After every future task, keep `README.md`,
+  `docs/V2_ARCHITECTURE_NOTES.md`, and `docs/AI_CHAT_HISTORY.md` aligned with
+  the decision/change when the task affects status, roadmap, release behavior or
+  user-facing capabilities.
+- Maintain `CHANGELOG.md` for changes between official release builds.
+- Do not regenerate the executable/ZIP for every commit. Use `v0.9.0-beta.2`,
+  `v0.9.0-beta.3`, etc. for incremental beta release candidates, and cut a new
+  exe/ZIP only when intentionally preparing a release. The next feature-level
+  beta is expected to be `v0.9.1-beta.1`.
 - Prefer small, coherent steps. The app is growing and should remain easy to
   reason about.
 - Current UI direction is PySide6. `main.py` is now the active Qt entry point;
@@ -43,6 +50,10 @@ Read this section first in a new chat.
   architecture/schema language. Public beta target is `v0.9.0-beta.1`; reserve
   `v1.0.0` for after Help Center review/polish and a full office validation
   pass.
+- Release cadence decision: continue with `v0.9.0-beta.N` for Help/validation
+  polish, do not rebuild release assets on every commit, and move to
+  `v0.9.1-beta.1` when the AP Group metadata export/import feature is ready to
+  package.
 - V2 functional scope is effectively closed: survey capture/storage, live maps,
   AP Group Manager, AP metadata, live PDF exports, AP channel-change handling,
   Quality Dashboard, shared Qt styling and main navigation polish are all in
@@ -1188,6 +1199,11 @@ Language:
   Advisor beside live maps and a lightweight technical Floorplan Creator for
   scaled RF survey maps. `docs/V2_ARCHITECTURE_NOTES.md` now records those ideas
   as post-V2 expansion candidates.
+- Added `CHANGELOG.md` and documented release cadence. Future official release
+  builds should update the changelog. The user wants `README.md`,
+  `docs/V2_ARCHITECTURE_NOTES.md`, and this handoff kept aligned at every
+  meaningful step. AP Group metadata export/import is deferred, but should be
+  treated as a `v0.9.1-beta.1` candidate rather than immediate work.
 
 Recent commits:
 

@@ -328,6 +328,22 @@ Recommended GitHub release settings for the current build:
 - mark as pre-release;
 - attach `WifiHeatmap-v0.9.0-beta.1-win64.zip`.
 
+## Versioning And Changelog
+
+`CHANGELOG.md` tracks changes between official release builds.
+
+Release cadence:
+
+- use `v0.9.0-beta.2`, `v0.9.0-beta.3`, and so on for incremental beta release
+  candidates while Help review and office validation continue;
+- do not rebuild the executable/ZIP for every commit;
+- rebuild `exe` and release ZIP only when intentionally cutting a release
+  candidate;
+- reserve `v0.9.1-beta.1` for the next feature-level beta, currently expected
+  to focus on AP Group metadata export/import;
+- reserve `v1.0.0` for the first stable release after Help polish and complete
+  office validation.
+
 ## Roadmap
 
 Before `v1.0.0`:
@@ -335,6 +351,12 @@ Before `v1.0.0`:
 - review and polish the Help Center in the running UI;
 - run a full office validation pass on real data;
 - fix only concrete issues found during that review/test cycle.
+
+Planned `v0.9.1 beta` feature candidate:
+
+- AP Profile Library: export/import AP Group metadata between surveys, apply
+  trusted BSSID matches automatically where safe, flag imported metadata for
+  review, and avoid overwriting user-edited values without confirmation.
 
 Post-V2 / post-1.0 expansion candidates:
 
