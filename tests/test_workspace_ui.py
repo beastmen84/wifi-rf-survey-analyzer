@@ -1,4 +1,10 @@
 from tests._common import *
+from app_core.version import (
+    APP_VERSION,
+    APP_VERSION_LABEL,
+    configure_qt_application_metadata,
+    format_versioned_title,
+)
 from PySide6.QtWidgets import QPushButton
 from qt_ui.qt_help_dialog import build_help_html, build_help_sections, help_palette
 from qt_ui.qt_point_workflow import MissingRelevantNetworksDialog, PointCaptureMixin
@@ -26,6 +32,23 @@ class SettingsMenuTests(unittest.TestCase):
 
         self.assertTrue(window.is_settings_button_global_pos(button_pos))
         window.deleteLater()
+
+    def test_product_version_metadata_is_exposed_to_qt_and_ui(self):
+        app = QApplication.instance()
+        configure_qt_application_metadata(app)
+        self.assertEqual(app.applicationVersion(), APP_VERSION)
+
+        window = WifiHeatmapQtApp()
+        try:
+            self.assertEqual(window.windowTitle(), format_versioned_title(window.tr("app_title")))
+            self.assertIn(APP_VERSION_LABEL, window.windowTitle())
+            self.assertIn(APP_VERSION_LABEL, window.copyright_label.text())
+
+            window.change_language("IT")
+            self.assertEqual(window.windowTitle(), format_versioned_title(window.tr("app_title")))
+            self.assertIn(APP_VERSION_LABEL, window.copyright_label.text())
+        finally:
+            window.deleteLater()
 
     def test_workspace_styles_scrollbars_and_measurement_point_selection(self):
         window = WifiHeatmapQtApp()

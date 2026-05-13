@@ -9,6 +9,7 @@ except ModuleNotFoundError as exc:
     raise SystemExit(1) from exc
 
 from app_core.logging import configure_logging, log_event, log_unhandled_exception
+from app_core.version import configure_qt_application_metadata
 from qt_ui.qt_startup import StartWindow
 from qt_ui.qt_windowing import install_dialog_centering
 
@@ -26,8 +27,8 @@ def main():
     install_exception_logging()
     log_event("qt launcher start", logger_name="startup")
     app = QApplication(sys.argv)
+    configure_qt_application_metadata(app)
     install_dialog_centering(app)
-    app.setApplicationName("Wi-Fi RF Survey Analyzer")
     window = StartWindow()
     window.showMaximized()
     sys.exit(app.exec())

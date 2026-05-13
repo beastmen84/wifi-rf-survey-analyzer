@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from app_core.version import APP_VERSION_LABEL
 from qt_ui.qt_theme import QT_THEMES, build_scrollbar_stylesheet
 from qt_ui.scaling import widget_font, widget_px
 
@@ -32,7 +33,7 @@ class HelpSection:
 
 def open_qt_help_dialog(parent, tr):
     dialog = QDialog(parent)
-    dialog.setWindowTitle(tr("help_title"))
+    dialog.setWindowTitle(f"{tr('help_title')} {APP_VERSION_LABEL}")
     dialog.resize(widget_px(parent, 1120), widget_px(parent, 760))
     dialog.setMinimumSize(widget_px(parent, 900), widget_px(parent, 620))
 

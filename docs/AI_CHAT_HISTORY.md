@@ -37,8 +37,12 @@ Read this section first in a new chat.
   migration unless the user explicitly changes direction.
 - The app stores aggregated survey rows in the main CSV and raw scan samples in
   a linked `<survey_stem>_raw_data.scan` sidecar.
-- The current code/release validation baseline is 197
+- The current code/release validation baseline is 198
   passing tests with `.\.venv\Scripts\python.exe -m pytest`.
+- Product release versioning is now explicit and separate from the internal V2
+  architecture/schema language. Public beta target is `v0.9.0-beta.1`; reserve
+  `v1.0.0` for after Help Center review/polish and a full office validation
+  pass.
 - V2 functional scope is effectively closed: survey capture/storage, live maps,
   AP Group Manager, AP metadata, live PDF exports, AP channel-change handling,
   Quality Dashboard, shared Qt styling and main navigation polish are all in
@@ -58,12 +62,14 @@ Read this section first in a new chat.
 - The main workspace Survey/Live Map tabs were polished into full-width split
   navigation with theme-colored active gradients, stronger active text and a
   faded underline, while preserving vertical space.
+- Version metadata lives in `app_core/version.py` and is exposed through Qt
+  application metadata, window titles and startup/footer text.
 - Windows release packaging decision: keep the current PyInstaller `onedir`
   build and publish a ZIP of `dist\WifiHeatmap` on GitHub Releases. Do not
   switch to `onefile` by default for this PySide6/scientific stack because it
   starts slower, extracts to temp on each run, and tends to create more
-  antivirus/Qt-plugin friction. Latest local release artifact:
-  `dist\WifiHeatmap-V2-20260513-6b629c1-win64.zip`.
+  antivirus/Qt-plugin friction. Release assets should use product-version
+  naming such as `dist\WifiHeatmap-v0.9.0-beta.1-win64.zip`.
 - AP metadata has per-band analysis-channel overrides. Clean AP channel changes
   still use the latest observed channel/width by default in Interference and AP
   Channels, but the user can force a known-good channel per AP group/band for
@@ -1165,6 +1171,12 @@ Language:
   SHA256: `4088345A9759D9CCB36BD180DF13B7E63CB90D4E45E27E6612619BEFA894A275`.
   Exe SHA256: `CB19A63992F5E7A0ECA8FE1102186CE1A95911447A72B6BE1510E99C37933B6B`.
   `pytest` was rerun after packaging and passed 197 tests.
+- Added public app version metadata for `v0.9.0-beta.1`. `V2` remains the
+  internal architecture/schema generation; GitHub Releases should use semantic
+  product tags. Qt now receives `applicationVersion`, startup/workspace window
+  titles include the release label, and footer text shows the version. README
+  and V2 notes document the beta-to-1.0 path. Full suite baseline is now 198
+  passed tests.
 
 Recent commits:
 

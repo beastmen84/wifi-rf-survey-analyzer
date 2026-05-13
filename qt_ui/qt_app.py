@@ -45,6 +45,7 @@ from app_core.settings import (
     get_saved_ui_scale,
 )
 from app_core.constants import HEATMAP_MAX_DISTANCE_PX, HEATMAP_SMOOTHING_SIGMA
+from app_core.version import APP_VERSION_LABEL, format_versioned_title
 from qt_ui.qt_ap_workflow import ApWorkflowMixin
 from qt_ui.qt_floorplan import FloorplanView
 from qt_ui.qt_floorplan_workflow import FloorplanWorkflowMixin
@@ -249,7 +250,7 @@ class WifiHeatmapQtApp(
         self.live_distance_last_px_per_meter = None
         self.restart_requested = False
 
-        self.setWindowTitle(self.tr("app_title"))
+        self.setWindowTitle(format_versioned_title(self.tr("app_title")))
         self.resize(self.spx(1400), self.spx(900))
 
         self.stack = QStackedWidget()
@@ -1581,7 +1582,7 @@ class WifiHeatmapQtApp(
         )
 
     def retranslate(self):
-        self.setWindowTitle(self.tr("app_title"))
+        self.setWindowTitle(format_versioned_title(self.tr("app_title")))
         self.start_language_label.setText(self.tr("language"))
         self.project_section_label.setText(self.tr("toolbar_project"))
         self.view_section_label.setText(self.tr("toolbar_view"))
@@ -1593,7 +1594,7 @@ class WifiHeatmapQtApp(
         self.start_subtitle.setText(self.tr("start_subtitle"))
         self.start_hint_title.setText(self.tr("qt_start_hint_title"))
         self.start_hint_text.setText(self.tr("qt_start_hint"))
-        self.copyright_label.setText(self.tr("copyright"))
+        self.copyright_label.setText(f"{self.tr('copyright')} | {APP_VERSION_LABEL}")
         self.new_button.setText(self.tr("new_survey"))
         self.open_button.setText(self.tr("open_existing_survey"))
         self.exit_button.setText(self.tr("exit"))

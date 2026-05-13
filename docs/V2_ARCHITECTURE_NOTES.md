@@ -22,6 +22,9 @@ interpolated colors.
 
 Current status:
 
+- public release versioning is now separate from the internal V2 generation:
+  the current beta target is `v0.9.0-beta.1`, while `v1.0.0` should wait for
+  Help Center review/polish and a full office validation pass;
 - the Tk to Qt migration is substantially complete;
 - the V2 functional scope is effectively closed for the current release: no
   known AP Group, live-map, PDF, quality-dashboard or core survey blocker is

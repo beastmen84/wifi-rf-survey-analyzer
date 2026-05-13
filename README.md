@@ -9,13 +9,15 @@ survey quality, and export maps that explain what was found.
 
 ## Current Status
 
+- Public version: `v0.9.0-beta.1`.
 - Active UI: PySide6.
 - Main entry point: `main.py`.
 - Main workspace: `qt_ui/qt_app.py`.
 - Current survey format: V2 CSV plus a linked `.scan` raw-data sidecar.
 - Legacy Tkinter UI and old PNG/CSV map export are no longer part of the active
   workflow.
-- Help content still needs a final rewrite after the V2 workflow is stable.
+- Help content has been reworked for V2 and still needs final review/polish
+  before a stable `v1.0.0` release.
 
 ## Main Workflow
 
@@ -254,6 +256,16 @@ Output:
 ```text
 dist/WifiHeatmap/WifiHeatmap.exe
 ```
+
+The GitHub Release asset should be the zipped `onedir` folder, not a PyInstaller
+`onefile` build:
+
+```text
+dist/WifiHeatmap-v0.9.0-beta.1-win64.zip
+```
+
+`V2` is the internal survey/workflow generation. Public releases use semantic
+version tags such as `v0.9.0-beta.1` and, later, `v1.0.0`.
 
 ## Technologies
 

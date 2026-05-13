@@ -27,6 +27,7 @@ except ModuleNotFoundError as exc:
 from app_core.logging import log_event, log_exception
 from app_core.restart import start_replacement_process
 from app_core.settings import get_last_survey_directory, get_saved_theme, get_saved_ui_scale, save_theme, save_ui_scale
+from app_core.version import APP_VERSION_LABEL, format_versioned_title
 from translations.i18n import DEFAULT_LANGUAGE, LANGUAGE_OPTIONS, normalize_language, translate
 from qt_ui.qt_theme import QT_THEME_OPTIONS, QT_THEMES, build_scrollbar_stylesheet
 from qt_ui.qt_windowing import SKIP_CENTERING_PROPERTY, get_centered_open_file_name
@@ -378,7 +379,7 @@ class StartWindow(QMainWindow):
         )
 
     def retranslate(self):
-        self.setWindowTitle(self.tr("app_title"))
+        self.setWindowTitle(format_versioned_title(self.tr("app_title")))
         self.title.setText(self.tr("app_title"))
         self.subtitle.setText(self.tr("start_subtitle"))
         self.workflow_title.setText(self.tr("start_workflow_title"))
@@ -392,7 +393,7 @@ class StartWindow(QMainWindow):
         self.exit_button.setText(self.tr("exit"))
         self.settings_button.setText(self.tr("toolbar_settings"))
         self.ready_note.setText(self.tr("start_ready_hint"))
-        self.copyright_label.setText(self.tr("copyright"))
+        self.copyright_label.setText(f"{self.tr('copyright')} | {APP_VERSION_LABEL}")
         self.update_loading_text()
 
     def change_language(self, value):
