@@ -382,6 +382,28 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(summary["recommendations"][0]["title"], "quality_dashboard_fix_sparse_title")
         self.assertEqual(quality_status_text_keys(summary)[0], "quality_dashboard_status_review_title")
 
+    def test_quality_metric_card_severity_rules(self):
+        self.assertEqual(
+            resolve_metric_severity("quality_dashboard_metric_points", 0, "info"),
+            "info",
+        )
+        self.assertEqual(
+            resolve_metric_severity("quality_dashboard_metric_missing", 0, "danger"),
+            "good",
+        )
+        self.assertEqual(
+            resolve_metric_severity("quality_dashboard_metric_missing", 2, "danger"),
+            "danger",
+        )
+        self.assertEqual(
+            resolve_metric_severity("quality_dashboard_metric_channel_changes", 2, "info"),
+            "info",
+        )
+        self.assertEqual(
+            resolve_metric_severity("quality_dashboard_metric_channel_changes", 2, "warning"),
+            "warning",
+        )
+
     def test_quality_ap_position_details_use_global_dominant_action(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)
         app = FakeQualityApp([row], relevant_ssids={"MAIN"})

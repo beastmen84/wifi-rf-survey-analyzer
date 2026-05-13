@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
     QFrame,
+    QGraphicsDropShadowEffect,
     QGridLayout,
     QHBoxLayout,
     QHeaderView,
@@ -70,11 +71,67 @@ QUALITY_SEVERITY = {
     QUALITY_SPARSE_DATA: "warning",
 }
 
+METRIC_ACCENT_KEYS = {
+    "good": "metric_good",
+    "warning": "metric_warning",
+    "danger": "metric_danger",
+    "info": "metric_info",
+}
+
 SEVERITY_COLORS = {
     "good": QColor("#e9f7ef"),
     "warning": QColor("#fff3cd"),
     "danger": QColor("#fdecea"),
 }
+
+
+def resolve_metric_severity(label_key, value, default_severity):
+    if label_key == "quality_dashboard_metric_points":
+        return "info"
+
+    try:
+        numeric_value = float(value)
+    except (TypeError, ValueError):
+        numeric_value = None
+
+    if numeric_value == 0 and default_severity in {"warning", "danger", "info"}:
+        return "good"
+
+    return default_severity
+
+
+def hex_to_rgb(color):
+    color = str(color or "").lstrip("#")
+    if len(color) != 6:
+        return (255, 255, 255)
+    return tuple(int(color[index:index + 2], 16) for index in (0, 2, 4))
+
+
+def mix_hex(color, accent, ratio):
+    base_rgb = hex_to_rgb(color)
+    accent_rgb = hex_to_rgb(accent)
+    mixed = [
+        round(base + (target - base) * ratio)
+        for base, target in zip(base_rgb, accent_rgb)
+    ]
+    return "#{:02X}{:02X}{:02X}".format(*mixed)
+
+
+def palette_is_dark(palette):
+    red, green, blue = hex_to_rgb(palette.get("panel", "#FFFFFF"))
+    return (red * 0.299 + green * 0.587 + blue * 0.114) < 128
+
+
+def metric_card_tokens(palette, severity):
+    accent = palette.get(METRIC_ACCENT_KEYS.get(severity, "metric_info"))
+    dark = palette_is_dark(palette)
+    return {
+        "accent": accent,
+        "top": mix_hex(palette["panel"], accent, 0.12 if dark else 0.06),
+        "bottom": mix_hex(palette["panel_alt"], accent, 0.16 if dark else 0.10),
+        "border": mix_hex(palette["border"], accent, 0.35 if dark else 0.22),
+        "shadow": QColor(0, 0, 0, 80 if dark else 32),
+    }
 
 
 class QualityDashboardDialog(QDialog):
@@ -179,11 +236,27 @@ class QualityDashboardDialog(QDialog):
         return panel
 
     def build_summary_panel(self, summary):
+        palette = QT_THEMES.get(getattr(self.app, "theme", "light"), QT_THEMES["light"])
         panel = QFrame()
         panel.setObjectName("summaryPanel")
+        panel.setStyleSheet(
+            f"""
+            QFrame#summaryPanel {{
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:1,
+                    stop:0 {mix_hex(palette["panel"], palette["metric_info"], 0.035)},
+                    stop:1 {mix_hex(palette["panel_alt"], palette["metric_info"], 0.055)}
+                );
+                border: 0;
+                border-radius: {widget_px(self, 9)}px;
+            }}
+            """
+        )
         layout = QVBoxLayout(panel)
-        layout.setContentsMargins(widget_px(self, 10), widget_px(self, 9), widget_px(self, 10), widget_px(self, 10))
-        layout.setSpacing(widget_px(self, 8))
+        layout.setContentsMargins(widget_px(self, 12), widget_px(self, 10), widget_px(self, 12), widget_px(self, 12))
+        layout.setSpacing(widget_px(self, 11))
+
+        channel_change_severity = "warning" if summary.get("ambiguous_channel_changes", 0) else "info"
 
         metric_groups = [
             (
@@ -209,7 +282,7 @@ class QualityDashboardDialog(QDialog):
                     ("quality_dashboard_metric_ap_diagnostic_points", summary["ap_diagnostic_points"], "warning"),
                     ("quality_dashboard_metric_ap_missing_positions", summary["ap_missing_positions"], "warning"),
                     ("quality_dashboard_metric_ap_metadata_warnings", summary["ap_metadata_warnings"], "warning"),
-                    ("quality_dashboard_metric_channel_changes", summary["channel_change_count"], "info"),
+                    ("quality_dashboard_metric_channel_changes", summary["channel_change_count"], channel_change_severity),
                 ],
             ),
         ]
@@ -220,21 +293,46 @@ class QualityDashboardDialog(QDialog):
         return panel
 
     def create_metric_group(self, title_key, metrics):
+        palette = QT_THEMES.get(getattr(self.app, "theme", "light"), QT_THEMES["light"])
         group = QFrame()
         group.setObjectName("qualityMetricGroup")
         group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout = QVBoxLayout(group)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(widget_px(self, 4))
+        layout.setSpacing(widget_px(self, 7))
+
+        heading = QHBoxLayout()
+        heading.setContentsMargins(0, 0, 0, 0)
+        heading.setSpacing(widget_px(self, 8))
         title = QLabel(self.app.tr(title_key))
         title.setObjectName("qualityMetricGroupTitle")
-        layout.addWidget(title, 0)
+        title.setStyleSheet(
+            f"""
+            color: {palette["title"]};
+            font-size: {widget_px(self, 17)}px;
+            font-weight: 800;
+            background: transparent;
+            """
+        )
+        heading.addWidget(title, 0)
+        line = QFrame()
+        line.setFixedHeight(widget_px(self, 2))
+        line.setStyleSheet(
+            f"""
+            background: {mix_hex(palette["border"], palette["metric_info"], 0.32)};
+            border: 0;
+            border-radius: {widget_px(self, 1)}px;
+            """
+        )
+        heading.addWidget(line, 1)
+        layout.addLayout(heading, 0)
 
         grid = QGridLayout()
-        grid.setHorizontalSpacing(widget_px(self, 7))
+        grid.setHorizontalSpacing(widget_px(self, 10))
         grid.setVerticalSpacing(0)
         for index, (label_key, value, severity) in enumerate(metrics):
-            metric = self.create_metric_box(self.app.tr(label_key), value, severity if value else "good")
+            metric_severity = resolve_metric_severity(label_key, value, severity)
+            metric = self.create_metric_box(self.app.tr(label_key), value, metric_severity)
             grid.addWidget(metric, 0, index)
             grid.setColumnStretch(index, 1)
         grid.setRowStretch(0, 1)
@@ -243,43 +341,73 @@ class QualityDashboardDialog(QDialog):
 
     def create_metric_box(self, label, value, severity):
         palette = QT_THEMES.get(getattr(self.app, "theme", "light"), QT_THEMES["light"])
-        accent = palette.get(
-            {
-                "good": "metric_good",
-                "warning": "metric_warning",
-                "danger": "metric_danger",
-                "info": "metric_info",
-            }.get(severity, "metric_info")
-        )
+        tokens = metric_card_tokens(palette, severity)
+        accent = tokens["accent"]
         box = QFrame()
         box.setObjectName("qualityMetricBox")
         box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         box.setStyleSheet(
             f"""
             QFrame#qualityMetricBox {{
-                background: {palette["panel_alt"]};
-                border: 1px solid {palette["border"]};
-                border-left: {widget_px(self, 5)}px solid {accent};
-                border-radius: {widget_px(self, 7)}px;
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:1,
+                    stop:0 {tokens["top"]},
+                    stop:1 {tokens["bottom"]}
+                );
+                border: 1px solid {tokens["border"]};
+                border-left: {widget_px(self, 6)}px solid {accent};
+                border-radius: {widget_px(self, 9)}px;
             }}
             """
         )
+        shadow = QGraphicsDropShadowEffect(box)
+        shadow.setBlurRadius(widget_px(self, 17))
+        shadow.setOffset(0, widget_px(self, 2))
+        shadow.setColor(tokens["shadow"])
+        box.setGraphicsEffect(shadow)
+
         layout = QVBoxLayout(box)
-        layout.setContentsMargins(widget_px(self, 11), widget_px(self, 9), widget_px(self, 11), widget_px(self, 9))
-        layout.setSpacing(widget_px(self, 4))
+        layout.setContentsMargins(widget_px(self, 13), widget_px(self, 10), widget_px(self, 13), widget_px(self, 10))
+        layout.setSpacing(widget_px(self, 6))
+
+        header = QHBoxLayout()
+        header.setContentsMargins(0, 0, 0, 0)
+        header.setSpacing(widget_px(self, 8))
         label_widget = QLabel(label)
-        label_widget.setObjectName("mutedText")
         label_widget.setWordWrap(True)
         label_widget.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        label_widget.setStyleSheet(f"color: {palette['title']}; font-weight: 600; background: transparent;")
+        label_widget.setStyleSheet(
+            f"""
+            color: {palette["muted"]};
+            font-size: {widget_px(self, 14)}px;
+            font-weight: 700;
+            background: transparent;
+            """
+        )
+        header.addWidget(label_widget, 1)
+
+        indicator = QLabel()
+        indicator.setFixedSize(widget_px(self, 10), widget_px(self, 10))
+        indicator.setStyleSheet(
+            f"""
+            background: {accent};
+            border-radius: {widget_px(self, 5)}px;
+            """
+        )
+        header.addWidget(indicator, 0, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
+        layout.addLayout(header, 1)
+
         value_widget = QLabel(str(value))
-        value_widget.setObjectName(f"metricValue_{severity}")
         value_widget.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
         value_widget.setStyleSheet(
-            f"color: {accent}; font-size: {widget_px(self, 28)}px; font-weight: 800; background: transparent;"
+            f"""
+            color: {accent};
+            font-size: {widget_px(self, 33)}px;
+            font-weight: 900;
+            background: transparent;
+            """
         )
-        layout.addWidget(label_widget, 1)
-        layout.addWidget(value_widget, 0)
+        layout.addWidget(value_widget, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
         return box
 
     def build_recommendations_panel(self, summary):
