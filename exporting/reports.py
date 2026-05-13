@@ -293,37 +293,43 @@ def build_dominant_problem_report_pages(dominant_df, config, tr, language, alias
     group_labels = build_dominant_ap_group_labels(dominant_df, aliases)
     rows = []
     for _index, row in problem_df.iterrows():
-        issues = []
-        if bool(row.get("roaming_overlap")):
-            issues.append(tr("dominant_map_roaming_overlap"))
         warnings = [
             warning
             for warning in str(row.get("ap_position_warnings", "")).split(";")
             if warning
         ]
-        issues.extend(translate_ap_position_warning(warning, tr) for warning in warnings)
-        if not issues:
+        detail_items = build_dominant_problem_detail_items(row, warnings, tr, aliases)
+        if not detail_items:
             continue
 
         group = row.get("dominant_ap_group", "")
-        position_detail = format_dominant_position_detail(row, tr)
-        if warnings and position_detail:
-            issues.append(position_detail)
         rows.append([
             f"{format_report_value(row.get('x'))}, {format_report_value(row.get('y'))}",
             group_labels.get(group, format_ap_label(row.get("dominant_bssid", ""), aliases, group)),
             format_report_value(row.get("delta_db"), suffix=" dB"),
-            "; ".join(issues),
+            detail_items,
         ])
 
+    limited_rows = rows[:DOMINANT_PROBLEM_REPORT_LIMIT]
+    rows_per_page = get_dominant_problem_rows_per_page(limited_rows)
     return build_problem_report_pages(
         tr("live_pdf_problem_report_title"),
         f"{tr('export_dominant_title')} - {config.ssid} - {format_band_label(config.band, language)}",
         [tr("interference_summary_point"), tr("dominant_map_legend_title"), tr("reference_delta"),
          tr("live_pdf_issue")],
-        rows[:DOMINANT_PROBLEM_REPORT_LIMIT],
+        limited_rows,
         tr("live_pdf_no_dominant_issues"),
+        rows_per_page=rows_per_page,
     )
+
+
+def get_dominant_problem_rows_per_page(rows):
+    has_combined_issue = any(
+        is_problem_detail_items(row[-1]) and len(row[-1]) >= 3
+        for row in rows
+        if row
+    )
+    return 2 if has_combined_issue else 3
 
 
 def get_dominant_problem_df(dominant_df):
@@ -374,18 +380,81 @@ def clean_report_text(value):
 
 
 def wrap_report_text(value, width, max_lines):
-    lines = wrap(
-        clean_report_text(value),
-        width=width,
-        break_long_words=False,
-        replace_whitespace=True,
-    ) or ["-"]
+    lines = []
+    for paragraph in clean_report_text(value).splitlines():
+        lines.extend(wrap(
+            paragraph.strip() or "-",
+            width=width,
+            break_long_words=False,
+            replace_whitespace=True,
+        ) or ["-"])
     if len(lines) <= max_lines:
         return lines
 
     lines = lines[:max_lines]
     lines[-1] = f"{lines[-1].rstrip('.')}..."
     return lines
+
+
+def is_problem_detail_items(value):
+    return (
+        isinstance(value, list)
+        and all(isinstance(item, dict) for item in value)
+    )
+
+
+def draw_problem_report_detail(ax, x, y, value, max_lines):
+    if not is_problem_detail_items(value):
+        for line_index, line in enumerate(wrap_report_text(value, width=66, max_lines=max_lines)):
+            ax.text(
+                x,
+                y - 0.023 - line_index * 0.023,
+                line,
+                fontsize=8.5,
+                va="top",
+                color="#111827",
+            )
+        return
+
+    cursor_y = y - 0.022
+    remaining_lines = max_lines
+    for item in value:
+        if remaining_lines <= 0:
+            break
+
+        label = clean_report_text(item.get("label"))
+        detail = clean_report_text(item.get("value"))
+        if label != "-":
+            ax.text(
+                x,
+                cursor_y,
+                label,
+                fontsize=7.6,
+                fontweight="bold",
+                va="top",
+                color="#374151",
+            )
+            cursor_y -= 0.018
+            remaining_lines -= 1
+
+        if remaining_lines <= 0:
+            break
+
+        for line in wrap_report_text(detail, width=76, max_lines=min(remaining_lines, 5)):
+            ax.text(
+                x,
+                cursor_y,
+                line,
+                fontsize=8.3,
+                va="top",
+                color="#111827",
+            )
+            cursor_y -= 0.020
+            remaining_lines -= 1
+            if remaining_lines <= 0:
+                break
+
+        cursor_y -= 0.004
 
 
 def build_problem_report_page(
@@ -425,9 +494,10 @@ def build_problem_report_page(
     detail_header = clean_report_text(headers[-1]) if headers else ""
 
     for row_index, row in enumerate(rows):
-        values = [clean_report_text(value) for value in row]
-        if len(values) < len(headers):
-            values.extend(["-"] * (len(headers) - len(values)))
+        raw_values = list(row)
+        if len(raw_values) < len(headers):
+            raw_values.extend(["-"] * (len(headers) - len(raw_values)))
+        values = [clean_report_text(value) for value in raw_values]
 
         card_top = content_top - row_index * (card_height + gap)
         card_bottom = card_top - card_height
@@ -494,19 +564,11 @@ def build_problem_report_page(
                     color="#111827",
                 )
 
-        detail_x = card_left + 0.49
+        detail_x = card_left + 0.46
         detail_y = card_top - 0.050
         ax.text(detail_x, detail_y, detail_header, fontsize=6.8, va="top", color="#6b7280")
-        max_detail_lines = max(2, int((card_height - 0.068) / 0.023))
-        for line_index, line in enumerate(wrap_report_text(values[-1], width=66, max_lines=max_detail_lines)):
-            ax.text(
-                detail_x,
-                detail_y - 0.023 - line_index * 0.023,
-                line,
-                fontsize=8.5,
-                va="top",
-                color="#111827",
-            )
+        max_detail_lines = max(2, int((card_height - 0.060) / 0.020))
+        draw_problem_report_detail(ax, detail_x, detail_y, raw_values[-1], max_detail_lines)
     return fig
 
 
@@ -530,20 +592,72 @@ def translate_ap_position_warning(warning, tr):
     }.get(warning, warning)
 
 
-def format_dominant_position_detail(row, tr):
-    details = []
+def build_dominant_problem_detail_items(row, warnings, tr, aliases):
+    items = []
+    if bool(row.get("roaming_overlap")):
+        items.append({
+            "label": tr("dominant_roaming_issue_title"),
+            "value": format_dominant_roaming_detail(row, tr, aliases),
+        })
+
+    if warnings:
+        items.append({
+            "label": tr("ap_position_analysis"),
+            "value": "; ".join(translate_ap_position_warning(warning, tr) for warning in warnings),
+        })
+        position_detail = format_dominant_position_detail(row, tr, aliases)
+        if position_detail:
+            items.append({
+                "label": tr("ap_position_detail"),
+                "value": position_detail,
+            })
+
+    return items
+
+
+def format_dominant_roaming_detail(row, tr, aliases):
+    dominant = format_ap_label(
+        row.get("dominant_bssid", ""),
+        aliases,
+        row.get("dominant_ap_group", ""),
+    )
+    second = format_ap_label(
+        row.get("second_bssid", ""),
+        aliases,
+        row.get("second_ap_group", ""),
+    )
+    return tr(
+        "dominant_roaming_issue_detail",
+        dominant=clean_report_text(dominant),
+        second=clean_report_text(second),
+        dominant_signal=format_report_value(row.get("dominant_signal_dbm"), suffix=" dBm"),
+        second_signal=format_report_value(row.get("second_signal_dbm"), suffix=" dBm"),
+        delta=format_report_value(row.get("delta_db"), suffix=" dB"),
+        threshold="5 dB",
+    )
+
+
+def format_dominant_position_detail(row, tr, aliases=None):
+    aliases = aliases or {}
     dominant_distance = format_position_report_distance(row, "dominant_ap_distance")
-    if dominant_distance != "-":
-        details.append(f"{tr('ap_position_distance')}: {dominant_distance}")
-
-    nearest_label = clean_report_text(row.get("nearest_physical_ap_label"))
     nearest_distance = format_position_report_distance(row, "nearest_physical_ap_distance")
-    if nearest_label != "-":
-        if nearest_distance != "-":
-            nearest_label = f"{nearest_label} ({nearest_distance})"
-        details.append(f"{tr('ap_position_nearest')}: {nearest_label}")
+    if dominant_distance == "-" and nearest_distance == "-":
+        return ""
 
-    return "; ".join(details)
+    dominant = format_ap_label(
+        row.get("dominant_bssid", ""),
+        aliases,
+        row.get("dominant_ap_group", ""),
+    )
+    nearest_label = clean_report_text(row.get("nearest_physical_ap_label"))
+    return tr(
+        "quality_dashboard_ap_position_detail",
+        dominant=clean_report_text(dominant),
+        signal=format_report_value(row.get("dominant_signal_dbm"), suffix=" dBm"),
+        dominant_distance=dominant_distance,
+        closest=nearest_label,
+        closest_distance=nearest_distance,
+    )
 
 
 def format_position_report_distance(row, prefix):

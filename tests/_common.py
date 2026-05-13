@@ -368,6 +368,22 @@ class FakeQualityApp:
                 f"{kwargs.get('ap')} {kwargs.get('band')}: {kwargs.get('status')}, "
                 f"channels {kwargs.get('channels')}, current {kwargs.get('current')}"
             )
+        if key == "quality_dashboard_ap_position_detail":
+            return (
+                f"Dominant {kwargs.get('dominant')} {kwargs.get('signal')} "
+                f"{kwargs.get('dominant_distance')} closest {kwargs.get('closest')} "
+                f"{kwargs.get('closest_distance')}"
+            )
+        if key == "quality_dashboard_ap_position_finding":
+            return f"Finding {kwargs.get('finding')}"
+        if key == "ap_position_distance_m":
+            return f"{kwargs.get('distance')} m"
+        if key == "ap_position_distance_px":
+            return f"{kwargs.get('distance')} px"
+        if key == "ap_position_unexpected_dominant":
+            return "unexpected dominant"
+        if key == "ap_position_unknown_warning":
+            return "unknown warning"
         return key.format(**kwargs) if kwargs else key
 
     def get_ap_group_display_name(self, group_id):

@@ -248,8 +248,56 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(summary["ap_metadata_warning_items"][0]["band"], "5")
         self.assertTrue(any(action["kind"] == "ap_metadata" for action in metadata_recommendation["actions"]))
         self.assertTrue(any(action.get("map_type") == "channel" for action in metadata_recommendation["actions"]))
+        self.assertIn(
+            "quality_dashboard_action_open_ap_channels",
+            [action["label"] for action in metadata_recommendation["actions"]],
+        )
+        self.assertIn(
+            "quality_dashboard_action_open_interference",
+            [action["label"] for action in metadata_recommendation["actions"]],
+        )
+        self.assertEqual(
+            metadata_recommendation["dialog_detail"],
+            "quality_dashboard_fix_ap_metadata_dialog_detail",
+        )
+        self.assertEqual(len(metadata_recommendation["detail_items"]), 1)
+        self.assertEqual(metadata_recommendation["detail_items"][0]["label"], "ap-1")
+        self.assertTrue(any(
+            action["kind"] == "ap_metadata"
+            for action in metadata_recommendation["detail_items"][0]["actions"]
+        ))
+        self.assertFalse(any(
+            action["kind"] == "live_map"
+            for action in metadata_recommendation["detail_items"][0]["actions"]
+        ))
         self.assertEqual(len(summary["context_lines"]), 1)
         self.assertNotIn("ap-1", summary["context_lines"][0])
+
+    def test_quality_metadata_recommendation_keeps_all_problem_aps_in_details(self):
+        row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 36)
+        app = FakeQualityApp([row], relevant_ssids={"MAIN"})
+        warnings = [
+            {"group_id": f"ap-{index}", "unexpected_channels": [str(36 + index)], "expected_channels": ["1"]}
+            for index in range(6)
+        ]
+
+        summary = build_summary(
+            app,
+            [{"status": QUALITY_GOOD, "needs_review": False, "ap_position_warning_count": 0}],
+            warnings,
+            [],
+        )
+
+        metadata_recommendation = next(
+            recommendation
+            for recommendation in summary["recommendations"]
+            if recommendation["title"] == "quality_dashboard_fix_ap_metadata_title"
+        )
+
+        self.assertEqual(summary["ap_metadata_warnings"], 6)
+        self.assertEqual(len(metadata_recommendation["detail_items"]), 6)
+        self.assertEqual(metadata_recommendation["detail_items"][-1]["label"], "ap-5")
+        self.assertIn("+3", summary["ap_metadata_warning_labels"])
 
     def test_quality_recommends_channel_change_model_review(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 36)
@@ -280,6 +328,23 @@ class QualityTests(unittest.TestCase):
             recommendation["title"] == "quality_dashboard_fix_channel_change_clean_title"
             for recommendation in summary["recommendations"]
         ))
+        channel_recommendation = next(
+            recommendation
+            for recommendation in summary["recommendations"]
+            if recommendation["title"] == "quality_dashboard_fix_channel_change_clean_title"
+        )
+        self.assertEqual(len(channel_recommendation["detail_items"]), 1)
+        self.assertEqual(channel_recommendation["detail_items"][0]["label"], "ap-1")
+        self.assertTrue(any(action.get("map_type") == "channel" for action in channel_recommendation["actions"]))
+        self.assertTrue(any(action.get("map_type") == "interference" for action in channel_recommendation["actions"]))
+        self.assertEqual(
+            channel_recommendation["dialog_detail"],
+            "quality_dashboard_fix_channel_change_dialog_detail",
+        )
+        self.assertFalse(any(
+            action["kind"] == "live_map"
+            for action in channel_recommendation["detail_items"][0]["actions"]
+        ))
 
     def test_quality_summary_separates_scan_review_from_ap_setup_warnings(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)
@@ -297,10 +362,60 @@ class QualityTests(unittest.TestCase):
 
         self.assertEqual(summary["review_points"], 2)
         self.assertEqual(summary["scan_review_points"], 1)
+        self.assertEqual(summary["scan_ok_points"], 1)
+        self.assertEqual(summary["ap_diagnostic_points"], 1)
         self.assertEqual(summary["sparse_data"], 1)
         self.assertEqual(summary["ap_position_warnings"], 1)
         self.assertEqual(summary["recommendations"][0]["title"], "quality_dashboard_fix_sparse_title")
         self.assertEqual(quality_status_text_keys(summary)[0], "quality_dashboard_status_review_title")
+
+    def test_quality_ap_position_details_use_global_dominant_action(self):
+        row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)
+        app = FakeQualityApp([row], relevant_ssids={"MAIN"})
+
+        summary = build_summary(
+            app,
+            [
+                {
+                    "number": 1,
+                    "x": "100",
+                    "y": "200",
+                    "status": QUALITY_GOOD,
+                    "needs_review": True,
+                    "ap_position_warning_count": 1,
+                    "issue": "AP Position: ap-1",
+                    "ap_position": {
+                        "dominant_ap_group": "far-ap",
+                        "dominant_signal_dbm": -51,
+                        "warnings": [AP_POSITION_UNEXPECTED_DOMINANT],
+                        "analysis": {
+                            "dominant_distance_m": 24.5,
+                            "nearest_ap_group": "near-ap",
+                            "nearest_distance_m": 3.2,
+                        },
+                    },
+                },
+            ],
+            [],
+            [],
+        )
+
+        position_recommendation = next(
+            recommendation
+            for recommendation in summary["recommendations"]
+            if recommendation["title"] == "quality_dashboard_fix_ap_position_title"
+        )
+
+        self.assertTrue(any(action.get("map_type") == "dominant" for action in position_recommendation["actions"]))
+        self.assertEqual(position_recommendation.get("detail_actions"), [])
+        self.assertEqual(
+            [action["kind"] for action in position_recommendation["detail_items"][0]["actions"]],
+            ["point"],
+        )
+        self.assertIn("far-ap", position_recommendation["detail_items"][0]["detail"])
+        self.assertIn("near-ap", position_recommendation["detail_items"][0]["detail"])
+        self.assertIn("24.5 m", position_recommendation["detail_items"][0]["detail"])
+        self.assertIn("unexpected dominant", position_recommendation["detail_items"][0]["finding"])
 
     def test_quality_status_uses_setup_message_when_only_ap_diagnostics_are_open(self):
         summary = {
@@ -310,6 +425,19 @@ class QualityTests(unittest.TestCase):
             "ap_position_warnings": 3,
             "ap_metadata_warnings": 0,
             "ap_missing_positions": 0,
+        }
+
+        self.assertEqual(quality_status_text_keys(summary)[0], "quality_dashboard_status_setup_title")
+
+    def test_quality_status_uses_setup_message_for_channel_change_model_only(self):
+        summary = {
+            "total_points": 12,
+            "review_points": 0,
+            "scan_review_points": 0,
+            "ap_position_warnings": 0,
+            "ap_metadata_warnings": 0,
+            "ap_missing_positions": 0,
+            "channel_change_count": 1,
         }
 
         self.assertEqual(quality_status_text_keys(summary)[0], "quality_dashboard_status_setup_title")

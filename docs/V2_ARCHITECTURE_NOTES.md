@@ -43,7 +43,9 @@ Current status:
   complete, and the remaining findings are AP setup/anomaly diagnostics rather
   than point-rescan problems.
 - the Survey Quality Dashboard now separates point-rescan issues from AP setup
-  diagnostics and includes a prioritized "what to fix next" panel.
+  diagnostics, defaults to showing only points with findings when findings
+  exist, and includes a prioritized "what to fix next" panel with expandable
+  per-problem detail rows.
 
 ## Implemented V2 Foundation
 
@@ -134,7 +136,10 @@ Current quality states include:
 
 Implemented:
 
-- summary of good/review points;
+- styled grouped metric cards for survey points, scan quality and AP model
+  health;
+- separate scan-OK/rescan-needed counts so AP diagnostics do not imply that
+  measurement points need to be repeated;
 - missing relevant network information;
 - low confidence/unstable point information;
 - sparse-data count surfaced as its own dashboard metric;
@@ -144,15 +149,21 @@ Implemented:
 - prioritized "what to fix next" guidance for missing relevant networks, sparse
   scans, low confidence, unstable signal, AP position warnings, missing AP
   positions and AP metadata warnings;
-- "what to fix next" cards include direct actions to open relevant live maps
-  and AP Group Manager metadata for the AP group that needs correction;
+- "what to fix next" cards stay compact and expose scalable detail dialogs;
+- detail dialogs list each affected AP group or measurement point on its own
+  row with contextual actions such as live AP Channels, Interference, Dominant
+  AP, AP metadata, AP Group Manager or point focus;
+- detail dialogs use domain-specific counts and concise observed/expected
+  wording so large AP metadata and channel-change lists stay readable;
+- Dominant AP detail rows include dominant AP, closest physical AP, distance
+  and finding context while keeping the main table issue text compact;
 - clean/ambiguous AP channel changes are surfaced in the quality dashboard so
   the user can verify the latest-channel default or set an explicit analysis
   channel override;
 - setup-only AP diagnostics use a setup warning state instead of implying that
   measurement points need to be rescanned;
-- fullscreen dashboard presentation, compact metric cards and stronger table
-  selection contrast.
+- fullscreen dashboard presentation, compact metric cards, default issue
+  filtering when findings exist and stronger table selection contrast.
 
 ### AP Group Manager
 
@@ -516,8 +527,11 @@ Current implemented expansion:
 - the dashboard now provides prioritized "what to fix next" guidance;
 - sparse-data points are counted explicitly;
 - scan-review counts are separated from AP setup diagnostics;
-- AP metadata and channel-change recommendations include shortcuts into the
-  live map and AP metadata workflows.
+- AP metadata, missing-position, dominant-AP and channel-change
+  recommendations use expandable detail rows so large surveys do not overload
+  the main dashboard;
+- detail rows include shortcuts into the live map, AP metadata, AP Group
+  Manager and point-focus workflows.
 
 Possible additions:
 

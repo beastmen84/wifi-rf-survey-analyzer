@@ -15,6 +15,8 @@ from PySide6.QtWidgets import (
     QLabel,
     QMessageBox,
     QPushButton,
+    QScrollArea,
+    QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -114,7 +116,7 @@ class QualityDashboardDialog(QDialog):
             "#",
             "X",
             "Y",
-            app.tr("quality_dashboard_quality"),
+            app.tr("quality_dashboard_scan_quality"),
             app.tr("quality_dashboard_confidence"),
             app.tr("best_dbm"),
             app.tr("rows"),
@@ -133,6 +135,7 @@ class QualityDashboardDialog(QDialog):
         layout.addLayout(button_row)
 
         self.issues_only_check.toggled.connect(self.render_rows)
+        self.issues_only_check.setChecked(summary.get("review_points", 0) > 0)
         self.render_rows()
 
     def build_status_panel(self, summary):
@@ -178,47 +181,104 @@ class QualityDashboardDialog(QDialog):
     def build_summary_panel(self, summary):
         panel = QFrame()
         panel.setObjectName("summaryPanel")
-        grid = QGridLayout(panel)
-        grid.setContentsMargins(widget_px(self, 9), widget_px(self, 9), widget_px(self, 9), widget_px(self, 9))
-        grid.setHorizontalSpacing(widget_px(self, 6))
-        grid.setVerticalSpacing(widget_px(self, 6))
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(widget_px(self, 10), widget_px(self, 9), widget_px(self, 10), widget_px(self, 10))
+        layout.setSpacing(widget_px(self, 8))
 
-        metrics = [
-            ("quality_dashboard_metric_points", summary["total_points"], "info"),
-            ("quality_dashboard_metric_ok", summary["good_points"], "good"),
-            ("quality_dashboard_metric_review", summary["review_points"], "warning"),
-            ("quality_dashboard_metric_missing", summary["missing_relevant"], "danger"),
-            ("quality_dashboard_metric_sparse", summary["sparse_data"], "warning"),
-            ("quality_dashboard_metric_low_confidence", summary["low_confidence"], "warning"),
-            ("quality_dashboard_metric_unstable", summary["unstable"], "warning"),
-            ("quality_dashboard_metric_ap_position_warnings", summary["ap_position_warnings"], "warning"),
-            ("quality_dashboard_metric_ap_missing_positions", summary["ap_missing_positions"], "warning"),
-            ("quality_dashboard_metric_ap_metadata_warnings", summary["ap_metadata_warnings"], "warning"),
+        metric_groups = [
+            (
+                "quality_dashboard_metric_group_survey",
+                [
+                    ("quality_dashboard_metric_points", summary["total_points"], "info"),
+                    ("quality_dashboard_metric_scan_ok", summary["scan_ok_points"], "good"),
+                    ("quality_dashboard_metric_rescan", summary["scan_review_points"], "warning"),
+                ],
+            ),
+            (
+                "quality_dashboard_metric_group_scan",
+                [
+                    ("quality_dashboard_metric_missing", summary["missing_relevant"], "danger"),
+                    ("quality_dashboard_metric_sparse", summary["sparse_data"], "warning"),
+                    ("quality_dashboard_metric_low_confidence", summary["low_confidence"], "warning"),
+                    ("quality_dashboard_metric_unstable", summary["unstable"], "warning"),
+                ],
+            ),
+            (
+                "quality_dashboard_metric_group_ap",
+                [
+                    ("quality_dashboard_metric_ap_diagnostic_points", summary["ap_diagnostic_points"], "warning"),
+                    ("quality_dashboard_metric_ap_missing_positions", summary["ap_missing_positions"], "warning"),
+                    ("quality_dashboard_metric_ap_metadata_warnings", summary["ap_metadata_warnings"], "warning"),
+                    ("quality_dashboard_metric_channel_changes", summary["channel_change_count"], "info"),
+                ],
+            ),
         ]
 
-        columns = 4
-        for index, (label_key, value, severity) in enumerate(metrics):
-            metric = self.create_metric_box(self.app.tr(label_key), value, severity if value else "good")
-            metric.setMinimumHeight(widget_px(self, 50))
-            grid.addWidget(metric, index // columns, index % columns)
-            grid.setColumnStretch(index % columns, 1)
+        for title_key, metrics in metric_groups:
+            layout.addWidget(self.create_metric_group(title_key, metrics), 1)
 
         return panel
 
+    def create_metric_group(self, title_key, metrics):
+        group = QFrame()
+        group.setObjectName("qualityMetricGroup")
+        group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        layout = QVBoxLayout(group)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(widget_px(self, 4))
+        title = QLabel(self.app.tr(title_key))
+        title.setObjectName("qualityMetricGroupTitle")
+        layout.addWidget(title, 0)
+
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(widget_px(self, 7))
+        grid.setVerticalSpacing(0)
+        for index, (label_key, value, severity) in enumerate(metrics):
+            metric = self.create_metric_box(self.app.tr(label_key), value, severity if value else "good")
+            grid.addWidget(metric, 0, index)
+            grid.setColumnStretch(index, 1)
+        grid.setRowStretch(0, 1)
+        layout.addLayout(grid, 1)
+        return group
+
     def create_metric_box(self, label, value, severity):
+        palette = QT_THEMES.get(getattr(self.app, "theme", "light"), QT_THEMES["light"])
+        accent = palette.get(
+            {
+                "good": "metric_good",
+                "warning": "metric_warning",
+                "danger": "metric_danger",
+                "info": "metric_info",
+            }.get(severity, "metric_info")
+        )
         box = QFrame()
-        box.setObjectName("metricBox")
-        layout = QHBoxLayout(box)
-        layout.setContentsMargins(widget_px(self, 9), widget_px(self, 6), widget_px(self, 9), widget_px(self, 6))
-        layout.setSpacing(widget_px(self, 8))
+        box.setObjectName("qualityMetricBox")
+        box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        box.setStyleSheet(
+            f"""
+            QFrame#qualityMetricBox {{
+                background: {palette["panel_alt"]};
+                border: 1px solid {palette["border"]};
+                border-left: {widget_px(self, 5)}px solid {accent};
+                border-radius: {widget_px(self, 7)}px;
+            }}
+            """
+        )
+        layout = QVBoxLayout(box)
+        layout.setContentsMargins(widget_px(self, 11), widget_px(self, 9), widget_px(self, 11), widget_px(self, 9))
+        layout.setSpacing(widget_px(self, 4))
         label_widget = QLabel(label)
         label_widget.setObjectName("mutedText")
         label_widget.setWordWrap(True)
-        label_widget.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        label_widget.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        label_widget.setStyleSheet(f"color: {palette['title']}; font-weight: 600; background: transparent;")
         value_widget = QLabel(str(value))
         value_widget.setObjectName(f"metricValue_{severity}")
-        value_widget.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-        layout.addWidget(label_widget)
+        value_widget.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
+        value_widget.setStyleSheet(
+            f"color: {accent}; font-size: {widget_px(self, 28)}px; font-weight: 800; background: transparent;"
+        )
+        layout.addWidget(label_widget, 1)
         layout.addWidget(value_widget, 0)
         return box
 
@@ -290,10 +350,12 @@ class QualityDashboardDialog(QDialog):
         layout.addWidget(title)
         layout.addWidget(detail)
         actions = recommendation.get("actions", [])
-        if actions:
+        detail_items = recommendation.get("detail_items", [])
+        if actions or detail_items:
             action_row = QHBoxLayout()
             action_row.setSpacing(widget_px(self, 6))
-            for action in actions[:4]:
+            action_limit = 2 if detail_items else 4
+            for action in actions[:action_limit]:
                 button = QPushButton(action.get("label", ""))
                 button.setObjectName("compactButton")
                 button.setMinimumWidth(0)
@@ -301,9 +363,23 @@ class QualityDashboardDialog(QDialog):
                     lambda _checked=False, selected_action=action: self.handle_recommendation_action(selected_action)
                 )
                 action_row.addWidget(button)
+            if detail_items:
+                detail_button = QPushButton(
+                    self.app.tr("quality_dashboard_expand_details", count=len(detail_items))
+                )
+                detail_button.setObjectName("compactButton")
+                detail_button.clicked.connect(
+                    lambda _checked=False, selected_recommendation=recommendation:
+                    self.open_recommendation_details(selected_recommendation)
+                )
+                action_row.addWidget(detail_button)
             action_row.addStretch(1)
             layout.addLayout(action_row)
         return card
+
+    def open_recommendation_details(self, recommendation):
+        dialog = RecommendationDetailsDialog(self, recommendation)
+        dialog.exec()
 
     def handle_recommendation_action(self, action):
         kind = action.get("kind")
@@ -315,6 +391,9 @@ class QualityDashboardDialog(QDialog):
             return
         if kind == "ap_group":
             self.open_ap_group_action(action.get("group_id"), open_metadata=False)
+            return
+        if kind == "point":
+            self.focus_point_action(action.get("row"))
             return
 
     def open_live_map_action(self, action):
@@ -347,6 +426,16 @@ class QualityDashboardDialog(QDialog):
         self.accept()
         if hasattr(self.app, "open_ap_group_manager"):
             self.app.open_ap_group_manager(focus_group_id=group_id, open_metadata=open_metadata)
+
+    def focus_point_action(self, row):
+        if not row:
+            return
+
+        self.accept()
+        self.app.tabs.setCurrentIndex(0)
+        self.app.floorplan_view.focus_on(row["x"], row["y"])
+        self.app.show_points_panel()
+        self.app.select_point_in_table(row)
 
     def build_controls(self):
         controls = QHBoxLayout()
@@ -403,7 +492,11 @@ class QualityDashboardDialog(QDialog):
         )
         self.focus_button.setEnabled(bool(self.filtered_rows))
         if self.filtered_rows:
-            self.table.selectRow(0)
+            selected_row = next(
+                (index for index, row in enumerate(self.filtered_rows) if row.get("needs_review")),
+                0,
+            )
+            self.table.selectRow(selected_row)
 
     def current_row_data(self):
         selected = self.table.selectedItems()
@@ -424,6 +517,124 @@ class QualityDashboardDialog(QDialog):
         self.app.floorplan_view.focus_on(row["x"], row["y"])
         self.app.show_points_panel()
         self.app.select_point_in_table(row)
+
+
+class RecommendationDetailsDialog(QDialog):
+    def __init__(self, owner, recommendation):
+        super().__init__(owner)
+        self.owner = owner
+        self.app = owner.app
+        self.recommendation = recommendation
+        items = recommendation.get("detail_items", [])
+        detail_actions = recommendation.get("detail_actions", [])
+        self.setWindowTitle(recommendation.get("title", self.app.tr("quality_dashboard_fix_next_title")))
+        row_height = 98 if any(item.get("finding") for item in items) else 78
+        height = 150 + max(1, len(items)) * row_height + (44 if detail_actions else 0)
+        self.resize(
+            widget_px(self, 980),
+            min(widget_px(self, 720), widget_px(self, height)),
+        )
+        self.setMinimumSize(widget_px(self, 720), widget_px(self, 220))
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(widget_px(self, 14), widget_px(self, 14), widget_px(self, 14), widget_px(self, 14))
+        layout.setSpacing(widget_px(self, 8))
+
+        title = QLabel(recommendation.get("title", ""))
+        title.setObjectName("sectionTitle")
+        layout.addWidget(title)
+
+        detail_text = recommendation.get("dialog_detail", recommendation.get("detail", ""))
+        if detail_text:
+            detail = QLabel(detail_text)
+            detail.setObjectName("mutedText")
+            detail.setWordWrap(True)
+            layout.addWidget(detail)
+
+        if detail_actions:
+            actions_row = QHBoxLayout()
+            actions_row.setSpacing(widget_px(self, 6))
+            for action in detail_actions:
+                button = QPushButton(action.get("label", ""))
+                button.setObjectName("compactButton")
+                button.clicked.connect(
+                    lambda _checked=False, selected_action=action: self.handle_detail_action(selected_action)
+                )
+                actions_row.addWidget(button)
+            actions_row.addStretch(1)
+            layout.addLayout(actions_row)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        content = QFrame()
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(widget_px(self, 6))
+        for item in items:
+            content_layout.addWidget(self.create_detail_row(item))
+        scroll.setWidget(content)
+        layout.addWidget(scroll, 1)
+
+        button_row = QHBoxLayout()
+        button_row.addStretch(1)
+        close_button = QPushButton(self.app.tr("close"))
+        close_button.setObjectName("compactButton")
+        close_button.setMinimumWidth(widget_px(self, 120))
+        close_button.setMaximumWidth(widget_px(self, 220))
+        close_button.clicked.connect(self.accept)
+        button_row.addWidget(close_button)
+        layout.addLayout(button_row)
+
+    def create_detail_row(self, item):
+        palette = QT_THEMES.get(getattr(self.app, "theme", "light"), QT_THEMES["light"])
+        row = QFrame()
+        row.setObjectName("qualityDetailRow")
+        row.setStyleSheet(
+            f"""
+            QFrame#qualityDetailRow {{
+                background: {palette["panel_alt"]};
+                border: 1px solid {palette["border"]};
+                border-radius: {widget_px(self, 5)}px;
+            }}
+            """
+        )
+        layout = QHBoxLayout(row)
+        layout.setContentsMargins(widget_px(self, 10), widget_px(self, 7), widget_px(self, 8), widget_px(self, 7))
+        layout.setSpacing(widget_px(self, 10))
+
+        text_column = QVBoxLayout()
+        text_column.setSpacing(widget_px(self, 2))
+        label = QLabel(item.get("label", ""))
+        label.setStyleSheet(f"color: {palette['title']}; font-weight: 700; background: transparent;")
+        text_column.addWidget(label)
+
+        if item.get("finding"):
+            finding = QLabel(item.get("finding", ""))
+            finding.setStyleSheet(f"color: {palette['metric_warning']}; font-weight: 600; background: transparent;")
+            finding.setWordWrap(True)
+            text_column.addWidget(finding)
+
+        detail = QLabel(item.get("detail", ""))
+        detail.setObjectName("mutedText")
+        detail.setWordWrap(True)
+        text_column.addWidget(detail)
+        layout.addLayout(text_column, 1)
+
+        for action in item.get("actions", []):
+            button = QPushButton(action.get("label", ""))
+            button.setObjectName("compactButton")
+            button.setMinimumWidth(0)
+            button.clicked.connect(
+                lambda _checked=False, selected_action=action: self.handle_detail_action(selected_action)
+            )
+            layout.addWidget(button)
+
+        return row
+
+    def handle_detail_action(self, action):
+        self.accept()
+        self.owner.handle_recommendation_action(action)
 
 
 def open_qt_quality_dashboard(app):
@@ -485,6 +696,7 @@ def build_dashboard_rows(app, point_summaries, quality_by_point_id, ap_position_
             "needs_review": needs_review,
             "severity": severity,
             "ap_position_warning_count": len(ap_position.get("warnings", [])) if ap_position else 0,
+            "ap_position": ap_position or {},
             "confidence": format_point_confidence(app.session.rows, point.get("point_id", ""), relevant_ssids),
             "best": f"{point['best_signal_dbm']:.1f}",
             "row_count": point["row_count"],
@@ -583,6 +795,9 @@ def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None, ap_chann
         "channel_change_labels": format_ap_channel_change_labels(app, ap_channel_changes),
         "channel_change_items": build_ap_channel_change_items(app, ap_channel_changes),
     }
+    summary["scan_ok_points"] = summary["total_points"] - summary["scan_review_points"]
+    summary["ap_diagnostic_points"] = summary["ap_position_warnings"]
+    summary["ap_position_warning_items"] = build_ap_position_warning_items(app, rows)
     summary["recommendations"] = build_quality_recommendations(app, summary)
     summary["context_lines"] = build_quality_context_lines(app, summary)
     return summary
@@ -599,6 +814,7 @@ def quality_status_text_keys(summary):
         summary.get("ap_position_warnings", 0)
         or summary.get("ap_metadata_warnings", 0)
         or summary.get("ap_missing_positions", 0)
+        or summary.get("channel_change_count", 0)
     ):
         return (
             "quality_dashboard_status_setup_title",
@@ -621,10 +837,21 @@ def quality_status_text_keys(summary):
 def build_quality_recommendations(app, summary):
     recommendations = []
 
-    def add(count, title_key, detail_key, severity, actions=None, **kwargs):
+    def add(
+        count,
+        title_key,
+        detail_key,
+        severity,
+        actions=None,
+        detail_items=None,
+        detail_count_key=None,
+        detail_actions=None,
+        dialog_detail_key=None,
+        **kwargs,
+    ):
         if not count:
             return
-        recommendations.append({
+        recommendation = {
             "severity": severity,
             "title": app.tr(title_key),
             "detail": app.tr(
@@ -634,7 +861,13 @@ def build_quality_recommendations(app, summary):
                 **kwargs,
             ),
             "actions": actions or [],
-        })
+            "detail_items": detail_items or [],
+            "detail_count_label": app.tr(detail_count_key, count=count) if detail_count_key else "",
+            "detail_actions": detail_actions or [],
+        }
+        if dialog_detail_key:
+            recommendation["dialog_detail"] = app.tr(dialog_detail_key)
+        recommendations.append(recommendation)
 
     add(
         summary["missing_relevant"],
@@ -666,6 +899,9 @@ def build_quality_recommendations(app, summary):
         "quality_dashboard_fix_ap_metadata_detail",
         "warning",
         actions=build_ap_metadata_actions(app, summary),
+        detail_items=build_ap_metadata_detail_items(app, summary.get("ap_metadata_warning_items", [])),
+        detail_count_key="quality_dashboard_detail_ap_groups",
+        dialog_detail_key="quality_dashboard_fix_ap_metadata_dialog_detail",
         details=summary["ap_metadata_warning_labels"],
     )
     add_channel_change_recommendation(app, summary, recommendations)
@@ -682,6 +918,9 @@ def build_quality_recommendations(app, summary):
                 "band": "all",
             }
         ],
+        detail_items=summary.get("ap_position_warning_items", []),
+        detail_count_key="quality_dashboard_detail_measurement_points",
+        dialog_detail_key="quality_dashboard_fix_ap_position_dialog_detail",
     )
     add(
         summary["ap_missing_positions"],
@@ -689,6 +928,8 @@ def build_quality_recommendations(app, summary):
         "quality_dashboard_fix_ap_missing_detail",
         "warning",
         actions=build_ap_group_actions(app, summary.get("missing_position_items", []), open_metadata=False),
+        detail_items=build_missing_position_detail_items(app, summary.get("missing_position_items", [])),
+        detail_count_key="quality_dashboard_detail_ap_groups",
         names=summary["missing_position_labels"],
     )
 
@@ -767,6 +1008,13 @@ def add_channel_change_recommendation(app, summary, recommendations):
             details=summary["channel_change_labels"],
         ),
         "actions": actions,
+        "detail_items": build_channel_change_detail_items(app, summary.get("channel_change_items", [])),
+        "detail_count_label": app.tr(
+            "quality_dashboard_detail_channel_changes",
+            count=summary["channel_change_count"],
+        ),
+        "detail_actions": [],
+        "dialog_detail": app.tr("quality_dashboard_fix_channel_change_dialog_detail"),
     })
 
 
@@ -791,7 +1039,12 @@ def build_ap_metadata_actions(app, summary):
                 "group_id": first.get("group_id", ""),
             },
         ])
-    actions.extend(build_ap_group_actions(app, items, open_metadata=True))
+        if first.get("group_id"):
+            actions.append({
+                "kind": "ap_metadata",
+                "label": app.tr("quality_dashboard_action_open_ap_metadata"),
+                "group_id": first["group_id"],
+            })
     return actions
 
 
@@ -828,7 +1081,7 @@ def build_ap_metadata_warning_items(app, warnings):
         {
             "group_id": str(warning.get("group_id", "")),
             "label": app.get_ap_group_display_name(warning.get("group_id", "")),
-            "detail": format_ap_metadata_warning(app, warning),
+            "detail": format_ap_metadata_warning_detail(app, warning),
             "band": metadata_warning_primary_band(warning),
         }
         for warning in warnings
@@ -844,9 +1097,152 @@ def build_ap_channel_change_items(app, changes):
             "status": change.get("status", ""),
             "channels": change.get("channels", []),
             "current_channel": change.get("current_channel", ""),
+            "detail": app.tr(
+                "quality_dashboard_channel_change_item_detail",
+                band=format_band_label(change.get("band", "")),
+                status=app.tr(
+                    "quality_dashboard_channel_change_status_ambiguous"
+                    if change.get("status") == AP_CHANNEL_CHANGE_AMBIGUOUS
+                    else "quality_dashboard_channel_change_status_clean"
+                ),
+                channels=", ".join(change.get("channels", [])) or "-",
+                current=change.get("current_channel", "") or "-",
+            ),
         }
         for change in changes
     ]
+
+
+def build_ap_metadata_detail_items(app, items):
+    detail_items = []
+    for item in items:
+        group_id = item.get("group_id", "")
+        actions = []
+        if group_id:
+            actions.append({
+                "kind": "ap_metadata",
+                "label": app.tr("quality_dashboard_action_open_ap_metadata"),
+                "group_id": group_id,
+            })
+        detail_items.append({
+            "label": item.get("label", group_id),
+            "detail": item.get("detail", ""),
+            "actions": actions,
+        })
+    return detail_items
+
+
+def build_channel_change_detail_items(app, items):
+    detail_items = []
+    for item in items:
+        group_id = item.get("group_id", "")
+        actions = []
+        if group_id:
+            actions.append({
+                "kind": "ap_metadata",
+                "label": app.tr("quality_dashboard_action_open_ap_metadata"),
+                "group_id": group_id,
+            })
+        detail_items.append({
+            "label": item.get("label", group_id),
+            "detail": item.get("detail", ""),
+            "actions": actions,
+        })
+    return detail_items
+
+
+def build_missing_position_detail_items(app, items):
+    return [
+        {
+            "label": item.get("label", item.get("group_id", "")),
+            "detail": app.tr("quality_dashboard_missing_position_item_detail"),
+            "actions": [
+                {
+                    "kind": "ap_group",
+                    "group_id": item.get("group_id", ""),
+                    "label": app.tr("quality_dashboard_action_open_ap_group"),
+                }
+            ],
+        }
+        for item in items
+    ]
+
+
+def build_ap_position_warning_items(app, rows):
+    items = []
+    for row in rows:
+        if not row.get("ap_position_warning_count", 0):
+            continue
+        items.append({
+            "label": app.tr(
+                "quality_dashboard_point_detail_label",
+                point=row.get("number", "-"),
+                x=row.get("x", "-"),
+                y=row.get("y", "-"),
+            ),
+            "finding": format_ap_position_finding(app, row),
+            "detail": format_ap_position_detail(app, row),
+            "actions": [
+                {
+                    "kind": "point",
+                    "row": row,
+                    "label": app.tr("quality_dashboard_action_focus_point"),
+                },
+            ],
+        })
+    return items
+
+
+def format_ap_position_finding(app, row):
+    ap_position = row.get("ap_position") or {}
+    return app.tr(
+        "quality_dashboard_ap_position_finding",
+        finding=format_ap_position_warning_summary(app, ap_position),
+    )
+
+
+def format_ap_position_detail(app, row):
+    ap_position = row.get("ap_position") or {}
+    analysis = ap_position.get("analysis") or {}
+    dominant_group_id = ap_position.get("dominant_ap_group", "")
+    dominant_label = app.get_ap_group_display_name(dominant_group_id) if dominant_group_id else "-"
+    nearest_group_id = analysis.get("nearest_ap_group", "")
+    nearest_label = app.get_ap_group_display_name(nearest_group_id) if nearest_group_id else "-"
+    return app.tr(
+        "quality_dashboard_ap_position_detail",
+        dominant=dominant_label,
+        signal=format_dbm(ap_position.get("dominant_signal_dbm")),
+        dominant_distance=format_ap_distance(app, analysis, "dominant"),
+        closest=nearest_label,
+        closest_distance=format_ap_distance(app, analysis, "nearest"),
+    )
+
+
+def format_ap_position_warning_summary(app, ap_position):
+    warning_labels = [
+        app.tr(ap_position_warning_translation_key(warning))
+        for warning in ap_position.get("warnings", [])
+    ]
+    if warning_labels:
+        return "; ".join(warning_labels)
+    return app.tr("ap_position_unknown_warning")
+
+
+def format_ap_distance(app, analysis, prefix):
+    distance_m = analysis.get(f"{prefix}_distance_m")
+    if distance_m is not None:
+        return app.tr("ap_position_distance_m", distance=f"{distance_m:.1f}")
+
+    distance_px = analysis.get(f"{prefix}_distance_px")
+    if distance_px is not None:
+        return app.tr("ap_position_distance_px", distance=f"{distance_px:.0f}")
+
+    return "-"
+
+
+def format_dbm(value):
+    number = parse_float(value)
+    return f"{number:.1f} dBm" if number is not None else "-"
 
 
 def format_ap_channel_change_labels(app, changes):
@@ -981,6 +1377,7 @@ def build_ap_position_quality_by_point(app, ap_groups=None):
                 "analysis": analysis,
                 "dominant_ap_group": dominant_row.get("dominant_ap_group", ""),
                 "dominant_bssid": dominant_row.get("dominant_bssid", ""),
+                "dominant_signal_dbm": dominant_row.get("dominant_signal_dbm"),
                 "warnings": warnings,
             }
 
@@ -1137,6 +1534,11 @@ def format_ap_metadata_warning_labels(app, warnings):
 
 def format_ap_metadata_warning(app, warning):
     ap_label = app.get_ap_group_display_name(warning.get("group_id", ""))
+    detail = format_ap_metadata_warning_detail(app, warning)
+    return f"{ap_label}: {detail}" if detail else ap_label
+
+
+def format_ap_metadata_warning_detail(app, warning):
     parts = []
     unexpected_channels = warning.get("unexpected_channels", [])
     unexpected_bands = warning.get("unexpected_bands", [])
@@ -1157,7 +1559,7 @@ def format_ap_metadata_warning(app, warning):
             )
         )
 
-    return f"{ap_label}: {', '.join(parts)}" if parts else ap_label
+    return ", ".join(parts)
 
 
 def format_band_label(band):

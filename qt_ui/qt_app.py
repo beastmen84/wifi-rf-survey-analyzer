@@ -1133,6 +1133,11 @@ class WifiHeatmapQtApp(
                 font-weight: 600;
                 color: {palette["title"]};
             }}
+            QLabel#qualityMetricGroupTitle {{
+                font-size: {font(11.5)}pt;
+                font-weight: 600;
+                color: {palette["title"]};
+            }}
             QLabel#mutedText {{
                 color: {palette["muted"]};
             }}

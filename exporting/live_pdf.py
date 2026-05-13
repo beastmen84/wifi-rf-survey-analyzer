@@ -625,7 +625,7 @@ def load_pdf_ap_icon():
     if _PDF_AP_ICON_CACHE is not None:
         return _PDF_AP_ICON_CACHE
 
-    icon_path = Path(__file__).resolve().parent / "images" / "wifi.png"
+    icon_path = Path(__file__).resolve().parent.parent / "images" / "wifi.png"
     if not icon_path.exists():
         _PDF_AP_ICON_CACHE = False
         return None

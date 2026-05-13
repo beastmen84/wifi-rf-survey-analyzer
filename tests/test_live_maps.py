@@ -1,4 +1,5 @@
 from tests._common import *
+import exporting.live_pdf as live_pdf_module
 from exporting.reports import build_dominant_problem_report_pages
 from maps.rendering import get_channel_color
 
@@ -278,6 +279,22 @@ class FloorplanViewTests(unittest.TestCase):
         self.assertGreater(max(pixmap.width(), pixmap.height()), AP_MARKER_BASE_SIZE)
         self.assertAlmostEqual(rendered_size, AP_MARKER_BASE_SIZE, delta=0.1)
         view.deleteLater()
+
+    def test_survey_point_marker_stays_signal_colored_dot(self):
+        view = FloorplanView()
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
+            floorplan_path = temp_file.name
+        Image.new("RGB", (120, 90), "white").save(floorplan_path)
+
+        try:
+            view.load_floorplan(floorplan_path)
+            view.set_points([{"point_id": "p1", "x": 40, "y": 30, "best_signal_dbm": -58}])
+
+            self.assertEqual(len(view.marker_items), 1)
+            self.assertEqual(view.marker_items[0].__class__.__name__, "QGraphicsEllipseItem")
+        finally:
+            view.deleteLater()
+            os.remove(floorplan_path)
 
 
 class LiveMapViewTests(unittest.TestCase):
@@ -875,6 +892,14 @@ class LivePdfExportTests(unittest.TestCase):
             rows.append(row)
         return rows
 
+    def test_pdf_ap_icon_loads_shared_wifi_png(self):
+        live_pdf_module._PDF_AP_ICON_CACHE = None
+
+        icon = live_pdf_module.load_pdf_ap_icon()
+
+        self.assertIsNotNone(icon)
+        self.assertIsNot(icon, False)
+
     def test_live_pdf_export_uses_current_config_and_writes_pdf(self):
         rows = self.build_live_pdf_rows()
 
@@ -985,10 +1010,13 @@ class LivePdfExportTests(unittest.TestCase):
             self.assertIn("1", page_texts)
             self.assertIn("(20, 0)", page_texts)
             self.assertNotIn("1. Point: 20, 0", page_text)
+            self.assertIn("Position Analysis", page_text)
             self.assertIn("Dominant AP is not physically nearby", page_text)
-            self.assertIn("AP Distance: 80 m", page_text)
-            self.assertIn("Nearest", page_text)
-            self.assertIn("Physical AP: Near AP (5 m)", page_text)
+            self.assertIn("Dominant AP:", page_text)
+            self.assertIn("Signal: -60 dBm", page_text)
+            self.assertIn("Distance: 80 m", page_text)
+            self.assertIn("Closest AP: Near AP", page_text)
+            self.assertIn("Distance: 5 m", page_text)
         finally:
             for fig in figures:
                 plt.close(fig)
@@ -1001,6 +1029,9 @@ class LivePdfExportTests(unittest.TestCase):
                 "dominant_ap_group": "near-ap",
                 "dominant_bssid": "70:4f:57:aa:bb:10",
                 "dominant_signal_dbm": -60,
+                "second_ap_group": "second-ap",
+                "second_bssid": "70:4f:57:aa:bb:20",
+                "second_signal_dbm": -65,
                 "delta_db": 5,
                 "roaming_overlap": True,
                 "ap_position_warnings": "",
@@ -1019,9 +1050,61 @@ class LivePdfExportTests(unittest.TestCase):
         )
         try:
             page_text = "\n".join(text.get_text() for text in figures[0].axes[0].texts)
-            self.assertIn("Δ <= 5 dB", page_text)
+            self.assertIn("Roaming Overlap", page_text)
+            self.assertIn("within the 5 dB roaming threshold", page_text)
+            self.assertIn("Dominant AP: aa:bb:10 | -60 dBm", page_text)
+            self.assertIn("Secondary AP: aa:bb:20 | -65 dBm", page_text)
+            self.assertIn("aa:bb:20", page_text)
+            self.assertIn("roam or oscillate here.", page_text)
             self.assertNotIn("AP distance", page_text)
             self.assertNotIn("Nearest physical AP", page_text)
+        finally:
+            for fig in figures:
+                plt.close(fig)
+
+    def test_dominant_problem_report_gives_combined_issues_more_card_space(self):
+        dominant_df = rows_to_dataframe([
+            {
+                "x": 20 + index,
+                "y": index,
+                "dominant_ap_group": "far-ap",
+                "dominant_bssid": "70:4f:57:aa:bb:10",
+                "dominant_signal_dbm": -60,
+                "second_ap_group": "second-ap",
+                "second_bssid": "70:4f:57:aa:bb:20",
+                "second_signal_dbm": -64,
+                "delta_db": 4,
+                "roaming_overlap": True,
+                "ap_position_warnings": AP_POSITION_UNEXPECTED_DOMINANT,
+                "dominant_ap_distance_m": 80,
+                "nearest_physical_ap_label": "Near AP",
+                "nearest_physical_ap_distance_m": 5,
+            }
+            for index in range(3)
+        ])
+
+        figures = build_dominant_problem_report_pages(
+            dominant_df,
+            MapConfig(ssid="MAIN", band="2.4", map_type="dominant"),
+            lambda key, **kwargs: translate("en", key, **kwargs),
+            "en",
+            {},
+        )
+        try:
+            self.assertEqual(len(figures), 2)
+            card_heights = [
+                patch.get_height()
+                for patch in figures[0].axes[0].patches
+                if abs(patch.get_width() - 0.90) < 0.001
+            ]
+            self.assertEqual(len(card_heights), 2)
+            self.assertTrue(all(height > 0.30 for height in card_heights))
+            page_text = "\n".join(text.get_text() for text in figures[0].axes[0].texts)
+            self.assertIn("Roaming Overlap", page_text)
+            self.assertIn("Position Analysis", page_text)
+            self.assertIn("Dominant AP:", page_text)
+            self.assertIn("Closest AP: Near AP", page_text)
+            self.assertNotIn("...", page_text)
         finally:
             for fig in figures:
                 plt.close(fig)
