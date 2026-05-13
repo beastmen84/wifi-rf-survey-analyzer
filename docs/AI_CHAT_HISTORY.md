@@ -1181,6 +1181,13 @@ Language:
   `dist\WifiHeatmap-v0.9.0-beta.1-win64.zip` (142,099,426 bytes). Zip SHA256:
   `6152E3B563157E8A3D67D0F8650BC2D50665EF3067CD6AACA54DD105F5477006`. Exe
   SHA256: `7069012B6839BC11FD8D91D7832346A4C6D8307DF8496C1E33691C52AEF68784`.
+- Refreshed `README.md` for the public repo/release state: beta status, current
+  V2 feature set, workflow, survey data, scanning, AP Groups, Quality Dashboard,
+  live maps, PDF export, Help Center, build/release guidance and roadmap are now
+  current. Added two major post-V2 product ideas: an evidence-grounded AI
+  Advisor beside live maps and a lightweight technical Floorplan Creator for
+  scaled RF survey maps. `docs/V2_ARCHITECTURE_NOTES.md` now records those ideas
+  as post-V2 expansion candidates.
 
 Recent commits:
 

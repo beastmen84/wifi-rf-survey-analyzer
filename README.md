@@ -1,35 +1,55 @@
 # WiFi Heatmap
 
 Desktop application for Wi-Fi RF surveying, live map analysis, AP behavior
-inspection, and PDF reporting.
+inspection, survey-quality review, and PDF reporting.
 
-The project is aimed at practical field surveys: collect real measurements on a
-floor plan, preserve the raw scan data, model AP groups and roles, validate the
-survey quality, and export maps that explain what was found.
+The tool is built for practical field surveys: collect real measurements on a
+floor plan, preserve the raw scan evidence, model physical AP groups, validate
+the survey before trusting maps, and export explainable RF reports.
 
-## Current Status
+## Release Status
 
 - Public version: `v0.9.0-beta.1`.
+- Release type: beta / pre-release.
 - Active UI: PySide6.
 - Main entry point: `main.py`.
-- Main workspace: `qt_ui/qt_app.py`.
 - Current survey format: V2 CSV plus a linked `.scan` raw-data sidecar.
-- Legacy Tkinter UI and old PNG/CSV map export are no longer part of the active
-  workflow.
-- Help content has been reworked for V2 and still needs final review/polish
-  before a stable `v1.0.0` release.
+- Legacy Tkinter UI and the old generated PNG/CSV map export are no longer part
+  of the active workflow.
+- `V2` is the internal architecture and survey-format generation. Public
+  releases use semantic tags such as `v0.9.0-beta.1` and, later, `v1.0.0`.
+
+The current beta is intended to validate the completed V2 workflow. A stable
+`v1.0.0` should wait for final Help Center review/polish and a full office
+validation pass on real data.
+
+## What It Does
+
+- Loads a PDF/image floor plan and stores it with the survey.
+- Calibrates map scale from two known-distance points.
+- Captures measurement points with repeated Wi-Fi scans.
+- Stores both aggregated point rows and raw scan samples.
+- Tracks relevant SSIDs separately from all observed networks.
+- Builds AP groups from BSSIDs and lets the user refine them manually.
+- Stores AP aliases, roles, metadata, expected bands/channels, analysis channel
+  overrides, and physical AP positions.
+- Reviews survey quality before maps are trusted.
+- Renders live Coverage, Interference, AP Channels, and Dominant AP maps.
+- Exports the current live map to PDF, including issue-report pages where the
+  map type has diagnostics.
+- Provides an expanded V2 Help Center in English and Italian.
 
 ## Main Workflow
 
 1. Start a new survey or open an existing V2 survey CSV.
 2. Load a floor plan image or PDF.
-3. Optionally calibrate scale by selecting two known points and entering meters.
+3. Calibrate scale when real-world distances matter.
 4. Select relevant SSIDs for quality checks and focused analysis.
 5. Place measurement points on the floor plan.
-6. The app performs repeated Wi-Fi scans and stores all detected networks.
-7. Review points, AP groups, metadata warnings, and survey quality.
-8. Use the Live Map tab for Coverage, Interference, AP Channels, and Dominant AP.
-9. Export the current live map as a PDF report.
+6. Let the app run repeated Wi-Fi scans and store all detected networks.
+7. Review AP groups, AP metadata, AP positions, and survey quality.
+8. Use Live Map views for Coverage, Interference, AP Channels, and Dominant AP.
+9. Export the selected live map as a PDF report.
 
 ## Survey Data
 
@@ -50,8 +70,9 @@ Stored metadata can include:
 - raw sidecar path;
 - scale calibration (`px_per_meter`);
 - relevant SSIDs;
-- AP groups, roles, aliases, metadata, and positions;
-- creation/version fields.
+- AP groups, roles, aliases, metadata, positions, and analysis channel
+  overrides;
+- creation/schema/product version fields.
 
 Collected scan fields include:
 
@@ -65,7 +86,7 @@ Collected scan fields include:
 - scan confidence;
 - channel and channel width;
 - band and frequency where available;
-- optional lswifi details such as security, PMF, vendor, model, AP name,
+- optional `lswifi` details such as security, PMF, vendor, model, AP name,
   country code, station count, channel utilization, Wi-Fi modes, and amendments.
 
 ## Wi-Fi Scanning
@@ -93,6 +114,7 @@ Supported AP group data:
 - role;
 - BSSID membership;
 - expected bands and channels;
+- analysis channel override per observed band;
 - vendor/model/AP name metadata;
 - physical AP position on the floor plan.
 
@@ -108,9 +130,15 @@ Test/hidden AP groups are excluded from coverage, channel, dominant AP, and AP
 group filter logic. Grouping also prevents guest/main SSIDs on the same physical
 AP from being treated as mutual interference when they are modeled correctly.
 
+Clean AP channel changes during a survey are modeled separately from AP group
+conflicts. Channel-sensitive maps use the latest observed channel by default,
+while AP metadata can force a known-good analysis channel when the survey-time
+channel change does not represent the intended operational model.
+
 ## Survey Quality
 
-The quality system flags points and project-level issues before maps are trusted.
+The Survey Quality Dashboard flags point-level and project-level issues before
+maps are trusted.
 
 Current checks include:
 
@@ -120,10 +148,14 @@ Current checks include:
 - sparse measurement data;
 - AP metadata inconsistencies;
 - AP group conflicts;
-- AP positioning warnings for dominant AP analysis.
+- missing AP positions;
+- dominant AP / physical-position anomalies;
+- clean or ambiguous AP channel changes that affect channel-sensitive maps.
 
-The Survey Quality Dashboard summarizes good/review points, relevant SSID
-coverage, AP group state, and actionable warnings.
+The dashboard separates point-rescan issues from AP setup/model diagnostics.
+It shows KPI cards, defaults to showing only points that need review when such
+points exist, and provides "what to fix next" guidance with detail dialogs and
+shortcuts into the relevant map or AP metadata workflow.
 
 ## Live Maps
 
@@ -172,15 +204,31 @@ Map-specific PDF behavior:
 - Coverage: map page only, no problem report.
 - Interference: map page plus paged issue cards for high-risk points.
 - AP Channels: map page with compact de-duplicated legend.
-- Dominant AP: map page and dominant/AP-position reporting where applicable.
+- Dominant AP: map page plus roaming/AP-position issue reporting where
+  applicable.
+
+## Help Center
+
+The app includes a V2 Help Center with structured sections for:
+
+- recommended survey workflow;
+- map controls;
+- survey/scanning behavior;
+- Survey Quality Dashboard;
+- AP Groups and AP metadata;
+- live maps;
+- PDF reports;
+- diagnostics/warnings;
+- glossary.
+
+This help content is implemented in English and Italian. The remaining beta
+work is a calm visual/content review in the running app, not a missing feature.
 
 ## Project Structure
 
-The codebase is grouped by domain:
-
 ```text
 main.py                 application entry point
-app_core/               settings, logging, restart, constants, filename helpers
+app_core/               settings, logging, restart, version, constants
 ap/                     AP grouping, metadata checks, conflicts, positioning
 exporting/              live-map PDF export, report pages, PDF writer
 maps/                   map config, heatmap math, rendering, quality engine
@@ -189,6 +237,7 @@ survey/                 survey CSV and raw sidecar persistence
 translations/           language dictionaries and i18n helpers
 wifi/                   scanner backends, band helpers, signal conversion
 tests/                  unit and UI-level regression tests
+docs/                   architecture notes and AI handoff history
 ```
 
 ## Installation
@@ -234,6 +283,12 @@ Run the full test suite:
 python -m pytest tests
 ```
 
+Current local baseline:
+
+```text
+198 passed
+```
+
 Useful focused test groups:
 
 ```bash
@@ -257,41 +312,50 @@ Output:
 dist/WifiHeatmap/WifiHeatmap.exe
 ```
 
-The GitHub Release asset should be the zipped `onedir` folder, not a PyInstaller
-`onefile` build:
+For GitHub Releases, publish the zipped PyInstaller `onedir` folder:
 
 ```text
 dist/WifiHeatmap-v0.9.0-beta.1-win64.zip
 ```
 
-`V2` is the internal survey/workflow generation. Public releases use semantic
-version tags such as `v0.9.0-beta.1` and, later, `v1.0.0`.
+The `onedir` format is intentional for this PySide6/scientific stack. It starts
+faster than `onefile`, avoids extracting a large app to a temp directory on each
+run, and tends to be less fragile with Qt plugins and antivirus heuristics.
 
-## Technologies
+Recommended GitHub release settings for the current build:
 
-- Python
-- PySide6
-- PyMuPDF
-- Pillow
-- Pandas
-- NumPy
-- SciPy
-- Matplotlib
-- lswifi
-- PyInstaller
-- pytest
+- tag: `v0.9.0-beta.1`;
+- mark as pre-release;
+- attach `WifiHeatmap-v0.9.0-beta.1-win64.zip`.
 
-## Remaining Work
+## Roadmap
 
-Near-term work is tracked in `docs/V2_ARCHITECTURE_NOTES.md`.
+Before `v1.0.0`:
 
-Current priorities include:
+- review and polish the Help Center in the running UI;
+- run a full office validation pass on real data;
+- fix only concrete issues found during that review/test cycle.
 
-- validate and polish the remaining live-map PDF exports on real surveys;
-- improve AP Group Manager ergonomics for large surveys;
-- expand combined reporting beyond one map at a time;
-- use AP metadata more deeply in diagnostics;
-- rewrite Help content after the workflow stabilizes.
+Post-V2 / post-1.0 expansion candidates:
+
+- combined survey report across multiple live-map views;
+- deeper AP metadata diagnostics where the rule is clear;
+- real 6 GHz / Wi-Fi 6E/7 hardware validation;
+- AP physical/radio/BSSID model refinement if real deployments require it;
+- performance tuning only after larger real surveys expose measurable lag.
+
+Two larger product ideas are intentionally kept out of the current beta scope:
+
+- AI Advisor: an analysis panel beside each live map that reviews the survey
+  evidence and proposes actionable RF changes, such as channel-width or channel
+  adjustments to reduce interference. Recommendations should be grounded in the
+  measured data, explain their reasoning, include confidence/assumptions, and
+  remain advisory rather than silently changing the model.
+- Floorplan Creator: a lightweight technical drawing board for creating a
+  survey floor plan directly inside the app. The goal is not interior design,
+  but functional RF geometry: scaled walls, measurements, snap, doors,
+  orthogonal/shape tools, and wall thickness sufficient to produce a usable
+  survey map.
 
 ## Philosophy
 

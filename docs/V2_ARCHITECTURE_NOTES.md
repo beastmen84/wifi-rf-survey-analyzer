@@ -684,8 +684,15 @@ Post-V2 expansion:
 7. Improve combined/generated reporting beyond individual live-map exports.
 8. Use AP metadata more deeply in diagnostics where the rule is clear.
 9. Refine the AP physical/radio/BSSID model only if real deployments require it.
-10. Add advanced RF/AI-assisted suggestions.
-11. Add richer deployment/reporting outputs.
+10. Add an AI Advisor next to each live map. It should analyze the measured
+    survey evidence and propose actionable RF changes, such as channel-width or
+    channel adjustments to reduce interference. Recommendations must remain
+    grounded in visible survey data, explain assumptions/confidence, and stay
+    advisory rather than silently mutating AP metadata or map settings.
+11. Add a lightweight Floorplan Creator for technical RF floor maps. Scope
+    should be scaled geometry, snap, wall thickness, simple shapes, doors and
+    measurements; it should not become an interior-design tool.
+12. Add richer deployment/reporting outputs.
 
 ## Final Vision
 
@@ -697,6 +704,8 @@ The long-term goal remains a tool capable of:
 - evaluating survey reliability;
 - detecting anomalies;
 - explaining generated maps;
+- advising on corrective RF actions when evidence is strong enough;
+- creating simple survey-ready floor plans when no drawing is available;
 - helping users improve Wi-Fi deployments.
 
 The tool should make the survey more trustworthy, not just make prettier
