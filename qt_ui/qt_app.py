@@ -1397,9 +1397,10 @@ class WifiHeatmapQtApp(
             QTabBar#workspaceTabBar[activeWorkspaceTab="survey"] {{
                 background: qlineargradient(
                     x1:0, y1:0, x2:1, y2:0,
-                    stop:0 {palette["badge_bg"]},
-                    stop:0.34 {palette["button_hover"]},
-                    stop:0.50 {palette["toolbar"]},
+                    stop:0 {palette["toolbar"]},
+                    stop:0.32 {palette["toolbar"]},
+                    stop:0.50 {palette["badge_bg"]},
+                    stop:0.56 {palette["toolbar"]},
                     stop:1 {palette["toolbar"]}
                 );
             }}
@@ -1407,9 +1408,10 @@ class WifiHeatmapQtApp(
                 background: qlineargradient(
                     x1:0, y1:0, x2:1, y2:0,
                     stop:0 {palette["toolbar"]},
-                    stop:0.50 {palette["toolbar"]},
-                    stop:0.66 {palette["button_hover"]},
-                    stop:1 {palette["badge_bg"]}
+                    stop:0.44 {palette["toolbar"]},
+                    stop:0.50 {palette["badge_bg"]},
+                    stop:0.68 {palette["toolbar"]},
+                    stop:1 {palette["toolbar"]}
                 );
             }}
             QTabBar#workspaceTabBar::tab {{
@@ -1424,6 +1426,16 @@ class WifiHeatmapQtApp(
                 border-top-right-radius: {s(7)}px;
                 font-size: {font(9.5)}pt;
                 font-weight: 700;
+            }}
+            QTabBar#workspaceTabBar::tab:first {{
+                border-top-right-radius: 0;
+                padding: {s(4)}px {s(32)}px {s(3)}px {s(56)}px;
+                text-align: right;
+            }}
+            QTabBar#workspaceTabBar::tab:last {{
+                border-top-left-radius: 0;
+                padding: {s(4)}px {s(56)}px {s(3)}px {s(32)}px;
+                text-align: left;
             }}
             QTabBar#workspaceTabBar::tab:hover {{
                 background: {palette["button_hover"]};
@@ -1440,7 +1452,7 @@ class WifiHeatmapQtApp(
                 background: qlineargradient(
                     x1:0, y1:0, x2:1, y2:0,
                     stop:0 transparent,
-                    stop:0.45 {palette["button_hover"]},
+                    stop:0.62 {palette["button_hover"]},
                     stop:1 {palette["badge_bg"]}
                 );
             }}
@@ -1448,7 +1460,7 @@ class WifiHeatmapQtApp(
                 background: qlineargradient(
                     x1:0, y1:0, x2:1, y2:0,
                     stop:0 {palette["badge_bg"]},
-                    stop:0.55 {palette["button_hover"]},
+                    stop:0.38 {palette["button_hover"]},
                     stop:1 transparent
                 );
             }}
