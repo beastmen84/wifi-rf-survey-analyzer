@@ -340,6 +340,68 @@ class APGroupManagerDialogTests(unittest.TestCase):
             dialog.deleteLater()
             app.deleteLater()
 
+    def test_ap_manager_marks_and_updates_manual_groups_from_memory(self):
+        temp_dir = tempfile.TemporaryDirectory()
+        previous = os.environ.get("WIFI_HEATMAP_AP_MEMORY_FILE")
+        os.environ["WIFI_HEATMAP_AP_MEMORY_FILE"] = os.path.join(temp_dir.name, "ap_memory.memory")
+        ensure_ap_memory_file()
+        app = None
+        dialog = None
+        try:
+            bssid = "70:4f:57:aa:bb:10"
+            rows = [build_row("p1", "MAIN", bssid, -50, 60, band="5")]
+            update_ap_memory_from_groups(
+                [
+                    build_manual_ap_group(
+                        "office-ap",
+                        [bssid],
+                        alias="Office AP",
+                        metadata={"expected_channels": "60"},
+                    )
+                ],
+                rows,
+            )
+            session = SurveySession()
+            session.rows = rows
+            session.set_ap_groups(
+                [
+                    build_manual_ap_group(
+                        "office-ap",
+                        [bssid],
+                        alias="Old AP",
+                        metadata={"expected_channels": "40"},
+                    )
+                ],
+                update_memory=False,
+            )
+
+            app = self.FakeApp(session)
+            dialog = APGroupManagerDialog(app)
+            group = dialog.get_group_by_id("office-ap")
+
+            self.assertTrue(dialog.group_has_memory_update(group))
+            self.assertIn("M", dialog.format_group_status(group))
+            self.assertEqual(dialog.format_group_management_state(group), "Memory Update")
+            dialog.select_group_by_id("office-ap")
+            QApplication.processEvents()
+            self.assertTrue(dialog.update_memory_button.isEnabled())
+
+            dialog.update_from_memory_for_selected_group()
+
+            self.assertEqual(group["alias"], "Office AP")
+            self.assertEqual(group["metadata"]["expected_channels"], "60")
+            self.assertFalse(dialog.group_has_memory_update(group))
+        finally:
+            if dialog is not None:
+                dialog.deleteLater()
+            if app is not None:
+                app.deleteLater()
+            if previous is None:
+                os.environ.pop("WIFI_HEATMAP_AP_MEMORY_FILE", None)
+            else:
+                os.environ["WIFI_HEATMAP_AP_MEMORY_FILE"] = previous
+            temp_dir.cleanup()
+
     def test_metadata_analysis_channel_combo_uses_only_observed_group_channels(self):
         app, manager = self.make_ap_manager_dialog()
         try:

@@ -51,7 +51,13 @@ from ap.groups import (
     normalize_ap_role,
     normalize_bssid,
 )
-from ap.memory import clear_group_memory_flag, group_has_memory_flag
+from ap.memory import (
+    apply_group_memory_update,
+    clear_group_memory_flag,
+    get_group_memory_update_fields,
+    group_has_memory_flag,
+    load_ap_memory,
+)
 from qt_ui.qt_theme import QT_THEMES, build_scrollbar_stylesheet
 from qt_ui.scaling import widget_font, widget_px
 from wifi.band import get_row_band
@@ -135,6 +141,7 @@ class APGroupManagerDialog(QDialog):
         self.session = app.session
         self.groups = []
         self.detected_by_bssid = {}
+        self.memory_records = []
         self.group_conflicts_by_id = {}
         self.visible_group_ids = []
         self.sort_column = "ssids"
@@ -160,6 +167,7 @@ class APGroupManagerDialog(QDialog):
     def build_state(self):
         if hasattr(self.session, "refresh_ap_groups_from_rows"):
             self.session.refresh_ap_groups_from_rows(update_memory=False)
+        self.memory_records = load_ap_memory().get("groups", [])
         detected_groups = build_detected_ap_groups(self.session.rows, self.app.channel_sort_key)
         self.aliases = self.session.get_ap_aliases()
         saved_groups = self.session.get_ap_groups()
@@ -225,6 +233,7 @@ class APGroupManagerDialog(QDialog):
         self.state_filter_combo.addItem(self.tr("ap_group_state_manual"), "manual")
         self.state_filter_combo.addItem(self.tr("ap_group_state_auto"), "auto")
         self.state_filter_combo.addItem(self.tr("ap_group_state_memory"), "memory")
+        self.state_filter_combo.addItem(self.tr("ap_group_state_memory_update"), "memory_update")
         self.state_filter_combo.currentIndexChanged.connect(self.render_rows)
         add_filter_pair(filter_row, self, self.tr("ap_group_filter_state"), self.state_filter_combo, 132)
 
@@ -276,6 +285,7 @@ class APGroupManagerDialog(QDialog):
         self.bssid_management_button = QPushButton(self.tr("ap_group_bssid_management"))
         self.conflict_button = QPushButton(self.tr("ap_group_conflict_details"))
         self.confirm_memory_button = QPushButton(self.tr("ap_group_confirm_memory"))
+        self.update_memory_button = QPushButton(self.tr("ap_group_update_from_memory"))
         self.alias_button = QPushButton(self.tr("ap_group_set_alias"))
         self.delete_alias_button = QPushButton(self.tr("ap_group_delete_alias"))
         self.role_button = QPushButton(self.tr("ap_group_set_role"))
@@ -288,6 +298,7 @@ class APGroupManagerDialog(QDialog):
         self.bssid_management_button.clicked.connect(self.open_bssid_group_dialog_for_selected_group)
         self.conflict_button.clicked.connect(self.open_conflict_dialog_for_selected_group)
         self.confirm_memory_button.clicked.connect(self.confirm_memory_for_selected_group)
+        self.update_memory_button.clicked.connect(self.update_from_memory_for_selected_group)
         self.alias_button.clicked.connect(self.prompt_alias_for_selected_group)
         self.delete_alias_button.clicked.connect(self.delete_alias_for_selected_group)
         self.role_button.clicked.connect(self.prompt_role_for_selected_group)
@@ -301,6 +312,7 @@ class APGroupManagerDialog(QDialog):
             self.bssid_management_button,
             self.conflict_button,
             self.confirm_memory_button,
+            self.update_memory_button,
             self.alias_button,
             self.delete_alias_button,
             self.role_button,
@@ -588,6 +600,10 @@ class APGroupManagerDialog(QDialog):
                 if column == 0:
                     item.setData(Qt.ItemDataRole.UserRole, group["group_id"])
                     item.setToolTip(self.format_group_status_tooltip(group))
+                    if self.group_has_memory_update(group):
+                        font = item.font()
+                        font.setStrikeOut(True)
+                        item.setFont(font)
                 self.table.setItem(row, column, item)
             if group["group_id"] == selected_group_id:
                 self.table.selectRow(row)
@@ -617,6 +633,8 @@ class APGroupManagerDialog(QDialog):
     def format_group_management_state(self, group):
         if group_has_memory_flag(group):
             return self.tr("ap_group_state_memory")
+        if self.group_has_memory_update(group):
+            return self.tr("ap_group_state_memory_update")
         return self.tr("ap_group_state_manual") if group.get("locked") else self.tr("ap_group_state_auto")
 
     def format_group_status(self, group):
@@ -624,6 +642,8 @@ class APGroupManagerDialog(QDialog):
         if self.group_conflicts_by_id.get(group["group_id"]):
             status.append("!")
         if group_has_memory_flag(group):
+            status.append("M")
+        elif self.group_has_memory_update(group):
             status.append("M")
         return " ".join(status)
 
@@ -633,7 +653,20 @@ class APGroupManagerDialog(QDialog):
             lines.append(self.tr("ap_group_status_warning_tooltip"))
         if group_has_memory_flag(group):
             lines.append(self.tr("ap_group_status_memory_tooltip"))
+        elif self.group_has_memory_update(group):
+            fields = ", ".join(self.memory_update_fields(group))
+            lines.append(self.tr("ap_group_status_memory_update_tooltip", fields=fields))
         return "\n".join(lines)
+
+    def memory_update_fields(self, group):
+        return get_group_memory_update_fields(
+            group,
+            self.session.metadata.get("map_file", ""),
+            records=self.memory_records,
+        )
+
+    def group_has_memory_update(self, group):
+        return bool(self.memory_update_fields(group))
 
     def row_height_for_values(self, values):
         multiline_columns = (1, 6, 7)
@@ -663,6 +696,7 @@ class APGroupManagerDialog(QDialog):
             " ".join(group["ssids"]),
             " ".join(group["channels"]),
             self.tr("ap_group_state_memory") if group_has_memory_flag(group) else "",
+            self.tr("ap_group_state_memory_update") if self.group_has_memory_update(group) else "",
         ]).lower()
         return query in haystack
 
@@ -679,11 +713,15 @@ class APGroupManagerDialog(QDialog):
             return False
         if band_filter != "all" and band_filter not in group.get("bands", []):
             return False
-        if state_filter == "manual" and not group.get("locked"):
+        has_memory = group_has_memory_flag(group)
+        has_memory_update = self.group_has_memory_update(group)
+        if state_filter == "manual" and (not group.get("locked") or has_memory or has_memory_update):
             return False
         if state_filter == "auto" and group.get("locked"):
             return False
-        if state_filter == "memory" and not group_has_memory_flag(group):
+        if state_filter == "memory" and not has_memory:
+            return False
+        if state_filter == "memory_update" and not has_memory_update:
             return False
         return True
 
@@ -733,7 +771,9 @@ class APGroupManagerDialog(QDialog):
         if column == "locked":
             if group_has_memory_flag(group):
                 return 0
-            return 0 if group.get("locked") else 1
+            if self.group_has_memory_update(group):
+                return 1
+            return 2 if group.get("locked") else 3
         return " ".join(group["display_groups"]).lower()
 
     def sort_by_column_index(self, index):
@@ -777,6 +817,7 @@ class APGroupManagerDialog(QDialog):
         self.delete_alias_button.setEnabled(bool(group and group.get("alias")))
         self.conflict_button.setEnabled(bool(group and self.group_conflicts_by_id.get(group["group_id"])))
         self.confirm_memory_button.setEnabled(bool(group and group_has_memory_flag(group)))
+        self.update_memory_button.setEnabled(bool(group and self.group_has_memory_update(group)))
 
     def set_alias(self, group, value):
         group["alias"] = value.strip()
@@ -861,6 +902,19 @@ class APGroupManagerDialog(QDialog):
         group["locked"] = True
         self.refresh_all_group_details()
         self.render_rows()
+
+    def update_from_memory_for_selected_group(self):
+        group = self.require_selected_group()
+        if group is None:
+            return
+
+        if apply_group_memory_update(
+            group,
+            self.session.metadata.get("map_file", ""),
+            records=self.memory_records,
+        ):
+            self.refresh_all_group_details()
+            self.render_rows()
 
     def start_positioning_for_selected_group(self):
         group = self.require_selected_group()

@@ -63,9 +63,12 @@ Current status:
   `ap_memory.memory` file in the application data folder, matches remembered AP
   data by known BSSID after normal AP grouping, applies missing aliases, roles,
   metadata, analysis-channel overrides and compatible map positions, and flags
-  reused groups as `From Memory` until the user confirms or edits them; AP
-  Group save seeds the memory even when the survey metadata itself did not
-  change, and the workspace footer shows empty/saved/to-confirm memory status;
+  reused groups as `From Memory` until the user confirms or edits them; if a
+  manual AP Group already has local metadata but AP Memory contains different
+  saved data, AP Group Manager marks it as a memory-update candidate and exposes
+  `Update From Memory`; AP Group save seeds the memory even when the survey
+  metadata itself did not change, and the workspace footer shows
+  empty/saved/to-confirm memory status;
 - the 2026-05-12 operational test survey is a useful baseline: all 25 points
   passed quality, all raw samples came from `lswifi`, relevant AP positions were
   complete, and the remaining findings are AP setup/anomaly diagnostics rather
@@ -226,6 +229,9 @@ Implemented:
 - user-facing `Auto` / `Manual` management state;
 - user-facing `From Memory` management state, status marker and confirmation
   action for AP groups whose metadata was applied from AP Memory;
+- user-facing `Memory Update` management state, strikethrough memory status
+  marker and explicit `Update From Memory` action for manual AP groups whose
+  current local metadata differs from AP Memory;
 - workspace footer AP Memory status with the memory file path in the tooltip;
 - per-band analysis-channel override in AP metadata for channel-sensitive maps.
   The override picker is constrained to channels actually observed for that AP
@@ -700,8 +706,8 @@ Monitoring:
 
 4. Keep AP Group, live PDF and Survey Quality in monitoring mode unless new
    real data exposes a concrete issue.
-5. Validate AP Memory behavior on repeat surveys, especially stale metadata,
-   large AP sets, copied memory files and floor-plan position reuse.
+5. Validate AP Memory behavior on repeat surveys, especially large AP sets,
+   copied memory files and floor-plan position reuse.
 6. Validate 6 GHz behavior with real 6E/7 hardware data when available.
 7. Tune performance only after larger real surveys show measurable lag.
 

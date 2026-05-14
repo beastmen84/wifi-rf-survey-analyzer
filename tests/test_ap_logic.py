@@ -342,6 +342,43 @@ class ApMemoryTests(unittest.TestCase):
             self.restore_memory_env(previous)
             temp_dir.cleanup()
 
+    def test_memory_update_detects_and_overwrites_existing_manual_metadata(self):
+        temp_dir, previous = self.with_isolated_memory()
+        try:
+            bssid = "70:4f:57:aa:bb:10"
+            update_ap_memory_from_groups(
+                [
+                    build_manual_ap_group(
+                        "office-ap",
+                        [bssid],
+                        alias="Office AP",
+                        metadata={"expected_channels": "60", "vendor": "Acme"},
+                    )
+                ],
+                [build_row("old", "MAIN", bssid, -50, 60, band="5")],
+            )
+            group = build_manual_ap_group(
+                "office-ap",
+                [bssid],
+                alias="Old AP",
+                metadata={"expected_channels": "40", "notes": "Keep this note"},
+            )
+
+            fields = get_group_memory_update_fields(group)
+
+            self.assertEqual(fields, ["alias", "metadata"])
+            self.assertTrue(apply_group_memory_update(group))
+            self.assertEqual(group["alias"], "Office AP")
+            self.assertEqual(group["metadata"]["expected_channels"], "60")
+            self.assertEqual(group["metadata"]["vendor"], "Acme")
+            self.assertEqual(group["metadata"]["notes"], "Keep this note")
+            self.assertTrue(group["locked"])
+            self.assertNotIn(AP_MEMORY_APPLIED_KEY, group)
+            self.assertEqual(get_group_memory_update_fields(group), [])
+        finally:
+            self.restore_memory_env(previous)
+            temp_dir.cleanup()
+
 
 class InterferenceTests(unittest.TestCase):
     def test_interference_ignores_same_physical_ap_group(self):

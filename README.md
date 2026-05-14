@@ -140,8 +140,11 @@ When a later survey sees known BSSIDs, the normal AP grouping runs first and
 then remembered aliases, roles, metadata, analysis-channel overrides, and
 compatible floor-plan positions can be applied automatically. Reused AP data is
 marked as "From Memory" in AP Group Manager until the user confirms it or edits
-the AP data. The workspace footer shows whether AP Memory is empty, saved, or
-has memory-applied groups still waiting for confirmation.
+the AP data. If a previously manual AP Group has different saved data available
+in AP Memory, AP Group Manager marks it as a memory update candidate and offers
+an explicit "Update From Memory" action. The workspace footer shows whether AP
+Memory is empty, saved, or has memory-applied groups still waiting for
+confirmation.
 
 ## Survey Quality
 

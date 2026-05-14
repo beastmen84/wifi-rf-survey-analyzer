@@ -199,6 +199,15 @@ def apply_ap_memory_to_groups(groups, rows=None, map_file="", path=None):
     return updated_groups, applied_count
 
 
+def find_memory_record_for_group(group, path=None, records=None):
+    bssids = clean_bssids((group or {}).get("bssids", []))
+    source_records = records if records is not None else load_ap_memory(path).get("groups", [])
+    record = find_best_memory_record(source_records, bssids)
+    if not record:
+        return None, []
+    return record, sorted(set(record.get("bssids", [])) & set(bssids))
+
+
 def apply_memory_record_to_group(group, record, map_file=""):
     changed = False
 
@@ -229,6 +238,76 @@ def apply_memory_record_to_group(group, record, map_file=""):
             changed = True
 
     if changed:
+        group["locked"] = True
+
+    return changed
+
+
+def get_group_memory_update_fields(group, map_file="", path=None, records=None):
+    if not isinstance(group, dict) or group_has_memory_flag(group):
+        return []
+
+    record, _matched_bssids = find_memory_record_for_group(group, path=path, records=records)
+    if not record:
+        return []
+
+    fields = []
+    record_alias = str(record.get("alias", "")).strip()
+    if record_alias and record_alias != str(group.get("alias", "")).strip():
+        fields.append("alias")
+
+    record_role = normalize_ap_role(record.get("role"))
+    if record.get("role") and record_role != normalize_ap_role(group.get("role")):
+        fields.append("role")
+
+    current_metadata = normalize_ap_metadata(group.get("metadata"))
+    record_metadata = normalize_ap_metadata(record.get("metadata"))
+    if any(value and current_metadata.get(field) != value for field, value in record_metadata.items()):
+        fields.append("metadata")
+
+    map_position = find_memory_position_for_map(record, map_file)
+    if map_position and normalize_ap_position(group.get("position")) != map_position:
+        fields.append("position")
+
+    return fields
+
+
+def apply_group_memory_update(group, map_file="", path=None, records=None):
+    if not isinstance(group, dict):
+        return False
+
+    record, _matched_bssids = find_memory_record_for_group(group, path=path, records=records)
+    if not record:
+        return False
+
+    changed = False
+    alias = str(record.get("alias", "")).strip()
+    if alias and alias != str(group.get("alias", "")).strip():
+        group["alias"] = alias
+        changed = True
+
+    if record.get("role"):
+        role = normalize_ap_role(record.get("role"))
+        if role != normalize_ap_role(group.get("role")):
+            group["role"] = role
+            changed = True
+
+    current_metadata = normalize_ap_metadata(group.get("metadata"))
+    record_metadata = normalize_ap_metadata(record.get("metadata"))
+    for field, value in record_metadata.items():
+        if value and current_metadata.get(field) != value:
+            current_metadata[field] = value
+            changed = True
+    if current_metadata:
+        group["metadata"] = current_metadata
+
+    map_position = find_memory_position_for_map(record, map_file)
+    if map_position and normalize_ap_position(group.get("position")) != map_position:
+        group["position"] = map_position
+        changed = True
+
+    if changed:
+        clear_group_memory_flag(group)
         group["locked"] = True
 
     return changed
