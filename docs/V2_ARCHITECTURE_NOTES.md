@@ -723,6 +723,12 @@ Implemented:
   layers, BSSID Manager, AP Memory confirm/update states, metadata channel
   override limits, Live Map option visibility, PDF export behavior, warning
   troubleshooting and glossary terms.
+- The Survey Help page has been visually tightened after screenshot review:
+  the opening survey screen box table is now a compact 2x3 summary-card grid,
+  "Saved Networks" wording has been corrected to Relevant SSIDs, `.scan` is
+  explained as a sidecar that users normally do not open directly, Auto scanner
+  is called out as the recommended default, and good point placement is a
+  highlighted field-rule block.
 
 Remaining closeout:
 

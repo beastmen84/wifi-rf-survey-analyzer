@@ -376,6 +376,38 @@ def build_help_html(parent, palette, section):
             background: transparent;
             padding: 0;
         }}
+        .survey-grid {{
+            border-collapse: collapse;
+            width: 100%;
+            margin: {widget_px(parent, 7)}px 0 {gap}px 0;
+        }}
+        .survey-grid td.survey-card {{
+            width: 33%;
+            border: 1px solid {palette["border"]};
+            border-radius: {radius}px;
+            background: {palette["panel_alt"]};
+            padding: {widget_px(parent, 11)}px {widget_px(parent, 12)}px;
+        }}
+        .survey-grid td.survey-gap {{
+            width: {widget_px(parent, 10)}px;
+            border: 0;
+            background: transparent;
+            padding: 0;
+        }}
+        .survey-grid td.survey-vertical-gap {{
+            height: {widget_px(parent, 6)}px;
+            border: 0;
+            background: transparent;
+            padding: 0;
+        }}
+        .survey-card-title {{
+            color: {palette["metric_info"]};
+            font-size: {widget_font(parent, 11.5):.2f}pt;
+            font-weight: 800;
+        }}
+        .survey-card-use {{
+            color: {palette["muted"]};
+        }}
         .step-label {{
             color: {palette["metric_info"]};
             font-size: {widget_font(parent, 9.5):.2f}pt;

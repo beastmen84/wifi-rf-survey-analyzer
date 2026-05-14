@@ -608,22 +608,30 @@ TRANSLATIONS = {
     "help_survey_subtitle": "Un punto non è solo un valore di segnale: V2 salva campioni grezzi, li aggrega e misura la confidenza.",
     "help_survey_body": """
         <h2>Box Schermata Rilievo</h2>
-        <table>
-            <tr><th>Box O Controllo</th><th>Cosa Significa</th><th>Come Usarlo</th></tr>
-            <tr><td>CSV</td><td>Il file rilievo salvato, con commenti metadata e righe aggregate.</td><td>Salva prima di esportare PDF o spostare il rilievo su un altro PC.</td></tr>
-            <tr><td>Mappa</td><td>Il file pianta collegato al rilievo.</td><td>Se un CSV si apre senza la vecchia mappa, seleziona manualmente la pianta aggiornata.</td></tr>
-            <tr><td>Punti</td><td>Numero di posizioni misurate sulla pianta.</td><td>Aggiungi punti dove i client lavorano, fanno roaming o segnalano problemi.</td></tr>
-            <tr><td>Raw Rows</td><td>Campioni ripetuti salvati nel sidecar <code>.scan</code>.</td><td>Più evidenza grezza migliora confidenza e diagnostica.</td></tr>
-            <tr><td>Gruppi AP</td><td>Il modello AP corrente disponibile a mappe e controlli qualità.</td><td>Rivedilo prima di fidarti di AP Dominante, Interferenza o Canali AP.</td></tr>
-            <tr><td>Reti Salvate</td><td>SSID rilevanti selezionati per i controlli qualità.</td><td>Usa Gestisci per aggiungere/rimuovere SSID rilevanti; Dimentica pulisce la selezione.</td></tr>
+        <table class="survey-grid">
+            <tr>
+                <td class="survey-card"><span class="survey-card-title">CSV</span><br>Il file rilievo salvato, con commenti metadata e righe aggregate.<br><span class="survey-card-use">Salva prima di esportare PDF o spostare il rilievo su un altro PC.</span></td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><span class="survey-card-title">Mappa</span><br>Il file pianta collegato al rilievo.<br><span class="survey-card-use">Se il vecchio percorso manca, seleziona manualmente la pianta aggiornata.</span></td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><span class="survey-card-title">Punti</span><br>Posizioni di misura raccolte sulla pianta.<br><span class="survey-card-use">Aggiungi punti dove i client lavorano, fanno roaming o segnalano problemi.</span></td>
+            </tr>
+            <tr><td class="survey-vertical-gap" colspan="5"></td></tr>
+            <tr>
+                <td class="survey-card"><span class="survey-card-title">Raw Rows</span><br>Campioni ripetuti salvati nel sidecar <code>.scan</code> collegato.<br><span class="survey-card-use">Più evidenza grezza migliora confidenza e diagnostica.</span></td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><span class="survey-card-title">Gruppi AP</span><br>Il modello AP fisico corrente disponibile a mappe e controlli qualità.<br><span class="survey-card-use">Rivedilo prima di fidarti di AP Dominante, Interferenza o Canali AP.</span></td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><span class="survey-card-title">SSID Rilevanti</span><br>Reti selezionate come importanti per i controlli qualità.<br><span class="survey-card-use">Usa Gestisci per aggiungerle/rimuoverle; Azzera pulisce la selezione.</span></td>
+            </tr>
         </table>
         <h2>Cosa Viene Salvato</h2>
         <p>Ogni punto di misura può contenere più reti osservate. Il CSV principale salva le righe aggregate usate dalle mappe. Il sidecar <code>.scan</code> collegato salva l'evidenza grezza delle scansioni ripetute.</p>
-        <h2>Reti Rilevanti</h2>
+        <h2>SSID Rilevanti</h2>
         <p>Gli SSID rilevanti indicano al motore qualità quali reti contano. Una rete rilevante mancante è un finding qualità. Una rete vicina non importante, di solito, no.</p>
         <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Regola Pratica</span><br>Imposta presto gli SSID rilevanti. Se li aggiungi solo dopo aver raccolto punti, la dashboard può rivelare punti da rivedere perché le reti previste non erano state viste.</td></tr></table>
         <h2>Sidecar Raw Scan</h2>
-        <p>Il sidecar conserva campioni ripetuti, dettagli backend e campi specifici dello scanner quando disponibili. Per questo V2 può spiegare confidenza, segnale instabile e dati radi invece di disegnare solo colori.</p>
+        <p>Il file <code>.scan</code> è un sidecar, non qualcosa che l'utente normalmente apre direttamente. Conserva campioni ripetuti, dettagli backend e campi specifici dello scanner quando disponibili. Per questo V2 può spiegare confidenza, segnale instabile e dati radi invece di disegnare solo colori.</p>
         <table>
             <tr><th>Valore Salvato</th><th>Perché Conta</th></tr>
             <tr><td>Mediana dBm</td><td>Riduce l'effetto di uno spike temporaneo.</td></tr>
@@ -634,7 +642,7 @@ TRANSLATIONS = {
         <h2>Backend Scanner</h2>
         <table>
             <tr><th>Backend</th><th>Uso</th><th>Note</th></tr>
-            <tr><td><span class="pill">Auto</span></td><td>Scelta predefinita</td><td>Prova prima <code>lswifi</code>, poi usa <code>netsh</code> come fallback.</td></tr>
+            <tr><td><span class="pill">Auto</span></td><td>Scelta consigliata</td><td>Prova prima <code>lswifi</code>, poi usa <code>netsh</code> come fallback.</td></tr>
             <tr><td><span class="pill">lswifi</span></td><td>Scanner preferito</td><td>Di solito cattura più dettagli su BSSID, banda, frequenza, sicurezza e larghezza canale.</td></tr>
             <tr><td><span class="pill">netsh</span></td><td>Fallback Windows</td><td>Utile quando lswifi non è disponibile, ma in genere espone meno dettagli RF.</td></tr>
         </table>
@@ -647,11 +655,13 @@ TRANSLATIONS = {
             <tr><td>Elimina Selezionato / Elimina Ultimo</td><td>Rimuove evidenza di misura quando il punto è stato posizionato o acquisito male.</td></tr>
         </table>
         <h2>Buon Posizionamento Punti</h2>
-        <ul>
-            <li>Metti punti dove i client lavorano davvero: scrivanie, sale riunioni, corridoi, porte e zone problematiche note.</li>
-            <li>Aggiungi punti vicino alle transizioni AP. AP Dominante e roaming dipendono dall'evidenza in quelle zone.</li>
-            <li>Evita scansioni mentre ti muovi. Fermati, lascia completare la scansione, poi passa al punto successivo.</li>
-        </ul>
+        <table class="callout-table"><tr><td class="callout-accent-good"></td><td class="callout-content"><span class="callout-label">Regola Sul Campo</span><br>
+            <ul>
+                <li>Metti punti dove i client lavorano davvero: scrivanie, sale riunioni, corridoi, porte e zone problematiche note.</li>
+                <li>Aggiungi punti vicino alle transizioni AP. AP Dominante e roaming dipendono dall'evidenza in quelle zone.</li>
+                <li>Evita scansioni mentre ti muovi. Fermati, lascia completare la scansione, poi passa al punto successivo.</li>
+            </ul>
+        </td></tr></table>
     """,
     "help_quality_nav": "Qualità Rilievo",
     "help_quality_title": "Dashboard Qualità Rilievo",

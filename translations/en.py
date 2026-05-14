@@ -608,22 +608,30 @@ TRANSLATIONS = {
     "help_survey_subtitle": "A point is more than one signal value: V2 stores raw samples, aggregates them and tracks confidence.",
     "help_survey_body": """
         <h2>Survey Screen Boxes</h2>
-        <table>
-            <tr><th>Box Or Control</th><th>What It Means</th><th>How To Use It</th></tr>
-            <tr><td>CSV</td><td>The saved survey file, including metadata comments and aggregated rows.</td><td>Save before exporting PDF or moving between machines.</td></tr>
-            <tr><td>Map</td><td>The floor-plan file linked to the survey.</td><td>If a CSV opens without the old map path, select the updated plan manually.</td></tr>
-            <tr><td>Points</td><td>Number of measurement locations collected on the floor plan.</td><td>Add more points where clients work, roam or report problems.</td></tr>
-            <tr><td>Raw Rows</td><td>Repeated scan samples preserved in the linked <code>.scan</code> sidecar.</td><td>Higher raw evidence improves confidence and diagnostics.</td></tr>
-            <tr><td>AP Groups</td><td>The current AP model available to maps and quality checks.</td><td>Review it before trusting Dominant AP, Interference or AP Channels.</td></tr>
-            <tr><td>Saved Networks</td><td>Relevant SSIDs selected for quality checks.</td><td>Use Manage to add/remove relevant SSIDs; Forget clears that selection.</td></tr>
+        <table class="survey-grid">
+            <tr>
+                <td class="survey-card"><span class="survey-card-title">CSV</span><br>The saved survey file with metadata comments and aggregated rows.<br><span class="survey-card-use">Save before PDF export or moving between machines.</span></td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><span class="survey-card-title">Map</span><br>The floor-plan file linked to the survey.<br><span class="survey-card-use">If the old map path is missing, select the updated plan manually.</span></td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><span class="survey-card-title">Points</span><br>Measurement locations collected on the floor plan.<br><span class="survey-card-use">Add points where clients work, roam or report problems.</span></td>
+            </tr>
+            <tr><td class="survey-vertical-gap" colspan="5"></td></tr>
+            <tr>
+                <td class="survey-card"><span class="survey-card-title">Raw Rows</span><br>Repeated scan samples preserved in the linked <code>.scan</code> sidecar.<br><span class="survey-card-use">More raw evidence improves confidence and diagnostics.</span></td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><span class="survey-card-title">AP Groups</span><br>The current physical AP model available to maps and quality checks.<br><span class="survey-card-use">Review it before trusting Dominant AP, Interference or AP Channels.</span></td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><span class="survey-card-title">Relevant SSIDs</span><br>Networks selected as important for quality checks.<br><span class="survey-card-use">Use Manage to add/remove them; Forget clears the selection.</span></td>
+            </tr>
         </table>
         <h2>What Is Saved</h2>
         <p>Each measurement point can contain multiple observed networks. The main CSV stores the aggregated survey rows used by maps. The linked <code>.scan</code> sidecar stores the raw repeated scan evidence behind those aggregates.</p>
-        <h2>Relevant Networks</h2>
+        <h2>Relevant SSIDs</h2>
         <p>Relevant SSIDs tell the quality engine which networks matter. A missing relevant network is a survey-quality finding. A missing unrelated neighbor network is usually not.</p>
         <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Practical Rule</span><br>Set relevant SSIDs early. If you add them only after collecting points, the dashboard may reveal points that need review because the intended networks were not seen there.</td></tr></table>
         <h2>Raw Scan Sidecar</h2>
-        <p>The sidecar preserves repeated samples, backend details and scanner-specific fields when available. This is why V2 can explain confidence, unstable signal and sparse data instead of only drawing colors.</p>
+        <p>The <code>.scan</code> file is a sidecar, not something the user normally opens directly. It preserves repeated samples, backend details and scanner-specific fields when available. This is why V2 can explain confidence, unstable signal and sparse data instead of only drawing colors.</p>
         <table>
             <tr><th>Stored Value</th><th>Why It Matters</th></tr>
             <tr><td>Median dBm</td><td>Reduces the effect of a single temporary signal spike.</td></tr>
@@ -634,7 +642,7 @@ TRANSLATIONS = {
         <h2>Scanner Backend</h2>
         <table>
             <tr><th>Backend</th><th>Use</th><th>Notes</th></tr>
-            <tr><td><span class="pill">Auto</span></td><td>Default choice</td><td>Tries <code>lswifi</code> first, then falls back to <code>netsh</code>.</td></tr>
+            <tr><td><span class="pill">Auto</span></td><td>Recommended default</td><td>Tries <code>lswifi</code> first, then falls back to <code>netsh</code>.</td></tr>
             <tr><td><span class="pill">lswifi</span></td><td>Preferred scanner</td><td>Usually captures richer BSSID, band, frequency, security and channel-width data.</td></tr>
             <tr><td><span class="pill">netsh</span></td><td>Windows fallback</td><td>Useful when lswifi is unavailable, but generally exposes less RF detail.</td></tr>
         </table>
@@ -647,11 +655,13 @@ TRANSLATIONS = {
             <tr><td>Delete Selected / Delete Last</td><td>Removes measurement evidence when the point was placed or captured incorrectly.</td></tr>
         </table>
         <h2>Good Point Placement</h2>
-        <ul>
-            <li>Place points where clients actually work: desks, meeting rooms, corridors, doors and known problem areas.</li>
-            <li>Add points near AP transitions. Dominant AP and roaming findings are only as good as the transition evidence.</li>
-            <li>Avoid collecting while moving. Pause, let the scan complete, then move to the next point.</li>
-        </ul>
+        <table class="callout-table"><tr><td class="callout-accent-good"></td><td class="callout-content"><span class="callout-label">Field Rule</span><br>
+            <ul>
+                <li>Place points where clients actually work: desks, meeting rooms, corridors, doors and known problem areas.</li>
+                <li>Add points near AP transitions. Dominant AP and roaming findings are only as good as the transition evidence.</li>
+                <li>Avoid collecting while moving. Pause, let the scan complete, then move to the next point.</li>
+            </ul>
+        </td></tr></table>
     """,
     "help_quality_nav": "Survey Quality",
     "help_quality_title": "Survey Quality Dashboard",

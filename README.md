@@ -247,6 +247,9 @@ actions, settings access, and AP Group Manager save behavior. Its non-control
 pages describe the current Qt workflow in more detail: survey screen boxes,
 Survey Quality actions, AP Group Manager layers, BSSID management, metadata,
 Live Map options, PDF export behavior, warning diagnostics, and glossary terms.
+The Survey help page uses compact summary cards for the main screen boxes and
+explicitly explains relevant SSIDs, the `.scan` sidecar, scanner backend choice,
+point-table actions, and point-placement rules.
 The recommended workflow page uses visual step cards and decision-gate rows
 with consistent page margins, tuned for the Qt Help renderer. The main toolbar
 follows the same validation order by placing Survey Quality before AP Groups.
