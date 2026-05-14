@@ -689,6 +689,8 @@ Implemented:
   are diagnostics rather than survey errors;
 - warning troubleshooting patterns and expanded glossary;
 - EN/IT translations and tests for section availability.
+- AP Memory clear/delete confirmations now use the same themed Qt dialog styling
+  from both the start screen and the main workspace settings popup.
 
 Remaining closeout:
 

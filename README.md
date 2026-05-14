@@ -146,7 +146,8 @@ an explicit "Update From Memory" action. The workspace footer shows whether AP
 Memory is empty, saved, or has memory-applied groups still waiting for
 confirmation. The AP Group Manager toolbar groups memory actions under a
 dedicated Memory menu, and the Settings popup can open the AP Memory folder or
-clear AP Memory with a destructive-action confirmation.
+clear AP Memory with an app-styled destructive-action confirmation in both the
+start screen and the main workspace.
 
 ## Survey Quality
 

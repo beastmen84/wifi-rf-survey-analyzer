@@ -55,6 +55,7 @@ TRANSLATIONS = {
     "clear_ap_memory": "Clear AP Memory...",
     "clear_ap_memory_title": "Clear AP Memory",
     "clear_ap_memory_confirm": "This will delete remembered AP aliases, roles, metadata and map positions used for future surveys.\n\nThe currently opened survey will not be changed. Continue?",
+    "clear_ap_memory_confirm_button": "Clear AP Memory",
     "clear_ap_memory_failed": "Unable to clear AP Memory.",
     "restart_failed": "Unable to restart the application.",
     "restart_blocked_busy": "Wait for the current scan or live map update to finish before changing UI scale.",

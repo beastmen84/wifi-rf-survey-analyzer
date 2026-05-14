@@ -93,7 +93,7 @@ class SettingsMenuTests(unittest.TestCase):
                 try:
                     window.refresh_session_labels()
                     self.assertEqual(window.memory_status_label.text(), "AP Memory: Saved (1 AP)")
-                    with patch.object(QMessageBox, "warning", return_value=QMessageBox.StandardButton.Yes):
+                    with patch("qt_ui.qt_settings_memory.confirm_clear_ap_memory_dialog", return_value=True):
                         self.assertTrue(confirm_clear_ap_memory(window))
                     self.assertEqual(get_ap_memory_summary()["group_count"], 0)
                     self.assertEqual(window.memory_status_label.text(), "AP Memory: Empty")
@@ -114,6 +114,19 @@ class SettingsMenuTests(unittest.TestCase):
             self.assertEqual(window.points_table.objectName(), "measurementPointsTable")
             self.assertIn("QTableWidget#measurementPointsTable::item:selected", style)
             self.assertIn("color: #FFFFFF", style)
+        finally:
+            window.deleteLater()
+
+    def test_ap_memory_dialog_uses_themed_message_box_style(self):
+        from qt_ui.qt_settings_memory import ap_memory_message_box_stylesheet
+
+        window = WifiHeatmapQtApp()
+        try:
+            style = ap_memory_message_box_stylesheet(window)
+
+            self.assertIn("QMessageBox QPushButton", style)
+            self.assertIn("apMemoryDialogDestructiveButton", style)
+            self.assertIn(f"min-width: {window.spx(96)}px", style)
         finally:
             window.deleteLater()
 

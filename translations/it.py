@@ -55,6 +55,7 @@ TRANSLATIONS = {
     "clear_ap_memory": "Svuota Memoria AP...",
     "clear_ap_memory_title": "Svuota Memoria AP",
     "clear_ap_memory_confirm": "Questa azione elimina alias, ruoli, metadati e posizioni mappa AP ricordati per i rilievi futuri.\n\nIl rilievo aperto non verrà modificato. Vuoi continuare?",
+    "clear_ap_memory_confirm_button": "Svuota Memoria AP",
     "clear_ap_memory_failed": "Impossibile svuotare la memoria AP.",
     "restart_failed": "Impossibile riavviare l'applicazione.",
     "restart_blocked_busy": "Attendi il termine della scansione o dell'aggiornamento mappa prima di cambiare scala UI.",
