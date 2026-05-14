@@ -29,6 +29,8 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 - AP Groups Help now reads as an evidence-to-model guide with compact cards for
   BSSID management, roles, metadata, channel overrides, clean channel changes,
   and AP Memory states.
+- AP Groups Help workflow-card rows now use the same spacer markup as the other
+  Help pages, avoiding visible blank cells between card rows.
 - Help Center tables and callouts now normalize to full content width in the Qt
   renderer, callout accent columns keep a fixed Qt-compatible width, and scanner
   backend labels are plain table text instead of badges.

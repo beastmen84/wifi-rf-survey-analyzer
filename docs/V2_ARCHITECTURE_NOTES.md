@@ -53,8 +53,9 @@ Current status:
   Memory, Live Map, PDF, warning and glossary workflows from the Qt
   implementation; the AP Group page now uses an evidence-to-model guide with
   compact cards for BSSID management, roles, metadata, channel overrides, clean
-  channel changes and AP Memory states; remaining closeout is user review of
-  the Help pages in the running app and a short EN/IT smoke pass;
+  channel changes and AP Memory states, with workflow-card spacer rows aligned
+  to the rest of the Help renderer; remaining closeout is user review of the
+  Help pages in the running app and a short EN/IT smoke pass;
 - the real-survey live PDF validation pass is complete for Coverage, AP
   Channels, Dominant AP and Interference; the current findings are accepted as
   real diagnostics for now rather than layout blockers;

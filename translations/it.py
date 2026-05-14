@@ -769,19 +769,19 @@ TRANSLATIONS = {
             </tr>
         </table>
         <h2>Livelli Del Manager</h2>
-        <table class="workflow-grid">
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
             <tr>
                 <td class="workflow-card"><b>Trova Righe</b><br>Ricerca più filtri Stato, Ruolo, Banda e Gestione riducono liste AP grandi a righe warning, un ruolo, una banda, gruppi manuali/auto, Da Memoria o candidati Aggiornamento Memoria.</td>
                 <td class="workflow-gap"></td>
                 <td class="workflow-card"><b>Evidenza Tabella</b><br>Stato, gruppo, alias, ruolo, posizione, metadata, BSSID, SSID, canali e gestione mostrano il modello AP fisico corrente.</td>
             </tr>
-            <tr><td class="workflow-vertical-gap"></td><td></td><td></td></tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
                 <td class="workflow-card"><b>Menu Memoria E Alias</b><br>Memoria raggruppa Conferma Selezionato, Conferma Tutti Da Memoria e Aggiorna Selezionato Da Memoria. Alias raggruppa Imposta/Modifica ed Elimina, con conferma dove serve.</td>
                 <td class="workflow-gap"></td>
                 <td class="workflow-card"><b>Editor Principali</b><br>Gestione BSSID, Imposta Ruolo, Metadati e Posiziona Su Mappa correggono il modello usato da mappe e controlli qualità.</td>
             </tr>
-            <tr><td class="workflow-vertical-gap"></td><td></td><td></td></tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
                 <td class="workflow-card"><b>Diagnostica</b><br>Dettagli Warning spiega i conflitti. Reset Auto chiede conferma e ricostruisce il raggruppamento automatico.</td>
                 <td class="workflow-gap"></td>
@@ -808,13 +808,13 @@ TRANSLATIONS = {
             </tr>
         </table>
         <h2>Ruoli</h2>
-        <table class="workflow-grid">
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
             <tr>
                 <td class="workflow-card"><b>Interno</b><br>AP normale usato per copertura, AP dominante e interferenza.</td>
                 <td class="workflow-gap"></td>
                 <td class="workflow-card"><b>Esterno</b><br>AP vicino o esterno. Utile come contesto, ma non parte del modello interno pianificato.</td>
             </tr>
-            <tr><td class="workflow-vertical-gap"></td><td></td><td></td></tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
                 <td class="workflow-card"><b>Interferente</b><br>AP che vuoi soprattutto tracciare come sorgente di interferenza.</td>
                 <td class="workflow-gap"></td>
@@ -823,13 +823,13 @@ TRANSLATIONS = {
         </table>
         <h2>Metadata E Override Canale</h2>
         <p>Bande/canali attesi sono regole di validazione. L'override del canale di analisi è diverso: è una scelta esplicita di modellazione usata dalle mappe sensibili al canale quando il rilievo ha osservato un cambio canale pulito o ambiguo.</p>
-        <table class="workflow-grid">
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
             <tr>
                 <td class="workflow-card"><b>Campi Di Documentazione</b><br>Vendor, modello, montaggio e note sono contesto di revisione. Il montaggio non è ancora usato come formula RF.</td>
                 <td class="workflow-gap"></td>
                 <td class="workflow-card"><b>Campi Di Validazione</b><br>Bande attese e canali attesi rilevano AP osservati su bande o canali non previsti, incluso 6 GHz quando esiste evidenza di frequenza.</td>
             </tr>
-            <tr><td class="workflow-vertical-gap"></td><td></td><td></td></tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
                 <td class="workflow-card"><b>Override Canale Analisi</b><br>Forza le mappe sensibili al canale a usare il canale osservato selezionato per quel gruppo AP e banda.</td>
                 <td class="workflow-gap"></td>

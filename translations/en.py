@@ -769,19 +769,19 @@ TRANSLATIONS = {
             </tr>
         </table>
         <h2>Manager Layers</h2>
-        <table class="workflow-grid">
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
             <tr>
                 <td class="workflow-card"><b>Find Rows</b><br>Search plus Status, Role, Band and State filters reduce large AP lists to warning rows, one role, one band, manual/auto groups, From Memory groups or Memory Update candidates.</td>
                 <td class="workflow-gap"></td>
                 <td class="workflow-card"><b>Table Evidence</b><br>Status, group, alias, role, position, metadata, BSSIDs, SSIDs, channels and management state show the current physical AP model.</td>
             </tr>
-            <tr><td class="workflow-vertical-gap"></td><td></td><td></td></tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
                 <td class="workflow-card"><b>Memory And Alias Menus</b><br>Memory groups Confirm Selected, Confirm All From Memory and Update Selected From Memory. Alias groups Set/Edit and Delete, with confirmation where needed.</td>
                 <td class="workflow-gap"></td>
                 <td class="workflow-card"><b>Core Editors</b><br>BSSID Manager, Set Role, Metadata and Set Position fix the model that maps and quality checks use.</td>
             </tr>
-            <tr><td class="workflow-vertical-gap"></td><td></td><td></td></tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
                 <td class="workflow-card"><b>Diagnostics</b><br>Warning Details explains conflicts. Reset Auto asks for confirmation and rebuilds automatic grouping.</td>
                 <td class="workflow-gap"></td>
@@ -808,13 +808,13 @@ TRANSLATIONS = {
             </tr>
         </table>
         <h2>Roles</h2>
-        <table class="workflow-grid">
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
             <tr>
                 <td class="workflow-card"><b>Internal</b><br>Normal AP used for coverage, dominant AP and interference analysis.</td>
                 <td class="workflow-gap"></td>
                 <td class="workflow-card"><b>External</b><br>Neighbor or outside AP. Useful context, but not part of your planned internal model.</td>
             </tr>
-            <tr><td class="workflow-vertical-gap"></td><td></td><td></td></tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
                 <td class="workflow-card"><b>Interferer</b><br>AP you mainly want to track as an interference source.</td>
                 <td class="workflow-gap"></td>
@@ -823,13 +823,13 @@ TRANSLATIONS = {
         </table>
         <h2>Metadata And Channel Overrides</h2>
         <p>Expected bands/channels are validation rules. Analysis-channel override is different: it is an explicit modeling choice used by channel-sensitive maps when the survey observed a clean or ambiguous channel change.</p>
-        <table class="workflow-grid">
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
             <tr>
                 <td class="workflow-card"><b>Documentation Fields</b><br>Vendor, model, mounting and notes are review context. Mounting is not yet used as an RF formula.</td>
                 <td class="workflow-gap"></td>
                 <td class="workflow-card"><b>Validation Fields</b><br>Expected bands and expected channels detect APs observed on bands or channels they should not use, including 6 GHz when frequency evidence exists.</td>
             </tr>
-            <tr><td class="workflow-vertical-gap"></td><td></td><td></td></tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
                 <td class="workflow-card"><b>Analysis Channel Override</b><br>Forces channel-sensitive maps to use the selected observed channel for that AP group and band.</td>
                 <td class="workflow-gap"></td>

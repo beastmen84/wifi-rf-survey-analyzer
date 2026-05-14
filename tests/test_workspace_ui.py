@@ -252,6 +252,8 @@ class SettingsMenuTests(unittest.TestCase):
             self.assertIn("Input Evidence", sections[4].body_html)
             self.assertIn("Filter The Evidence", sections[4].body_html)
             self.assertIn("Default Map Behavior", sections[4].body_html)
+            self.assertIn('workflow-vertical-gap" colspan="3"', sections[4].body_html)
+            self.assertNotIn('workflow-vertical-gap"></td><td></td><td></td>', sections[4].body_html)
             self.assertIn("Memory &gt; Confirm Selected", sections[4].body_html)
             self.assertIn("window X behaves like Cancel", sections[4].body_html)
             self.assertIn("Options Panel", sections[5].body_html)
