@@ -525,7 +525,7 @@ TRANSLATIONS = {
     "help_overview_body": """
         <table class="callout-table"><tr><td class="callout-accent-good"></td><td class="callout-content"><span class="callout-label">Best Rule</span><br>Do not trust a map before the survey data and AP model have passed review. The heatmap is the final output, not the first step.</td></tr></table>
         <h2>Operational Sequence</h2>
-        <table class="workflow-grid" width="98%" cellspacing="10" cellpadding="0">
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
             <tr>
                 <td class="workflow-card">
                     <div class="step-label">1. Setup</div>
@@ -533,6 +533,7 @@ TRANSLATIONS = {
                     <p>Create or open the survey, load the plan, calibrate scale and choose relevant SSIDs.</p>
                     <div class="step-gate"><b>Move forward when:</b> the floor plan, scale and networks to judge are correct.</div>
                 </td>
+                <td class="workflow-gap"></td>
                 <td class="workflow-card">
                     <div class="step-label">2. Capture</div>
                     <div class="step-title">Collect RF evidence</div>
@@ -540,6 +541,7 @@ TRANSLATIONS = {
                     <div class="step-gate"><b>Move forward when:</b> important areas have enough points and suspicious scans have been retried.</div>
                 </td>
             </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
                 <td class="workflow-card">
                     <div class="step-label">3. Validate</div>
@@ -547,6 +549,7 @@ TRANSLATIONS = {
                     <p>Open Survey Quality and separate point-rescan issues from AP setup diagnostics.</p>
                     <div class="step-gate"><b>Move forward when:</b> point quality is acceptable and remaining findings are understood.</div>
                 </td>
+                <td class="workflow-gap"></td>
                 <td class="workflow-card">
                     <div class="step-label">4. Model APs</div>
                     <div class="step-title">Make the AP model believable</div>
@@ -554,8 +557,9 @@ TRANSLATIONS = {
                     <div class="step-gate"><b>Move forward when:</b> the AP model matches the deployment or is intentionally documented as unknown.</div>
                 </td>
             </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
-                <td class="workflow-card" colspan="2">
+                <td class="workflow-card" colspan="3">
                     <div class="step-label">5. Analyze</div>
                     <div class="step-title">Use maps as the checked output</div>
                     <p>Use Live Maps and PDF export to review coverage, channels, roaming and interference.</p>

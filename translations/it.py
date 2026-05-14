@@ -525,7 +525,7 @@ TRANSLATIONS = {
     "help_overview_body": """
         <table class="callout-table"><tr><td class="callout-accent-good"></td><td class="callout-content"><span class="callout-label">Regola Principale</span><br>Non fidarti di una mappa prima di aver controllato dati del rilievo e modello AP. La heatmap è il risultato finale, non il primo passaggio.</td></tr></table>
         <h2>Sequenza Operativa</h2>
-        <table class="workflow-grid" width="98%" cellspacing="10" cellpadding="0">
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
             <tr>
                 <td class="workflow-card">
                     <div class="step-label">1. Setup</div>
@@ -533,6 +533,7 @@ TRANSLATIONS = {
                     <p>Crea o apri il rilievo, carica la pianta, calibra la scala e scegli gli SSID rilevanti.</p>
                     <div class="step-gate"><b>Vai avanti quando:</b> pianta, scala e reti da giudicare sono corrette.</div>
                 </td>
+                <td class="workflow-gap"></td>
                 <td class="workflow-card">
                     <div class="step-label">2. Acquisizione</div>
                     <div class="step-title">Raccogli evidenze RF</div>
@@ -540,6 +541,7 @@ TRANSLATIONS = {
                     <div class="step-gate"><b>Vai avanti quando:</b> le aree importanti hanno abbastanza punti e le scansioni sospette sono state riprovate.</div>
                 </td>
             </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
                 <td class="workflow-card">
                     <div class="step-label">3. Validazione</div>
@@ -547,6 +549,7 @@ TRANSLATIONS = {
                     <p>Apri Qualità Rilievo e separa problemi di rescan da diagnostica AP.</p>
                     <div class="step-gate"><b>Vai avanti quando:</b> la qualità dei punti è accettabile e i finding rimasti sono compresi.</div>
                 </td>
+                <td class="workflow-gap"></td>
                 <td class="workflow-card">
                     <div class="step-label">4. Modello AP</div>
                     <div class="step-title">Rendi credibile il modello AP</div>
@@ -554,8 +557,9 @@ TRANSLATIONS = {
                     <div class="step-gate"><b>Vai avanti quando:</b> il modello AP corrisponde al deployment o è documentato come incerto.</div>
                 </td>
             </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
-                <td class="workflow-card" colspan="2">
+                <td class="workflow-card" colspan="3">
                     <div class="step-label">5. Analisi</div>
                     <div class="step-title">Usa le mappe come output validato</div>
                     <p>Usa Mappe Live e PDF per controllare copertura, canali, roaming e interferenza.</p>

@@ -293,7 +293,7 @@ def build_help_html(parent, palette, section):
         }}
         .callout-table {{
             border-collapse: collapse;
-            width: 96%;
+            width: 100%;
             margin: {gap}px 0;
         }}
         .callout-table td {{
@@ -353,8 +353,8 @@ def build_help_html(parent, palette, section):
             border: 1px solid {palette["border"]};
         }}
         .workflow-grid {{
-            border-collapse: separate;
-            width: 98%;
+            border-collapse: collapse;
+            width: 100%;
             margin: {widget_px(parent, 7)}px 0 {gap}px 0;
         }}
         .workflow-grid td.workflow-card {{
@@ -363,6 +363,18 @@ def build_help_html(parent, palette, section):
             border-radius: {radius}px;
             background: {palette["panel_alt"]};
             padding: {widget_px(parent, 13)}px {widget_px(parent, 14)}px;
+        }}
+        .workflow-grid td.workflow-gap {{
+            width: {widget_px(parent, 14)}px;
+            border: 0;
+            background: transparent;
+            padding: 0;
+        }}
+        .workflow-grid td.workflow-vertical-gap {{
+            height: {widget_px(parent, 10)}px;
+            border: 0;
+            background: transparent;
+            padding: 0;
         }}
         .step-label {{
             color: {palette["metric_info"]};

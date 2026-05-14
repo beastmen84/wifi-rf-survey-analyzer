@@ -244,10 +244,9 @@ This help content is implemented in English and Italian. The remaining beta
 work is a calm visual/content review in the running app, not a missing feature.
 The Help Center now documents AP Memory review states, confirmation/update
 actions, settings access, and AP Group Manager save behavior. The recommended
-workflow page uses visual step cards and decision-gate rows to make the survey
-process easier to scan, with spacing tuned for the Qt Help renderer. The main
-toolbar follows the same validation order by placing Survey Quality before AP
-Groups.
+workflow page uses visual step cards and decision-gate rows with consistent
+page margins, tuned for the Qt Help renderer. The main toolbar follows the same
+validation order by placing Survey Quality before AP Groups.
 
 ## Project Structure
 

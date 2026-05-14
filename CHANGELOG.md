@@ -17,6 +17,7 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   recommended validation flow.
 - Recommended Workflow card spacing has been tuned for QTextBrowser so cards
   no longer crowd the scrollbar and the sequence reads less like a heavy table.
+- Recommended Workflow blocks now share the same left and right content margins.
 - Help Center now documents AP Memory review states, confirm/update workflows,
   settings access, and AP Group Manager save behavior.
 - Possible future AP Memory management view only if larger repeat-survey usage
