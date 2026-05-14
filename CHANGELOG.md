@@ -8,6 +8,14 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+No unreleased user-facing changes.
+
+## v0.9.2-beta.1 - 2026-05-14
+
+Beta focused on Help Center polish, gesture documentation, measurement-system
+settings, and release-readiness. No executable or ZIP artifact was regenerated
+for this version marker.
+
 - Targeted Help Center review/polish, office validation fixes, and small
   release-readiness adjustments.
 - Recommended Workflow help page now uses a visual step-card layout, clearer
@@ -57,8 +65,6 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   backend labels are plain table text instead of badges.
 - Help Center now documents AP Memory review states, confirm/update workflows,
   settings access, and AP Group Manager save behavior.
-- Possible future AP Memory management view only if larger repeat-survey usage
-  shows a real need for explicit cleanup or conflict review.
 
 ## v0.9.1-beta.1 - 2026-05-14
 

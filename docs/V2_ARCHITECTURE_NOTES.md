@@ -23,7 +23,7 @@ interpolated colors.
 Current status:
 
 - public release versioning is separate from the internal V2 generation:
-  the current feature beta is `v0.9.1-beta.1`, while `v1.0.0` should wait for
+  the current feature beta is `v0.9.2-beta.1`, while `v1.0.0` should wait for
   Help Center review/polish and a full office validation pass;
 - future beta release candidates should use the current minor beta line for
   validation/polish or a new minor beta for feature-level additions; do not
@@ -44,6 +44,9 @@ Current status:
 - the V2 functional scope is effectively closed for the current release: no
   known AP Group, live-map, PDF, quality-dashboard or core survey blocker is
   open;
+- `v0.9.2-beta.1` marks the current code state after Help Center polish,
+  controls cleanup and metric/imperial measurement-system support; no exe/ZIP
+  artifact was regenerated for this marker;
 - Help content and structure have an expanded V2 Help Center implementation;
   the Recommended Workflow page has received the first visual-density polish
   pass with step cards, decision-gate rows and Qt-compatible accent-column
