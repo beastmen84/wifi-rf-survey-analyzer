@@ -51,8 +51,10 @@ Current status:
   limitations of QTextBrowser; the non-control pages now follow the same
   structured pattern and explain current Survey, Survey Quality, AP Group/AP
   Memory, Live Map, PDF, warning and glossary workflows from the Qt
-  implementation; remaining closeout is user review of the Help pages in the
-  running app and a short EN/IT smoke pass;
+  implementation; the AP Group page now uses an evidence-to-model guide with
+  compact cards for BSSID management, roles, metadata, channel overrides, clean
+  channel changes and AP Memory states; remaining closeout is user review of
+  the Help pages in the running app and a short EN/IT smoke pass;
 - the real-survey live PDF validation pass is complete for Coverage, AP
   Channels, Dominant AP and Interference; the current findings are accepted as
   real diagnostics for now rather than layout blockers;

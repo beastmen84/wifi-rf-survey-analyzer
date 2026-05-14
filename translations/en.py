@@ -757,65 +757,100 @@ TRANSLATIONS = {
     "help_ap_groups_title": "AP Groups, Roles And Metadata",
     "help_ap_groups_subtitle": "AP Group Manager turns raw BSSIDs into a physical AP model that maps can reason about.",
     "help_ap_groups_body": """
-        <h2>Automatic Suggestions Are Not Final Truth</h2>
-        <p>The program groups BSSIDs automatically, but real deployments can use multiple SSIDs, bands and radios on one physical AP. Treat automatic grouping as a starting point.</p>
+        <table class="callout-table"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Core Rule</span><br>The program can suggest AP groups, but the final model must describe the real physical deployment. Treat automatic grouping as evidence, not final truth.</td></tr></table>
+        <h2>How AP Group Manager Thinks</h2>
+        <table class="survey-grid">
+            <tr>
+                <td class="survey-card"><b>Input Evidence</b><br>BSSIDs, SSIDs, bands, channels, signal history and scanner metadata describe what was observed.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>User Model</b><br>Alias, role, position, metadata and analysis-channel overrides describe what the deployment is supposed to be.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>Output</b><br>Quality checks, live maps and PDF reports use this model to decide what to show, ignore or warn about.</td>
+            </tr>
+        </table>
         <h2>Manager Layers</h2>
-        <table>
-            <tr><th>Layer</th><th>Controls</th><th>Purpose</th></tr>
-            <tr><td>Find Rows</td><td>Search plus Status, Role, Band and State filters.</td><td>Reduce large AP lists to warning rows, one role, one band, manual/auto groups, From Memory groups or Memory Update candidates.</td></tr>
-            <tr><td>Table</td><td>Status, group, alias, role, position, metadata, BSSIDs, SSIDs, channels and management state.</td><td>Shows the current physical AP model and why a row needs review.</td></tr>
-            <tr><td>Memory Menu</td><td>Confirm Selected, Confirm All From Memory, Update Selected From Memory.</td><td>Controls AP data reused from the persistent AP Memory file.</td></tr>
-            <tr><td>Core Editors</td><td>BSSID Manager, Alias, Set Role, Metadata, Set Position.</td><td>Fix the model that maps and quality checks use. Alias deletion and destructive resets ask for confirmation.</td></tr>
-            <tr><td>Diagnostics</td><td>Warning Details and Reset Auto.</td><td>Warning Details explains conflicts. Reset Auto asks for confirmation and rebuilds automatic grouping.</td></tr>
-            <tr><td>Save / Cancel / Window X</td><td>Commit or discard pending AP Group changes.</td><td>Save writes survey metadata and updates AP Memory; Cancel and window X discard pending dialog changes.</td></tr>
+        <table class="workflow-grid">
+            <tr>
+                <td class="workflow-card"><b>Find Rows</b><br>Search plus Status, Role, Band and State filters reduce large AP lists to warning rows, one role, one band, manual/auto groups, From Memory groups or Memory Update candidates.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Table Evidence</b><br>Status, group, alias, role, position, metadata, BSSIDs, SSIDs, channels and management state show the current physical AP model.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap"></td><td></td><td></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Memory And Alias Menus</b><br>Memory groups Confirm Selected, Confirm All From Memory and Update Selected From Memory. Alias groups Set/Edit and Delete, with confirmation where needed.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Core Editors</b><br>BSSID Manager, Set Role, Metadata and Set Position fix the model that maps and quality checks use.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap"></td><td></td><td></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Diagnostics</b><br>Warning Details explains conflicts. Reset Auto asks for confirmation and rebuilds automatic grouping.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Save / Cancel / Window X</b><br>Save writes survey metadata and updates AP Memory. Cancel and window X discard pending dialog changes.</td>
+            </tr>
         </table>
         <h2>What To Review</h2>
-        <table>
-            <tr><th>Area</th><th>Why It Matters</th><th>Typical Fix</th></tr>
-            <tr><td>Alias</td><td>Readable names make legends, tooltips and PDF cards usable.</td><td>Rename groups to physical AP names such as corridor, office or room labels.</td></tr>
-            <tr><td>BSSID grouping</td><td>Guest/main SSIDs on the same AP should not interfere with each other.</td><td>Move BSSIDs into the correct physical AP group or split wrong groups.</td></tr>
-            <tr><td>Role</td><td>Roles decide what maps include or ignore.</td><td>Mark temporary APs as Test/hidden, neighbors as External or Interferer.</td></tr>
-            <tr><td>Position</td><td>Dominant AP diagnostics need physical AP coordinates.</td><td>Use Set Position and click the floor plan.</td></tr>
-            <tr><td>Metadata</td><td>Expected bands/channels make AP setup warnings meaningful.</td><td>Set expected bands, expected channels and optional notes.</td></tr>
+        <table class="gate-list">
+            <tr><td class="gate-row"><b>1. Group Membership</b><br>Guest/main SSIDs and multiple radios from the same physical AP should be in the same AP group. Split or move BSSIDs when the automatic suggestion is wrong.</td></tr>
+            <tr><td class="gate-row"><b>2. Alias And Role</b><br>Use readable physical names for legends, tooltips and PDF cards. Mark temporary APs as Test/hidden, neighbors as External, and interference-only devices as Interferer.</td></tr>
+            <tr><td class="gate-row"><b>3. Position</b><br>Dominant AP diagnostics need physical AP coordinates. Use Set Position and click the floor plan for APs that matter to the survey.</td></tr>
+            <tr><td class="gate-row"><b>4. Metadata And Channel Model</b><br>Expected bands/channels make setup warnings meaningful. Analysis-channel overrides are modeling choices for channel-sensitive maps, not cosmetic labels.</td></tr>
+            <tr><td class="gate-row"><b>5. Memory State</b><br>Rows marked From Memory or Memory Update need review so reused AP data does not silently become an assumption.</td></tr>
         </table>
         <h2>BSSID Manager</h2>
         <p>BSSID Manager is the tool for correcting group membership without rebuilding everything manually. Use the scope filter to show all BSSIDs, only the current group, other groups, unassigned BSSIDs, selected rows or warning-focused BSSIDs. Band, channel and search filters help isolate one radio or one problematic channel.</p>
-        <table>
-            <tr><th>Action</th><th>Use</th></tr>
-            <tr><td>Select Visible / Clear Visible / Invert Visible</td><td>Bulk-select the currently filtered rows.</td></tr>
-            <tr><td>Split To New Group</td><td>Creates a new manual AP group from selected BSSIDs.</td></tr>
-            <tr><td>Move To Existing Group</td><td>Moves selected BSSIDs into another existing AP group.</td></tr>
+        <table class="survey-grid">
+            <tr>
+                <td class="survey-card"><b>Filter The Evidence</b><br>Scope, band, channel and search filters isolate one radio, one problematic channel or one set of unassigned BSSIDs.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>Select In Bulk</b><br>Select Visible, Clear Visible and Invert Visible operate only on the currently filtered rows.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>Move Or Split</b><br>Split To New Group creates a manual AP group. Move To Existing Group moves selected BSSIDs into the chosen AP group.</td>
+            </tr>
         </table>
         <h2>Roles</h2>
-        <table>
-            <tr><th>Role</th><th>Effect</th></tr>
-            <tr><td>Internal</td><td>Normal AP used for coverage, dominant AP and interference analysis.</td></tr>
-            <tr><td>External</td><td>Neighbor or outside AP. Useful context, but not part of your planned internal model.</td></tr>
-            <tr><td>Interferer</td><td>AP you mainly want to track as an interference source.</td></tr>
-            <tr><td>Test/hidden</td><td>Excluded from user-facing analysis so temporary or hidden test APs do not distort maps.</td></tr>
+        <table class="workflow-grid">
+            <tr>
+                <td class="workflow-card"><b>Internal</b><br>Normal AP used for coverage, dominant AP and interference analysis.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>External</b><br>Neighbor or outside AP. Useful context, but not part of your planned internal model.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap"></td><td></td><td></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Interferer</b><br>AP you mainly want to track as an interference source.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Test/hidden</b><br>Excluded from user-facing analysis so temporary or hidden test APs do not distort maps.</td>
+            </tr>
         </table>
         <h2>Metadata And Channel Overrides</h2>
         <p>Expected bands/channels are validation rules. Analysis-channel override is different: it is an explicit modeling choice used by channel-sensitive maps when the survey observed a clean or ambiguous channel change.</p>
-        <table>
-            <tr><th>Metadata Field</th><th>Used For</th></tr>
-            <tr><td>Vendor / Model / Mounting / Notes</td><td>Documentation and review context. Mounting is not yet used as an RF formula.</td></tr>
-            <tr><td>Expected Bands</td><td>Helps detect APs observed on bands they should not use, including 6 GHz when band/frequency evidence exists.</td></tr>
-            <tr><td>Expected Channels</td><td>Creates AP setup warnings when observed channels do not match planned operation.</td></tr>
-            <tr><td>Analysis Channel Override</td><td>Forces channel-sensitive maps to use the selected observed channel for that AP group and band.</td></tr>
+        <table class="workflow-grid">
+            <tr>
+                <td class="workflow-card"><b>Documentation Fields</b><br>Vendor, model, mounting and notes are review context. Mounting is not yet used as an RF formula.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Validation Fields</b><br>Expected bands and expected channels detect APs observed on bands or channels they should not use, including 6 GHz when frequency evidence exists.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap"></td><td></td><td></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Analysis Channel Override</b><br>Forces channel-sensitive maps to use the selected observed channel for that AP group and band.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Picker Rule</b><br>The picker only lists channels actually observed for that AP group/band. If a band was not observed, that band's override is disabled and shows Not Observed.</td>
+            </tr>
         </table>
-        <p>The analysis-channel picker only lists channels actually observed for that AP group/band. If a band was not observed on the group, that band's override control is disabled and shows Not Observed.</p>
         <h2>Clean Channel Changes</h2>
-        <p>If the same AP group/BSSID set moves cleanly from one channel to another during a survey, AP Group does not treat that as a BSSID conflict. Interference and AP Channels use the latest observed channel by default. Override only when you know the intended operational channel is different.</p>
+        <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Default Map Behavior</span><br>If the same AP group/BSSID set moves cleanly from one channel to another during a survey, AP Group does not treat that as a BSSID conflict. Interference and AP Channels use the latest observed channel by default.</td></tr></table>
+        <table class="callout-table"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">When To Override</span><br>Override only when you know the intended operational channel is different from the latest observed survey state, for example after scheduled AP reboot behavior.</td></tr></table>
         <h2>AP Memory</h2>
         <p>AP Memory is automatic. The program stores reviewed AP Group data in a persistent memory file and applies it to later surveys after normal BSSID grouping when known BSSIDs are seen again.</p>
-        <table>
-            <tr><th>State</th><th>Meaning</th><th>Action</th></tr>
-            <tr><td>From Memory</td><td>Alias, role, metadata, override or compatible map position was applied from AP Memory.</td><td>Review the row, then use Memory &gt; Confirm Selected or Confirm All From Memory.</td></tr>
-            <tr><td>Memory Update</td><td>The current manual AP data differs from newer saved AP Memory data.</td><td>Use Memory &gt; Update Selected From Memory when the saved data is more correct.</td></tr>
-            <tr><td>Saved</td><td>The AP Memory file contains reusable AP records.</td><td>The footer shows the memory status; Settings can open the folder or clear memory with confirmation.</td></tr>
+        <table class="survey-grid">
+            <tr>
+                <td class="survey-card"><b>From Memory</b><br>Alias, role, metadata, override or compatible map position was applied from AP Memory. Review the row, then use Memory &gt; Confirm Selected or Confirm All From Memory.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>Memory Update</b><br>The current manual AP data differs from newer saved AP Memory data. Use Memory &gt; Update Selected From Memory when the saved data is more correct.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>Saved</b><br>The AP Memory file contains reusable AP records. The footer shows the memory status; Settings can open the folder or clear memory with confirmation.</td>
+            </tr>
         </table>
         <p>Pressing <b>Save</b> in AP Group Manager writes the AP model and updates AP Memory. Closing the AP Group Manager with the window X behaves like Cancel and does not save pending AP Group changes.</p>
-        <table class="callout-table"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Do Not Use Overrides To Hide Bad Data</span><br>Use them when you know the operational channel is different from the latest observed survey state, for example after scheduled AP reboot behavior.</td></tr></table>
     """,
     "help_live_maps_nav": "Live Maps",
     "help_live_maps_title": "Live Maps And Options",

@@ -757,65 +757,100 @@ TRANSLATIONS = {
     "help_ap_groups_title": "Gruppi AP, Ruoli E Metadati",
     "help_ap_groups_subtitle": "AP Group Manager trasforma BSSID grezzi in un modello di AP fisico che le mappe possono interpretare.",
     "help_ap_groups_body": """
-        <h2>I Suggerimenti Automatici Non Sono Verità Finale</h2>
-        <p>Il programma raggruppa automaticamente i BSSID, ma deployment reali possono usare più SSID, bande e radio sullo stesso AP fisico. Considera il gruppo automatico come punto di partenza.</p>
+        <table class="callout-table"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Regola Base</span><br>Il programma può suggerire gruppi AP, ma il modello finale deve descrivere il deployment fisico reale. Considera il raggruppamento automatico come evidenza, non come verità finale.</td></tr></table>
+        <h2>Come Ragiona AP Group Manager</h2>
+        <table class="survey-grid">
+            <tr>
+                <td class="survey-card"><b>Evidenza In Ingresso</b><br>BSSID, SSID, bande, canali, storico segnale e metadata dello scanner descrivono cosa è stato osservato.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>Modello Utente</b><br>Alias, ruolo, posizione, metadata e override canale descrivono cosa dovrebbe essere il deployment.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>Output</b><br>Controlli qualità, mappe live e report PDF usano questo modello per decidere cosa mostrare, ignorare o segnalare.</td>
+            </tr>
+        </table>
         <h2>Livelli Del Manager</h2>
-        <table>
-            <tr><th>Livello</th><th>Controlli</th><th>Scopo</th></tr>
-            <tr><td>Trova Righe</td><td>Cerca più filtri Stato, Ruolo, Banda e Gestione.</td><td>Riduce liste AP grandi a righe warning, un ruolo, una banda, gruppi manuali/auto, Da Memoria o candidati Aggiornamento Memoria.</td></tr>
-            <tr><td>Tabella</td><td>Stato, gruppo, alias, ruolo, posizione, metadata, BSSID, SSID, canali e gestione.</td><td>Mostra il modello AP fisico corrente e perché una riga va rivista.</td></tr>
-            <tr><td>Menu Memoria</td><td>Conferma Selezionato, Conferma Tutti Da Memoria, Aggiorna Selezionato Da Memoria.</td><td>Controlla dati AP riusati dal file persistente Memoria AP.</td></tr>
-            <tr><td>Editor Principali</td><td>Gestione BSSID, Alias, Imposta Ruolo, Metadati, Posiziona Su Mappa.</td><td>Correggono il modello usato da mappe e controlli qualità. Eliminazione alias e reset distruttivi chiedono conferma.</td></tr>
-            <tr><td>Diagnostica</td><td>Dettagli Warning e Reset Auto.</td><td>Dettagli Warning spiega i conflitti. Reset Auto chiede conferma e ricostruisce il raggruppamento automatico.</td></tr>
-            <tr><td>Salva / Annulla / X Finestra</td><td>Conferma o scarta modifiche AP Group pendenti.</td><td>Salva scrive metadata survey e aggiorna Memoria AP; Annulla e X scartano le modifiche pendenti del dialog.</td></tr>
+        <table class="workflow-grid">
+            <tr>
+                <td class="workflow-card"><b>Trova Righe</b><br>Ricerca più filtri Stato, Ruolo, Banda e Gestione riducono liste AP grandi a righe warning, un ruolo, una banda, gruppi manuali/auto, Da Memoria o candidati Aggiornamento Memoria.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Evidenza Tabella</b><br>Stato, gruppo, alias, ruolo, posizione, metadata, BSSID, SSID, canali e gestione mostrano il modello AP fisico corrente.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap"></td><td></td><td></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Menu Memoria E Alias</b><br>Memoria raggruppa Conferma Selezionato, Conferma Tutti Da Memoria e Aggiorna Selezionato Da Memoria. Alias raggruppa Imposta/Modifica ed Elimina, con conferma dove serve.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Editor Principali</b><br>Gestione BSSID, Imposta Ruolo, Metadati e Posiziona Su Mappa correggono il modello usato da mappe e controlli qualità.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap"></td><td></td><td></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Diagnostica</b><br>Dettagli Warning spiega i conflitti. Reset Auto chiede conferma e ricostruisce il raggruppamento automatico.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Salva / Annulla / X Finestra</b><br>Salva scrive metadata survey e aggiorna Memoria AP. Annulla e X scartano le modifiche pendenti del dialog.</td>
+            </tr>
         </table>
         <h2>Cosa Controllare</h2>
-        <table>
-            <tr><th>Area</th><th>Perché Conta</th><th>Fix Tipico</th></tr>
-            <tr><td>Alias</td><td>Nomi leggibili rendono usabili legende, tooltip e PDF.</td><td>Rinomina i gruppi con nomi fisici tipo corridoio, ufficio o stanza.</td></tr>
-            <tr><td>Raggruppamento BSSID</td><td>Guest/main SSID sullo stesso AP non dovrebbero interferire fra loro.</td><td>Sposta i BSSID nel gruppo AP corretto o separa gruppi sbagliati.</td></tr>
-            <tr><td>Ruolo</td><td>I ruoli decidono cosa includono o ignorano le mappe.</td><td>Marca AP temporanei come Test/nascosto, vicini come Esterno o Interferente.</td></tr>
-            <tr><td>Posizione</td><td>La diagnostica AP Dominante richiede coordinate fisiche degli AP.</td><td>Usa Imposta Posizione e clicca sulla pianta.</td></tr>
-            <tr><td>Metadata</td><td>Bande/canali attesi rendono significativi i warning setup AP.</td><td>Imposta bande attese, canali attesi e note.</td></tr>
+        <table class="gate-list">
+            <tr><td class="gate-row"><b>1. Appartenenza Gruppo</b><br>SSID guest/main e radio multiple dello stesso AP fisico dovrebbero stare nello stesso gruppo AP. Separa o sposta BSSID quando il suggerimento automatico è sbagliato.</td></tr>
+            <tr><td class="gate-row"><b>2. Alias E Ruolo</b><br>Usa nomi fisici leggibili per legende, tooltip e schede PDF. Marca AP temporanei come Test/nascosto, vicini come Esterno e dispositivi solo interferenti come Interferente.</td></tr>
+            <tr><td class="gate-row"><b>3. Posizione</b><br>La diagnostica AP Dominante richiede coordinate fisiche degli AP. Usa Imposta Posizione e clicca sulla pianta per gli AP importanti per il rilievo.</td></tr>
+            <tr><td class="gate-row"><b>4. Metadata E Modello Canale</b><br>Bande/canali attesi rendono significativi i warning setup. Gli override canale sono scelte di modellazione per mappe sensibili al canale, non etichette estetiche.</td></tr>
+            <tr><td class="gate-row"><b>5. Stato Memoria</b><br>Le righe Da Memoria o Aggiornamento Memoria vanno riviste, così i dati AP riusati non diventano ipotesi silenziose.</td></tr>
         </table>
         <h2>BSSID Manager</h2>
         <p>Gestione BSSID serve a correggere appartenenza dei BSSID senza ricostruire tutto manualmente. Usa il filtro Mostra per vedere tutti i BSSID, solo il gruppo corrente, altri gruppi, non assegnati, selezionati o BSSID con warning. I filtri banda, canale e ricerca isolano una radio o un canale problematico.</p>
-        <table>
-            <tr><th>Azione</th><th>Uso</th></tr>
-            <tr><td>Seleziona Visibili / Deseleziona Visibili / Inverti Visibili</td><td>Selezione massiva delle righe attualmente filtrate.</td></tr>
-            <tr><td>Nuovo Gruppo</td><td>Crea un nuovo gruppo AP manuale dai BSSID selezionati.</td></tr>
-            <tr><td>Sposta Righe</td><td>Sposta i BSSID selezionati in un altro gruppo AP esistente.</td></tr>
+        <table class="survey-grid">
+            <tr>
+                <td class="survey-card"><b>Filtra L'Evidenza</b><br>Scope, banda, canale e ricerca isolano una radio, un canale problematico o un set di BSSID non assegnati.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>Seleziona In Blocco</b><br>Seleziona Visibili, Deseleziona Visibili e Inverti Visibili operano solo sulle righe attualmente filtrate.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>Sposta O Separa</b><br>Nuovo Gruppo crea un gruppo AP manuale. Sposta Righe sposta i BSSID selezionati nel gruppo AP scelto.</td>
+            </tr>
         </table>
         <h2>Ruoli</h2>
-        <table>
-            <tr><th>Ruolo</th><th>Effetto</th></tr>
-            <tr><td>Interno</td><td>AP normale usato per copertura, AP dominante e interferenza.</td></tr>
-            <tr><td>Esterno</td><td>AP vicino o esterno. Utile come contesto, ma non parte del modello interno pianificato.</td></tr>
-            <tr><td>Interferente</td><td>AP che vuoi soprattutto tracciare come sorgente di interferenza.</td></tr>
-            <tr><td>Test/nascosto</td><td>Escluso dall'analisi utente per non far distorcere mappe da AP temporanei o nascosti.</td></tr>
+        <table class="workflow-grid">
+            <tr>
+                <td class="workflow-card"><b>Interno</b><br>AP normale usato per copertura, AP dominante e interferenza.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Esterno</b><br>AP vicino o esterno. Utile come contesto, ma non parte del modello interno pianificato.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap"></td><td></td><td></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Interferente</b><br>AP che vuoi soprattutto tracciare come sorgente di interferenza.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Test/nascosto</b><br>Escluso dall'analisi utente per non far distorcere mappe da AP temporanei o nascosti.</td>
+            </tr>
         </table>
         <h2>Metadata E Override Canale</h2>
         <p>Bande/canali attesi sono regole di validazione. L'override del canale di analisi è diverso: è una scelta esplicita di modellazione usata dalle mappe sensibili al canale quando il rilievo ha osservato un cambio canale pulito o ambiguo.</p>
-        <table>
-            <tr><th>Campo Metadata</th><th>Uso</th></tr>
-            <tr><td>Vendor / Modello / Montaggio / Note</td><td>Documentazione e contesto di revisione. Il montaggio non è ancora usato come formula RF.</td></tr>
-            <tr><td>Bande Attese</td><td>Aiuta a rilevare AP osservati su bande non previste, incluso 6 GHz quando esiste evidenza banda/frequenza.</td></tr>
-            <tr><td>Canali Attesi</td><td>Crea warning setup quando i canali osservati non coincidono con l'operazione prevista.</td></tr>
-            <tr><td>Override Canale Analisi</td><td>Forza le mappe sensibili al canale a usare il canale selezionato per quel gruppo AP e banda.</td></tr>
+        <table class="workflow-grid">
+            <tr>
+                <td class="workflow-card"><b>Campi Di Documentazione</b><br>Vendor, modello, montaggio e note sono contesto di revisione. Il montaggio non è ancora usato come formula RF.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Campi Di Validazione</b><br>Bande attese e canali attesi rilevano AP osservati su bande o canali non previsti, incluso 6 GHz quando esiste evidenza di frequenza.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap"></td><td></td><td></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Override Canale Analisi</b><br>Forza le mappe sensibili al canale a usare il canale osservato selezionato per quel gruppo AP e banda.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Regola Del Selettore</b><br>Il selettore elenca solo i canali realmente osservati per quel gruppo AP/banda. Se una banda non è stata osservata, l'override è disattivato e mostra Non Rilevata.</td>
+            </tr>
         </table>
-        <p>Il selettore override canale analisi elenca solo i canali realmente osservati per quel gruppo AP/banda. Se una banda non è stata osservata sul gruppo, il controllo override di quella banda è disattivato e mostra Non Rilevata.</p>
         <h2>Cambi Canale Puliti</h2>
-        <p>Se lo stesso gruppo AP/set BSSID passa pulitamente da un canale a un altro durante il rilievo, AP Group non lo tratta come conflitto BSSID. Interferenza e Canali AP usano di default il canale più recente. Usa override solo quando sai che il canale operativo previsto è diverso.</p>
+        <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Comportamento Mappa Di Default</span><br>Se lo stesso gruppo AP/set BSSID passa pulitamente da un canale a un altro durante il rilievo, AP Group non lo tratta come conflitto BSSID. Interferenza e Canali AP usano di default il canale più recente.</td></tr></table>
+        <table class="callout-table"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Quando Usare Override</span><br>Usa override solo quando sai che il canale operativo previsto è diverso dallo stato osservato nel rilievo, per esempio dopo riavvii schedulati degli AP.</td></tr></table>
         <h2>Memoria AP</h2>
         <p>Memoria AP è automatica. Il programma salva i dati revisionati dei Gruppi AP in un file persistente e li applica ai rilievi successivi dopo il normale raggruppamento BSSID quando rivede BSSID già noti.</p>
-        <table>
-            <tr><th>Stato</th><th>Significato</th><th>Azione</th></tr>
-            <tr><td>Da Memoria</td><td>Alias, ruolo, metadata, override o posizione mappa compatibile sono stati applicati da Memoria AP.</td><td>Rivedi la riga, poi usa Memoria &gt; Conferma Selezionato o Conferma Tutti Da Memoria.</td></tr>
-            <tr><td>Memoria Da Aggiornare</td><td>I dati AP manuali correnti sono diversi dai dati più recenti salvati in Memoria AP.</td><td>Usa Memoria &gt; Aggiorna Selezionato Da Memoria quando il dato salvato è più corretto.</td></tr>
-            <tr><td>Salvata</td><td>Il file Memoria AP contiene record AP riusabili.</td><td>Il footer mostra lo stato memoria; Impostazioni può aprire la cartella o svuotare la memoria con conferma.</td></tr>
+        <table class="survey-grid">
+            <tr>
+                <td class="survey-card"><b>Da Memoria</b><br>Alias, ruolo, metadata, override o posizione mappa compatibile sono stati applicati da Memoria AP. Rivedi la riga, poi usa Memoria &gt; Conferma Selezionato o Conferma Tutti Da Memoria.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>Memoria Da Aggiornare</b><br>I dati AP manuali correnti sono diversi dai dati più recenti salvati in Memoria AP. Usa Memoria &gt; Aggiorna Selezionato Da Memoria quando il dato salvato è più corretto.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>Salvata</b><br>Il file Memoria AP contiene record AP riusabili. Il footer mostra lo stato memoria; Impostazioni può aprire la cartella o svuotare la memoria con conferma.</td>
+            </tr>
         </table>
         <p>Premere <b>Salva</b> in AP Group Manager scrive il modello AP e aggiorna Memoria AP. Chiudere AP Group Manager con la X della finestra equivale ad Annulla e non salva le modifiche AP Group in sospeso.</p>
-        <table class="callout-table"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Non Usare Gli Override Per Nascondere Dati Brutti</span><br>Usali quando sai che il canale operativo corretto è diverso dallo stato osservato nel rilievo, per esempio per riavvii schedulati degli AP.</td></tr></table>
     """,
     "help_live_maps_nav": "Mappe Live",
     "help_live_maps_title": "Mappe Live E Opzioni",

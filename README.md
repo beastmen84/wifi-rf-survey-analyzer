@@ -253,6 +253,9 @@ point-table actions, and point-placement rules.
 The Survey Quality help page now mirrors the dashboard workflow with point/AP
 model layers, grouped KPI explanations, priority gates, and scalable detail
 dialog guidance.
+The AP Groups help page now explains the evidence-to-model workflow, BSSID
+Manager actions, roles, metadata, channel overrides, clean channel changes, and
+AP Memory states with compact cards instead of long reference tables.
 Help tables and callouts are rendered at full content width in the Qt Help
 Center with fixed accent columns, so highlighted blocks align consistently with
 the surrounding page.

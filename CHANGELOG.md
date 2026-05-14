@@ -26,6 +26,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   clearer sidecar/relevant-SSID/point-placement guidance.
 - Survey Quality Help now reads as a dashboard guide with two decision layers,
   grouped KPI cards, prioritized fix gates, and scalable detail-dialog guidance.
+- AP Groups Help now reads as an evidence-to-model guide with compact cards for
+  BSSID management, roles, metadata, channel overrides, clean channel changes,
+  and AP Memory states.
 - Help Center tables and callouts now normalize to full content width in the Qt
   renderer, callout accent columns keep a fixed Qt-compatible width, and scanner
   backend labels are plain table text instead of badges.
