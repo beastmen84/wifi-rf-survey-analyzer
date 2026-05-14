@@ -243,10 +243,13 @@ The app includes a Help Center with structured sections for:
 This help content is implemented in English and Italian. The remaining beta
 work is a calm visual/content review in the running app, not a missing feature.
 The Help Center now documents AP Memory review states, confirmation/update
-actions, settings access, and AP Group Manager save behavior. The recommended
-workflow page uses visual step cards and decision-gate rows with consistent
-page margins, tuned for the Qt Help renderer. The main toolbar follows the same
-validation order by placing Survey Quality before AP Groups.
+actions, settings access, and AP Group Manager save behavior. Its non-control
+pages describe the current Qt workflow in more detail: survey screen boxes,
+Survey Quality actions, AP Group Manager layers, BSSID management, metadata,
+Live Map options, PDF export behavior, warning diagnostics, and glossary terms.
+The recommended workflow page uses visual step cards and decision-gate rows
+with consistent page margins, tuned for the Qt Help renderer. The main toolbar
+follows the same validation order by placing Survey Quality before AP Groups.
 
 ## Project Structure
 

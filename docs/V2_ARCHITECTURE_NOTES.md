@@ -47,9 +47,12 @@ Current status:
 - Help content and structure have an expanded V2 Help Center implementation;
   the Recommended Workflow page has received the first visual-density polish
   pass with step cards, decision-gate rows and Qt-compatible accent-column
-  callouts; spacing, vertical card gaps and page margins are tuned for the limitations of
-  QTextBrowser; remaining closeout is continued user review of the other pages
-  and a short EN/IT smoke pass;
+  callouts; spacing, vertical card gaps and page margins are tuned for the
+  limitations of QTextBrowser; the non-control pages now follow the same
+  structured pattern and explain current Survey, Survey Quality, AP Group/AP
+  Memory, Live Map, PDF, warning and glossary workflows from the Qt
+  implementation; remaining closeout is user review of the Help pages in the
+  running app and a short EN/IT smoke pass;
 - the real-survey live PDF validation pass is complete for Coverage, AP
   Channels, Dominant AP and Interference; the current findings are accepted as
   real diagnostics for now rather than layout blockers;
@@ -457,8 +460,9 @@ Implemented:
   Quality Dashboard, scale calibration, generated map dialogs, live maps,
   settings/theme/language handling and start-screen behavior are available in
   Qt;
-- Help is available in first-pass form; the content/structure rework is now the
-  remaining V2 closeout item.
+- Help is available with expanded workflow-aligned content; the Controls page
+  still deserves its own final review pass, and the broader Help Center needs a
+  running-app EN/IT smoke review before V2 closeout.
 
 ### UI/Workflow Foundation
 
@@ -688,14 +692,18 @@ Implemented:
   PDF Reports, Warnings and Glossary;
 - detailed workflow gates, point capture guidance, raw sidecar/aggregation,
   scanner backend behavior and relevant SSID logic;
+- survey screen boxes, point-table actions and saved/raw data meaning;
 - Survey Quality KPI meanings, "what to fix next" guidance, AP setup
-  diagnostics and point-rescan recommendations;
-- AP Group review areas, roles, metadata, clean/ambiguous channel changes and
-  manual analysis-channel override;
-- Live Map option behavior, map-specific interpretation limits and channel
-  change handling;
-- live PDF report pages, numbered callouts, pre-export checks and when warnings
-  are diagnostics rather than survey errors;
+  diagnostics, dashboard controls, scalable detail dialogs and point-rescan
+  recommendations;
+- AP Group Manager layers, filters, BSSID management, roles, metadata,
+  AP Memory states, clean/ambiguous channel changes and manual
+  analysis-channel override;
+- Live Map toolbar/options behavior, map-type-specific controls, option memory,
+  interpretation limits and channel-change handling;
+- PDF report structure, live-export save behavior, numbered callouts,
+  map-type page rules and when warnings are diagnostics rather than survey
+  errors;
 - warning troubleshooting patterns and expanded glossary;
 - EN/IT translations and tests for section availability.
 - AP Memory clear/delete confirmations now use the same themed Qt dialog styling
@@ -709,6 +717,12 @@ Implemented:
   modern left-border styling on block elements. The workflow cards use explicit
   spacer cells and the same full content width as the other blocks so margins
   line up while preserving a central gap.
+- The non-control Help pages now use the same table/callout pattern and were
+  checked against the current Qt code behavior instead of older text notes.
+  Coverage includes Survey boxes/actions, Quality controls, AP Group Manager
+  layers, BSSID Manager, AP Memory confirm/update states, metadata channel
+  override limits, Live Map option visibility, PDF export behavior, warning
+  troubleshooting and glossary terms.
 
 Remaining closeout:
 
@@ -721,8 +735,9 @@ Remaining closeout:
 
 V2 closeout:
 
-1. Review the new Help Center in the running UI and polish wording/formatting.
-2. Do a short EN/IT Help and UI smoke pass after the Help rework.
+1. Review the new Help Center in the running UI and polish wording/formatting,
+   with the Controls page treated as its own pass.
+2. Do a short EN/IT Help and UI smoke pass after the Help review.
 3. Tag the current V2 behavior as complete unless the smoke pass exposes a real
    workflow issue.
 
