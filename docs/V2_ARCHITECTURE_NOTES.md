@@ -36,6 +36,9 @@ Current status:
   describe the user-facing survey format/workflow, avoid AI handoff references,
   avoid local-only test baselines, and prefer public roadmap wording over
   maintainer planning notes;
+- `qt_ui/qt_theme.py` is the source of truth for the active Qt palette values;
+  the old UI palette draft document has been removed from public docs to avoid
+  stale duplicated theme data;
 - the Tk to Qt migration is substantially complete;
 - the V2 functional scope is effectively closed for the current release: no
   known AP Group, live-map, PDF, quality-dashboard or core survey blocker is
