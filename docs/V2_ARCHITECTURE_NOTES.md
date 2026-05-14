@@ -1,6 +1,6 @@
 # WiFi Heatmap - V2 Architecture Notes
 
-Last updated: 2026-05-13
+Last updated: 2026-05-14
 
 This document is the forward-looking V2 roadmap. Completed items are kept only
 as context; the actionable backlog is in the "Remaining Work" section.
@@ -28,6 +28,9 @@ Current status:
 - intermediate beta release candidates should use `v0.9.0-beta.N` while the
   work remains Help/validation/polish; do not regenerate exe/ZIP for every
   commit, only when cutting an intentional release candidate;
+- `README.md` is public-facing repo documentation and should not expose internal
+  release cadence details; keep internal planning here and in
+  `docs/AI_CHAT_HISTORY.md`, with public release notes in `CHANGELOG.md`;
 - the Tk to Qt migration is substantially complete;
 - the V2 functional scope is effectively closed for the current release: no
   known AP Group, live-map, PDF, quality-dashboard or core survey blocker is

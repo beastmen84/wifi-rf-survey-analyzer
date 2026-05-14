@@ -1,6 +1,6 @@
 # AI Chat History And Project Context
 
-Last updated: 2026-05-13
+Last updated: 2026-05-14
 
 This file is the continuity handoff for future AI chats. Read it before making
 changes. It is not a full transcript: it is the technical history, decisions,
@@ -18,6 +18,9 @@ current architecture, and active rules that matter for continuing the work.
   the decision/change when the task affects status, roadmap, release behavior or
   user-facing capabilities.
 - Maintain `CHANGELOG.md` for changes between official release builds.
+- Keep `README.md` public-facing. Do not expose internal release cadence or
+  working rules there; use `docs/V2_ARCHITECTURE_NOTES.md` and this handoff for
+  internal planning.
 - Do not regenerate the executable/ZIP for every commit. Use `v0.9.0-beta.2`,
   `v0.9.0-beta.3`, etc. for incremental beta release candidates, and cut a new
   exe/ZIP only when intentionally preparing a release. The next feature-level
@@ -1204,6 +1207,10 @@ Language:
   `docs/V2_ARCHITECTURE_NOTES.md`, and this handoff kept aligned at every
   meaningful step. AP Group metadata export/import is deferred, but should be
   treated as a `v0.9.1-beta.1` candidate rather than immediate work.
+- Adjusted README scope after user review: keep internal release cadence out of
+  public repo documentation. README now only states public semantic versioning
+  and points to `CHANGELOG.md`; internal cadence remains in V2 notes and this
+  handoff.
 
 Recent commits:
 

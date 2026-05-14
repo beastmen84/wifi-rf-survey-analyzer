@@ -330,19 +330,12 @@ Recommended GitHub release settings for the current build:
 
 ## Versioning And Changelog
 
-`CHANGELOG.md` tracks changes between official release builds.
+Public releases use semantic version tags. `CHANGELOG.md` tracks user-facing
+changes between official release builds.
 
-Release cadence:
+Current release:
 
-- use `v0.9.0-beta.2`, `v0.9.0-beta.3`, and so on for incremental beta release
-  candidates while Help review and office validation continue;
-- do not rebuild the executable/ZIP for every commit;
-- rebuild `exe` and release ZIP only when intentionally cutting a release
-  candidate;
-- reserve `v0.9.1-beta.1` for the next feature-level beta, currently expected
-  to focus on AP Group metadata export/import;
-- reserve `v1.0.0` for the first stable release after Help polish and complete
-  office validation.
+- `v0.9.0-beta.1`
 
 ## Roadmap
 
@@ -352,7 +345,7 @@ Before `v1.0.0`:
 - run a full office validation pass on real data;
 - fix only concrete issues found during that review/test cycle.
 
-Planned `v0.9.1 beta` feature candidate:
+Potential near-term feature:
 
 - AP Profile Library: export/import AP Group metadata between surveys, apply
   trusted BSSID matches automatically where safe, flag imported metadata for
