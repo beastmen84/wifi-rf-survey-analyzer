@@ -31,6 +31,10 @@ Current status:
 - `README.md` is public-facing repo documentation and should not expose internal
   release cadence details; keep internal planning here and in
   `docs/AI_CHAT_HISTORY.md`, with public release notes in `CHANGELOG.md`;
+- public README wording should avoid internal-only labels where possible:
+  describe the user-facing survey format/workflow, avoid AI handoff references,
+  avoid local-only test baselines, and prefer public roadmap wording over
+  maintainer planning notes;
 - the Tk to Qt migration is substantially complete;
 - the V2 functional scope is effectively closed for the current release: no
   known AP Group, live-map, PDF, quality-dashboard or core survey blocker is

@@ -20,7 +20,9 @@ current architecture, and active rules that matter for continuing the work.
 - Maintain `CHANGELOG.md` for changes between official release builds.
 - Keep `README.md` public-facing. Do not expose internal release cadence or
   working rules there; use `docs/V2_ARCHITECTURE_NOTES.md` and this handoff for
-  internal planning.
+  internal planning. Avoid internal-only wording in README such as AI handoff
+  references, local test baselines, private release cadence or maintainer-only
+  planning details.
 - Do not regenerate the executable/ZIP for every commit. Use `v0.9.0-beta.2`,
   `v0.9.0-beta.3`, etc. for incremental beta release candidates, and cut a new
   exe/ZIP only when intentionally preparing a release. The next feature-level
@@ -1211,6 +1213,10 @@ Language:
   public repo documentation. README now only states public semantic versioning
   and points to `CHANGELOG.md`; internal cadence remains in V2 notes and this
   handoff.
+- Performed a fuller README public-facing pass after user follow-up: removed or
+  softened internal labels such as V2 internals, office-validation wording, AI
+  handoff references, local-only test baseline, GitHub release-setting bullets
+  and post-V2 phrasing.
 
 Recent commits:
 

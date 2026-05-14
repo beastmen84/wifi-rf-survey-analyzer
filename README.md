@@ -13,15 +13,13 @@ the survey before trusting maps, and export explainable RF reports.
 - Release type: beta / pre-release.
 - Active UI: PySide6.
 - Main entry point: `main.py`.
-- Current survey format: V2 CSV plus a linked `.scan` raw-data sidecar.
+- Current survey format: CSV plus a linked `.scan` raw-data sidecar.
 - Legacy Tkinter UI and the old generated PNG/CSV map export are no longer part
   of the active workflow.
-- `V2` is the internal architecture and survey-format generation. Public
-  releases use semantic tags such as `v0.9.0-beta.1` and, later, `v1.0.0`.
 
-The current beta is intended to validate the completed V2 workflow. A stable
-`v1.0.0` should wait for final Help Center review/polish and a full office
-validation pass on real data.
+The current beta is intended for real-world validation of the current Qt
+workflow. A stable `v1.0.0` will follow after the Help Center review and broader
+field testing are complete.
 
 ## What It Does
 
@@ -37,11 +35,11 @@ validation pass on real data.
 - Renders live Coverage, Interference, AP Channels, and Dominant AP maps.
 - Exports the current live map to PDF, including issue-report pages where the
   map type has diagnostics.
-- Provides an expanded V2 Help Center in English and Italian.
+- Provides an expanded Help Center in English and Italian.
 
 ## Main Workflow
 
-1. Start a new survey or open an existing V2 survey CSV.
+1. Start a new survey or open an existing survey CSV.
 2. Load a floor plan image or PDF.
 3. Calibrate scale when real-world distances matter.
 4. Select relevant SSIDs for quality checks and focused analysis.
@@ -209,7 +207,7 @@ Map-specific PDF behavior:
 
 ## Help Center
 
-The app includes a V2 Help Center with structured sections for:
+The app includes a Help Center with structured sections for:
 
 - recommended survey workflow;
 - map controls;
@@ -237,7 +235,7 @@ survey/                 survey CSV and raw sidecar persistence
 translations/           language dictionaries and i18n helpers
 wifi/                   scanner backends, band helpers, signal conversion
 tests/                  unit and UI-level regression tests
-docs/                   architecture notes and AI handoff history
+docs/                   architecture notes and release documentation
 ```
 
 ## Installation
@@ -283,12 +281,6 @@ Run the full test suite:
 python -m pytest tests
 ```
 
-Current local baseline:
-
-```text
-198 passed
-```
-
 Useful focused test groups:
 
 ```bash
@@ -312,7 +304,7 @@ Output:
 dist/WifiHeatmap/WifiHeatmap.exe
 ```
 
-For GitHub Releases, publish the zipped PyInstaller `onedir` folder:
+For distribution, publish the zipped PyInstaller `onedir` folder:
 
 ```text
 dist/WifiHeatmap-v0.9.0-beta.1-win64.zip
@@ -321,12 +313,6 @@ dist/WifiHeatmap-v0.9.0-beta.1-win64.zip
 The `onedir` format is intentional for this PySide6/scientific stack. It starts
 faster than `onefile`, avoids extracting a large app to a temp directory on each
 run, and tends to be less fragile with Qt plugins and antivirus heuristics.
-
-Recommended GitHub release settings for the current build:
-
-- tag: `v0.9.0-beta.1`;
-- mark as pre-release;
-- attach `WifiHeatmap-v0.9.0-beta.1-win64.zip`.
 
 ## Versioning And Changelog
 
@@ -342,7 +328,7 @@ Current release:
 Before `v1.0.0`:
 
 - review and polish the Help Center in the running UI;
-- run a full office validation pass on real data;
+- run broader real-world validation on operational survey data;
 - fix only concrete issues found during that review/test cycle.
 
 Potential near-term feature:
@@ -351,7 +337,7 @@ Potential near-term feature:
   trusted BSSID matches automatically where safe, flag imported metadata for
   review, and avoid overwriting user-edited values without confirmation.
 
-Post-V2 / post-1.0 expansion candidates:
+Future expansion candidates:
 
 - combined survey report across multiple live-map views;
 - deeper AP metadata diagnostics where the rule is clear;
@@ -359,7 +345,7 @@ Post-V2 / post-1.0 expansion candidates:
 - AP physical/radio/BSSID model refinement if real deployments require it;
 - performance tuning only after larger real surveys expose measurable lag.
 
-Two larger product ideas are intentionally kept out of the current beta scope:
+Two larger product ideas are intentionally kept out of the current beta:
 
 - AI Advisor: an analysis panel beside each live map that reviews the survey
   evidence and proposes actionable RF changes, such as channel-width or channel
