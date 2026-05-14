@@ -229,7 +229,7 @@ class SettingsMenuTests(unittest.TestCase):
             self.assertIn("left-click_2.png", sections[1].body_html)
             self.assertIn("Ctrl + Wheel", sections[1].body_html)
             self.assertIn("Shift + Wheel", sections[1].body_html)
-            self.assertIn("wifi.png", sections[1].body_html)
+            self.assertNotIn("wifi.png", sections[1].body_html)
             self.assertNotIn("middle-click.png", sections[1].body_html)
             self.assertIn("Decision Gates", sections[0].body_html)
             self.assertIn("workflow-grid", sections[0].body_html)

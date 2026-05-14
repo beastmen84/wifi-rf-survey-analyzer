@@ -249,7 +249,8 @@ survey screen boxes, Survey Quality actions, AP Group Manager layers, BSSID
 management, metadata, Live Map options, PDF export behavior, warning
 diagnostics, and glossary terms.
 The Controls help page separates left click from left-click drag and shows
-Ctrl/Shift as wheel modifiers rather than standalone map actions.
+Ctrl/Shift as wheel modifiers rather than standalone map actions; Shift +
+wheel is implemented as horizontal pan for map views.
 The Survey help page uses compact summary cards for the main screen boxes and
 explicitly explains relevant SSIDs, the `.scan` sidecar, scanner backend choice,
 point-table actions, and point-placement rules.

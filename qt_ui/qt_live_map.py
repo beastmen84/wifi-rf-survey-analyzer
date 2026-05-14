@@ -473,6 +473,13 @@ class LiveMapView(QGraphicsView):
                 self.zoom_out()
             event.accept()
             return
+        if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+            delta = event.angleDelta().y() or event.angleDelta().x()
+            if delta:
+                scroll_bar = self.horizontalScrollBar()
+                scroll_bar.setValue(scroll_bar.value() - delta)
+                event.accept()
+                return
 
         super().wheelEvent(event)
 

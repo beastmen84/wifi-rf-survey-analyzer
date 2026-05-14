@@ -731,7 +731,9 @@ Implemented:
   line up while preserving a central gap.
 - The Controls Help page now separates simple left click from left-click drag
   and displays Ctrl/Shift as modifier combinations with the wheel instead of
-  standalone actions.
+  standalone actions. Shift + wheel now pans map views horizontally so the help
+  page matches implemented behavior, and the Wi-Fi/AP marker is no longer shown
+  as a control.
 - The non-control Help pages now use the same table/callout pattern and were
   checked against the current Qt code behavior instead of older text notes.
   Coverage includes Survey boxes/actions, Quality controls, AP Group Manager

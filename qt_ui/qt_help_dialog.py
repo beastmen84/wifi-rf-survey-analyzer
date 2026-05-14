@@ -170,7 +170,6 @@ def build_controls_body(parent, tr):
         (("scroll.png",), tr("help_control_scroll_title"), tr("help_control_scroll_text")),
         (("ctrl.png", "scroll.png"), tr("help_control_ctrl_title"), tr("help_control_ctrl_text")),
         (("shift.png", "scroll.png"), tr("help_control_shift_title"), tr("help_control_shift_text")),
-        (("wifi.png",), tr("help_control_wifi_title"), tr("help_control_wifi_text")),
     ]
 
     cells = []

@@ -19,8 +19,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   no longer crowd the scrollbar and the sequence reads less like a heavy table.
 - Recommended Workflow blocks now share the same left and right content margins.
 - Recommended Workflow card rows use a tighter vertical gap.
-- Controls Help now separates left click from left-click drag and shows
-  Ctrl/Shift as wheel-modifier combinations rather than standalone actions.
+- Controls Help now separates left click from left-click drag, removes the AP
+  Wi-Fi marker from the controls list, and shows Ctrl/Shift as implemented
+  wheel-modifier combinations.
 - Help Center non-control sections now use the same visual/content pattern and
   document the current Survey, Quality, AP Group, AP Memory, Live Map, PDF,
   warning, and glossary workflows from the Qt implementation.
