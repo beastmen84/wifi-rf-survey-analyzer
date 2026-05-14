@@ -251,7 +251,8 @@ The Survey help page uses compact summary cards for the main screen boxes and
 explicitly explains relevant SSIDs, the `.scan` sidecar, scanner backend choice,
 point-table actions, and point-placement rules.
 Help tables and callouts are rendered at full content width in the Qt Help
-Center so highlighted blocks align consistently with the surrounding page.
+Center with fixed accent columns, so highlighted blocks align consistently with
+the surrounding page.
 The recommended workflow page uses visual step cards and decision-gate rows
 with consistent page margins, tuned for the Qt Help renderer. The main toolbar
 follows the same validation order by placing Survey Quality before AP Groups.

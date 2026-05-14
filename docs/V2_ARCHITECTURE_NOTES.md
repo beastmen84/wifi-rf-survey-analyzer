@@ -731,8 +731,10 @@ Implemented:
   highlighted field-rule block.
 - The Help renderer now normalizes tables to full content width with
   Qt-compatible width/cell spacing attributes, so tables and callouts do not end
-  at the text length or crowd the scrollbar. Scanner backend names on the
-  Survey page are plain table text rather than badge-style highlights.
+  at the text length or crowd the scrollbar. Callout accent cells also receive
+  explicit HTML widths so list-heavy callouts keep the same slim left accent as
+  simple one-line callouts. Scanner backend names on the Survey page are plain
+  table text rather than badge-style highlights.
 
 Remaining closeout:
 

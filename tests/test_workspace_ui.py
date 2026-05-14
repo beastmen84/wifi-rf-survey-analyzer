@@ -267,6 +267,7 @@ class SettingsMenuTests(unittest.TestCase):
             self.assertIn('<table class="survey-grid" width="100%" cellspacing="0" cellpadding="0">', survey_html)
             self.assertIn('<table width="100%" cellspacing="0" cellpadding="0">', survey_html)
             self.assertIn('<table class="callout-table" width="100%" cellspacing="0" cellpadding="0">', survey_html)
+            self.assertIn('class="callout-accent-good" width="6">&nbsp;</td>', survey_html)
             self.assertNotIn("class=\"pill\"", survey_html)
         finally:
             window.deleteLater()

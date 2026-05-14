@@ -25,7 +25,8 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 - Survey Help now uses compact summary cards for survey screen boxes and
   clearer sidecar/relevant-SSID/point-placement guidance.
 - Help Center tables and callouts now normalize to full content width in the Qt
-  renderer, and scanner backend labels are plain table text instead of badges.
+  renderer, callout accent columns keep a fixed Qt-compatible width, and scanner
+  backend labels are plain table text instead of badges.
 - Help Center now documents AP Memory review states, confirm/update workflows,
   settings access, and AP Group Manager save behavior.
 - Possible future AP Memory management view only if larger repeat-survey usage

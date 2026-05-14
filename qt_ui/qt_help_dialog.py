@@ -22,6 +22,10 @@ from qt_ui.scaling import widget_font, widget_px
 
 IMAGES_DIR = Path(__file__).resolve().parent.parent / "images"
 _TABLE_TAG_RE = re.compile(r"<table(?P<attrs>[^>]*)>", re.IGNORECASE)
+_CALLOUT_ACCENT_TD_RE = re.compile(
+    r"<td(?P<attrs>[^>]*\bclass=\"callout-accent-(?:info|good|warning|danger)\"[^>]*)>\s*</td>",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -208,7 +212,7 @@ def build_help_html(parent, palette, section):
     padding = widget_px(parent, 18)
     right_padding = padding + widget_px(parent, 14)
 
-    body_html = normalize_help_tables(section.body_html)
+    body_html = normalize_help_tables(section.body_html, callout_accent_width=widget_px(parent, 6))
 
     return f"""
     <html>
@@ -473,7 +477,7 @@ def build_help_html(parent, palette, section):
     """
 
 
-def normalize_help_tables(body_html):
+def normalize_help_tables(body_html, callout_accent_width=6):
     def replace(match):
         attrs = match.group("attrs") or ""
         lower_attrs = attrs.lower()
@@ -488,7 +492,14 @@ def normalize_help_tables(body_html):
             attrs = f"{attrs} {' '.join(additions)}"
         return f"<table{attrs}>"
 
-    return _TABLE_TAG_RE.sub(replace, body_html)
+    def replace_callout_accent(match):
+        attrs = match.group("attrs") or ""
+        if "width=" not in attrs.lower():
+            attrs = f'{attrs} width="{callout_accent_width}"'
+        return f"<td{attrs}>&nbsp;</td>"
+
+    normalized_html = _TABLE_TAG_RE.sub(replace, body_html)
+    return _CALLOUT_ACCENT_TD_RE.sub(replace_callout_accent, normalized_html)
 
 
 def apply_help_dialog_style(dialog, parent, palette):
