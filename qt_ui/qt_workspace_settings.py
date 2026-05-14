@@ -10,6 +10,7 @@ from app_core.logging import log_event, log_exception
 from app_core.restart import start_replacement_process
 from app_core.settings import save_theme, save_ui_scale
 from translations.i18n import LANGUAGE_OPTIONS, normalize_language
+from qt_ui.qt_settings_memory import add_ap_memory_settings_section
 from qt_ui.qt_theme import QT_THEME_OPTIONS, QT_THEMES
 from qt_ui.qt_windowing import SKIP_CENTERING_PROPERTY
 from qt_ui.scaling import (
@@ -132,8 +133,9 @@ class WorkspaceSettingsMixin:
         )
         language_combo.currentIndexChanged.connect(lambda _index: self.change_language(language_combo.currentData()))
         self.add_settings_row(layout, self.tr("language"), language_combo)
+        add_ap_memory_settings_section(self, layout)
 
-        menu_width = self.spx(230)
+        menu_width = self.spx(250)
         dialog.setMinimumWidth(menu_width)
         dialog.adjustSize()
         position = self.settings_menu_button.mapToGlobal(

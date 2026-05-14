@@ -144,7 +144,9 @@ the AP data. If a previously manual AP Group has different saved data available
 in AP Memory, AP Group Manager marks it as a memory update candidate and offers
 an explicit "Update From Memory" action. The workspace footer shows whether AP
 Memory is empty, saved, or has memory-applied groups still waiting for
-confirmation.
+confirmation. The AP Group Manager toolbar groups memory actions under a
+dedicated Memory menu, and the Settings popup can open the AP Memory folder or
+clear AP Memory with a destructive-action confirmation.
 
 ## Survey Quality
 

@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QHeaderView,
+    QMenu,
     QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
@@ -281,26 +282,41 @@ class APGroupManagerDialog(QDialog):
 
         action_row = QHBoxLayout()
         action_row.setSpacing(widget_px(self, 6))
-        self.reset_button = QPushButton(self.tr("ap_groups_reset_auto"))
+        self.memory_button = QPushButton(self.tr("ap_group_memory_menu"))
+        self.memory_menu = QMenu(self.memory_button)
+        self.confirm_memory_selected_action = self.memory_menu.addAction(self.tr("ap_group_confirm_memory_selected"))
+        self.confirm_memory_all_action = self.memory_menu.addAction(self.tr("ap_group_confirm_memory_all"))
+        self.memory_menu.addSeparator()
+        self.update_memory_selected_action = self.memory_menu.addAction(self.tr("ap_group_update_memory_selected"))
+        self.memory_button.setMenu(self.memory_menu)
+
         self.bssid_management_button = QPushButton(self.tr("ap_group_bssid_management"))
-        self.conflict_button = QPushButton(self.tr("ap_group_conflict_details"))
-        self.confirm_memory_button = QPushButton(self.tr("ap_group_confirm_memory"))
-        self.update_memory_button = QPushButton(self.tr("ap_group_update_from_memory"))
-        self.alias_button = QPushButton(self.tr("ap_group_set_alias"))
-        self.delete_alias_button = QPushButton(self.tr("ap_group_delete_alias"))
+        self.alias_button = QPushButton(self.tr("ap_group_alias_menu"))
+        self.alias_menu = QMenu(self.alias_button)
+        self.set_alias_action = self.alias_menu.addAction(self.tr("ap_group_set_alias"))
+        self.delete_alias_action = self.alias_menu.addAction(self.tr("ap_group_delete_alias"))
+        self.alias_button.setMenu(self.alias_menu)
+
         self.role_button = QPushButton(self.tr("ap_group_set_role"))
         self.metadata_button = QPushButton(self.tr("ap_group_metadata"))
         self.position_button = QPushButton(self.tr("ap_group_set_position"))
+        self.conflict_button = QPushButton(self.tr("ap_group_conflict_details"))
+        self.reset_button = QPushButton(self.tr("ap_groups_reset_auto"))
         self.save_button = QPushButton(self.tr("save"))
         self.cancel_button = QPushButton(self.tr("cancel"))
 
         self.reset_button.clicked.connect(self.reset_groups_to_auto)
         self.bssid_management_button.clicked.connect(self.open_bssid_group_dialog_for_selected_group)
         self.conflict_button.clicked.connect(self.open_conflict_dialog_for_selected_group)
-        self.confirm_memory_button.clicked.connect(self.confirm_memory_for_selected_group)
-        self.update_memory_button.clicked.connect(self.update_from_memory_for_selected_group)
-        self.alias_button.clicked.connect(self.prompt_alias_for_selected_group)
-        self.delete_alias_button.clicked.connect(self.delete_alias_for_selected_group)
+        self.confirm_memory_selected_action.triggered.connect(
+            lambda _checked=False: self.confirm_memory_for_selected_group()
+        )
+        self.confirm_memory_all_action.triggered.connect(lambda _checked=False: self.confirm_all_memory_groups())
+        self.update_memory_selected_action.triggered.connect(
+            lambda _checked=False: self.update_from_memory_for_selected_group()
+        )
+        self.set_alias_action.triggered.connect(lambda _checked=False: self.prompt_alias_for_selected_group())
+        self.delete_alias_action.triggered.connect(lambda _checked=False: self.delete_alias_for_selected_group())
         self.role_button.clicked.connect(self.prompt_role_for_selected_group)
         self.metadata_button.clicked.connect(self.open_metadata_dialog_for_selected_group)
         self.position_button.clicked.connect(self.start_positioning_for_selected_group)
@@ -308,20 +324,24 @@ class APGroupManagerDialog(QDialog):
         self.cancel_button.clicked.connect(self.reject)
 
         for button in (
-            self.reset_button,
+            self.memory_button,
             self.bssid_management_button,
-            self.conflict_button,
-            self.confirm_memory_button,
-            self.update_memory_button,
             self.alias_button,
-            self.delete_alias_button,
             self.role_button,
             self.metadata_button,
             self.position_button,
         ):
             self.prepare_action_button(button)
             action_row.addWidget(button)
+
+        action_row.insertWidget(1, self.create_toolbar_separator())
         action_row.addStretch(1)
+        for button in (
+            self.conflict_button,
+            self.reset_button,
+        ):
+            self.prepare_action_button(button)
+            action_row.addWidget(button)
         footer_layout.addLayout(action_row)
 
         commit_row = QHBoxLayout()
@@ -453,6 +473,30 @@ class APGroupManagerDialog(QDialog):
             QFrame#apDialogFooter {{
                 background: {palette["bg"]};
             }}
+            QFrame#apDialogToolbarSeparator {{
+                background: {palette["border"]};
+                border: 0;
+                min-width: {s(1)}px;
+                max-width: {s(1)}px;
+                margin-left: {s(2)}px;
+                margin-right: {s(2)}px;
+            }}
+            QMenu {{
+                background: {palette["panel"]};
+                color: {palette["text"]};
+                border: 1px solid {palette["border"]};
+                padding: {s(4)}px;
+            }}
+            QMenu::item {{
+                padding: {s(6)}px {s(22)}px {s(6)}px {s(10)}px;
+                border-radius: {s(4)}px;
+            }}
+            QMenu::item:selected {{
+                background: {palette["button_hover"]};
+            }}
+            QMenu::item:disabled {{
+                color: {palette["muted"]};
+            }}
             QPushButton#apDialogActionButton, QPushButton#apDialogPrimaryButton {{
                 min-width: 0;
                 background: {palette["button_bg"]};
@@ -485,6 +529,12 @@ class APGroupManagerDialog(QDialog):
             button.setObjectName("apDialogActionButton")
         button.setMinimumWidth(0)
         button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+
+    def create_toolbar_separator(self):
+        separator = QFrame()
+        separator.setObjectName("apDialogToolbarSeparator")
+        separator.setFrameShape(QFrame.Shape.VLine)
+        return separator
 
     def configure_table_columns(self):
         header = self.table.horizontalHeader()
@@ -809,15 +859,22 @@ class APGroupManagerDialog(QDialog):
     def update_action_state(self):
         group = self.selected_group()
         has_group = group is not None
+        has_selected_memory = bool(group and group_has_memory_flag(group))
+        has_selected_memory_update = bool(group and self.group_has_memory_update(group))
+        has_any_memory = any(group_has_memory_flag(item) for item in self.groups)
+        has_memory_action = has_selected_memory or has_selected_memory_update or has_any_memory
+        self.memory_button.setEnabled(has_memory_action)
+        self.confirm_memory_selected_action.setEnabled(has_selected_memory)
+        self.confirm_memory_all_action.setEnabled(has_any_memory)
+        self.update_memory_selected_action.setEnabled(has_selected_memory_update)
         self.bssid_management_button.setEnabled(has_group)
         self.alias_button.setEnabled(has_group)
+        self.set_alias_action.setEnabled(has_group)
         self.role_button.setEnabled(has_group)
         self.metadata_button.setEnabled(has_group)
         self.position_button.setEnabled(has_group)
-        self.delete_alias_button.setEnabled(bool(group and group.get("alias")))
+        self.delete_alias_action.setEnabled(bool(group and group.get("alias")))
         self.conflict_button.setEnabled(bool(group and self.group_conflicts_by_id.get(group["group_id"])))
-        self.confirm_memory_button.setEnabled(bool(group and group_has_memory_flag(group)))
-        self.update_memory_button.setEnabled(bool(group and self.group_has_memory_update(group)))
 
     def set_alias(self, group, value):
         group["alias"] = value.strip()
@@ -900,6 +957,25 @@ class APGroupManagerDialog(QDialog):
 
         clear_group_memory_flag(group)
         group["locked"] = True
+        self.refresh_all_group_details()
+        self.render_rows()
+
+    def confirm_all_memory_groups(self):
+        memory_groups = [group for group in self.groups if group_has_memory_flag(group)]
+        if not memory_groups:
+            return
+
+        response = QMessageBox.question(
+            self,
+            self.tr("ap_group_confirm_memory_all_title"),
+            self.tr("ap_group_confirm_memory_all_confirm", count=len(memory_groups)),
+        )
+        if response != QMessageBox.StandardButton.Yes:
+            return
+
+        for group in memory_groups:
+            clear_group_memory_flag(group)
+            group["locked"] = True
         self.refresh_all_group_details()
         self.render_rows()
 

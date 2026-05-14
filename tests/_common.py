@@ -5,12 +5,13 @@ import os
 import tempfile
 import time
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QDialog, QGraphicsItem, QGraphicsView, QListWidgetItem, QWidget
+from PySide6.QtWidgets import QApplication, QDialog, QGraphicsItem, QGraphicsView, QListWidgetItem, QMessageBox, QWidget
 from PIL import Image
 
 from app_core.logging import MaxLogLevelFilter
@@ -38,6 +39,7 @@ from ap.groups import (
 from ap.memory import (
     apply_group_memory_update,
     apply_ap_memory_to_groups,
+    clear_ap_memory,
     clear_group_memory_flag,
     count_memory_applied_groups,
     ensure_ap_memory_file,

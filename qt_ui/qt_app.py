@@ -1142,6 +1142,19 @@ class WifiHeatmapQtApp(
                 color: {palette["muted"]};
                 font-weight: 700;
             }}
+            QFrame#settingsMenuSeparator {{
+                background: {palette["border"]};
+                border: 0;
+                min-height: {s(1)}px;
+                max-height: {s(1)}px;
+                margin-top: {s(4)}px;
+            }}
+            QPushButton#settingsMenuActionButton {{
+                min-width: 0;
+                text-align: left;
+                padding: {s(6)}px {s(9)}px;
+                border-radius: {s(5)}px;
+            }}
             QComboBox QAbstractItemView {{
                 background: {palette["panel"]};
                 color: {palette["text"]};

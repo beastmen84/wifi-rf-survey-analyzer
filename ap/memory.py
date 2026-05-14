@@ -61,6 +61,10 @@ def ensure_ap_memory_file(path=None):
     return memory_path
 
 
+def clear_ap_memory(path=None):
+    return save_ap_memory(empty_ap_memory(), path)
+
+
 def load_ap_memory(path=None):
     memory_path = ensure_ap_memory_file(path)
     try:

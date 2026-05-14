@@ -8,6 +8,7 @@ from app_core.version import (
 from PySide6.QtWidgets import QPushButton
 from qt_ui.qt_help_dialog import build_help_html, build_help_sections, help_palette
 from qt_ui.qt_point_workflow import MissingRelevantNetworksDialog, PointCaptureMixin
+from qt_ui.qt_settings_memory import confirm_clear_ap_memory
 from translations.i18n import SUPPORTED_LANGUAGES
 
 
@@ -68,6 +69,34 @@ class SettingsMenuTests(unittest.TestCase):
                     window.refresh_session_labels()
                     self.assertEqual(window.memory_status_label.text(), "AP Memory: Saved (1 AP)")
                     self.assertIn("ap_memory.memory", window.memory_status_label.toolTip())
+                finally:
+                    window.deleteLater()
+        finally:
+            if previous is None:
+                os.environ.pop("WIFI_HEATMAP_AP_MEMORY_FILE", None)
+            else:
+                os.environ["WIFI_HEATMAP_AP_MEMORY_FILE"] = previous
+
+    def test_settings_clear_ap_memory_refreshes_footer_status(self):
+        previous = os.environ.get("WIFI_HEATMAP_AP_MEMORY_FILE")
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                os.environ["WIFI_HEATMAP_AP_MEMORY_FILE"] = os.path.join(temp_dir, "ap_memory.memory")
+                update_ap_memory_from_groups([
+                    build_manual_ap_group(
+                        "office-ap",
+                        ["70:4f:57:aa:bb:10"],
+                        alias="Office AP",
+                    )
+                ])
+                window = WifiHeatmapQtApp()
+                try:
+                    window.refresh_session_labels()
+                    self.assertEqual(window.memory_status_label.text(), "AP Memory: Saved (1 AP)")
+                    with patch.object(QMessageBox, "warning", return_value=QMessageBox.StandardButton.Yes):
+                        self.assertTrue(confirm_clear_ap_memory(window))
+                    self.assertEqual(get_ap_memory_summary()["group_count"], 0)
+                    self.assertEqual(window.memory_status_label.text(), "AP Memory: Empty")
                 finally:
                     window.deleteLater()
         finally:
@@ -384,7 +413,9 @@ class APGroupManagerDialogTests(unittest.TestCase):
             self.assertEqual(dialog.format_group_management_state(group), "Memory Update")
             dialog.select_group_by_id("office-ap")
             QApplication.processEvents()
-            self.assertTrue(dialog.update_memory_button.isEnabled())
+            self.assertIsNotNone(dialog.memory_button.menu())
+            self.assertTrue(dialog.update_memory_selected_action.isEnabled())
+            self.assertIsNotNone(dialog.alias_button.menu())
 
             dialog.update_from_memory_for_selected_group()
 

@@ -29,6 +29,7 @@ from app_core.restart import start_replacement_process
 from app_core.settings import get_last_survey_directory, get_saved_theme, get_saved_ui_scale, save_theme, save_ui_scale
 from app_core.version import APP_VERSION_LABEL, format_versioned_title
 from translations.i18n import DEFAULT_LANGUAGE, LANGUAGE_OPTIONS, normalize_language, translate
+from qt_ui.qt_settings_memory import add_ap_memory_settings_section
 from qt_ui.qt_theme import QT_THEME_OPTIONS, QT_THEMES, build_scrollbar_stylesheet
 from qt_ui.qt_windowing import SKIP_CENTERING_PROPERTY, get_centered_open_file_name
 from qt_ui.scaling import (
@@ -332,6 +333,25 @@ class StartWindow(QMainWindow):
                 color: {palette["muted"]};
                 font-weight: 700;
             }}
+            QFrame#settingsMenuSeparator {{
+                background: {palette["border"]};
+                border: 0;
+                min-height: {s(1)}px;
+                max-height: {s(1)}px;
+                margin-top: {s(4)}px;
+            }}
+            QPushButton#settingsMenuActionButton {{
+                min-width: 0;
+                text-align: left;
+                padding: {s(6)}px {s(9)}px;
+                border-radius: {s(5)}px;
+                background: {palette["button_bg"]};
+                color: {palette["text"]};
+                border: 1px solid {palette["border"]};
+            }}
+            QPushButton#settingsMenuActionButton:hover {{
+                background: {palette["button_hover"]};
+            }}
             QComboBox QAbstractItemView {{
                 background: {palette["panel"]};
                 color: {palette["text"]};
@@ -488,8 +508,9 @@ class StartWindow(QMainWindow):
         )
         language_combo.currentIndexChanged.connect(lambda _index: self.change_language(language_combo.currentData()))
         self.add_settings_row(layout, self.tr("language"), language_combo)
+        add_ap_memory_settings_section(self, layout)
 
-        menu_width = self.spx(230)
+        menu_width = self.spx(250)
         dialog.setMinimumWidth(menu_width)
         dialog.adjustSize()
         position = self.settings_button.mapToGlobal(

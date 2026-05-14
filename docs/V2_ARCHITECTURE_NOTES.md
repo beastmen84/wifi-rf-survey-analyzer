@@ -68,7 +68,8 @@ Current status:
   saved data, AP Group Manager marks it as a memory-update candidate and exposes
   `Update From Memory`; AP Group save seeds the memory even when the survey
   metadata itself did not change, and the workspace footer shows
-  empty/saved/to-confirm memory status;
+  empty/saved/to-confirm memory status; the Settings popup exposes AP Memory
+  folder/open and clear actions, with destructive confirmation before clearing;
 - the 2026-05-12 operational test survey is a useful baseline: all 25 points
   passed quality, all raw samples came from `lswifi`, relevant AP positions were
   complete, and the remaining findings are AP setup/anomaly diagnostics rather
@@ -232,6 +233,9 @@ Implemented:
 - user-facing `Memory Update` management state, strikethrough memory status
   marker and explicit `Update From Memory` action for manual AP groups whose
   current local metadata differs from AP Memory;
+- compact AP Group Manager footer toolbar with `Memory` and `Alias` menus,
+  a separator before the core AP editing commands, and diagnostic/reset actions
+  aligned to the right;
 - workspace footer AP Memory status with the memory file path in the tooltip;
 - per-band analysis-channel override in AP metadata for channel-sensitive maps.
   The override picker is constrained to channels actually observed for that AP
