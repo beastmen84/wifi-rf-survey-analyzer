@@ -371,7 +371,7 @@ def build_help_html(parent, palette, section):
             padding: 0;
         }}
         .workflow-grid td.workflow-vertical-gap {{
-            height: {widget_px(parent, 10)}px;
+            height: {widget_px(parent, 6)}px;
             border: 0;
             background: transparent;
             padding: 0;

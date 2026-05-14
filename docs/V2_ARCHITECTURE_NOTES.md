@@ -47,7 +47,7 @@ Current status:
 - Help content and structure have an expanded V2 Help Center implementation;
   the Recommended Workflow page has received the first visual-density polish
   pass with step cards, decision-gate rows and Qt-compatible accent-column
-  callouts; spacing and page margins are tuned for the limitations of
+  callouts; spacing, vertical card gaps and page margins are tuned for the limitations of
   QTextBrowser; remaining closeout is continued user review of the other pages
   and a short EN/IT smoke pass;
 - the real-survey live PDF validation pass is complete for Coverage, AP
