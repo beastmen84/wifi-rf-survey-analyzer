@@ -216,6 +216,7 @@ class LivePreviewMixin:
             "ap_position_distance": self.tr("ap_position_distance"),
             "ap_position_nearest": self.tr("ap_position_nearest"),
             "ap_position_analysis": self.tr("ap_position_analysis"),
+            "_measurement_system": self.measurement_system,
             "ap_position_distance_m": self.tr("ap_position_distance_m", distance="{distance}"),
             "ap_position_distance_px": self.tr("ap_position_distance_px", distance="{distance}"),
             "ap_position_ok": self.tr("ap_position_ok"),

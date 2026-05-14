@@ -97,6 +97,7 @@ def generate_live_pdf_export(
     aliases=None,
     ap_groups=None,
     px_per_meter=None,
+    measurement_system="metric",
     output_file=None,
 ):
     config = config.normalized()
@@ -136,7 +137,14 @@ def generate_live_pdf_export(
             px_per_meter,
         )
         figures.append(map_fig)
-        figures.extend(build_dominant_problem_report_pages(dominant_df, config, tr, language, aliases))
+        figures.extend(build_dominant_problem_report_pages(
+            dominant_df,
+            config,
+            tr,
+            language,
+            aliases,
+            measurement_system=measurement_system,
+        ))
     else:
         figures.append(build_live_pdf_signal_figure(df, bg_image, config, tr, language, aliases, ap_groups))
 

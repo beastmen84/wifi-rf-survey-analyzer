@@ -45,6 +45,11 @@ TRANSLATIONS = {
     "language": "Language",
     "ui_scale": "UI Scale",
     "ui_scale_auto": "Auto ({percent}%)",
+    "measurement_system": "Measurement System",
+    "measurement_system_metric": "Metric (m)",
+    "measurement_system_imperial": "Imperial (ft)",
+    "measurement_unit_metric": "meters",
+    "measurement_unit_imperial": "feet",
     "ui_scale_restart_title": "Restart Required",
     "ui_scale_restart_message": "Applying UI scale {scale} requires restarting the app.\n\nSave this choice and restart now?",
     "save_and_restart": "Save and Restart",
@@ -192,8 +197,8 @@ TRANSLATIONS = {
     "calibrate_scale_title": "Scale Calibration",
     "calibrate_scale_start": "Left-click the first point of the known real distance.",
     "calibrate_scale_second_point": "Left-click the second point of the known distance.",
-    "calibrate_scale_distance_prompt": "Real distance between the two points (meters):",
-    "calibrate_scale_saved": "Scale calibrated: {px_per_meter:.2f} px/m.",
+    "calibrate_scale_distance_prompt": "Real distance between the two points ({unit}):",
+    "calibrate_scale_saved": "Scale calibrated: {scale}.",
     "calibrate_scale_invalid": "Invalid distance.",
     "calibrate_scale_cancelled": "Scale calibration cancelled.",
     "calibrate_scale_already_set": "Scale already calibrated. Delete the current scale to recalibrate it.",
@@ -201,6 +206,7 @@ TRANSLATIONS = {
     "delete_scale_title": "Delete Scale",
     "delete_scale_confirm": "Do you want to delete the saved scale calibration for this survey?",
     "delete_scale_done": "Scale deleted. You can run a new calibration.",
+    "max_distance_unit": "Max Distance ({unit})",
     "max_distance_m": "Max Distance (m)",
     "ap_groups_title": "AP Group Manager",
     "ap_groups_hint": "Select a group and use the buttons to edit alias, role, BSSID, metadata, or position. The Management column shows whether the group is automatic or locked by manual edits.",
@@ -530,7 +536,7 @@ TRANSLATIONS = {
                 <td class="workflow-card">
                     <div class="step-label">1. Setup</div>
                     <div class="step-title">Prepare the survey</div>
-                    <p>Create or open the survey, load the plan, calibrate scale and choose relevant SSIDs.</p>
+                    <p>Create or open the survey, load the plan, choose the measurement system if needed, calibrate scale and choose relevant SSIDs.</p>
                     <div class="step-gate"><b>Move forward when:</b> the floor plan, scale and networks to judge are correct.</div>
                 </td>
                 <td class="workflow-gap"></td>
@@ -569,7 +575,7 @@ TRANSLATIONS = {
         </table>
         <h2>Decision Gates</h2>
         <div class="gate-list">
-            <div class="gate-row"><b>Distances:</b> calibrate the scale before interpreting AP-position warnings.</div>
+            <div class="gate-row"><b>Distances:</b> choose metric or imperial in settings, then calibrate the scale before interpreting AP-position warnings.</div>
             <div class="gate-row"><b>Coverage:</b> verify relevant SSIDs and point quality before trusting good or bad coverage areas.</div>
             <div class="gate-row"><b>Interference:</b> verify AP groups, roles, channel-change handling and analysis-channel overrides before trusting channel-sensitive maps.</div>
             <div class="gate-row"><b>Export:</b> open the related live map and read the warning tooltips or detail rows before generating the PDF.</div>
@@ -924,7 +930,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card"><b>Smoothing</b><br>Makes coverage/interference surfaces visually calmer.<br><span class="survey-card-use">Use Carefully:</span> high smoothing can hide sharp RF transitions.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Max Distance</b><br>Limits continuous rendering to areas near measured points. Uses meters when scale is calibrated, pixels otherwise.<br><span class="survey-card-use">Use Carefully:</span> increase only when point density is good.</td>
+                <td class="workflow-card"><b>Max Distance</b><br>Limits continuous rendering to areas near measured points. Uses the selected measurement system when scale is calibrated, pixels otherwise.<br><span class="survey-card-use">Use Carefully:</span> increase only when point density is good.</td>
             </tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>

@@ -9,6 +9,7 @@ except ModuleNotFoundError as exc:
     print("PySide6 is required for main.py. Run: pip install -r requirements.txt")
     raise SystemExit(1) from exc
 
+from app_core.units import display_units_to_meters, format_scale_density, meters_to_display_units
 from qt_ui.qt_windowing import get_centered_open_file_name
 
 
@@ -140,16 +141,17 @@ class FloorplanWorkflowMixin:
             self.status.showMessage(self.tr("calibrate_scale_invalid"))
             return
 
-        meters, accepted = QInputDialog.getDouble(
+        display_distance, accepted = QInputDialog.getDouble(
             self,
             self.tr("calibrate_scale_title"),
-            self.tr("calibrate_scale_distance_prompt"),
-            1.0,
-            0.01,
-            10000.0,
+            self.tr("calibrate_scale_distance_prompt", unit=self.tr(f"measurement_unit_{self.measurement_system}")),
+            meters_to_display_units(1.0, self.measurement_system),
+            meters_to_display_units(0.01, self.measurement_system),
+            meters_to_display_units(10000.0, self.measurement_system),
             2,
         )
         self.floorplan_view.clear_scale_calibration_overlay()
+        meters = display_units_to_meters(display_distance, self.measurement_system) if accepted else 0
         if not accepted or meters <= 0:
             self.status.showMessage(self.tr("calibrate_scale_invalid"))
             return
@@ -157,7 +159,9 @@ class FloorplanWorkflowMixin:
         px_per_meter = float(pixel_distance) / float(meters)
         self.session.update_metadata({"px_per_meter": f"{px_per_meter:.6f}"})
         self.refresh_session_labels()
-        self.status.showMessage(self.tr("calibrate_scale_saved", px_per_meter=px_per_meter))
+        self.status.showMessage(
+            self.tr("calibrate_scale_saved", scale=format_scale_density(px_per_meter, self.measurement_system))
+        )
         self.maybe_update_live_preview()
 
     def cancel_scale_calibration(self):

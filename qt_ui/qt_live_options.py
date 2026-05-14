@@ -16,6 +16,11 @@ from ap.groups import (
     resolve_ap_group_key,
 )
 from app_core.constants import HEATMAP_MAX_DISTANCE_PX, HEATMAP_SMOOTHING_SIGMA
+from app_core.units import (
+    distance_unit_label,
+    display_units_to_meters,
+    meters_to_display_units,
+)
 from wifi.band import row_matches_band
 
 
@@ -98,14 +103,17 @@ class LiveOptionsMixin:
             return
 
         if self.get_px_per_meter():
-            self.live_max_distance_label.setText(self.tr("max_distance_m"))
+            self.live_max_distance_label.setText(
+                self.tr("max_distance_unit", unit=distance_unit_label(self.measurement_system))
+            )
         else:
             self.live_max_distance_label.setText(self.tr("max_distance_px"))
 
     def current_live_max_distance_px(self):
         px_per_meter = self.get_px_per_meter() or self.live_distance_last_px_per_meter
         if getattr(self, "live_distance_spin_uses_meters", False) and px_per_meter:
-            return max(1, int(round(self.live_max_distance_spin.value() * px_per_meter)))
+            meters = display_units_to_meters(self.live_max_distance_spin.value(), self.measurement_system)
+            return max(1, int(round(meters * px_per_meter)))
 
         return max(1, int(round(self.live_max_distance_spin.value())))
 
@@ -116,11 +124,17 @@ class LiveOptionsMixin:
             if px_per_meter:
                 self.live_distance_spin_uses_meters = True
                 self.live_distance_last_px_per_meter = px_per_meter
-                self.live_max_distance_spin.setRange(1.0, 50.0)
-                self.live_max_distance_spin.setSingleStep(0.5)
+                self.live_max_distance_spin.setRange(
+                    meters_to_display_units(1.0, self.measurement_system),
+                    meters_to_display_units(50.0, self.measurement_system),
+                )
+                self.live_max_distance_spin.setSingleStep(
+                    1.0 if distance_unit_label(self.measurement_system) == "ft" else 0.5
+                )
                 self.live_max_distance_spin.setDecimals(1)
-                self.live_max_distance_spin.setSuffix(" m")
-                self.live_max_distance_spin.setValue(max(1.0, float(max_distance_px) / px_per_meter))
+                self.live_max_distance_spin.setSuffix(f" {distance_unit_label(self.measurement_system)}")
+                meters = max(1.0, float(max_distance_px) / px_per_meter)
+                self.live_max_distance_spin.setValue(meters_to_display_units(meters, self.measurement_system))
             else:
                 self.live_distance_spin_uses_meters = False
                 self.live_max_distance_spin.setRange(40.0, 1000.0)

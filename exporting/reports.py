@@ -17,6 +17,7 @@ from ap.positioning import (
     AP_POSITION_WEAK_CLOSE,
     analyze_dominant_ap_position,
 )
+from app_core.units import format_distance_meters
 from maps.heatmap import format_band_label, get_interference_data_quality
 
 
@@ -288,7 +289,7 @@ def format_report_channel_with_width(channel, width):
     return f"CH {channel_label} / {width_label} MHz"
 
 
-def build_dominant_problem_report_pages(dominant_df, config, tr, language, aliases):
+def build_dominant_problem_report_pages(dominant_df, config, tr, language, aliases, measurement_system="metric"):
     problem_df = get_dominant_problem_df(dominant_df)
     group_labels = build_dominant_ap_group_labels(dominant_df, aliases)
     rows = []
@@ -298,7 +299,7 @@ def build_dominant_problem_report_pages(dominant_df, config, tr, language, alias
             for warning in str(row.get("ap_position_warnings", "")).split(";")
             if warning
         ]
-        detail_items = build_dominant_problem_detail_items(row, warnings, tr, aliases)
+        detail_items = build_dominant_problem_detail_items(row, warnings, tr, aliases, measurement_system)
         if not detail_items:
             continue
 
@@ -592,7 +593,7 @@ def translate_ap_position_warning(warning, tr):
     }.get(warning, warning)
 
 
-def build_dominant_problem_detail_items(row, warnings, tr, aliases):
+def build_dominant_problem_detail_items(row, warnings, tr, aliases, measurement_system="metric"):
     items = []
     if bool(row.get("roaming_overlap")):
         items.append({
@@ -605,7 +606,7 @@ def build_dominant_problem_detail_items(row, warnings, tr, aliases):
             "label": tr("ap_position_analysis"),
             "value": "; ".join(translate_ap_position_warning(warning, tr) for warning in warnings),
         })
-        position_detail = format_dominant_position_detail(row, tr, aliases)
+        position_detail = format_dominant_position_detail(row, tr, aliases, measurement_system)
         if position_detail:
             items.append({
                 "label": tr("ap_position_detail"),
@@ -637,10 +638,10 @@ def format_dominant_roaming_detail(row, tr, aliases):
     )
 
 
-def format_dominant_position_detail(row, tr, aliases=None):
+def format_dominant_position_detail(row, tr, aliases=None, measurement_system="metric"):
     aliases = aliases or {}
-    dominant_distance = format_position_report_distance(row, "dominant_ap_distance")
-    nearest_distance = format_position_report_distance(row, "nearest_physical_ap_distance")
+    dominant_distance = format_position_report_distance(row, "dominant_ap_distance", measurement_system)
+    nearest_distance = format_position_report_distance(row, "nearest_physical_ap_distance", measurement_system)
     if dominant_distance == "-" and nearest_distance == "-":
         return ""
 
@@ -660,10 +661,10 @@ def format_dominant_position_detail(row, tr, aliases=None):
     )
 
 
-def format_position_report_distance(row, prefix):
+def format_position_report_distance(row, prefix, measurement_system="metric"):
     distance_m = row.get(f"{prefix}_m")
     if format_report_value(distance_m) != "-":
-        return format_report_value(distance_m, suffix=" m")
+        return format_distance_meters(distance_m, measurement_system)
 
     distance_px = row.get(f"{prefix}_px")
     if format_report_value(distance_px) != "-":

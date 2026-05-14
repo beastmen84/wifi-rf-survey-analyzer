@@ -14,6 +14,7 @@ APP_SETTINGS_DIR = "WifiHeatmap"
 SETTINGS_FILE_NAME = "settings.json"
 THEME_KEY = "theme"
 UI_SCALE_KEY = "ui_scale"
+MEASUREMENT_SYSTEM_KEY = "measurement_system"
 LAST_SURVEY_PATH_KEY = "last_survey_path"
 
 
@@ -83,6 +84,21 @@ def get_saved_ui_scale(default="auto", valid_modes=None):
 def save_ui_scale(mode):
     settings = load_app_settings()
     settings[UI_SCALE_KEY] = str(mode)
+    return save_app_settings(settings)
+
+
+def get_saved_measurement_system(default="metric", valid_modes=None):
+    mode = str(load_app_settings().get(MEASUREMENT_SYSTEM_KEY, "")).strip()
+    if not mode:
+        return default
+    if valid_modes is not None and mode not in valid_modes:
+        return default
+    return mode
+
+
+def save_measurement_system(mode):
+    settings = load_app_settings()
+    settings[MEASUREMENT_SYSTEM_KEY] = str(mode)
     return save_app_settings(settings)
 
 

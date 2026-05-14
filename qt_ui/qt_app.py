@@ -41,9 +41,11 @@ except ModuleNotFoundError as exc:
 from translations.i18n import DEFAULT_LANGUAGE, LANGUAGE_OPTIONS, translate
 from app_core.logging import configure_logging, log_event, log_exception, log_unhandled_exception
 from app_core.settings import (
+    get_saved_measurement_system,
     get_saved_theme,
     get_saved_ui_scale,
 )
+from app_core.units import MEASUREMENT_SYSTEM_OPTIONS, normalize_measurement_system
 from app_core.constants import HEATMAP_MAX_DISTANCE_PX, HEATMAP_SMOOTHING_SIGMA
 from app_core.version import APP_VERSION_LABEL, format_versioned_title
 from ap.memory import ensure_ap_memory_file
@@ -219,6 +221,9 @@ class WifiHeatmapQtApp(
         self.theme = get_saved_theme(default="light", valid_themes=QT_THEMES)
         self.ui_scale_mode = normalize_ui_scale_mode(get_saved_ui_scale())
         self.ui_scale = resolve_ui_scale(self.ui_scale_mode)
+        self.measurement_system = normalize_measurement_system(
+            get_saved_measurement_system(valid_modes=MEASUREMENT_SYSTEM_OPTIONS)
+        )
         log_event(
             f"workspace ui scale resolved {format_ui_scale_diagnostics(ui_scale_diagnostics(self.ui_scale_mode))}",
             logger_name="ui",

@@ -45,6 +45,7 @@ from ap.positioning import (
     AP_POSITION_WEAK_CLOSE,
     analyze_dominant_ap_position,
 )
+from app_core.units import format_distance_meters
 from maps.quality import (
     QUALITY_GOOD,
     QUALITY_LOW_CONFIDENCE,
@@ -1385,7 +1386,7 @@ def format_ap_position_warning_summary(app, ap_position):
 def format_ap_distance(app, analysis, prefix):
     distance_m = analysis.get(f"{prefix}_distance_m")
     if distance_m is not None:
-        return app.tr("ap_position_distance_m", distance=f"{distance_m:.1f}")
+        return format_distance_meters(distance_m, getattr(app, "measurement_system", "metric"))
 
     distance_px = analysis.get(f"{prefix}_distance_px")
     if distance_px is not None:

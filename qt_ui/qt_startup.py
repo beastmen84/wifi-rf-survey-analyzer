@@ -26,7 +26,16 @@ except ModuleNotFoundError as exc:
 
 from app_core.logging import log_event, log_exception
 from app_core.restart import start_replacement_process
-from app_core.settings import get_last_survey_directory, get_saved_theme, get_saved_ui_scale, save_theme, save_ui_scale
+from app_core.settings import (
+    get_last_survey_directory,
+    get_saved_measurement_system,
+    get_saved_theme,
+    get_saved_ui_scale,
+    save_measurement_system,
+    save_theme,
+    save_ui_scale,
+)
+from app_core.units import MEASUREMENT_SYSTEM_OPTIONS, normalize_measurement_system
 from app_core.version import APP_VERSION_LABEL, format_versioned_title, get_app_icon_path
 from translations.i18n import DEFAULT_LANGUAGE, LANGUAGE_OPTIONS, normalize_language, translate
 from qt_ui.qt_settings_memory import add_ap_memory_settings_section
@@ -69,6 +78,9 @@ class StartWindow(QMainWindow):
         self.theme = get_saved_theme(default="light", valid_themes=QT_THEMES)
         self.ui_scale_mode = normalize_ui_scale_mode(get_saved_ui_scale())
         self.ui_scale = resolve_ui_scale(self.ui_scale_mode)
+        self.measurement_system = normalize_measurement_system(
+            get_saved_measurement_system(valid_modes=MEASUREMENT_SYSTEM_OPTIONS)
+        )
         log_event(
             f"startup ui scale resolved {format_ui_scale_diagnostics(ui_scale_diagnostics(self.ui_scale_mode))}",
             logger_name="ui",
@@ -501,6 +513,17 @@ class StartWindow(QMainWindow):
     def ui_scale_label_for_mode(self, mode):
         return dict(self.ui_scale_items()).get(mode, f"{mode}%")
 
+    def change_measurement_system(self, mode):
+        mode = normalize_measurement_system(mode)
+        if mode == self.measurement_system:
+            return
+        if not save_measurement_system(mode):
+            QMessageBox.warning(self, self.tr("warning"), self.tr("settings_save_failed"))
+            return
+
+        self.measurement_system = mode
+        log_event(f"startup measurement system changed mode={mode}", logger_name="ui")
+
     def open_settings_menu(self):
         if self.should_suppress_settings_menu_toggle():
             return
@@ -529,6 +552,10 @@ class StartWindow(QMainWindow):
         scale_combo = self.create_settings_combo(self.ui_scale_items(), self.ui_scale_mode)
         scale_combo.currentIndexChanged.connect(lambda _index: self.change_ui_scale(scale_combo.currentData()))
         self.add_settings_row(layout, self.tr("ui_scale"), scale_combo)
+
+        units_combo = self.create_settings_combo(self.measurement_system_items(), self.measurement_system)
+        units_combo.currentIndexChanged.connect(lambda _index: self.change_measurement_system(units_combo.currentData()))
+        self.add_settings_row(layout, self.tr("measurement_system"), units_combo)
 
         language_combo = self.create_settings_combo(
             LANGUAGE_OPTIONS,
@@ -583,6 +610,12 @@ class StartWindow(QMainWindow):
         return [
             (mode, self.tr("ui_scale_auto", percent=auto_percent) if mode == "auto" else f"{mode}%")
             for mode in UI_SCALE_OPTIONS
+        ]
+
+    def measurement_system_items(self):
+        return [
+            (mode, self.tr(f"measurement_system_{mode}"))
+            for mode in MEASUREMENT_SYSTEM_OPTIONS
         ]
 
     def start_async_imports(self):

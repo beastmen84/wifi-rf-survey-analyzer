@@ -384,6 +384,33 @@ class AppRestartTests(unittest.TestCase):
 
 
 class AppSettingsTests(unittest.TestCase):
+    def test_measurement_unit_helpers_convert_without_changing_internal_meters(self):
+        self.assertEqual(normalize_measurement_system("bad"), MEASUREMENT_SYSTEM_METRIC)
+        self.assertAlmostEqual(meters_to_display_units(10, MEASUREMENT_SYSTEM_IMPERIAL), 32.8084, places=3)
+        self.assertAlmostEqual(display_units_to_meters(32.8084, MEASUREMENT_SYSTEM_IMPERIAL), 10.0, places=3)
+        self.assertEqual(format_distance_meters(10, MEASUREMENT_SYSTEM_METRIC), "10 m")
+        self.assertEqual(format_distance_meters(10, MEASUREMENT_SYSTEM_IMPERIAL), "32.8 ft")
+
+    def test_measurement_system_preference_is_saved(self):
+        previous = os.environ.get("WIFI_HEATMAP_SETTINGS_FILE")
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                os.environ["WIFI_HEATMAP_SETTINGS_FILE"] = os.path.join(temp_dir, "settings.json")
+
+                self.assertEqual(get_saved_measurement_system(), MEASUREMENT_SYSTEM_METRIC)
+                self.assertTrue(save_measurement_system(MEASUREMENT_SYSTEM_IMPERIAL))
+
+                self.assertEqual(get_saved_measurement_system(), MEASUREMENT_SYSTEM_IMPERIAL)
+                self.assertEqual(
+                    get_saved_measurement_system(valid_modes=(MEASUREMENT_SYSTEM_METRIC,)),
+                    MEASUREMENT_SYSTEM_METRIC,
+                )
+        finally:
+            if previous is None:
+                os.environ.pop("WIFI_HEATMAP_SETTINGS_FILE", None)
+            else:
+                os.environ["WIFI_HEATMAP_SETTINGS_FILE"] = previous
+
     def test_last_survey_directory_uses_saved_file_parent(self):
         previous = os.environ.get("WIFI_HEATMAP_SETTINGS_FILE")
         try:

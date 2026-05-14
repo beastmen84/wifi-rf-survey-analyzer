@@ -37,6 +37,8 @@ shows the same icon next to the product name.
   overrides, and physical AP positions.
 - Reuses known AP metadata through a persistent AP Memory file and flags reused
   data for review before it is treated as confirmed.
+- Supports metric or imperial distance display in settings while keeping survey
+  scale metadata stored as `px_per_meter`.
 - Reviews survey quality before maps are trusted.
 - Renders live Coverage, Interference, AP Channels, and Dominant AP maps.
 - Exports the current live map to PDF, including issue-report pages where the
@@ -248,6 +250,9 @@ the current Qt workflow in more detail: controls and gesture combinations,
 survey screen boxes, Survey Quality actions, AP Group Manager layers, BSSID
 management, metadata, Live Map options, PDF export behavior, warning
 diagnostics, and glossary terms.
+Settings include theme, UI scale, measurement system, language and AP Memory
+management. The measurement system preference changes scale calibration input,
+distance tooltips, live Max Distance labels and dominant-AP report distances.
 The Controls help page separates left click from left-click drag and shows
 Ctrl/Shift as wheel modifiers rather than standalone map actions; Shift +
 wheel is implemented as horizontal pan for map views.

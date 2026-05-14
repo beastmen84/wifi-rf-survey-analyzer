@@ -700,6 +700,10 @@ Implemented:
 - workflow-first overview instead of a feature-list-only help page;
 - controls cheat sheet using the existing image assets and current V2 gestures,
   including separate left-click, left-drag and wheel-modifier combinations;
+- global measurement-system preference with metric default and imperial display
+  option; internal survey metadata remains `px_per_meter` while calibration
+  input, live Max Distance labels, AP-position tooltips and PDF report
+  distances use the selected display system;
 - dedicated sections for Survey/Scans, Survey Quality, AP Groups, Live Maps,
   PDF Reports, Warnings and Glossary;
 - detailed workflow gates, point capture guidance, raw sidecar/aggregation,

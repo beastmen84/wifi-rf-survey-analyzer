@@ -22,6 +22,10 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 - Controls Help now separates left click from left-click drag, removes the AP
   Wi-Fi marker from the controls list, and shows Ctrl/Shift as implemented
   wheel-modifier combinations.
+- Settings now include a metric/imperial measurement-system preference. Survey
+  scale remains stored internally as `px_per_meter`, while calibration input,
+  Live Map Max Distance, AP-position tooltips and dominant-AP PDF report
+  distances follow the selected display system.
 - Help Center non-control sections now use the same visual/content pattern and
   document the current Survey, Quality, AP Group, AP Memory, Live Map, PDF,
   warning, and glossary workflows from the Qt implementation.

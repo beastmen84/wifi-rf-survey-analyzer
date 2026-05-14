@@ -45,6 +45,11 @@ TRANSLATIONS = {
     "language": "Lingua",
     "ui_scale": "Scala UI",
     "ui_scale_auto": "Auto ({percent}%)",
+    "measurement_system": "Sistema Di Misura",
+    "measurement_system_metric": "Metrico (m)",
+    "measurement_system_imperial": "Imperiale (ft)",
+    "measurement_unit_metric": "metri",
+    "measurement_unit_imperial": "piedi",
     "ui_scale_restart_title": "Riavvio Richiesto",
     "ui_scale_restart_message": "Per applicare la scala UI {scale} serve riavviare l'app.\n\nVuoi salvare la scelta e riavviare ora?",
     "save_and_restart": "Salva e Riavvia",
@@ -192,8 +197,8 @@ TRANSLATIONS = {
     "calibrate_scale_title": "Calibrazione Scala",
     "calibrate_scale_start": "Clicca col sinistro il primo punto della distanza reale nota.",
     "calibrate_scale_second_point": "Clicca col sinistro il secondo punto della distanza nota.",
-    "calibrate_scale_distance_prompt": "Distanza reale tra i due punti (metri):",
-    "calibrate_scale_saved": "Scala calibrata: {px_per_meter:.2f} px/m.",
+    "calibrate_scale_distance_prompt": "Distanza reale tra i due punti ({unit}):",
+    "calibrate_scale_saved": "Scala calibrata: {scale}.",
     "calibrate_scale_invalid": "Distanza non valida.",
     "calibrate_scale_cancelled": "Calibrazione scala annullata.",
     "calibrate_scale_already_set": "Scala già calibrata. Elimina la scala attuale per rifarla.",
@@ -201,6 +206,7 @@ TRANSLATIONS = {
     "delete_scale_title": "Elimina Scala",
     "delete_scale_confirm": "Vuoi eliminare la calibrazione della scala salvata per questo rilievo?",
     "delete_scale_done": "Scala eliminata. Puoi eseguire una nuova calibrazione.",
+    "max_distance_unit": "Distanza Max ({unit})",
     "max_distance_m": "Distanza Max (m)",
     "ap_groups_title": "AP Group Manager",
     "ap_groups_hint": "Seleziona un gruppo e usa i pulsanti per modificare alias, ruolo, BSSID, metadati o posizione. La colonna Gestione indica se il gruppo è automatico o bloccato da modifiche manuali.",
@@ -530,7 +536,7 @@ TRANSLATIONS = {
                 <td class="workflow-card">
                     <div class="step-label">1. Setup</div>
                     <div class="step-title">Prepara il rilievo</div>
-                    <p>Crea o apri il rilievo, carica la pianta, calibra la scala e scegli gli SSID rilevanti.</p>
+                    <p>Crea o apri il rilievo, carica la pianta, scegli il sistema di misura se serve, calibra la scala e scegli gli SSID rilevanti.</p>
                     <div class="step-gate"><b>Vai avanti quando:</b> pianta, scala e reti da giudicare sono corrette.</div>
                 </td>
                 <td class="workflow-gap"></td>
@@ -569,7 +575,7 @@ TRANSLATIONS = {
         </table>
         <h2>Punti Di Controllo</h2>
         <div class="gate-list">
-            <div class="gate-row"><b>Distanze:</b> calibra la scala prima di interpretare warning sulle posizioni AP.</div>
+            <div class="gate-row"><b>Distanze:</b> scegli metrico o imperiale nei settings, poi calibra la scala prima di interpretare warning sulle posizioni AP.</div>
             <div class="gate-row"><b>Copertura:</b> verifica SSID rilevanti e qualità punti prima di fidarti di zone buone o problematiche.</div>
             <div class="gate-row"><b>Interferenza:</b> verifica gruppi AP, ruoli, gestione cambi canale e override canale prima di fidarti delle mappe sensibili al canale.</div>
             <div class="gate-row"><b>Export:</b> apri la live map collegata e leggi tooltip warning o righe dettaglio prima di generare il PDF.</div>
@@ -924,7 +930,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card"><b>Smoothing</b><br>Rende copertura/interferenza visivamente più calme.<br><span class="survey-card-use">Usala Con Attenzione:</span> smoothing alto può nascondere transizioni RF nette.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Distanza Max</b><br>Limita il rendering continuo alle aree vicine ai punti misurati. Usa metri quando la scala è calibrata, pixel altrimenti.<br><span class="survey-card-use">Usala Con Attenzione:</span> aumentala solo quando la densità punti è buona.</td>
+                <td class="workflow-card"><b>Distanza Max</b><br>Limita il rendering continuo alle aree vicine ai punti misurati. Usa il sistema di misura selezionato quando la scala è calibrata, pixel altrimenti.<br><span class="survey-card-use">Usala Con Attenzione:</span> aumentala solo quando la densità punti è buona.</td>
             </tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>

@@ -68,6 +68,7 @@ class LivePdfExportMixin:
                 aliases=self.session.get_ap_aliases(),
                 ap_groups=self.session.get_ap_groups(),
                 px_per_meter=self.get_px_per_meter(),
+                measurement_system=self.measurement_system,
                 output_file=output_file,
             )
         except MapExportError as exc:

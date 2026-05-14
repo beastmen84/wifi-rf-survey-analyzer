@@ -41,6 +41,7 @@ from ap.positioning import (
     analyze_dominant_ap_position,
 )
 from app_core.constants import SURVEY_FIELDNAMES
+from app_core.units import format_distance_meters
 from maps.heatmap import get_channel_map_points, get_dominant_ap_points
 from maps.live_renderer import render_live_continuous_map
 from maps.rendering import (
@@ -1095,7 +1096,7 @@ def get_ap_position_warning_color(analysis):
 def format_ap_position_distance(analysis, key, translations):
     distance_m = analysis.get(f"{key}_distance_m")
     if distance_m is not None:
-        return translations.get("ap_position_distance_m", "{distance} m").format(distance=round(distance_m, 1))
+        return format_distance_meters(distance_m, translations.get("_measurement_system", "metric"))
 
     distance_px = analysis.get(f"{key}_distance_px")
     if distance_px is not None:

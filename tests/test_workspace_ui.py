@@ -1337,5 +1337,29 @@ class WorkspaceLiveStateTests(unittest.TestCase):
         finally:
             window.deleteLater()
 
+    def test_live_max_distance_uses_selected_measurement_system(self):
+        window = WifiHeatmapQtApp()
+        try:
+            class Session:
+                metadata = {"px_per_meter": "10"}
+
+            window.session = Session()
+            window.measurement_system = MEASUREMENT_SYSTEM_METRIC
+            window.set_live_max_distance_px_silent(100)
+
+            self.assertEqual(window.live_max_distance_label.text(), "Max Distance (m)")
+            self.assertAlmostEqual(window.live_max_distance_spin.value(), 10.0)
+            self.assertEqual(window.live_max_distance_spin.suffix(), " m")
+            self.assertEqual(window.current_live_max_distance_px(), 100)
+
+            window.measurement_system = MEASUREMENT_SYSTEM_IMPERIAL
+            window.set_live_max_distance_px_silent(100)
+
+            self.assertEqual(window.live_max_distance_label.text(), "Max Distance (ft)")
+            self.assertAlmostEqual(window.live_max_distance_spin.value(), 32.8, places=1)
+            self.assertEqual(window.live_max_distance_spin.suffix(), " ft")
+            self.assertEqual(window.current_live_max_distance_px(), 100)
+        finally:
+            window.deleteLater()
 
 
