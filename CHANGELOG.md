@@ -13,8 +13,8 @@ No unreleased user-facing changes.
 ## v0.9.2-beta.1 - 2026-05-14
 
 Beta focused on Help Center polish, gesture documentation, measurement-system
-settings, and release-readiness. No executable or ZIP artifact was regenerated
-for this version marker.
+settings, and release-readiness. Windows release artifacts are built as a
+PyInstaller `onedir` executable plus ZIP package.
 
 - Targeted Help Center review/polish, office validation fixes, and small
   release-readiness adjustments.
@@ -32,6 +32,8 @@ for this version marker.
   wheel-modifier combinations.
 - App icon PNG/ICO assets now preserve transparent rounded corners for Windows
   executable embedding instead of baking white corners into the icon.
+- Windows `onedir` executable and ZIP package were regenerated for
+  `v0.9.2-beta.1`.
 - Settings now include a metric/imperial measurement-system preference. Survey
   scale remains stored internally as `px_per_meter`, while calibration input,
   Live Map Max Distance, AP-position tooltips and dominant-AP PDF report

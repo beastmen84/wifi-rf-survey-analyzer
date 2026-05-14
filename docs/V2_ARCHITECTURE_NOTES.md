@@ -45,8 +45,10 @@ Current status:
   known AP Group, live-map, PDF, quality-dashboard or core survey blocker is
   open;
 - `v0.9.2-beta.1` marks the current code state after Help Center polish,
-  controls cleanup and metric/imperial measurement-system support; no exe/ZIP
-  artifact was regenerated for this marker;
+  controls cleanup and metric/imperial measurement-system support; the Windows
+  release artifact is the PyInstaller `onedir` build zipped as
+  `dist/WifiHeatmap-v0.9.2-beta.1-win64.zip`, with 214 tests passing after
+  packaging;
 - Help content and structure have an expanded V2 Help Center implementation;
   the Recommended Workflow page has received the first visual-density polish
   pass with step cards, decision-gate rows and Qt-compatible accent-column

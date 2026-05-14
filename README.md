@@ -389,6 +389,10 @@ Current release:
 
 - `v0.9.2-beta.1`
 
+Current Windows release asset:
+
+- `dist/WifiHeatmap-v0.9.2-beta.1-win64.zip`
+
 ## Roadmap
 
 Before `v1.0.0`:
