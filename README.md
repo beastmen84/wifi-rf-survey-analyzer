@@ -250,6 +250,9 @@ Live Map options, PDF export behavior, warning diagnostics, and glossary terms.
 The Survey help page uses compact summary cards for the main screen boxes and
 explicitly explains relevant SSIDs, the `.scan` sidecar, scanner backend choice,
 point-table actions, and point-placement rules.
+The Survey Quality help page now mirrors the dashboard workflow with point/AP
+model layers, grouped KPI explanations, priority gates, and scalable detail
+dialog guidance.
 Help tables and callouts are rendered at full content width in the Qt Help
 Center with fixed accent columns, so highlighted blocks align consistently with
 the surrounding page.

@@ -668,40 +668,87 @@ TRANSLATIONS = {
     "help_quality_subtitle": "The dashboard separates points that may need a rescan from AP setup diagnostics.",
     "help_quality_body": """
         <h2>Read The Dashboard In Two Layers</h2>
-        <p>The first layer is point quality: can these measurement points be trusted? The second layer is AP setup: does the AP model explain what was measured?</p>
-        <h2>Dashboard Controls</h2>
-        <table>
-            <tr><th>Control</th><th>Use</th></tr>
-            <tr><td>Show Only Points With Findings</td><td>Filters the point table to rows that need review. It is enabled by default when findings exist; if everything is clean the table shows all points instead of an empty list.</td></tr>
-            <tr><td>Focus Point</td><td>Closes the dashboard, selects the point on the Survey tab and opens the point panel so you can inspect or rescan it.</td></tr>
-            <tr><td>Extra Details</td><td>Opens a scalable detail window for a recommendation so large surveys do not overload the main page.</td></tr>
-            <tr><td>Map Buttons</td><td>Open AP Channels, Interference or Dominant AP with the relevant band/AP focus when the finding has map context.</td></tr>
-            <tr><td>Open AP Metadata / AP Group</td><td>Jumps directly to the AP editor or AP Group Manager row that can fix the model problem.</td></tr>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card">
+                    <div class="step-label">Layer 1</div>
+                    <div class="step-title">Point Quality</div>
+                    <p>Decide whether the measurement points can be trusted. Missing relevant networks, sparse evidence, low confidence and unstable signal are point-level findings.</p>
+                    <div class="step-gate"><b>Usual action:</b> focus the point, inspect it, rescan it or collect nearby points before trusting maps built from it.</div>
+                </td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card">
+                    <div class="step-label">Layer 2</div>
+                    <div class="step-title">AP Model</div>
+                    <p>Decide whether AP groups, roles, metadata, memory state, channel changes and physical AP positions explain what was measured.</p>
+                    <div class="step-gate"><b>Usual action:</b> open the relevant map, AP metadata or AP Group Manager and fix the model before interpreting the map.</div>
+                </td>
+            </tr>
         </table>
-        <h2>What To Fix First</h2>
-        <p>The dashboard prioritizes actionable findings. Point-rescan issues come first because bad data can poison every map. AP setup findings come next because they affect interpretation.</p>
-        <table>
-            <tr><th>Area</th><th>Meaning</th><th>Typical Action</th></tr>
-            <tr><td>Missing Relevant Networks</td><td>A point did not see a network that should matter.</td><td>Focus the point and rescan.</td></tr>
-            <tr><td>Low Confidence</td><td>The repeated scans did not produce enough reliable evidence.</td><td>Rescan the point or add nearby points.</td></tr>
-            <tr><td>Unstable Signal</td><td>Signal varied too much during repeated scans.</td><td>Check movement, transient RF changes or unstable AP behavior.</td></tr>
-            <tr><td>Dominant AP Findings</td><td>The strongest AP does not match the physical model.</td><td>Open the Dominant AP map and verify AP positions or roaming behavior.</td></tr>
-            <tr><td>AP Config Warnings</td><td>Observed bands/channels disagree with metadata.</td><td>Open AP metadata and decide whether metadata or deployment is wrong.</td></tr>
-            <tr><td>Memory Applied</td><td>AP data was reused from the persistent AP Memory file.</td><td>Open AP Groups, review the reused data and confirm it or edit it.</td></tr>
+        <h2>Dashboard Controls</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card">
+                    <div class="step-title">Point Table</div>
+                    <p><b>Show Only Points With Findings</b> is enabled by default when findings exist. If everything is clean, the table shows all points instead of an empty list.</p>
+                    <div class="step-gate"><b>Focus Point:</b> closes the dashboard, selects the point on the Survey tab and opens the point panel for inspection or rescan.</div>
+                </td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card">
+                    <div class="step-title">Recommendation Details</div>
+                    <p><b>Extra Details</b> opens a larger detail window for one recommendation. This keeps the main dashboard compact even when many AP groups or points need review.</p>
+                    <div class="step-gate"><b>Use when:</b> the card summary is not enough to decide the next action.</div>
+                </td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card">
+                    <div class="step-title">Map Actions</div>
+                    <p>AP Channels, Interference and Dominant AP buttons open the live map with the relevant band, AP group or point focus when the finding has map context.</p>
+                </td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card">
+                    <div class="step-title">AP Model Actions</div>
+                    <p>Open AP Metadata and Open AP Group jump to the editor or AP Group Manager row that can fix the model problem.</p>
+                </td>
+            </tr>
         </table>
         <h2>KPI Meaning</h2>
-        <table>
-            <tr><th>KPI</th><th>Interpretation</th></tr>
-            <tr><td>Total Points</td><td>How much spatial evidence the survey contains.</td></tr>
-            <tr><td>Scan OK / Rescan Needed</td><td>Whether the measurement points themselves are usable.</td></tr>
-            <tr><td>Sparse Data</td><td>Points with too little repeated evidence for strong confidence.</td></tr>
-            <tr><td>Dominant AP Findings</td><td>Roaming or AP-position observations worth reviewing, not automatically bad data.</td></tr>
-            <tr><td>AP Config Warnings</td><td>Metadata/deployment mismatch such as unexpected channels.</td></tr>
-            <tr><td>Memory Applied</td><td>AP groups whose aliases, roles, metadata or position came from AP Memory and still need review.</td></tr>
-            <tr><td>Channel Changes</td><td>APs whose observed channel sequence affects channel-sensitive analysis.</td></tr>
+        <table class="survey-grid">
+            <tr>
+                <td class="survey-card">
+                    <div class="survey-card-title">Survey Points</div>
+                    <p><b>Total Points:</b> spatial evidence collected.</p>
+                    <p><b>Scan OK:</b> points with usable scan evidence.</p>
+                    <p><b>Rescan Needed:</b> points that should be inspected before maps are trusted.</p>
+                </td>
+                <td class="survey-gap"></td>
+                <td class="survey-card">
+                    <div class="survey-card-title">Scan Quality</div>
+                    <p><b>Missing Relevant Networks:</b> intended SSIDs not seen at a point.</p>
+                    <p><b>Sparse Data:</b> too little repeated evidence.</p>
+                    <p><b>Low Confidence / Unstable Signal:</b> weak or inconsistent repeated scans.</p>
+                </td>
+                <td class="survey-gap"></td>
+                <td class="survey-card">
+                    <div class="survey-card-title">AP Model</div>
+                    <p><b>Dominant AP Findings:</b> roaming or AP-position observations worth checking.</p>
+                    <p><b>APs Without Position:</b> relevant AP groups missing map coordinates.</p>
+                    <p><b>AP Config Warnings:</b> metadata/deployment mismatch.</p>
+                    <p><b>Memory Applied / Channel Changes:</b> AP data or channel assumptions still need review.</p>
+                </td>
+            </tr>
         </table>
+        <h2>What To Fix First</h2>
+        <div class="gate-list">
+            <div class="gate-row"><b>1. Fix point evidence first:</b> missing relevant networks, sparse data, low confidence and unstable signal can poison every map. Focus the point and rescan before tuning AP interpretation.</div>
+            <div class="gate-row"><b>2. Fix AP identity and position next:</b> dominant AP findings and missing AP positions usually mean the AP model needs review before roaming or position diagnostics are trusted.</div>
+            <div class="gate-row"><b>3. Review AP metadata and channels:</b> AP config warnings and channel changes affect AP Channels and Interference. Open AP Metadata when expected channels, observed channels or analysis-channel overrides need review.</div>
+            <div class="gate-row"><b>4. Confirm memory-derived AP data:</b> From Memory is not an error. It means aliases, roles, metadata, overrides or compatible positions were reused and should be confirmed or edited.</div>
+        </div>
         <h2>Detail Dialogs</h2>
-        <p>Use <b>Extra Details</b> when a card shows more than a simple OK state. The detail rows keep large surveys manageable: each affected point, AP group or channel change gets its own row and action buttons open the right map or editor.</p>
+        <p>Use <b>Extra Details</b> when a card shows more than a simple OK state. Detail rows are designed for large surveys: each affected point, AP group or channel change gets its own row, and action buttons open the right map or editor without forcing every problem onto the main dashboard.</p>
+        <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Scalable By Design</span><br>The main dashboard gives counts and priorities. Detail dialogs hold the long lists so many AP groups or many bad points remain readable.</td></tr></table>
         <h2>AP Memory Review</h2>
         <p>When a repeated survey sees known BSSIDs, the program can reuse saved AP aliases, roles, metadata, analysis-channel overrides and compatible floor-plan positions. Survey Quality keeps that visible as an AP Model finding until the AP Group data is confirmed or edited.</p>
         <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Important</span><br>A setup warning does not mean the survey point is bad. It means the AP model, expected channel, or real deployment needs review.</td></tr></table>

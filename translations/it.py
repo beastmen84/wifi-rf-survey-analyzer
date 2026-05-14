@@ -668,40 +668,87 @@ TRANSLATIONS = {
     "help_quality_subtitle": "La dashboard separa i punti che possono richiedere rescan dalla diagnostica di setup AP.",
     "help_quality_body": """
         <h2>Leggi La Dashboard Su Due Livelli</h2>
-        <p>Il primo livello è la qualità dei punti: queste misure sono affidabili? Il secondo livello è il setup AP: il modello AP spiega quello che è stato misurato?</p>
-        <h2>Controlli Dashboard</h2>
-        <table>
-            <tr><th>Controllo</th><th>Uso</th></tr>
-            <tr><td>Mostra Solo Punti Con Finding</td><td>Filtra la tabella sui punti da rivedere. È attivo di default quando esistono finding; se tutto è pulito mostra tutti i punti invece di una tabella vuota.</td></tr>
-            <tr><td>Focus Point</td><td>Chiude la dashboard, seleziona il punto nel tab Survey e apre il pannello punti per ispezionarlo o riscansionarlo.</td></tr>
-            <tr><td>Dettagli</td><td>Apre una finestra dettaglio scalabile per una raccomandazione, così survey grandi non saturano la pagina principale.</td></tr>
-            <tr><td>Pulsanti Mappa</td><td>Aprono Canali AP, Interferenza o AP Dominante con focus su banda/AP quando il finding ha contesto mappa.</td></tr>
-            <tr><td>Apri Metadati AP / Gruppo AP</td><td>Porta direttamente all'editor AP o alla riga AP Group Manager che può correggere il problema di modello.</td></tr>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card">
+                    <div class="step-label">Livello 1</div>
+                    <div class="step-title">Qualità Punto</div>
+                    <p>Decidi se i punti di misura sono affidabili. Reti rilevanti mancanti, evidenza rada, bassa confidenza e segnale instabile sono finding a livello punto.</p>
+                    <div class="step-gate"><b>Azione tipica:</b> vai al punto, ispezionalo, riscansionalo o raccogli punti vicini prima di fidarti delle mappe costruite da quei dati.</div>
+                </td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card">
+                    <div class="step-label">Livello 2</div>
+                    <div class="step-title">Modello AP</div>
+                    <p>Decidi se gruppi AP, ruoli, metadata, stato memoria, cambi canale e posizioni fisiche AP spiegano quello che è stato misurato.</p>
+                    <div class="step-gate"><b>Azione tipica:</b> apri la mappa, i metadata AP o AP Group Manager e correggi il modello prima di interpretare la mappa.</div>
+                </td>
+            </tr>
         </table>
-        <h2>Cosa Sistemare Prima</h2>
-        <p>La dashboard ordina i problemi in modo operativo. I problemi di punto vengono prima perché dati sporchi possono falsare ogni mappa. I problemi AP vengono dopo perché influenzano l'interpretazione.</p>
-        <table>
-            <tr><th>Area</th><th>Significato</th><th>Azione Tipica</th></tr>
-            <tr><td>Reti Rilevanti Mancanti</td><td>Un punto non ha visto una rete che dovrebbe contare.</td><td>Vai al punto e rifai la scansione.</td></tr>
-            <tr><td>Bassa Confidenza</td><td>Le scansioni ripetute non hanno prodotto abbastanza evidenza affidabile.</td><td>Rifai il punto o aggiungi punti vicini.</td></tr>
-            <tr><td>Segnale Instabile</td><td>Il segnale è variato troppo durante le scansioni ripetute.</td><td>Controlla movimento, cambi RF temporanei o AP instabili.</td></tr>
-            <tr><td>Finding AP Dominante</td><td>L'AP più forte non è coerente con il modello fisico.</td><td>Apri la mappa AP Dominante e verifica posizioni AP o roaming reale.</td></tr>
-            <tr><td>Warning Config AP</td><td>Bande/canali osservati non coincidono con i metadata.</td><td>Apri metadata AP e decidi se è sbagliato il metadata o il deployment.</td></tr>
-            <tr><td>Memoria Applicata</td><td>Dati AP riusati dal file persistente Memoria AP.</td><td>Apri Gruppi AP, verifica i dati riusati e confermali o modificali.</td></tr>
+        <h2>Controlli Dashboard</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card">
+                    <div class="step-title">Tabella Punti</div>
+                    <p><b>Mostra Solo Punti Con Finding</b> è attivo di default quando esistono finding. Se tutto è pulito, la tabella mostra tutti i punti invece di una lista vuota.</p>
+                    <div class="step-gate"><b>Focus Point:</b> chiude la dashboard, seleziona il punto nel tab Survey e apre il pannello punto per ispezione o rescan.</div>
+                </td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card">
+                    <div class="step-title">Dettagli Raccomandazioni</div>
+                    <p><b>Dettagli</b> apre una finestra più grande per una raccomandazione. Così la dashboard principale resta compatta anche con molti gruppi AP o punti da rivedere.</p>
+                    <div class="step-gate"><b>Usalo quando:</b> il riepilogo della card non basta per decidere l'azione successiva.</div>
+                </td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card">
+                    <div class="step-title">Azioni Mappa</div>
+                    <p>I pulsanti Canali AP, Interferenza e AP Dominante aprono la mappa live con focus su banda, gruppo AP o punto quando il finding ha contesto mappa.</p>
+                </td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card">
+                    <div class="step-title">Azioni Modello AP</div>
+                    <p>Apri Metadati AP e Apri Gruppo AP portano all'editor o alla riga AP Group Manager che può correggere il problema di modello.</p>
+                </td>
+            </tr>
         </table>
         <h2>Significato KPI</h2>
-        <table>
-            <tr><th>KPI</th><th>Interpretazione</th></tr>
-            <tr><td>Punti Totali</td><td>Quanta evidenza spaziale contiene il rilievo.</td></tr>
-            <tr><td>Scan OK / Rescan Necessario</td><td>Se i punti di misura sono utilizzabili.</td></tr>
-            <tr><td>Dati Radi</td><td>Punti con poca evidenza ripetuta per una confidenza forte.</td></tr>
-            <tr><td>Finding AP Dominante</td><td>Osservazioni roaming o posizione AP da rivedere, non automaticamente dati errati.</td></tr>
-            <tr><td>Warning Config AP</td><td>Mismatch metadata/deployment, per esempio canali inattesi.</td></tr>
-            <tr><td>Memoria Applicata</td><td>Gruppi AP i cui alias, ruoli, metadata o posizione arrivano da Memoria AP e richiedono ancora revisione.</td></tr>
-            <tr><td>Cambi Canale</td><td>AP la cui sequenza canale influenza analisi sensibili al canale.</td></tr>
+        <table class="survey-grid">
+            <tr>
+                <td class="survey-card">
+                    <div class="survey-card-title">Punti Rilievo</div>
+                    <p><b>Punti Totali:</b> evidenza spaziale raccolta.</p>
+                    <p><b>Scan OK:</b> punti con evidenza scan utilizzabile.</p>
+                    <p><b>Rescan Necessario:</b> punti da ispezionare prima di fidarsi delle mappe.</p>
+                </td>
+                <td class="survey-gap"></td>
+                <td class="survey-card">
+                    <div class="survey-card-title">Qualità Scan</div>
+                    <p><b>Reti Rilevanti Mancanti:</b> SSID previsti non visti in un punto.</p>
+                    <p><b>Dati Radi:</b> evidenza ripetuta troppo limitata.</p>
+                    <p><b>Bassa Confidenza / Segnale Instabile:</b> scan ripetuti deboli o incoerenti.</p>
+                </td>
+                <td class="survey-gap"></td>
+                <td class="survey-card">
+                    <div class="survey-card-title">Modello AP</div>
+                    <p><b>Finding AP Dominante:</b> osservazioni roaming o posizione AP da controllare.</p>
+                    <p><b>AP Senza Posizione:</b> gruppi AP rilevanti senza coordinate mappa.</p>
+                    <p><b>Warning Config AP:</b> mismatch metadata/deployment.</p>
+                    <p><b>Memoria Applicata / Cambi Canale:</b> dati AP o ipotesi canale ancora da rivedere.</p>
+                </td>
+            </tr>
         </table>
+        <h2>Cosa Sistemare Prima</h2>
+        <div class="gate-list">
+            <div class="gate-row"><b>1. Sistema prima l'evidenza dei punti:</b> reti rilevanti mancanti, dati radi, bassa confidenza e segnale instabile possono falsare ogni mappa. Vai al punto e riscansiona prima di ragionare sugli AP.</div>
+            <div class="gate-row"><b>2. Sistema poi identità e posizione AP:</b> finding AP Dominante e AP senza posizione di solito indicano che il modello AP va rivisto prima di fidarsi di roaming o diagnostica posizione.</div>
+            <div class="gate-row"><b>3. Rivedi metadata AP e canali:</b> warning config AP e cambi canale influenzano Canali AP e Interferenza. Apri Metadati AP quando canali attesi, osservati o override canale analisi vanno controllati.</div>
+            <div class="gate-row"><b>4. Conferma i dati AP da memoria:</b> Da Memoria non è un errore. Significa che alias, ruoli, metadata, override o posizioni compatibili sono stati riusati e vanno confermati o modificati.</div>
+        </div>
         <h2>Finestra Dettagli</h2>
-        <p>Usa <b>Dettagli</b> quando una card mostra più di un semplice stato OK. Le righe dettaglio rendono gestibili survey grandi: ogni punto, gruppo AP o cambio canale coinvolto ha la sua riga e i pulsanti aprono la mappa o l'editor corretto.</p>
+        <p>Usa <b>Dettagli</b> quando una card mostra più di un semplice stato OK. Le righe dettaglio sono pensate per survey grandi: ogni punto, gruppo AP o cambio canale coinvolto ha la sua riga, e i pulsanti aprono la mappa o l'editor corretto senza caricare tutto nella dashboard principale.</p>
+        <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Scalabile Per Scelta</span><br>La dashboard principale mostra conteggi e priorità. Le finestre dettaglio contengono le liste lunghe, così molti gruppi AP o molti punti problematici restano leggibili.</td></tr></table>
         <h2>Revisione Memoria AP</h2>
         <p>Quando un nuovo rilievo vede BSSID già noti, il programma può riusare alias, ruoli, metadata, override canale analisi e posizioni mappa compatibili. Qualità Rilievo mantiene questa cosa visibile come finding del modello AP finché i dati non vengono confermati o modificati da Gruppi AP.</p>
         <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Importante</span><br>Un warning di setup non significa che il punto sia sbagliato. Significa che modello AP, canale atteso o deployment reale vanno controllati.</td></tr></table>

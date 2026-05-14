@@ -24,6 +24,8 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   warning, and glossary workflows from the Qt implementation.
 - Survey Help now uses compact summary cards for survey screen boxes and
   clearer sidecar/relevant-SSID/point-placement guidance.
+- Survey Quality Help now reads as a dashboard guide with two decision layers,
+  grouped KPI cards, prioritized fix gates, and scalable detail-dialog guidance.
 - Help Center tables and callouts now normalize to full content width in the Qt
   renderer, callout accent columns keep a fixed Qt-compatible width, and scanner
   backend labels are plain table text instead of badges.

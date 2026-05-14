@@ -735,6 +735,11 @@ Implemented:
   explicit HTML widths so list-heavy callouts keep the same slim left accent as
   simple one-line callouts. Scanner backend names on the Survey page are plain
   table text rather than badge-style highlights.
+- The Survey Quality Help page has been reorganized as an operational dashboard
+  guide: point quality and AP model are shown as two decision layers, KPI
+  meanings are grouped like the real dashboard, "what to fix first" is expressed
+  as priority gates, and detail dialogs are explained as the scalable path for
+  large surveys.
 
 Remaining closeout:
 
