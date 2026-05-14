@@ -1044,27 +1044,84 @@ TRANSLATIONS = {
     "help_glossary_title": "Glossario",
     "help_glossary_subtitle": "Termini usati dal workflow V2 e dai report.",
     "help_glossary_body": """
-        <table>
-            <tr><th>Termine</th><th>Significato</th></tr>
-            <tr><td>Gruppo AP</td><td>Il modello del programma per un AP fisico, di solito con più BSSID.</td></tr>
-            <tr><td>Memoria AP</td><td>File persistente in cui vengono salvati alias, ruoli, metadata, override canale analisi e posizioni compatibili per rilievi futuri.</td></tr>
-            <tr><td>BSSID</td><td>Il MAC radio visto dalle scansioni Wi-Fi.</td></tr>
-            <tr><td>SSID</td><td>Il nome della rete Wi-Fi. Uno stesso SSID può essere trasmesso da molti BSSID.</td></tr>
-            <tr><td>SSID Rilevante</td><td>Una rete selezionata come importante per controlli qualità e analisi.</td></tr>
-            <tr><td>Confidenza</td><td>Quanto è affidabile una riga aggregata, in base alle scansioni ripetute.</td></tr>
-            <tr><td>Sidecar Raw</td><td>Il file <code>.scan</code> collegato che contiene i campioni grezzi delle scansioni ripetute.</td></tr>
-            <tr><td>AP Dominante</td><td>Il gruppo AP con segnale osservato più forte in un punto di misura.</td></tr>
-            <tr><td>Ambiguità Roaming</td><td>Un punto dove AP più forte e secondo AP sono abbastanza vicini da poter essere scelti entrambi dai client.</td></tr>
-            <tr><td>Cambio Canale Pulito</td><td>Un gruppo AP che cambia canale nel tempo senza evidenza di conflitti BSSID misti.</td></tr>
-            <tr><td>Cambio Canale Ambiguo</td><td>Sequenza canale in cui il programma non può trattare con certezza il cambio come transizione pulita.</td></tr>
-            <tr><td>Override Canale Analisi</td><td>Canale scelto dall'utente per mappe sensibili al canale su uno specifico gruppo AP e banda.</td></tr>
-            <tr><td>Warning Setup</td><td>Problema di modello/deployment che non richiede necessariamente di rifare il punto.</td></tr>
-            <tr><td>Finding Rescan Punto</td><td>Problema qualità che suggerisce di rifare la scansione del punto di misura.</td></tr>
-            <tr><td>Da Memoria</td><td>Stato Gruppo AP che indica dati applicati da Memoria AP e ancora da confermare o modificare.</td></tr>
-            <tr><td>Aggiornamento Memoria</td><td>Stato Gruppo AP che indica dati salvati in Memoria AP diversi dai dati manuali correnti.</td></tr>
-            <tr><td>Memoria Opzioni Mappa</td><td>Mappa Live ricorda i valori delle opzioni separatamente per ogni tipo mappa durante la sessione corrente.</td></tr>
-            <tr><td>Interpolazione</td><td>Stima visuale fra punti misurati. Aiuta la leggibilità ma non sostituisce misure reali.</td></tr>
-            <tr><td>Distanza Max</td><td>Limite di rendering che evita alle mappe continue di estendersi troppo lontano dall'evidenza misurata.</td></tr>
+        <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Come Usare Questa Pagina</span><br>È un riferimento rapido per termini che nel programma hanno un significato specifico. Le pagine operative spiegano le azioni; questa pagina stabilizza il vocabolario.</td></tr></table>
+        <h2>Evidenza Wi-Fi</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>SSID</b><br>Il nome della rete Wi-Fi. Uno stesso SSID può essere trasmesso da molti BSSID.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>BSSID</b><br>Il MAC radio visto dalle scansioni Wi-Fi.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>SSID Rilevante</b><br>Una rete selezionata come importante per controlli qualità, mappe live e report.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Sidecar Raw</b><br>Il file <code>.scan</code> collegato che contiene i campioni grezzi delle scansioni ripetute.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Confidenza</b><br>Quanto è affidabile una riga aggregata, in base alle scansioni ripetute.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Finding Rescan Punto</b><br>Problema qualità che suggerisce di rifare la scansione del punto di misura.</td>
+            </tr>
+        </table>
+        <h2>Modello AP</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Gruppo AP</b><br>Il modello del programma per un AP fisico, di solito con più BSSID.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>AP Dominante</b><br>Il gruppo AP con segnale osservato più forte in un punto di misura.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Ambiguità Roaming</b><br>Un punto dove AP più forte e secondo AP sono abbastanza vicini da poter essere scelti entrambi dai client.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Override Canale Analisi</b><br>Canale osservato scelto dall'utente per mappe sensibili al canale su uno specifico gruppo AP e banda.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Cambio Canale Pulito</b><br>Un gruppo AP che cambia canale nel tempo senza evidenza di conflitti BSSID misti.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Cambio Canale Ambiguo</b><br>Sequenza canale in cui il programma non può trattare con certezza il cambio come transizione pulita.</td>
+            </tr>
+        </table>
+        <h2>Qualità E Warning</h2>
+        <table class="survey-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="survey-card"><b>Warning Setup</b><br>Problema di modello o deployment che non richiede necessariamente di rifare il punto.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>Canale O Banda Inattesi</b><br>Evidenza Wi-Fi osservata che non corrisponde ai metadata AP attesi.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>Posizione AP Mancante</b><br>Un gruppo AP rilevante non ha coordinate fisiche sulla mappa, quindi i controlli distanza AP dominante sono più deboli.</td>
+            </tr>
+        </table>
+        <h2>Memoria E Persistenza</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Memoria AP</b><br>File persistente in cui vengono salvati alias, ruoli, metadata, override canale analisi e posizioni compatibili per rilievi futuri.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Da Memoria</b><br>Stato Gruppo AP che indica dati applicati da Memoria AP e ancora da confermare o modificare.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Aggiornamento Memoria</b><br>Stato Gruppo AP che indica dati salvati in Memoria AP diversi dai dati manuali correnti.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Memoria Opzioni Mappa</b><br>Mappa Live ricorda i valori delle opzioni separatamente per ogni tipo mappa durante la sessione corrente.</td>
+            </tr>
+        </table>
+        <h2>Mappe Live E Report</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Interpolazione</b><br>Stima visuale fra punti misurati. Aiuta la leggibilità ma non sostituisce misure reali.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Distanza Max</b><br>Limite di rendering che evita alle mappe continue di estendersi troppo lontano dall'evidenza misurata.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Scheda Diagnostica</b><br>Scheda del report PDF che spiega punto, gruppo AP, canale o warning coinvolto.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Callout Mappa</b><br>Marker numerato sulla mappa PDF che collega una posizione visibile alla relativa scheda dettaglio.</td>
+            </tr>
         </table>
     """,
     "help_commands": "Comandi",

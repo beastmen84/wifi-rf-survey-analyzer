@@ -1044,27 +1044,84 @@ TRANSLATIONS = {
     "help_glossary_title": "Glossary",
     "help_glossary_subtitle": "Terms used by the V2 workflow and reports.",
     "help_glossary_body": """
-        <table>
-            <tr><th>Term</th><th>Meaning</th></tr>
-            <tr><td>AP Group</td><td>The program's model of one physical AP, usually containing multiple BSSIDs.</td></tr>
-            <tr><td>AP Memory</td><td>A persistent file where reviewed AP aliases, roles, metadata, analysis-channel overrides and compatible positions are stored for future surveys.</td></tr>
-            <tr><td>BSSID</td><td>The radio MAC address seen in Wi-Fi scans.</td></tr>
-            <tr><td>SSID</td><td>The Wi-Fi network name. One SSID can be broadcast by many BSSIDs.</td></tr>
-            <tr><td>Relevant SSID</td><td>A network selected as important for quality checks and analysis.</td></tr>
-            <tr><td>Confidence</td><td>How reliable an aggregated point row is, based on repeated scan evidence.</td></tr>
-            <tr><td>Raw Sidecar</td><td>The linked <code>.scan</code> file containing raw repeated scan samples.</td></tr>
-            <tr><td>Dominant AP</td><td>The AP group with the strongest observed signal at a measurement point.</td></tr>
-            <tr><td>Roaming Ambiguity</td><td>A point where the strongest and second AP are close enough that clients may choose either one.</td></tr>
-            <tr><td>Clean Channel Change</td><td>An AP group changing channel over time without evidence of mixed BSSID conflicts.</td></tr>
-            <tr><td>Ambiguous Channel Change</td><td>A channel sequence where the program cannot confidently treat the change as a clean transition.</td></tr>
-            <tr><td>Analysis Channel Override</td><td>User-selected channel used by channel-sensitive maps for a specific AP group and band.</td></tr>
-            <tr><td>Setup Warning</td><td>A model/deployment issue that does not necessarily require rescanning the point.</td></tr>
-            <tr><td>Point-Rescan Finding</td><td>A quality issue suggesting that the measurement point itself may need another scan.</td></tr>
-            <tr><td>From Memory</td><td>AP Group state showing that data was applied from AP Memory and still needs user confirmation or editing.</td></tr>
-            <tr><td>Memory Update</td><td>AP Group state showing that AP Memory contains different saved data for a manually edited group.</td></tr>
-            <tr><td>Map Option Memory</td><td>Live Map remembers option values separately for each map type during the current session.</td></tr>
-            <tr><td>Interpolation</td><td>A visual estimate between measured points. It helps readability but is not a replacement for real measurements.</td></tr>
-            <tr><td>Max Distance</td><td>The rendering limit that prevents continuous maps from extending too far from measured evidence.</td></tr>
+        <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">How To Use This Page</span><br>This is a quick reference for terms that have a specific meaning inside this app. Workflow pages explain the actions; this page keeps the vocabulary stable.</td></tr></table>
+        <h2>Wi-Fi Evidence</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>SSID</b><br>The Wi-Fi network name. One SSID can be broadcast by many BSSIDs.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>BSSID</b><br>The radio MAC address seen in Wi-Fi scans.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Relevant SSID</b><br>A network selected as important for quality checks, live maps and reports.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Raw Sidecar</b><br>The linked <code>.scan</code> file containing raw repeated scan samples.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Confidence</b><br>How reliable an aggregated point row is, based on repeated scan evidence.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Point-Rescan Finding</b><br>A quality issue suggesting that the measurement point itself may need another scan.</td>
+            </tr>
+        </table>
+        <h2>AP Model</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>AP Group</b><br>The program's model of one physical AP, usually containing multiple BSSIDs.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Dominant AP</b><br>The AP group with the strongest observed signal at a measurement point.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Roaming Ambiguity</b><br>A point where the strongest and second AP are close enough that clients may choose either one.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Analysis Channel Override</b><br>User-selected observed channel used by channel-sensitive maps for a specific AP group and band.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Clean Channel Change</b><br>An AP group changing channel over time without evidence of mixed BSSID conflicts.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Ambiguous Channel Change</b><br>A channel sequence where the program cannot confidently treat the change as a clean transition.</td>
+            </tr>
+        </table>
+        <h2>Quality And Warnings</h2>
+        <table class="survey-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="survey-card"><b>Setup Warning</b><br>A model or deployment issue that does not necessarily require rescanning the point.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>Unexpected Channel Or Band</b><br>Observed Wi-Fi evidence that does not match the expected AP metadata.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>Missing AP Position</b><br>A relevant AP group has no physical map coordinate, so dominant-AP distance checks are weaker.</td>
+            </tr>
+        </table>
+        <h2>Memory And Persistence</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>AP Memory</b><br>A persistent file where reviewed AP aliases, roles, metadata, analysis-channel overrides and compatible positions are stored for future surveys.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>From Memory</b><br>AP Group state showing that data was applied from AP Memory and still needs user confirmation or editing.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Memory Update</b><br>AP Group state showing that AP Memory contains different saved data for a manually edited group.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Map Option Memory</b><br>Live Map remembers option values separately for each map type during the current session.</td>
+            </tr>
+        </table>
+        <h2>Live Maps And Reports</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Interpolation</b><br>A visual estimate between measured points. It helps readability but is not a replacement for real measurements.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Max Distance</b><br>The rendering limit that prevents continuous maps from extending too far from measured evidence.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Diagnostic Card</b><br>PDF report card that explains the affected point, AP group, channel or warning context.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Map Callout</b><br>Numbered marker on the PDF map that links a visible location to its detail card.</td>
+            </tr>
         </table>
     """,
     "help_commands": "Commands",

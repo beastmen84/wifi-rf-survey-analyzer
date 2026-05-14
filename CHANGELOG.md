@@ -40,6 +40,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 - Warnings Help now uses card/gate sections to distinguish point-rescan
   findings, AP model warnings, metadata/channel warnings, channel-change
   behavior, troubleshooting patterns, and review order.
+- Glossary Help now uses grouped reference cards for Wi-Fi evidence, AP model,
+  quality/warnings, memory/persistence, and live-map/report terminology instead
+  of a single long table.
 - Help Center tables and callouts now normalize to full content width in the Qt
   renderer, callout accent columns keep a fixed Qt-compatible width, and scanner
   backend labels are plain table text instead of badges.

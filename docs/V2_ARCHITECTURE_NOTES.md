@@ -733,7 +733,7 @@ Implemented:
   Coverage includes Survey boxes/actions, Quality controls, AP Group Manager
   layers, BSSID Manager, AP Memory confirm/update states, metadata channel
   override limits, Live Map option visibility, PDF export behavior, warning
-  troubleshooting and glossary terms.
+  troubleshooting and grouped glossary terms.
 - The Survey Help page has been visually tightened after screenshot review:
   the opening survey screen box table is now a compact 2x3 summary-card grid,
   "Saved Networks" wording has been corrected to Relevant SSIDs, `.scan` is
@@ -751,6 +751,9 @@ Implemented:
   meanings are grouped like the real dashboard, "what to fix first" is expressed
   as priority gates, and detail dialogs are explained as the scalable path for
   large surveys.
+- The Glossary Help page remains as a final terminology reference but is now
+  grouped into Wi-Fi evidence, AP model, quality/warnings, memory/persistence
+  and live-map/report terms instead of a single long table.
 
 Remaining closeout:
 

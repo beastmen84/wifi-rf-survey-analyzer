@@ -266,6 +266,9 @@ review checks with the same card/gate structure.
 The Warnings help page now distinguishes point-rescan findings, AP model
 warnings, metadata/channel warnings, channel-change behavior, and map-reading
 troubleshooting with card/gate guidance.
+The Glossary help page is now grouped by Wi-Fi evidence, AP model, quality and
+warnings, memory/persistence, and live-map/report terminology instead of using
+one long reference table.
 Help tables and callouts are rendered at full content width in the Qt Help
 Center with fixed accent columns, so highlighted blocks align consistently with
 the surrounding page.
