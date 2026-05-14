@@ -440,12 +440,12 @@ class WifiHeatmapQtApp(
         layout.addWidget(view_section)
 
         analysis_section, self.analysis_section_label, analysis_row = self.build_app_bar_section()
-        self.ap_groups_button = self.create_app_bar_button(self.open_ap_group_manager)
         self.quality_button = self.create_app_bar_button(self.open_quality_dashboard)
+        self.ap_groups_button = self.create_app_bar_button(self.open_ap_group_manager)
         self.help_button = self.create_app_bar_button(self.open_help_dialog)
         for button in (
-            self.ap_groups_button,
             self.quality_button,
+            self.ap_groups_button,
             self.help_button,
         ):
             analysis_row.addWidget(button)

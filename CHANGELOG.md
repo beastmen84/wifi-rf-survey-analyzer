@@ -12,6 +12,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   release-readiness adjustments.
 - Recommended Workflow help page now uses a visual step-card layout, clearer
   decision-gate rows, and AP Memory context in the AP modeling phase.
+- Recommended Workflow callouts now use a Qt-compatible accent-column layout,
+  and the main toolbar now places Survey Quality before AP Groups to match the
+  recommended validation flow.
 - Help Center now documents AP Memory review states, confirm/update workflows,
   settings access, and AP Group Manager save behavior.
 - Possible future AP Memory management view only if larger repeat-survey usage

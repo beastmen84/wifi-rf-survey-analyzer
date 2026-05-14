@@ -523,18 +523,18 @@ TRANSLATIONS = {
     "help_overview_title": "Workflow Consigliato Per Il Rilievo",
     "help_overview_subtitle": "Usa il programma come flusso di validazione: raccogli evidenze, controlla la qualità, sistema il modello AP e poi esporta le mappe.",
     "help_overview_body": """
-        <div class="callout good"><span class="callout-label">Regola Principale</span><br>Non fidarti di una mappa prima di aver controllato dati del rilievo e modello AP. La heatmap è il risultato finale, non il primo passaggio.</div>
+        <table class="callout-table"><tr><td class="callout-accent-good"></td><td class="callout-content"><span class="callout-label">Regola Principale</span><br>Non fidarti di una mappa prima di aver controllato dati del rilievo e modello AP. La heatmap è il risultato finale, non il primo passaggio.</td></tr></table>
         <h2>Sequenza Operativa</h2>
         <table class="workflow-grid">
             <tr>
                 <td class="workflow-card">
-                    <div class="step-label">1 Setup</div>
+                    <div class="step-label">1. Setup</div>
                     <div class="step-title">Prepara il rilievo</div>
                     <p>Crea o apri il rilievo, carica la pianta, calibra la scala e scegli gli SSID rilevanti.</p>
                     <div class="step-gate"><b>Vai avanti quando:</b> pianta, scala e reti da giudicare sono corrette.</div>
                 </td>
                 <td class="workflow-card">
-                    <div class="step-label">2 Acquisizione</div>
+                    <div class="step-label">2. Acquisizione</div>
                     <div class="step-title">Raccogli evidenze RF</div>
                     <p>Registra punti in stanze, corridoi, zone di transizione e punti deboli noti.</p>
                     <div class="step-gate"><b>Vai avanti quando:</b> le aree importanti hanno abbastanza punti e le scansioni sospette sono state riprovate.</div>
@@ -542,13 +542,13 @@ TRANSLATIONS = {
             </tr>
             <tr>
                 <td class="workflow-card">
-                    <div class="step-label">3 Validazione</div>
+                    <div class="step-label">3. Validazione</div>
                     <div class="step-title">Controlla la qualità</div>
                     <p>Apri Qualità Rilievo e separa problemi di rescan da diagnostica AP.</p>
                     <div class="step-gate"><b>Vai avanti quando:</b> la qualità dei punti è accettabile e i finding rimasti sono compresi.</div>
                 </td>
                 <td class="workflow-card">
-                    <div class="step-label">4 Modello AP</div>
+                    <div class="step-label">4. Modello AP</div>
                     <div class="step-title">Rendi credibile il modello AP</div>
                     <p>Rivedi gruppi AP, alias, ruoli, BSSID, metadata, posizioni AP, override canale e flag AP Memory.</p>
                     <div class="step-gate"><b>Vai avanti quando:</b> il modello AP corrisponde al deployment o è documentato come incerto.</div>
@@ -556,7 +556,7 @@ TRANSLATIONS = {
             </tr>
             <tr>
                 <td class="workflow-card" colspan="2">
-                    <div class="step-label">5 Analisi</div>
+                    <div class="step-label">5. Analisi</div>
                     <div class="step-title">Usa le mappe come output validato</div>
                     <p>Usa Mappe Live e PDF per controllare copertura, canali, roaming e interferenza.</p>
                     <div class="step-gate"><b>Vai avanti quando:</b> i warning sono stati rivisti e sai spiegarli.</div>
@@ -570,7 +570,7 @@ TRANSLATIONS = {
             <div class="gate-row"><b>Interferenza:</b> verifica gruppi AP, ruoli, gestione cambi canale e override canale prima di fidarti delle mappe sensibili al canale.</div>
             <div class="gate-row"><b>Export:</b> apri la live map collegata e leggi tooltip warning o righe dettaglio prima di generare il PDF.</div>
         </div>
-        <div class="section-card insight-card"><span class="callout-label">Come Ragiona Il Programma</span><br>Punti, raw scan, metadata AP, stato AP Memory e posizioni fisiche sono trattati come evidenze. I warning non sono automaticamente errori. Indicano quale ipotesi va controllata: qualità punto, gruppo AP, modello canale, posizione fisica o comportamento RF reale.</div>
+        <table class="section-card callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Come Ragiona Il Programma</span><br>Punti, raw scan, metadata AP, stato AP Memory e posizioni fisiche sono trattati come evidenze. I warning non sono automaticamente errori. Indicano quale ipotesi va controllata: qualità punto, gruppo AP, modello canale, posizione fisica o comportamento RF reale.</td></tr></table>
     """,
     "help_controls_nav": "Controlli",
     "help_controls_title": "Comandi Rapidi",

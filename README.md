@@ -51,7 +51,7 @@ shows the same icon next to the product name.
 4. Select relevant SSIDs for quality checks and focused analysis.
 5. Place measurement points on the floor plan.
 6. Let the app run repeated Wi-Fi scans and store all detected networks.
-7. Review AP groups, AP metadata, AP positions, and survey quality.
+7. Review survey quality, then AP groups, AP metadata, and AP positions.
 8. Use Live Map views for Coverage, Interference, AP Channels, and Dominant AP.
 9. Export the selected live map as a PDF report.
 
@@ -245,7 +245,8 @@ work is a calm visual/content review in the running app, not a missing feature.
 The Help Center now documents AP Memory review states, confirmation/update
 actions, settings access, and AP Group Manager save behavior. The recommended
 workflow page uses visual step cards and decision-gate rows to make the survey
-process easier to scan.
+process easier to scan. The main toolbar follows the same validation order by
+placing Survey Quality before AP Groups.
 
 ## Project Structure
 

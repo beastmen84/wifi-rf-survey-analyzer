@@ -95,6 +95,22 @@ class SettingsMenuTests(unittest.TestCase):
             else:
                 os.environ["WIFI_HEATMAP_AP_MEMORY_FILE"] = previous
 
+    def test_analysis_toolbar_matches_recommended_workflow_order(self):
+        window = WifiHeatmapQtApp()
+        try:
+            analysis_layout = window.quality_button.parentWidget().layout().itemAt(1).layout()
+            ordered_buttons = [
+                analysis_layout.itemAt(index).widget()
+                for index in range(analysis_layout.count())
+            ]
+
+            self.assertEqual(
+                ordered_buttons,
+                [window.quality_button, window.ap_groups_button, window.help_button],
+            )
+        finally:
+            window.deleteLater()
+
     def test_settings_clear_ap_memory_refreshes_footer_status(self):
         previous = os.environ.get("WIFI_HEATMAP_AP_MEMORY_FILE")
         try:
@@ -214,6 +230,8 @@ class SettingsMenuTests(unittest.TestCase):
             self.assertNotIn("middle-click.png", sections[1].body_html)
             self.assertIn("Decision Gates", sections[0].body_html)
             self.assertIn("workflow-grid", sections[0].body_html)
+            self.assertIn("callout-table", sections[0].body_html)
+            self.assertIn("1. Setup", sections[0].body_html)
             self.assertIn("KPI meaning", sections[3].body_html)
             self.assertIn("AP Memory review", sections[3].body_html)
             self.assertIn("What to review", sections[4].body_html)

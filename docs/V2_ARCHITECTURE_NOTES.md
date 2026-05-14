@@ -46,8 +46,9 @@ Current status:
   open;
 - Help content and structure have an expanded V2 Help Center implementation;
   the Recommended Workflow page has received the first visual-density polish
-  pass with step cards and decision-gate rows; remaining closeout is continued
-  user review of the other pages and a short EN/IT smoke pass;
+  pass with step cards, decision-gate rows and Qt-compatible accent-column
+  callouts; remaining closeout is continued user review of the other pages and
+  a short EN/IT smoke pass;
 - the real-survey live PDF validation pass is complete for Coverage, AP
   Channels, Dominant AP and Interference; the current findings are accepted as
   real diagnostics for now rather than layout blockers;
@@ -491,6 +492,8 @@ Implemented:
 - main workspace Survey/Live Map navigation uses full-width Qt tabs with
   theme-aware active gradients, centered split-adjacent labels and a faded
   active underline.
+- the Analysis toolbar follows the recommended validation flow by placing
+  Survey Quality before AP Groups.
 
 ## Remaining Work
 
@@ -700,7 +703,9 @@ Implemented:
   settings access, and the fact that closing AP Group Manager with the window X
   behaves like Cancel rather than Save.
 - The Recommended Workflow overview page now uses visual step cards and
-  compact decision-gate rows instead of a dense operational table.
+  compact decision-gate rows instead of a dense operational table; its callouts
+  use table-based accent columns because QTextBrowser does not reliably render
+  modern left-border styling on block elements.
 
 Remaining closeout:
 

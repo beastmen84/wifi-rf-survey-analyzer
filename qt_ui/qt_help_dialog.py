@@ -290,6 +290,38 @@ def build_help_html(parent, palette, section):
         .insight-card {{
             border-left: {widget_px(parent, 5)}px solid {palette["metric_info"]};
         }}
+        .callout-table {{
+            border-collapse: collapse;
+            margin: {gap}px 0;
+        }}
+        .callout-table td {{
+            border: 0;
+            padding: 0;
+        }}
+        .callout-table td.callout-accent-info,
+        .callout-table td.callout-accent-good,
+        .callout-table td.callout-accent-warning,
+        .callout-table td.callout-accent-danger {{
+            width: {widget_px(parent, 6)}px;
+            padding: 0;
+        }}
+        .callout-table td.callout-accent-info {{
+            background: {palette["metric_info"]};
+        }}
+        .callout-table td.callout-accent-good {{
+            background: {palette["metric_good"]};
+        }}
+        .callout-table td.callout-accent-warning {{
+            background: {palette["metric_warning"]};
+        }}
+        .callout-table td.callout-accent-danger {{
+            background: {palette["metric_danger"]};
+        }}
+        .callout-table td.callout-content {{
+            background: {palette["panel_alt"]};
+            color: {palette["text"]};
+            padding: {widget_px(parent, 9)}px {widget_px(parent, 12)}px;
+        }}
         .pill {{
             display: inline-block;
             color: {palette["badge_text"]};

@@ -523,18 +523,18 @@ TRANSLATIONS = {
     "help_overview_title": "Recommended Survey Workflow",
     "help_overview_subtitle": "Use the application as a validation workflow: collect evidence, review quality, fix the model, then export maps.",
     "help_overview_body": """
-        <div class="callout good"><span class="callout-label">Best Rule</span><br>Do not trust a map before the survey data and AP model have passed review. The heatmap is the final output, not the first step.</div>
+        <table class="callout-table"><tr><td class="callout-accent-good"></td><td class="callout-content"><span class="callout-label">Best Rule</span><br>Do not trust a map before the survey data and AP model have passed review. The heatmap is the final output, not the first step.</td></tr></table>
         <h2>Operational Sequence</h2>
         <table class="workflow-grid">
             <tr>
                 <td class="workflow-card">
-                    <div class="step-label">1 Setup</div>
+                    <div class="step-label">1. Setup</div>
                     <div class="step-title">Prepare the survey</div>
                     <p>Create or open the survey, load the plan, calibrate scale and choose relevant SSIDs.</p>
                     <div class="step-gate"><b>Move forward when:</b> the floor plan, scale and networks to judge are correct.</div>
                 </td>
                 <td class="workflow-card">
-                    <div class="step-label">2 Capture</div>
+                    <div class="step-label">2. Capture</div>
                     <div class="step-title">Collect RF evidence</div>
                     <p>Record measurement points in rooms, corridors, transition areas and known weak spots.</p>
                     <div class="step-gate"><b>Move forward when:</b> important areas have enough points and suspicious scans have been retried.</div>
@@ -542,13 +542,13 @@ TRANSLATIONS = {
             </tr>
             <tr>
                 <td class="workflow-card">
-                    <div class="step-label">3 Validate</div>
+                    <div class="step-label">3. Validate</div>
                     <div class="step-title">Check survey quality</div>
                     <p>Open Survey Quality and separate point-rescan issues from AP setup diagnostics.</p>
                     <div class="step-gate"><b>Move forward when:</b> point quality is acceptable and remaining findings are understood.</div>
                 </td>
                 <td class="workflow-card">
-                    <div class="step-label">4 Model APs</div>
+                    <div class="step-label">4. Model APs</div>
                     <div class="step-title">Make the AP model believable</div>
                     <p>Review AP Groups, aliases, roles, BSSIDs, metadata, AP positions, channel overrides and AP Memory flags.</p>
                     <div class="step-gate"><b>Move forward when:</b> the AP model matches the deployment or is intentionally documented as unknown.</div>
@@ -556,7 +556,7 @@ TRANSLATIONS = {
             </tr>
             <tr>
                 <td class="workflow-card" colspan="2">
-                    <div class="step-label">5 Analyze</div>
+                    <div class="step-label">5. Analyze</div>
                     <div class="step-title">Use maps as the checked output</div>
                     <p>Use Live Maps and PDF export to review coverage, channels, roaming and interference.</p>
                     <div class="step-gate"><b>Move forward when:</b> warnings have been reviewed and can be explained.</div>
@@ -570,7 +570,7 @@ TRANSLATIONS = {
             <div class="gate-row"><b>Interference:</b> verify AP groups, roles, channel-change handling and analysis-channel overrides before trusting channel-sensitive maps.</div>
             <div class="gate-row"><b>Export:</b> open the related live map and read the warning tooltips or detail rows before generating the PDF.</div>
         </div>
-        <div class="section-card insight-card"><span class="callout-label">How The Program Thinks</span><br>Survey points, raw scans, AP metadata, AP Memory state and AP positions are treated as evidence. Warnings are not automatically errors. They tell you which assumption needs review: point quality, AP grouping, channel model, physical AP placement or real RF behavior.</div>
+        <table class="section-card callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">How The Program Thinks</span><br>Survey points, raw scans, AP metadata, AP Memory state and AP positions are treated as evidence. Warnings are not automatically errors. They tell you which assumption needs review: point quality, AP grouping, channel model, physical AP placement or real RF behavior.</td></tr></table>
     """,
     "help_controls_nav": "Controls",
     "help_controls_title": "Controls Cheat Sheet",
