@@ -1,5 +1,6 @@
 """Qt help center content and layout."""
 
+import re
 from dataclasses import dataclass
 from html import escape
 from pathlib import Path
@@ -20,6 +21,7 @@ from qt_ui.scaling import widget_font, widget_px
 
 
 IMAGES_DIR = Path(__file__).resolve().parent.parent / "images"
+_TABLE_TAG_RE = re.compile(r"<table(?P<attrs>[^>]*)>", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -206,6 +208,8 @@ def build_help_html(parent, palette, section):
     padding = widget_px(parent, 18)
     right_padding = padding + widget_px(parent, 14)
 
+    body_html = normalize_help_tables(section.body_html)
+
     return f"""
     <html>
     <head>
@@ -323,16 +327,6 @@ def build_help_html(parent, palette, section):
             background: {palette["panel_alt"]};
             color: {palette["text"]};
             padding: {widget_px(parent, 9)}px {widget_px(parent, 12)}px;
-        }}
-        .pill {{
-            display: inline-block;
-            color: {palette["badge_text"]};
-            background: {palette["badge_bg"]};
-            border: 1px solid {palette["badge_border"]};
-            border-radius: {widget_px(parent, 10)}px;
-            padding: {widget_px(parent, 2)}px {widget_px(parent, 7)}px;
-            font-weight: 700;
-            white-space: nowrap;
         }}
         table {{
             border-collapse: collapse;
@@ -472,11 +466,29 @@ def build_help_html(parent, palette, section):
         <div class="page">
             <h1>{escape(section.title)}</h1>
             <p class="subtitle">{escape(section.subtitle)}</p>
-            {section.body_html}
+            {body_html}
         </div>
     </body>
     </html>
     """
+
+
+def normalize_help_tables(body_html):
+    def replace(match):
+        attrs = match.group("attrs") or ""
+        lower_attrs = attrs.lower()
+        additions = []
+        if "width=" not in lower_attrs:
+            additions.append('width="100%"')
+        if "cellspacing=" not in lower_attrs:
+            additions.append('cellspacing="0"')
+        if "cellpadding=" not in lower_attrs:
+            additions.append('cellpadding="0"')
+        if additions:
+            attrs = f"{attrs} {' '.join(additions)}"
+        return f"<table{attrs}>"
+
+    return _TABLE_TAG_RE.sub(replace, body_html)
 
 
 def apply_help_dialog_style(dialog, parent, palette):

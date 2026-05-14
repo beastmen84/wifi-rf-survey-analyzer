@@ -642,9 +642,9 @@ TRANSLATIONS = {
         <h2>Backend Scanner</h2>
         <table>
             <tr><th>Backend</th><th>Uso</th><th>Note</th></tr>
-            <tr><td><span class="pill">Auto</span></td><td>Scelta consigliata</td><td>Prova prima <code>lswifi</code>, poi usa <code>netsh</code> come fallback.</td></tr>
-            <tr><td><span class="pill">lswifi</span></td><td>Scanner preferito</td><td>Di solito cattura più dettagli su BSSID, banda, frequenza, sicurezza e larghezza canale.</td></tr>
-            <tr><td><span class="pill">netsh</span></td><td>Fallback Windows</td><td>Utile quando lswifi non è disponibile, ma in genere espone meno dettagli RF.</td></tr>
+            <tr><td>Auto</td><td>Scelta consigliata</td><td>Prova prima <code>lswifi</code>, poi usa <code>netsh</code> come fallback.</td></tr>
+            <tr><td>lswifi</td><td>Scanner preferito</td><td>Di solito cattura più dettagli su BSSID, banda, frequenza, sicurezza e larghezza canale.</td></tr>
+            <tr><td>netsh</td><td>Fallback Windows</td><td>Utile quando lswifi non è disponibile, ma in genere espone meno dettagli RF.</td></tr>
         </table>
         <table class="callout-table"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Scansioni Sospette</span><br>Se una scansione vede molte meno reti rilevanti, riprova prima di salvare il punto. È quasi sempre più rapido che correggere un punto sporco dopo.</td></tr></table>
         <h2>Azioni Tabella Punti</h2>

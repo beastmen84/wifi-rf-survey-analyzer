@@ -262,6 +262,12 @@ class SettingsMenuTests(unittest.TestCase):
             self.assertIn("b, strong", html)
             self.assertNotIn("class=\"eyebrow\"", html)
             self.assertNotIn(">Recommended Workflow</div>", html)
+
+            survey_html = build_help_html(window, help_palette(window), sections[2])
+            self.assertIn('<table class="survey-grid" width="100%" cellspacing="0" cellpadding="0">', survey_html)
+            self.assertIn('<table width="100%" cellspacing="0" cellpadding="0">', survey_html)
+            self.assertIn('<table class="callout-table" width="100%" cellspacing="0" cellpadding="0">', survey_html)
+            self.assertNotIn("class=\"pill\"", survey_html)
         finally:
             window.deleteLater()
 

@@ -729,6 +729,10 @@ Implemented:
   explained as a sidecar that users normally do not open directly, Auto scanner
   is called out as the recommended default, and good point placement is a
   highlighted field-rule block.
+- The Help renderer now normalizes tables to full content width with
+  Qt-compatible width/cell spacing attributes, so tables and callouts do not end
+  at the text length or crowd the scrollbar. Scanner backend names on the
+  Survey page are plain table text rather than badge-style highlights.
 
 Remaining closeout:
 

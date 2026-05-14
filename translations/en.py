@@ -642,9 +642,9 @@ TRANSLATIONS = {
         <h2>Scanner Backend</h2>
         <table>
             <tr><th>Backend</th><th>Use</th><th>Notes</th></tr>
-            <tr><td><span class="pill">Auto</span></td><td>Recommended default</td><td>Tries <code>lswifi</code> first, then falls back to <code>netsh</code>.</td></tr>
-            <tr><td><span class="pill">lswifi</span></td><td>Preferred scanner</td><td>Usually captures richer BSSID, band, frequency, security and channel-width data.</td></tr>
-            <tr><td><span class="pill">netsh</span></td><td>Windows fallback</td><td>Useful when lswifi is unavailable, but generally exposes less RF detail.</td></tr>
+            <tr><td>Auto</td><td>Recommended default</td><td>Tries <code>lswifi</code> first, then falls back to <code>netsh</code>.</td></tr>
+            <tr><td>lswifi</td><td>Preferred scanner</td><td>Usually captures richer BSSID, band, frequency, security and channel-width data.</td></tr>
+            <tr><td>netsh</td><td>Windows fallback</td><td>Useful when lswifi is unavailable, but generally exposes less RF detail.</td></tr>
         </table>
         <table class="callout-table"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Suspicious Scans</span><br>If a scan suddenly sees far fewer relevant networks, retry before saving the point. This is usually faster than fixing a bad point later.</td></tr></table>
         <h2>Point Table Actions</h2>
