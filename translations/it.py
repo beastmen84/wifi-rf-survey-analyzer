@@ -857,47 +857,90 @@ TRANSLATIONS = {
     "help_live_maps_subtitle": "Mappa Live è la superficie principale di revisione dopo controlli qualità e modello AP.",
     "help_live_maps_body": """
         <h2>Toolbar Superiore</h2>
-        <table>
-            <tr><th>Controllo</th><th>Uso</th></tr>
-            <tr><td>Tipo Mappa</td><td>Seleziona Copertura Segnale, Interferenza AP, Canali AP o AP Dominante.</td></tr>
-            <tr><td>SSID</td><td>Sceglie la rete da analizzare fra gli SSID presenti nel rilievo.</td></tr>
-            <tr><td>Esporta PDF</td><td>Esporta il tipo mappa live e le opzioni correnti. Il rilievo viene salvato prima se necessario.</td></tr>
-            <tr><td>Aggiorna Ora</td><td>Renderizza la mappa corrente con le opzioni selezionate.</td></tr>
-            <tr><td>Aggiornamento Auto</td><td>Rirenderizza automaticamente dopo cambi opzione quando il rilievo può essere renderizzato.</td></tr>
+        <table class="survey-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="survey-card"><b>Tipo Mappa</b><br>Seleziona Copertura Segnale, Interferenza AP, Canali AP o AP Dominante.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>SSID</b><br>Sceglie la rete da analizzare fra gli SSID presenti nel rilievo.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>Esporta PDF</b><br>Esporta il tipo mappa live e le opzioni correnti. Il rilievo viene salvato prima se necessario.</td>
+            </tr>
+        </table>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Aggiorna Ora</b><br>Renderizza la mappa corrente con le opzioni selezionate.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Aggiornamento Auto</b><br>Rirenderizza automaticamente dopo cambi opzione quando il rilievo può essere renderizzato.</td>
+            </tr>
         </table>
         <h2>Scegli La Mappa In Base Alla Domanda</h2>
-        <table>
-            <tr><th>Mappa</th><th>Cosa Mostra</th><th>Come Leggerla</th></tr>
-            <tr><td>Copertura</td><td>Livello segnale continuo per SSID e banda.</td><td>Usa scala colori e distanza max per non sovrainterpretare zone lontane dai punti reali.</td></tr>
-            <tr><td>Canali AP</td><td>Colori discreti dei punti in base al canale servente.</td><td>Usala per verificare piano canali e gestione dei cambi canale.</td></tr>
-            <tr><td>AP Dominante</td><td>Quale gruppo AP è più forte in ogni punto.</td><td>Marker gialli o issue indicano ambiguità roaming o incoerenza con posizione AP.</td></tr>
-            <tr><td>Interferenza</td><td>Rischio di sovrapposizione canale fra AP servente e AP vicini.</td><td>Controlla ruoli AP e override canale prima di fidarti dello score.</td></tr>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Copertura Segnale</b><br>Livello segnale continuo per SSID e banda.<br><span class="survey-card-use">Lettura:</span> usa scala colori e distanza max per non sovrainterpretare zone lontane dai punti reali.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Interferenza AP</b><br>Rischio di sovrapposizione canale fra AP servente e AP vicini.<br><span class="survey-card-use">Lettura:</span> controlla ruoli AP e override canale prima di fidarti dello score.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Canali AP</b><br>Colori discreti dei punti in base al canale servente.<br><span class="survey-card-use">Lettura:</span> usala per verificare piano canali e gestione dei cambi canale.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>AP Dominante</b><br>Quale gruppo AP è più forte in ogni punto.<br><span class="survey-card-use">Lettura:</span> i marker issue indicano ambiguità roaming o incoerenza con posizione AP.</td>
+            </tr>
         </table>
         <h2>Pannello Opzioni</h2>
         <p>Il tab verticale Opzioni apre l'overlay a sinistra. Il programma mostra solo i controlli utili per il tipo mappa corrente e ricorda le opzioni separatamente per ogni tipo mappa.</p>
-        <table>
-            <tr><th>Tipo Mappa</th><th>Opzioni Visibili</th><th>Note</th></tr>
-            <tr><td>Copertura Segnale</td><td>Banda, Aggregazione, Scala Colori, Interpolazione, Distanza Max, Smoothing, Filtro Gruppo AP, Solo &gt;= -70 dBm.</td><td>Filtro Gruppo AP appare solo quando esistono gruppi AP non-test compatibili con SSID/banda selezionati.</td></tr>
-            <tr><td>Interferenza AP</td><td>Banda, Scala Colori, Modalità Interferenza, Interpolazione, Distanza Max, Smoothing.</td><td>Interferenza non offre Tutte Le Bande; parte da 2.4 GHz di default.</td></tr>
-            <tr><td>Canali AP</td><td>Banda, Label Punti, Filtro Gruppo AP.</td><td>Mappa discreta a punti; niente interpolazione o smoothing.</td></tr>
-            <tr><td>AP Dominante</td><td>Banda, Label Punti.</td><td>Mappa discreta a punti; i warning posizione AP usano il modello fisico AP.</td></tr>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Copertura Segnale</b><br><span class="survey-card-use">Opzioni Visibili:</span> Banda, Aggregazione, Scala Colori, Interpolazione, Distanza Max, Smoothing, Filtro Gruppo AP, Solo &gt;= -70 dBm.<br>Filtro Gruppo AP appare solo quando esistono gruppi AP non-test compatibili con SSID/banda selezionati.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Interferenza AP</b><br><span class="survey-card-use">Opzioni Visibili:</span> Banda, Scala Colori, Modalità Interferenza, Interpolazione, Distanza Max, Smoothing.<br>Interferenza non offre Tutte Le Bande; parte da 2.4 GHz di default.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Canali AP</b><br><span class="survey-card-use">Opzioni Visibili:</span> Banda, Label Punti, Filtro Gruppo AP.<br>Mappa discreta a punti; niente interpolazione o smoothing.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>AP Dominante</b><br><span class="survey-card-use">Opzioni Visibili:</span> Banda, Label Punti.<br>Mappa discreta a punti; i warning posizione AP usano il modello fisico AP.</td>
+            </tr>
         </table>
         <h2>Significato Opzioni</h2>
-        <table>
-            <tr><th>Opzione</th><th>Significato</th><th>Usala Con Attenzione Quando</th></tr>
-            <tr><td>Banda</td><td>Limita l'analisi a 2.4, 5, 6 GHz o tutte le bande dove supportato.</td><td>Righe senza banda/frequenza esplicita possono rendere ambigui canali bassi.</td></tr>
-            <tr><td>Aggregazione</td><td>Copertura Segnale può usare Migliore, Mediana o Media quando più righe contribuiscono a un punto.</td><td>Migliore è ottimistica; Mediana è di solito più stabile con evidenza ripetuta.</td></tr>
-            <tr><td>Scala Colori</td><td>Fissa mantiene colori confrontabili; Automatica adatta la scala ai dati della mappa corrente.</td><td>Usa Fissa quando confronti più report.</td></tr>
-            <tr><td>Interpolazione</td><td>Smooth RBF o Lineare per stimare fra punti reali nelle mappe continue.</td><td>Aree grandi senza punti non vanno sovrainterpretate.</td></tr>
-            <tr><td>Smoothing</td><td>Rende copertura/interferenza visivamente più calme.</td><td>Smoothing alto può nascondere transizioni RF nette.</td></tr>
-            <tr><td>Distanza Max</td><td>Limita il rendering continuo alle aree vicine ai punti misurati. Usa metri quando la scala è calibrata, pixel altrimenti.</td><td>Aumentala solo quando la densità punti è buona.</td></tr>
-            <tr><td>Modalità Interferenza</td><td>Intra-SSID si concentra sull'SSID selezionato; Tutti Gli SSID include altri SSID osservati nel modello di rischio.</td><td>Tutti Gli SSID può essere utile per contesto vicini, ma può risultare più rumoroso.</td></tr>
-            <tr><td>Label Punti</td><td>Automatico, Tutti o Nessuno per Canali AP e AP Dominante. Interferenza normalizza label dense sui punti critici.</td><td>Usa Tutti per audit attribuzione punti; usa Auto nei report normali.</td></tr>
-            <tr><td>Filtro Gruppo AP</td><td>Limita/evidenzia Copertura Segnale o Canali AP per un gruppo AP selezionato.</td><td>Usalo per ispezionare un AP problematico senza cambiare i dati del rilievo.</td></tr>
-            <tr><td>Solo &gt;= -70 dBm</td><td>Filtro Copertura Segnale per zone con segnale normalmente utilizzabile.</td><td>È un filtro di vista, non elimina misure deboli.</td></tr>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Banda</b><br>Limita l'analisi a 2.4, 5, 6 GHz o tutte le bande dove supportato.<br><span class="survey-card-use">Usala Con Attenzione:</span> righe senza banda/frequenza esplicita possono rendere ambigui canali bassi.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Aggregazione</b><br>Copertura Segnale può usare Migliore, Mediana o Media quando più righe contribuiscono a un punto.<br><span class="survey-card-use">Usala Con Attenzione:</span> Migliore è ottimistica; Mediana è di solito più stabile con evidenza ripetuta.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Scala Colori</b><br>Fissa mantiene colori confrontabili; Automatica adatta la scala ai dati della mappa corrente.<br><span class="survey-card-use">Usala Con Attenzione:</span> usa Fissa quando confronti più report.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Interpolazione</b><br>Smooth RBF o Lineare per stimare fra punti reali nelle mappe continue.<br><span class="survey-card-use">Usala Con Attenzione:</span> aree grandi senza punti non vanno sovrainterpretate.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Smoothing</b><br>Rende copertura/interferenza visivamente più calme.<br><span class="survey-card-use">Usala Con Attenzione:</span> smoothing alto può nascondere transizioni RF nette.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Distanza Max</b><br>Limita il rendering continuo alle aree vicine ai punti misurati. Usa metri quando la scala è calibrata, pixel altrimenti.<br><span class="survey-card-use">Usala Con Attenzione:</span> aumentala solo quando la densità punti è buona.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Modalità Interferenza</b><br>Intra-SSID si concentra sull'SSID selezionato; Tutti Gli SSID include altri SSID osservati nel modello di rischio.<br><span class="survey-card-use">Usala Con Attenzione:</span> Tutti Gli SSID può essere utile per contesto vicini, ma può risultare più rumoroso.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Label Punti</b><br>Disponibile per Canali AP e AP Dominante. Auto etichetta cambi canale/AP e inizi roaming; Tutti etichetta ogni punto; Nessuno nasconde le label.<br><span class="survey-card-use">Usala Con Attenzione:</span> usa Tutti per audit attribuzione punti; usa Auto nei report normali.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Filtro Gruppo AP</b><br>Limita/evidenzia Copertura Segnale o Canali AP per un gruppo AP selezionato.<br><span class="survey-card-use">Usala Con Attenzione:</span> ispeziona un AP problematico senza cambiare i dati del rilievo.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Solo &gt;= -70 dBm</b><br>Filtro Copertura Segnale per zone con segnale normalmente utilizzabile.<br><span class="survey-card-use">Usala Con Attenzione:</span> è un filtro di vista, non elimina misure deboli.</td>
+            </tr>
         </table>
         <h2>Limiti Di Lettura</h2>
-        <p>Le mappe live aggiornano la visualizzazione, non i dati raccolti. Se una mappa sembra sbagliata, controlla il percorso evidenza: qualità punto, gruppi AP, ruoli, metadata, scala e posizioni AP.</p>
+        <table class="callout-table"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Regola Lettura Mappa</span><br>Le mappe live aggiornano la visualizzazione, non i dati raccolti. Una mappa pulita può comunque dipendere da densità punti debole, metadata AP non aggiornati o posizioni AP mancanti.</td></tr></table>
+        <table class="gate-list">
+            <tr><td class="gate-row"><b>1. Controlla Il Percorso Evidenza</b><br>Se una mappa sembra sbagliata, rivedi qualità punto, gruppi AP, ruoli, metadata, calibrazione scala e posizioni AP prima di trattarla come conclusione RF.</td></tr>
+            <tr><td class="gate-row"><b>2. Tieni Limitate Le Mappe Continue</b><br>Copertura e Interferenza interpolano fra punti reali. Scala colori, distanza max e smoothing decidono quanta area vuota della pianta viene stimata visivamente.</td></tr>
+            <tr><td class="gate-row"><b>3. Usa Le Mappe Discrete Per Attribuire</b><br>Canali AP e AP Dominante sono mappe a punti. Usa label e filtro Gruppo AP quando devi spiegare quale AP/canale serve un punto specifico.</td></tr>
+        </table>
         <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Cambi Canale</span><br>Se lo stesso gruppo AP passa pulitamente da un canale a un altro durante il rilievo, le mappe sensibili al canale usano di default il canale più recente. Se la sequenza è ambigua, le mappe preservano i canali misurati salvo override esplicito.</td></tr></table>
     """,
     "help_reports_nav": "Report PDF",

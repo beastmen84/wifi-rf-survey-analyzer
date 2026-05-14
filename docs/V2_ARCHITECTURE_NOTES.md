@@ -54,8 +54,10 @@ Current status:
   implementation; the AP Group page now uses an evidence-to-model guide with
   compact cards for BSSID management, roles, metadata, channel overrides, clean
   channel changes and AP Memory states, with workflow-card spacer rows aligned
-  to the rest of the Help renderer; remaining closeout is user review of the
-  Help pages in the running app and a short EN/IT smoke pass;
+  to the rest of the Help renderer; the Live Maps page has been converted from
+  reference tables to card-based toolbar, map-choice, visible-option,
+  option-meaning and reading-limit guidance; remaining closeout is user review
+  of the Help pages in the running app and a short EN/IT smoke pass;
 - the real-survey live PDF validation pass is complete for Coverage, AP
   Channels, Dominant AP and Interference; the current findings are accepted as
   real diagnostics for now rather than layout blockers;

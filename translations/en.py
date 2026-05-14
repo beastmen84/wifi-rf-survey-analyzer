@@ -857,47 +857,90 @@ TRANSLATIONS = {
     "help_live_maps_subtitle": "Live Map is the main review surface after survey and AP model checks.",
     "help_live_maps_body": """
         <h2>Top Toolbar</h2>
-        <table>
-            <tr><th>Control</th><th>Use</th></tr>
-            <tr><td>Map Type</td><td>Selects Signal Coverage, AP Interference, AP Channels or Dominant AP.</td></tr>
-            <tr><td>SSID</td><td>Chooses the network to analyze from the SSIDs present in the survey.</td></tr>
-            <tr><td>Export PDF</td><td>Exports the current live map type and options. The survey is saved first if needed.</td></tr>
-            <tr><td>Update Now</td><td>Renders the current map with the selected options.</td></tr>
-            <tr><td>Auto Update</td><td>Automatically rerenders after option changes when the survey can be rendered.</td></tr>
+        <table class="survey-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="survey-card"><b>Map Type</b><br>Selects Signal Coverage, AP Interference, AP Channels or Dominant AP.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>SSID</b><br>Chooses the network to analyze from the SSIDs present in the survey.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>Export PDF</b><br>Exports the current live map type and options. The survey is saved first if needed.</td>
+            </tr>
+        </table>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Update Now</b><br>Renders the current map with the selected options.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Auto Update</b><br>Automatically rerenders after option changes when the survey can be rendered.</td>
+            </tr>
         </table>
         <h2>Choose The Map For The Question</h2>
-        <table>
-            <tr><th>Map</th><th>What It Shows</th><th>How To Read It</th></tr>
-            <tr><td>Coverage</td><td>Continuous signal level by SSID and band.</td><td>Use color scale and max distance to avoid over-reading areas far from real points.</td></tr>
-            <tr><td>AP Channels</td><td>Discrete point colors by serving channel.</td><td>Use it to verify channel plan and channel-change handling.</td></tr>
-            <tr><td>Dominant AP</td><td>Which AP group is strongest at each point.</td><td>Yellow/issue markers indicate roaming ambiguity or AP-position inconsistency.</td></tr>
-            <tr><td>Interference</td><td>Channel overlap risk based on serving and nearby APs.</td><td>Use AP roles and channel overrides before trusting the risk score.</td></tr>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Signal Coverage</b><br>Continuous signal level by SSID and band.<br><span class="survey-card-use">Read It:</span> use color scale and max distance to avoid over-reading areas far from real points.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>AP Interference</b><br>Channel overlap risk based on serving and nearby APs.<br><span class="survey-card-use">Read It:</span> review AP roles and channel overrides before trusting the risk score.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>AP Channels</b><br>Discrete point colors by serving channel.<br><span class="survey-card-use">Read It:</span> use it to verify channel plan and channel-change handling.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Dominant AP</b><br>Which AP group is strongest at each point.<br><span class="survey-card-use">Read It:</span> issue markers indicate roaming ambiguity or AP-position inconsistency.</td>
+            </tr>
         </table>
         <h2>Options Panel</h2>
         <p>The vertical Options tab opens the left overlay. The app shows only controls that matter for the current map type and remembers option state separately per map type.</p>
-        <table>
-            <tr><th>Map Type</th><th>Visible Options</th><th>Notes</th></tr>
-            <tr><td>Signal Coverage</td><td>Band, Aggregation, Color Scale, Interpolation, Max Distance, Smoothing, AP Group Filter, Only &gt;= -70 dBm.</td><td>AP Group Filter appears only when matching non-test AP groups exist for the selected SSID/band.</td></tr>
-            <tr><td>AP Interference</td><td>Band, Color Scale, Interference Mode, Interpolation, Max Distance, Smoothing.</td><td>Interference does not offer All Bands; it starts from 2.4 GHz by default.</td></tr>
-            <tr><td>AP Channels</td><td>Band, Point Labels, AP Group Filter.</td><td>Discrete point map; no interpolation or smoothing.</td></tr>
-            <tr><td>Dominant AP</td><td>Band, Point Labels.</td><td>Discrete point map; AP position warnings use the physical AP model.</td></tr>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Signal Coverage</b><br><span class="survey-card-use">Visible Options:</span> Band, Aggregation, Color Scale, Interpolation, Max Distance, Smoothing, AP Group Filter, Only &gt;= -70 dBm.<br>AP Group Filter appears only when matching non-test AP groups exist for the selected SSID/band.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>AP Interference</b><br><span class="survey-card-use">Visible Options:</span> Band, Color Scale, Interference Mode, Interpolation, Max Distance, Smoothing.<br>Interference does not offer All Bands; it starts from 2.4 GHz by default.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>AP Channels</b><br><span class="survey-card-use">Visible Options:</span> Band, Point Labels, AP Group Filter.<br>Discrete point map; no interpolation or smoothing.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Dominant AP</b><br><span class="survey-card-use">Visible Options:</span> Band, Point Labels.<br>Discrete point map; AP position warnings use the physical AP model.</td>
+            </tr>
         </table>
         <h2>Option Meaning</h2>
-        <table>
-            <tr><th>Option</th><th>Meaning</th><th>Use Carefully When</th></tr>
-            <tr><td>Band</td><td>Limits analysis to 2.4, 5, 6 GHz or all bands where supported.</td><td>Rows without explicit band/frequency can make low-number channels ambiguous.</td></tr>
-            <tr><td>Aggregation</td><td>Signal Coverage can use Best, Median or Mean when several rows contribute to a point.</td><td>Best is optimistic; Median is usually more stable for repeated evidence.</td></tr>
-            <tr><td>Color Scale</td><td>Fixed keeps colors comparable; Automatic stretches the scale to the current map data.</td><td>Use Fixed when comparing multiple reports.</td></tr>
-            <tr><td>Interpolation</td><td>Smooth RBF or Linear estimation between real points for continuous maps.</td><td>Large empty floor-plan areas should not be over-interpreted.</td></tr>
-            <tr><td>Smoothing</td><td>Makes coverage/interference surfaces visually calmer.</td><td>High smoothing can hide sharp RF transitions.</td></tr>
-            <tr><td>Max Distance</td><td>Limits continuous rendering to areas near measured points. Uses meters when scale is calibrated, pixels otherwise.</td><td>Increase only when point density is good.</td></tr>
-            <tr><td>Interference Mode</td><td>Intra-SSID focuses on the selected SSID; All SSIDs includes other observed SSIDs in the risk model.</td><td>All SSIDs can be useful for neighbor context but may be noisier.</td></tr>
-            <tr><td>Point Labels</td><td>Automatic, All or None for AP Channels and Dominant AP. Interference normalizes dense labeling to critical points.</td><td>Use All when auditing point attribution; use Auto for normal reports.</td></tr>
-            <tr><td>AP Group Filter</td><td>Limits/highlights Signal Coverage or AP Channels for a selected AP group.</td><td>Use it to inspect a problematic AP without changing survey data.</td></tr>
-            <tr><td>Only &gt;= -70 dBm</td><td>Signal Coverage filter for normally usable signal areas.</td><td>It is a viewing filter, not a deletion of weak measurements.</td></tr>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Band</b><br>Limits analysis to 2.4, 5, 6 GHz or all bands where supported.<br><span class="survey-card-use">Use Carefully:</span> rows without explicit band/frequency can make low-number channels ambiguous.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Aggregation</b><br>Signal Coverage can use Best, Median or Mean when several rows contribute to a point.<br><span class="survey-card-use">Use Carefully:</span> Best is optimistic; Median is usually more stable for repeated evidence.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Color Scale</b><br>Fixed keeps colors comparable; Automatic stretches the scale to the current map data.<br><span class="survey-card-use">Use Carefully:</span> use Fixed when comparing multiple reports.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Interpolation</b><br>Smooth RBF or Linear estimation between real points for continuous maps.<br><span class="survey-card-use">Use Carefully:</span> large empty floor-plan areas should not be over-interpreted.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Smoothing</b><br>Makes coverage/interference surfaces visually calmer.<br><span class="survey-card-use">Use Carefully:</span> high smoothing can hide sharp RF transitions.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Max Distance</b><br>Limits continuous rendering to areas near measured points. Uses meters when scale is calibrated, pixels otherwise.<br><span class="survey-card-use">Use Carefully:</span> increase only when point density is good.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Interference Mode</b><br>Intra-SSID focuses on the selected SSID; All SSIDs includes other observed SSIDs in the risk model.<br><span class="survey-card-use">Use Carefully:</span> All SSIDs can be useful for neighbor context but may be noisier.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Point Labels</b><br>Available for AP Channels and Dominant AP. Auto labels channel/AP changes and roaming starts; All labels every point; None hides labels.<br><span class="survey-card-use">Use Carefully:</span> use All when auditing point attribution; use Auto for normal reports.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>AP Group Filter</b><br>Limits/highlights Signal Coverage or AP Channels for a selected AP group.<br><span class="survey-card-use">Use Carefully:</span> inspect a problematic AP without changing survey data.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Only &gt;= -70 dBm</b><br>Signal Coverage filter for normally usable signal areas.<br><span class="survey-card-use">Use Carefully:</span> it is a viewing filter, not a deletion of weak measurements.</td>
+            </tr>
         </table>
         <h2>Reading Limits</h2>
-        <p>Live maps update the visualization, not the collected data. If a map looks wrong, check the evidence path: point quality, AP grouping, roles, metadata, scale and AP positions.</p>
+        <table class="callout-table"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Map Reading Rule</span><br>Live maps update the visualization, not the collected data. A clean-looking map can still depend on weak point density, stale AP metadata or missing AP positions.</td></tr></table>
+        <table class="gate-list">
+            <tr><td class="gate-row"><b>1. Check The Evidence Path</b><br>If a map looks wrong, review point quality, AP grouping, roles, metadata, scale calibration and AP positions before treating the map as an RF conclusion.</td></tr>
+            <tr><td class="gate-row"><b>2. Keep Continuous Maps Bounded</b><br>Coverage and Interference interpolate between real points. Color scale, max distance and smoothing decide how much empty floor-plan space is visually estimated.</td></tr>
+            <tr><td class="gate-row"><b>3. Use Discrete Maps For Attribution</b><br>AP Channels and Dominant AP are point maps. Use labels and the AP Group filter when you need to explain which AP/channel served a specific point.</td></tr>
+        </table>
         <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Channel Changes</span><br>If the same AP group cleanly moves from one channel to another during a survey, channel-sensitive maps use the latest channel by default. If the sequence is ambiguous, maps preserve measured channels unless you set an explicit analysis-channel override.</td></tr></table>
     """,
     "help_reports_nav": "PDF Reports",

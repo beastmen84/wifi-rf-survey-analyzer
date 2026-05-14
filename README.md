@@ -257,6 +257,9 @@ The AP Groups help page now explains the evidence-to-model workflow, BSSID
 Manager actions, roles, metadata, channel overrides, clean channel changes, and
 AP Memory states with compact cards instead of long reference tables. Its
 workflow card rows use the same spacing structure as the other Help pages.
+The Live Maps help page uses the same card-based structure for toolbar actions,
+map-type selection, visible option sets, option meanings, and map-reading
+limits.
 Help tables and callouts are rendered at full content width in the Qt Help
 Center with fixed accent columns, so highlighted blocks align consistently with
 the surrounding page.

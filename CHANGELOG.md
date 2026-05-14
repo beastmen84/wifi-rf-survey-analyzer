@@ -31,6 +31,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   and AP Memory states.
 - AP Groups Help workflow-card rows now use the same spacer markup as the other
   Help pages, avoiding visible blank cells between card rows.
+- Live Maps Help now uses card-based sections for toolbar actions, map choices,
+  visible option sets, option meanings, and map-reading limits; Point Labels
+  wording now matches the actual AP Channels/Dominant AP controls.
 - Help Center tables and callouts now normalize to full content width in the Qt
   renderer, callout accent columns keep a fixed Qt-compatible width, and scanner
   backend labels are plain table text instead of badges.
