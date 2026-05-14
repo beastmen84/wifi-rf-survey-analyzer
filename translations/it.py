@@ -525,7 +525,7 @@ TRANSLATIONS = {
     "help_overview_body": """
         <table class="callout-table"><tr><td class="callout-accent-good"></td><td class="callout-content"><span class="callout-label">Regola Principale</span><br>Non fidarti di una mappa prima di aver controllato dati del rilievo e modello AP. La heatmap è il risultato finale, non il primo passaggio.</td></tr></table>
         <h2>Sequenza Operativa</h2>
-        <table class="workflow-grid">
+        <table class="workflow-grid" width="98%" cellspacing="10" cellpadding="0">
             <tr>
                 <td class="workflow-card">
                     <div class="step-label">1. Setup</div>

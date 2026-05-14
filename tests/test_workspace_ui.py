@@ -230,6 +230,7 @@ class SettingsMenuTests(unittest.TestCase):
             self.assertNotIn("middle-click.png", sections[1].body_html)
             self.assertIn("Decision Gates", sections[0].body_html)
             self.assertIn("workflow-grid", sections[0].body_html)
+            self.assertIn('cellspacing="10"', sections[0].body_html)
             self.assertIn("callout-table", sections[0].body_html)
             self.assertIn("1. Setup", sections[0].body_html)
             self.assertIn("KPI meaning", sections[3].body_html)

@@ -525,7 +525,7 @@ TRANSLATIONS = {
     "help_overview_body": """
         <table class="callout-table"><tr><td class="callout-accent-good"></td><td class="callout-content"><span class="callout-label">Best Rule</span><br>Do not trust a map before the survey data and AP model have passed review. The heatmap is the final output, not the first step.</td></tr></table>
         <h2>Operational Sequence</h2>
-        <table class="workflow-grid">
+        <table class="workflow-grid" width="98%" cellspacing="10" cellpadding="0">
             <tr>
                 <td class="workflow-card">
                     <div class="step-label">1. Setup</div>

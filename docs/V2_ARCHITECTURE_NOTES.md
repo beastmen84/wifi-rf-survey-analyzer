@@ -47,8 +47,9 @@ Current status:
 - Help content and structure have an expanded V2 Help Center implementation;
   the Recommended Workflow page has received the first visual-density polish
   pass with step cards, decision-gate rows and Qt-compatible accent-column
-  callouts; remaining closeout is continued user review of the other pages and
-  a short EN/IT smoke pass;
+  callouts; spacing is tuned for the limitations of QTextBrowser; remaining
+  closeout is continued user review of the other pages and a short EN/IT smoke
+  pass;
 - the real-survey live PDF validation pass is complete for Coverage, AP
   Channels, Dominant AP and Interference; the current findings are accepted as
   real diagnostics for now rather than layout blockers;
@@ -705,7 +706,9 @@ Implemented:
 - The Recommended Workflow overview page now uses visual step cards and
   compact decision-gate rows instead of a dense operational table; its callouts
   use table-based accent columns because QTextBrowser does not reliably render
-  modern left-border styling on block elements.
+  modern left-border styling on block elements. The workflow cards use explicit
+  HTML table spacing and a narrower content width to avoid crowding the Help
+  scrollbar.
 
 Remaining closeout:
 

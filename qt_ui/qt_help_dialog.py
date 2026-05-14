@@ -204,6 +204,7 @@ def build_help_html(parent, palette, section):
     radius = widget_px(parent, 8)
     gap = widget_px(parent, 12)
     padding = widget_px(parent, 18)
+    right_padding = padding + widget_px(parent, 14)
 
     return f"""
     <html>
@@ -218,7 +219,7 @@ def build_help_html(parent, palette, section):
             line-height: 1.42;
         }}
         .page {{
-            padding: {padding}px;
+            padding: {padding}px {right_padding}px {padding}px {padding}px;
         }}
         h1 {{
             color: {palette["title"]};
@@ -292,6 +293,7 @@ def build_help_html(parent, palette, section):
         }}
         .callout-table {{
             border-collapse: collapse;
+            width: 96%;
             margin: {gap}px 0;
         }}
         .callout-table td {{
@@ -352,16 +354,15 @@ def build_help_html(parent, palette, section):
         }}
         .workflow-grid {{
             border-collapse: separate;
-            border-spacing: {widget_px(parent, 10)}px;
-            margin: {widget_px(parent, 7)}px -{widget_px(parent, 10)}px {gap}px -{widget_px(parent, 10)}px;
+            width: 98%;
+            margin: {widget_px(parent, 7)}px 0 {gap}px 0;
         }}
         .workflow-grid td.workflow-card {{
             width: 50%;
-            border: 1px solid {palette["badge_border"]};
-            border-left: {widget_px(parent, 5)}px solid {palette["metric_info"]};
+            border: 1px solid {palette["border"]};
             border-radius: {radius}px;
             background: {palette["panel_alt"]};
-            padding: {widget_px(parent, 12)}px;
+            padding: {widget_px(parent, 13)}px {widget_px(parent, 14)}px;
         }}
         .step-label {{
             color: {palette["metric_info"]};
