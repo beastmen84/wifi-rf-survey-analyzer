@@ -22,12 +22,13 @@ interpolated colors.
 
 Current status:
 
-- public release versioning is now separate from the internal V2 generation:
-  the current beta target is `v0.9.0-beta.1`, while `v1.0.0` should wait for
+- public release versioning is separate from the internal V2 generation:
+  the current feature beta is `v0.9.1-beta.1`, while `v1.0.0` should wait for
   Help Center review/polish and a full office validation pass;
-- intermediate beta release candidates should use `v0.9.0-beta.N` while the
-  work remains Help/validation/polish; do not regenerate exe/ZIP for every
-  commit, only when cutting an intentional release candidate;
+- future beta release candidates should use the current minor beta line for
+  validation/polish or a new minor beta for feature-level additions; do not
+  regenerate exe/ZIP for every commit, only when cutting an intentional release
+  candidate;
 - `README.md` is public-facing repo documentation and should not expose internal
   release cadence details; keep internal planning here and in the local ignored
   `.private/AI_CHAT_HISTORY.md` handoff, with public release notes in
@@ -59,7 +60,7 @@ Current status:
 - AP metadata can explicitly override the analysis channel per AP group/band,
   so Interference and AP Channels can use the channel the user knows is the
   right operational model after a clean or ambiguous survey-time channel change;
-- AP Memory has a first implementation: the app creates a persistent
+- AP Memory is included in `v0.9.1-beta.1`: the app creates a persistent
   `ap_memory.memory` file in the application data folder, matches remembered AP
   data by known BSSID after normal AP grouping, applies missing aliases, roles,
   metadata, analysis-channel overrides and compatible map positions, and flags

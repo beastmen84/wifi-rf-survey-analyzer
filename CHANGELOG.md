@@ -8,10 +8,42 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
-- Planned `v0.9.0-beta.N` line: targeted Help Center review/polish, office
-  validation fixes, and small release-readiness adjustments.
-- Planned `v0.9.1-beta.1` candidate: AP Profile Library for exporting/importing
-  AP Group metadata across surveys.
+- Targeted Help Center review/polish, office validation fixes, and small
+  release-readiness adjustments.
+- Possible future AP Memory management view only if larger repeat-survey usage
+  shows a real need for explicit cleanup or conflict review.
+
+## v0.9.1-beta.1 - 2026-05-14
+
+Feature beta focused on AP Memory and repeat-survey AP metadata reuse.
+
+### Added
+
+- Persistent AP Memory file for remembering AP aliases, roles, metadata,
+  analysis-channel overrides, and compatible floor-plan positions across
+  surveys.
+- Automatic AP Memory application after normal AP grouping when known BSSIDs are
+  seen again.
+- "From Memory" review state in AP Group Manager and Survey Quality so reused
+  AP data stays visible until confirmed or edited.
+- Explicit memory-update detection for manual AP groups whose local AP data
+  differs from the saved AP Memory record.
+- Workspace footer status for AP Memory state and memory file location.
+- Settings actions to open the AP Memory folder or clear AP Memory.
+
+### Changed
+
+- AP Group Manager toolbar now groups memory actions under a dedicated Memory
+  menu and alias actions under an Alias menu.
+- AP Group save seeds/updates AP Memory even when the open survey metadata was
+  otherwise unchanged.
+- Clear-memory confirmation uses the app's themed Qt dialog styling in both the
+  start screen and main workspace.
+
+### Known Beta Closeout
+
+- Final Help Center visual/content review is still pending.
+- Full office validation pass is still pending before `v1.0.0`.
 
 ## v0.9.0-beta.1 - 2026-05-13
 
