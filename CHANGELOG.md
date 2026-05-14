@@ -36,6 +36,7 @@ Feature beta focused on AP Memory and repeat-survey AP metadata reuse.
 
 - AP Group Manager toolbar now groups memory actions under a dedicated Memory
   menu and alias actions under an Alias menu.
+- Start screen now shows the application icon next to the product name.
 - AP Group save seeds/updates AP Memory even when the open survey metadata was
   otherwise unchanged.
 - Clear-memory confirmation uses the app's themed Qt dialog styling in both the

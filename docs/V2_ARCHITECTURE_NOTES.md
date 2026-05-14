@@ -84,6 +84,7 @@ Current status:
   polish rather than V2 architecture work.
 - `images/app_icon.png` is now the application/window icon source and
   `images/app_icon.ico` is generated from it for the Windows PyInstaller EXE.
+  The start screen also places the icon next to the product name.
 
 ## Implemented V2 Foundation
 

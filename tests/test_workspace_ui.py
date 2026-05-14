@@ -54,6 +54,21 @@ class SettingsMenuTests(unittest.TestCase):
         finally:
             window.deleteLater()
 
+    def test_start_page_shows_app_icon_next_to_title(self):
+        from qt_ui.qt_startup import StartWindow
+
+        with patch("qt_ui.qt_startup.QTimer.singleShot"):
+            window = StartWindow()
+        try:
+            title_pixmap = window.title_icon.pixmap()
+
+            self.assertEqual(window.title_icon.objectName(), "startTitleIcon")
+            self.assertIsNotNone(title_pixmap)
+            self.assertFalse(title_pixmap.isNull())
+            self.assertEqual(window.title.text(), window.tr("app_title"))
+        finally:
+            window.deleteLater()
+
     def test_workspace_footer_shows_ap_memory_status(self):
         previous = os.environ.get("WIFI_HEATMAP_AP_MEMORY_FILE")
         try:

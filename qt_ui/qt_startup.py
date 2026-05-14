@@ -5,7 +5,7 @@ from pathlib import Path
 
 try:
     from PySide6.QtCore import QObject, QPoint, Qt, QThread, QTimer, Signal, Slot
-    from PySide6.QtGui import QCursor
+    from PySide6.QtGui import QCursor, QPixmap
     from PySide6.QtWidgets import (
         QApplication,
         QComboBox,
@@ -27,7 +27,7 @@ except ModuleNotFoundError as exc:
 from app_core.logging import log_event, log_exception
 from app_core.restart import start_replacement_process
 from app_core.settings import get_last_survey_directory, get_saved_theme, get_saved_ui_scale, save_theme, save_ui_scale
-from app_core.version import APP_VERSION_LABEL, format_versioned_title
+from app_core.version import APP_VERSION_LABEL, format_versioned_title, get_app_icon_path
 from translations.i18n import DEFAULT_LANGUAGE, LANGUAGE_OPTIONS, normalize_language, translate
 from qt_ui.qt_settings_memory import add_ap_memory_settings_section
 from qt_ui.qt_theme import QT_THEME_OPTIONS, QT_THEMES, build_scrollbar_stylesheet
@@ -128,13 +128,24 @@ class StartWindow(QMainWindow):
         hero_layout.setContentsMargins(self.spx(40), self.spx(38), self.spx(40), self.spx(34))
         hero_layout.setSpacing(self.spx(18))
 
+        title_row = QHBoxLayout()
+        title_row.setContentsMargins(0, 0, 0, 0)
+        title_row.setSpacing(self.spx(18))
+        self.title_icon = QLabel()
+        self.title_icon.setObjectName("startTitleIcon")
+        self.title_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.title_icon.setFixedSize(self.spx(66), self.spx(66))
+        self.load_title_icon()
+        title_row.addWidget(self.title_icon, 0, Qt.AlignmentFlag.AlignVCenter)
+
         self.title = QLabel()
         self.title.setObjectName("startTitle")
         self.title.setWordWrap(True)
+        title_row.addWidget(self.title, 1, Qt.AlignmentFlag.AlignVCenter)
         self.subtitle = QLabel()
         self.subtitle.setObjectName("startSubtitle")
         self.subtitle.setWordWrap(True)
-        hero_layout.addWidget(self.title)
+        hero_layout.addLayout(title_row)
         hero_layout.addWidget(self.subtitle)
         hero_layout.addSpacing(self.spx(14))
 
@@ -238,6 +249,9 @@ class StartWindow(QMainWindow):
                 color: {palette["title"]};
                 font-size: {font(42)}px;
                 font-weight: 800;
+            }}
+            QLabel#startTitleIcon {{
+                background: transparent;
             }}
             QLabel#startSubtitle {{
                 color: {palette["muted"]};
@@ -396,6 +410,20 @@ class StartWindow(QMainWindow):
             }}
             {build_scrollbar_stylesheet(palette, s)}
             """
+        )
+
+    def load_title_icon(self):
+        pixmap = QPixmap(str(get_app_icon_path()))
+        if pixmap.isNull():
+            self.title_icon.hide()
+            return
+
+        self.title_icon.setPixmap(
+            pixmap.scaled(
+                self.title_icon.size(),
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
         )
 
     def retranslate(self):

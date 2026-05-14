@@ -22,7 +22,8 @@ workflow. A stable `v1.0.0` will follow after the Help Center review and broader
 field testing are complete.
 
 Release builds use the app icon from `images/app_icon.png`; the Windows
-executable embeds the generated `images/app_icon.ico`.
+executable embeds the generated `images/app_icon.ico`, and the start screen
+shows the same icon next to the product name.
 
 ## What It Does
 
