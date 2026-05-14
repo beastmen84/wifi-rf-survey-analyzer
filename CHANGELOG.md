@@ -30,6 +30,7 @@ Feature beta focused on AP Memory and repeat-survey AP metadata reuse.
   differs from the saved AP Memory record.
 - Workspace footer status for AP Memory state and memory file location.
 - Settings actions to open the AP Memory folder or clear AP Memory.
+- Custom application/window icon and Windows executable icon.
 
 ### Changed
 

@@ -21,6 +21,9 @@ The current beta is intended for real-world validation of the current Qt
 workflow. A stable `v1.0.0` will follow after the Help Center review and broader
 field testing are complete.
 
+Release builds use the app icon from `images/app_icon.png`; the Windows
+executable embeds the generated `images/app_icon.ico`.
+
 ## What It Does
 
 - Loads a PDF/image floor plan and stores it with the survey.

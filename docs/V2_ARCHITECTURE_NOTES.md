@@ -82,6 +82,8 @@ Current status:
 - the main workspace navigation and dashboard KPI area have been polished for
   the current Qt surface; remaining UI changes should be treated as targeted
   polish rather than V2 architecture work.
+- `images/app_icon.png` is now the application/window icon source and
+  `images/app_icon.ico` is generated from it for the Windows PyInstaller EXE.
 
 ## Implemented V2 Foundation
 

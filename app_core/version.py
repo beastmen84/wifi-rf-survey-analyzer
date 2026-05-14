@@ -10,6 +10,12 @@ APP_VERSION_LABEL = APP_RELEASE_TAG
 APP_RELEASE_CHANNEL = "beta"
 
 
+def get_app_icon_path():
+    from app_core.resources import resource_path
+
+    return resource_path("images", "app_icon.png")
+
+
 def format_versioned_title(title=APP_DISPLAY_NAME):
     return f"{title} {APP_VERSION_LABEL}"
 
@@ -17,3 +23,8 @@ def format_versioned_title(title=APP_DISPLAY_NAME):
 def configure_qt_application_metadata(app):
     app.setApplicationName(APP_DISPLAY_NAME)
     app.setApplicationVersion(APP_VERSION)
+    icon_path = get_app_icon_path()
+    if icon_path.exists():
+        from PySide6.QtGui import QIcon
+
+        app.setWindowIcon(QIcon(str(icon_path)))

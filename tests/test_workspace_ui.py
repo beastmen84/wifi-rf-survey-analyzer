@@ -4,6 +4,7 @@ from app_core.version import (
     APP_VERSION_LABEL,
     configure_qt_application_metadata,
     format_versioned_title,
+    get_app_icon_path,
 )
 from PySide6.QtWidgets import QPushButton
 from qt_ui.qt_help_dialog import build_help_html, build_help_sections, help_palette
@@ -38,6 +39,8 @@ class SettingsMenuTests(unittest.TestCase):
         app = QApplication.instance()
         configure_qt_application_metadata(app)
         self.assertEqual(app.applicationVersion(), APP_VERSION)
+        self.assertTrue(get_app_icon_path().exists())
+        self.assertFalse(app.windowIcon().isNull())
 
         window = WifiHeatmapQtApp()
         try:
