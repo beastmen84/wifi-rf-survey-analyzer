@@ -945,38 +945,58 @@ TRANSLATIONS = {
     """,
     "help_reports_nav": "PDF Reports",
     "help_reports_title": "Live PDF Reports",
-    "help_reports_subtitle": "PDF export captures the current live map options and adds diagnostic pages where the map type has actionable findings.",
+    "help_reports_subtitle": "PDF export captures the current live map options and adds diagnostic pages where the map type supports them.",
     "help_reports_body": """
         <h2>Export Workflow</h2>
-        <table>
-            <tr><th>Step</th><th>What Happens</th></tr>
-            <tr><td>Save Check</td><td>PDF export requires a saved survey. If the survey is dirty or has no CSV path, the app asks/saves first.</td></tr>
-            <tr><td>Output File</td><td>The save dialog suggests a PDF name based on survey, map type, band and timestamp.</td></tr>
-            <tr><td>Full Map Extent</td><td>The PDF uses the full floor-plan extent, not the current live zoom/pan.</td></tr>
-            <tr><td>Active Options</td><td>SSID, band, map type, color scale, labels and map-specific options come from the Live Map state.</td></tr>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Save Check</b><br>PDF export requires a saved survey. If the survey is dirty or has no CSV path, the app asks/saves first.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Output File</b><br>The save dialog suggests a PDF name based on survey, map type, band and timestamp. If the suffix is missing, `.pdf` is added.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Full Map Extent</b><br>The PDF uses the full floor-plan extent, not the current live zoom/pan.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Active Options</b><br>SSID, band, map type, color scale, labels, AP Group filter and map-specific options come from the Live Map state.</td>
+            </tr>
         </table>
         <h2>Map Page</h2>
-        <p>The first page uses the full floor-plan extent. Legends, color scales and point labels follow the active Live Map options.</p>
+        <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">What The First Page Represents</span><br>The first page is the rendered live map over the full floor plan. Legends, color scales, AP markers, point labels and AP Group focus follow the active Live Map options.</td></tr></table>
         <h2>Report By Map Type</h2>
-        <table>
-            <tr><th>Export</th><th>Pages</th><th>Notes</th></tr>
-            <tr><td>Coverage</td><td>Map page only</td><td>No problem page by design. Use Survey Quality for data problems.</td></tr>
-            <tr><td>AP Channels</td><td>Map page only</td><td>Good for channel-plan review. Diagnostic cards are not added until a clear rule exists.</td></tr>
-            <tr><td>Dominant AP</td><td>Map plus problem cards when findings exist</td><td>Cards explain dominant/nearest AP context and AP-position warnings.</td></tr>
-            <tr><td>Interference</td><td>Map plus problem cards when findings exist</td><td>Cards show serving AP/channel, main interferer/channel, overlap and risk.</td></tr>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Coverage</b><br><span class="survey-card-use">Pages:</span> map page only.<br>No problem page by design. Use Survey Quality for data quality and AP setup problems.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>AP Channels</b><br><span class="survey-card-use">Pages:</span> map page only.<br>Good for channel-plan review. Diagnostic cards are not added until a clear rule exists.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Dominant AP</b><br><span class="survey-card-use">Pages:</span> map plus diagnostic page(s).<br>Cards explain roaming ambiguity, dominant/secondary context and dominant/closest AP-position consistency.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Interference</b><br><span class="survey-card-use">Pages:</span> map plus diagnostic page(s).<br>Cards show serving AP/channel, main interferer/channel, overlap, channel-width context and risk.</td>
+            </tr>
         </table>
         <h2>Problem Cards</h2>
-        <p>Interference and Dominant AP can add paged report cards. Numbered square callouts on the map match the numbered cards, so a map point can be attributed to a specific diagnostic card.</p>
+        <table class="survey-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="survey-card"><b>Map Callouts</b><br>Numbered square callouts on the map match the numbered cards, so a map point can be attributed to a specific diagnostic card.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>Interference Cards</b><br>High-risk points are paged in compact cards. The report keeps the list bounded so large surveys remain readable.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>Dominant Cards</b><br>Roaming overlap and AP-position findings are paged with the dominant, secondary or closest physical AP context.</td>
+            </tr>
+        </table>
         <h2>Before Sending A Report</h2>
-        <ul>
-            <li>Confirm the selected SSID, band and map type are the ones you intend to document.</li>
-            <li>Check that AP positions are complete when reviewing Dominant AP findings.</li>
-            <li>Review channel-change notes and analysis-channel overrides before exporting Interference or AP Channels.</li>
-            <li>Use report cards as diagnostics. A warning card can describe a real deployment issue, not a software error.</li>
-        </ul>
+        <table class="gate-list">
+            <tr><td class="gate-row"><b>1. Confirm Scope</b><br>Check that selected SSID, band and map type are the ones you intend to document.</td></tr>
+            <tr><td class="gate-row"><b>2. Confirm AP Model</b><br>Review AP groups, roles, aliases and AP positions before exporting Dominant AP or Interference reports.</td></tr>
+            <tr><td class="gate-row"><b>3. Confirm Channel Model</b><br>Review clean channel-change notes and analysis-channel overrides before exporting Interference or AP Channels.</td></tr>
+            <tr><td class="gate-row"><b>4. Read Cards As Diagnostics</b><br>A warning card can describe a real deployment issue, not a software error.</td></tr>
+        </table>
         <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Coverage Has No Problem Page By Design</span><br>It is a signal visualization. Quality or AP setup problems are reviewed in Survey Quality and AP Group Manager.</td></tr></table>
         <h2>Current AP Channels Behavior</h2>
-        <p>AP Channels export is map-only until there is a clear diagnostic rule that deserves report cards.</p>
+        <table class="callout-table"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Current AP Channels Behavior</span><br>AP Channels export is map-only until there is a clear diagnostic rule that deserves report cards. Use Survey Quality and AP metadata warnings for channel-plan issues.</td></tr></table>
     """,
     "help_diagnostics_nav": "Warnings",
     "help_diagnostics_title": "Warnings And Diagnostics",

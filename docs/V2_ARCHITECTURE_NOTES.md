@@ -56,8 +56,11 @@ Current status:
   channel changes and AP Memory states, with workflow-card spacer rows aligned
   to the rest of the Help renderer; the Live Maps page has been converted from
   reference tables to card-based toolbar, map-choice, visible-option,
-  option-meaning and reading-limit guidance; remaining closeout is user review
-  of the Help pages in the running app and a short EN/IT smoke pass;
+  option-meaning and reading-limit guidance; the PDF Reports page now explains
+  save-before-export behavior, output naming, full-map rendering, map-type page
+  composition, diagnostic cards and pre-send checks with the same card/gate
+  structure; remaining closeout is user review of the Help pages in the running
+  app and a short EN/IT smoke pass;
 - the real-survey live PDF validation pass is complete for Coverage, AP
   Channels, Dominant AP and Interference; the current findings are accepted as
   real diagnostics for now rather than layout blockers;

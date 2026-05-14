@@ -260,6 +260,9 @@ workflow card rows use the same spacing structure as the other Help pages.
 The Live Maps help page uses the same card-based structure for toolbar actions,
 map-type selection, visible option sets, option meanings, and map-reading
 limits.
+The PDF Reports help page now explains export save behavior, output naming,
+full-map rendering, map-type page composition, diagnostic cards, and final
+review checks with the same card/gate structure.
 Help tables and callouts are rendered at full content width in the Qt Help
 Center with fixed accent columns, so highlighted blocks align consistently with
 the surrounding page.

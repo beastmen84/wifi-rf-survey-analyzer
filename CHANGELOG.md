@@ -34,6 +34,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 - Live Maps Help now uses card-based sections for toolbar actions, map choices,
   visible option sets, option meanings, and map-reading limits; Point Labels
   wording now matches the actual AP Channels/Dominant AP controls.
+- PDF Reports Help now uses card/gate sections for save-before-export behavior,
+  output naming, full-map rendering, map-type page composition, diagnostic
+  cards, and pre-send review checks.
 - Help Center tables and callouts now normalize to full content width in the Qt
   renderer, callout accent columns keep a fixed Qt-compatible width, and scanner
   backend labels are plain table text instead of badges.

@@ -945,38 +945,58 @@ TRANSLATIONS = {
     """,
     "help_reports_nav": "Report PDF",
     "help_reports_title": "Report PDF Live",
-    "help_reports_subtitle": "L'export PDF cattura le opzioni della Mappa Live corrente e aggiunge pagine diagnostiche dove il tipo mappa ha finding azionabili.",
+    "help_reports_subtitle": "L'export PDF cattura le opzioni della Mappa Live corrente e aggiunge pagine diagnostiche dove il tipo mappa le supporta.",
     "help_reports_body": """
         <h2>Workflow Esportazione</h2>
-        <table>
-            <tr><th>Passo</th><th>Cosa Succede</th></tr>
-            <tr><td>Controllo Salvataggio</td><td>L'export PDF richiede un rilievo salvato. Se il rilievo è modificato o non ha percorso CSV, l'app chiede/salva prima.</td></tr>
-            <tr><td>File Di Output</td><td>Il dialog di salvataggio propone un nome PDF basato su survey, tipo mappa, banda e timestamp.</td></tr>
-            <tr><td>Intera Estensione Mappa</td><td>Il PDF usa tutta l'estensione della pianta, non zoom/pan live correnti.</td></tr>
-            <tr><td>Opzioni Attive</td><td>SSID, banda, tipo mappa, scala colori, label e opzioni specifiche arrivano dallo stato Mappa Live.</td></tr>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Controllo Salvataggio</b><br>L'export PDF richiede un rilievo salvato. Se il rilievo è modificato o non ha percorso CSV, l'app chiede/salva prima.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>File Di Output</b><br>Il dialog di salvataggio propone un nome PDF basato su survey, tipo mappa, banda e timestamp. Se manca il suffisso, viene aggiunto `.pdf`.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Intera Estensione Mappa</b><br>Il PDF usa tutta l'estensione della pianta, non zoom/pan live correnti.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Opzioni Attive</b><br>SSID, banda, tipo mappa, scala colori, label, filtro Gruppo AP e opzioni specifiche arrivano dallo stato Mappa Live.</td>
+            </tr>
         </table>
         <h2>Pagina Mappa</h2>
-        <p>La prima pagina usa tutta l'estensione della pianta. Legende, scale colori e label punti seguono le opzioni attive della Mappa Live.</p>
+        <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Cosa Rappresenta La Prima Pagina</span><br>La prima pagina è la mappa live renderizzata sull'intera pianta. Legende, scale colori, marker AP, label punti e focus Gruppo AP seguono le opzioni attive della Mappa Live.</td></tr></table>
         <h2>Report Per Tipo Mappa</h2>
-        <table>
-            <tr><th>Export</th><th>Pagine</th><th>Note</th></tr>
-            <tr><td>Copertura</td><td>Solo pagina mappa</td><td>Nessuna pagina problemi per scelta. Usa Qualità Rilievo per problemi dati.</td></tr>
-            <tr><td>Canali AP</td><td>Solo pagina mappa</td><td>Utile per revisione piano canali. Schede diagnostiche non aggiunte finché non esiste una regola chiara.</td></tr>
-            <tr><td>AP Dominante</td><td>Mappa più schede problema quando ci sono finding</td><td>Le schede spiegano contesto AP dominante/vicino e warning posizione AP.</td></tr>
-            <tr><td>Interferenza</td><td>Mappa più schede problema quando ci sono finding</td><td>Le schede mostrano AP/canale servente, interferente principale/canale, overlap e rischio.</td></tr>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Copertura</b><br><span class="survey-card-use">Pagine:</span> solo pagina mappa.<br>Nessuna pagina problemi per scelta. Usa Qualità Rilievo per problemi qualità dati e setup AP.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Canali AP</b><br><span class="survey-card-use">Pagine:</span> solo pagina mappa.<br>Utile per revisione piano canali. Schede diagnostiche non aggiunte finché non esiste una regola chiara.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>AP Dominante</b><br><span class="survey-card-use">Pagine:</span> mappa più pagina/e diagnostiche.<br>Le schede spiegano ambiguità roaming, contesto AP dominante/secondario e coerenza AP dominante/AP fisico più vicino.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Interferenza</b><br><span class="survey-card-use">Pagine:</span> mappa più pagina/e diagnostiche.<br>Le schede mostrano AP/canale servente, interferente principale/canale, overlap, contesto ampiezza canale e rischio.</td>
+            </tr>
         </table>
         <h2>Schede Problema</h2>
-        <p>Interferenza e AP Dominante possono aggiungere schede problema paginate. I callout quadrati numerati sulla mappa corrispondono alle schede numerate, così puoi attribuire ogni punto a una diagnosi specifica.</p>
+        <table class="survey-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="survey-card"><b>Callout Mappa</b><br>I callout quadrati numerati sulla mappa corrispondono alle schede numerate, così puoi attribuire ogni punto a una diagnosi specifica.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>Schede Interferenza</b><br>I punti a rischio alto sono paginati in schede compatte. Il report mantiene la lista limitata per restare leggibile anche su survey grandi.</td>
+                <td class="survey-gap"></td>
+                <td class="survey-card"><b>Schede AP Dominante</b><br>Roaming overlap e finding posizione AP sono paginati con contesto AP dominante, secondario o AP fisico più vicino.</td>
+            </tr>
+        </table>
         <h2>Prima Di Inviare Un Report</h2>
-        <ul>
-            <li>Conferma che SSID, banda e tipo mappa selezionati siano quelli da documentare.</li>
-            <li>Controlla che le posizioni AP siano complete quando rivedi finding AP Dominante.</li>
-            <li>Rivedi note cambio canale e override canale analisi prima di esportare Interferenza o Canali AP.</li>
-            <li>Usa le schede report come diagnostica. Una scheda warning può descrivere un problema reale del deployment, non un errore software.</li>
-        </ul>
+        <table class="gate-list">
+            <tr><td class="gate-row"><b>1. Conferma Lo Scope</b><br>Controlla che SSID, banda e tipo mappa selezionati siano quelli da documentare.</td></tr>
+            <tr><td class="gate-row"><b>2. Conferma Il Modello AP</b><br>Rivedi gruppi AP, ruoli, alias e posizioni AP prima di esportare report AP Dominante o Interferenza.</td></tr>
+            <tr><td class="gate-row"><b>3. Conferma Il Modello Canale</b><br>Rivedi note cambio canale pulito e override canale analisi prima di esportare Interferenza o Canali AP.</td></tr>
+            <tr><td class="gate-row"><b>4. Leggi Le Schede Come Diagnostica</b><br>Una scheda warning può descrivere un problema reale del deployment, non un errore software.</td></tr>
+        </table>
         <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Copertura Non Ha Pagina Problemi Per Scelta</span><br>È una visualizzazione del segnale. Problemi qualità o setup AP si rivedono in Qualità Rilievo e AP Group Manager.</td></tr></table>
         <h2>Comportamento Attuale Canali AP</h2>
-        <p>L'export Canali AP è solo mappa finché non esiste una regola diagnostica chiara che meriti schede report.</p>
+        <table class="callout-table"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Comportamento Attuale Canali AP</span><br>L'export Canali AP è solo mappa finché non esiste una regola diagnostica chiara che meriti schede report. Usa Qualità Rilievo e warning metadata AP per problemi di piano canali.</td></tr></table>
     """,
     "help_diagnostics_nav": "Warning",
     "help_diagnostics_title": "Warning E Diagnostica",
