@@ -36,7 +36,8 @@ Current status:
 - public README wording should avoid internal-only labels where possible:
   describe the user-facing survey format/workflow, avoid AI handoff references,
   avoid local-only test baselines, and prefer public roadmap wording over
-  maintainer planning notes;
+  maintainer planning notes; keep the README Help Center section high-level and
+  leave option-by-option usage details inside the in-app Help Center;
 - `qt_ui/qt_theme.py` is the source of truth for the active Qt palette values;
   the old UI palette draft document has been removed from public docs to avoid
   stale duplicated theme data;

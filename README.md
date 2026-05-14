@@ -231,62 +231,24 @@ Map-specific PDF behavior:
 
 ## Help Center
 
-The app includes a Help Center with structured sections for:
+The app includes an in-app Help Center in English and Italian. It is the
+detailed usage guide for the current Qt workflow and covers:
 
 - recommended survey workflow;
 - map controls;
-- survey/scanning behavior;
+- survey and scanning behavior;
 - Survey Quality Dashboard;
 - AP Groups and AP metadata;
-- live maps;
+- AP Memory;
+- Live Maps;
 - PDF reports;
 - diagnostics/warnings;
 - glossary.
 
-This help content is implemented in English and Italian. The remaining beta
-work is a calm visual/content review in the running app, not a missing feature.
-The Help Center now documents AP Memory review states, confirmation/update
-actions, settings access, and AP Group Manager save behavior. Its pages describe
-the current Qt workflow in more detail: controls and gesture combinations,
-survey screen boxes, Survey Quality actions, AP Group Manager layers, BSSID
-management, metadata, Live Map options, PDF export behavior, warning
-diagnostics, and glossary terms.
-Settings include theme, UI scale, measurement system, language and AP Memory
-management. The measurement system preference changes scale calibration input,
-distance tooltips, live Max Distance labels and dominant-AP report distances.
-Changing measurement system after a survey has calibrated scale clears that
-scale and asks the user to run Calibrate Scale again.
-The Controls help page separates left click from left-click drag and shows
-Ctrl/Shift as wheel modifiers rather than standalone map actions; Shift +
-wheel is implemented as horizontal pan for map views.
-The Survey help page uses compact summary cards for the main screen boxes and
-explicitly explains relevant SSIDs, the `.scan` sidecar, scanner backend choice,
-point-table actions, and point-placement rules.
-The Survey Quality help page now mirrors the dashboard workflow with point/AP
-model layers, grouped KPI explanations, priority gates, and scalable detail
-dialog guidance.
-The AP Groups help page now explains the evidence-to-model workflow, BSSID
-Manager actions, roles, metadata, channel overrides, clean channel changes, and
-AP Memory states with compact cards instead of long reference tables. Its
-workflow card rows use the same spacing structure as the other Help pages.
-The Live Maps help page uses the same card-based structure for toolbar actions,
-map-type selection, visible option sets, option meanings, and map-reading
-limits.
-The PDF Reports help page now explains export save behavior, output naming,
-full-map rendering, map-type page composition, diagnostic cards, and final
-review checks with the same card/gate structure.
-The Warnings help page now distinguishes point-rescan findings, AP model
-warnings, metadata/channel warnings, channel-change behavior, and map-reading
-troubleshooting with card/gate guidance.
-The Glossary help page is now grouped by Wi-Fi evidence, AP model, quality and
-warnings, memory/persistence, and live-map/report terminology instead of using
-one long reference table.
-Help tables and callouts are rendered at full content width in the Qt Help
-Center with fixed accent columns, so highlighted blocks align consistently with
-the surrounding page.
-The recommended workflow page uses visual step cards and decision-gate rows
-with consistent page margins, tuned for the Qt Help renderer. The main toolbar
-follows the same validation order by placing Survey Quality before AP Groups.
+The README intentionally stays high-level. Detailed option behavior, warning
+meaning, measurement-system effects, AP Memory review states, and map/report
+interpretation rules are documented inside the app so the repository page
+remains easy to scan.
 
 ## Project Structure
 
