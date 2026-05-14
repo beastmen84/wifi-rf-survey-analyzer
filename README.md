@@ -253,6 +253,8 @@ diagnostics, and glossary terms.
 Settings include theme, UI scale, measurement system, language and AP Memory
 management. The measurement system preference changes scale calibration input,
 distance tooltips, live Max Distance labels and dominant-AP report distances.
+Changing measurement system after a survey has calibrated scale clears that
+scale and asks the user to run Calibrate Scale again.
 The Controls help page separates left click from left-click drag and shows
 Ctrl/Shift as wheel modifiers rather than standalone map actions; Shift +
 wheel is implemented as horizontal pan for map views.

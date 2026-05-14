@@ -25,7 +25,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 - Settings now include a metric/imperial measurement-system preference. Survey
   scale remains stored internally as `px_per_meter`, while calibration input,
   Live Map Max Distance, AP-position tooltips and dominant-AP PDF report
-  distances follow the selected display system.
+  distances follow the selected display system. Changing measurement system
+  after scale calibration prompts the user and clears the current survey scale
+  so it can be calibrated again.
 - Help Center non-control sections now use the same visual/content pattern and
   document the current Survey, Quality, AP Group, AP Memory, Live Map, PDF,
   warning, and glossary workflows from the Qt implementation.

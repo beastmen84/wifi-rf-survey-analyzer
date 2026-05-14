@@ -1362,4 +1362,60 @@ class WorkspaceLiveStateTests(unittest.TestCase):
         finally:
             window.deleteLater()
 
+    def test_measurement_system_change_clears_existing_scale_after_confirmation(self):
+        window = WifiHeatmapQtApp()
+        try:
+            class Session:
+                metadata = {"px_per_meter": "10"}
+                dirty = False
+
+            window.session = Session()
+            window.measurement_system = MEASUREMENT_SYSTEM_METRIC
+            window.set_live_max_distance_px_silent(100)
+
+            with (
+                patch("qt_ui.qt_workspace_settings.save_measurement_system", return_value=True),
+                patch.object(window, "confirm_measurement_system_scale_reset", return_value=True),
+                patch.object(window, "refresh_session_labels") as refresh_mock,
+                patch.object(window, "maybe_update_live_preview") as live_mock,
+            ):
+                changed = window.change_measurement_system(MEASUREMENT_SYSTEM_IMPERIAL)
+
+            self.assertTrue(changed)
+            self.assertEqual(window.measurement_system, MEASUREMENT_SYSTEM_IMPERIAL)
+            self.assertNotIn("px_per_meter", window.session.metadata)
+            self.assertTrue(window.session.dirty)
+            self.assertEqual(window.live_max_distance_label.text(), "Max Distance (px)")
+            self.assertEqual(window.live_max_distance_spin.suffix(), " px")
+            self.assertEqual(window.current_live_max_distance_px(), 100)
+            refresh_mock.assert_called_once()
+            live_mock.assert_called_once()
+        finally:
+            window.deleteLater()
+
+    def test_measurement_system_change_cancel_keeps_existing_scale(self):
+        window = WifiHeatmapQtApp()
+        try:
+            class Session:
+                metadata = {"px_per_meter": "10"}
+                dirty = False
+
+            window.session = Session()
+            window.measurement_system = MEASUREMENT_SYSTEM_METRIC
+
+            with (
+                patch("qt_ui.qt_workspace_settings.save_measurement_system") as save_mock,
+                patch.object(window, "confirm_measurement_system_scale_reset", return_value=False),
+                patch.object(window, "maybe_update_live_preview") as live_mock,
+            ):
+                changed = window.change_measurement_system(MEASUREMENT_SYSTEM_IMPERIAL)
+
+            self.assertFalse(changed)
+            self.assertEqual(window.measurement_system, MEASUREMENT_SYSTEM_METRIC)
+            self.assertEqual(window.session.metadata.get("px_per_meter"), "10")
+            self.assertFalse(window.session.dirty)
+            save_mock.assert_not_called()
+            live_mock.assert_not_called()
+        finally:
+            window.deleteLater()
 

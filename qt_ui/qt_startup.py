@@ -516,13 +516,14 @@ class StartWindow(QMainWindow):
     def change_measurement_system(self, mode):
         mode = normalize_measurement_system(mode)
         if mode == self.measurement_system:
-            return
+            return True
         if not save_measurement_system(mode):
             QMessageBox.warning(self, self.tr("warning"), self.tr("settings_save_failed"))
-            return
+            return False
 
         self.measurement_system = mode
         log_event(f"startup measurement system changed mode={mode}", logger_name="ui")
+        return True
 
     def open_settings_menu(self):
         if self.should_suppress_settings_menu_toggle():
@@ -554,7 +555,7 @@ class StartWindow(QMainWindow):
         self.add_settings_row(layout, self.tr("ui_scale"), scale_combo)
 
         units_combo = self.create_settings_combo(self.measurement_system_items(), self.measurement_system)
-        units_combo.currentIndexChanged.connect(lambda _index: self.change_measurement_system(units_combo.currentData()))
+        units_combo.currentIndexChanged.connect(lambda _index: self.apply_measurement_system_combo(units_combo))
         self.add_settings_row(layout, self.tr("measurement_system"), units_combo)
 
         language_combo = self.create_settings_combo(
@@ -617,6 +618,14 @@ class StartWindow(QMainWindow):
             (mode, self.tr(f"measurement_system_{mode}"))
             for mode in MEASUREMENT_SYSTEM_OPTIONS
         ]
+
+    def apply_measurement_system_combo(self, combo):
+        if self.change_measurement_system(combo.currentData()):
+            return
+
+        combo.blockSignals(True)
+        combo.setCurrentIndex(max(0, combo.findData(self.measurement_system)))
+        combo.blockSignals(False)
 
     def start_async_imports(self):
         self.load_thread = QThread(self)

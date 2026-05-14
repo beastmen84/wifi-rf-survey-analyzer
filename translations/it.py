@@ -50,6 +50,10 @@ TRANSLATIONS = {
     "measurement_system_imperial": "Imperiale (ft)",
     "measurement_unit_metric": "metri",
     "measurement_unit_imperial": "piedi",
+    "measurement_system_scale_reset_title": "La Calibrazione Scala Verrà Resettata",
+    "measurement_system_scale_reset_message": "Questo rilievo ha già una scala calibrata. Cambiare sistema di misura cancellerà la calibrazione scala attuale.\n\nEsegui di nuovo Calibra Scala prima di interpretare le distanze. Continuare?",
+    "measurement_system_scale_reset_button": "Cambia Ed Elimina Scala",
+    "measurement_system_scale_reset_done": "Sistema di misura cambiato. Scala eliminata; esegui di nuovo Calibra Scala.",
     "ui_scale_restart_title": "Riavvio Richiesto",
     "ui_scale_restart_message": "Per applicare la scala UI {scale} serve riavviare l'app.\n\nVuoi salvare la scelta e riavviare ora?",
     "save_and_restart": "Salva e Riavvia",
@@ -575,7 +579,7 @@ TRANSLATIONS = {
         </table>
         <h2>Punti Di Controllo</h2>
         <div class="gate-list">
-            <div class="gate-row"><b>Distanze:</b> scegli metrico o imperiale nei settings, poi calibra la scala prima di interpretare warning sulle posizioni AP.</div>
+            <div class="gate-row"><b>Distanze:</b> scegli metrico o imperiale nei settings prima della calibrazione. Cambiare sistema di misura dopo cancella la scala attuale, quindi va rifatta prima di interpretare warning sulle posizioni AP.</div>
             <div class="gate-row"><b>Copertura:</b> verifica SSID rilevanti e qualità punti prima di fidarti di zone buone o problematiche.</div>
             <div class="gate-row"><b>Interferenza:</b> verifica gruppi AP, ruoli, gestione cambi canale e override canale prima di fidarti delle mappe sensibili al canale.</div>
             <div class="gate-row"><b>Export:</b> apri la live map collegata e leggi tooltip warning o righe dettaglio prima di generare il PDF.</div>
@@ -930,7 +934,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card"><b>Smoothing</b><br>Rende copertura/interferenza visivamente più calme.<br><span class="survey-card-use">Usala Con Attenzione:</span> smoothing alto può nascondere transizioni RF nette.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Distanza Max</b><br>Limita il rendering continuo alle aree vicine ai punti misurati. Usa il sistema di misura selezionato quando la scala è calibrata, pixel altrimenti.<br><span class="survey-card-use">Usala Con Attenzione:</span> aumentala solo quando la densità punti è buona.</td>
+                <td class="workflow-card"><b>Distanza Max</b><br>Limita il rendering continuo alle aree vicine ai punti misurati. Usa il sistema di misura selezionato quando la scala è calibrata, pixel altrimenti. Se cambi sistema di misura dopo la calibrazione, la scala viene eliminata e va rifatta.<br><span class="survey-card-use">Usala Con Attenzione:</span> aumentala solo quando la densità punti è buona.</td>
             </tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>

@@ -50,6 +50,10 @@ TRANSLATIONS = {
     "measurement_system_imperial": "Imperial (ft)",
     "measurement_unit_metric": "meters",
     "measurement_unit_imperial": "feet",
+    "measurement_system_scale_reset_title": "Scale Calibration Will Be Reset",
+    "measurement_system_scale_reset_message": "This survey already has a calibrated scale. Changing the measurement system will clear the current scale calibration.\n\nRun Calibrate Scale again before interpreting distances. Continue?",
+    "measurement_system_scale_reset_button": "Change And Clear Scale",
+    "measurement_system_scale_reset_done": "Measurement system changed. Scale cleared; run Calibrate Scale again.",
     "ui_scale_restart_title": "Restart Required",
     "ui_scale_restart_message": "Applying UI scale {scale} requires restarting the app.\n\nSave this choice and restart now?",
     "save_and_restart": "Save and Restart",
@@ -575,7 +579,7 @@ TRANSLATIONS = {
         </table>
         <h2>Decision Gates</h2>
         <div class="gate-list">
-            <div class="gate-row"><b>Distances:</b> choose metric or imperial in settings, then calibrate the scale before interpreting AP-position warnings.</div>
+            <div class="gate-row"><b>Distances:</b> choose metric or imperial in settings before calibration. Changing measurement system later clears the current scale, so calibrate again before interpreting AP-position warnings.</div>
             <div class="gate-row"><b>Coverage:</b> verify relevant SSIDs and point quality before trusting good or bad coverage areas.</div>
             <div class="gate-row"><b>Interference:</b> verify AP groups, roles, channel-change handling and analysis-channel overrides before trusting channel-sensitive maps.</div>
             <div class="gate-row"><b>Export:</b> open the related live map and read the warning tooltips or detail rows before generating the PDF.</div>
@@ -930,7 +934,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card"><b>Smoothing</b><br>Makes coverage/interference surfaces visually calmer.<br><span class="survey-card-use">Use Carefully:</span> high smoothing can hide sharp RF transitions.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Max Distance</b><br>Limits continuous rendering to areas near measured points. Uses the selected measurement system when scale is calibrated, pixels otherwise.<br><span class="survey-card-use">Use Carefully:</span> increase only when point density is good.</td>
+                <td class="workflow-card"><b>Max Distance</b><br>Limits continuous rendering to areas near measured points. Uses the selected measurement system when scale is calibrated, pixels otherwise. If you change measurement system after calibration, the scale is cleared and must be calibrated again.<br><span class="survey-card-use">Use Carefully:</span> increase only when point density is good.</td>
             </tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>

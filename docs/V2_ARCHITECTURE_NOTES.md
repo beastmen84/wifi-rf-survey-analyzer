@@ -703,7 +703,9 @@ Implemented:
 - global measurement-system preference with metric default and imperial display
   option; internal survey metadata remains `px_per_meter` while calibration
   input, live Max Distance labels, AP-position tooltips and PDF report
-  distances use the selected display system;
+  distances use the selected display system; changing measurement system after
+  a survey has calibrated scale prompts the user and clears `px_per_meter` so
+  scale must be recalibrated in the chosen system;
 - dedicated sections for Survey/Scans, Survey Quality, AP Groups, Live Maps,
   PDF Reports, Warnings and Glossary;
 - detailed workflow gates, point capture guidance, raw sidecar/aggregation,

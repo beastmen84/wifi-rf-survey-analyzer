@@ -83,18 +83,45 @@ class WorkspaceSettingsMixin:
     def change_measurement_system(self, mode):
         mode = normalize_measurement_system(mode)
         if mode == self.measurement_system:
-            return
+            return True
 
         current_max_distance_px = self.current_live_max_distance_px()
+        scale_was_cleared = False
+        if self.session is not None and self.has_calibrated_scale():
+            if not self.confirm_measurement_system_scale_reset():
+                return False
+            self.session.metadata.pop("px_per_meter", None)
+            self.session.dirty = True
+            self.floorplan_view.clear_scale_calibration_overlay()
+            scale_was_cleared = True
+
         if not save_measurement_system(mode):
             QMessageBox.warning(self, self.tr("warning"), self.tr("settings_save_failed"))
-            return
+            return False
 
         self.measurement_system = mode
         log_event(f"workspace measurement system changed mode={mode}", logger_name="ui")
         self.set_live_max_distance_px_silent(current_max_distance_px)
         self.remember_live_option_state()
+        if scale_was_cleared:
+            self.refresh_session_labels()
+            self.status.showMessage(self.tr("measurement_system_scale_reset_done"))
         self.maybe_update_live_preview()
+        return True
+
+    def confirm_measurement_system_scale_reset(self):
+        message_box = QMessageBox(self)
+        message_box.setIcon(QMessageBox.Icon.Warning)
+        message_box.setWindowTitle(self.tr("measurement_system_scale_reset_title"))
+        message_box.setText(self.tr("measurement_system_scale_reset_message"))
+        change_button = message_box.addButton(
+            self.tr("measurement_system_scale_reset_button"),
+            QMessageBox.ButtonRole.AcceptRole,
+        )
+        message_box.addButton(self.tr("cancel"), QMessageBox.ButtonRole.RejectRole)
+        message_box.setDefaultButton(change_button)
+        message_box.exec()
+        return message_box.clickedButton() == change_button
 
     def confirm_ui_scale_restart(self, mode):
         message_box = QMessageBox(self)
@@ -145,7 +172,7 @@ class WorkspaceSettingsMixin:
         self.add_settings_row(layout, self.tr("ui_scale"), scale_combo)
 
         units_combo = self.create_settings_combo(self.measurement_system_items(), self.measurement_system)
-        units_combo.currentIndexChanged.connect(lambda _index: self.change_measurement_system(units_combo.currentData()))
+        units_combo.currentIndexChanged.connect(lambda _index: self.apply_measurement_system_combo(units_combo))
         self.add_settings_row(layout, self.tr("measurement_system"), units_combo)
 
         language_combo = self.create_settings_combo(
@@ -208,3 +235,11 @@ class WorkspaceSettingsMixin:
             (mode, self.tr(f"measurement_system_{mode}"))
             for mode in MEASUREMENT_SYSTEM_OPTIONS
         ]
+
+    def apply_measurement_system_combo(self, combo):
+        if self.change_measurement_system(combo.currentData()):
+            return
+
+        combo.blockSignals(True)
+        combo.setCurrentIndex(max(0, combo.findData(self.measurement_system)))
+        combo.blockSignals(False)
