@@ -580,27 +580,34 @@ TRANSLATIONS = {
     "help_controls_title": "Comandi Rapidi",
     "help_controls_subtitle": "Il workflow V2 usa ancora gesti diretti sulla mappa. Questi sono i controlli più frequenti durante rilievo e revisione.",
     "help_controls_body": """
-        <div class="callout"><b>Nota:</b> quando la modalità di posizionamento AP è attiva, il clic sinistro sulla pianta assegna la posizione fisica dell'AP invece di selezionare un punto.</div>
-        <h2>Il contesto conta</h2>
-        <p>Lo stesso gesto può avere significato diverso in base alla modalità attiva. Nel rilievo normale il tasto destro crea punti e il sinistro seleziona marker. In posizionamento AP o calibrazione scala, il sinistro viene catturato da quella modalità temporanea.</p>
-        <table>
-            <tr><th>Contesto</th><th>Comportamento clic sinistro</th><th>Cosa controllare</th></tr>
-            <tr><td>Mappa Survey normale</td><td>Seleziona un marker punto o pulisce la selezione se clicchi lo sfondo.</td><td>Per creare un punto usa il tasto destro.</td></tr>
-            <tr><td>Calibrazione scala</td><td>Sceglie gli estremi della calibrazione.</td><td>Completa i due punti di calibrazione prima di continuare.</td></tr>
-            <tr><td>Posizionamento AP</td><td>Salva il marker fisico del gruppo AP selezionato.</td><td>La posizione AP influisce sulla diagnostica AP Dominante.</td></tr>
-            <tr><td>Mappa Live</td><td>Trascina quando la mappa è più grande della viewport; il click sullo sfondo può pulire selezioni legenda.</td><td>Zoom/pan non cambiano i dati raccolti.</td></tr>
+        <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Regola Dei Gesti</span><br>Clic sinistro, trascinamento con sinistro e modificatori della rotella sono controlli separati. Ctrl e Shift sono tasti modificatori: servono in combinazione con la rotella, non come azioni mappa autonome.</td></tr></table>
+        <h2>Il Contesto Conta</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Mappa Survey Normale</b><br>Il tasto destro crea punti di misura. Il sinistro seleziona un marker punto esistente o pulisce la selezione se clicchi lo sfondo.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Modalità Temporanee</b><br>Calibrazione scala e posizionamento AP catturano il clic sinistro finché la modalità non viene completata o annullata.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Trascina Non È Click</b><br>Il clic sinistro seleziona; clic sinistro e movimento trascinano quando la vista mappa supporta il pan.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Zoom/Pan Sono Visuali</b><br>Zoom, scroll e pan cambiano solo la vista. Non modificano i dati raccolti.</td>
+            </tr>
         </table>
     """,
     "help_control_right_click_title": "Tasto Destro",
     "help_control_right_click_text": "Crea un punto di misura sulla mappa del rilievo.",
-    "help_control_left_click_title": "Tasto Sinistro / Trascina",
-    "help_control_left_click_text": "Seleziona un punto di misura, trascina la mappa quando il pan è disponibile, oppure posiziona un AP quando la modalità AP è attiva.",
+    "help_control_left_click_title": "Tasto Sinistro",
+    "help_control_left_click_text": "Seleziona un punto di misura o usa la modalità temporanea attiva, per esempio calibrazione scala o posizionamento AP.",
+    "help_control_left_drag_title": "Tasto Sinistro + Trascina",
+    "help_control_left_drag_text": "Sposta la pianta o la mappa live quando la vista corrente è più grande della viewport e il pan è disponibile.",
     "help_control_scroll_title": "Rotella",
-    "help_control_scroll_text": "Scorre liste e pannelli. Usa Ctrl + rotella per lo zoom sulla mappa.",
-    "help_control_shift_title": "Shift",
-    "help_control_shift_text": "Usa Shift con la rotella per lo scorrimento orizzontale in tabelle o viste larghe.",
-    "help_control_ctrl_title": "Ctrl",
-    "help_control_ctrl_text": "Usa Ctrl con la rotella per lo zoom sulla pianta.",
+    "help_control_scroll_text": "Scorre verticalmente liste, pannelli e viste mappa.",
+    "help_control_shift_title": "Shift + Rotella",
+    "help_control_shift_text": "Scorre orizzontalmente tabelle o viste larghe.",
+    "help_control_ctrl_title": "Ctrl + Rotella",
+    "help_control_ctrl_text": "Esegue lo zoom sulla pianta o sulla preview della mappa live.",
     "help_control_wifi_title": "Marker Wi-Fi",
     "help_control_wifi_text": "Le posizioni fisiche degli AP usano il marker Wi-Fi nelle mappe live e nei report esportati.",
     "help_survey_nav": "Rilievo E Scansioni",

@@ -164,26 +164,33 @@ def build_help_sections(parent, tr):
 
 def build_controls_body(parent, tr):
     controls = [
-        ("right-click.png", tr("help_control_right_click_title"), tr("help_control_right_click_text")),
-        ("left-click.png", tr("help_control_left_click_title"), tr("help_control_left_click_text")),
-        ("scroll.png", tr("help_control_scroll_title"), tr("help_control_scroll_text")),
-        ("shift.png", tr("help_control_shift_title"), tr("help_control_shift_text")),
-        ("ctrl.png", tr("help_control_ctrl_title"), tr("help_control_ctrl_text")),
-        ("wifi.png", tr("help_control_wifi_title"), tr("help_control_wifi_text")),
+        (("right-click.png",), tr("help_control_right_click_title"), tr("help_control_right_click_text")),
+        (("left-click.png",), tr("help_control_left_click_title"), tr("help_control_left_click_text")),
+        (("left-click_2.png",), tr("help_control_left_drag_title"), tr("help_control_left_drag_text")),
+        (("scroll.png",), tr("help_control_scroll_title"), tr("help_control_scroll_text")),
+        (("ctrl.png", "scroll.png"), tr("help_control_ctrl_title"), tr("help_control_ctrl_text")),
+        (("shift.png", "scroll.png"), tr("help_control_shift_title"), tr("help_control_shift_text")),
+        (("wifi.png",), tr("help_control_wifi_title"), tr("help_control_wifi_text")),
     ]
 
     cells = []
-    for image_name, title, text in controls:
+    for image_names, title, text in controls:
+        icon_html = '<span class="control-plus">+</span>'.join(
+            '<img src="{src}" width="{image_width}">'.format(
+                src=control_asset_uri(image_name),
+                image_width=widget_px(parent, 38),
+            )
+            for image_name in image_names
+        )
         cells.append(
             """
             <td class="control-card">
-                <img src="{src}" width="{image_width}">
+                <div class="control-icon-row">{icon_html}</div>
                 <div class="control-title">{title}</div>
                 <p>{text}</p>
             </td>
             """.format(
-                src=control_asset_uri(image_name),
-                image_width=widget_px(parent, 42),
+                icon_html=icon_html,
                 title=escape(title),
                 text=escape(text),
             )
@@ -449,9 +456,18 @@ def build_help_html(parent, palette, section):
             background: transparent;
             border: 0;
         }}
+        .control-icon-row {{
+            margin-bottom: {widget_px(parent, 6)}px;
+        }}
         .control-card img {{
-            float: left;
-            margin-right: {widget_px(parent, 10)}px;
+            margin-right: {widget_px(parent, 6)}px;
+            vertical-align: middle;
+        }}
+        .control-plus {{
+            color: {palette["muted"]};
+            font-size: {widget_font(parent, 12):.2f}pt;
+            font-weight: 800;
+            padding-right: {widget_px(parent, 6)}px;
         }}
         .control-title {{
             color: {palette["title"]};

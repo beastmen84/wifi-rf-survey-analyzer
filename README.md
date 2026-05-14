@@ -243,10 +243,13 @@ The app includes a Help Center with structured sections for:
 This help content is implemented in English and Italian. The remaining beta
 work is a calm visual/content review in the running app, not a missing feature.
 The Help Center now documents AP Memory review states, confirmation/update
-actions, settings access, and AP Group Manager save behavior. Its non-control
-pages describe the current Qt workflow in more detail: survey screen boxes,
-Survey Quality actions, AP Group Manager layers, BSSID management, metadata,
-Live Map options, PDF export behavior, warning diagnostics, and glossary terms.
+actions, settings access, and AP Group Manager save behavior. Its pages describe
+the current Qt workflow in more detail: controls and gesture combinations,
+survey screen boxes, Survey Quality actions, AP Group Manager layers, BSSID
+management, metadata, Live Map options, PDF export behavior, warning
+diagnostics, and glossary terms.
+The Controls help page separates left click from left-click drag and shows
+Ctrl/Shift as wheel modifiers rather than standalone map actions.
 The Survey help page uses compact summary cards for the main screen boxes and
 explicitly explains relevant SSIDs, the `.scan` sidecar, scanner backend choice,
 point-table actions, and point-placement rules.

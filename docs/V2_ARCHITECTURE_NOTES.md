@@ -698,7 +698,8 @@ Implemented:
 
 - two-column Help Center with vertical navigation and formatted HTML content;
 - workflow-first overview instead of a feature-list-only help page;
-- controls cheat sheet using the existing image assets and current V2 gestures;
+- controls cheat sheet using the existing image assets and current V2 gestures,
+  including separate left-click, left-drag and wheel-modifier combinations;
 - dedicated sections for Survey/Scans, Survey Quality, AP Groups, Live Maps,
   PDF Reports, Warnings and Glossary;
 - detailed workflow gates, point capture guidance, raw sidecar/aggregation,
@@ -728,6 +729,9 @@ Implemented:
   modern left-border styling on block elements. The workflow cards use explicit
   spacer cells and the same full content width as the other blocks so margins
   line up while preserving a central gap.
+- The Controls Help page now separates simple left click from left-click drag
+  and displays Ctrl/Shift as modifier combinations with the wheel instead of
+  standalone actions.
 - The non-control Help pages now use the same table/callout pattern and were
   checked against the current Qt code behavior instead of older text notes.
   Coverage includes Survey boxes/actions, Quality controls, AP Group Manager

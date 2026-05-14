@@ -580,27 +580,34 @@ TRANSLATIONS = {
     "help_controls_title": "Controls Cheat Sheet",
     "help_controls_subtitle": "The V2 workflow still uses direct map gestures. These are the controls you use most often while surveying and reviewing.",
     "help_controls_body": """
-        <div class="callout"><b>Tip:</b> when AP positioning mode is active, left click on the plan assigns the physical AP position instead of selecting a survey point.</div>
-        <h2>Context matters</h2>
-        <p>The same gesture can mean different things depending on the active mode. During normal survey work, right click creates measurement points and left click selects existing markers. During AP positioning or scale calibration, left click is captured by that temporary mode.</p>
-        <table>
-            <tr><th>Context</th><th>Left click behavior</th><th>What to watch</th></tr>
-            <tr><td>Normal Survey map</td><td>Selects a point marker or clears selection when the background is clicked.</td><td>If you intend to create a point, use right click instead.</td></tr>
-            <tr><td>Scale calibration</td><td>Picks calibration endpoints.</td><td>Finish the two-point calibration before continuing the survey.</td></tr>
-            <tr><td>AP positioning</td><td>Stores the physical AP marker for the selected AP group.</td><td>The AP position affects Dominant AP diagnostics.</td></tr>
-            <tr><td>Live Map</td><td>Pans when the map is larger than the viewport; clicking background can clear legend selection.</td><td>Zoom/pan does not change the underlying survey data.</td></tr>
+        <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Gesture Rule</span><br>Left click, left-click drag and wheel modifiers are separate controls. Ctrl and Shift are modifier keys: they matter when combined with the wheel, not as standalone map actions.</td></tr></table>
+        <h2>Context Matters</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Normal Survey Map</b><br>Right click creates measurement points. Left click selects an existing point marker or clears the selection when the background is clicked.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Temporary Modes</b><br>Scale calibration and AP positioning capture left click until the mode is complete or cancelled.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Drag Is Not Click</b><br>Left click selects; left-click drag pans when the current map view supports panning.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Zoom/Pan Are Visual</b><br>Zooming, scrolling and panning change the view only. They do not change collected survey data.</td>
+            </tr>
         </table>
     """,
     "help_control_right_click_title": "Right Click",
     "help_control_right_click_text": "Create a measurement point on the Survey map.",
-    "help_control_left_click_title": "Left Click / Drag",
-    "help_control_left_click_text": "Select a measurement point, drag the map when panning is available, or place an AP when AP positioning mode is active.",
+    "help_control_left_click_title": "Left Click",
+    "help_control_left_click_text": "Select a measurement point or use the active temporary mode, such as scale calibration or AP positioning.",
+    "help_control_left_drag_title": "Left Click + Drag",
+    "help_control_left_drag_text": "Pan the floor plan or live map when the current view is larger than the viewport and panning is available.",
     "help_control_scroll_title": "Mouse Wheel",
-    "help_control_scroll_text": "Scroll lists and panes. Use Ctrl + wheel for map zoom.",
-    "help_control_shift_title": "Shift",
-    "help_control_shift_text": "Use Shift with the wheel for horizontal scrolling in wide tables or views.",
-    "help_control_ctrl_title": "Ctrl",
-    "help_control_ctrl_text": "Use Ctrl with the wheel for zoom on the floor plan.",
+    "help_control_scroll_text": "Scroll lists, panes and map views vertically.",
+    "help_control_shift_title": "Shift + Wheel",
+    "help_control_shift_text": "Scroll horizontally in wide tables or views.",
+    "help_control_ctrl_title": "Ctrl + Wheel",
+    "help_control_ctrl_text": "Zoom the floor plan or live map preview.",
     "help_control_wifi_title": "Wi-Fi Marker",
     "help_control_wifi_text": "Physical AP positions use the Wi-Fi marker on live maps and exported reports.",
     "help_survey_nav": "Survey And Scans",
