@@ -389,7 +389,11 @@ class WifiHeatmapQtApp(
         footer_layout.setContentsMargins(self.spx(12), self.spx(6), self.spx(12), self.spx(6))
         self.footer_label = QLabel()
         self.footer_label.setObjectName("mutedText")
-        footer_layout.addWidget(self.footer_label)
+        footer_layout.addWidget(self.footer_label, 1)
+        self.memory_status_label = QLabel()
+        self.memory_status_label.setObjectName("memoryStatusLabel")
+        self.memory_status_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        footer_layout.addWidget(self.memory_status_label)
         layout.addWidget(footer)
 
         return page
@@ -1250,6 +1254,14 @@ class WifiHeatmapQtApp(
             }}
             QLabel#mutedText {{
                 color: {palette["muted"]};
+            }}
+            QLabel#memoryStatusLabel {{
+                color: {palette["muted"]};
+                background: {palette["panel_alt"]};
+                border: 1px solid {palette["border"]};
+                border-radius: {s(5)}px;
+                padding: {s(3)}px {s(8)}px;
+                font-weight: 700;
             }}
             QLabel#badge {{
                 color: {palette["badge_text"]};

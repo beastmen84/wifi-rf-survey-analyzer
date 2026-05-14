@@ -63,7 +63,9 @@ Current status:
   `ap_memory.memory` file in the application data folder, matches remembered AP
   data by known BSSID after normal AP grouping, applies missing aliases, roles,
   metadata, analysis-channel overrides and compatible map positions, and flags
-  reused groups as `From Memory` until the user confirms or edits them;
+  reused groups as `From Memory` until the user confirms or edits them; AP
+  Group save seeds the memory even when the survey metadata itself did not
+  change, and the workspace footer shows empty/saved/to-confirm memory status;
 - the 2026-05-12 operational test survey is a useful baseline: all 25 points
   passed quality, all raw samples came from `lswifi`, relevant AP positions were
   complete, and the remaining findings are AP setup/anomaly diagnostics rather
@@ -224,6 +226,7 @@ Implemented:
 - user-facing `Auto` / `Manual` management state;
 - user-facing `From Memory` management state, status marker and confirmation
   action for AP groups whose metadata was applied from AP Memory;
+- workspace footer AP Memory status with the memory file path in the tooltip;
 - per-band analysis-channel override in AP metadata for channel-sensitive maps.
   The override picker is constrained to channels actually observed for that AP
   group/band and is disabled for bands not observed on the group.

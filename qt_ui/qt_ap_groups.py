@@ -1143,7 +1143,7 @@ class APGroupManagerDialog(QDialog):
             if group.get("alias", "").strip()
         }
         aliases_changed = self.session.set_ap_aliases(aliases)
-        groups_changed = self.session.set_ap_groups(self.groups)
+        groups_changed = self.session.set_ap_groups(self.groups, force_memory_update=True)
         if aliases_changed or groups_changed:
             self.session.dirty = True
         return aliases_changed or groups_changed

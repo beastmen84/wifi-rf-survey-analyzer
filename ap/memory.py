@@ -83,6 +83,19 @@ def load_ap_memory(path=None):
     }
 
 
+def get_ap_memory_summary(path=None):
+    memory_path = Path(path) if path else get_ap_memory_path()
+    was_present = memory_path.exists()
+    data = load_ap_memory(memory_path)
+    groups = [record for record in data.get("groups", []) if record.get("bssids")]
+    return {
+        "path": str(memory_path),
+        "exists": was_present or memory_path.exists(),
+        "group_count": len(groups),
+        "updated_at": str(data.get("updated_at", "")).strip(),
+    }
+
+
 def save_ap_memory(data, path=None):
     memory_path = Path(path) if path else get_ap_memory_path()
     groups = [

@@ -50,6 +50,32 @@ class SettingsMenuTests(unittest.TestCase):
         finally:
             window.deleteLater()
 
+    def test_workspace_footer_shows_ap_memory_status(self):
+        previous = os.environ.get("WIFI_HEATMAP_AP_MEMORY_FILE")
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                os.environ["WIFI_HEATMAP_AP_MEMORY_FILE"] = os.path.join(temp_dir, "ap_memory.memory")
+                window = WifiHeatmapQtApp()
+                try:
+                    self.assertEqual(window.memory_status_label.text(), "AP Memory: Empty")
+                    update_ap_memory_from_groups([
+                        build_manual_ap_group(
+                            "office-ap",
+                            ["70:4f:57:aa:bb:10"],
+                            alias="Office AP",
+                        )
+                    ])
+                    window.refresh_session_labels()
+                    self.assertEqual(window.memory_status_label.text(), "AP Memory: Saved (1 AP)")
+                    self.assertIn("ap_memory.memory", window.memory_status_label.toolTip())
+                finally:
+                    window.deleteLater()
+        finally:
+            if previous is None:
+                os.environ.pop("WIFI_HEATMAP_AP_MEMORY_FILE", None)
+            else:
+                os.environ["WIFI_HEATMAP_AP_MEMORY_FILE"] = previous
+
     def test_workspace_styles_scrollbars_and_measurement_point_selection(self):
         window = WifiHeatmapQtApp()
         try:

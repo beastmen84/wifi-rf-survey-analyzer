@@ -236,7 +236,7 @@ class SurveySession:
 
         return groups if isinstance(groups, list) else []
 
-    def set_ap_groups(self, groups, update_memory=True):
+    def set_ap_groups(self, groups, update_memory=True, force_memory_update=False):
         clean_groups = []
         for group in groups:
             if not isinstance(group, dict):
@@ -284,7 +284,7 @@ class SurveySession:
         serialized_groups = json.dumps(clean_groups, ensure_ascii=False, sort_keys=True)
         changed = self.metadata.get(AP_GROUPS_METADATA_KEY) != serialized_groups
         self.update_metadata({AP_GROUPS_METADATA_KEY: serialized_groups})
-        if changed and update_memory:
+        if update_memory and (changed or force_memory_update):
             update_ap_memory_from_groups(clean_groups, self.rows, self.metadata.get("map_file", ""))
         return changed
 

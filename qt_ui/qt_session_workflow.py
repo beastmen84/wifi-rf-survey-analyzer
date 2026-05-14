@@ -10,6 +10,7 @@ except ModuleNotFoundError as exc:
     raise SystemExit(1) from exc
 
 from app_core.settings import get_last_survey_directory, save_last_survey_path
+from ap.memory import count_memory_applied_groups, get_ap_memory_summary
 from qt_ui.qt_windowing import get_centered_open_file_name, get_centered_save_file_name
 from survey.store import SurveyFormatError, SurveySession
 
@@ -193,6 +194,9 @@ class SurveySessionWorkflowMixin:
                 last=last_point,
             )
         )
+        if hasattr(self, "memory_status_label"):
+            self.memory_status_label.setText(self.format_ap_memory_status())
+            self.memory_status_label.setToolTip(get_ap_memory_summary().get("path", ""))
         self.new_workspace_button.setEnabled(not self.scan_in_progress)
         self.open_workspace_button.setEnabled(not self.scan_in_progress)
         can_use_session = self.session is not None and not self.scan_in_progress
@@ -219,6 +223,21 @@ class SurveySessionWorkflowMixin:
         self.update_save_action_state()
         self.refresh_live_controls()
         self.update_point_action_state()
+
+    def format_ap_memory_status(self):
+        summary = get_ap_memory_summary()
+        if not summary.get("exists"):
+            return self.tr("ap_memory_status_missing")
+
+        total = summary.get("group_count", 0)
+        if not total:
+            return self.tr("ap_memory_status_empty")
+
+        applied = count_memory_applied_groups(self.session.get_ap_groups()) if self.session else 0
+        if applied:
+            return self.tr("ap_memory_status_applied", applied=applied, total=total)
+
+        return self.tr("ap_memory_status_saved", count=total)
 
     def update_save_action_state(self):
         is_dirty = bool(self.session is not None and self.session.dirty)

@@ -313,6 +313,35 @@ class ApMemoryTests(unittest.TestCase):
             self.restore_memory_env(previous)
             temp_dir.cleanup()
 
+    def test_force_memory_update_seeds_unchanged_saved_groups(self):
+        temp_dir, previous = self.with_isolated_memory()
+        try:
+            bssid = "70:4f:57:aa:bb:10"
+            memory_file = os.environ["WIFI_HEATMAP_AP_MEMORY_FILE"]
+            session = SurveySession()
+            session.rows = [build_row("p1", "MAIN", bssid, -50, 36, band="5")]
+            session.set_ap_groups([
+                build_manual_ap_group(
+                    "office-ap",
+                    [bssid],
+                    alias="Office AP",
+                    metadata={"expected_channels": "36"},
+                )
+            ])
+            os.remove(memory_file)
+
+            changed = session.set_ap_groups(session.get_ap_groups(), force_memory_update=True)
+
+            self.assertFalse(changed)
+            summary = get_ap_memory_summary()
+            self.assertTrue(summary["exists"])
+            self.assertEqual(summary["group_count"], 1)
+            memory = load_ap_memory()
+            self.assertEqual(memory["groups"][0]["alias"], "Office AP")
+        finally:
+            self.restore_memory_env(previous)
+            temp_dir.cleanup()
+
 
 class InterferenceTests(unittest.TestCase):
     def test_interference_ignores_same_physical_ap_group(self):
