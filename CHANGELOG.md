@@ -30,6 +30,8 @@ for this version marker.
 - Controls Help now separates left click from left-click drag, removes the AP
   Wi-Fi marker from the controls list, and shows Ctrl/Shift as implemented
   wheel-modifier combinations.
+- App icon PNG/ICO assets now preserve transparent rounded corners for Windows
+  executable embedding instead of baking white corners into the icon.
 - Settings now include a metric/imperial measurement-system preference. Survey
   scale remains stored internally as `px_per_meter`, while calibration input,
   Live Map Max Distance, AP-position tooltips and dominant-AP PDF report
