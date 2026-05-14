@@ -617,6 +617,7 @@ TRANSLATIONS = {
             <tr><td>Segnale Instabile</td><td>Il segnale è variato troppo durante le scansioni ripetute.</td><td>Controlla movimento, cambi RF temporanei o AP instabili.</td></tr>
             <tr><td>Finding AP Dominante</td><td>L'AP più forte non è coerente con il modello fisico.</td><td>Apri la mappa AP Dominante e verifica posizioni AP o roaming reale.</td></tr>
             <tr><td>Warning Config AP</td><td>Bande/canali osservati non coincidono con i metadata.</td><td>Apri metadata AP e decidi se è sbagliato il metadata o il deployment.</td></tr>
+            <tr><td>Memoria Applicata</td><td>Dati AP riusati dal file persistente Memoria AP.</td><td>Apri Gruppi AP, verifica i dati riusati e confermali o modificali.</td></tr>
         </table>
         <h2>Significato KPI</h2>
         <table>
@@ -626,10 +627,13 @@ TRANSLATIONS = {
             <tr><td>Dati Radi</td><td>Punti con poca evidenza ripetuta per una confidenza forte.</td></tr>
             <tr><td>Finding AP Dominante</td><td>Osservazioni roaming o posizione AP da rivedere, non automaticamente dati errati.</td></tr>
             <tr><td>Warning Config AP</td><td>Mismatch metadata/deployment, per esempio canali inattesi.</td></tr>
+            <tr><td>Memoria Applicata</td><td>Gruppi AP i cui alias, ruoli, metadata o posizione arrivano da Memoria AP e richiedono ancora revisione.</td></tr>
             <tr><td>Cambi Canale</td><td>AP la cui sequenza canale influenza analisi sensibili al canale.</td></tr>
         </table>
         <h2>Finestra dettagli</h2>
         <p>Usa <b>Extra Details</b> quando una card mostra più di un semplice stato OK. Le righe dettaglio rendono gestibili survey grandi: ogni punto o gruppo AP coinvolto ha la sua riga e i pulsanti aprono la mappa o l'editor corretto.</p>
+        <h2>Revisione Memoria AP</h2>
+        <p>Quando un nuovo rilievo vede BSSID già noti, il programma può riusare alias, ruoli, metadata, override canale analisi e posizioni mappa compatibili. Qualità Rilievo mantiene questa cosa visibile come finding del modello AP finché i dati non vengono confermati o modificati da Gruppi AP.</p>
         <div class="callout"><b>Importante:</b> un warning di setup non significa che il punto sia sbagliato. Significa che modello AP, canale atteso o deployment reale vanno controllati.</div>
     """,
     "help_ap_groups_nav": "Gruppi AP",
@@ -666,6 +670,15 @@ TRANSLATIONS = {
         </table>
         <h2>Cambi canale puliti</h2>
         <p>Se lo stesso gruppo AP/set BSSID passa pulitamente da un canale a un altro durante il rilievo, AP Group non lo tratta come conflitto BSSID. Interferenza e Canali AP usano di default il canale più recente. Usa override solo quando sai che il canale operativo previsto è diverso.</p>
+        <h2>Memoria AP</h2>
+        <p>Memoria AP è automatica. Il programma salva i dati revisionati dei Gruppi AP in un file persistente e li applica ai rilievi successivi dopo il normale raggruppamento BSSID quando rivede BSSID già noti.</p>
+        <table>
+            <tr><th>Stato</th><th>Significato</th><th>Azione</th></tr>
+            <tr><td>Da Memoria</td><td>Alias, ruolo, metadata, override o posizione mappa compatibile sono stati applicati da Memoria AP.</td><td>Rivedi la riga, poi usa Memoria &gt; Conferma Selezionato o Conferma Tutti Da Memoria.</td></tr>
+            <tr><td>Aggiornamento Memoria</td><td>I dati AP manuali correnti sono diversi dai dati più recenti salvati in Memoria AP.</td><td>Usa Memoria &gt; Aggiorna Selezionato Da Memoria quando il dato salvato è più corretto.</td></tr>
+            <tr><td>Salvata</td><td>Il file Memoria AP contiene record AP riusabili.</td><td>Il footer mostra lo stato memoria; Impostazioni può aprire la cartella o svuotare la memoria.</td></tr>
+        </table>
+        <p>Premere <b>Salva</b> in AP Group Manager scrive il modello AP e aggiorna Memoria AP. Chiudere AP Group Manager con la X della finestra equivale ad Annulla e non salva le modifiche AP Group in sospeso.</p>
         <div class="callout warning"><b>Non usare gli override per nascondere dati brutti.</b> Usali quando sai che il canale operativo corretto è diverso dallo stato osservato nel rilievo, per esempio per riavvii schedulati degli AP.</div>
     """,
     "help_live_maps_nav": "Mappe Live",
@@ -754,6 +767,7 @@ TRANSLATIONS = {
         <table>
             <tr><th>Termine</th><th>Significato</th></tr>
             <tr><td>Gruppo AP</td><td>Il modello del programma per un AP fisico, di solito con più BSSID.</td></tr>
+            <tr><td>Memoria AP</td><td>File persistente in cui vengono salvati alias, ruoli, metadata, override canale analisi e posizioni compatibili per rilievi futuri.</td></tr>
             <tr><td>BSSID</td><td>Il MAC radio visto dalle scansioni Wi-Fi.</td></tr>
             <tr><td>SSID</td><td>Il nome della rete Wi-Fi. Uno stesso SSID può essere trasmesso da molti BSSID.</td></tr>
             <tr><td>SSID Rilevante</td><td>Una rete selezionata come importante per controlli qualità e analisi.</td></tr>
@@ -766,6 +780,8 @@ TRANSLATIONS = {
             <tr><td>Override Canale Analisi</td><td>Canale scelto dall'utente per mappe sensibili al canale su uno specifico gruppo AP e banda.</td></tr>
             <tr><td>Warning Setup</td><td>Problema di modello/deployment che non richiede necessariamente di rifare il punto.</td></tr>
             <tr><td>Finding Rescan Punto</td><td>Problema qualità che suggerisce di rifare la scansione del punto di misura.</td></tr>
+            <tr><td>Da Memoria</td><td>Stato Gruppo AP che indica dati applicati da Memoria AP e ancora da confermare o modificare.</td></tr>
+            <tr><td>Aggiornamento Memoria</td><td>Stato Gruppo AP che indica dati salvati in Memoria AP diversi dai dati manuali correnti.</td></tr>
             <tr><td>Interpolazione</td><td>Stima visuale fra punti misurati. Aiuta la leggibilità ma non sostituisce misure reali.</td></tr>
             <tr><td>Distanza Max</td><td>Limite di rendering che evita alle mappe continue di estendersi troppo lontano dall'evidenza misurata.</td></tr>
         </table>

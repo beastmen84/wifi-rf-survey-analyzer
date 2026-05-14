@@ -617,6 +617,7 @@ TRANSLATIONS = {
             <tr><td>Unstable Signal</td><td>Signal varied too much during repeated scans.</td><td>Check movement, transient RF changes or unstable AP behavior.</td></tr>
             <tr><td>Dominant AP Findings</td><td>The strongest AP does not match the physical model.</td><td>Open the Dominant AP map and verify AP positions or roaming behavior.</td></tr>
             <tr><td>AP Config Warnings</td><td>Observed bands/channels disagree with metadata.</td><td>Open AP metadata and decide whether metadata or deployment is wrong.</td></tr>
+            <tr><td>Memory Applied</td><td>AP data was reused from the persistent AP Memory file.</td><td>Open AP Groups, review the reused data and confirm it or edit it.</td></tr>
         </table>
         <h2>KPI meaning</h2>
         <table>
@@ -626,10 +627,13 @@ TRANSLATIONS = {
             <tr><td>Sparse Data</td><td>Points with too little repeated evidence for strong confidence.</td></tr>
             <tr><td>Dominant AP Findings</td><td>Roaming or AP-position observations worth reviewing, not automatically bad data.</td></tr>
             <tr><td>AP Config Warnings</td><td>Metadata/deployment mismatch such as unexpected channels.</td></tr>
+            <tr><td>Memory Applied</td><td>AP groups whose aliases, roles, metadata or position came from AP Memory and still need review.</td></tr>
             <tr><td>Channel Changes</td><td>APs whose observed channel sequence affects channel-sensitive analysis.</td></tr>
         </table>
         <h2>Detail dialogs</h2>
         <p>Use <b>Extra Details</b> when a card shows more than a simple OK state. The detail rows keep large surveys manageable: each affected point or AP group gets its own row and action buttons open the right map or editor.</p>
+        <h2>AP Memory review</h2>
+        <p>When a repeated survey sees known BSSIDs, the program can reuse saved AP aliases, roles, metadata, analysis-channel overrides and compatible floor-plan positions. Survey Quality keeps that visible as an AP Model finding until the AP Group data is confirmed or edited.</p>
         <div class="callout"><b>Important:</b> a setup warning does not mean the survey point is bad. It means the AP model, expected channel, or real deployment needs review.</div>
     """,
     "help_ap_groups_nav": "AP Groups",
@@ -666,6 +670,15 @@ TRANSLATIONS = {
         </table>
         <h2>Clean channel changes</h2>
         <p>If the same AP group/BSSID set moves cleanly from one channel to another during a survey, AP Group does not treat that as a BSSID conflict. Interference and AP Channels use the latest observed channel by default. Override only when you know the intended operational channel is different.</p>
+        <h2>AP Memory</h2>
+        <p>AP Memory is automatic. The program stores reviewed AP Group data in a persistent memory file and applies it to later surveys after normal BSSID grouping when known BSSIDs are seen again.</p>
+        <table>
+            <tr><th>State</th><th>Meaning</th><th>Action</th></tr>
+            <tr><td>From Memory</td><td>Alias, role, metadata, override or compatible map position was applied from AP Memory.</td><td>Review the row, then use Memory &gt; Confirm Selected or Confirm All From Memory.</td></tr>
+            <tr><td>Memory Update</td><td>The current manual AP data differs from newer saved AP Memory data.</td><td>Use Memory &gt; Update Selected From Memory when the saved data is more correct.</td></tr>
+            <tr><td>Saved</td><td>The AP Memory file contains reusable AP records.</td><td>The footer shows the memory status; Settings can open the folder or clear memory.</td></tr>
+        </table>
+        <p>Pressing <b>Save</b> in AP Group Manager writes the AP model and updates AP Memory. Closing the AP Group Manager with the window X behaves like Cancel and does not save pending AP Group changes.</p>
         <div class="callout warning"><b>Do not use overrides to hide bad data.</b> Use them when you know the operational channel is different from the latest observed survey state, for example after scheduled AP reboot behavior.</div>
     """,
     "help_live_maps_nav": "Live Maps",
@@ -754,6 +767,7 @@ TRANSLATIONS = {
         <table>
             <tr><th>Term</th><th>Meaning</th></tr>
             <tr><td>AP Group</td><td>The program's model of one physical AP, usually containing multiple BSSIDs.</td></tr>
+            <tr><td>AP Memory</td><td>A persistent file where reviewed AP aliases, roles, metadata, analysis-channel overrides and compatible positions are stored for future surveys.</td></tr>
             <tr><td>BSSID</td><td>The radio MAC address seen in Wi-Fi scans.</td></tr>
             <tr><td>SSID</td><td>The Wi-Fi network name. One SSID can be broadcast by many BSSIDs.</td></tr>
             <tr><td>Relevant SSID</td><td>A network selected as important for quality checks and analysis.</td></tr>
@@ -766,6 +780,8 @@ TRANSLATIONS = {
             <tr><td>Analysis Channel Override</td><td>User-selected channel used by channel-sensitive maps for a specific AP group and band.</td></tr>
             <tr><td>Setup Warning</td><td>A model/deployment issue that does not necessarily require rescanning the point.</td></tr>
             <tr><td>Point-Rescan Finding</td><td>A quality issue suggesting that the measurement point itself may need another scan.</td></tr>
+            <tr><td>From Memory</td><td>AP Group state showing that data was applied from AP Memory and still needs user confirmation or editing.</td></tr>
+            <tr><td>Memory Update</td><td>AP Group state showing that AP Memory contains different saved data for a manually edited group.</td></tr>
             <tr><td>Interpolation</td><td>A visual estimate between measured points. It helps readability but is not a replacement for real measurements.</td></tr>
             <tr><td>Max Distance</td><td>The rendering limit that prevents continuous maps from extending too far from measured evidence.</td></tr>
         </table>

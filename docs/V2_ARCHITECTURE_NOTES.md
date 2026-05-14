@@ -695,6 +695,9 @@ Implemented:
 - EN/IT translations and tests for section availability.
 - AP Memory clear/delete confirmations now use the same themed Qt dialog styling
   from both the start screen and the main workspace settings popup.
+- Help Center content now covers AP Memory states, confirm/update workflows,
+  settings access, and the fact that closing AP Group Manager with the window X
+  behaves like Cancel rather than Save.
 
 Remaining closeout:
 

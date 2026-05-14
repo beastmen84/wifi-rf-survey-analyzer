@@ -214,8 +214,12 @@ class SettingsMenuTests(unittest.TestCase):
             self.assertNotIn("middle-click.png", sections[1].body_html)
             self.assertIn("Decision gates", sections[0].body_html)
             self.assertIn("KPI meaning", sections[3].body_html)
+            self.assertIn("AP Memory review", sections[3].body_html)
             self.assertIn("What to review", sections[4].body_html)
+            self.assertIn("Memory &gt; Confirm Selected", sections[4].body_html)
+            self.assertIn("window X behaves like Cancel", sections[4].body_html)
             self.assertIn("Troubleshooting patterns", sections[7].body_html)
+            self.assertIn("From Memory", sections[8].body_html)
             self.assertIn("Analysis Channel Override", sections[8].body_html)
 
             html = build_help_html(window, help_palette(window), sections[0])
