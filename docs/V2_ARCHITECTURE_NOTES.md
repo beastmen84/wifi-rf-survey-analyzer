@@ -59,8 +59,11 @@ Current status:
   option-meaning and reading-limit guidance; the PDF Reports page now explains
   save-before-export behavior, output naming, full-map rendering, map-type page
   composition, diagnostic cards and pre-send checks with the same card/gate
-  structure; remaining closeout is user review of the Help pages in the running
-  app and a short EN/IT smoke pass;
+  structure; the Warnings page now separates point-rescan findings, AP
+  identity/position warnings, metadata/channel warnings, channel-change behavior
+  and troubleshooting/review order with card/gate guidance; remaining closeout
+  is user review of the Help pages in the running app and a short EN/IT smoke
+  pass;
 - the real-survey live PDF validation pass is complete for Coverage, AP
   Channels, Dominant AP and Interference; the current findings are accepted as
   real diagnostics for now rather than layout blockers;

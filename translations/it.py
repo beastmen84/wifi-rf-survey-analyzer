@@ -1002,25 +1002,42 @@ TRANSLATIONS = {
     "help_diagnostics_title": "Warning E Diagnostica",
     "help_diagnostics_subtitle": "I warning sono inviti a controllare ipotesi, non prova automatica che un punto sia sbagliato.",
     "help_diagnostics_body": """
+        <table class="callout-table"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Regola Revisione Warning</span><br>Un warning indica quale ipotesi va rivista. Prima distingui se il problema è evidenza del punto, identità/posizione AP, metadata AP, comportamento canale o normale comportamento RF.</td></tr></table>
         <h2>Categorie Warning</h2>
-        <table>
-            <tr><th>Finding</th><th>Ragionamento</th><th>Cosa Controllare</th></tr>
-            <tr><td>AP Dominante Inatteso</td><td>L'AP più forte non è coerente con posizione fisica o AP più vicino.</td><td>Verifica posizioni AP, alias, calibrazione scala e roaming reale.</td></tr>
-            <tr><td>Ambiguità Roaming</td><td>AP più forte e secondo AP sono vicini in dB.</td><td>Aspettati roaming client poco prevedibile in quella zona.</td></tr>
-            <tr><td>Canale Inatteso</td><td>Il canale osservato non coincide con i metadata AP.</td><td>Controlla configurazione AP o aggiorna i canali attesi.</td></tr>
-            <tr><td>Cambio Canale Pulito</td><td>Lo stesso AP ha cambiato canale nel tempo senza conflitto BSSID.</td><td>Accetta il default canale recente o imposta un override canale analisi.</td></tr>
-            <tr><td>Posizione AP Mancante</td><td>Un gruppo AP rilevante non ha marker fisico.</td><td>Posiziona l'AP per abilitare la diagnostica basata sulle distanze.</td></tr>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Finding Rescan Punto</b><br>SSID rilevanti mancanti, dati radi, bassa confidenza o segnale instabile indicano che l'evidenza del punto può essere debole.<br><span class="survey-card-use">Controlla:</span> focalizza il punto, ispeziona l'evidenza raw e rifai la scansione quando serve.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>AP Dominante Inatteso</b><br>L'AP più forte non è coerente con posizione fisica o AP più vicino.<br><span class="survey-card-use">Controlla:</span> posizioni AP, alias, calibrazione scala e roaming reale.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Ambiguità Roaming</b><br>AP più forte e secondo AP sono vicini in dB.<br><span class="survey-card-use">Controlla:</span> aspettati roaming client poco prevedibile in quella zona; non trattarlo automaticamente come dato survey sbagliato.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Canale O Banda Inattesi</b><br>Il canale o la banda osservata non coincide con i metadata AP.<br><span class="survey-card-use">Controlla:</span> configurazione controller, canali/bande attesi, evidenza banda/frequenza dello scanner e override canale.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Cambio Canale Pulito O Ambiguo</b><br>Lo stesso AP ha cambiato canale durante il rilievo. I cambi puliti usano il canale più recente; quelli ambigui mantengono i canali misurati salvo override.<br><span class="survey-card-use">Controlla:</span> metadata AP prima di fidarti di Canali AP o Interferenza.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Posizione AP Mancante</b><br>Un gruppo AP rilevante non ha marker fisico.<br><span class="survey-card-use">Controlla:</span> posiziona l'AP per abilitare la diagnostica Dominant AP basata sulle distanze.</td>
+            </tr>
         </table>
         <h2>Pattern Di Troubleshooting</h2>
-        <table>
-            <tr><th>Sintomo</th><th>Causa Probabile</th><th>Azione Successiva</th></tr>
-            <tr><td>Copertura troppo ottimistica lontano dai punti</td><td>L'interpolazione sta riempiendo spazio non misurato.</td><td>Abbassa distanza max o raccogli più punti.</td></tr>
-            <tr><td>Interferenza appare su un vecchio canale</td><td>AP cambiato canale durante il rilievo o override mancante/errato.</td><td>Controlla dettaglio cambio canale e override metadata AP.</td></tr>
-            <tr><td>AP Dominante lontano dal suo marker fisico</td><td>Posizione AP sbagliata, gruppo errato, roaming client o propagazione RF reale.</td><td>Apri dettaglio AP Dominante, verifica AP più vicino e alias gruppi.</td></tr>
-            <tr><td>Molti punti richiedono rescan</td><td>SSID rilevanti mancanti, segnale instabile o dati radi.</td><td>Focalizza i punti coinvolti e rifai scansione prima di interpretare mappe.</td></tr>
-            <tr><td>Canali inattesi su un AP</td><td>Metadata vecchio, configurazione AP cambiata o evidenza banda/canale ambigua.</td><td>Controlla metadata AP, config reale controller e dati banda/frequenza dello scanner.</td></tr>
+        <table class="gate-list">
+            <tr><td class="gate-row"><b>Copertura Troppo Ottimistica Lontano Dai Punti</b><br>Causa probabile: l'interpolazione sta riempiendo spazio non misurato. Azione successiva: abbassa distanza max o raccogli più punti prima di fidarti di quell'area.</td></tr>
+            <tr><td class="gate-row"><b>Interferenza Appare Su Un Vecchio Canale</b><br>Causa probabile: AP cambiato canale durante il rilievo, sequenza ambigua o override mancante/errato. Azione successiva: controlla dettaglio cambio canale e override metadata AP.</td></tr>
+            <tr><td class="gate-row"><b>AP Dominante Lontano Dal Suo Marker Fisico</b><br>Causa probabile: posizione AP sbagliata, gruppo AP errato, roaming client o propagazione RF reale. Azione successiva: apri dettaglio AP Dominante, verifica AP più vicino e alias gruppi.</td></tr>
+            <tr><td class="gate-row"><b>Molti Punti Richiedono Rescan</b><br>Causa probabile: SSID rilevanti mancanti, segnale instabile o dati radi. Azione successiva: focalizza i punti coinvolti e rifai scansione prima di interpretare mappe.</td></tr>
+            <tr><td class="gate-row"><b>Canali Inattesi Su Un AP</b><br>Causa probabile: metadata vecchio, configurazione AP cambiata o evidenza banda/canale ambigua. Azione successiva: controlla metadata AP, configurazione reale controller e dati banda/frequenza dello scanner.</td></tr>
         </table>
-        <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Ordine Di Revisione</span><br>Qualità punto prima, gruppi AP poi, metadata e posizioni dopo, interpretazione mappa per ultima.</td></tr></table>
+        <h2>Ordine Di Revisione</h2>
+        <table class="gate-list">
+            <tr><td class="gate-row"><b>1. Sistema Prima L'Evidenza Dei Punti</b><br>Reti mancanti, scansioni rade, bassa confidenza e segnale instabile possono influenzare ogni mappa. Rifai scansioni o aggiungi punti vicini prima di interpretare il comportamento RF.</td></tr>
+            <tr><td class="gate-row"><b>2. Sistema Identità E Posizione AP</b><br>Gruppi AP, alias, ruolo e posizione influenzano AP Dominante, Interferenza, Canali AP e diagnostica PDF.</td></tr>
+            <tr><td class="gate-row"><b>3. Sistema Metadata E Modello Canale</b><br>Canali/bande attesi e override canale analisi decidono se i warning setup sono problemi reali o comportamento previsto.</td></tr>
+            <tr><td class="gate-row"><b>4. Interpreta Le Mappe Per Ultime</b><br>Leggi copertura, canali, roaming e interferenza solo dopo che evidenza e modello AP sono abbastanza coerenti.</td></tr>
+        </table>
         <table class="callout-table"><tr><td class="callout-accent-danger"></td><td class="callout-content"><span class="callout-label">Non Silenziare I Warning Alla Cieca</span><br>Un warning che riflette comportamento reale del deployment è evidenza utile e dovrebbe restare visibile finché non lo capisci.</td></tr></table>
     """,
     "help_glossary_nav": "Glossario",

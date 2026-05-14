@@ -263,6 +263,9 @@ limits.
 The PDF Reports help page now explains export save behavior, output naming,
 full-map rendering, map-type page composition, diagnostic cards, and final
 review checks with the same card/gate structure.
+The Warnings help page now distinguishes point-rescan findings, AP model
+warnings, metadata/channel warnings, channel-change behavior, and map-reading
+troubleshooting with card/gate guidance.
 Help tables and callouts are rendered at full content width in the Qt Help
 Center with fixed accent columns, so highlighted blocks align consistently with
 the surrounding page.

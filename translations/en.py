@@ -1002,25 +1002,42 @@ TRANSLATIONS = {
     "help_diagnostics_title": "Warnings And Diagnostics",
     "help_diagnostics_subtitle": "Warnings are prompts to review assumptions, not automatic proof that a point is wrong.",
     "help_diagnostics_body": """
+        <table class="callout-table"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Warning Review Rule</span><br>A warning tells you which assumption deserves review. First decide whether the problem is point evidence, AP identity/position, AP metadata, channel behavior or normal RF behavior.</td></tr></table>
         <h2>Warning Categories</h2>
-        <table>
-            <tr><th>Finding</th><th>Reasoning</th><th>What To Check</th></tr>
-            <tr><td>Unexpected Dominant AP</td><td>The strongest AP is not coherent with physical AP position or nearest AP context.</td><td>Verify AP positions, aliases, scale calibration and real roaming behavior.</td></tr>
-            <tr><td>Roaming Ambiguity</td><td>The strongest and secondary AP are close in dB.</td><td>Expect clients to roam unpredictably around that point.</td></tr>
-            <tr><td>Unexpected Channel</td><td>Observed channel does not match AP metadata.</td><td>Check AP configuration or update expected channels.</td></tr>
-            <tr><td>Clean Channel Change</td><td>The same AP moved channel over time without BSSID conflict.</td><td>Accept latest-channel default or set an analysis-channel override.</td></tr>
-            <tr><td>Missing AP Position</td><td>A relevant AP group has no physical marker.</td><td>Place the AP to enable distance-based diagnostics.</td></tr>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Point Rescan Findings</b><br>Missing relevant SSIDs, sparse data, low confidence or unstable signal mean the point evidence may be weak.<br><span class="survey-card-use">Check:</span> focus the point, inspect raw evidence and rescan when needed.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Unexpected Dominant AP</b><br>The strongest AP is not coherent with physical AP position or nearest AP context.<br><span class="survey-card-use">Check:</span> AP positions, aliases, scale calibration and real roaming behavior.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Roaming Ambiguity</b><br>The strongest and secondary AP are close in dB.<br><span class="survey-card-use">Check:</span> expect clients to roam unpredictably around that point; do not treat this as automatically bad survey data.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Unexpected Channel Or Band</b><br>Observed channel or band does not match AP metadata.<br><span class="survey-card-use">Check:</span> controller configuration, expected channels/bands, scanner band/frequency evidence and channel overrides.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Clean Or Ambiguous Channel Change</b><br>The same AP moved channel during the survey. Clean changes use the latest channel; ambiguous changes preserve measured channels unless overridden.<br><span class="survey-card-use">Check:</span> AP metadata before trusting AP Channels or Interference.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Missing AP Position</b><br>A relevant AP group has no physical marker.<br><span class="survey-card-use">Check:</span> place the AP to enable distance-based Dominant AP diagnostics.</td>
+            </tr>
         </table>
         <h2>Troubleshooting Patterns</h2>
-        <table>
-            <tr><th>Symptom</th><th>Likely Cause</th><th>Next Action</th></tr>
-            <tr><td>Coverage looks too optimistic far from points</td><td>Interpolation is filling unmeasured space.</td><td>Lower max distance or collect more points.</td></tr>
-            <tr><td>Interference appears on an old channel</td><td>AP changed channel during survey or override is missing/wrong.</td><td>Check channel-change detail and AP metadata override.</td></tr>
-            <tr><td>Dominant AP is far from its physical marker</td><td>Wrong AP position, wrong group, client roaming behavior or real RF leakage.</td><td>Open Dominant AP detail, verify closest AP and group aliases.</td></tr>
-            <tr><td>Many points need rescan</td><td>Relevant SSIDs were missing, signal was unstable, or scans were sparse.</td><td>Focus affected points and rescan before interpreting maps.</td></tr>
-            <tr><td>Unexpected channels on one AP</td><td>Metadata is stale, AP config changed, or band/channel evidence is ambiguous.</td><td>Check AP metadata, real controller config and scanner band/frequency data.</td></tr>
+        <table class="gate-list">
+            <tr><td class="gate-row"><b>Coverage Looks Too Optimistic Far From Points</b><br>Likely cause: interpolation is filling unmeasured space. Next action: lower max distance or collect more points before trusting that area.</td></tr>
+            <tr><td class="gate-row"><b>Interference Appears On An Old Channel</b><br>Likely cause: the AP changed channel during the survey, the sequence is ambiguous, or an override is missing/wrong. Next action: check channel-change detail and AP metadata override.</td></tr>
+            <tr><td class="gate-row"><b>Dominant AP Is Far From Its Physical Marker</b><br>Likely cause: wrong AP position, wrong AP group, client roaming behavior or real RF leakage. Next action: open Dominant AP detail, verify closest AP and group aliases.</td></tr>
+            <tr><td class="gate-row"><b>Many Points Need Rescan</b><br>Likely cause: relevant SSIDs were missing, signal was unstable, or scans were sparse. Next action: focus affected points and rescan before interpreting maps.</td></tr>
+            <tr><td class="gate-row"><b>Unexpected Channels On One AP</b><br>Likely cause: metadata is stale, AP config changed, or band/channel evidence is ambiguous. Next action: check AP metadata, real controller config and scanner band/frequency data.</td></tr>
         </table>
-        <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Review Order</span><br>Point quality first, AP grouping second, metadata and positions third, map interpretation last.</td></tr></table>
+        <h2>Review Order</h2>
+        <table class="gate-list">
+            <tr><td class="gate-row"><b>1. Fix Point Evidence First</b><br>Missing networks, sparse scans, low confidence and unstable signal can affect every map. Rescan or add nearby points before interpreting RF behavior.</td></tr>
+            <tr><td class="gate-row"><b>2. Fix AP Identity And Position</b><br>AP grouping, alias, role and position issues affect Dominant AP, Interference, AP Channels and PDF diagnostics.</td></tr>
+            <tr><td class="gate-row"><b>3. Fix Metadata And Channel Model</b><br>Expected channels/bands and analysis-channel overrides decide whether setup warnings are real issues or planned behavior.</td></tr>
+            <tr><td class="gate-row"><b>4. Interpret Maps Last</b><br>Read coverage, channels, roaming and interference only after the evidence and AP model are coherent enough.</td></tr>
+        </table>
         <table class="callout-table"><tr><td class="callout-accent-danger"></td><td class="callout-content"><span class="callout-label">Do Not Suppress Warnings Blindly</span><br>A warning that reflects real deployment behavior is valuable evidence and should remain visible until you understand it.</td></tr></table>
     """,
     "help_glossary_nav": "Glossary",

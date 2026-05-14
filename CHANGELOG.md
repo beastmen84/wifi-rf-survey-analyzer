@@ -37,6 +37,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 - PDF Reports Help now uses card/gate sections for save-before-export behavior,
   output naming, full-map rendering, map-type page composition, diagnostic
   cards, and pre-send review checks.
+- Warnings Help now uses card/gate sections to distinguish point-rescan
+  findings, AP model warnings, metadata/channel warnings, channel-change
+  behavior, troubleshooting patterns, and review order.
 - Help Center tables and callouts now normalize to full content width in the Qt
   renderer, callout accent columns keep a fixed Qt-compatible width, and scanner
   backend labels are plain table text instead of badges.
