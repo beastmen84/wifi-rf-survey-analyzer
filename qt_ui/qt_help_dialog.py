@@ -263,6 +263,10 @@ def build_help_html(parent, palette, section):
         .callout.danger {{
             border-left-color: {palette["metric_danger"]};
         }}
+        .callout-label {{
+            color: {palette["title"]};
+            font-weight: 800;
+        }}
         b, strong {{
             color: {palette["metric_info"]};
             font-weight: 800;
@@ -282,6 +286,9 @@ def build_help_html(parent, palette, section):
             background: {palette["panel_alt"]};
             padding: {widget_px(parent, 12)}px;
             margin: {gap}px 0;
+        }}
+        .insight-card {{
+            border-left: {widget_px(parent, 5)}px solid {palette["metric_info"]};
         }}
         .pill {{
             display: inline-block;
@@ -310,6 +317,50 @@ def build_help_html(parent, palette, section):
             vertical-align: top;
             padding: {widget_px(parent, 8)}px;
             border: 1px solid {palette["border"]};
+        }}
+        .workflow-grid {{
+            border-collapse: separate;
+            border-spacing: {widget_px(parent, 10)}px;
+            margin: {widget_px(parent, 7)}px -{widget_px(parent, 10)}px {gap}px -{widget_px(parent, 10)}px;
+        }}
+        .workflow-grid td.workflow-card {{
+            width: 50%;
+            border: 1px solid {palette["badge_border"]};
+            border-left: {widget_px(parent, 5)}px solid {palette["metric_info"]};
+            border-radius: {radius}px;
+            background: {palette["panel_alt"]};
+            padding: {widget_px(parent, 12)}px;
+        }}
+        .step-label {{
+            color: {palette["metric_info"]};
+            font-size: {widget_font(parent, 9.5):.2f}pt;
+            font-weight: 800;
+        }}
+        .step-title {{
+            color: {palette["title"]};
+            font-size: {widget_font(parent, 12.5):.2f}pt;
+            font-weight: 800;
+            margin-top: {widget_px(parent, 2)}px;
+            margin-bottom: {widget_px(parent, 4)}px;
+        }}
+        .step-gate {{
+            border-top: 1px solid {palette["border"]};
+            color: {palette["text"]};
+            margin-top: {widget_px(parent, 7)}px;
+            padding-top: {widget_px(parent, 7)}px;
+        }}
+        .gate-list {{
+            border: 1px solid {palette["border"]};
+            border-radius: {radius}px;
+            background: {palette["panel_alt"]};
+            margin: {widget_px(parent, 7)}px 0 {gap}px 0;
+            padding: {widget_px(parent, 5)}px {widget_px(parent, 10)}px;
+        }}
+        .gate-row {{
+            border-left: {widget_px(parent, 4)}px solid {palette["metric_info"]};
+            margin: {widget_px(parent, 6)}px 0;
+            padding: {widget_px(parent, 5)}px {widget_px(parent, 8)}px;
+            background: {palette["panel"]};
         }}
         .control-grid td {{
             width: 50%;

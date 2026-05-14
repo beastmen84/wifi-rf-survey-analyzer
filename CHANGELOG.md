@@ -10,6 +10,8 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 
 - Targeted Help Center review/polish, office validation fixes, and small
   release-readiness adjustments.
+- Recommended Workflow help page now uses a visual step-card layout, clearer
+  decision-gate rows, and AP Memory context in the AP modeling phase.
 - Help Center now documents AP Memory review states, confirm/update workflows,
   settings access, and AP Group Manager save behavior.
 - Possible future AP Memory management view only if larger repeat-survey usage

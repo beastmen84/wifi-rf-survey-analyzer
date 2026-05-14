@@ -45,8 +45,9 @@ Current status:
   known AP Group, live-map, PDF, quality-dashboard or core survey blocker is
   open;
 - Help content and structure have an expanded V2 Help Center implementation;
-  the remaining closeout is user review, visual-density polish and a short
-  EN/IT smoke pass;
+  the Recommended Workflow page has received the first visual-density polish
+  pass with step cards and decision-gate rows; remaining closeout is continued
+  user review of the other pages and a short EN/IT smoke pass;
 - the real-survey live PDF validation pass is complete for Coverage, AP
   Channels, Dominant AP and Interference; the current findings are accepted as
   real diagnostics for now rather than layout blockers;
@@ -698,6 +699,8 @@ Implemented:
 - Help Center content now covers AP Memory states, confirm/update workflows,
   settings access, and the fact that closing AP Group Manager with the window X
   behaves like Cancel rather than Save.
+- The Recommended Workflow overview page now uses visual step cards and
+  compact decision-gate rows instead of a dense operational table.
 
 Remaining closeout:
 
