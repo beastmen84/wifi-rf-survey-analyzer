@@ -29,8 +29,9 @@ Current status:
   work remains Help/validation/polish; do not regenerate exe/ZIP for every
   commit, only when cutting an intentional release candidate;
 - `README.md` is public-facing repo documentation and should not expose internal
-  release cadence details; keep internal planning here and in
-  `docs/AI_CHAT_HISTORY.md`, with public release notes in `CHANGELOG.md`;
+  release cadence details; keep internal planning here and in the local ignored
+  `.private/AI_CHAT_HISTORY.md` handoff, with public release notes in
+  `CHANGELOG.md`;
 - public README wording should avoid internal-only labels where possible:
   describe the user-facing survey format/workflow, avoid AI handoff references,
   avoid local-only test baselines, and prefer public roadmap wording over

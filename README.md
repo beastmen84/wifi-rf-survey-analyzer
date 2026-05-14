@@ -235,7 +235,7 @@ survey/                 survey CSV and raw sidecar persistence
 translations/           language dictionaries and i18n helpers
 wifi/                   scanner backends, band helpers, signal conversion
 tests/                  unit and UI-level regression tests
-docs/                   architecture notes and release documentation
+docs/                   architecture and design notes
 ```
 
 ## Installation
