@@ -189,6 +189,131 @@ class ApGroupTests(unittest.TestCase):
         self.assertEqual(ambiguous_changes[0]["status"], AP_CHANNEL_CHANGE_AMBIGUOUS)
 
 
+class ApMemoryTests(unittest.TestCase):
+    def with_isolated_memory(self):
+        temp_dir = tempfile.TemporaryDirectory()
+        previous = os.environ.get("WIFI_HEATMAP_AP_MEMORY_FILE")
+        os.environ["WIFI_HEATMAP_AP_MEMORY_FILE"] = os.path.join(temp_dir.name, "ap_memory.memory")
+        ensure_ap_memory_file()
+        return temp_dir, previous
+
+    def restore_memory_env(self, previous):
+        if previous is None:
+            os.environ.pop("WIFI_HEATMAP_AP_MEMORY_FILE", None)
+        else:
+            os.environ["WIFI_HEATMAP_AP_MEMORY_FILE"] = previous
+
+    def test_ap_memory_applies_confirmable_metadata_by_bssid(self):
+        temp_dir, previous = self.with_isolated_memory()
+        try:
+            bssid = "70:4f:57:aa:bb:10"
+            known_group = build_manual_ap_group(
+                "office-ap",
+                [bssid],
+                alias="Office AP",
+                role=AP_ROLE_EXTERNAL,
+                metadata={"expected_channels": "36", "vendor": "Acme"},
+            )
+            self.assertTrue(update_ap_memory_from_groups(
+                [known_group],
+                [build_row("old", "MAIN", bssid, -50, 36, band="5")],
+            ))
+
+            rows = [build_row("new", "MAIN", bssid, -52, 36, band="5")]
+            groups, applied_count = apply_ap_memory_to_groups(build_default_manual_groups(rows), rows)
+
+            self.assertEqual(applied_count, 1)
+            self.assertEqual(groups[0]["alias"], "Office AP")
+            self.assertEqual(groups[0]["role"], AP_ROLE_EXTERNAL)
+            self.assertEqual(groups[0]["metadata"]["expected_channels"], "36")
+            self.assertEqual(groups[0]["metadata"]["vendor"], "Acme")
+            self.assertTrue(groups[0][AP_MEMORY_APPLIED_KEY])
+            self.assertEqual(count_memory_applied_groups(groups), 1)
+        finally:
+            self.restore_memory_env(previous)
+            temp_dir.cleanup()
+
+    def test_ap_memory_applies_positions_only_for_matching_map(self):
+        temp_dir, previous = self.with_isolated_memory()
+        try:
+            bssid = "70:4f:57:aa:bb:10"
+            map_file = os.path.join(temp_dir.name, "office.png")
+            other_map_file = os.path.join(temp_dir.name, "other.png")
+            Path(map_file).write_bytes(b"same-map")
+            Path(other_map_file).write_bytes(b"different-map")
+            known_group = build_manual_ap_group(
+                "office-ap",
+                [bssid],
+                position={"x": 120, "y": 240},
+            )
+            update_ap_memory_from_groups([known_group], [build_row("old", "MAIN", bssid, -50, 36)], map_file)
+
+            rows = [build_row("new", "MAIN", bssid, -50, 36)]
+            matching_groups, applied_count = apply_ap_memory_to_groups(
+                build_default_manual_groups(rows),
+                rows,
+                map_file,
+            )
+            mismatched_groups, mismatched_count = apply_ap_memory_to_groups(
+                build_default_manual_groups(rows),
+                rows,
+                other_map_file,
+            )
+
+            self.assertEqual(applied_count, 1)
+            self.assertEqual(matching_groups[0]["position"], {"x": 120, "y": 240})
+            self.assertTrue(matching_groups[0][AP_MEMORY_APPLIED_KEY])
+            self.assertEqual(mismatched_count, 0)
+            self.assertNotIn("position", mismatched_groups[0])
+            self.assertNotIn(AP_MEMORY_APPLIED_KEY, mismatched_groups[0])
+        finally:
+            self.restore_memory_env(previous)
+            temp_dir.cleanup()
+
+    def test_survey_session_applies_memory_after_new_points(self):
+        temp_dir, previous = self.with_isolated_memory()
+        try:
+            bssid = "70:4f:57:aa:bb:10"
+            update_ap_memory_from_groups(
+                [
+                    build_manual_ap_group(
+                        "office-ap",
+                        [bssid],
+                        alias="Office AP",
+                        metadata={"expected_bands": "5"},
+                    )
+                ],
+                [build_row("old", "MAIN", bssid, -50, 36, band="5")],
+            )
+
+            session = SurveySession()
+            session.add_points(
+                10,
+                20,
+                [
+                    {
+                        "ssid": "MAIN",
+                        "bssid": bssid,
+                        "signal_percent": 80,
+                        "signal_dbm": -50,
+                        "channel": 36,
+                        "radio": "802.11ax",
+                        "band": "5",
+                    }
+                ],
+                relevant_ssids={"MAIN"},
+            )
+
+            groups = session.get_ap_groups()
+            self.assertEqual(len(groups), 1)
+            self.assertEqual(groups[0]["alias"], "Office AP")
+            self.assertEqual(groups[0]["metadata"]["expected_bands"], "5")
+            self.assertTrue(groups[0][AP_MEMORY_APPLIED_KEY])
+        finally:
+            self.restore_memory_env(previous)
+            temp_dir.cleanup()
+
+
 class InterferenceTests(unittest.TestCase):
     def test_interference_ignores_same_physical_ap_group(self):
         serving_bssid = "70:4f:57:aa:bb:10"

@@ -7,6 +7,9 @@ import pandas as pd
 from wifi.band import get_row_band, normalize_band
 
 AP_GROUPS_METADATA_KEY = "ap_groups"
+AP_MEMORY_APPLIED_KEY = "memory_applied"
+AP_MEMORY_APPLIED_AT_KEY = "memory_applied_at"
+AP_MEMORY_MATCH_BSSIDS_KEY = "memory_match_bssids"
 AP_METADATA_FIELDS = (
     "vendor",
     "model",
@@ -191,6 +194,9 @@ def build_manual_ap_group(
     position=None,
     role=AP_ROLE_INTERNAL,
     metadata=None,
+    memory_applied=False,
+    memory_applied_at="",
+    memory_match_bssids=None,
 ):
     clean_bssids = sorted({
         normalize_bssid(bssid)
@@ -215,6 +221,19 @@ def build_manual_ap_group(
     clean_metadata = normalize_ap_metadata(metadata)
     if clean_metadata:
         group["metadata"] = clean_metadata
+
+    if memory_applied:
+        group[AP_MEMORY_APPLIED_KEY] = True
+        applied_at = str(memory_applied_at or "").strip()
+        if applied_at:
+            group[AP_MEMORY_APPLIED_AT_KEY] = applied_at
+        match_bssids = sorted({
+            normalize_bssid(bssid)
+            for bssid in (memory_match_bssids or [])
+            if normalize_bssid(bssid)
+        })
+        if match_bssids:
+            group[AP_MEMORY_MATCH_BSSIDS_KEY] = match_bssids
 
     return group
 
@@ -274,6 +293,9 @@ def merge_new_bssids_into_manual_groups(manual_groups, rows):
             position=group.get("position"),
             role=group.get("role", AP_ROLE_INTERNAL),
             metadata=group.get("metadata"),
+            memory_applied=group.get(AP_MEMORY_APPLIED_KEY),
+            memory_applied_at=group.get(AP_MEMORY_APPLIED_AT_KEY, ""),
+            memory_match_bssids=group.get(AP_MEMORY_MATCH_BSSIDS_KEY, []),
         )
         for group in manual_groups
     ]

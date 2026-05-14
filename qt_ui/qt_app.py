@@ -46,6 +46,7 @@ from app_core.settings import (
 )
 from app_core.constants import HEATMAP_MAX_DISTANCE_PX, HEATMAP_SMOOTHING_SIGMA
 from app_core.version import APP_VERSION_LABEL, format_versioned_title
+from ap.memory import ensure_ap_memory_file
 from qt_ui.qt_ap_workflow import ApWorkflowMixin
 from qt_ui.qt_floorplan import FloorplanView
 from qt_ui.qt_floorplan_workflow import FloorplanWorkflowMixin
@@ -250,6 +251,7 @@ class WifiHeatmapQtApp(
         self.live_distance_last_px_per_meter = None
         self.restart_requested = False
 
+        ensure_ap_memory_file()
         self.setWindowTitle(format_versioned_title(self.tr("app_title")))
         self.resize(self.spx(1400), self.spx(900))
 

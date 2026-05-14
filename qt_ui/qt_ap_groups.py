@@ -37,6 +37,7 @@ from ap.metadata import (
 )
 from ap.groups import (
     AP_ANALYSIS_CHANNEL_OVERRIDE_FIELDS,
+    AP_MEMORY_APPLIED_KEY,
     AP_ROLE_CHOICES,
     AP_ROLE_INTERNAL,
     build_default_manual_groups,
@@ -50,6 +51,7 @@ from ap.groups import (
     normalize_ap_role,
     normalize_bssid,
 )
+from ap.memory import clear_group_memory_flag, group_has_memory_flag
 from qt_ui.qt_theme import QT_THEMES, build_scrollbar_stylesheet
 from qt_ui.scaling import widget_font, widget_px
 from wifi.band import get_row_band
@@ -156,6 +158,8 @@ class APGroupManagerDialog(QDialog):
         return make_dialog_label(self.tr(key))
 
     def build_state(self):
+        if hasattr(self.session, "refresh_ap_groups_from_rows"):
+            self.session.refresh_ap_groups_from_rows(update_memory=False)
         detected_groups = build_detected_ap_groups(self.session.rows, self.app.channel_sort_key)
         self.aliases = self.session.get_ap_aliases()
         saved_groups = self.session.get_ap_groups()
@@ -220,6 +224,7 @@ class APGroupManagerDialog(QDialog):
         self.state_filter_combo.addItem(self.tr("ap_group_filter_state_all"), "all")
         self.state_filter_combo.addItem(self.tr("ap_group_state_manual"), "manual")
         self.state_filter_combo.addItem(self.tr("ap_group_state_auto"), "auto")
+        self.state_filter_combo.addItem(self.tr("ap_group_state_memory"), "memory")
         self.state_filter_combo.currentIndexChanged.connect(self.render_rows)
         add_filter_pair(filter_row, self, self.tr("ap_group_filter_state"), self.state_filter_combo, 132)
 
@@ -270,6 +275,7 @@ class APGroupManagerDialog(QDialog):
         self.reset_button = QPushButton(self.tr("ap_groups_reset_auto"))
         self.bssid_management_button = QPushButton(self.tr("ap_group_bssid_management"))
         self.conflict_button = QPushButton(self.tr("ap_group_conflict_details"))
+        self.confirm_memory_button = QPushButton(self.tr("ap_group_confirm_memory"))
         self.alias_button = QPushButton(self.tr("ap_group_set_alias"))
         self.delete_alias_button = QPushButton(self.tr("ap_group_delete_alias"))
         self.role_button = QPushButton(self.tr("ap_group_set_role"))
@@ -281,6 +287,7 @@ class APGroupManagerDialog(QDialog):
         self.reset_button.clicked.connect(self.reset_groups_to_auto)
         self.bssid_management_button.clicked.connect(self.open_bssid_group_dialog_for_selected_group)
         self.conflict_button.clicked.connect(self.open_conflict_dialog_for_selected_group)
+        self.confirm_memory_button.clicked.connect(self.confirm_memory_for_selected_group)
         self.alias_button.clicked.connect(self.prompt_alias_for_selected_group)
         self.delete_alias_button.clicked.connect(self.delete_alias_for_selected_group)
         self.role_button.clicked.connect(self.prompt_role_for_selected_group)
@@ -293,6 +300,7 @@ class APGroupManagerDialog(QDialog):
             self.reset_button,
             self.bssid_management_button,
             self.conflict_button,
+            self.confirm_memory_button,
             self.alias_button,
             self.delete_alias_button,
             self.role_button,
@@ -481,7 +489,7 @@ class APGroupManagerDialog(QDialog):
 
         self.table.resizeColumnsToContents()
         fixed_limits = {
-            0: (34, 42),
+            0: (42, 56),
             1: (150, 240),
             3: (84, 110),
             4: (86, 112),
@@ -579,6 +587,7 @@ class APGroupManagerDialog(QDialog):
                     item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 if column == 0:
                     item.setData(Qt.ItemDataRole.UserRole, group["group_id"])
+                    item.setToolTip(self.format_group_status_tooltip(group))
                 self.table.setItem(row, column, item)
             if group["group_id"] == selected_group_id:
                 self.table.selectRow(row)
@@ -593,7 +602,7 @@ class APGroupManagerDialog(QDialog):
         position = group.get("position") or {}
         position_label = f"{position.get('x')}, {position.get('y')}" if position else "-"
         return (
-            "!" if self.group_conflicts_by_id.get(group["group_id"]) else "",
+            self.format_group_status(group),
             format_multiline_list(group["display_groups"]),
             group.get("alias", ""),
             self.tr(f"ap_group_role_{role}"),
@@ -602,8 +611,29 @@ class APGroupManagerDialog(QDialog):
             format_multiline_list(group["bssids"]),
             format_multiline_list(group["ssids"]),
             ", ".join(group["channels"]),
-            self.tr("ap_group_state_manual") if group.get("locked") else self.tr("ap_group_state_auto"),
+            self.format_group_management_state(group),
         )
+
+    def format_group_management_state(self, group):
+        if group_has_memory_flag(group):
+            return self.tr("ap_group_state_memory")
+        return self.tr("ap_group_state_manual") if group.get("locked") else self.tr("ap_group_state_auto")
+
+    def format_group_status(self, group):
+        status = []
+        if self.group_conflicts_by_id.get(group["group_id"]):
+            status.append("!")
+        if group_has_memory_flag(group):
+            status.append("M")
+        return " ".join(status)
+
+    def format_group_status_tooltip(self, group):
+        lines = []
+        if self.group_conflicts_by_id.get(group["group_id"]):
+            lines.append(self.tr("ap_group_status_warning_tooltip"))
+        if group_has_memory_flag(group):
+            lines.append(self.tr("ap_group_status_memory_tooltip"))
+        return "\n".join(lines)
 
     def row_height_for_values(self, values):
         multiline_columns = (1, 6, 7)
@@ -632,6 +662,7 @@ class APGroupManagerDialog(QDialog):
             " ".join(group["bssids"]),
             " ".join(group["ssids"]),
             " ".join(group["channels"]),
+            self.tr("ap_group_state_memory") if group_has_memory_flag(group) else "",
         ]).lower()
         return query in haystack
 
@@ -651,6 +682,8 @@ class APGroupManagerDialog(QDialog):
         if state_filter == "manual" and not group.get("locked"):
             return False
         if state_filter == "auto" and group.get("locked"):
+            return False
+        if state_filter == "memory" and not group_has_memory_flag(group):
             return False
         return True
 
@@ -698,6 +731,8 @@ class APGroupManagerDialog(QDialog):
         if column == "channels":
             return [self.app.channel_sort_key(channel) for channel in group["channels"]]
         if column == "locked":
+            if group_has_memory_flag(group):
+                return 0
             return 0 if group.get("locked") else 1
         return " ".join(group["display_groups"]).lower()
 
@@ -741,10 +776,12 @@ class APGroupManagerDialog(QDialog):
         self.position_button.setEnabled(has_group)
         self.delete_alias_button.setEnabled(bool(group and group.get("alias")))
         self.conflict_button.setEnabled(bool(group and self.group_conflicts_by_id.get(group["group_id"])))
+        self.confirm_memory_button.setEnabled(bool(group and group_has_memory_flag(group)))
 
     def set_alias(self, group, value):
         group["alias"] = value.strip()
         group["locked"] = True
+        clear_group_memory_flag(group)
         self.render_rows()
 
     def prompt_alias_for_selected_group(self):
@@ -796,6 +833,7 @@ class APGroupManagerDialog(QDialog):
         role = AP_ROLE_CHOICES[role_labels.index(label)]
         group["role"] = role
         group["locked"] = True
+        clear_group_memory_flag(group)
         self.refresh_all_group_details()
         self.render_rows()
 
@@ -809,6 +847,17 @@ class APGroupManagerDialog(QDialog):
             return
 
         group["metadata"] = dialog.metadata_values()
+        group["locked"] = True
+        clear_group_memory_flag(group)
+        self.refresh_all_group_details()
+        self.render_rows()
+
+    def confirm_memory_for_selected_group(self):
+        group = self.require_selected_group()
+        if group is None:
+            return
+
+        clear_group_memory_flag(group)
         group["locked"] = True
         self.refresh_all_group_details()
         self.render_rows()
@@ -842,6 +891,7 @@ class APGroupManagerDialog(QDialog):
                 "role": normalize_ap_role(group.get("role")),
                 "position": group.get("position"),
                 "metadata": normalize_ap_metadata(group.get("metadata")),
+                AP_MEMORY_APPLIED_KEY: group.get(AP_MEMORY_APPLIED_KEY),
             }
             for group in self.groups
         }
@@ -854,6 +904,8 @@ class APGroupManagerDialog(QDialog):
                 group["position"] = saved_state["position"]
             if saved_state.get("metadata"):
                 group["metadata"] = saved_state["metadata"]
+            if saved_state.get(AP_MEMORY_APPLIED_KEY):
+                group[AP_MEMORY_APPLIED_KEY] = True
             group["locked"] = False
 
         self.refresh_all_group_details()
@@ -880,6 +932,10 @@ class APGroupManagerDialog(QDialog):
             return
 
         selected_set = set(selected_bssids)
+        previous_bssids_by_group = {
+            other_group["group_id"]: set(other_group.get("bssids", []))
+            for other_group in self.groups
+        }
         for other_group in self.groups:
             if other_group["group_id"] == group_id:
                 other_group["bssids"] = selected_bssids
@@ -891,6 +947,7 @@ class APGroupManagerDialog(QDialog):
 
         self.groups = [item for item in self.groups if item.get("bssids")]
         self.groups = merge_new_bssids_into_manual_groups(self.groups, self.session.rows)
+        self.clear_memory_flags_for_changed_membership(previous_bssids_by_group)
         self.refresh_all_group_details()
         self.render_rows()
 
@@ -914,8 +971,13 @@ class APGroupManagerDialog(QDialog):
             {str(group.get("group_id", "")) for group in self.groups if str(group.get("group_id", ""))},
         )
         role = normalize_ap_role(source_group.get("role")) if source_group else AP_ROLE_INTERNAL
+        previous_bssids_by_group = {
+            group["group_id"]: set(group.get("bssids", []))
+            for group in self.groups
+        }
         self.remove_bssids_from_groups(selected_bssids)
         self.groups.append(build_manual_ap_group(new_group_id, selected_bssids, locked=True, role=role))
+        self.clear_memory_flags_for_changed_membership(previous_bssids_by_group)
         self.finish_group_membership_change(new_group_id)
         return True
 
@@ -925,9 +987,14 @@ class APGroupManagerDialog(QDialog):
         if target_group is None or not selected_bssids:
             return False
 
+        previous_bssids_by_group = {
+            group["group_id"]: set(group.get("bssids", []))
+            for group in self.groups
+        }
         self.remove_bssids_from_groups(selected_bssids)
         target_group["bssids"] = sorted(set(target_group.get("bssids", [])) | set(selected_bssids))
         target_group["locked"] = True
+        self.clear_memory_flags_for_changed_membership(previous_bssids_by_group)
         self.finish_group_membership_change(target_group_id)
         return True
 
@@ -982,6 +1049,14 @@ class APGroupManagerDialog(QDialog):
             group["bssids"] = [
                 bssid for bssid in group.get("bssids", []) if normalize_bssid(bssid) not in bssid_set
             ]
+
+    def clear_memory_flags_for_changed_membership(self, previous_bssids_by_group):
+        for group in self.groups:
+            group_id = group.get("group_id")
+            previous_bssids = previous_bssids_by_group.get(group_id)
+            current_bssids = set(group.get("bssids", []))
+            if previous_bssids is None or previous_bssids != current_bssids:
+                clear_group_memory_flag(group)
 
     def finish_group_membership_change(self, selected_group_id=None):
         self.groups = [item for item in self.groups if item.get("bssids")]

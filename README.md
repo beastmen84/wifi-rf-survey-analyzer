@@ -31,6 +31,8 @@ field testing are complete.
 - Builds AP groups from BSSIDs and lets the user refine them manually.
 - Stores AP aliases, roles, metadata, expected bands/channels, analysis channel
   overrides, and physical AP positions.
+- Reuses known AP metadata through a persistent AP Memory file and flags reused
+  data for review before it is treated as confirmed.
 - Reviews survey quality before maps are trusted.
 - Renders live Coverage, Interference, AP Channels, and Dominant AP maps.
 - Exports the current live map to PDF, including issue-report pages where the
@@ -133,6 +135,13 @@ conflicts. Channel-sensitive maps use the latest observed channel by default,
 while AP metadata can force a known-good analysis channel when the survey-time
 channel change does not represent the intended operational model.
 
+The app also keeps a persistent AP Memory file in the application data folder.
+When a later survey sees known BSSIDs, the normal AP grouping runs first and
+then remembered aliases, roles, metadata, analysis-channel overrides, and
+compatible floor-plan positions can be applied automatically. Reused AP data is
+marked as "From Memory" in AP Group Manager until the user confirms it or edits
+the AP data.
+
 ## Survey Quality
 
 The Survey Quality Dashboard flags point-level and project-level issues before
@@ -145,6 +154,7 @@ Current checks include:
 - unstable signal samples;
 - sparse measurement data;
 - AP metadata inconsistencies;
+- AP metadata applied from memory and still awaiting confirmation;
 - AP group conflicts;
 - missing AP positions;
 - dominant AP / physical-position anomalies;
@@ -331,11 +341,10 @@ Before `v1.0.0`:
 - run broader real-world validation on operational survey data;
 - fix only concrete issues found during that review/test cycle.
 
-Potential near-term feature:
+Near-term polish:
 
-- AP Profile Library: export/import AP Group metadata between surveys, apply
-  trusted BSSID matches automatically where safe, flag imported metadata for
-  review, and avoid overwriting user-edited values without confirmation.
+- validate AP Memory behavior on larger repeat surveys and add a dedicated
+  memory-management view only if real usage shows it is needed.
 
 Future expansion candidates:
 

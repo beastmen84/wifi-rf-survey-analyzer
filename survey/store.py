@@ -19,10 +19,17 @@ from app_core.constants import (
 )
 from ap.groups import (
     AP_GROUPS_METADATA_KEY,
+    AP_MEMORY_APPLIED_AT_KEY,
+    AP_MEMORY_APPLIED_KEY,
+    AP_MEMORY_MATCH_BSSIDS_KEY,
+    build_default_manual_groups,
+    merge_new_bssids_into_manual_groups,
+    normalize_bssid,
     normalize_ap_metadata,
     normalize_ap_position,
     normalize_ap_role,
 )
+from ap.memory import apply_ap_memory_to_groups, update_ap_memory_from_groups
 from wifi.band import get_row_band
 
 
@@ -43,6 +50,7 @@ class SurveySession:
             self.metadata.update(read_survey_metadata(csv_file))
             self.rows = read_survey_rows(csv_file)
             self.raw_scan_rows = read_raw_scan_rows(csv_file)
+            self.refresh_ap_groups_from_rows(update_memory=False)
 
     @property
     def display_name(self):
@@ -96,6 +104,7 @@ class SurveySession:
         for net in raw_networks or networks:
             self.add_raw_scan_rows(point_id, timestamp, x, y, net)
 
+        self.refresh_ap_groups_from_rows(update_memory=True)
         self.dirty = True
         return timestamp
 
@@ -227,7 +236,7 @@ class SurveySession:
 
         return groups if isinstance(groups, list) else []
 
-    def set_ap_groups(self, groups):
+    def set_ap_groups(self, groups, update_memory=True):
         clean_groups = []
         for group in groups:
             if not isinstance(group, dict):
@@ -257,12 +266,45 @@ class SurveySession:
             if metadata:
                 clean_group["metadata"] = metadata
 
+            if group.get(AP_MEMORY_APPLIED_KEY):
+                clean_group[AP_MEMORY_APPLIED_KEY] = True
+                applied_at = str(group.get(AP_MEMORY_APPLIED_AT_KEY, "")).strip()
+                if applied_at:
+                    clean_group[AP_MEMORY_APPLIED_AT_KEY] = applied_at
+                match_bssids = sorted({
+                    normalize_bssid(bssid)
+                    for bssid in group.get(AP_MEMORY_MATCH_BSSIDS_KEY, [])
+                    if normalize_bssid(bssid)
+                })
+                if match_bssids:
+                    clean_group[AP_MEMORY_MATCH_BSSIDS_KEY] = match_bssids
+
             clean_groups.append(clean_group)
 
         serialized_groups = json.dumps(clean_groups, ensure_ascii=False, sort_keys=True)
         changed = self.metadata.get(AP_GROUPS_METADATA_KEY) != serialized_groups
         self.update_metadata({AP_GROUPS_METADATA_KEY: serialized_groups})
+        if changed and update_memory:
+            update_ap_memory_from_groups(clean_groups, self.rows, self.metadata.get("map_file", ""))
         return changed
+
+    def refresh_ap_groups_from_rows(self, update_memory=True):
+        if not self.rows:
+            return False
+
+        saved_groups = self.get_ap_groups()
+        groups = (
+            merge_new_bssids_into_manual_groups(saved_groups, self.rows)
+            if saved_groups
+            else build_default_manual_groups(self.rows)
+        )
+        groups, _applied_count = apply_ap_memory_to_groups(
+            groups,
+            self.rows,
+            self.metadata.get("map_file", ""),
+        )
+
+        return self.set_ap_groups(groups, update_memory=update_memory)
 
     def to_dataframe(self):
         import pandas as pd

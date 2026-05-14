@@ -19,6 +19,7 @@ from app_core.settings import get_last_survey_directory, save_last_survey_path
 from app_core.constants import RAW_DATA_FILE_METADATA_KEY, SURVEY_FIELDNAMES
 from translations.i18n import translate
 from ap.groups import (
+    AP_MEMORY_APPLIED_KEY,
     AP_ROLE_EXTERNAL,
     AP_ROLE_INTERNAL,
     AP_ROLE_INTERFERER,
@@ -33,6 +34,14 @@ from ap.groups import (
     resolve_ap_group_key,
     serialize_ap_group_map,
     serialize_ap_group_roles,
+)
+from ap.memory import (
+    apply_ap_memory_to_groups,
+    clear_group_memory_flag,
+    count_memory_applied_groups,
+    ensure_ap_memory_file,
+    load_ap_memory,
+    update_ap_memory_from_groups,
 )
 from ap.checks import (
     AP_CHANNEL_CHANGE_AMBIGUOUS,
@@ -159,6 +168,13 @@ from qt_ui.scaling import (
     scale_px,
     ui_scale_diagnostics,
 )
+
+TEST_AP_MEMORY_FILE = os.path.join(tempfile.gettempdir(), "wifi_heatmap_test_ap_memory.memory")
+os.environ.setdefault("WIFI_HEATMAP_AP_MEMORY_FILE", TEST_AP_MEMORY_FILE)
+try:
+    os.remove(TEST_AP_MEMORY_FILE)
+except OSError:
+    pass
 from wifi.scanner import (
     annotate_raw_scan_samples,
     merge_wifi_scans,

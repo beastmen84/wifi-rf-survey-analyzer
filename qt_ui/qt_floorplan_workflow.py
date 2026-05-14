@@ -66,6 +66,7 @@ class FloorplanWorkflowMixin:
 
         if save_metadata:
             self.session.update_metadata({"map_file": os.path.abspath(file_path)})
+            self.session.refresh_ap_groups_from_rows(update_memory=False)
 
         self.floorplan_view.set_points(self.session.get_point_summaries())
         self.floorplan_view.set_ap_groups(self.session.get_ap_groups())

@@ -59,6 +59,11 @@ Current status:
 - AP metadata can explicitly override the analysis channel per AP group/band,
   so Interference and AP Channels can use the channel the user knows is the
   right operational model after a clean or ambiguous survey-time channel change;
+- AP Memory has a first implementation: the app creates a persistent
+  `ap_memory.memory` file in the application data folder, matches remembered AP
+  data by known BSSID after normal AP grouping, applies missing aliases, roles,
+  metadata, analysis-channel overrides and compatible map positions, and flags
+  reused groups as `From Memory` until the user confirms or edits them;
 - the 2026-05-12 operational test survey is a useful baseline: all 25 points
   passed quality, all raw samples came from `lswifi`, relevant AP positions were
   complete, and the remaining findings are AP setup/anomaly diagnostics rather
@@ -217,6 +222,8 @@ Implemented:
 - BSSID management dialog filters by current/other/unassigned/selected/warning
   BSSIDs, band, channel and search text;
 - user-facing `Auto` / `Manual` management state;
+- user-facing `From Memory` management state, status marker and confirmation
+  action for AP groups whose metadata was applied from AP Memory;
 - per-band analysis-channel override in AP metadata for channel-sensitive maps.
   The override picker is constrained to channels actually observed for that AP
   group/band and is disabled for bands not observed on the group.
@@ -690,28 +697,28 @@ Monitoring:
 
 4. Keep AP Group, live PDF and Survey Quality in monitoring mode unless new
    real data exposes a concrete issue.
-5. Validate 6 GHz behavior with real 6E/7 hardware data when available.
-6. Tune performance only after larger real surveys show measurable lag.
+5. Validate AP Memory behavior on repeat surveys, especially stale metadata,
+   large AP sets, copied memory files and floor-plan position reuse.
+6. Validate 6 GHz behavior with real 6E/7 hardware data when available.
+7. Tune performance only after larger real surveys show measurable lag.
 
 Post-V2 expansion:
 
-7. Improve combined/generated reporting beyond individual live-map exports.
-8. Add an AP Profile Library as a `v0.9.1 beta` candidate. It should export and
-   import AP Group metadata between surveys, match known BSSIDs safely, apply
-   trusted metadata to new surveys, flag imported data for review, and avoid
-   overwriting user-edited fields without confirmation. AP positions should be
-   reused automatically only when the floor plan/scale context is compatible.
-9. Use AP metadata more deeply in diagnostics where the rule is clear.
-10. Refine the AP physical/radio/BSSID model only if real deployments require it.
-11. Add an AI Advisor next to each live map. It should analyze the measured
+8. Improve combined/generated reporting beyond individual live-map exports.
+9. Add a dedicated AP Memory management view only if real use needs explicit
+   review, cleanup or conflict resolution beyond the current automatic
+   apply/confirm flow.
+10. Use AP metadata more deeply in diagnostics where the rule is clear.
+11. Refine the AP physical/radio/BSSID model only if real deployments require it.
+12. Add an AI Advisor next to each live map. It should analyze the measured
     survey evidence and propose actionable RF changes, such as channel-width or
     channel adjustments to reduce interference. Recommendations must remain
     grounded in visible survey data, explain assumptions/confidence, and stay
     advisory rather than silently mutating AP metadata or map settings.
-12. Add a lightweight Floorplan Creator for technical RF floor maps. Scope
+13. Add a lightweight Floorplan Creator for technical RF floor maps. Scope
     should be scaled geometry, snap, wall thickness, simple shapes, doors and
     measurements; it should not become an interior-design tool.
-13. Add richer deployment/reporting outputs.
+14. Add richer deployment/reporting outputs.
 
 ## Final Vision
 

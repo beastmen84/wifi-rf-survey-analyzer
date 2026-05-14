@@ -36,6 +36,7 @@ from ap.groups import (
     normalize_ap_role,
     resolve_ap_group_key,
 )
+from ap.memory import count_memory_applied_groups
 from ap.metadata import build_ap_metadata_warnings, infer_band_from_channel, sort_bands
 from ap.positioning import (
     AP_POSITION_NO_SCALE,
@@ -280,6 +281,7 @@ class QualityDashboardDialog(QDialog):
                 "quality_dashboard_metric_group_ap",
                 [
                     ("quality_dashboard_metric_ap_diagnostic_points", summary["ap_diagnostic_points"], "warning"),
+                    ("quality_dashboard_metric_ap_memory_applied", summary["ap_memory_applied"], "info"),
                     ("quality_dashboard_metric_ap_missing_positions", summary["ap_missing_positions"], "warning"),
                     ("quality_dashboard_metric_ap_metadata_warnings", summary["ap_metadata_warnings"], "warning"),
                     ("quality_dashboard_metric_channel_changes", summary["channel_change_count"], channel_change_severity),
@@ -860,6 +862,8 @@ def get_effective_relevant_ssids(app):
 
 
 def get_effective_ap_groups(app):
+    if hasattr(app.session, "refresh_ap_groups_from_rows"):
+        app.session.refresh_ap_groups_from_rows(update_memory=False)
     saved_groups = app.session.get_ap_groups()
     if saved_groups:
         return merge_new_bssids_into_manual_groups(saved_groups, app.session.rows)
@@ -915,6 +919,7 @@ def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None, ap_chann
         "relevant_networks": relevant_networks,
         "ap_positions": f"{positioned_count}/{len(positioned_ap_groups)}" if positioned_ap_groups else "0/0",
         "test_aps": test_ap_count,
+        "ap_memory_applied": count_memory_applied_groups(visible_ap_groups),
         "ap_metadata_warnings": len(ap_metadata_warnings),
         "ap_metadata_warning_labels": format_ap_metadata_warning_labels(app, ap_metadata_warnings),
         "ap_metadata_warning_items": build_ap_metadata_warning_items(app, ap_metadata_warnings),
