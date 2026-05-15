@@ -100,6 +100,8 @@ POINT_TABLE_ROW_HEIGHT = 38
 SCANNER_DETAIL_DEFAULT_VISIBLE_CARDS = 4
 DETAIL_ROW_HEIGHT = 78
 DETAIL_FINDING_ROW_HEIGHT = 98
+DETAIL_MEMORY_ROW_HEIGHT = 112
+DETAIL_MULTILINE_ROW_HEIGHT = 128
 SCANNER_DETAIL_ROW_HEIGHT = 145
 DETAIL_DIALOG_MAX_HEIGHT = 720
 SCANNER_DETAIL_DIALOG_MAX_HEIGHT = 760
@@ -114,6 +116,11 @@ DETAIL_VISIBLE_CARD_LIMITS = {
 DETAIL_DIALOG_MAX_HEIGHTS = {
     "quality_dashboard_metric_scanner_details": SCANNER_DETAIL_DIALOG_MAX_HEIGHT,
     "quality_dashboard_metric_ap_missing_positions": 820,
+}
+DETAIL_ROW_HEIGHTS = {
+    "quality_dashboard_metric_ap_memory_applied": DETAIL_MEMORY_ROW_HEIGHT,
+    "quality_dashboard_metric_ap_metadata_warnings": DETAIL_MULTILINE_ROW_HEIGHT,
+    "quality_dashboard_metric_channel_changes": DETAIL_MULTILINE_ROW_HEIGHT,
 }
 
 
@@ -149,6 +156,9 @@ def recommendation_detail_visible_item_count(recommendation, items):
 def recommendation_detail_row_height(recommendation, items):
     if is_scanner_detail_recommendation(recommendation):
         return SCANNER_DETAIL_ROW_HEIGHT
+    metric_height = DETAIL_ROW_HEIGHTS.get(recommendation.get("metric_key"))
+    if metric_height:
+        return metric_height
     if any(item.get("finding") for item in items):
         return DETAIL_FINDING_ROW_HEIGHT
     return DETAIL_ROW_HEIGHT

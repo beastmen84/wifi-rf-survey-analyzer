@@ -831,7 +831,9 @@ Implemented:
 - Survey Quality AP-model Extra Details were visually tightened after the
   all-warning synthetic dataset review: AP Memory matches, AP metadata warnings
   and channel-change items now use structured multiline label/value text
-  instead of compact pipe-separated detail strings.
+  instead of compact pipe-separated detail strings. Their dialog row-height
+  estimates were adjusted at the same time so the existing whole-card fit logic
+  does not clip the taller cards or expose partial next cards.
 
 Remaining closeout:
 

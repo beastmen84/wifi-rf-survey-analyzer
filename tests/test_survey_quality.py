@@ -319,6 +319,18 @@ class QualityTests(unittest.TestCase):
             recommendation_detail_row_height(dominant_recommendation, items),
         )
         self.assertGreater(
+            recommendation_detail_row_height(metadata_recommendation, items),
+            recommendation_detail_row_height(missing_position_recommendation, items),
+        )
+        self.assertGreater(
+            recommendation_detail_row_height(channel_recommendation, items),
+            recommendation_detail_row_height(missing_position_recommendation, items),
+        )
+        self.assertGreater(
+            recommendation_detail_row_height(memory_recommendation, items),
+            recommendation_detail_row_height(missing_position_recommendation, items),
+        )
+        self.assertGreater(
             recommendation_detail_max_height(scanner_recommendation),
             recommendation_detail_max_height(dominant_recommendation),
         )
