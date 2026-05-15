@@ -19,6 +19,11 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   the remaining affected points available through the dialog scroll area; the
   scroll height is fitted to whole cards so the next card is not partially
   visible.
+- AP Model KPI cards now open their matching Extra Details dialogs for AP
+  Memory matches, APs without position, AP config warnings, channel changes,
+  and Dominant AP findings. Detail dialogs use metric-specific whole-card
+  limits: Scanner 4, Dominant/AP Config 5, Channel Changes/AP Memory 6, and
+  APs Without Position 8.
 
 ## v0.9.3-beta.2 - 2026-05-15
 

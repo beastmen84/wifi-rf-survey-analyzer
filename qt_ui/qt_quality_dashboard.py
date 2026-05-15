@@ -31,6 +31,9 @@ from ap.checks import (
     build_ap_channel_changes,
 )
 from ap.groups import (
+    AP_MEMORY_APPLIED_AT_KEY,
+    AP_MEMORY_APPLIED_KEY,
+    AP_MEMORY_MATCH_BSSIDS_KEY,
     AP_ROLE_TEST,
     build_default_manual_groups,
     build_bssid_to_manual_group_map,
@@ -100,6 +103,18 @@ DETAIL_FINDING_ROW_HEIGHT = 98
 SCANNER_DETAIL_ROW_HEIGHT = 145
 DETAIL_DIALOG_MAX_HEIGHT = 720
 SCANNER_DETAIL_DIALOG_MAX_HEIGHT = 760
+DETAIL_VISIBLE_CARD_LIMITS = {
+    "quality_dashboard_metric_scanner_details": SCANNER_DETAIL_DEFAULT_VISIBLE_CARDS,
+    "quality_dashboard_metric_ap_diagnostic_points": 5,
+    "quality_dashboard_metric_ap_metadata_warnings": 5,
+    "quality_dashboard_metric_channel_changes": 6,
+    "quality_dashboard_metric_ap_missing_positions": 8,
+    "quality_dashboard_metric_ap_memory_applied": 6,
+}
+DETAIL_DIALOG_MAX_HEIGHTS = {
+    "quality_dashboard_metric_scanner_details": SCANNER_DETAIL_DIALOG_MAX_HEIGHT,
+    "quality_dashboard_metric_ap_missing_positions": 820,
+}
 
 
 QUALITY_METRIC_STATUSES = {
@@ -127,9 +142,8 @@ POINT_METRIC_FILTERS = {
 
 def recommendation_detail_visible_item_count(recommendation, items):
     item_count = max(1, len(items))
-    if is_scanner_detail_recommendation(recommendation):
-        return min(item_count, SCANNER_DETAIL_DEFAULT_VISIBLE_CARDS)
-    return item_count
+    limit = DETAIL_VISIBLE_CARD_LIMITS.get(recommendation.get("metric_key"))
+    return min(item_count, limit) if limit else item_count
 
 
 def recommendation_detail_row_height(recommendation, items):
@@ -141,9 +155,7 @@ def recommendation_detail_row_height(recommendation, items):
 
 
 def recommendation_detail_max_height(recommendation):
-    if is_scanner_detail_recommendation(recommendation):
-        return SCANNER_DETAIL_DIALOG_MAX_HEIGHT
-    return DETAIL_DIALOG_MAX_HEIGHT
+    return DETAIL_DIALOG_MAX_HEIGHTS.get(recommendation.get("metric_key"), DETAIL_DIALOG_MAX_HEIGHT)
 
 
 def recommendation_detail_scroll_max_height(row_heights, spacing, visible_items):
@@ -1154,7 +1166,7 @@ class RecommendationDetailsDialog(QDialog):
         self.detail_scroll = None
         self.detail_rows = []
         self.visible_detail_items = visible_items
-        self.limit_detail_scroll = is_scanner_detail_recommendation(recommendation) and len(items) > visible_items
+        self.limit_detail_scroll = len(items) > visible_items
         height = 150 + visible_items * row_height + (44 if detail_actions else 0)
         self.resize(
             widget_px(self, 980),
@@ -1223,9 +1235,13 @@ class RecommendationDetailsDialog(QDialog):
         if not self.detail_scroll or not self.detail_rows:
             return
 
-        row_heights = [row.height() for row in self.detail_rows[:self.visible_detail_items]]
-        if not row_heights or any(height <= 0 for height in row_heights):
-            row_heights = [row.sizeHint().height() for row in self.detail_rows[:self.visible_detail_items]]
+        visible_rows = self.detail_rows[:self.visible_detail_items]
+        if is_scanner_detail_recommendation(self.recommendation):
+            row_heights = [row.height() for row in visible_rows]
+            if not row_heights or any(height <= 0 for height in row_heights):
+                row_heights = [row.sizeHint().height() for row in visible_rows]
+        else:
+            row_heights = [row.sizeHint().height() for row in visible_rows]
 
         scroll_height = recommendation_detail_scroll_max_height(
             row_heights,
@@ -1415,6 +1431,11 @@ def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None, ap_chann
     test_ap_count = len(ap_groups) - len(visible_ap_groups)
     positioned_count = sum(1 for group in positioned_ap_groups if group.get("position"))
     missing_position_groups = [group for group in positioned_ap_groups if not group.get("position")]
+    memory_applied_groups = [
+        group
+        for group in visible_ap_groups
+        if group.get(AP_MEMORY_APPLIED_KEY)
+    ]
     relevant_networks = (
         ", ".join(sorted(app.relevant_ssids))
         if app.relevant_ssids
@@ -1461,7 +1482,8 @@ def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None, ap_chann
         "relevant_networks": relevant_networks,
         "ap_positions": f"{positioned_count}/{len(positioned_ap_groups)}" if positioned_ap_groups else "0/0",
         "test_aps": test_ap_count,
-        "ap_memory_applied": count_memory_applied_groups(visible_ap_groups),
+        "ap_memory_applied": count_memory_applied_groups(memory_applied_groups),
+        "ap_memory_applied_items": build_ap_memory_applied_items(app, memory_applied_groups),
         "ap_metadata_warnings": len(ap_metadata_warnings),
         "ap_metadata_warning_labels": format_ap_metadata_warning_labels(app, ap_metadata_warnings),
         "ap_metadata_warning_items": build_ap_metadata_warning_items(app, ap_metadata_warnings),
@@ -1587,6 +1609,17 @@ def build_quality_recommendations(app, summary):
         "warning",
     )
     add(
+        summary["ap_memory_applied"],
+        "quality_dashboard_fix_ap_memory_title",
+        "quality_dashboard_fix_ap_memory_detail",
+        "info",
+        actions=build_ap_group_actions(app, summary.get("ap_memory_applied_items", []), open_metadata=False),
+        detail_items=build_ap_memory_detail_items(app, summary.get("ap_memory_applied_items", [])),
+        detail_count_key="quality_dashboard_detail_ap_groups",
+        dialog_detail_key="quality_dashboard_fix_ap_memory_dialog_detail",
+        metric_key="quality_dashboard_metric_ap_memory_applied",
+    )
+    add(
         summary["ap_metadata_warnings"],
         "quality_dashboard_fix_ap_metadata_title",
         "quality_dashboard_fix_ap_metadata_detail",
@@ -1595,6 +1628,7 @@ def build_quality_recommendations(app, summary):
         detail_items=build_ap_metadata_detail_items(app, summary.get("ap_metadata_warning_items", [])),
         detail_count_key="quality_dashboard_detail_ap_groups",
         dialog_detail_key="quality_dashboard_fix_ap_metadata_dialog_detail",
+        metric_key="quality_dashboard_metric_ap_metadata_warnings",
         details=summary["ap_metadata_warning_labels"],
     )
     add_channel_change_recommendation(app, summary, recommendations)
@@ -1624,6 +1658,7 @@ def build_quality_recommendations(app, summary):
         actions=build_ap_group_actions(app, summary.get("missing_position_items", []), open_metadata=False),
         detail_items=build_missing_position_detail_items(app, summary.get("missing_position_items", [])),
         detail_count_key="quality_dashboard_detail_ap_groups",
+        metric_key="quality_dashboard_metric_ap_missing_positions",
         names=summary["missing_position_labels"],
     )
 
@@ -1725,6 +1760,7 @@ def add_channel_change_recommendation(app, summary, recommendations):
         ),
         "detail_actions": [],
         "dialog_detail": app.tr("quality_dashboard_fix_channel_change_dialog_detail"),
+        "metric_key": "quality_dashboard_metric_channel_changes",
     })
 
 
@@ -1786,6 +1822,25 @@ def build_ap_group_items(app, groups):
     ]
 
 
+def build_ap_memory_applied_items(app, groups):
+    items = []
+    for group in groups:
+        group_id = str(group.get("group_id", ""))
+        if not group_id:
+            continue
+        matched_bssids = ", ".join(group.get(AP_MEMORY_MATCH_BSSIDS_KEY, [])[:3]) or "-"
+        items.append({
+            "group_id": group_id,
+            "label": app.get_ap_group_display_name(group_id),
+            "detail": app.tr(
+                "quality_dashboard_ap_memory_item_detail",
+                matched_bssids=matched_bssids,
+                applied_at=str(group.get(AP_MEMORY_APPLIED_AT_KEY, "") or "-"),
+            ),
+        })
+    return items
+
+
 def build_ap_metadata_warning_items(app, warnings):
     return [
         {
@@ -1821,6 +1876,25 @@ def build_ap_channel_change_items(app, changes):
         }
         for change in changes
     ]
+
+
+def build_ap_memory_detail_items(app, items):
+    detail_items = []
+    for item in items:
+        group_id = item.get("group_id", "")
+        actions = []
+        if group_id:
+            actions.append({
+                "kind": "ap_group",
+                "label": app.tr("quality_dashboard_action_open_ap_group"),
+                "group_id": group_id,
+            })
+        detail_items.append({
+            "label": item.get("label", group_id),
+            "detail": item.get("detail", ""),
+            "actions": actions,
+        })
+    return detail_items
 
 
 def build_ap_metadata_detail_items(app, items):

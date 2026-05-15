@@ -160,6 +160,15 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(len(groups), 1)
         self.assertEqual(summary["ap_missing_positions"], 1)
         self.assertEqual(summary["ap_positions"], "0/1")
+        missing_position_recommendation = next(
+            recommendation
+            for recommendation in summary["recommendations"]
+            if recommendation["title"] == "quality_dashboard_fix_ap_missing_title"
+        )
+        self.assertEqual(
+            missing_position_recommendation["metric_key"],
+            "quality_dashboard_metric_ap_missing_positions",
+        )
 
     def test_quality_summary_scopes_missing_ap_positions_to_relevant_ssids(self):
         rows = [
@@ -289,14 +298,22 @@ class QualityTests(unittest.TestCase):
             summary["recommendations"][0]["detail_items"][0]["detail"],
         )
 
-    def test_scanner_detail_dialog_defaults_to_four_visible_cards(self):
+    def test_detail_dialog_visible_card_limits_are_metric_specific(self):
         scanner_recommendation = {"metric_key": "quality_dashboard_metric_scanner_details"}
         dominant_recommendation = {"metric_key": "quality_dashboard_metric_ap_diagnostic_points"}
+        metadata_recommendation = {"metric_key": "quality_dashboard_metric_ap_metadata_warnings"}
+        channel_recommendation = {"metric_key": "quality_dashboard_metric_channel_changes"}
+        missing_position_recommendation = {"metric_key": "quality_dashboard_metric_ap_missing_positions"}
+        memory_recommendation = {"metric_key": "quality_dashboard_metric_ap_memory_applied"}
         items = [{"label": str(index)} for index in range(9)]
 
         self.assertEqual(recommendation_detail_visible_item_count(scanner_recommendation, items), 4)
         self.assertEqual(recommendation_detail_visible_item_count(scanner_recommendation, items[:2]), 2)
-        self.assertEqual(recommendation_detail_visible_item_count(dominant_recommendation, items), 9)
+        self.assertEqual(recommendation_detail_visible_item_count(dominant_recommendation, items), 5)
+        self.assertEqual(recommendation_detail_visible_item_count(metadata_recommendation, items), 5)
+        self.assertEqual(recommendation_detail_visible_item_count(channel_recommendation, items), 6)
+        self.assertEqual(recommendation_detail_visible_item_count(missing_position_recommendation, items), 8)
+        self.assertEqual(recommendation_detail_visible_item_count(memory_recommendation, items), 6)
         self.assertGreater(
             recommendation_detail_row_height(scanner_recommendation, items),
             recommendation_detail_row_height(dominant_recommendation, items),
@@ -365,6 +382,7 @@ class QualityTests(unittest.TestCase):
             metadata_recommendation["dialog_detail"],
             "quality_dashboard_fix_ap_metadata_dialog_detail",
         )
+        self.assertEqual(metadata_recommendation["metric_key"], "quality_dashboard_metric_ap_metadata_warnings")
         self.assertEqual(len(metadata_recommendation["detail_items"]), 1)
         self.assertEqual(metadata_recommendation["detail_items"][0]["label"], "ap-1")
         self.assertTrue(any(
@@ -459,9 +477,46 @@ class QualityTests(unittest.TestCase):
             channel_recommendation["dialog_detail"],
             "quality_dashboard_fix_channel_change_dialog_detail",
         )
+        self.assertEqual(channel_recommendation["metric_key"], "quality_dashboard_metric_channel_changes")
         self.assertFalse(any(
             action["kind"] == "live_map"
             for action in channel_recommendation["detail_items"][0]["actions"]
+        ))
+
+    def test_quality_recommends_ap_memory_review_from_kpi(self):
+        row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 36)
+        groups = [
+            build_manual_ap_group(
+                "ap-1",
+                ["70:4f:57:aa:bb:10"],
+                memory_applied=True,
+                memory_applied_at="2026-05-15T10:00:00Z",
+                memory_match_bssids=["70:4f:57:aa:bb:10"],
+            )
+        ]
+        app = FakeQualityApp([row], groups, relevant_ssids={"MAIN"})
+
+        summary = build_summary(
+            app,
+            [{"status": QUALITY_GOOD, "needs_review": False, "ap_position_warning_count": 0}],
+            [],
+            groups,
+        )
+
+        memory_recommendation = next(
+            recommendation
+            for recommendation in summary["recommendations"]
+            if recommendation["title"] == "quality_dashboard_fix_ap_memory_title"
+        )
+
+        self.assertEqual(summary["ap_memory_applied"], 1)
+        self.assertEqual(memory_recommendation["metric_key"], "quality_dashboard_metric_ap_memory_applied")
+        self.assertEqual(memory_recommendation["dialog_detail"], "quality_dashboard_fix_ap_memory_dialog_detail")
+        self.assertEqual(memory_recommendation["detail_items"][0]["label"], "ap-1")
+        self.assertIn("70:4f:57:aa:bb:10", memory_recommendation["detail_items"][0]["detail"])
+        self.assertTrue(any(
+            action["kind"] == "ap_group"
+            for action in memory_recommendation["detail_items"][0]["actions"]
         ))
 
     def test_quality_summary_counts_ap_position_warnings_in_point_review(self):

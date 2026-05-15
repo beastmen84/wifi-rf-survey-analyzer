@@ -66,7 +66,10 @@ Current status:
   while `NETSH` fallback is shown on the scanner line instead of as a duplicate
   fallback-row count; Scanner Details Extra Details default to four visible
   whole cards before scrolling so large `netsh` finding sets do not open
-  oversized dialogs or show a partially clipped next card;
+  oversized dialogs or show a partially clipped next card; AP Model KPI cards
+  now route to their matching Extra Details for AP Memory matches, APs without
+  position, AP config warnings, channel changes and Dominant AP findings, with
+  metric-specific whole-card limits;
 - the latest Windows release artifact remains the `v0.9.2-beta.1` PyInstaller
   `onedir` ZIP until an intentional package rebuild is requested;
 - Help content and structure have an expanded V2 Help Center implementation;

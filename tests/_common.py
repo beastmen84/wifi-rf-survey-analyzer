@@ -411,6 +411,14 @@ class FakeQualityApp:
             return "Scanner Details Missing"
         if key == "quality_dashboard_metric_ap_diagnostic_points":
             return "Dominant AP Findings"
+        if key == "quality_dashboard_metric_ap_memory_applied":
+            return "Memory Applied"
+        if key == "quality_dashboard_metric_ap_missing_positions":
+            return "APs Without Position"
+        if key == "quality_dashboard_metric_ap_metadata_warnings":
+            return "AP Config Warnings"
+        if key == "quality_dashboard_metric_channel_changes":
+            return "Channel Changes"
         if key == "quality_dashboard_metric_rescan":
             return "Points To Review"
         if key == "quality_dashboard_metric_extra_details":
@@ -469,6 +477,11 @@ class FakeQualityApp:
             return f"channels {kwargs.get('channels')} expected {kwargs.get('expected')}"
         if key == "quality_dashboard_ap_metadata_bands":
             return f"bands {kwargs.get('bands')} expected {kwargs.get('expected')}"
+        if key == "quality_dashboard_ap_memory_item_detail":
+            return (
+                f"Applied From Memory matched {kwargs.get('matched_bssids')} "
+                f"at {kwargs.get('applied_at')}"
+            )
         if key == "quality_dashboard_channel_change_status_clean":
             return "clean"
         if key == "quality_dashboard_channel_change_status_ambiguous":
