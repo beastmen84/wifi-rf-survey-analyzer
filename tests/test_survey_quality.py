@@ -169,6 +169,14 @@ class QualityTests(unittest.TestCase):
             missing_position_recommendation["metric_key"],
             "quality_dashboard_metric_ap_missing_positions",
         )
+        self.assertIn(
+            "<b>AP Group:</b>",
+            missing_position_recommendation["detail_items"][0]["detail"],
+        )
+        self.assertIn(
+            "<b>Missing Data:</b>",
+            missing_position_recommendation["detail_items"][0]["detail"],
+        )
 
     def test_quality_summary_scopes_missing_ap_positions_to_relevant_ssids(self):
         rows = [
@@ -320,15 +328,19 @@ class QualityTests(unittest.TestCase):
         )
         self.assertGreater(
             recommendation_detail_row_height(metadata_recommendation, items),
-            recommendation_detail_row_height(missing_position_recommendation, items),
+            recommendation_detail_row_height(dominant_recommendation, items),
         )
         self.assertGreater(
             recommendation_detail_row_height(channel_recommendation, items),
-            recommendation_detail_row_height(missing_position_recommendation, items),
+            recommendation_detail_row_height(dominant_recommendation, items),
         )
         self.assertGreater(
             recommendation_detail_row_height(memory_recommendation, items),
+            recommendation_detail_row_height(dominant_recommendation, items),
+        )
+        self.assertGreater(
             recommendation_detail_row_height(missing_position_recommendation, items),
+            recommendation_detail_row_height(dominant_recommendation, items),
         )
         self.assertGreater(
             recommendation_detail_max_height(scanner_recommendation),

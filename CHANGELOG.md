@@ -14,6 +14,10 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 - Survey Quality AP-model Extra Detail dialogs now reserve taller whole-card
   rows for multiline AP Memory, AP metadata and channel-change cards, avoiding
   clipped content or half-visible cards after the text polish.
+- Survey Quality Extra Details no longer stretch sparse detail cards to fill
+  empty dialog space, keeping top/bottom card padding consistent. AP Memory and
+  APs Without Position detail text now distinguish remembered AP data from a
+  missing physical map position.
 - Survey Quality `Scanner Details Missing` Extra Details now use the same
   finding/detail structure as Dominant AP diagnostics, with separate scanner,
   checked scan-row count, missing channel-width/frequency rows and impact text.

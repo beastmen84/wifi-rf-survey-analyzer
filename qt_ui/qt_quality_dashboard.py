@@ -100,7 +100,7 @@ POINT_TABLE_ROW_HEIGHT = 38
 SCANNER_DETAIL_DEFAULT_VISIBLE_CARDS = 4
 DETAIL_ROW_HEIGHT = 78
 DETAIL_FINDING_ROW_HEIGHT = 98
-DETAIL_MEMORY_ROW_HEIGHT = 112
+DETAIL_MEMORY_ROW_HEIGHT = 128
 DETAIL_MULTILINE_ROW_HEIGHT = 128
 SCANNER_DETAIL_ROW_HEIGHT = 145
 DETAIL_DIALOG_MAX_HEIGHT = 720
@@ -121,6 +121,7 @@ DETAIL_ROW_HEIGHTS = {
     "quality_dashboard_metric_ap_memory_applied": DETAIL_MEMORY_ROW_HEIGHT,
     "quality_dashboard_metric_ap_metadata_warnings": DETAIL_MULTILINE_ROW_HEIGHT,
     "quality_dashboard_metric_channel_changes": DETAIL_MULTILINE_ROW_HEIGHT,
+    "quality_dashboard_metric_ap_missing_positions": DETAIL_MEMORY_ROW_HEIGHT,
 }
 
 
@@ -1224,6 +1225,7 @@ class RecommendationDetailsDialog(QDialog):
             detail_row = self.create_detail_row(item)
             detail_rows.append(detail_row)
             content_layout.addWidget(detail_row)
+        content_layout.addStretch(1)
         scroll.setWidget(content)
         self.detail_scroll = scroll
         self.detail_rows = detail_rows
@@ -1238,7 +1240,7 @@ class RecommendationDetailsDialog(QDialog):
         close_button.clicked.connect(self.accept)
         button_row.addWidget(close_button)
         layout.addLayout(button_row)
-        if self.limit_detail_scroll:
+        if self.detail_rows:
             QTimer.singleShot(0, self.apply_detail_scroll_limit)
 
     def apply_detail_scroll_limit(self):
@@ -1270,6 +1272,7 @@ class RecommendationDetailsDialog(QDialog):
         palette = QT_THEMES.get(getattr(self.app, "theme", "light"), QT_THEMES["light"])
         row = QFrame()
         row.setObjectName("qualityDetailRow")
+        row.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         row.setStyleSheet(
             f"""
             QFrame#qualityDetailRow {{
@@ -1973,7 +1976,11 @@ def build_missing_position_detail_items(app, items):
     return [
         {
             "label": item.get("label", item.get("group_id", "")),
-            "detail": app.tr("quality_dashboard_missing_position_item_detail"),
+            "detail": app.tr(
+                "quality_dashboard_missing_position_item_detail",
+                group=item.get("group_id", "") or "-",
+                alias=item.get("label", "") or "-",
+            ),
             "actions": [
                 {
                     "kind": "ap_group",

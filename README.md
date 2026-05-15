@@ -112,7 +112,9 @@ issues. Structured diagnostics such as scanner details, dominant-AP position,
 AP Memory matches, AP metadata warnings, missing AP positions, and channel
 changes open Extra Details dialogs from their KPI cards, with structured
 label/value detail rows and whole-card dialog sizing for dense AP-model
-findings.
+findings. AP Memory review and missing AP position diagnostics are kept as
+separate states so remembered AP data is not confused with missing physical
+placement.
 Scanner detail diagnostics report raw scan-row counts for the selected
 measurement point, so missing channel-width or 6 GHz frequency evidence is not
 confused with the number of survey points.

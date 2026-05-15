@@ -834,6 +834,11 @@ Implemented:
   instead of compact pipe-separated detail strings. Their dialog row-height
   estimates were adjusted at the same time so the existing whole-card fit logic
   does not clip the taller cards or expose partial next cards.
+- Follow-up quality detail polish fixed sparse detail-card stretching in
+  dialogs, so card content keeps a stable top margin instead of being vertically
+  centered inside extra space. `Memory Applied` now explains the AP Memory
+  review state, while `APs Without Position` explicitly shows AP group/label
+  and the missing physical-position data.
 
 Remaining closeout:
 

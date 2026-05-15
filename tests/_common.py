@@ -485,9 +485,16 @@ class FakeQualityApp:
             )
         if key == "quality_dashboard_ap_memory_item_detail":
             return (
-                f"<b>Source:</b> AP Memory<br>"
+                f"<b>Memory Status:</b> applied from AP Memory<br>"
                 f"<b>Matched BSSIDs:</b> {kwargs.get('matched_bssids')}<br>"
-                f"<b>Applied At:</b> {kwargs.get('applied_at')}"
+                f"<b>Applied At:</b> {kwargs.get('applied_at')}<br>"
+                "<b>Next Step:</b> confirm or edit remembered AP data"
+            )
+        if key == "quality_dashboard_missing_position_item_detail":
+            return (
+                f"<b>AP Group:</b> {kwargs.get('group')}<br>"
+                f"<b>Label:</b> {kwargs.get('alias')}<br>"
+                "<b>Missing Data:</b> physical AP position on the floor plan"
             )
         if key == "quality_dashboard_channel_change_status_clean":
             return "clean"
