@@ -28,13 +28,11 @@ Beta focused on making Survey Quality scale better for larger real surveys.
   scroll area instead of hiding one behind a `+N more` summary.
 - Filtered point-list overlays now size their table to whole rows, defaulting
   to at most 14 visible rows and shrinking automatically for small result sets.
-- Point-list overlay issue text is now scoped to the KPI that opened the table,
-  wraps instead of eliding long text, and the table grows when the overlay is
-  resized vertically.
-- Point-list row heights are capped after wrapping so long diagnostics do not
-  make oversized rows; Scan OK shows `No Issues Detected`, Scanner Details
-  omits the redundant prefix, and Rescan Needed points users to the affected
-  KPI cards.
+- Point-list overlays now use a compact `# / Coordinates / Issue` table with
+  single-height rows; Scan OK shows `No Issues Detected`, Scanner Details omits
+  the redundant prefix, and Rescan Needed points users to the affected KPI
+  cards. Quality KPI issue text is filtered by the selected status, so Low Scan
+  Confidence does not include Unstable Signal details.
 - Help Center, README and V2 notes now describe KPI-driven point lists as the
   scalable way to inspect large surveys.
 

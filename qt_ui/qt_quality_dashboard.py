@@ -91,7 +91,14 @@ SEVERITY_COLORS = {
 METRIC_GRID_COLUMNS = 3
 POINT_TABLE_MAX_VISIBLE_ROWS = 14
 POINT_TABLE_ROW_HEIGHT = 38
-POINT_TABLE_MAX_ROW_HEIGHT = 68
+
+
+QUALITY_METRIC_STATUSES = {
+    "quality_dashboard_metric_missing": QUALITY_MISSING_RELEVANT,
+    "quality_dashboard_metric_sparse": QUALITY_SPARSE_DATA,
+    "quality_dashboard_metric_low_confidence": QUALITY_LOW_CONFIDENCE,
+    "quality_dashboard_metric_unstable": QUALITY_UNSTABLE_SIGNAL,
+}
 
 
 POINT_METRIC_FILTERS = {
@@ -149,18 +156,27 @@ def format_metric_point_issue(app, row, metric_key):
     if metric_key == "quality_dashboard_metric_rescan":
         kpis = rescan_kpi_labels_for_row(app, row)
         return app.tr("quality_dashboard_check_kpi_issue", kpis="; ".join(kpis)) if kpis else no_issue
-    if metric_key in {
-        "quality_dashboard_metric_missing",
-        "quality_dashboard_metric_sparse",
-        "quality_dashboard_metric_low_confidence",
-        "quality_dashboard_metric_unstable",
-    }:
-        return row.get("quality_issue") or no_issue
+    if metric_key in QUALITY_METRIC_STATUSES:
+        return format_metric_quality_issue(app, row, QUALITY_METRIC_STATUSES[metric_key])
     if metric_key == "quality_dashboard_metric_scanner_details":
         return format_scanner_detail_summary(app, row.get("scanner_details", {}))
     if metric_key == "quality_dashboard_metric_ap_diagnostic_points":
         return row.get("ap_position_issue") or no_issue
     return row.get("issue") or no_issue
+
+
+def format_metric_quality_issue(app, row, target_status):
+    no_issue = app.tr("quality_dashboard_no_issue")
+    issues = [
+        f"{item.get('ssid', '-')}: {app.format_quality_breakdown_item(item)}"
+        for item in row.get("quality_breakdown", [])
+        if item.get("status") == target_status
+    ]
+    if issues:
+        return "; ".join(issues)
+    if row.get("status") == target_status:
+        return row.get("quality_issue") or app.format_point_quality(target_status)
+    return no_issue
 
 
 def rescan_kpi_labels_for_row(app, row):
@@ -182,10 +198,9 @@ def rescan_kpi_labels_for_row(app, row):
 def configure_point_table_columns(table):
     header = table.horizontalHeader()
     header.setStretchLastSection(False)
-    for column in range(7):
-        header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
-    header.setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch)
-    header.setSectionResizeMode(8, QHeaderView.ResizeMode.Stretch)
+    header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+    header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+    header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
 
 
 def populate_point_table(table, rows, owner, metric_key=None):
@@ -199,13 +214,7 @@ def populate_point_table(table, rows, owner, metric_key=None):
         )
         values = [
             row["number"],
-            row["x"],
-            row["y"],
-            row["quality"],
-            row["confidence"],
-            row["best"],
-            row["row_count"],
-            row["ssids"],
+            f"{row['x']}, {row['y']}",
             issue_text,
         ]
         background = SEVERITY_COLORS.get(row["severity"])
@@ -216,10 +225,10 @@ def populate_point_table(table, rows, owner, metric_key=None):
                 item.setData(Qt.ItemDataRole.UserRole, row)
             if background is not None:
                 item.setBackground(background)
-            if column_index <= 6:
+            if column_index <= 1:
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             else:
-                item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+                item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 item.setToolTip(str(value))
             table.setItem(row_index, column_index, item)
         table.setRowHeight(row_index, widget_px(owner, POINT_TABLE_ROW_HEIGHT))
@@ -839,25 +848,23 @@ class PointRowsDialog(QDialog):
         count_label.setObjectName("mutedText")
         layout.addWidget(count_label)
 
-        self.table = QTableWidget(0, 9)
+        self.table = QTableWidget(0, 3)
         self.table.setObjectName("qualityDashboardTable")
         self.table.setAlternatingRowColors(True)
         self.table.setShowGrid(False)
-        self.table.setWordWrap(True)
-        self.table.setTextElideMode(Qt.TextElideMode.ElideNone)
+        self.table.setWordWrap(False)
+        self.table.setTextElideMode(Qt.TextElideMode.ElideRight)
         self.table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.table.verticalHeader().setVisible(False)
+        vertical_header = self.table.verticalHeader()
+        vertical_header.setVisible(False)
+        vertical_header.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+        vertical_header.setDefaultSectionSize(widget_px(self, POINT_TABLE_ROW_HEIGHT))
+        vertical_header.setMinimumSectionSize(widget_px(self, POINT_TABLE_ROW_HEIGHT))
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setHorizontalHeaderLabels([
             "#",
-            "X",
-            "Y",
-            self.app.tr("quality_dashboard_scan_quality"),
-            self.app.tr("quality_dashboard_confidence"),
-            self.app.tr("best_dbm"),
-            self.app.tr("rows"),
-            self.app.tr("quality_dashboard_relevant_ssids"),
+            self.app.tr("quality_dashboard_coordinates"),
             self.app.tr("quality_dashboard_issue"),
         ])
         configure_point_table_columns(self.table)
@@ -888,30 +895,18 @@ class PointRowsDialog(QDialog):
         self.apply_initial_size()
 
     def apply_table_height(self):
-        self.resize_table_rows()
         visible_rows = point_table_visible_row_count(len(self.rows))
-        fallback_row_height = widget_px(self, POINT_TABLE_ROW_HEIGHT)
+        row_height = widget_px(self, POINT_TABLE_ROW_HEIGHT)
         header_height = self.table.horizontalHeader().sizeHint().height()
         frame_height = self.table.frameWidth() * 2
-        rows_height = sum(self.table.rowHeight(row) for row in range(min(visible_rows, len(self.rows))))
-        if not rows_height:
-            rows_height = fallback_row_height
+        rows_height = visible_rows * row_height
         scrollbar_height = self.table.horizontalScrollBar().sizeHint().height()
         table_height = header_height + rows_height + scrollbar_height + frame_height + widget_px(self, 8)
         self.table.setMinimumHeight(table_height)
 
     def resize_table_rows(self):
-        self.table.resizeRowsToContents()
-        min_height = widget_px(self, POINT_TABLE_ROW_HEIGHT)
-        max_height = widget_px(self, POINT_TABLE_MAX_ROW_HEIGHT)
         for row in range(self.table.rowCount()):
-            bounded_height = max(min_height, min(max_height, self.table.rowHeight(row)))
-            self.table.setRowHeight(row, bounded_height)
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        if hasattr(self, "table"):
-            self.resize_table_rows()
+            self.table.setRowHeight(row, widget_px(self, POINT_TABLE_ROW_HEIGHT))
 
     def apply_initial_size(self):
         self.adjustSize()
@@ -1124,6 +1119,7 @@ def build_dashboard_rows(app, point_summaries, quality_by_point_id, ap_position_
             "ap_position": ap_position or {},
             "ap_position_issue": ap_position_issue,
             "quality_issue": quality_issue,
+            "quality_breakdown": quality.get("breakdown", []),
             "scanner_detail_issue": has_scanner_detail_issue,
             "scanner_detail_issue_text": scanner_detail_issue,
             "scanner_details": scanner_details,

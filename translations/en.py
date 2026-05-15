@@ -206,6 +206,7 @@ TRANSLATIONS = {
     "quality_dashboard_quality": "Quality",
     "quality_dashboard_scan_quality": "Scan Quality",
     "quality_dashboard_confidence": "Confidence",
+    "quality_dashboard_coordinates": "Coordinates",
     "quality_dashboard_issue": "Issue",
     "quality_dashboard_relevant_ssids": "Relevant SSIDs",
     "quality_dashboard_no_issue": "No Issues Detected",

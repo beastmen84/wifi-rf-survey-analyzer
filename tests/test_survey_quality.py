@@ -516,6 +516,10 @@ class QualityTests(unittest.TestCase):
         row = {
             "status": QUALITY_LOW_CONFIDENCE,
             "quality_issue": "quality issue",
+            "quality_breakdown": [
+                {"ssid": "main", "status": QUALITY_LOW_CONFIDENCE, "message": "low_confidence"},
+                {"ssid": "main", "status": QUALITY_UNSTABLE_SIGNAL, "message": "unstable_signal"},
+            ],
             "scanner_detail_issue": True,
             "scanner_detail_issue_text": "scanner issue",
             "scanner_details": {
@@ -539,6 +543,14 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_scanner_details"),
             "Fallback scanner used: netsh | 5 channel-sensitive rows missing channel width",
+        )
+        self.assertEqual(
+            format_metric_point_issue(app, row, "quality_dashboard_metric_low_confidence"),
+            "main: low_confidence",
+        )
+        self.assertEqual(
+            format_metric_point_issue(app, row, "quality_dashboard_metric_unstable"),
+            "main: unstable_signal",
         )
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_ap_diagnostic_points"),

@@ -59,8 +59,9 @@ Current status:
   same beta uses a wider three-column KPI grid, a subtle placeholder slot for
   future metrics, scrollable `What To Fix Next` content and a fixed formatted
   Survey Scope panel; filtered point-list overlays now size to whole rows, cap
-  the default table at 14 visible rows, shrink for small result sets, grow the
-  table on vertical resize and show KPI-specific wrapped issue text;
+  the default table at 14 visible rows, shrink for small result sets and use a
+  compact single-height `# / Coordinates / Issue` table with KPI-specific issue
+  text;
 - the latest Windows release artifact remains the `v0.9.2-beta.1` PyInstaller
   `onedir` ZIP until an intentional package rebuild is requested;
 - Help content and structure have an expanded V2 Help Center implementation;
@@ -223,11 +224,16 @@ Implemented:
   final empty slot so card widths and reserved space stay consistent;
 - KPI point-list overlays size the table to whole rows, avoiding half-visible
   rows at the default size and reducing empty table area for small filters;
+- KPI point-list overlays intentionally show only point number, coordinates and
+  issue text, because the overlay is for finding and navigating diagnostics, not
+  duplicating the full Survey point table;
 - KPI point-list overlays scope the Issue column to the selected KPI, so
   Dominant AP, scanner-detail and rescan views do not mix unrelated diagnostics;
 - overlay issue wording has been shortened for readability: Scan OK uses the
   normal no-issue text, Scanner Details omits the redundant prefix, and Rescan
-  Needed lists the affected KPI cards to inspect;
+  Needed lists the affected KPI cards to inspect; quality KPI issue text is
+  filtered by the selected status so Low Scan Confidence does not include
+  Unstable Signal details;
 - missing relevant network information;
 - low confidence/unstable point information;
 - sparse-data count surfaced as its own dashboard metric;
