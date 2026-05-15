@@ -309,6 +309,10 @@ class QualityTests(unittest.TestCase):
             recommendation_detail_max_height(scanner_recommendation),
             recommendation_detail_max_height(dominant_recommendation),
         )
+        self.assertEqual(
+            recommendation_detail_scroll_max_height([120, 122, 124, 126, 128], 6, 4),
+            120 + 122 + 124 + 126 + (3 * 6),
+        )
 
     def test_quality_summary_formats_metadata_warning_labels(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)

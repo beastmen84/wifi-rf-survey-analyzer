@@ -127,13 +127,13 @@ POINT_METRIC_FILTERS = {
 
 def recommendation_detail_visible_item_count(recommendation, items):
     item_count = max(1, len(items))
-    if recommendation.get("metric_key") == "quality_dashboard_metric_scanner_details":
+    if is_scanner_detail_recommendation(recommendation):
         return min(item_count, SCANNER_DETAIL_DEFAULT_VISIBLE_CARDS)
     return item_count
 
 
 def recommendation_detail_row_height(recommendation, items):
-    if recommendation.get("metric_key") == "quality_dashboard_metric_scanner_details":
+    if is_scanner_detail_recommendation(recommendation):
         return SCANNER_DETAIL_ROW_HEIGHT
     if any(item.get("finding") for item in items):
         return DETAIL_FINDING_ROW_HEIGHT
@@ -141,9 +141,20 @@ def recommendation_detail_row_height(recommendation, items):
 
 
 def recommendation_detail_max_height(recommendation):
-    if recommendation.get("metric_key") == "quality_dashboard_metric_scanner_details":
+    if is_scanner_detail_recommendation(recommendation):
         return SCANNER_DETAIL_DIALOG_MAX_HEIGHT
     return DETAIL_DIALOG_MAX_HEIGHT
+
+
+def recommendation_detail_scroll_max_height(row_heights, spacing, visible_items):
+    shown_heights = list(row_heights[:visible_items])
+    if not shown_heights:
+        return 0
+    return sum(shown_heights) + max(0, len(shown_heights) - 1) * spacing
+
+
+def is_scanner_detail_recommendation(recommendation):
+    return recommendation.get("metric_key") == "quality_dashboard_metric_scanner_details"
 
 
 def point_rows_for_metric(rows, metric_key):
@@ -1182,9 +1193,18 @@ class RecommendationDetailsDialog(QDialog):
         content_layout = QVBoxLayout(content)
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(widget_px(self, 6))
+        detail_rows = []
         for item in items:
-            content_layout.addWidget(self.create_detail_row(item))
+            detail_row = self.create_detail_row(item)
+            detail_rows.append(detail_row)
+            content_layout.addWidget(detail_row)
         scroll.setWidget(content)
+        if is_scanner_detail_recommendation(recommendation) and len(detail_rows) > visible_items:
+            scroll.setMaximumHeight(recommendation_detail_scroll_max_height(
+                [row.sizeHint().height() for row in detail_rows],
+                content_layout.spacing(),
+                visible_items,
+            ))
         layout.addWidget(scroll, 1)
 
         button_row = QHBoxLayout()
@@ -1196,6 +1216,11 @@ class RecommendationDetailsDialog(QDialog):
         close_button.clicked.connect(self.accept)
         button_row.addWidget(close_button)
         layout.addLayout(button_row)
+        if is_scanner_detail_recommendation(recommendation):
+            self.resize(
+                widget_px(self, 980),
+                min(widget_px(self, recommendation_detail_max_height(recommendation)), self.sizeHint().height()),
+            )
 
     def create_detail_row(self, item):
         palette = QT_THEMES.get(getattr(self.app, "theme", "light"), QT_THEMES["light"])
