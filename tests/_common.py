@@ -474,13 +474,20 @@ class FakeQualityApp:
                 f"<b>{kwargs.get('warning')}</b>"
             )
         if key == "quality_dashboard_ap_metadata_channels":
-            return f"channels {kwargs.get('channels')} expected {kwargs.get('expected')}"
+            return (
+                f"<b>Observed Channels:</b> {kwargs.get('channels')}<br>"
+                f"<b>Expected Channels:</b> {kwargs.get('expected')}"
+            )
         if key == "quality_dashboard_ap_metadata_bands":
-            return f"bands {kwargs.get('bands')} expected {kwargs.get('expected')}"
+            return (
+                f"<b>Observed Bands:</b> {kwargs.get('bands')}<br>"
+                f"<b>Expected Bands:</b> {kwargs.get('expected')}"
+            )
         if key == "quality_dashboard_ap_memory_item_detail":
             return (
-                f"Applied From Memory matched {kwargs.get('matched_bssids')} "
-                f"at {kwargs.get('applied_at')}"
+                f"<b>Source:</b> AP Memory<br>"
+                f"<b>Matched BSSIDs:</b> {kwargs.get('matched_bssids')}<br>"
+                f"<b>Applied At:</b> {kwargs.get('applied_at')}"
             )
         if key == "quality_dashboard_channel_change_status_clean":
             return "clean"
@@ -490,6 +497,13 @@ class FakeQualityApp:
             return (
                 f"{kwargs.get('ap')} {kwargs.get('band')}: {kwargs.get('status')}, "
                 f"channels {kwargs.get('channels')}, current {kwargs.get('current')}"
+            )
+        if key == "quality_dashboard_channel_change_item_detail":
+            return (
+                f"<b>Band:</b> {kwargs.get('band')}<br>"
+                f"<b>Observed Channels:</b> {kwargs.get('channels')}<br>"
+                f"<b>Maps Use:</b> {kwargs.get('current')}<br>"
+                f"<b>Status:</b> {kwargs.get('status')}"
             )
         if key == "quality_dashboard_ap_position_detail":
             return (

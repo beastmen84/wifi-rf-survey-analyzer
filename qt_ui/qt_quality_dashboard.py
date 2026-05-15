@@ -2481,7 +2481,7 @@ def format_ap_metadata_warning_detail(app, warning):
             )
         )
 
-    return ", ".join(parts)
+    return "<br>".join(parts)
 
 
 def format_band_label(band):

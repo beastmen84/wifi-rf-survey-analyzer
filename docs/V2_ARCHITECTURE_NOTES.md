@@ -828,6 +828,10 @@ Implemented:
 - The Glossary Help page remains as a final terminology reference but is now
   grouped into Wi-Fi evidence, AP model, quality/warnings, memory/persistence
   and live-map/report terms instead of a single long table.
+- Survey Quality AP-model Extra Details were visually tightened after the
+  all-warning synthetic dataset review: AP Memory matches, AP metadata warnings
+  and channel-change items now use structured multiline label/value text
+  instead of compact pipe-separated detail strings.
 
 Remaining closeout:
 
