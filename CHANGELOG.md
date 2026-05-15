@@ -10,6 +10,20 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 
 No unreleased user-facing changes.
 
+## v0.9.3-beta.2 - 2026-05-15
+
+Beta focused on making Survey Quality scale better for larger real surveys.
+
+- Survey Quality no longer shows the full measurement-point table in the main
+  dashboard view.
+- Point-related KPI cards now open filtered point-table overlays, including
+  total points, scan OK, rescan needed, scanner details, low confidence,
+  unstable signal, missing relevant networks and dominant-AP findings.
+- Removed the main `Show Only Points With Findings` control because filtering is
+  now driven by the selected KPI.
+- Help Center, README and V2 notes now describe KPI-driven point lists as the
+  scalable way to inspect large surveys.
+
 ## v0.9.3-beta.1 - 2026-05-15
 
 Beta focused on scanner-data validation after the first broad office survey.

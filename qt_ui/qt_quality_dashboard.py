@@ -6,7 +6,6 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
-    QCheckBox,
     QDialog,
     QFrame,
     QGraphicsDropShadowEffect,
@@ -90,6 +89,85 @@ SEVERITY_COLORS = {
 }
 
 
+POINT_METRIC_FILTERS = {
+    "quality_dashboard_metric_points": lambda row: True,
+    "quality_dashboard_metric_scan_ok": (
+        lambda row: row.get("status") == QUALITY_GOOD and not row.get("scanner_detail_issue")
+    ),
+    "quality_dashboard_metric_rescan": (
+        lambda row: row.get("status") != QUALITY_GOOD or row.get("scanner_detail_issue")
+    ),
+    "quality_dashboard_metric_missing": lambda row: row.get("status") == QUALITY_MISSING_RELEVANT,
+    "quality_dashboard_metric_sparse": lambda row: row.get("status") == QUALITY_SPARSE_DATA,
+    "quality_dashboard_metric_scanner_details": lambda row: bool(row.get("scanner_detail_issue")),
+    "quality_dashboard_metric_low_confidence": lambda row: row.get("status") == QUALITY_LOW_CONFIDENCE,
+    "quality_dashboard_metric_unstable": lambda row: row.get("status") == QUALITY_UNSTABLE_SIGNAL,
+    "quality_dashboard_metric_ap_diagnostic_points": (
+        lambda row: row.get("ap_position_warning_count", 0) > 0
+    ),
+}
+
+
+def point_rows_for_metric(rows, metric_key):
+    row_filter = POINT_METRIC_FILTERS.get(metric_key)
+    if row_filter is None:
+        return []
+    return [row for row in rows if row_filter(row)]
+
+
+def is_point_metric_filter(metric_key, value):
+    if metric_key not in POINT_METRIC_FILTERS:
+        return False
+    if metric_key == "quality_dashboard_metric_points":
+        return True
+
+    try:
+        return float(value) > 0
+    except (TypeError, ValueError):
+        return bool(value)
+
+
+def configure_point_table_columns(table):
+    header = table.horizontalHeader()
+    header.setStretchLastSection(False)
+    for column in range(7):
+        header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
+    header.setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch)
+    header.setSectionResizeMode(8, QHeaderView.ResizeMode.Stretch)
+
+
+def populate_point_table(table, rows, owner):
+    table.setRowCount(len(rows))
+
+    for row_index, row in enumerate(rows):
+        values = [
+            row["number"],
+            row["x"],
+            row["y"],
+            row["quality"],
+            row["confidence"],
+            row["best"],
+            row["row_count"],
+            row["ssids"],
+            row["issue"],
+        ]
+        background = SEVERITY_COLORS.get(row["severity"])
+        for column_index, value in enumerate(values):
+            item = QTableWidgetItem(str(value))
+            item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
+            if column_index == 0:
+                item.setData(Qt.ItemDataRole.UserRole, row)
+            if background is not None:
+                item.setBackground(background)
+            if column_index <= 6:
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            else:
+                item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                item.setToolTip(str(value))
+            table.setItem(row_index, column_index, item)
+        table.setRowHeight(row_index, widget_px(owner, 38))
+
+
 def resolve_metric_severity(label_key, value, default_severity):
     if label_key == "quality_dashboard_metric_points":
         return "info"
@@ -144,7 +222,6 @@ class QualityDashboardDialog(QDialog):
         super().__init__(app)
         self.app = app
         self.rows = rows
-        self.filtered_rows = []
         self.setObjectName("qualityDashboardDialog")
         self.setProperty(SKIP_CENTERING_PROPERTY, True)
         self.setWindowTitle(app.tr("quality_dashboard_title"))
@@ -161,44 +238,7 @@ class QualityDashboardDialog(QDialog):
         layout.addWidget(hint)
 
         layout.addWidget(self.build_status_panel(summary))
-        layout.addWidget(self.build_overview_panel(summary))
-        layout.addLayout(self.build_controls())
-
-        self.table = QTableWidget(0, 9)
-        self.table.setObjectName("qualityDashboardTable")
-        self.table.setAlternatingRowColors(True)
-        self.table.setShowGrid(False)
-        self.table.setWordWrap(False)
-        self.table.setTextElideMode(Qt.TextElideMode.ElideRight)
-        self.table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.table.verticalHeader().setVisible(False)
-        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.table.setHorizontalHeaderLabels([
-            "#",
-            "X",
-            "Y",
-            app.tr("quality_dashboard_scan_quality"),
-            app.tr("quality_dashboard_confidence"),
-            app.tr("best_dbm"),
-            app.tr("rows"),
-            app.tr("quality_dashboard_relevant_ssids"),
-            app.tr("quality_dashboard_issue"),
-        ])
-        self.configure_table_columns()
-        self.table.itemDoubleClicked.connect(lambda _item: self.focus_selected_point())
-        layout.addWidget(self.table, 1)
-
-        button_row = QHBoxLayout()
-        self.focus_button = QPushButton(app.tr("go_to_point"))
-        self.focus_button.clicked.connect(self.focus_selected_point)
-        button_row.addWidget(self.focus_button)
-        button_row.addStretch(1)
-        layout.addLayout(button_row)
-
-        self.issues_only_check.toggled.connect(self.render_rows)
-        self.issues_only_check.setChecked(summary.get("review_points", 0) > 0)
-        self.render_rows()
+        layout.addWidget(self.build_overview_panel(summary), 1)
 
     def build_status_panel(self, summary):
         panel = QFrame()
@@ -223,16 +263,9 @@ class QualityDashboardDialog(QDialog):
         layout.addWidget(message)
         return panel
 
-    def configure_table_columns(self):
-        header = self.table.horizontalHeader()
-        header.setStretchLastSection(False)
-        for column in range(7):
-            header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(8, QHeaderView.ResizeMode.Stretch)
-
     def build_overview_panel(self, summary):
         panel = QFrame()
+        panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout = QHBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(widget_px(self, 10))
@@ -339,17 +372,18 @@ class QualityDashboardDialog(QDialog):
         grid.setVerticalSpacing(0)
         for index, (label_key, value, severity) in enumerate(metrics):
             metric_severity = resolve_metric_severity(label_key, value, severity)
-            metric = self.create_metric_box(self.app.tr(label_key), value, metric_severity)
+            metric = self.create_metric_box(self.app.tr(label_key), value, metric_severity, label_key)
             grid.addWidget(metric, 0, index)
             grid.setColumnStretch(index, 1)
         grid.setRowStretch(0, 1)
         layout.addLayout(grid, 1)
         return group
 
-    def create_metric_box(self, label, value, severity):
+    def create_metric_box(self, label, value, severity, metric_key=None):
         palette = QT_THEMES.get(getattr(self.app, "theme", "light"), QT_THEMES["light"])
         tokens = metric_card_tokens(palette, severity)
         accent = tokens["accent"]
+        is_clickable = is_point_metric_filter(metric_key, value)
         box = QFrame()
         box.setObjectName("qualityMetricBox")
         box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -372,6 +406,17 @@ class QualityDashboardDialog(QDialog):
         shadow.setOffset(0, widget_px(self, 2))
         shadow.setColor(tokens["shadow"])
         box.setGraphicsEffect(shadow)
+        if is_clickable:
+            box.setCursor(Qt.CursorShape.PointingHandCursor)
+            box.setToolTip(self.app.tr("quality_dashboard_metric_click_points"))
+
+            def open_metric(event, selected_key=metric_key, selected_label=label):
+                if event.button() != Qt.MouseButton.LeftButton:
+                    return
+                self.open_metric_points(selected_key, selected_label)
+                event.accept()
+
+            box.mouseReleaseEvent = open_metric
 
         layout = QVBoxLayout(box)
         layout.setContentsMargins(widget_px(self, 13), widget_px(self, 10), widget_px(self, 13), widget_px(self, 10))
@@ -381,6 +426,8 @@ class QualityDashboardDialog(QDialog):
         header.setContentsMargins(0, 0, 0, 0)
         header.setSpacing(widget_px(self, 8))
         label_widget = QLabel(label)
+        if is_clickable:
+            label_widget.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         label_widget.setWordWrap(True)
         label_widget.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         label_widget.setStyleSheet(
@@ -394,6 +441,8 @@ class QualityDashboardDialog(QDialog):
         header.addWidget(label_widget, 1)
 
         indicator = QLabel()
+        if is_clickable:
+            indicator.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         indicator.setFixedSize(widget_px(self, 10), widget_px(self, 10))
         indicator.setStyleSheet(
             f"""
@@ -405,6 +454,8 @@ class QualityDashboardDialog(QDialog):
         layout.addLayout(header, 1)
 
         value_widget = QLabel(str(value))
+        if is_clickable:
+            value_widget.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         value_widget.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
         value_widget.setStyleSheet(
             f"""
@@ -414,8 +465,32 @@ class QualityDashboardDialog(QDialog):
             background: transparent;
             """
         )
-        layout.addWidget(value_widget, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
+        if is_clickable:
+            footer = QHBoxLayout()
+            footer.setContentsMargins(0, 0, 0, 0)
+            footer.setSpacing(widget_px(self, 8))
+            hint = QLabel(self.app.tr("quality_dashboard_metric_view_points"))
+            hint.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+            hint.setStyleSheet(
+                f"""
+                color: {palette["muted"]};
+                font-size: {widget_px(self, 12)}px;
+                font-weight: 700;
+                background: transparent;
+                """
+            )
+            footer.addWidget(hint, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom)
+            footer.addStretch(1)
+            footer.addWidget(value_widget, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
+            layout.addLayout(footer, 0)
+        else:
+            layout.addWidget(value_widget, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
         return box
+
+    def open_metric_points(self, metric_key, label):
+        rows = point_rows_for_metric(self.rows, metric_key)
+        dialog = PointRowsDialog(self, label, rows, len(self.rows))
+        dialog.exec()
 
     def build_recommendations_panel(self, summary):
         panel = QFrame()
@@ -577,66 +652,85 @@ class QualityDashboardDialog(QDialog):
         self.app.show_points_panel()
         self.app.select_point_in_table(row)
 
-    def build_controls(self):
-        controls = QHBoxLayout()
-        self.issues_only_check = QCheckBox(self.app.tr("quality_dashboard_show_issues_only"))
-        self.visible_count_label = QLabel()
-        self.visible_count_label.setObjectName("mutedText")
-        controls.addWidget(self.issues_only_check)
-        controls.addWidget(self.visible_count_label)
-        controls.addStretch(1)
-        return controls
 
-    def render_rows(self):
-        self.filtered_rows = [
-            row
-            for row in self.rows
-            if not self.issues_only_check.isChecked() or row["needs_review"]
-        ]
-        self.table.setRowCount(len(self.filtered_rows))
-
-        for row_index, row in enumerate(self.filtered_rows):
-            values = [
-                row["number"],
-                row["x"],
-                row["y"],
-                row["quality"],
-                row["confidence"],
-                row["best"],
-                row["row_count"],
-                row["ssids"],
-                row["issue"],
-            ]
-            background = SEVERITY_COLORS.get(row["severity"])
-            for column_index, value in enumerate(values):
-                item = QTableWidgetItem(str(value))
-                item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
-                if column_index == 0:
-                    item.setData(Qt.ItemDataRole.UserRole, row)
-                if background is not None:
-                    item.setBackground(background)
-                if column_index <= 6:
-                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                else:
-                    item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-                    item.setToolTip(str(value))
-                self.table.setItem(row_index, column_index, item)
-            self.table.setRowHeight(row_index, widget_px(self, 38))
-
-        self.visible_count_label.setText(
+class PointRowsDialog(QDialog):
+    def __init__(self, owner, label, rows, total_count):
+        super().__init__(owner)
+        self.owner = owner
+        self.app = owner.app
+        self.rows = list(rows)
+        self.setProperty(SKIP_CENTERING_PROPERTY, True)
+        self.setWindowTitle(
             self.app.tr(
-                "quality_dashboard_visible_count",
-                shown=len(self.filtered_rows),
-                total=len(self.rows),
+                "quality_dashboard_points_dialog_title",
+                label=label,
+                count=len(self.rows),
             )
         )
-        self.focus_button.setEnabled(bool(self.filtered_rows))
-        if self.filtered_rows:
+        self.resize(widget_px(self, 1180), widget_px(self, 680))
+        self.setMinimumSize(widget_px(self, 820), widget_px(self, 420))
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(widget_px(self, 14), widget_px(self, 14), widget_px(self, 14), widget_px(self, 14))
+        layout.setSpacing(widget_px(self, 8))
+
+        title = QLabel(label)
+        title.setObjectName("sectionTitle")
+        layout.addWidget(title)
+
+        count_label = QLabel(
+            self.app.tr(
+                "quality_dashboard_visible_count",
+                shown=len(self.rows),
+                total=total_count,
+            )
+        )
+        count_label.setObjectName("mutedText")
+        layout.addWidget(count_label)
+
+        self.table = QTableWidget(0, 9)
+        self.table.setObjectName("qualityDashboardTable")
+        self.table.setAlternatingRowColors(True)
+        self.table.setShowGrid(False)
+        self.table.setWordWrap(False)
+        self.table.setTextElideMode(Qt.TextElideMode.ElideRight)
+        self.table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.table.verticalHeader().setVisible(False)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table.setHorizontalHeaderLabels([
+            "#",
+            "X",
+            "Y",
+            self.app.tr("quality_dashboard_scan_quality"),
+            self.app.tr("quality_dashboard_confidence"),
+            self.app.tr("best_dbm"),
+            self.app.tr("rows"),
+            self.app.tr("quality_dashboard_relevant_ssids"),
+            self.app.tr("quality_dashboard_issue"),
+        ])
+        configure_point_table_columns(self.table)
+        populate_point_table(self.table, self.rows, self)
+        self.table.itemDoubleClicked.connect(lambda _item: self.focus_selected_point())
+        layout.addWidget(self.table, 1)
+
+        if self.rows:
             selected_row = next(
-                (index for index, row in enumerate(self.filtered_rows) if row.get("needs_review")),
+                (index for index, row in enumerate(self.rows) if row.get("needs_review")),
                 0,
             )
             self.table.selectRow(selected_row)
+
+        button_row = QHBoxLayout()
+        self.focus_button = QPushButton(self.app.tr("go_to_point"))
+        self.focus_button.setEnabled(bool(self.rows))
+        self.focus_button.clicked.connect(self.focus_selected_point)
+        button_row.addWidget(self.focus_button)
+        button_row.addStretch(1)
+        close_button = QPushButton(self.app.tr("close"))
+        close_button.clicked.connect(self.accept)
+        button_row.addWidget(close_button)
+        layout.addLayout(button_row)
 
     def current_row_data(self):
         selected = self.table.selectedItems()
@@ -653,10 +747,7 @@ class QualityDashboardDialog(QDialog):
             return
 
         self.accept()
-        self.app.tabs.setCurrentIndex(0)
-        self.app.floorplan_view.focus_on(row["x"], row["y"])
-        self.app.show_points_panel()
-        self.app.select_point_in_table(row)
+        self.owner.focus_point_action(row)
 
 
 class RecommendationDetailsDialog(QDialog):

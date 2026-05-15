@@ -23,7 +23,7 @@ interpolated colors.
 Current status:
 
 - public release versioning is separate from the internal V2 generation:
-  the current feature beta is `v0.9.3-beta.1`, while `v1.0.0` should wait for
+  the current feature beta is `v0.9.3-beta.2`, while `v1.0.0` should wait for
   completion of real-survey validation fixes;
 - future beta release candidates should use the current minor beta line for
   validation/polish or a new minor beta for feature-level additions; do not
@@ -51,6 +51,11 @@ Current status:
   fallback `netsh` capture, missing channel-width details for channel-sensitive
   rows and missing 6 GHz frequency data now become point-level findings with a
   dedicated KPI, recommendation card and detail rows;
+- `v0.9.3-beta.2` changes Survey Quality to scale better on larger surveys:
+  the main dashboard keeps the full point table out of the first view, while
+  point-related KPI cards open filtered point-table overlays for total points,
+  scan OK, rescan needed, scanner details, low confidence, unstable signal,
+  missing relevant networks and dominant-AP findings;
 - the latest Windows release artifact remains the `v0.9.2-beta.1` PyInstaller
   `onedir` ZIP until an intentional package rebuild is requested;
 - Help content and structure have an expanded V2 Help Center implementation;
@@ -206,6 +211,8 @@ Implemented:
   health;
 - separate scan-OK/rescan-needed counts so AP diagnostics do not imply that
   measurement points need to be repeated;
+- point-related KPI cards open filtered point-table overlays, keeping the main
+  dashboard focused on counts and the next actions instead of a long table;
 - missing relevant network information;
 - low confidence/unstable point information;
 - sparse-data count surfaced as its own dashboard metric;
@@ -222,14 +229,14 @@ Implemented:
 - detail dialogs use domain-specific counts and concise observed/expected
   wording so large AP metadata and channel-change lists stay readable;
 - Dominant AP detail rows include dominant AP, closest physical AP, distance
-  and finding context while keeping the main table issue text compact;
+  and finding context while keeping point-list issue text compact;
 - clean/ambiguous AP channel changes are surfaced in the quality dashboard so
   the user can verify the latest-channel default or set an explicit analysis
   channel override;
 - setup-only AP diagnostics use a setup warning state instead of implying that
   measurement points need to be rescanned;
-- fullscreen dashboard presentation, compact metric cards, default issue
-  filtering when findings exist and stronger table selection contrast.
+- fullscreen dashboard presentation, compact metric cards, KPI-driven
+  point-table overlays and stronger table selection contrast.
 
 ### AP Group Manager
 
@@ -788,8 +795,9 @@ Remaining closeout:
 
 V2 closeout:
 
-1. Validate `v0.9.3-beta.1` on the office survey and confirm that scanner detail
-   findings correctly identify points worth rescanning.
+1. Validate `v0.9.3-beta.2` on the office survey and confirm that scanner detail
+   findings correctly identify points worth rescanning and that KPI-driven point
+   lists keep Survey Quality usable with larger datasets.
 2. Add relevant-network scope for local/zone-only SSIDs as `v0.9.4-beta.1`, so
    SSIDs like office-local routers do not create whole-building quality noise.
 3. Add connected-client BSSID/roaming diagnostics as `v0.9.5-beta.1` if Windows

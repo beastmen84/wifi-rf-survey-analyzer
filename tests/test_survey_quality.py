@@ -466,6 +466,45 @@ class QualityTests(unittest.TestCase):
             "warning",
         )
 
+    def test_quality_point_metric_filters_match_point_table_scope(self):
+        rows = [
+            {
+                "status": QUALITY_GOOD,
+                "scanner_detail_issue": False,
+                "ap_position_warning_count": 0,
+            },
+            {
+                "status": QUALITY_GOOD,
+                "scanner_detail_issue": True,
+                "ap_position_warning_count": 0,
+            },
+            {
+                "status": QUALITY_LOW_CONFIDENCE,
+                "scanner_detail_issue": False,
+                "ap_position_warning_count": 0,
+            },
+            {
+                "status": QUALITY_MISSING_RELEVANT,
+                "scanner_detail_issue": False,
+                "ap_position_warning_count": 1,
+            },
+        ]
+
+        self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_points")), 4)
+        self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_scan_ok")), 1)
+        self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_rescan")), 3)
+        self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_scanner_details")), 1)
+        self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_low_confidence")), 1)
+        self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_missing")), 1)
+        self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_ap_diagnostic_points")), 1)
+        self.assertEqual(point_rows_for_metric(rows, "quality_dashboard_metric_ap_metadata_warnings"), [])
+
+    def test_quality_metric_clickability_is_limited_to_point_filters_with_rows(self):
+        self.assertTrue(is_point_metric_filter("quality_dashboard_metric_points", 0))
+        self.assertTrue(is_point_metric_filter("quality_dashboard_metric_rescan", 2))
+        self.assertFalse(is_point_metric_filter("quality_dashboard_metric_rescan", 0))
+        self.assertFalse(is_point_metric_filter("quality_dashboard_metric_ap_metadata_warnings", 2))
+
     def test_quality_ap_position_details_use_global_dominant_action(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)
         app = FakeQualityApp([row], relevant_ssids={"MAIN"})

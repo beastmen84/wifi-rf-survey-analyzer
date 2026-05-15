@@ -9,7 +9,7 @@ survey quality, and export explainable RF maps.
 
 ## Release Status
 
-- Current version: `v0.9.3-beta.1`
+- Current version: `v0.9.3-beta.2`
 - Release type: beta / pre-release
 - Active UI: PySide6
 - Main entry point: `main.py`
@@ -29,7 +29,7 @@ stable `v1.0.0` is planned after Help Center review and broader field testing.
   channels, analysis-channel overrides, and physical AP positions.
 - Persistent AP Memory for reusing known AP metadata across surveys.
 - Survey Quality Dashboard with point-rescan findings, AP model diagnostics,
-  KPI cards, and prioritized "what to fix next" guidance.
+  clickable KPI point lists, and prioritized "what to fix next" guidance.
 - Live Coverage, Interference, AP Channels, and Dominant AP maps.
 - PDF export from the current live map, including diagnostic report pages where
   the selected map type supports them.
@@ -107,6 +107,8 @@ Current checks include missing relevant networks, low scan confidence, unstable
 signals, sparse point data, limited scanner details, AP metadata warnings, AP
 Memory review states, AP group conflicts, missing AP positions, dominant-AP
 position anomalies, and AP channel changes that affect channel-sensitive maps.
+Point-related KPI cards open filtered point lists so larger surveys keep the
+main dashboard focused on counts and next actions.
 
 ## Live Maps And PDF Reports
 
@@ -229,7 +231,7 @@ dist/WifiHeatmap/WifiHeatmap.exe
 For distribution, publish the zipped PyInstaller `onedir` folder:
 
 ```text
-dist/WifiHeatmap-v0.9.3-beta.1-win64.zip
+dist/WifiHeatmap-v0.9.3-beta.2-win64.zip
 ```
 
 The `onedir` format is intentional for this PySide6/scientific stack. It starts
@@ -246,7 +248,7 @@ between official release builds.
 
 Current release:
 
-- `v0.9.3-beta.1`
+- `v0.9.3-beta.2`
 
 Latest Windows release ZIP:
 

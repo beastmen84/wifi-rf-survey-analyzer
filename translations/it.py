@@ -159,7 +159,7 @@ TRANSLATIONS = {
     "quality_dashboard_fix_more_points_title": "Aggiungi Punti",
     "quality_dashboard_fix_more_points_detail": "Sono disponibili solo {total} punti. Aggiungi altre posizioni prima di leggere i vuoti di copertura.",
     "quality_dashboard_fix_ready_title": "Genera Mappe",
-    "quality_dashboard_fix_ready_detail": "I controlli principali sono puliti. Genera le mappe o usa il filtro problemi per un ultimo passaggio.",
+    "quality_dashboard_fix_ready_detail": "I controlli principali sono puliti. Genera le mappe o apri le liste punti da KPI per un ultimo passaggio.",
     "quality_dashboard_context_scope": "Ambito Rilievo: Rilevanti {networks} | Posizioni AP {positions} | AP Test {test_aps}",
     "quality_dashboard_action_open_dominant": "Mappa Dominant AP",
     "quality_dashboard_action_open_ap_channels": "Mappa AP Channels",
@@ -194,7 +194,9 @@ TRANSLATIONS = {
     "quality_dashboard_scanner_details_missing_width": "{count} righe sensibili al canale senza ampiezza canale",
     "quality_dashboard_scanner_details_missing_frequency": "{count} righe 6 GHz senza frequenza",
     "quality_dashboard_more_issues": "+{count} altri",
-    "quality_dashboard_show_issues_only": "Mostra Solo Punti Con Finding",
+    "quality_dashboard_metric_view_points": "Vedi Punti",
+    "quality_dashboard_metric_click_points": "Clicca Per Vedere I Punti Corrispondenti",
+    "quality_dashboard_points_dialog_title": "{label} - {count} Punti",
     "quality_dashboard_visible_count": "{shown}/{total} punti mostrati",
     "quality_dashboard_quality": "Qualità",
     "quality_dashboard_scan_quality": "Qualità Scansione",
@@ -712,9 +714,9 @@ TRANSLATIONS = {
         <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
             <tr>
                 <td class="workflow-card">
-                    <div class="step-title">Tabella Punti</div>
-                    <p><b>Mostra Solo Punti Con Finding</b> è attivo di default quando esistono finding. Se tutto è pulito, la tabella mostra tutti i punti invece di una lista vuota.</p>
-                    <div class="step-gate"><b>Focus Point:</b> chiude la dashboard, seleziona il punto nel tab Survey e apre il pannello punto per ispezione o rescan.</div>
+                    <div class="step-title">Liste Punti Da KPI</div>
+                    <p>La dashboard principale non mostra subito la tabella punti. Clicca le KPI legate ai punti, per esempio Da Ripetere, Dettagli Scanner Mancanti, Bassa Confidenza Scansione o Anomalie Dominant AP, per aprire la lista filtrata corrispondente.</p>
+                    <div class="step-gate"><b>Vai Al Punto:</b> da una lista punti chiude la dashboard, seleziona il punto nel tab Survey e apre il pannello punto per ispezione o rescan.</div>
                 </td>
                 <td class="workflow-gap"></td>
                 <td class="workflow-card">
@@ -744,6 +746,7 @@ TRANSLATIONS = {
                     <p><b>Punti Totali:</b> evidenza spaziale raccolta.</p>
                     <p><b>Scan OK:</b> punti con evidenza scan utilizzabile.</p>
                     <p><b>Rescan Necessario:</b> punti da ispezionare prima di fidarsi delle mappe.</p>
+                    <p><b>Card cliccabili:</b> aprono la lista punti corrispondente.</p>
                 </td>
                 <td class="survey-gap"></td>
                 <td class="survey-card">
@@ -771,7 +774,7 @@ TRANSLATIONS = {
             <div class="gate-row"><b>4. Conferma i dati AP da memoria:</b> Da Memoria non è un errore. Significa che alias, ruoli, metadata, override o posizioni compatibili sono stati riusati e vanno confermati o modificati.</div>
         </div>
         <h2>Finestra Dettagli</h2>
-        <p>Usa <b>Dettagli</b> quando una card mostra più di un semplice stato OK. Le righe dettaglio sono pensate per survey grandi: ogni punto, gruppo AP o cambio canale coinvolto ha la sua riga, e i pulsanti aprono la mappa o l'editor corretto senza caricare tutto nella dashboard principale.</p>
+        <p>Usa le KPI punto per aprire liste filtrate dei punti di misura. Usa <b>Dettagli</b> quando una card raccomandazione mostra gruppi AP, cambi canale o contesto diagnostico lungo. Le righe dettaglio sono pensate per survey grandi: ogni punto, gruppo AP o cambio canale coinvolto ha la sua riga, e i pulsanti aprono la mappa o l'editor corretto senza caricare tutto nella dashboard principale.</p>
         <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Scalabile Per Scelta</span><br>La dashboard principale mostra conteggi e priorità. Le finestre dettaglio contengono le liste lunghe, così molti gruppi AP o molti punti problematici restano leggibili.</td></tr></table>
         <h2>Revisione Memoria AP</h2>
         <p>Quando un nuovo rilievo vede BSSID già noti, il programma può riusare alias, ruoli, metadata, override canale analisi e posizioni mappa compatibili. Qualità Rilievo mantiene questa cosa visibile come finding del modello AP finché i dati non vengono confermati o modificati da Gruppi AP.</p>

@@ -159,7 +159,7 @@ TRANSLATIONS = {
     "quality_dashboard_fix_more_points_title": "Collect More Points",
     "quality_dashboard_fix_more_points_detail": "Only {total} points are available. Add more positions before reading coverage gaps.",
     "quality_dashboard_fix_ready_title": "Generate Maps",
-    "quality_dashboard_fix_ready_detail": "Main checks are clean. Generate maps or use the issue filter for a final pass.",
+    "quality_dashboard_fix_ready_detail": "Main checks are clean. Generate maps or open KPI point lists for a final pass.",
     "quality_dashboard_context_scope": "Survey Scope: Relevant {networks} | AP Positions {positions} | Test APs {test_aps}",
     "quality_dashboard_action_open_dominant": "Dominant AP Map",
     "quality_dashboard_action_open_ap_channels": "AP Channels Map",
@@ -194,7 +194,9 @@ TRANSLATIONS = {
     "quality_dashboard_scanner_details_missing_width": "{count} channel-sensitive rows missing channel width",
     "quality_dashboard_scanner_details_missing_frequency": "{count} 6 GHz rows missing frequency",
     "quality_dashboard_more_issues": "+{count} more",
-    "quality_dashboard_show_issues_only": "Show Only Points With Findings",
+    "quality_dashboard_metric_view_points": "View Points",
+    "quality_dashboard_metric_click_points": "Click To View Matching Points",
+    "quality_dashboard_points_dialog_title": "{label} - {count} Points",
     "quality_dashboard_visible_count": "{shown}/{total} points shown",
     "quality_dashboard_quality": "Quality",
     "quality_dashboard_scan_quality": "Scan Quality",
@@ -712,9 +714,9 @@ TRANSLATIONS = {
         <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
             <tr>
                 <td class="workflow-card">
-                    <div class="step-title">Point Table</div>
-                    <p><b>Show Only Points With Findings</b> is enabled by default when findings exist. If everything is clean, the table shows all points instead of an empty list.</p>
-                    <div class="step-gate"><b>Focus Point:</b> closes the dashboard, selects the point on the Survey tab and opens the point panel for inspection or rescan.</div>
+                    <div class="step-title">KPI Point Lists</div>
+                    <p>The main dashboard keeps the point table out of the first view. Click point-related KPI cards such as Rescan Needed, Scanner Details Missing, Low Scan Confidence or Dominant AP Findings to open the matching point list.</p>
+                    <div class="step-gate"><b>Focus Point:</b> from a point list, closes the dashboard, selects the point on the Survey tab and opens the point panel for inspection or rescan.</div>
                 </td>
                 <td class="workflow-gap"></td>
                 <td class="workflow-card">
@@ -744,6 +746,7 @@ TRANSLATIONS = {
                     <p><b>Total Points:</b> spatial evidence collected.</p>
                     <p><b>Scan OK:</b> points with usable scan evidence.</p>
                     <p><b>Rescan Needed:</b> points that should be inspected before maps are trusted.</p>
+                    <p><b>Clickable cards:</b> open the corresponding point list.</p>
                 </td>
                 <td class="survey-gap"></td>
                 <td class="survey-card">
@@ -771,7 +774,7 @@ TRANSLATIONS = {
             <div class="gate-row"><b>4. Confirm memory-derived AP data:</b> From Memory is not an error. It means aliases, roles, metadata, overrides or compatible positions were reused and should be confirmed or edited.</div>
         </div>
         <h2>Detail Dialogs</h2>
-        <p>Use <b>Extra Details</b> when a card shows more than a simple OK state. Detail rows are designed for large surveys: each affected point, AP group or channel change gets its own row, and action buttons open the right map or editor without forcing every problem onto the main dashboard.</p>
+        <p>Use point KPI cards for filtered measurement-point lists. Use <b>Extra Details</b> when a recommendation card shows AP groups, channel changes or long diagnostic context. Detail rows are designed for large surveys: each affected point, AP group or channel change gets its own row, and action buttons open the right map or editor without forcing every problem onto the main dashboard.</p>
         <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Scalable By Design</span><br>The main dashboard gives counts and priorities. Detail dialogs hold the long lists so many AP groups or many bad points remain readable.</td></tr></table>
         <h2>AP Memory Review</h2>
         <p>When a repeated survey sees known BSSIDs, the program can reuse saved AP aliases, roles, metadata, analysis-channel overrides and compatible floor-plan positions. Survey Quality keeps that visible as an AP Model finding until the AP Group data is confirmed or edited.</p>
