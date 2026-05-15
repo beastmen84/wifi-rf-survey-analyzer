@@ -139,6 +139,7 @@ from qt_ui.qt_quality_dashboard import (
     is_point_metric_filter,
     point_table_visible_row_count,
     point_rows_for_metric,
+    rescan_kpi_labels_for_row,
     quality_status_text_keys,
     resolve_metric_severity,
     split_recommendation_actions,
@@ -391,6 +392,24 @@ class FakeQualityApp:
     def tr(self, key, **kwargs):
         if key == "relevant_networks_none":
             return "No relevant network defined"
+        if key == "quality_dashboard_no_issue":
+            return "No Issues Detected"
+        if key == "quality_dashboard_metric_missing":
+            return "Missing Relevant Networks"
+        if key == "quality_dashboard_metric_sparse":
+            return "Sparse Data"
+        if key == "quality_dashboard_metric_low_confidence":
+            return "Low Scan Confidence"
+        if key == "quality_dashboard_metric_unstable":
+            return "Unstable Signal"
+        if key == "quality_dashboard_metric_scanner_details":
+            return "Scanner Details Missing"
+        if key == "quality_dashboard_check_kpi_issue":
+            return f"Check KPI: {kwargs.get('kpis', '')}"
+        if key == "quality_dashboard_scanner_details_fallback":
+            return f"Fallback scanner used: {kwargs.get('backends')}"
+        if key == "quality_dashboard_scanner_details_missing_width":
+            return f"{kwargs.get('count')} channel-sensitive rows missing channel width"
         if key == "quality_dashboard_missing_positions_more":
             return f"{kwargs.get('names', '')} +{kwargs.get('count', 0)}"
         if key == "quality_dashboard_missing_positions_none":

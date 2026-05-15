@@ -225,6 +225,9 @@ Implemented:
   rows at the default size and reducing empty table area for small filters;
 - KPI point-list overlays scope the Issue column to the selected KPI, so
   Dominant AP, scanner-detail and rescan views do not mix unrelated diagnostics;
+- overlay issue wording has been shortened for readability: Scan OK uses the
+  normal no-issue text, Scanner Details omits the redundant prefix, and Rescan
+  Needed lists the affected KPI cards to inspect;
 - missing relevant network information;
 - low confidence/unstable point information;
 - sparse-data count surfaced as its own dashboard metric;

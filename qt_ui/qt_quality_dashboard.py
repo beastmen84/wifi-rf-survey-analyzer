@@ -91,6 +91,7 @@ SEVERITY_COLORS = {
 METRIC_GRID_COLUMNS = 3
 POINT_TABLE_MAX_VISIBLE_ROWS = 14
 POINT_TABLE_ROW_HEIGHT = 38
+POINT_TABLE_MAX_ROW_HEIGHT = 68
 
 
 POINT_METRIC_FILTERS = {
@@ -144,16 +145,10 @@ def format_metric_point_issue(app, row, metric_key):
     if metric_key == "quality_dashboard_metric_points":
         return row.get("issue") or no_issue
     if metric_key == "quality_dashboard_metric_scan_ok":
-        return app.tr("quality_dashboard_scan_ok_issue")
+        return no_issue
     if metric_key == "quality_dashboard_metric_rescan":
-        parts = []
-        quality_issue = row.get("quality_issue")
-        if row.get("status") != QUALITY_GOOD and quality_issue and quality_issue != no_issue:
-            parts.append(quality_issue)
-        scanner_issue = row.get("scanner_detail_issue_text")
-        if row.get("scanner_detail_issue") and scanner_issue and scanner_issue != no_issue:
-            parts.append(scanner_issue)
-        return "; ".join(parts) if parts else app.tr("quality_dashboard_scan_ok_issue")
+        kpis = rescan_kpi_labels_for_row(app, row)
+        return app.tr("quality_dashboard_check_kpi_issue", kpis="; ".join(kpis)) if kpis else no_issue
     if metric_key in {
         "quality_dashboard_metric_missing",
         "quality_dashboard_metric_sparse",
@@ -162,10 +157,26 @@ def format_metric_point_issue(app, row, metric_key):
     }:
         return row.get("quality_issue") or no_issue
     if metric_key == "quality_dashboard_metric_scanner_details":
-        return row.get("scanner_detail_issue_text") or no_issue
+        return format_scanner_detail_summary(app, row.get("scanner_details", {}))
     if metric_key == "quality_dashboard_metric_ap_diagnostic_points":
         return row.get("ap_position_issue") or no_issue
     return row.get("issue") or no_issue
+
+
+def rescan_kpi_labels_for_row(app, row):
+    labels = []
+    status_metric_keys = {
+        QUALITY_MISSING_RELEVANT: "quality_dashboard_metric_missing",
+        QUALITY_SPARSE_DATA: "quality_dashboard_metric_sparse",
+        QUALITY_LOW_CONFIDENCE: "quality_dashboard_metric_low_confidence",
+        QUALITY_UNSTABLE_SIGNAL: "quality_dashboard_metric_unstable",
+    }
+    metric_key = status_metric_keys.get(row.get("status"))
+    if metric_key:
+        labels.append(app.tr(metric_key))
+    if row.get("scanner_detail_issue"):
+        labels.append(app.tr("quality_dashboard_metric_scanner_details"))
+    return labels
 
 
 def configure_point_table_columns(table):
@@ -892,8 +903,15 @@ class PointRowsDialog(QDialog):
     def resize_table_rows(self):
         self.table.resizeRowsToContents()
         min_height = widget_px(self, POINT_TABLE_ROW_HEIGHT)
+        max_height = widget_px(self, POINT_TABLE_MAX_ROW_HEIGHT)
         for row in range(self.table.rowCount()):
-            self.table.setRowHeight(row, max(min_height, self.table.rowHeight(row)))
+            bounded_height = max(min_height, min(max_height, self.table.rowHeight(row)))
+            self.table.setRowHeight(row, bounded_height)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, "table"):
+            self.resize_table_rows()
 
     def apply_initial_size(self):
         self.adjustSize()

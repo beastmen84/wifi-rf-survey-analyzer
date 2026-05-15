@@ -518,6 +518,12 @@ class QualityTests(unittest.TestCase):
             "quality_issue": "quality issue",
             "scanner_detail_issue": True,
             "scanner_detail_issue_text": "scanner issue",
+            "scanner_details": {
+                "has_issue": True,
+                "issue_types": [SCANNER_DETAIL_FALLBACK_BACKEND, SCANNER_DETAIL_MISSING_CHANNEL_WIDTH],
+                "backend_counts": {"netsh": 5},
+                "missing_channel_width_rows": 5,
+            },
             "ap_position_issue": "ap issue",
             "issue": "quality issue; scanner issue; ap issue",
         }
@@ -528,11 +534,11 @@ class QualityTests(unittest.TestCase):
         )
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_rescan"),
-            "quality issue; scanner issue",
+            "Check KPI: Low Scan Confidence; Scanner Details Missing",
         )
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_scanner_details"),
-            "scanner issue",
+            "Fallback scanner used: netsh | 5 channel-sensitive rows missing channel width",
         )
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_ap_diagnostic_points"),
@@ -540,7 +546,22 @@ class QualityTests(unittest.TestCase):
         )
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_scan_ok"),
-            "quality_dashboard_scan_ok_issue",
+            "No Issues Detected",
+        )
+
+    def test_quality_rescan_issue_lists_touched_kpis(self):
+        app = FakeQualityApp([])
+        row = {
+            "status": QUALITY_UNSTABLE_SIGNAL,
+            "scanner_detail_issue": True,
+        }
+
+        self.assertEqual(
+            rescan_kpi_labels_for_row(app, row),
+            [
+                "Unstable Signal",
+                "Scanner Details Missing",
+            ],
         )
 
     def test_quality_ap_position_details_use_global_dominant_action(self):
