@@ -53,9 +53,10 @@ Current status:
   dedicated KPI, recommendation card and detail rows;
 - `v0.9.3-beta.2` changes Survey Quality to scale better on larger surveys:
   the main dashboard keeps the full point table out of the first view, while
-  point-related KPI cards open filtered point-table overlays for total points,
-  scan OK, rescan needed, scanner details, low confidence, unstable signal,
-  missing relevant networks and dominant-AP findings; follow-up polish in the
+  actionable point-related KPI cards open filtered point-table overlays for
+  rescan needed, scanner details, low confidence, unstable signal, missing
+  relevant networks and dominant-AP findings; Total Points and Scan OK are
+  summary-only cards; follow-up polish in the
   same beta uses a wider three-column KPI grid, a subtle placeholder slot for
   future metrics, scrollable `What To Fix Next` content and a fixed formatted
   Survey Scope panel; filtered point-list overlays now size to whole rows, cap
@@ -215,8 +216,9 @@ Implemented:
 
 - styled grouped metric cards for survey points, scan quality and AP model
   health;
-- separate scan-OK/rescan-needed counts so AP diagnostics do not imply that
-  measurement points need to be repeated;
+- separate scan-OK/rescan-needed counts, with Rescan Needed acting as the
+  actionable point-review list and including AP-position/Dominant AP findings
+  when the point itself needs inspection;
 - point-related KPI cards open filtered point-table overlays, keeping the main
   dashboard focused on counts and the next actions instead of a long table;
 - KPI cards use a stable three-column grid; Survey Points uses one row, while
@@ -241,6 +243,10 @@ Implemented:
   filtered by the selected status so Low Scan Confidence does not include
   Unstable Signal details and formats low confidence/unstable signal findings
   as user-facing diagnostics such as confidence percentage and dB variation;
+- Total Points and Scan OK are not clickable because their filtered point tables
+  do not add useful diagnostic context;
+- Scanner Details and Dominant AP point-list issues use highlighted scanner/AP
+  values and include the key context needed to decide what to inspect next;
 - missing relevant network information;
 - low confidence/unstable point information;
 - sparse-data count surfaced as its own dashboard metric;

@@ -426,7 +426,7 @@ class QualityTests(unittest.TestCase):
             for action in channel_recommendation["detail_items"][0]["actions"]
         ))
 
-    def test_quality_summary_separates_scan_review_from_ap_setup_warnings(self):
+    def test_quality_summary_counts_ap_position_warnings_in_point_review(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)
         app = FakeQualityApp([row], relevant_ssids={"MAIN"})
 
@@ -441,8 +441,8 @@ class QualityTests(unittest.TestCase):
         )
 
         self.assertEqual(summary["review_points"], 2)
-        self.assertEqual(summary["scan_review_points"], 1)
-        self.assertEqual(summary["scan_ok_points"], 1)
+        self.assertEqual(summary["scan_review_points"], 2)
+        self.assertEqual(summary["scan_ok_points"], 0)
         self.assertEqual(summary["ap_diagnostic_points"], 1)
         self.assertEqual(summary["sparse_data"], 1)
         self.assertEqual(summary["ap_position_warnings"], 1)
@@ -497,20 +497,26 @@ class QualityTests(unittest.TestCase):
                 "scanner_detail_issue": False,
                 "ap_position_warning_count": 1,
             },
+            {
+                "status": QUALITY_GOOD,
+                "scanner_detail_issue": False,
+                "ap_position_warning_count": 1,
+            },
         ]
 
-        self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_points")), 4)
-        self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_scan_ok")), 1)
-        self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_rescan")), 3)
+        self.assertEqual(point_rows_for_metric(rows, "quality_dashboard_metric_points"), [])
+        self.assertEqual(point_rows_for_metric(rows, "quality_dashboard_metric_scan_ok"), [])
+        self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_rescan")), 4)
         self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_scanner_details")), 1)
         self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_low_confidence")), 1)
         self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_unstable")), 1)
         self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_missing")), 1)
-        self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_ap_diagnostic_points")), 1)
+        self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_ap_diagnostic_points")), 2)
         self.assertEqual(point_rows_for_metric(rows, "quality_dashboard_metric_ap_metadata_warnings"), [])
 
     def test_quality_metric_clickability_is_limited_to_point_filters_with_rows(self):
-        self.assertTrue(is_point_metric_filter("quality_dashboard_metric_points", 0))
+        self.assertFalse(is_point_metric_filter("quality_dashboard_metric_points", 25))
+        self.assertFalse(is_point_metric_filter("quality_dashboard_metric_scan_ok", 10))
         self.assertTrue(is_point_metric_filter("quality_dashboard_metric_rescan", 2))
         self.assertFalse(is_point_metric_filter("quality_dashboard_metric_rescan", 0))
         self.assertFalse(is_point_metric_filter("quality_dashboard_metric_ap_metadata_warnings", 2))
@@ -637,7 +643,7 @@ class QualityTests(unittest.TestCase):
         )
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_scanner_details"),
-            "Scanner Used: NETSH (Limited Channel Details) | Channel Width Missing On 5 Rows",
+            "Scanner Used: <b>NETSH</b> (Limited Channel Details) | Channel Width Missing On <b>5</b> Rows",
         )
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_low_confidence"),
@@ -741,14 +747,36 @@ class QualityTests(unittest.TestCase):
         self.assertIn("near-ap", position_recommendation["detail_items"][0]["detail"])
         self.assertIn("24.5 m", position_recommendation["detail_items"][0]["detail"])
         self.assertIn("unexpected dominant", position_recommendation["detail_items"][0]["finding"])
+        ap_issue_row = {
+            "ap_position_warning_count": 1,
+            "ap_position": {
+                "dominant_ap_group": "far-ap",
+                "dominant_signal_dbm": -51,
+                "warnings": [AP_POSITION_UNEXPECTED_DOMINANT],
+                "analysis": {
+                    "dominant_distance_m": 24.5,
+                    "nearest_ap_group": "near-ap",
+                    "nearest_distance_m": 3.2,
+                },
+            },
+        }
+        self.assertEqual(
+            format_metric_point_issue(
+                app,
+                ap_issue_row,
+                "quality_dashboard_metric_ap_diagnostic_points",
+            ),
+            "Dominant AP: <b>far-ap</b> (-51.0 dBm, 24.5 m) | "
+            "Closest AP: <b>near-ap</b> (3.2 m) | <b>unexpected dominant</b>",
+        )
 
-    def test_quality_status_uses_setup_message_when_only_ap_diagnostics_are_open(self):
+    def test_quality_status_uses_setup_message_for_model_only_diagnostics(self):
         summary = {
             "total_points": 12,
             "review_points": 3,
             "scan_review_points": 0,
-            "ap_position_warnings": 3,
-            "ap_metadata_warnings": 0,
+            "ap_position_warnings": 0,
+            "ap_metadata_warnings": 3,
             "ap_missing_positions": 0,
         }
 

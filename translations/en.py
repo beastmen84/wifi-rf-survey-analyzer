@@ -194,9 +194,9 @@ TRANSLATIONS = {
     "quality_dashboard_ap_metadata_channels": "Observed Channels: {channels} | Expected Channels: {expected}",
     "quality_dashboard_ap_metadata_bands": "Observed Bands: {bands} | Expected Bands: {expected}",
     "quality_dashboard_scanner_details_issue": "Scanner Details: {detail}",
-    "quality_dashboard_scanner_details_fallback": "Scanner Used: {backends} (Limited Channel Details)",
-    "quality_dashboard_scanner_details_missing_width": "Channel Width Missing On {count} Rows",
-    "quality_dashboard_scanner_details_missing_frequency": "6 GHz Frequency Missing On {count} Rows",
+    "quality_dashboard_scanner_details_fallback": "Scanner Used: <b>{backends}</b> (Limited Channel Details)",
+    "quality_dashboard_scanner_details_missing_width": "Channel Width Missing On <b>{count}</b> Rows",
+    "quality_dashboard_scanner_details_missing_frequency": "6 GHz Frequency Missing On <b>{count}</b> Rows",
     "quality_dashboard_issue_missing_relevant": "<b>{ssid}</b>: Relevant Network Not Detected At This Point",
     "quality_dashboard_issue_low_confidence": "<b>{ssid}</b>: {confidence} Confidence Level",
     "quality_dashboard_issue_unstable_signal": "<b>{ssid}</b>: Signal Varies By {range} dB",
@@ -213,7 +213,7 @@ TRANSLATIONS = {
     "quality_dashboard_issue": "Issue",
     "quality_dashboard_relevant_ssids": "Relevant SSIDs",
     "quality_dashboard_no_issue": "No Issues Detected",
-    "quality_dashboard_ap_position_issue": "AP Position: {ap} - {warning}",
+    "quality_dashboard_ap_position_issue": "Dominant AP: <b>{dominant}</b> ({signal}, {dominant_distance}) | Closest AP: <b>{closest}</b> ({closest_distance}) | <b>{warning}</b>",
     "quality_dashboard_missing_positions_none": "none",
     "quality_dashboard_missing_positions_more": "{names}, +{count}",
     "calibrate_scale": "Calibrate Scale",
@@ -699,7 +699,7 @@ TRANSLATIONS = {
     """,
     "help_quality_nav": "Survey Quality",
     "help_quality_title": "Survey Quality Dashboard",
-    "help_quality_subtitle": "The dashboard separates points that may need a rescan from AP setup diagnostics.",
+    "help_quality_subtitle": "The dashboard separates scan evidence, AP model diagnostics, and the points worth reviewing before maps are trusted.",
     "help_quality_body": """
         <h2>Read The Dashboard In Two Layers</h2>
         <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
@@ -724,7 +724,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card">
                     <div class="step-title">KPI Point Lists</div>
-                    <p>The main dashboard keeps the point table out of the first view. Click point-related KPI cards such as Rescan Needed, Scanner Details Missing, Low Scan Confidence or Dominant AP Findings to open the matching point list. The Issue column follows the KPI context; long diagnostics stay on one row and expose the full text through the tooltip.</p>
+                    <p>The main dashboard keeps the point table out of the first view. Click actionable point-related KPI cards such as Rescan Needed, Scanner Details Missing, Low Scan Confidence or Dominant AP Findings to open the matching point list. Total Points and Scan OK are summary cards only. The Issue column follows the KPI context; long diagnostics stay on one row and expose the full text through the tooltip.</p>
                     <div class="step-gate"><b>Focus Point:</b> from a point list, closes the dashboard, selects the point on the Survey tab and opens the point panel for inspection or rescan.</div>
                 </td>
                 <td class="workflow-gap"></td>

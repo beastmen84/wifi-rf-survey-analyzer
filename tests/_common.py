@@ -410,9 +410,9 @@ class FakeQualityApp:
         if key == "quality_dashboard_check_kpi_issue":
             return f"Check KPI: {kwargs.get('kpis', '')}"
         if key == "quality_dashboard_scanner_details_fallback":
-            return f"Scanner Used: {kwargs.get('backends')} (Limited Channel Details)"
+            return f"Scanner Used: <b>{kwargs.get('backends')}</b> (Limited Channel Details)"
         if key == "quality_dashboard_scanner_details_missing_width":
-            return f"Channel Width Missing On {kwargs.get('count')} Rows"
+            return f"Channel Width Missing On <b>{kwargs.get('count')}</b> Rows"
         if key == "quality_dashboard_issue_missing_relevant":
             return f"<b>{kwargs.get('ssid')}</b>: Relevant Network Not Detected At This Point"
         if key == "quality_dashboard_issue_low_confidence":
@@ -434,7 +434,12 @@ class FakeQualityApp:
         if key == "quality_dashboard_more_issues":
             return f"+{kwargs.get('count', 0)}"
         if key == "quality_dashboard_ap_position_issue":
-            return f"{kwargs.get('ap')}: {kwargs.get('warning')}"
+            return (
+                f"Dominant AP: <b>{kwargs.get('dominant')}</b> "
+                f"({kwargs.get('signal')}, {kwargs.get('dominant_distance')}) | "
+                f"Closest AP: <b>{kwargs.get('closest')}</b> ({kwargs.get('closest_distance')}) | "
+                f"<b>{kwargs.get('warning')}</b>"
+            )
         if key == "quality_dashboard_ap_metadata_channels":
             return f"channels {kwargs.get('channels')} expected {kwargs.get('expected')}"
         if key == "quality_dashboard_ap_metadata_bands":

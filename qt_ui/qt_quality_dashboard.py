@@ -105,12 +105,12 @@ QUALITY_METRIC_STATUSES = {
 
 
 POINT_METRIC_FILTERS = {
-    "quality_dashboard_metric_points": lambda row: True,
-    "quality_dashboard_metric_scan_ok": (
-        lambda row: row.get("status") == QUALITY_GOOD and not row.get("scanner_detail_issue")
-    ),
     "quality_dashboard_metric_rescan": (
-        lambda row: row.get("status") != QUALITY_GOOD or row.get("scanner_detail_issue")
+        lambda row: (
+            row.get("status") != QUALITY_GOOD
+            or row.get("scanner_detail_issue")
+            or row.get("ap_position_warning_count", 0) > 0
+        )
     ),
     "quality_dashboard_metric_missing": lambda row: row_has_quality_status(row, QUALITY_MISSING_RELEVANT),
     "quality_dashboard_metric_sparse": lambda row: row_has_quality_status(row, QUALITY_SPARSE_DATA),
@@ -184,8 +184,6 @@ def count_rows_with_quality_status(rows, status):
 def is_point_metric_filter(metric_key, value):
     if metric_key not in POINT_METRIC_FILTERS:
         return False
-    if metric_key == "quality_dashboard_metric_points":
-        return True
 
     try:
         return float(value) > 0
@@ -215,7 +213,7 @@ def format_metric_point_issue(app, row, metric_key):
     if metric_key == "quality_dashboard_metric_scanner_details":
         return format_scanner_detail_summary(app, row.get("scanner_details", {}))
     if metric_key == "quality_dashboard_metric_ap_diagnostic_points":
-        return row.get("ap_position_issue") or no_issue
+        return format_ap_position_point_issue(app, row) or no_issue
     return row.get("issue") or no_issue
 
 
@@ -1335,7 +1333,11 @@ def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None, ap_chann
     scan_review_points = sum(
         1
         for row in rows
-        if row["status"] != QUALITY_GOOD or row.get("scanner_detail_issue")
+        if (
+            row["status"] != QUALITY_GOOD
+            or row.get("scanner_detail_issue")
+            or row.get("ap_position_warning_count", 0) > 0
+        )
     )
     summary = {
         "total_points": len(rows),
@@ -2038,11 +2040,36 @@ def format_ap_position_issue(app, ap_position):
     if not warning_labels:
         return ""
 
-    ap_label = app.get_ap_group_display_name(ap_position.get("dominant_ap_group", ""))
+    return format_ap_position_point_issue(app, {"ap_position": ap_position})
+
+
+def format_ap_position_point_issue(app, row):
+    ap_position = row.get("ap_position") or {}
+    if not ap_position:
+        return row.get("ap_position_issue", "")
+
+    warning = format_ap_position_warning_summary(app, ap_position)
+    analysis = ap_position.get("analysis") or {}
+    dominant_group_id = ap_position.get("dominant_ap_group", "")
+    dominant_label = (
+        app.get_ap_group_display_name(dominant_group_id)
+        if dominant_group_id
+        else "-"
+    )
+    nearest_group_id = analysis.get("nearest_ap_group", "")
+    nearest_label = (
+        app.get_ap_group_display_name(nearest_group_id)
+        if nearest_group_id
+        else "-"
+    )
     return app.tr(
         "quality_dashboard_ap_position_issue",
-        ap=ap_label,
-        warning="; ".join(warning_labels),
+        dominant=escape(str(dominant_label)),
+        signal=format_dbm(ap_position.get("dominant_signal_dbm")),
+        dominant_distance=format_ap_distance(app, analysis, "dominant"),
+        closest=escape(str(nearest_label)),
+        closest_distance=format_ap_distance(app, analysis, "nearest"),
+        warning=escape(str(warning)),
     )
 
 
@@ -2108,7 +2135,7 @@ def format_scanner_detail_parts(app, scanner_details):
 
 
 def format_scanner_backend_label(backend):
-    return str(backend or "-").upper()
+    return escape(str(backend or "-").upper())
 
 
 def format_quality_issue(app, quality):

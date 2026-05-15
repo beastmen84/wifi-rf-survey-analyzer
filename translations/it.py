@@ -194,9 +194,9 @@ TRANSLATIONS = {
     "quality_dashboard_ap_metadata_channels": "Canali Rilevati: {channels} | Canali Attesi: {expected}",
     "quality_dashboard_ap_metadata_bands": "Bande Rilevate: {bands} | Bande Attese: {expected}",
     "quality_dashboard_scanner_details_issue": "Dettagli Scanner: {detail}",
-    "quality_dashboard_scanner_details_fallback": "Scanner usato: {backends} (dettagli canale limitati)",
-    "quality_dashboard_scanner_details_missing_width": "Ampiezza canale mancante su {count} righe",
-    "quality_dashboard_scanner_details_missing_frequency": "Frequenza 6 GHz mancante su {count} righe",
+    "quality_dashboard_scanner_details_fallback": "Scanner usato: <b>{backends}</b> (dettagli canale limitati)",
+    "quality_dashboard_scanner_details_missing_width": "Ampiezza canale mancante su <b>{count}</b> righe",
+    "quality_dashboard_scanner_details_missing_frequency": "Frequenza 6 GHz mancante su <b>{count}</b> righe",
     "quality_dashboard_issue_missing_relevant": "<b>{ssid}</b>: rete rilevante non rilevata in questo punto",
     "quality_dashboard_issue_low_confidence": "<b>{ssid}</b>: livello di confidenza {confidence}",
     "quality_dashboard_issue_unstable_signal": "<b>{ssid}</b>: segnale variabile di {range} dB",
@@ -213,7 +213,7 @@ TRANSLATIONS = {
     "quality_dashboard_issue": "Problema",
     "quality_dashboard_relevant_ssids": "SSID rilevanti",
     "quality_dashboard_no_issue": "Nessun Problema Rilevato",
-    "quality_dashboard_ap_position_issue": "Posizione AP: {ap} - {warning}",
+    "quality_dashboard_ap_position_issue": "AP dominante: <b>{dominant}</b> ({signal}, {dominant_distance}) | AP più vicino: <b>{closest}</b> ({closest_distance}) | <b>{warning}</b>",
     "quality_dashboard_missing_positions_none": "nessuno",
     "quality_dashboard_missing_positions_more": "{names}, +{count}",
     "calibrate_scale": "Calibra Scala",
@@ -699,7 +699,7 @@ TRANSLATIONS = {
     """,
     "help_quality_nav": "Qualità Rilievo",
     "help_quality_title": "Dashboard Qualità Rilievo",
-    "help_quality_subtitle": "La dashboard separa i punti che possono richiedere rescan dalla diagnostica di setup AP.",
+    "help_quality_subtitle": "La dashboard separa evidenza di scansione, diagnostica modello AP e punti da controllare prima di fidarsi delle mappe.",
     "help_quality_body": """
         <h2>Leggi La Dashboard Su Due Livelli</h2>
         <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
@@ -724,7 +724,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card">
                     <div class="step-title">Liste Punti Da KPI</div>
-                    <p>La dashboard principale non mostra subito la tabella punti. Clicca le KPI legate ai punti, per esempio Da Ripetere, Dettagli Scanner Mancanti, Bassa Confidenza Scansione o Anomalie Dominant AP, per aprire la lista filtrata corrispondente. La colonna Problema segue il contesto della KPI; le diagnostiche lunghe restano su una riga e mostrano il testo completo nel tooltip.</p>
+                    <p>La dashboard principale non mostra subito la tabella punti. Clicca le KPI operative legate ai punti, per esempio Da Ripetere, Dettagli Scanner Mancanti, Bassa Confidenza Scansione o Anomalie Dominant AP, per aprire la lista filtrata corrispondente. Totale Punti e Scan OK sono solo riepiloghi. La colonna Problema segue il contesto della KPI; le diagnostiche lunghe restano su una riga e mostrano il testo completo nel tooltip.</p>
                     <div class="step-gate"><b>Vai Al Punto:</b> da una lista punti chiude la dashboard, seleziona il punto nel tab Survey e apre il pannello punto per ispezione o rescan.</div>
                 </td>
                 <td class="workflow-gap"></td>
