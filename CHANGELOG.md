@@ -26,6 +26,8 @@ Beta focused on making Survey Quality scale better for larger real surveys.
   at the bottom of the recommendation column.
 - The `What To Fix Next` panel shows all recommendation cards inside its own
   scroll area instead of hiding one behind a `+N more` summary.
+- Filtered point-list overlays now size their table to whole rows, defaulting
+  to at most 14 visible rows and shrinking automatically for small result sets.
 - Help Center, README and V2 notes now describe KPI-driven point lists as the
   scalable way to inspect large surveys.
 

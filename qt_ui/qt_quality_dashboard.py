@@ -89,6 +89,8 @@ SEVERITY_COLORS = {
 }
 
 METRIC_GRID_COLUMNS = 3
+POINT_TABLE_MAX_VISIBLE_ROWS = 14
+POINT_TABLE_ROW_HEIGHT = 38
 
 
 POINT_METRIC_FILTERS = {
@@ -129,6 +131,14 @@ def is_point_metric_filter(metric_key, value):
         return bool(value)
 
 
+def point_table_visible_row_count(row_count):
+    try:
+        count = int(row_count)
+    except (TypeError, ValueError):
+        count = 0
+    return max(1, min(count, POINT_TABLE_MAX_VISIBLE_ROWS))
+
+
 def configure_point_table_columns(table):
     header = table.horizontalHeader()
     header.setStretchLastSection(False)
@@ -167,7 +177,7 @@ def populate_point_table(table, rows, owner):
                 item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 item.setToolTip(str(value))
             table.setItem(row_index, column_index, item)
-        table.setRowHeight(row_index, widget_px(owner, 38))
+        table.setRowHeight(row_index, widget_px(owner, POINT_TABLE_ROW_HEIGHT))
 
 
 def resolve_metric_severity(label_key, value, default_severity):
@@ -763,8 +773,7 @@ class PointRowsDialog(QDialog):
                 count=len(self.rows),
             )
         )
-        self.resize(widget_px(self, 1180), widget_px(self, 680))
-        self.setMinimumSize(widget_px(self, 820), widget_px(self, 420))
+        self.setMinimumSize(widget_px(self, 820), widget_px(self, 260))
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(widget_px(self, 14), widget_px(self, 14), widget_px(self, 14), widget_px(self, 14))
@@ -807,6 +816,7 @@ class PointRowsDialog(QDialog):
         ])
         configure_point_table_columns(self.table)
         populate_point_table(self.table, self.rows, self)
+        self.apply_table_height()
         self.table.itemDoubleClicked.connect(lambda _item: self.focus_selected_point())
         layout.addWidget(self.table, 1)
 
@@ -827,6 +837,23 @@ class PointRowsDialog(QDialog):
         close_button.clicked.connect(self.accept)
         button_row.addWidget(close_button)
         layout.addLayout(button_row)
+        self.apply_initial_size()
+
+    def apply_table_height(self):
+        visible_rows = point_table_visible_row_count(len(self.rows))
+        row_height = widget_px(self, POINT_TABLE_ROW_HEIGHT)
+        header_height = self.table.horizontalHeader().sizeHint().height()
+        frame_height = self.table.frameWidth() * 2
+        table_height = header_height + (visible_rows * row_height) + frame_height + widget_px(self, 2)
+        self.table.setMinimumHeight(table_height)
+        self.table.setMaximumHeight(table_height)
+
+    def apply_initial_size(self):
+        self.adjustSize()
+        width = widget_px(self, 1180)
+        max_height = widget_px(self, 760)
+        height = min(max_height, max(self.sizeHint().height(), self.minimumHeight()))
+        self.resize(width, height)
 
     def current_row_data(self):
         selected = self.table.selectedItems()

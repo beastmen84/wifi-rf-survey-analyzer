@@ -58,7 +58,8 @@ Current status:
   missing relevant networks and dominant-AP findings; follow-up polish in the
   same beta uses a wider three-column KPI grid, a subtle placeholder slot for
   future metrics, scrollable `What To Fix Next` content and a fixed formatted
-  Survey Scope panel;
+  Survey Scope panel; filtered point-list overlays now size to whole rows, cap
+  the default table at 14 visible rows and shrink for small result sets;
 - the latest Windows release artifact remains the `v0.9.2-beta.1` PyInstaller
   `onedir` ZIP until an intentional package rebuild is requested;
 - Help content and structure have an expanded V2 Help Center implementation;
@@ -219,6 +220,8 @@ Implemented:
 - KPI cards use a stable three-column grid; Survey Points uses one row, while
   Scan Quality and AP Model use two rows with a subtle placeholder card in the
   final empty slot so card widths and reserved space stay consistent;
+- KPI point-list overlays size the table to whole rows, avoiding half-visible
+  rows at the default size and reducing empty table area for small filters;
 - missing relevant network information;
 - low confidence/unstable point information;
 - sparse-data count surfaced as its own dashboard metric;

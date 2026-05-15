@@ -505,6 +505,12 @@ class QualityTests(unittest.TestCase):
         self.assertFalse(is_point_metric_filter("quality_dashboard_metric_rescan", 0))
         self.assertFalse(is_point_metric_filter("quality_dashboard_metric_ap_metadata_warnings", 2))
 
+    def test_quality_point_table_overlay_visible_rows_are_capped_and_autofit(self):
+        self.assertEqual(point_table_visible_row_count(0), 1)
+        self.assertEqual(point_table_visible_row_count(4), 4)
+        self.assertEqual(point_table_visible_row_count(14), 14)
+        self.assertEqual(point_table_visible_row_count(25), 14)
+
     def test_quality_ap_position_details_use_global_dominant_action(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)
         app = FakeQualityApp([row], relevant_ssids={"MAIN"})
