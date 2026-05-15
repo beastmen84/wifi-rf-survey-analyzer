@@ -123,6 +123,7 @@ TRANSLATIONS = {
     "quality_dashboard_metric_rescan": "Rescan Needed",
     "quality_dashboard_metric_missing": "Missing Relevant Networks",
     "quality_dashboard_metric_sparse": "Sparse Data",
+    "quality_dashboard_metric_scanner_details": "Scanner Details Missing",
     "quality_dashboard_metric_low_confidence": "Low Scan Confidence",
     "quality_dashboard_metric_unstable": "Unstable Signal",
     "quality_dashboard_metric_ap_diagnostic_points": "Dominant AP Findings",
@@ -136,6 +137,9 @@ TRANSLATIONS = {
     "quality_dashboard_fix_missing_detail": "{count} points do not see the selected relevant SSIDs. Rescan them or check the relevant network list.",
     "quality_dashboard_fix_sparse_title": "Repeat Sparse Scans",
     "quality_dashboard_fix_sparse_detail": "{count} points have too few usable samples. Repeat those scans before trusting interpolation.",
+    "quality_dashboard_fix_scanner_details_title": "Rescan Points With Limited Scanner Details",
+    "quality_dashboard_fix_scanner_details_detail": "{count} points are missing scanner details used by channel-sensitive analysis. Rescan them before relying on Interference, 5 GHz width overlap, or 6 GHz interpretation.",
+    "quality_dashboard_fix_scanner_details_dialog_detail": "Use Focus Point and rescan these points when channel width, frequency, or fallback scanner data affects map conclusions.",
     "quality_dashboard_fix_low_confidence_title": "Rescan Low-Confidence Points",
     "quality_dashboard_fix_low_confidence_detail": "{count} points have low dominant-candidate confidence. Repeat them or verify scanner stability.",
     "quality_dashboard_fix_unstable_title": "Repeat Unstable Points",
@@ -185,6 +189,10 @@ TRANSLATIONS = {
     "quality_dashboard_context_config_warnings": "AP Config Details",
     "quality_dashboard_ap_metadata_channels": "Observed Channels: {channels} | Expected Channels: {expected}",
     "quality_dashboard_ap_metadata_bands": "Observed Bands: {bands} | Expected Bands: {expected}",
+    "quality_dashboard_scanner_details_issue": "Scanner Details: {detail}",
+    "quality_dashboard_scanner_details_fallback": "Fallback scanner used: {backends}",
+    "quality_dashboard_scanner_details_missing_width": "{count} channel-sensitive rows missing channel width",
+    "quality_dashboard_scanner_details_missing_frequency": "{count} 6 GHz rows missing frequency",
     "quality_dashboard_more_issues": "+{count} more",
     "quality_dashboard_show_issues_only": "Show Only Points With Findings",
     "quality_dashboard_visible_count": "{shown}/{total} points shown",
@@ -688,7 +696,7 @@ TRANSLATIONS = {
                 <td class="workflow-card">
                     <div class="step-label">Layer 1</div>
                     <div class="step-title">Point Quality</div>
-                    <p>Decide whether the measurement points can be trusted. Missing relevant networks, sparse evidence, low confidence and unstable signal are point-level findings.</p>
+                    <p>Decide whether the measurement points can be trusted. Missing relevant networks, sparse evidence, limited scanner details, low confidence and unstable signal are point-level findings.</p>
                     <div class="step-gate"><b>Usual action:</b> focus the point, inspect it, rescan it or collect nearby points before trusting maps built from it.</div>
                 </td>
                 <td class="workflow-gap"></td>
@@ -742,6 +750,7 @@ TRANSLATIONS = {
                     <div class="survey-card-title">Scan Quality</div>
                     <p><b>Missing Relevant Networks:</b> intended SSIDs not seen at a point.</p>
                     <p><b>Sparse Data:</b> too little repeated evidence.</p>
+                    <p><b>Scanner Details Missing:</b> fallback scanner data or missing channel width/frequency can weaken Interference and 6 GHz conclusions.</p>
                     <p><b>Low Confidence / Unstable Signal:</b> weak or inconsistent repeated scans.</p>
                 </td>
                 <td class="survey-gap"></td>
@@ -756,7 +765,7 @@ TRANSLATIONS = {
         </table>
         <h2>What To Fix First</h2>
         <div class="gate-list">
-            <div class="gate-row"><b>1. Fix point evidence first:</b> missing relevant networks, sparse data, low confidence and unstable signal can poison every map. Focus the point and rescan before tuning AP interpretation.</div>
+            <div class="gate-row"><b>1. Fix point evidence first:</b> missing relevant networks, sparse data, limited scanner details, low confidence and unstable signal can poison every map. Focus the point and rescan before tuning AP interpretation.</div>
             <div class="gate-row"><b>2. Fix AP identity and position next:</b> dominant AP findings and missing AP positions usually mean the AP model needs review before roaming or position diagnostics are trusted.</div>
             <div class="gate-row"><b>3. Review AP metadata and channels:</b> AP config warnings and channel changes affect AP Channels and Interference. Open AP Metadata when expected channels, observed channels or analysis-channel overrides need review.</div>
             <div class="gate-row"><b>4. Confirm memory-derived AP data:</b> From Memory is not an error. It means aliases, roles, metadata, overrides or compatible positions were reused and should be confirmed or edited.</div>

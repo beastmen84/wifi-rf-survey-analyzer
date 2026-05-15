@@ -52,6 +52,9 @@ from maps.quality import (
     QUALITY_MISSING_RELEVANT,
     QUALITY_SPARSE_DATA,
     QUALITY_UNSTABLE_SIGNAL,
+    SCANNER_DETAIL_FALLBACK_BACKEND,
+    SCANNER_DETAIL_MISSING_6GHZ_FREQUENCY,
+    SCANNER_DETAIL_MISSING_CHANNEL_WIDTH,
     evaluate_point_quality,
     get_dominant_candidate_rows,
     get_relevant_ssids_from_rows,
@@ -274,6 +277,7 @@ class QualityDashboardDialog(QDialog):
                 [
                     ("quality_dashboard_metric_missing", summary["missing_relevant"], "danger"),
                     ("quality_dashboard_metric_sparse", summary["sparse_data"], "warning"),
+                    ("quality_dashboard_metric_scanner_details", summary["scanner_detail_points"], "warning"),
                     ("quality_dashboard_metric_low_confidence", summary["low_confidence"], "warning"),
                     ("quality_dashboard_metric_unstable", summary["unstable"], "warning"),
                 ],
@@ -812,13 +816,18 @@ def build_dashboard_rows(app, point_summaries, quality_by_point_id, ap_position_
         status = quality.get("status", QUALITY_SPARSE_DATA)
         ap_position = ap_position_by_point.get(point_key(point))
         ap_position_issue = format_ap_position_issue(app, ap_position)
+        scanner_details = quality.get("scanner_details", {})
+        scanner_detail_issue = format_scanner_detail_issue(app, scanner_details)
         issue = format_quality_issue(app, quality)
+        if scanner_detail_issue:
+            issue = join_issues(issue, scanner_detail_issue, app.tr("quality_dashboard_no_issue"))
         if ap_position_issue:
             issue = join_issues(issue, ap_position_issue, app.tr("quality_dashboard_no_issue"))
 
-        needs_review = status != QUALITY_GOOD or bool(ap_position_issue)
+        has_scanner_detail_issue = bool(scanner_details.get("has_issue"))
+        needs_review = status != QUALITY_GOOD or bool(ap_position_issue) or has_scanner_detail_issue
         severity = QUALITY_SEVERITY.get(status, "warning")
-        if ap_position_issue and status == QUALITY_GOOD:
+        if (ap_position_issue or has_scanner_detail_issue) and status == QUALITY_GOOD:
             severity = "warning"
 
         rows.append({
@@ -833,6 +842,8 @@ def build_dashboard_rows(app, point_summaries, quality_by_point_id, ap_position_
             "severity": severity,
             "ap_position_warning_count": len(ap_position.get("warnings", [])) if ap_position else 0,
             "ap_position": ap_position or {},
+            "scanner_detail_issue": has_scanner_detail_issue,
+            "scanner_details": scanner_details,
             "confidence": format_point_confidence(app.session.rows, point.get("point_id", ""), relevant_ssids),
             "best": f"{point['best_signal_dbm']:.1f}",
             "row_count": point["row_count"],
@@ -904,15 +915,23 @@ def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None, ap_chann
     if not missing_position_labels:
         missing_position_labels = app.tr("quality_dashboard_missing_positions_none")
 
+    scanner_detail_points = sum(1 for row in rows if row.get("scanner_detail_issue"))
+    scan_review_points = sum(
+        1
+        for row in rows
+        if row["status"] != QUALITY_GOOD or row.get("scanner_detail_issue")
+    )
     summary = {
         "total_points": len(rows),
         "good_points": sum(1 for row in rows if not row["needs_review"]),
         "review_points": sum(1 for row in rows if row["needs_review"]),
-        "scan_review_points": sum(1 for row in rows if row["status"] != QUALITY_GOOD),
+        "scan_review_points": scan_review_points,
         "missing_relevant": status_counts.get(QUALITY_MISSING_RELEVANT, 0),
         "low_confidence": status_counts.get(QUALITY_LOW_CONFIDENCE, 0),
         "unstable": status_counts.get(QUALITY_UNSTABLE_SIGNAL, 0),
         "sparse_data": status_counts.get(QUALITY_SPARSE_DATA, 0),
+        "scanner_detail_points": scanner_detail_points,
+        "scanner_detail_items": build_scanner_detail_items(app, rows),
         "ap_position_warnings": sum(1 for row in rows if row.get("ap_position_warning_count", 0) > 0),
         "ap_missing_positions": len(missing_position_groups),
         "missing_position_labels": missing_position_labels,
@@ -1019,6 +1038,15 @@ def build_quality_recommendations(app, summary):
         "quality_dashboard_fix_sparse_title",
         "quality_dashboard_fix_sparse_detail",
         "warning",
+    )
+    add(
+        summary["scanner_detail_points"],
+        "quality_dashboard_fix_scanner_details_title",
+        "quality_dashboard_fix_scanner_details_detail",
+        "warning",
+        detail_items=summary.get("scanner_detail_items", []),
+        detail_count_key="quality_dashboard_detail_measurement_points",
+        dialog_detail_key="quality_dashboard_fix_scanner_details_dialog_detail",
     )
     add(
         summary["low_confidence"],
@@ -1304,6 +1332,29 @@ def build_channel_change_detail_items(app, items):
             "actions": actions,
         })
     return detail_items
+
+
+def build_scanner_detail_items(app, rows):
+    return [
+        {
+            "label": app.tr(
+                "quality_dashboard_point_detail_label",
+                point=row.get("number", "-"),
+                x=row.get("x", "-"),
+                y=row.get("y", "-"),
+            ),
+            "detail": format_scanner_detail_detail(app, row.get("scanner_details", {})),
+            "actions": [
+                {
+                    "kind": "point",
+                    "row": row,
+                    "label": app.tr("quality_dashboard_action_focus_point"),
+                },
+            ],
+        }
+        for row in rows
+        if row.get("scanner_detail_issue")
+    ]
 
 
 def build_missing_position_detail_items(app, items):
@@ -1593,6 +1644,51 @@ def join_issues(current_issue, extra_issue, no_issue_label):
         return extra_issue
 
     return f"{current_issue}; {extra_issue}"
+
+
+def format_scanner_detail_issue(app, scanner_details):
+    if not scanner_details or not scanner_details.get("has_issue"):
+        return ""
+
+    return app.tr(
+        "quality_dashboard_scanner_details_issue",
+        detail=format_scanner_detail_summary(app, scanner_details),
+    )
+
+
+def format_scanner_detail_detail(app, scanner_details):
+    if not scanner_details or not scanner_details.get("has_issue"):
+        return app.tr("quality_dashboard_no_issue")
+
+    parts = format_scanner_detail_parts(app, scanner_details)
+    return "\n".join(parts) if parts else app.tr("quality_dashboard_no_issue")
+
+
+def format_scanner_detail_summary(app, scanner_details):
+    parts = format_scanner_detail_parts(app, scanner_details)
+    return " | ".join(parts) if parts else app.tr("quality_dashboard_no_issue")
+
+
+def format_scanner_detail_parts(app, scanner_details):
+    issue_types = set(scanner_details.get("issue_types", []))
+    parts = []
+    if SCANNER_DETAIL_FALLBACK_BACKEND in issue_types:
+        backends = ", ".join(
+            backend
+            for backend in scanner_details.get("backend_counts", {})
+        ) or "-"
+        parts.append(app.tr("quality_dashboard_scanner_details_fallback", backends=backends))
+    if SCANNER_DETAIL_MISSING_CHANNEL_WIDTH in issue_types:
+        parts.append(app.tr(
+            "quality_dashboard_scanner_details_missing_width",
+            count=scanner_details.get("missing_channel_width_rows", 0),
+        ))
+    if SCANNER_DETAIL_MISSING_6GHZ_FREQUENCY in issue_types:
+        parts.append(app.tr(
+            "quality_dashboard_scanner_details_missing_frequency",
+            count=scanner_details.get("missing_6ghz_frequency_rows", 0),
+        ))
+    return parts
 
 
 def format_quality_issue(app, quality):

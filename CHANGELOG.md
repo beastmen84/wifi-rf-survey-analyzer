@@ -10,6 +10,21 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 
 No unreleased user-facing changes.
 
+## v0.9.3-beta.1 - 2026-05-15
+
+Beta focused on scanner-data validation after the first broad office survey.
+
+- Survey Quality now flags measurement points collected with fallback `netsh`
+  scanner data.
+- Survey Quality now flags channel-sensitive rows missing channel width and
+  6 GHz rows missing frequency data.
+- Added a dedicated `Scanner Details Missing` KPI, recommendation card and
+  detail rows so these findings stay separate from low signal confidence or AP
+  model diagnostics.
+- Help Center, README and V2 notes now document limited scanner details as a
+  rescan reason before relying on Interference, 5 GHz width-overlap or 6 GHz
+  interpretation.
+
 ## v0.9.2-beta.1 - 2026-05-14
 
 Beta focused on Help Center polish, gesture documentation, measurement-system

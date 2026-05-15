@@ -1,6 +1,6 @@
 # WiFi Heatmap - V2 Architecture Notes
 
-Last updated: 2026-05-14
+Last updated: 2026-05-15
 
 This document is the forward-looking V2 roadmap. Completed items are kept only
 as context; the actionable backlog is in the "Remaining Work" section.
@@ -23,8 +23,8 @@ interpolated colors.
 Current status:
 
 - public release versioning is separate from the internal V2 generation:
-  the current feature beta is `v0.9.2-beta.1`, while `v1.0.0` should wait for
-  Help Center review/polish and a full office validation pass;
+  the current feature beta is `v0.9.3-beta.1`, while `v1.0.0` should wait for
+  completion of real-survey validation fixes;
 - future beta release candidates should use the current minor beta line for
   validation/polish or a new minor beta for feature-level additions; do not
   regenerate exe/ZIP for every commit, only when cutting an intentional release
@@ -47,11 +47,12 @@ Current status:
 - the V2 functional scope is effectively closed for the current release: no
   known AP Group, live-map, PDF, quality-dashboard or core survey blocker is
   open;
-- `v0.9.2-beta.1` marks the current code state after Help Center polish,
-  controls cleanup and metric/imperial measurement-system support; the Windows
-  release artifact is the PyInstaller `onedir` build zipped as
-  `dist/WifiHeatmap-v0.9.2-beta.1-win64.zip`, with 214 tests passing after
-  packaging;
+- `v0.9.3-beta.1` adds scanner-data validation surfaced in Survey Quality:
+  fallback `netsh` capture, missing channel-width details for channel-sensitive
+  rows and missing 6 GHz frequency data now become point-level findings with a
+  dedicated KPI, recommendation card and detail rows;
+- the latest Windows release artifact remains the `v0.9.2-beta.1` PyInstaller
+  `onedir` ZIP until an intentional package rebuild is requested;
 - Help content and structure have an expanded V2 Help Center implementation;
   the Recommended Workflow page has received the first visual-density polish
   pass with step cards, decision-gate rows and Qt-compatible accent-column
@@ -787,38 +788,42 @@ Remaining closeout:
 
 V2 closeout:
 
-1. Review the new Help Center in the running UI and polish wording/formatting,
-   with the Controls page treated as its own pass.
-2. Do a short EN/IT Help and UI smoke pass after the Help review.
-3. Tag the current V2 behavior as complete unless the smoke pass exposes a real
-   workflow issue.
+1. Validate `v0.9.3-beta.1` on the office survey and confirm that scanner detail
+   findings correctly identify points worth rescanning.
+2. Add relevant-network scope for local/zone-only SSIDs as `v0.9.4-beta.1`, so
+   SSIDs like office-local routers do not create whole-building quality noise.
+3. Add connected-client BSSID/roaming diagnostics as `v0.9.5-beta.1` if Windows
+   exposes stable connected-BSSID evidence during capture.
+4. Review the new Help Center in the running UI and polish wording/formatting
+   where real screenshots show a problem.
+5. Do a short EN/IT Help and UI smoke pass after the Help review.
 
 Monitoring:
 
-4. Keep AP Group, live PDF and Survey Quality in monitoring mode unless new
+6. Keep AP Group, live PDF and Survey Quality in monitoring mode unless new
    real data exposes a concrete issue.
-5. Validate AP Memory behavior on repeat surveys, especially large AP sets,
+7. Validate AP Memory behavior on repeat surveys, especially large AP sets,
    copied memory files and floor-plan position reuse.
-6. Validate 6 GHz behavior with real 6E/7 hardware data when available.
-7. Tune performance only after larger real surveys show measurable lag.
+8. Validate 6 GHz behavior with real 6E/7 hardware data when available.
+9. Tune performance only after larger real surveys show measurable lag.
 
 Post-V2 expansion:
 
-8. Improve combined/generated reporting beyond individual live-map exports.
-9. Add a dedicated AP Memory management view only if real use needs explicit
+10. Improve combined/generated reporting beyond individual live-map exports.
+11. Add a dedicated AP Memory management view only if real use needs explicit
    review, cleanup or conflict resolution beyond the current automatic
    apply/confirm flow.
-10. Use AP metadata more deeply in diagnostics where the rule is clear.
-11. Refine the AP physical/radio/BSSID model only if real deployments require it.
-12. Add an AI Advisor next to each live map. It should analyze the measured
+12. Use AP metadata more deeply in diagnostics where the rule is clear.
+13. Refine the AP physical/radio/BSSID model only if real deployments require it.
+14. Add an AI Advisor next to each live map. It should analyze the measured
     survey evidence and propose actionable RF changes, such as channel-width or
     channel adjustments to reduce interference. Recommendations must remain
     grounded in visible survey data, explain assumptions/confidence, and stay
     advisory rather than silently mutating AP metadata or map settings.
-13. Add a lightweight Floorplan Creator for technical RF floor maps. Scope
+15. Add a lightweight Floorplan Creator for technical RF floor maps. Scope
     should be scaled geometry, snap, wall thickness, simple shapes, doors and
     measurements; it should not become an interior-design tool.
-14. Add richer deployment/reporting outputs.
+16. Add richer deployment/reporting outputs.
 
 ## Final Vision
 

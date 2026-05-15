@@ -9,12 +9,12 @@ survey quality, and export explainable RF maps.
 
 ## Release Status
 
-- Current version: `v0.9.2-beta.1`
+- Current version: `v0.9.3-beta.1`
 - Release type: beta / pre-release
 - Active UI: PySide6
 - Main entry point: `main.py`
 - Current survey format: CSV plus linked `.scan` raw-data sidecar
-- Windows release ZIP: `WifiHeatmap-v0.9.2-beta.1-win64.zip`
+- Latest Windows release ZIP: `WifiHeatmap-v0.9.2-beta.1-win64.zip`
 
 The current beta is intended for real-world validation of the Qt workflow. A
 stable `v1.0.0` is planned after Help Center review and broader field testing.
@@ -76,6 +76,10 @@ The data model supports 2.4 GHz, 5 GHz, and 6 GHz observations. When explicit
 band/frequency data is unavailable, the app uses conservative channel-based
 inference.
 
+Survey Quality also flags points where fallback scanner data or missing
+channel-width/frequency details may weaken channel-sensitive conclusions such
+as Interference, 5 GHz width overlap, or future 6 GHz validation.
+
 ## AP Modeling
 
 AP groups represent physical access points rather than isolated BSSIDs. This
@@ -100,9 +104,9 @@ The Survey Quality Dashboard is designed to be reviewed before trusting maps.
 It separates measurement-point problems from AP model/setup diagnostics.
 
 Current checks include missing relevant networks, low scan confidence, unstable
-signals, sparse point data, AP metadata warnings, AP Memory review states, AP
-group conflicts, missing AP positions, dominant-AP position anomalies, and AP
-channel changes that affect channel-sensitive maps.
+signals, sparse point data, limited scanner details, AP metadata warnings, AP
+Memory review states, AP group conflicts, missing AP positions, dominant-AP
+position anomalies, and AP channel changes that affect channel-sensitive maps.
 
 ## Live Maps And PDF Reports
 
@@ -225,7 +229,7 @@ dist/WifiHeatmap/WifiHeatmap.exe
 For distribution, publish the zipped PyInstaller `onedir` folder:
 
 ```text
-dist/WifiHeatmap-v0.9.2-beta.1-win64.zip
+dist/WifiHeatmap-v0.9.3-beta.1-win64.zip
 ```
 
 The `onedir` format is intentional for this PySide6/scientific stack. It starts
@@ -242,9 +246,9 @@ between official release builds.
 
 Current release:
 
-- `v0.9.2-beta.1`
+- `v0.9.3-beta.1`
 
-Current Windows release ZIP:
+Latest Windows release ZIP:
 
 - `WifiHeatmap-v0.9.2-beta.1-win64.zip`
 
@@ -255,6 +259,7 @@ Before `v1.0.0`:
 - finish Help Center review in the running UI;
 - run broader real-world validation on operational survey data;
 - fix concrete issues found during that review/test cycle.
+- refine relevant-network scope for local/zone-only SSIDs.
 
 Possible future product areas:
 

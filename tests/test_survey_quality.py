@@ -61,6 +61,37 @@ class QualityTests(unittest.TestCase):
 
         self.assertEqual(quality["p1"]["status"], QUALITY_SPARSE_DATA)
 
+    def test_scanner_details_flag_netsh_and_missing_width_without_changing_signal_status(self):
+        row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -52, 36, band="5")
+        row["channel_width_mhz"] = ""
+        raw_rows = []
+        for attempt in range(5):
+            raw = build_raw_row("p1", "MAIN", "70:4f:57:aa:bb:10", -52, 36, band="5")
+            raw["scan_attempt"] = str(attempt + 1)
+            raw["channel_width_mhz"] = ""
+            raw["backend"] = "netsh"
+            raw_rows.append(raw)
+
+        quality = evaluate_point_quality([row], raw_rows, relevant_ssids={"MAIN"})
+
+        self.assertEqual(quality["p1"]["status"], QUALITY_GOOD)
+        scanner_details = quality["p1"]["scanner_details"]
+        self.assertTrue(scanner_details["has_issue"])
+        self.assertEqual(scanner_details["fallback_rows"], 5)
+        self.assertEqual(scanner_details["missing_channel_width_rows"], 5)
+        self.assertIn(SCANNER_DETAIL_FALLBACK_BACKEND, scanner_details["issue_types"])
+        self.assertIn(SCANNER_DETAIL_MISSING_CHANNEL_WIDTH, scanner_details["issue_types"])
+
+    def test_scanner_details_flag_missing_6ghz_frequency(self):
+        row = build_row("p1", "MAIN-6", "70:4f:57:aa:bb:10", -52, 5, band="6")
+        row["frequency_mhz"] = ""
+
+        scanner_details = evaluate_scanner_details([row], [], relevant_ssids={"MAIN-6"})
+
+        self.assertTrue(scanner_details["has_issue"])
+        self.assertEqual(scanner_details["missing_6ghz_frequency_rows"], 1)
+        self.assertIn(SCANNER_DETAIL_MISSING_6GHZ_FREQUENCY, scanner_details["issue_types"])
+
     def test_quality_checks_present_relevant_network_before_missing_peer_ssid(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -52, 1)
         row["scan_confidence"] = "0.1"
@@ -204,6 +235,37 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(rows[0]["ap_position_warning_count"], 1)
         self.assertIn("main: low_confidence", rows[0]["issue"])
         self.assertIn("main-ap", rows[0]["issue"])
+
+    def test_dashboard_counts_scanner_detail_findings_as_scan_review(self):
+        row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -50, 36, band="5")
+        app = FakeQualityApp([row], relevant_ssids={"MAIN"})
+        point_summaries = get_survey_point_summaries_from_rows([row])
+        quality_by_point_id = {
+            "p1": {
+                "status": QUALITY_GOOD,
+                "breakdown": [{"ssid": "main", "status": QUALITY_GOOD, "message": "good"}],
+                "scanner_details": {
+                    "has_issue": True,
+                    "issue_types": [SCANNER_DETAIL_FALLBACK_BACKEND, SCANNER_DETAIL_MISSING_CHANNEL_WIDTH],
+                    "backend_counts": {"netsh": 5},
+                    "fallback_rows": 5,
+                    "missing_channel_width_rows": 5,
+                    "missing_6ghz_frequency_rows": 0,
+                    "inspected_rows": 5,
+                },
+            }
+        }
+
+        rows = build_dashboard_rows(app, point_summaries, quality_by_point_id, {})
+        summary = build_summary(app, rows, [], [])
+
+        self.assertTrue(rows[0]["needs_review"])
+        self.assertEqual(rows[0]["severity"], "warning")
+        self.assertEqual(summary["scanner_detail_points"], 1)
+        self.assertEqual(summary["scan_review_points"], 1)
+        self.assertEqual(summary["scan_ok_points"], 0)
+        self.assertEqual(summary["recommendations"][0]["title"], "quality_dashboard_fix_scanner_details_title")
+        self.assertEqual(len(summary["recommendations"][0]["detail_items"]), 1)
 
     def test_quality_summary_formats_metadata_warning_labels(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)

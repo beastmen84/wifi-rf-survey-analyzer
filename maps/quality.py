@@ -2,12 +2,17 @@
 
 from collections import defaultdict
 
+from wifi.band import get_row_band
+
 
 QUALITY_GOOD = "GOOD"
 QUALITY_MISSING_RELEVANT = "MISSING_RELEVANT"
 QUALITY_LOW_CONFIDENCE = "LOW_CONFIDENCE"
 QUALITY_UNSTABLE_SIGNAL = "UNSTABLE_SIGNAL"
 QUALITY_SPARSE_DATA = "SPARSE_DATA"
+SCANNER_DETAIL_FALLBACK_BACKEND = "FALLBACK_BACKEND"
+SCANNER_DETAIL_MISSING_CHANNEL_WIDTH = "MISSING_CHANNEL_WIDTH"
+SCANNER_DETAIL_MISSING_6GHZ_FREQUENCY = "MISSING_6GHZ_FREQUENCY"
 DOMINANT_SIGNAL_WINDOW_DB = 5
 
 
@@ -38,11 +43,12 @@ def group_by_point_id(rows):
 
 def evaluate_single_point(rows, raw_rows, relevant_ssids=None):
     if not rows:
-        return build_quality_result(QUALITY_SPARSE_DATA)
+        return build_quality_result(QUALITY_SPARSE_DATA, scanner_details=build_scanner_detail_result())
 
     relevant_ssids = normalize_ssids(relevant_ssids or get_relevant_ssids_from_rows(rows))
     quality_rows = get_quality_rows(rows, relevant_ssids)
     breakdown = build_quality_breakdown(rows, raw_rows, relevant_ssids)
+    scanner_details = evaluate_scanner_details(rows, raw_rows, relevant_ssids)
     missing_relevant = sorted(
         item["ssid"]
         for item in breakdown
@@ -52,30 +58,97 @@ def evaluate_single_point(rows, raw_rows, relevant_ssids=None):
         return build_quality_result(
             QUALITY_MISSING_RELEVANT,
             missing_relevant=missing_relevant,
-            breakdown=breakdown
+            breakdown=breakdown,
+            scanner_details=scanner_details,
         )
 
     if not quality_rows:
-        return build_quality_result(QUALITY_SPARSE_DATA, breakdown=breakdown)
+        return build_quality_result(QUALITY_SPARSE_DATA, breakdown=breakdown, scanner_details=scanner_details)
 
     if any(item["status"] == QUALITY_LOW_CONFIDENCE for item in breakdown):
-        return build_quality_result(QUALITY_LOW_CONFIDENCE, breakdown=breakdown)
+        return build_quality_result(QUALITY_LOW_CONFIDENCE, breakdown=breakdown, scanner_details=scanner_details)
 
     if any(item["status"] == QUALITY_UNSTABLE_SIGNAL for item in breakdown):
-        return build_quality_result(QUALITY_UNSTABLE_SIGNAL, breakdown=breakdown)
+        return build_quality_result(QUALITY_UNSTABLE_SIGNAL, breakdown=breakdown, scanner_details=scanner_details)
 
     raw_sample_count = len(raw_rows)
     aggregate_sample_count = sum(parse_int(row.get("samples_seen"), default=1) for row in quality_rows)
     if raw_sample_count < 3 and aggregate_sample_count < 3:
-        return build_quality_result(QUALITY_SPARSE_DATA, breakdown=breakdown)
+        return build_quality_result(QUALITY_SPARSE_DATA, breakdown=breakdown, scanner_details=scanner_details)
 
-    return build_quality_result(QUALITY_GOOD, breakdown=breakdown)
+    return build_quality_result(QUALITY_GOOD, breakdown=breakdown, scanner_details=scanner_details)
 
 
 def build_quality_result(status, **details):
     result = {"status": status}
     result.update(details)
     return result
+
+
+def evaluate_scanner_details(rows, raw_rows=None, relevant_ssids=None):
+    """Return point-level scanner evidence issues that affect channel-sensitive maps."""
+    scan_rows = list(raw_rows or []) or list(rows or [])
+    if not scan_rows:
+        return build_scanner_detail_result()
+
+    backend_counts = defaultdict(int)
+    fallback_rows = 0
+    missing_channel_width_rows = 0
+    missing_6ghz_frequency_rows = 0
+    relevant_ssids = normalize_ssids(relevant_ssids or get_relevant_ssids_from_rows(rows or []))
+
+    for row in scan_rows:
+        backend = str(row.get("backend", "") or "").strip().lower()
+        if backend:
+            backend_counts[backend] += 1
+        if backend == "netsh":
+            fallback_rows += 1
+
+        if relevant_ssids and normalize_ssid(row.get("ssid")) not in relevant_ssids:
+            continue
+
+        band = get_row_band(row)
+        if band in {"5", "6"} and is_missing_value(row.get("channel_width_mhz")):
+            missing_channel_width_rows += 1
+        if band == "6" and is_missing_value(row.get("frequency_mhz")):
+            missing_6ghz_frequency_rows += 1
+
+    issue_types = []
+    if fallback_rows:
+        issue_types.append(SCANNER_DETAIL_FALLBACK_BACKEND)
+    if missing_channel_width_rows:
+        issue_types.append(SCANNER_DETAIL_MISSING_CHANNEL_WIDTH)
+    if missing_6ghz_frequency_rows:
+        issue_types.append(SCANNER_DETAIL_MISSING_6GHZ_FREQUENCY)
+
+    return build_scanner_detail_result(
+        issue_types=issue_types,
+        backend_counts=dict(sorted(backend_counts.items())),
+        fallback_rows=fallback_rows,
+        missing_channel_width_rows=missing_channel_width_rows,
+        missing_6ghz_frequency_rows=missing_6ghz_frequency_rows,
+        inspected_rows=len(scan_rows),
+    )
+
+
+def build_scanner_detail_result(
+    issue_types=None,
+    backend_counts=None,
+    fallback_rows=0,
+    missing_channel_width_rows=0,
+    missing_6ghz_frequency_rows=0,
+    inspected_rows=0,
+):
+    issue_types = list(issue_types or [])
+    return {
+        "has_issue": bool(issue_types),
+        "issue_types": issue_types,
+        "backend_counts": backend_counts or {},
+        "fallback_rows": int(fallback_rows or 0),
+        "missing_channel_width_rows": int(missing_channel_width_rows or 0),
+        "missing_6ghz_frequency_rows": int(missing_6ghz_frequency_rows or 0),
+        "inspected_rows": int(inspected_rows or 0),
+    }
 
 
 def get_quality_rows(rows, relevant_ssids):
@@ -305,6 +378,11 @@ def normalize_ssid(value):
 
 def is_truthy(value):
     return str(value or "").strip().lower() in {"1", "true", "yes", "y", "si", "sì"}
+
+
+def is_missing_value(value):
+    text = str(value or "").strip().lower()
+    return text in {"", "nan", "none", "null"}
 
 
 def parse_float_values(values):

@@ -168,7 +168,11 @@ from maps.quality import (
     QUALITY_MISSING_RELEVANT,
     QUALITY_SPARSE_DATA,
     QUALITY_UNSTABLE_SIGNAL,
+    SCANNER_DETAIL_FALLBACK_BACKEND,
+    SCANNER_DETAIL_MISSING_6GHZ_FREQUENCY,
+    SCANNER_DETAIL_MISSING_CHANNEL_WIDTH,
     evaluate_point_quality,
+    evaluate_scanner_details,
 )
 from survey.store import (
     SurveyFormatError,
