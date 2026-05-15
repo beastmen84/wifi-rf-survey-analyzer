@@ -194,12 +194,12 @@ TRANSLATIONS = {
     "quality_dashboard_ap_metadata_channels": "Observed Channels: {channels} | Expected Channels: {expected}",
     "quality_dashboard_ap_metadata_bands": "Observed Bands: {bands} | Expected Bands: {expected}",
     "quality_dashboard_scanner_details_issue": "Scanner Details: {detail}",
-    "quality_dashboard_scanner_details_fallback": "Fallback scanner used: {backends}",
-    "quality_dashboard_scanner_details_missing_width": "{count} channel-sensitive rows missing channel width",
-    "quality_dashboard_scanner_details_missing_frequency": "{count} 6 GHz rows missing frequency",
-    "quality_dashboard_issue_missing_relevant": "{ssid}: Not Detected At This Point",
-    "quality_dashboard_issue_low_confidence": "{ssid}: {confidence} Confidence Level",
-    "quality_dashboard_issue_unstable_signal": "{ssid}: Signal Varies By {range} dB",
+    "quality_dashboard_scanner_details_fallback": "Scanner Used: {backends} (Limited Channel Details)",
+    "quality_dashboard_scanner_details_missing_width": "Channel Width Missing On {count} Rows",
+    "quality_dashboard_scanner_details_missing_frequency": "6 GHz Frequency Missing On {count} Rows",
+    "quality_dashboard_issue_missing_relevant": "<b>{ssid}</b>: Relevant Network Not Detected At This Point",
+    "quality_dashboard_issue_low_confidence": "<b>{ssid}</b>: {confidence} Confidence Level",
+    "quality_dashboard_issue_unstable_signal": "<b>{ssid}</b>: Signal Varies By {range} dB",
     "quality_dashboard_issue_sparse_data": "Not Enough Scan Samples At This Point",
     "quality_dashboard_more_issues": "+{count} more",
     "quality_dashboard_metric_view_points": "View Points",
@@ -210,7 +210,6 @@ TRANSLATIONS = {
     "quality_dashboard_quality": "Quality",
     "quality_dashboard_scan_quality": "Scan Quality",
     "quality_dashboard_confidence": "Confidence",
-    "quality_dashboard_coordinates": "Coordinates",
     "quality_dashboard_issue": "Issue",
     "quality_dashboard_relevant_ssids": "Relevant SSIDs",
     "quality_dashboard_no_issue": "No Issues Detected",
@@ -725,7 +724,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card">
                     <div class="step-title">KPI Point Lists</div>
-                    <p>The main dashboard keeps the point table out of the first view. Click point-related KPI cards such as Rescan Needed, Scanner Details Missing, Low Scan Confidence or Dominant AP Findings to open the matching point list. The Issue column follows the KPI context and wraps long diagnostics.</p>
+                    <p>The main dashboard keeps the point table out of the first view. Click point-related KPI cards such as Rescan Needed, Scanner Details Missing, Low Scan Confidence or Dominant AP Findings to open the matching point list. The Issue column follows the KPI context; long diagnostics stay on one row and expose the full text through the tooltip.</p>
                     <div class="step-gate"><b>Focus Point:</b> from a point list, closes the dashboard, selects the point on the Survey tab and opens the point panel for inspection or rescan.</div>
                 </td>
                 <td class="workflow-gap"></td>

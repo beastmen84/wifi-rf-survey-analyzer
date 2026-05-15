@@ -1,7 +1,9 @@
 """Qt quality dashboard for point-level scan diagnostics."""
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QPainter, QPen
+from html import escape
+
+from PySide6.QtCore import QRectF, Qt
+from PySide6.QtGui import QColor, QPainter, QPen, QTextDocument
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QDialog,
@@ -15,6 +17,9 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QStyle,
+    QStyledItemDelegate,
+    QStyleOptionViewItem,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -125,6 +130,37 @@ def point_rows_for_metric(rows, metric_key):
     return [row for row in rows if row_filter(row)]
 
 
+class RichTextItemDelegate(QStyledItemDelegate):
+    def paint(self, painter, option, index):
+        option = QStyleOptionViewItem(option)
+        self.initStyleOption(option, index)
+        text = option.text
+        option.text = ""
+
+        widget = option.widget
+        style = widget.style() if widget is not None else None
+        if style is not None:
+            style.drawControl(QStyle.ControlElement.CE_ItemViewItem, option, painter, widget)
+
+        color = (
+            option.palette.highlightedText().color().name()
+            if option.state & QStyle.StateFlag.State_Selected
+            else option.palette.text().color().name()
+        )
+        document = QTextDocument()
+        document.setDefaultStyleSheet(f"body {{ color: {color}; margin: 0; white-space: nowrap; }}")
+        document.setHtml(f"<body>{text}</body>")
+        document.setTextWidth(option.rect.width())
+
+        text_rect = option.rect.adjusted(6, 0, -6, 0)
+        y_offset = max(0, int((text_rect.height() - document.size().height()) / 2))
+        painter.save()
+        painter.setClipRect(text_rect)
+        painter.translate(text_rect.left(), text_rect.top() + y_offset)
+        document.drawContents(painter, QRectF(0, 0, text_rect.width(), text_rect.height()))
+        painter.restore()
+
+
 def row_quality_statuses(row):
     statuses = {
         item.get("status")
@@ -212,7 +248,7 @@ def format_quality_breakdown_issue(app, item):
             return app.tr("quality_dashboard_issue_unstable_signal", ssid=ssid, range=range_db)
     if status == QUALITY_GOOD:
         return app.tr("quality_dashboard_no_issue")
-    return f"{ssid}: {app.format_quality_breakdown_item(item)}"
+    return f"{ssid}: {escape(str(app.format_quality_breakdown_item(item)))}"
 
 
 def format_quality_status_issue(app, status):
@@ -229,7 +265,7 @@ def format_quality_status_issue(app, status):
 
 def format_issue_ssid(ssid):
     text = str(ssid or "-")
-    return text.upper() if text != "-" else text
+    return escape(text.upper() if text != "-" else text)
 
 
 def format_confidence_percent(value):
@@ -273,6 +309,8 @@ def rescan_kpi_labels_for_row(app, row):
 
     if row.get("scanner_detail_issue"):
         labels.append(app.tr("quality_dashboard_metric_scanner_details"))
+    if row.get("ap_position_warning_count", 0) > 0:
+        labels.append(app.tr("quality_dashboard_metric_ap_diagnostic_points"))
     return labels
 
 
@@ -281,7 +319,8 @@ def configure_point_table_columns(table):
     header.setStretchLastSection(False)
     header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
     header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-    header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+    header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+    header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
 
 
 def populate_point_table(table, rows, owner, metric_key=None):
@@ -295,7 +334,8 @@ def populate_point_table(table, rows, owner, metric_key=None):
         )
         values = [
             row["number"],
-            f"{row['x']}, {row['y']}",
+            row["x"],
+            row["y"],
             issue_text,
         ]
         background = SEVERITY_COLORS.get(row["severity"])
@@ -306,7 +346,7 @@ def populate_point_table(table, rows, owner, metric_key=None):
                 item.setData(Qt.ItemDataRole.UserRole, row)
             if background is not None:
                 item.setBackground(background)
-            if column_index <= 1:
+            if column_index <= 2:
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             else:
                 item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
@@ -901,6 +941,8 @@ class PointRowsDialog(QDialog):
         self.app = owner.app
         self.rows = list(rows)
         self.metric_key = metric_key
+        self.visible_rows = point_table_visible_row_count(len(self.rows))
+        self.can_expand_table = len(self.rows) > self.visible_rows
         self.setProperty(SKIP_CENTERING_PROPERTY, True)
         self.setWindowTitle(
             self.app.tr(
@@ -929,7 +971,7 @@ class PointRowsDialog(QDialog):
         count_label.setObjectName("mutedText")
         layout.addWidget(count_label)
 
-        self.table = QTableWidget(0, 3)
+        self.table = QTableWidget(0, 4)
         self.table.setObjectName("qualityDashboardTable")
         self.table.setAlternatingRowColors(True)
         self.table.setShowGrid(False)
@@ -947,9 +989,11 @@ class PointRowsDialog(QDialog):
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setHorizontalHeaderLabels([
             "#",
-            self.app.tr("quality_dashboard_coordinates"),
+            "X",
+            "Y",
             self.app.tr("quality_dashboard_issue"),
         ])
+        self.table.setItemDelegateForColumn(3, RichTextItemDelegate(self.table))
         configure_point_table_columns(self.table)
         populate_point_table(self.table, self.rows, self, self.metric_key)
         self.table.itemDoubleClicked.connect(lambda _item: self.focus_selected_point())
@@ -978,13 +1022,22 @@ class PointRowsDialog(QDialog):
         self.apply_initial_size()
 
     def apply_table_height(self):
-        visible_rows = point_table_visible_row_count(len(self.rows))
+        table_height = self.table_height_for_rows(self.visible_rows)
+        if self.can_expand_table:
+            self.table.setMinimumHeight(table_height)
+            self.table.setMaximumHeight(self.table_height_for_rows(len(self.rows)))
+            self.table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            return
+
+        self.table.setFixedHeight(table_height)
+        self.table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
+    def table_height_for_rows(self, visible_rows):
         row_height = widget_px(self, POINT_TABLE_ROW_HEIGHT)
         header_height = self.table.horizontalHeader().sizeHint().height()
         frame_height = self.table.frameWidth() * 2
-        rows_height = visible_rows * row_height
-        table_height = header_height + rows_height + frame_height + widget_px(self, 2)
-        self.table.setFixedHeight(table_height)
+        rows_height = max(1, visible_rows) * row_height
+        return header_height + rows_height + frame_height + widget_px(self, 2)
 
     def resize_table_rows(self):
         for row in range(self.table.rowCount()):
@@ -996,6 +1049,9 @@ class PointRowsDialog(QDialog):
         max_height = widget_px(self, 760)
         height = min(max_height, self.sizeHint().height())
         self.resize(width, height)
+        self.setMinimumHeight(height)
+        if not self.can_expand_table:
+            self.setMaximumHeight(height)
 
     def current_row_data(self):
         selected = self.table.selectedItems()
@@ -2034,7 +2090,7 @@ def format_scanner_detail_parts(app, scanner_details):
     parts = []
     if SCANNER_DETAIL_FALLBACK_BACKEND in issue_types:
         backends = ", ".join(
-            backend
+            format_scanner_backend_label(backend)
             for backend in scanner_details.get("backend_counts", {})
         ) or "-"
         parts.append(app.tr("quality_dashboard_scanner_details_fallback", backends=backends))
@@ -2049,6 +2105,10 @@ def format_scanner_detail_parts(app, scanner_details):
             count=scanner_details.get("missing_6ghz_frequency_rows", 0),
         ))
     return parts
+
+
+def format_scanner_backend_label(backend):
+    return str(backend or "-").upper()
 
 
 def format_quality_issue(app, quality):

@@ -60,7 +60,7 @@ Current status:
   future metrics, scrollable `What To Fix Next` content and a fixed formatted
   Survey Scope panel; filtered point-list overlays now size to whole rows, cap
   the default table at 14 visible rows, shrink for small result sets and use a
-  compact single-height `# / Coordinates / Issue` table with KPI-specific issue
+  compact single-height `# / X / Y / Issue` table with KPI-specific issue
   text;
 - the latest Windows release artifact remains the `v0.9.2-beta.1` PyInstaller
   `onedir` ZIP until an intentional package rebuild is requested;
@@ -227,6 +227,9 @@ Implemented:
 - point-list overlay height is calculated without a horizontal scrollbar because
   the compact Issue column elides overflow and exposes full text through the
   tooltip;
+- short point-list overlays lock vertical resize once all matching rows are
+  visible, while longer lists let manual vertical resize grow the table area
+  rather than the header area;
 - KPI point-list overlays intentionally show only point number, coordinates and
   issue text, because the overlay is for finding and navigating diagnostics, not
   duplicating the full Survey point table;

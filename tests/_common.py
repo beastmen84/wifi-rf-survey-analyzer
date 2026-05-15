@@ -405,18 +405,20 @@ class FakeQualityApp:
             return "Unstable Signal"
         if key == "quality_dashboard_metric_scanner_details":
             return "Scanner Details Missing"
+        if key == "quality_dashboard_metric_ap_diagnostic_points":
+            return "Dominant AP Findings"
         if key == "quality_dashboard_check_kpi_issue":
             return f"Check KPI: {kwargs.get('kpis', '')}"
         if key == "quality_dashboard_scanner_details_fallback":
-            return f"Fallback scanner used: {kwargs.get('backends')}"
+            return f"Scanner Used: {kwargs.get('backends')} (Limited Channel Details)"
         if key == "quality_dashboard_scanner_details_missing_width":
-            return f"{kwargs.get('count')} channel-sensitive rows missing channel width"
+            return f"Channel Width Missing On {kwargs.get('count')} Rows"
         if key == "quality_dashboard_issue_missing_relevant":
-            return f"{kwargs.get('ssid')}: Not Detected At This Point"
+            return f"<b>{kwargs.get('ssid')}</b>: Relevant Network Not Detected At This Point"
         if key == "quality_dashboard_issue_low_confidence":
-            return f"{kwargs.get('ssid')}: {kwargs.get('confidence')} Confidence Level"
+            return f"<b>{kwargs.get('ssid')}</b>: {kwargs.get('confidence')} Confidence Level"
         if key == "quality_dashboard_issue_unstable_signal":
-            return f"{kwargs.get('ssid')}: Signal Varies By {kwargs.get('range')} dB"
+            return f"<b>{kwargs.get('ssid')}</b>: Signal Varies By {kwargs.get('range')} dB"
         if key == "quality_dashboard_issue_sparse_data":
             return "Not Enough Scan Samples At This Point"
         if key == "quality_missing_relevant":

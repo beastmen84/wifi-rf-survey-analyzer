@@ -238,7 +238,7 @@ class QualityTests(unittest.TestCase):
         self.assertTrue(rows[0]["needs_review"])
         self.assertEqual(rows[0]["severity"], "warning")
         self.assertEqual(rows[0]["ap_position_warning_count"], 1)
-        self.assertIn("MAIN: 40% Confidence Level", rows[0]["issue"])
+        self.assertIn("<b>MAIN</b>: 40% Confidence Level", rows[0]["issue"])
         self.assertIn("main-ap", rows[0]["issue"])
 
     def test_dashboard_counts_scanner_detail_findings_as_scan_review(self):
@@ -552,10 +552,45 @@ class QualityTests(unittest.TestCase):
             viewport_height = dialog.table.viewport().height()
             extra_height = viewport_height - (expected_rows * row_height)
 
-            self.assertEqual(dialog.table.columnCount(), 3)
+            self.assertEqual(dialog.table.columnCount(), 4)
             self.assertEqual(dialog.table.horizontalScrollBarPolicy(), Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
             self.assertGreaterEqual(extra_height, 0)
             self.assertLessEqual(extra_height, max(2, row_height // 10))
+
+            initial_table_height = dialog.table.height()
+            dialog.resize(dialog.width(), dialog.height() + 120)
+            QApplication.processEvents()
+            self.assertGreater(dialog.table.height(), initial_table_height)
+        finally:
+            dialog.close()
+            owner.deleteLater()
+
+    def test_quality_point_table_dialog_locks_height_when_all_rows_are_visible(self):
+        QApplication.instance() or QApplication([])
+        owner = QWidget()
+        owner.app = FakeQualityApp([])
+        rows = [
+            {
+                "number": index + 1,
+                "x": 10,
+                "y": 20,
+                "severity": "warning",
+                "status": QUALITY_LOW_CONFIDENCE,
+                "quality_breakdown": [],
+                "quality_issue": "issue",
+                "scanner_detail_issue": False,
+                "ap_position_warning_count": 0,
+                "issue": "issue",
+                "needs_review": True,
+            }
+            for index in range(4)
+        ]
+        dialog = PointRowsDialog(owner, "Low Scan Confidence", rows, len(rows), "quality_dashboard_metric_points")
+
+        try:
+            dialog.show()
+            QApplication.processEvents()
+            self.assertEqual(dialog.minimumHeight(), dialog.maximumHeight())
         finally:
             dialog.close()
             owner.deleteLater()
@@ -588,6 +623,7 @@ class QualityTests(unittest.TestCase):
                 "missing_channel_width_rows": 5,
             },
             "ap_position_issue": "ap issue",
+            "ap_position_warning_count": 1,
             "issue": "quality issue; scanner issue; ap issue",
         }
 
@@ -597,19 +633,19 @@ class QualityTests(unittest.TestCase):
         )
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_rescan"),
-            "Check KPI: Low Scan Confidence; Unstable Signal; Scanner Details Missing",
+            "Check KPI: Low Scan Confidence; Unstable Signal; Scanner Details Missing; Dominant AP Findings",
         )
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_scanner_details"),
-            "Fallback scanner used: netsh | 5 channel-sensitive rows missing channel width",
+            "Scanner Used: NETSH (Limited Channel Details) | Channel Width Missing On 5 Rows",
         )
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_low_confidence"),
-            "MAIN: 40% Confidence Level",
+            "<b>MAIN</b>: 40% Confidence Level",
         )
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_unstable"),
-            "MAIN: Signal Varies By 14.0 dB",
+            "<b>MAIN</b>: Signal Varies By 14.0 dB",
         )
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_ap_diagnostic_points"),
@@ -618,6 +654,29 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_scan_ok"),
             "No Issues Detected",
+        )
+
+    def test_quality_point_table_issue_formats_missing_and_sparse_clearly(self):
+        app = FakeQualityApp([])
+        missing_row = {
+            "status": QUALITY_MISSING_RELEVANT,
+            "quality_breakdown": [
+                {"ssid": "guest", "status": QUALITY_MISSING_RELEVANT, "message": "missing"},
+            ],
+        }
+        sparse_row = {
+            "status": QUALITY_SPARSE_DATA,
+            "quality_breakdown": [],
+            "quality_issue": "",
+        }
+
+        self.assertEqual(
+            format_metric_point_issue(app, missing_row, "quality_dashboard_metric_missing"),
+            "<b>GUEST</b>: Relevant Network Not Detected At This Point",
+        )
+        self.assertEqual(
+            format_metric_point_issue(app, sparse_row, "quality_dashboard_metric_sparse"),
+            "Not Enough Scan Samples At This Point",
         )
 
     def test_quality_rescan_issue_lists_touched_kpis(self):
