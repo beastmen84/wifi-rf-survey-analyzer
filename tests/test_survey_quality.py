@@ -293,6 +293,15 @@ class QualityTests(unittest.TestCase):
             summary["recommendations"][0]["detail_items"][0]["detail"],
         )
 
+    def test_scanner_detail_dialog_defaults_to_four_visible_cards(self):
+        scanner_recommendation = {"metric_key": "quality_dashboard_metric_scanner_details"}
+        dominant_recommendation = {"metric_key": "quality_dashboard_metric_ap_diagnostic_points"}
+        items = [{"label": str(index)} for index in range(9)]
+
+        self.assertEqual(recommendation_detail_visible_item_count(scanner_recommendation, items), 4)
+        self.assertEqual(recommendation_detail_visible_item_count(scanner_recommendation, items[:2]), 2)
+        self.assertEqual(recommendation_detail_visible_item_count(dominant_recommendation, items), 9)
+
     def test_quality_summary_formats_metadata_warning_labels(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)
         app = FakeQualityApp([row], relevant_ssids={"MAIN"})

@@ -64,7 +64,9 @@ Current status:
   text; scanner Extra Details now mirror the Dominant AP finding/detail pattern
   and explicitly label counts as raw `scan rows` for the measurement point,
   while `NETSH` fallback is shown on the scanner line instead of as a duplicate
-  fallback-row count;
+  fallback-row count; Scanner Details Extra Details default to four visible
+  cards before scrolling so large `netsh` finding sets do not open oversized
+  dialogs;
 - the latest Windows release artifact remains the `v0.9.2-beta.1` PyInstaller
   `onedir` ZIP until an intentional package rebuild is requested;
 - Help content and structure have an expanded V2 Help Center implementation;
