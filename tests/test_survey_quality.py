@@ -301,6 +301,14 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(recommendation_detail_visible_item_count(scanner_recommendation, items), 4)
         self.assertEqual(recommendation_detail_visible_item_count(scanner_recommendation, items[:2]), 2)
         self.assertEqual(recommendation_detail_visible_item_count(dominant_recommendation, items), 9)
+        self.assertGreater(
+            recommendation_detail_row_height(scanner_recommendation, items),
+            recommendation_detail_row_height(dominant_recommendation, items),
+        )
+        self.assertGreater(
+            recommendation_detail_max_height(scanner_recommendation),
+            recommendation_detail_max_height(dominant_recommendation),
+        )
 
     def test_quality_summary_formats_metadata_warning_labels(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)

@@ -95,6 +95,11 @@ METRIC_GRID_COLUMNS = 3
 POINT_TABLE_MAX_VISIBLE_ROWS = 14
 POINT_TABLE_ROW_HEIGHT = 38
 SCANNER_DETAIL_DEFAULT_VISIBLE_CARDS = 4
+DETAIL_ROW_HEIGHT = 78
+DETAIL_FINDING_ROW_HEIGHT = 98
+SCANNER_DETAIL_ROW_HEIGHT = 145
+DETAIL_DIALOG_MAX_HEIGHT = 720
+SCANNER_DETAIL_DIALOG_MAX_HEIGHT = 760
 
 
 QUALITY_METRIC_STATUSES = {
@@ -125,6 +130,20 @@ def recommendation_detail_visible_item_count(recommendation, items):
     if recommendation.get("metric_key") == "quality_dashboard_metric_scanner_details":
         return min(item_count, SCANNER_DETAIL_DEFAULT_VISIBLE_CARDS)
     return item_count
+
+
+def recommendation_detail_row_height(recommendation, items):
+    if recommendation.get("metric_key") == "quality_dashboard_metric_scanner_details":
+        return SCANNER_DETAIL_ROW_HEIGHT
+    if any(item.get("finding") for item in items):
+        return DETAIL_FINDING_ROW_HEIGHT
+    return DETAIL_ROW_HEIGHT
+
+
+def recommendation_detail_max_height(recommendation):
+    if recommendation.get("metric_key") == "quality_dashboard_metric_scanner_details":
+        return SCANNER_DETAIL_DIALOG_MAX_HEIGHT
+    return DETAIL_DIALOG_MAX_HEIGHT
 
 
 def point_rows_for_metric(rows, metric_key):
@@ -1119,12 +1138,12 @@ class RecommendationDetailsDialog(QDialog):
         items = recommendation.get("detail_items", [])
         detail_actions = recommendation.get("detail_actions", [])
         self.setWindowTitle(recommendation.get("title", self.app.tr("quality_dashboard_fix_next_title")))
-        row_height = 98 if any(item.get("finding") for item in items) else 78
+        row_height = recommendation_detail_row_height(recommendation, items)
         visible_items = recommendation_detail_visible_item_count(recommendation, items)
         height = 150 + visible_items * row_height + (44 if detail_actions else 0)
         self.resize(
             widget_px(self, 980),
-            min(widget_px(self, 720), widget_px(self, height)),
+            min(widget_px(self, recommendation_detail_max_height(recommendation)), widget_px(self, height)),
         )
         self.setMinimumSize(widget_px(self, 720), widget_px(self, 220))
 

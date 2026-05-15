@@ -140,6 +140,8 @@ from qt_ui.qt_quality_dashboard import (
     point_table_visible_row_count,
     point_rows_for_metric,
     PointRowsDialog,
+    recommendation_detail_max_height,
+    recommendation_detail_row_height,
     recommendation_detail_visible_item_count,
     rescan_kpi_labels_for_row,
     quality_status_text_keys,
