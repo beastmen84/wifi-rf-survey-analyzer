@@ -62,7 +62,9 @@ Current status:
   the default table at 14 visible rows, shrink for small result sets and use a
   compact single-height `# / X / Y / Issue` table with KPI-specific issue
   text; scanner Extra Details now mirror the Dominant AP finding/detail pattern
-  and explicitly label counts as raw `scan rows` for the measurement point;
+  and explicitly label counts as raw `scan rows` for the measurement point,
+  while `NETSH` fallback is shown on the scanner line instead of as a duplicate
+  fallback-row count;
 - the latest Windows release artifact remains the `v0.9.2-beta.1` PyInstaller
   `onedir` ZIP until an intentional package rebuild is requested;
 - Help content and structure have an expanded V2 Help Center implementation;

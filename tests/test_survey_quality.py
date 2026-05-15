@@ -277,15 +277,19 @@ class QualityTests(unittest.TestCase):
             "Limited Scanner Details",
         )
         self.assertIn(
-            "Scanner: <b>NETSH</b>",
+            "Scanner: <b>NETSH</b> (fallback)",
             summary["recommendations"][0]["detail_items"][0]["detail"],
         )
         self.assertIn(
-            "Checked Scan Rows: <b>5</b>",
+            "Raw Scan Rows Checked: <b>5</b>",
             summary["recommendations"][0]["detail_items"][0]["detail"],
         )
         self.assertIn(
-            "Missing Channel Width: <b>5</b> scan rows",
+            "Missing Channel Width: <b>5</b> channel-sensitive scan rows",
+            summary["recommendations"][0]["detail_items"][0]["detail"],
+        )
+        self.assertNotIn(
+            "Fallback Scanner Rows",
             summary["recommendations"][0]["detail_items"][0]["detail"],
         )
 

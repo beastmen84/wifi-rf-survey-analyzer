@@ -2179,10 +2179,16 @@ def format_scanner_detail_summary_parts(app, scanner_details):
 
 def format_scanner_detail_detail_parts(app, scanner_details):
     issue_types = set(scanner_details.get("issue_types", []))
+    fallback_suffix = (
+        app.tr("quality_dashboard_scanner_details_fallback_suffix")
+        if SCANNER_DETAIL_FALLBACK_BACKEND in issue_types
+        else ""
+    )
     parts = [
         app.tr(
             "quality_dashboard_scanner_details_scanner",
             backends=format_scanner_backends(scanner_details),
+            fallback=fallback_suffix,
         ),
         app.tr(
             "quality_dashboard_scanner_details_checked_rows",
@@ -2198,11 +2204,6 @@ def format_scanner_detail_detail_parts(app, scanner_details):
         parts.append(app.tr(
             "quality_dashboard_scanner_details_missing_frequency_detail",
             count=scanner_details.get("missing_6ghz_frequency_rows", 0),
-        ))
-    if SCANNER_DETAIL_FALLBACK_BACKEND in issue_types:
-        parts.append(app.tr(
-            "quality_dashboard_scanner_details_fallback_detail",
-            count=scanner_details.get("fallback_rows", 0),
         ))
     parts.append(app.tr("quality_dashboard_scanner_details_impact"))
     return parts

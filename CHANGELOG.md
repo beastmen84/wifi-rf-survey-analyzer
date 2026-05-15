@@ -13,6 +13,8 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   checked scan-row count, missing channel-width/frequency rows and impact text.
 - Scanner-detail wording now says `scan rows` so the count is clearly raw scan
   evidence for that measurement point, not a count of measurement points.
+- The redundant fallback row count was removed from scanner details; `NETSH` is
+  labeled as the fallback scanner on the scanner line instead.
 
 ## v0.9.3-beta.2 - 2026-05-15
 
