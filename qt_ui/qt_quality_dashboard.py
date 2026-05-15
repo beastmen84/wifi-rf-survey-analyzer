@@ -114,12 +114,8 @@ POINT_METRIC_FILTERS = {
     ),
     "quality_dashboard_metric_missing": lambda row: row_has_quality_status(row, QUALITY_MISSING_RELEVANT),
     "quality_dashboard_metric_sparse": lambda row: row_has_quality_status(row, QUALITY_SPARSE_DATA),
-    "quality_dashboard_metric_scanner_details": lambda row: bool(row.get("scanner_detail_issue")),
     "quality_dashboard_metric_low_confidence": lambda row: row_has_quality_status(row, QUALITY_LOW_CONFIDENCE),
     "quality_dashboard_metric_unstable": lambda row: row_has_quality_status(row, QUALITY_UNSTABLE_SIGNAL),
-    "quality_dashboard_metric_ap_diagnostic_points": (
-        lambda row: row.get("ap_position_warning_count", 0) > 0
-    ),
 }
 
 
@@ -425,6 +421,12 @@ class QualityDashboardDialog(QDialog):
         super().__init__(app)
         self.app = app
         self.rows = rows
+        self.summary = summary
+        self.recommendations_by_metric = {
+            recommendation.get("metric_key"): recommendation
+            for recommendation in summary.get("recommendations", [])
+            if recommendation.get("metric_key")
+        }
         self.setObjectName("qualityDashboardDialog")
         self.setProperty(SKIP_CENTERING_PROPERTY, True)
         self.setWindowTitle(app.tr("quality_dashboard_title"))
@@ -627,7 +629,9 @@ class QualityDashboardDialog(QDialog):
         palette = QT_THEMES.get(getattr(self.app, "theme", "light"), QT_THEMES["light"])
         tokens = metric_card_tokens(palette, severity)
         accent = tokens["accent"]
-        is_clickable = is_point_metric_filter(metric_key, value)
+        detail_recommendation = self.metric_detail_recommendation(metric_key, value)
+        is_point_clickable = is_point_metric_filter(metric_key, value)
+        is_clickable = is_point_clickable or detail_recommendation is not None
         box = QFrame()
         box.setObjectName("qualityMetricBox")
         box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -652,12 +656,24 @@ class QualityDashboardDialog(QDialog):
         box.setGraphicsEffect(shadow)
         if is_clickable:
             box.setCursor(Qt.CursorShape.PointingHandCursor)
-            box.setToolTip(self.app.tr("quality_dashboard_metric_click_points"))
+            box.setToolTip(
+                self.app.tr("quality_dashboard_metric_click_details")
+                if detail_recommendation is not None
+                else self.app.tr("quality_dashboard_metric_click_points")
+            )
 
-            def open_metric(event, selected_key=metric_key, selected_label=label):
+            def open_metric(
+                event,
+                selected_key=metric_key,
+                selected_label=label,
+                selected_recommendation=detail_recommendation,
+            ):
                 if event.button() != Qt.MouseButton.LeftButton:
                     return
-                self.open_metric_points(selected_key, selected_label)
+                if selected_recommendation is not None:
+                    self.open_recommendation_details(selected_recommendation)
+                else:
+                    self.open_metric_points(selected_key, selected_label)
                 event.accept()
 
             box.mouseReleaseEvent = open_metric
@@ -713,7 +729,11 @@ class QualityDashboardDialog(QDialog):
             footer = QHBoxLayout()
             footer.setContentsMargins(0, 0, 0, 0)
             footer.setSpacing(widget_px(self, 8))
-            hint = QLabel(self.app.tr("quality_dashboard_metric_view_points"))
+            hint = QLabel(
+                self.app.tr("quality_dashboard_metric_extra_details")
+                if detail_recommendation is not None
+                else self.app.tr("quality_dashboard_metric_view_points")
+            )
             hint.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
             hint.setStyleSheet(
                 f"""
@@ -730,6 +750,19 @@ class QualityDashboardDialog(QDialog):
         else:
             layout.addWidget(value_widget, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
         return box
+
+    def metric_detail_recommendation(self, metric_key, value):
+        try:
+            if float(value) <= 0:
+                return None
+        except (TypeError, ValueError):
+            if not value:
+                return None
+
+        recommendation = self.recommendations_by_metric.get(metric_key)
+        if not recommendation or not recommendation.get("detail_items"):
+            return None
+        return recommendation
 
     def open_metric_points(self, metric_key, label):
         rows = point_rows_for_metric(self.rows, metric_key)
@@ -1423,6 +1456,7 @@ def build_quality_recommendations(app, summary):
         detail_count_key=None,
         detail_actions=None,
         dialog_detail_key=None,
+        metric_key=None,
         **kwargs,
     ):
         if not count:
@@ -1441,6 +1475,8 @@ def build_quality_recommendations(app, summary):
             "detail_count_label": app.tr(detail_count_key, count=count) if detail_count_key else "",
             "detail_actions": detail_actions or [],
         }
+        if metric_key:
+            recommendation["metric_key"] = metric_key
         if dialog_detail_key:
             recommendation["dialog_detail"] = app.tr(dialog_detail_key)
         recommendations.append(recommendation)
@@ -1465,6 +1501,7 @@ def build_quality_recommendations(app, summary):
         detail_items=summary.get("scanner_detail_items", []),
         detail_count_key="quality_dashboard_detail_measurement_points",
         dialog_detail_key="quality_dashboard_fix_scanner_details_dialog_detail",
+        metric_key="quality_dashboard_metric_scanner_details",
     )
     add(
         summary["low_confidence"],
@@ -1506,6 +1543,7 @@ def build_quality_recommendations(app, summary):
         detail_items=summary.get("ap_position_warning_items", []),
         detail_count_key="quality_dashboard_detail_measurement_points",
         dialog_detail_key="quality_dashboard_fix_ap_position_dialog_detail",
+        metric_key="quality_dashboard_metric_ap_diagnostic_points",
     )
     add(
         summary["ap_missing_positions"],

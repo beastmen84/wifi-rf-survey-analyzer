@@ -120,7 +120,7 @@ TRANSLATIONS = {
     "quality_dashboard_metric_group_scan": "Scan Quality",
     "quality_dashboard_metric_group_ap": "AP Model",
     "quality_dashboard_metric_scan_ok": "Scan OK",
-    "quality_dashboard_metric_rescan": "Rescan Needed",
+    "quality_dashboard_metric_rescan": "Points To Review",
     "quality_dashboard_metric_missing": "Missing Relevant Networks",
     "quality_dashboard_metric_sparse": "Sparse Data",
     "quality_dashboard_metric_scanner_details": "Scanner Details Missing",
@@ -203,7 +203,9 @@ TRANSLATIONS = {
     "quality_dashboard_issue_sparse_data": "Not Enough Scan Samples At This Point",
     "quality_dashboard_more_issues": "+{count} more",
     "quality_dashboard_metric_view_points": "View Points",
+    "quality_dashboard_metric_extra_details": "Extra Details",
     "quality_dashboard_metric_click_points": "Click To View Matching Points",
+    "quality_dashboard_metric_click_details": "Click To Open Details",
     "quality_dashboard_points_dialog_title": "{label} - {count} Points",
     "quality_dashboard_check_kpi_issue": "Check KPI: {kpis}",
     "quality_dashboard_visible_count": "{shown}/{total} points shown",
@@ -724,7 +726,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card">
                     <div class="step-title">KPI Point Lists</div>
-                    <p>The main dashboard keeps the point table out of the first view. Click actionable point-related KPI cards such as Rescan Needed, Scanner Details Missing, Low Scan Confidence or Dominant AP Findings to open the matching point list. Total Points and Scan OK are summary cards only. The Issue column follows the KPI context; long diagnostics stay on one row and expose the full text through the tooltip.</p>
+                    <p>The main dashboard keeps the point table out of the first view. Click point-evidence KPI cards such as Points To Review, Low Scan Confidence or Unstable Signal to open compact point lists. Scanner Details Missing and Dominant AP Findings open their richer Extra Details windows. Total Points and Scan OK are summary cards only. The Issue column follows the KPI context; long diagnostics stay on one row and expose the full text through the tooltip.</p>
                     <div class="step-gate"><b>Focus Point:</b> from a point list, closes the dashboard, selects the point on the Survey tab and opens the point panel for inspection or rescan.</div>
                 </td>
                 <td class="workflow-gap"></td>
@@ -754,8 +756,8 @@ TRANSLATIONS = {
                     <div class="survey-card-title">Survey Points</div>
                     <p><b>Total Points:</b> spatial evidence collected.</p>
                     <p><b>Scan OK:</b> points with usable scan evidence.</p>
-                    <p><b>Rescan Needed:</b> points that should be inspected before maps are trusted.</p>
-                    <p><b>Clickable cards:</b> open the corresponding point list.</p>
+                    <p><b>Points To Review:</b> points that should be inspected before maps are trusted. Not every point necessarily needs a rescan; some require AP model or position review.</p>
+                    <p><b>Clickable cards:</b> open either a compact point list or an Extra Details window, depending on the diagnostic type.</p>
                 </td>
                 <td class="survey-gap"></td>
                 <td class="survey-card">

@@ -53,10 +53,9 @@ Current status:
   dedicated KPI, recommendation card and detail rows;
 - `v0.9.3-beta.2` changes Survey Quality to scale better on larger surveys:
   the main dashboard keeps the full point table out of the first view, while
-  actionable point-related KPI cards open filtered point-table overlays for
-  rescan needed, scanner details, low confidence, unstable signal, missing
-  relevant networks and dominant-AP findings; Total Points and Scan OK are
-  summary-only cards; follow-up polish in the
+  actionable point-related KPI cards open either compact point-table overlays
+  for point-evidence issues or Extra Details for structured scanner/Dominant AP
+  diagnostics; Total Points and Scan OK are summary-only cards; follow-up polish in the
   same beta uses a wider three-column KPI grid, a subtle placeholder slot for
   future metrics, scrollable `What To Fix Next` content and a fixed formatted
   Survey Scope panel; filtered point-list overlays now size to whole rows, cap
@@ -216,11 +215,12 @@ Implemented:
 
 - styled grouped metric cards for survey points, scan quality and AP model
   health;
-- separate scan-OK/rescan-needed counts, with Rescan Needed acting as the
+- separate scan-OK/points-to-review counts, with Points To Review acting as the
   actionable point-review list and including AP-position/Dominant AP findings
   when the point itself needs inspection;
-- point-related KPI cards open filtered point-table overlays, keeping the main
-  dashboard focused on counts and the next actions instead of a long table;
+- point-related KPI cards open either filtered point-table overlays or
+  recommendation Extra Details, keeping the main dashboard focused on counts and
+  next actions instead of a long table;
 - KPI cards use a stable three-column grid; Survey Points uses one row, while
   Scan Quality and AP Model use two rows with a subtle placeholder card in the
   final empty slot so card widths and reserved space stay consistent;
@@ -236,17 +236,19 @@ Implemented:
   issue text, because the overlay is for finding and navigating diagnostics, not
   duplicating the full Survey point table;
 - KPI point-list overlays scope the Issue column to the selected KPI, so
-  Dominant AP, scanner-detail and rescan views do not mix unrelated diagnostics;
-- overlay issue wording has been shortened for readability: Scan OK uses the
-  normal no-issue text, Scanner Details omits the redundant prefix, and Rescan
-  Needed lists the affected KPI cards to inspect; quality KPI issue text is
-  filtered by the selected status so Low Scan Confidence does not include
-  Unstable Signal details and formats low confidence/unstable signal findings
-  as user-facing diagnostics such as confidence percentage and dB variation;
+  Points To Review and point-evidence views do not mix unrelated diagnostics;
+- overlay issue wording has been shortened for readability: Points To Review
+  lists the affected KPI cards to inspect; quality KPI issue text is filtered by
+  the selected status so Low Scan Confidence does not include Unstable Signal
+  details and formats low confidence/unstable signal findings as user-facing
+  diagnostics such as confidence percentage and dB variation;
 - Total Points and Scan OK are not clickable because their filtered point tables
   do not add useful diagnostic context;
 - Scanner Details and Dominant AP point-list issues use highlighted scanner/AP
   values and include the key context needed to decide what to inspect next;
+- Scanner Details Missing and Dominant AP Findings KPI cards open their
+  recommendation Extra Details dialogs instead of duplicating a poorer compact
+  point table;
 - missing relevant network information;
 - low confidence/unstable point information;
 - sparse-data count surfaced as its own dashboard metric;

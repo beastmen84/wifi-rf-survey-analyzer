@@ -16,10 +16,11 @@ Beta focused on making Survey Quality scale better for larger real surveys.
 
 - Survey Quality no longer shows the full measurement-point table in the main
   dashboard view.
-- Point-related KPI cards now open filtered point-table overlays for actionable
-  lists: rescan needed, scanner details, low confidence, unstable signal,
-  missing relevant networks and dominant-AP findings. Total Points and Scan OK
-  remain summary-only cards.
+- Actionable KPI cards now open the most useful diagnostic view: Points To
+  Review, low confidence, unstable signal and missing/sparse point evidence open
+  compact point-table overlays, while Scanner Details Missing and Dominant AP
+  Findings open Extra Details. Total Points and Scan OK remain summary-only
+  cards.
 - Removed the main `Show Only Points With Findings` control because filtering is
   now driven by the selected KPI.
 - KPI cards now use a wider three-column layout with a subtle placeholder card
@@ -30,14 +31,13 @@ Beta focused on making Survey Quality scale better for larger real surveys.
 - Filtered point-list overlays now size their table to whole rows, defaulting
   to at most 14 visible rows and shrinking automatically for small result sets.
 - Point-list overlays now use a compact `# / X / Y / Issue` table with
-  single-height rows; Scan OK shows `No Issues Detected`, Scanner Details omits
-  the redundant prefix, and Rescan Needed points users to the affected KPI
-  cards. Quality KPI issue text is filtered by the selected status, so Low Scan
-  Confidence does not include Unstable Signal details.
-- Rescan Needed now includes points that only have Dominant AP findings, and
-  Dominant AP issue text includes dominant AP, closest AP, signal and distance
-  context. Scanner Details issue text highlights the scanner backend and missing
-  row counts.
+  single-height rows; the aggregate card is now `Points To Review`, which points
+  users to the affected KPI cards. Quality KPI issue text is filtered by the
+  selected status, so Low Scan Confidence does not include Unstable Signal
+  details.
+- Points To Review now includes points that only have Dominant AP findings.
+  Scanner Details and Dominant AP KPI clicks open their richer Extra Details
+  dialogs instead of duplicating those diagnostics in a compact point table.
 - Point-list overlay windows now fit full single-height rows without the
   horizontal scrollbar adding empty space or cutting the last row, and quality
   issue text now uses clearer diagnostic wording such as confidence percentage

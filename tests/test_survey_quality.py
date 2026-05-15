@@ -270,6 +270,7 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(summary["scan_review_points"], 1)
         self.assertEqual(summary["scan_ok_points"], 0)
         self.assertEqual(summary["recommendations"][0]["title"], "quality_dashboard_fix_scanner_details_title")
+        self.assertEqual(summary["recommendations"][0]["metric_key"], "quality_dashboard_metric_scanner_details")
         self.assertEqual(len(summary["recommendations"][0]["detail_items"]), 1)
 
     def test_quality_summary_formats_metadata_warning_labels(self):
@@ -507,16 +508,18 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(point_rows_for_metric(rows, "quality_dashboard_metric_points"), [])
         self.assertEqual(point_rows_for_metric(rows, "quality_dashboard_metric_scan_ok"), [])
         self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_rescan")), 4)
-        self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_scanner_details")), 1)
+        self.assertEqual(point_rows_for_metric(rows, "quality_dashboard_metric_scanner_details"), [])
         self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_low_confidence")), 1)
         self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_unstable")), 1)
         self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_missing")), 1)
-        self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_ap_diagnostic_points")), 2)
+        self.assertEqual(point_rows_for_metric(rows, "quality_dashboard_metric_ap_diagnostic_points"), [])
         self.assertEqual(point_rows_for_metric(rows, "quality_dashboard_metric_ap_metadata_warnings"), [])
 
     def test_quality_metric_clickability_is_limited_to_point_filters_with_rows(self):
         self.assertFalse(is_point_metric_filter("quality_dashboard_metric_points", 25))
         self.assertFalse(is_point_metric_filter("quality_dashboard_metric_scan_ok", 10))
+        self.assertFalse(is_point_metric_filter("quality_dashboard_metric_scanner_details", 2))
+        self.assertFalse(is_point_metric_filter("quality_dashboard_metric_ap_diagnostic_points", 2))
         self.assertTrue(is_point_metric_filter("quality_dashboard_metric_rescan", 2))
         self.assertFalse(is_point_metric_filter("quality_dashboard_metric_rescan", 0))
         self.assertFalse(is_point_metric_filter("quality_dashboard_metric_ap_metadata_warnings", 2))
@@ -737,6 +740,7 @@ class QualityTests(unittest.TestCase):
             if recommendation["title"] == "quality_dashboard_fix_ap_position_title"
         )
 
+        self.assertEqual(position_recommendation["metric_key"], "quality_dashboard_metric_ap_diagnostic_points")
         self.assertTrue(any(action.get("map_type") == "dominant" for action in position_recommendation["actions"]))
         self.assertEqual(position_recommendation.get("detail_actions"), [])
         self.assertEqual(

@@ -120,7 +120,7 @@ TRANSLATIONS = {
     "quality_dashboard_metric_group_scan": "Qualità Scansione",
     "quality_dashboard_metric_group_ap": "Modello AP",
     "quality_dashboard_metric_scan_ok": "Scansione OK",
-    "quality_dashboard_metric_rescan": "Da Ripetere",
+    "quality_dashboard_metric_rescan": "Punti Da Verificare",
     "quality_dashboard_metric_missing": "Reti Rilevanti Mancanti",
     "quality_dashboard_metric_sparse": "Dati Scarsi",
     "quality_dashboard_metric_scanner_details": "Dettagli Scanner Mancanti",
@@ -203,7 +203,9 @@ TRANSLATIONS = {
     "quality_dashboard_issue_sparse_data": "Campioni scansione insufficienti in questo punto",
     "quality_dashboard_more_issues": "+{count} altri",
     "quality_dashboard_metric_view_points": "Vedi Punti",
+    "quality_dashboard_metric_extra_details": "Extra Details",
     "quality_dashboard_metric_click_points": "Clicca Per Vedere I Punti Corrispondenti",
+    "quality_dashboard_metric_click_details": "Clicca Per Aprire I Dettagli",
     "quality_dashboard_points_dialog_title": "{label} - {count} Punti",
     "quality_dashboard_check_kpi_issue": "Controlla KPI: {kpis}",
     "quality_dashboard_visible_count": "{shown}/{total} punti mostrati",
@@ -724,7 +726,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card">
                     <div class="step-title">Liste Punti Da KPI</div>
-                    <p>La dashboard principale non mostra subito la tabella punti. Clicca le KPI operative legate ai punti, per esempio Da Ripetere, Dettagli Scanner Mancanti, Bassa Confidenza Scansione o Anomalie Dominant AP, per aprire la lista filtrata corrispondente. Totale Punti e Scan OK sono solo riepiloghi. La colonna Problema segue il contesto della KPI; le diagnostiche lunghe restano su una riga e mostrano il testo completo nel tooltip.</p>
+                    <p>La dashboard principale non mostra subito la tabella punti. Clicca le KPI di evidenza punto, per esempio Punti Da Verificare, Bassa Confidenza Scansione o Segnale Instabile, per aprire liste punti compatte. Dettagli Scanner Mancanti e Anomalie Dominant AP aprono invece le rispettive finestre Extra Details più ricche. Totale Punti e Scan OK sono solo riepiloghi. La colonna Problema segue il contesto della KPI; le diagnostiche lunghe restano su una riga e mostrano il testo completo nel tooltip.</p>
                     <div class="step-gate"><b>Vai Al Punto:</b> da una lista punti chiude la dashboard, seleziona il punto nel tab Survey e apre il pannello punto per ispezione o rescan.</div>
                 </td>
                 <td class="workflow-gap"></td>
@@ -754,8 +756,8 @@ TRANSLATIONS = {
                     <div class="survey-card-title">Punti Rilievo</div>
                     <p><b>Punti Totali:</b> evidenza spaziale raccolta.</p>
                     <p><b>Scan OK:</b> punti con evidenza scan utilizzabile.</p>
-                    <p><b>Rescan Necessario:</b> punti da ispezionare prima di fidarsi delle mappe.</p>
-                    <p><b>Card cliccabili:</b> aprono la lista punti corrispondente.</p>
+                    <p><b>Punti Da Verificare:</b> punti da ispezionare prima di fidarsi delle mappe. Non tutti richiedono per forza una nuova misura: alcuni richiedono controllo del modello o della posizione AP.</p>
+                    <p><b>Card cliccabili:</b> aprono una lista punti o una finestra Extra Details, in base al tipo di diagnostica.</p>
                 </td>
                 <td class="survey-gap"></td>
                 <td class="survey-card">

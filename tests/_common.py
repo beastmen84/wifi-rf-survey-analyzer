@@ -407,6 +407,12 @@ class FakeQualityApp:
             return "Scanner Details Missing"
         if key == "quality_dashboard_metric_ap_diagnostic_points":
             return "Dominant AP Findings"
+        if key == "quality_dashboard_metric_rescan":
+            return "Points To Review"
+        if key == "quality_dashboard_metric_extra_details":
+            return "Extra Details"
+        if key == "quality_dashboard_metric_click_details":
+            return "Click To Open Details"
         if key == "quality_dashboard_check_kpi_issue":
             return f"Check KPI: {kwargs.get('kpis', '')}"
         if key == "quality_dashboard_scanner_details_fallback":

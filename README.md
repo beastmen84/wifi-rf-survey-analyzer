@@ -107,9 +107,9 @@ Current checks include missing relevant networks, low scan confidence, unstable
 signals, sparse point data, limited scanner details, AP metadata warnings, AP
 Memory review states, AP group conflicts, missing AP positions, dominant-AP
 position anomalies, and AP channel changes that affect channel-sensitive maps.
-Actionable point-related KPI cards open compact filtered issue lists with point
-number, X/Y coordinates, and clearer KPI-specific issue text, while Total Points
-and Scan OK stay as summary-only cards. Larger surveys keep the main dashboard
+Actionable point-related KPI cards open compact point lists for point-evidence
+issues and Extra Details for structured scanner or dominant-AP diagnostics.
+Total Points and Scan OK stay as summary-only cards, keeping larger surveys
 focused on readable KPI groups, survey context, and next actions.
 
 ## Live Maps And PDF Reports
