@@ -88,6 +88,8 @@ SEVERITY_COLORS = {
     "danger": QColor("#fdecea"),
 }
 
+METRIC_GRID_COLUMNS = 5
+
 
 POINT_METRIC_FILTERS = {
     "quality_dashboard_metric_points": lambda row: True,
@@ -269,7 +271,7 @@ class QualityDashboardDialog(QDialog):
         layout = QHBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(widget_px(self, 10))
-        layout.addWidget(self.build_summary_panel(summary), 4)
+        layout.addWidget(self.build_summary_panel(summary), 5)
         layout.addWidget(self.build_recommendations_panel(summary), 3)
         return panel
 
@@ -369,12 +371,27 @@ class QualityDashboardDialog(QDialog):
 
         grid = QGridLayout()
         grid.setHorizontalSpacing(widget_px(self, 10))
-        grid.setVerticalSpacing(0)
+        grid.setVerticalSpacing(widget_px(self, 10))
+        for column in range(METRIC_GRID_COLUMNS):
+            grid.setColumnStretch(column, 1)
+        start_column = 0
+        if len(metrics) < METRIC_GRID_COLUMNS:
+            start_column = (METRIC_GRID_COLUMNS - len(metrics)) // 2
+        occupied_columns = set()
         for index, (label_key, value, severity) in enumerate(metrics):
             metric_severity = resolve_metric_severity(label_key, value, severity)
             metric = self.create_metric_box(self.app.tr(label_key), value, metric_severity, label_key)
-            grid.addWidget(metric, 0, index)
-            grid.setColumnStretch(index, 1)
+            row = index // METRIC_GRID_COLUMNS
+            column = (index % METRIC_GRID_COLUMNS) + (start_column if row == 0 else 0)
+            grid.addWidget(metric, row, column)
+            occupied_columns.add(column)
+        if len(metrics) < METRIC_GRID_COLUMNS:
+            for column in range(METRIC_GRID_COLUMNS):
+                if column in occupied_columns:
+                    continue
+                spacer = QFrame()
+                spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+                grid.addWidget(spacer, 0, column)
         grid.setRowStretch(0, 1)
         layout.addLayout(grid, 1)
         return group
@@ -503,24 +520,28 @@ class QualityDashboardDialog(QDialog):
         title.setObjectName("sectionTitle")
         layout.addWidget(title)
 
-        recommendations = summary.get("recommendations", [])
-        visible_recommendations = recommendations[:4]
-        for recommendation in visible_recommendations:
-            layout.addWidget(self.create_recommendation_card(recommendation))
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        content = QFrame()
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(widget_px(self, 6))
 
-        if len(recommendations) > len(visible_recommendations):
-            more = QLabel(self.app.tr("quality_dashboard_more_issues", count=len(recommendations) - len(visible_recommendations)))
-            more.setObjectName("mutedText")
-            layout.addWidget(more)
+        recommendations = summary.get("recommendations", [])
+        for recommendation in recommendations:
+            content_layout.addWidget(self.create_recommendation_card(recommendation))
 
         for line in summary.get("context_lines", []):
             context = QLabel(line)
             context.setObjectName("mutedText")
             context.setWordWrap(True)
             context.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-            layout.addWidget(context)
+            content_layout.addWidget(context)
 
-        layout.addStretch(1)
+        content_layout.addStretch(1)
+        scroll.setWidget(content)
+        layout.addWidget(scroll, 1)
         return panel
 
     def create_recommendation_card(self, recommendation):

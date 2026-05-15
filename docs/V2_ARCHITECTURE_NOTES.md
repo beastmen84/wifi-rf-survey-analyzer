@@ -55,7 +55,9 @@ Current status:
   the main dashboard keeps the full point table out of the first view, while
   point-related KPI cards open filtered point-table overlays for total points,
   scan OK, rescan needed, scanner details, low confidence, unstable signal,
-  missing relevant networks and dominant-AP findings;
+  missing relevant networks and dominant-AP findings; follow-up polish in the
+  same beta uses a stable five-column KPI grid and scrollable `What To Fix
+  Next` content so recommendations are not clipped behind `+N more`;
 - the latest Windows release artifact remains the `v0.9.2-beta.1` PyInstaller
   `onedir` ZIP until an intentional package rebuild is requested;
 - Help content and structure have an expanded V2 Help Center implementation;
@@ -213,6 +215,8 @@ Implemented:
   measurement points need to be repeated;
 - point-related KPI cards open filtered point-table overlays, keeping the main
   dashboard focused on counts and the next actions instead of a long table;
+- KPI cards use a stable five-column grid, with the shorter Survey Points row
+  centered so card widths stay consistent across the dashboard;
 - missing relevant network information;
 - low confidence/unstable point information;
 - sparse-data count surfaced as its own dashboard metric;
@@ -236,7 +240,8 @@ Implemented:
 - setup-only AP diagnostics use a setup warning state instead of implying that
   measurement points need to be rescanned;
 - fullscreen dashboard presentation, compact metric cards, KPI-driven
-  point-table overlays and stronger table selection contrast.
+  point-table overlays, scrollable recommendation cards and stronger table
+  selection contrast.
 
 ### AP Group Manager
 

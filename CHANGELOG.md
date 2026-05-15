@@ -21,6 +21,9 @@ Beta focused on making Survey Quality scale better for larger real surveys.
   unstable signal, missing relevant networks and dominant-AP findings.
 - Removed the main `Show Only Points With Findings` control because filtering is
   now driven by the selected KPI.
+- KPI cards now use a stable five-column grid and the `What To Fix Next` panel
+  shows all recommendation cards inside its own scroll area instead of hiding
+  one behind a `+N more` summary.
 - Help Center, README and V2 notes now describe KPI-driven point lists as the
   scalable way to inspect large surveys.
 
