@@ -418,7 +418,21 @@ class FakeQualityApp:
         if key == "quality_dashboard_scanner_details_fallback":
             return f"Scanner Used: <b>{kwargs.get('backends')}</b> (Limited Channel Details)"
         if key == "quality_dashboard_scanner_details_missing_width":
-            return f"Channel Width Missing On <b>{kwargs.get('count')}</b> Rows"
+            return f"Channel Width Missing On <b>{kwargs.get('count')}</b> Scan Rows"
+        if key == "quality_dashboard_scanner_details_finding":
+            return "Limited Scanner Details"
+        if key == "quality_dashboard_scanner_details_scanner":
+            return f"Scanner: <b>{kwargs.get('backends')}</b>"
+        if key == "quality_dashboard_scanner_details_checked_rows":
+            return f"Checked Scan Rows: <b>{kwargs.get('count')}</b>"
+        if key == "quality_dashboard_scanner_details_missing_width_detail":
+            return f"Missing Channel Width: <b>{kwargs.get('count')}</b> scan rows"
+        if key == "quality_dashboard_scanner_details_missing_frequency_detail":
+            return f"Missing 6 GHz Frequency: <b>{kwargs.get('count')}</b> scan rows"
+        if key == "quality_dashboard_scanner_details_fallback_detail":
+            return f"Fallback Scanner Rows: <b>{kwargs.get('count')}</b>"
+        if key == "quality_dashboard_scanner_details_impact":
+            return "Impact: channel-sensitive maps may be less reliable at this point."
         if key == "quality_dashboard_issue_missing_relevant":
             return f"<b>{kwargs.get('ssid')}</b>: Relevant Network Not Detected At This Point"
         if key == "quality_dashboard_issue_low_confidence":

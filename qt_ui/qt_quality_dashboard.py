@@ -1799,6 +1799,7 @@ def build_scanner_detail_items(app, rows):
                 x=row.get("x", "-"),
                 y=row.get("y", "-"),
             ),
+            "finding": format_scanner_detail_finding(app, row.get("scanner_details", {})),
             "detail": format_scanner_detail_detail(app, row.get("scanner_details", {})),
             "actions": [
                 {
@@ -2141,23 +2142,27 @@ def format_scanner_detail_detail(app, scanner_details):
     if not scanner_details or not scanner_details.get("has_issue"):
         return app.tr("quality_dashboard_no_issue")
 
-    parts = format_scanner_detail_parts(app, scanner_details)
-    return "\n".join(parts) if parts else app.tr("quality_dashboard_no_issue")
+    parts = format_scanner_detail_detail_parts(app, scanner_details)
+    return "<br>".join(parts) if parts else app.tr("quality_dashboard_no_issue")
+
+
+def format_scanner_detail_finding(app, scanner_details):
+    if not scanner_details or not scanner_details.get("has_issue"):
+        return ""
+
+    return app.tr("quality_dashboard_scanner_details_finding")
 
 
 def format_scanner_detail_summary(app, scanner_details):
-    parts = format_scanner_detail_parts(app, scanner_details)
+    parts = format_scanner_detail_summary_parts(app, scanner_details)
     return " | ".join(parts) if parts else app.tr("quality_dashboard_no_issue")
 
 
-def format_scanner_detail_parts(app, scanner_details):
+def format_scanner_detail_summary_parts(app, scanner_details):
     issue_types = set(scanner_details.get("issue_types", []))
     parts = []
     if SCANNER_DETAIL_FALLBACK_BACKEND in issue_types:
-        backends = ", ".join(
-            format_scanner_backend_label(backend)
-            for backend in scanner_details.get("backend_counts", {})
-        ) or "-"
+        backends = format_scanner_backends(scanner_details)
         parts.append(app.tr("quality_dashboard_scanner_details_fallback", backends=backends))
     if SCANNER_DETAIL_MISSING_CHANNEL_WIDTH in issue_types:
         parts.append(app.tr(
@@ -2170,6 +2175,44 @@ def format_scanner_detail_parts(app, scanner_details):
             count=scanner_details.get("missing_6ghz_frequency_rows", 0),
         ))
     return parts
+
+
+def format_scanner_detail_detail_parts(app, scanner_details):
+    issue_types = set(scanner_details.get("issue_types", []))
+    parts = [
+        app.tr(
+            "quality_dashboard_scanner_details_scanner",
+            backends=format_scanner_backends(scanner_details),
+        ),
+        app.tr(
+            "quality_dashboard_scanner_details_checked_rows",
+            count=scanner_details.get("inspected_rows", 0),
+        ),
+    ]
+    if SCANNER_DETAIL_MISSING_CHANNEL_WIDTH in issue_types:
+        parts.append(app.tr(
+            "quality_dashboard_scanner_details_missing_width_detail",
+            count=scanner_details.get("missing_channel_width_rows", 0),
+        ))
+    if SCANNER_DETAIL_MISSING_6GHZ_FREQUENCY in issue_types:
+        parts.append(app.tr(
+            "quality_dashboard_scanner_details_missing_frequency_detail",
+            count=scanner_details.get("missing_6ghz_frequency_rows", 0),
+        ))
+    if SCANNER_DETAIL_FALLBACK_BACKEND in issue_types:
+        parts.append(app.tr(
+            "quality_dashboard_scanner_details_fallback_detail",
+            count=scanner_details.get("fallback_rows", 0),
+        ))
+    parts.append(app.tr("quality_dashboard_scanner_details_impact"))
+    return parts
+
+
+def format_scanner_backends(scanner_details):
+    return ", ".join(
+        format_scanner_backend_label(backend)
+        for backend in scanner_details.get("backend_counts", {})
+    ) or "-"
 
 
 def format_scanner_backend_label(backend):

@@ -272,6 +272,22 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(summary["recommendations"][0]["title"], "quality_dashboard_fix_scanner_details_title")
         self.assertEqual(summary["recommendations"][0]["metric_key"], "quality_dashboard_metric_scanner_details")
         self.assertEqual(len(summary["recommendations"][0]["detail_items"]), 1)
+        self.assertEqual(
+            summary["recommendations"][0]["detail_items"][0]["finding"],
+            "Limited Scanner Details",
+        )
+        self.assertIn(
+            "Scanner: <b>NETSH</b>",
+            summary["recommendations"][0]["detail_items"][0]["detail"],
+        )
+        self.assertIn(
+            "Checked Scan Rows: <b>5</b>",
+            summary["recommendations"][0]["detail_items"][0]["detail"],
+        )
+        self.assertIn(
+            "Missing Channel Width: <b>5</b> scan rows",
+            summary["recommendations"][0]["detail_items"][0]["detail"],
+        )
 
     def test_quality_summary_formats_metadata_warning_labels(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)
@@ -646,7 +662,8 @@ class QualityTests(unittest.TestCase):
         )
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_scanner_details"),
-            "Scanner Used: <b>NETSH</b> (Limited Channel Details) | Channel Width Missing On <b>5</b> Rows",
+            "Scanner Used: <b>NETSH</b> (Limited Channel Details) | "
+            "Channel Width Missing On <b>5</b> Scan Rows",
         )
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_low_confidence"),

@@ -109,6 +109,9 @@ Memory review states, AP group conflicts, missing AP positions, dominant-AP
 position anomalies, and AP channel changes that affect channel-sensitive maps.
 Actionable point-related KPI cards open compact point lists for point-evidence
 issues and Extra Details for structured scanner or dominant-AP diagnostics.
+Scanner detail diagnostics report raw scan-row counts for the selected
+measurement point, so missing channel-width or 6 GHz frequency evidence is not
+confused with the number of survey points.
 Total Points and Scan OK stay as summary-only cards, keeping larger surveys
 focused on readable KPI groups, survey context, and next actions.
 

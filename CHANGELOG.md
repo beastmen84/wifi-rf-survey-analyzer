@@ -8,7 +8,11 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
-No unreleased user-facing changes.
+- Survey Quality `Scanner Details Missing` Extra Details now use the same
+  finding/detail structure as Dominant AP diagnostics, with separate scanner,
+  checked scan-row count, missing channel-width/frequency rows and impact text.
+- Scanner-detail wording now says `scan rows` so the count is clearly raw scan
+  evidence for that measurement point, not a count of measurement points.
 
 ## v0.9.3-beta.2 - 2026-05-15
 
