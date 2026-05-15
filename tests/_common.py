@@ -139,6 +139,7 @@ from qt_ui.qt_quality_dashboard import (
     is_point_metric_filter,
     point_table_visible_row_count,
     point_rows_for_metric,
+    PointRowsDialog,
     rescan_kpi_labels_for_row,
     quality_status_text_keys,
     resolve_metric_severity,
@@ -410,6 +411,20 @@ class FakeQualityApp:
             return f"Fallback scanner used: {kwargs.get('backends')}"
         if key == "quality_dashboard_scanner_details_missing_width":
             return f"{kwargs.get('count')} channel-sensitive rows missing channel width"
+        if key == "quality_dashboard_issue_missing_relevant":
+            return f"{kwargs.get('ssid')}: Not Detected At This Point"
+        if key == "quality_dashboard_issue_low_confidence":
+            return f"{kwargs.get('ssid')}: {kwargs.get('confidence')} Confidence Level"
+        if key == "quality_dashboard_issue_unstable_signal":
+            return f"{kwargs.get('ssid')}: Signal Varies By {kwargs.get('range')} dB"
+        if key == "quality_dashboard_issue_sparse_data":
+            return "Not Enough Scan Samples At This Point"
+        if key == "quality_missing_relevant":
+            return "Missing Relevant Networks"
+        if key == "quality_low_confidence":
+            return "Low Scan Confidence"
+        if key == "quality_unstable_signal":
+            return "Unstable Signal"
         if key == "quality_dashboard_missing_positions_more":
             return f"{kwargs.get('names', '')} +{kwargs.get('count', 0)}"
         if key == "quality_dashboard_missing_positions_none":

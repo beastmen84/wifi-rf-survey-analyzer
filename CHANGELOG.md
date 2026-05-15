@@ -33,6 +33,10 @@ Beta focused on making Survey Quality scale better for larger real surveys.
   the redundant prefix, and Rescan Needed points users to the affected KPI
   cards. Quality KPI issue text is filtered by the selected status, so Low Scan
   Confidence does not include Unstable Signal details.
+- Point-list overlay windows now fit full single-height rows without the
+  horizontal scrollbar adding empty space or cutting the last row, and quality
+  issue text now uses clearer diagnostic wording such as confidence percentage
+  and signal variation.
 - Help Center, README and V2 notes now describe KPI-driven point lists as the
   scalable way to inspect large surveys.
 

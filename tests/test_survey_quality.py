@@ -216,7 +216,12 @@ class QualityTests(unittest.TestCase):
             "p1": {
                 "status": QUALITY_LOW_CONFIDENCE,
                 "breakdown": [
-                    {"ssid": "main", "status": QUALITY_LOW_CONFIDENCE, "message": "low_confidence"}
+                    {
+                        "ssid": "main",
+                        "status": QUALITY_LOW_CONFIDENCE,
+                        "message": "low_confidence",
+                        "min_confidence": 0.4,
+                    }
                 ],
             }
         }
@@ -233,7 +238,7 @@ class QualityTests(unittest.TestCase):
         self.assertTrue(rows[0]["needs_review"])
         self.assertEqual(rows[0]["severity"], "warning")
         self.assertEqual(rows[0]["ap_position_warning_count"], 1)
-        self.assertIn("main: low_confidence", rows[0]["issue"])
+        self.assertIn("MAIN: 40% Confidence Level", rows[0]["issue"])
         self.assertIn("main-ap", rows[0]["issue"])
 
     def test_dashboard_counts_scanner_detail_findings_as_scan_review(self):
@@ -480,6 +485,10 @@ class QualityTests(unittest.TestCase):
             },
             {
                 "status": QUALITY_LOW_CONFIDENCE,
+                "quality_breakdown": [
+                    {"ssid": "main", "status": QUALITY_LOW_CONFIDENCE},
+                    {"ssid": "guest", "status": QUALITY_UNSTABLE_SIGNAL},
+                ],
                 "scanner_detail_issue": False,
                 "ap_position_warning_count": 0,
             },
@@ -495,6 +504,7 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_rescan")), 3)
         self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_scanner_details")), 1)
         self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_low_confidence")), 1)
+        self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_unstable")), 1)
         self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_missing")), 1)
         self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_ap_diagnostic_points")), 1)
         self.assertEqual(point_rows_for_metric(rows, "quality_dashboard_metric_ap_metadata_warnings"), [])
@@ -511,14 +521,63 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(point_table_visible_row_count(14), 14)
         self.assertEqual(point_table_visible_row_count(25), 14)
 
+    def test_quality_point_table_dialog_fits_single_height_rows(self):
+        QApplication.instance() or QApplication([])
+        owner = QWidget()
+        owner.app = FakeQualityApp([])
+        rows = [
+            {
+                "number": index + 1,
+                "x": 10,
+                "y": 20,
+                "severity": "warning",
+                "status": QUALITY_LOW_CONFIDENCE,
+                "quality_breakdown": [],
+                "quality_issue": "issue",
+                "scanner_detail_issue": False,
+                "ap_position_warning_count": 0,
+                "issue": "issue",
+                "needs_review": True,
+            }
+            for index in range(25)
+        ]
+        dialog = PointRowsDialog(owner, "Low Scan Confidence", rows, len(rows), "quality_dashboard_metric_points")
+
+        try:
+            dialog.show()
+            QApplication.processEvents()
+
+            expected_rows = point_table_visible_row_count(len(rows))
+            row_height = dialog.table.rowHeight(0)
+            viewport_height = dialog.table.viewport().height()
+            extra_height = viewport_height - (expected_rows * row_height)
+
+            self.assertEqual(dialog.table.columnCount(), 3)
+            self.assertEqual(dialog.table.horizontalScrollBarPolicy(), Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            self.assertGreaterEqual(extra_height, 0)
+            self.assertLessEqual(extra_height, max(2, row_height // 10))
+        finally:
+            dialog.close()
+            owner.deleteLater()
+
     def test_quality_point_table_issue_matches_selected_kpi(self):
         app = FakeQualityApp([])
         row = {
             "status": QUALITY_LOW_CONFIDENCE,
             "quality_issue": "quality issue",
             "quality_breakdown": [
-                {"ssid": "main", "status": QUALITY_LOW_CONFIDENCE, "message": "low_confidence"},
-                {"ssid": "main", "status": QUALITY_UNSTABLE_SIGNAL, "message": "unstable_signal"},
+                {
+                    "ssid": "main",
+                    "status": QUALITY_LOW_CONFIDENCE,
+                    "message": "low_confidence",
+                    "min_confidence": 0.4,
+                },
+                {
+                    "ssid": "main",
+                    "status": QUALITY_UNSTABLE_SIGNAL,
+                    "message": "unstable_signal",
+                    "range_db": 14.0,
+                },
             ],
             "scanner_detail_issue": True,
             "scanner_detail_issue_text": "scanner issue",
@@ -538,7 +597,7 @@ class QualityTests(unittest.TestCase):
         )
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_rescan"),
-            "Check KPI: Low Scan Confidence; Scanner Details Missing",
+            "Check KPI: Low Scan Confidence; Unstable Signal; Scanner Details Missing",
         )
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_scanner_details"),
@@ -546,11 +605,11 @@ class QualityTests(unittest.TestCase):
         )
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_low_confidence"),
-            "main: low_confidence",
+            "MAIN: 40% Confidence Level",
         )
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_unstable"),
-            "main: unstable_signal",
+            "MAIN: Signal Varies By 14.0 dB",
         )
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_ap_diagnostic_points"),

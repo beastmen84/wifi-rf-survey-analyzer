@@ -224,6 +224,9 @@ Implemented:
   final empty slot so card widths and reserved space stay consistent;
 - KPI point-list overlays size the table to whole rows, avoiding half-visible
   rows at the default size and reducing empty table area for small filters;
+- point-list overlay height is calculated without a horizontal scrollbar because
+  the compact Issue column elides overflow and exposes full text through the
+  tooltip;
 - KPI point-list overlays intentionally show only point number, coordinates and
   issue text, because the overlay is for finding and navigating diagnostics, not
   duplicating the full Survey point table;
@@ -233,7 +236,8 @@ Implemented:
   normal no-issue text, Scanner Details omits the redundant prefix, and Rescan
   Needed lists the affected KPI cards to inspect; quality KPI issue text is
   filtered by the selected status so Low Scan Confidence does not include
-  Unstable Signal details;
+  Unstable Signal details and formats low confidence/unstable signal findings
+  as user-facing diagnostics such as confidence percentage and dB variation;
 - missing relevant network information;
 - low confidence/unstable point information;
 - sparse-data count surfaced as its own dashboard metric;

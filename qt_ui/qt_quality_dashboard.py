@@ -1,7 +1,5 @@
 """Qt quality dashboard for point-level scan diagnostics."""
 
-from collections import Counter
-
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import (
@@ -109,11 +107,11 @@ POINT_METRIC_FILTERS = {
     "quality_dashboard_metric_rescan": (
         lambda row: row.get("status") != QUALITY_GOOD or row.get("scanner_detail_issue")
     ),
-    "quality_dashboard_metric_missing": lambda row: row.get("status") == QUALITY_MISSING_RELEVANT,
-    "quality_dashboard_metric_sparse": lambda row: row.get("status") == QUALITY_SPARSE_DATA,
+    "quality_dashboard_metric_missing": lambda row: row_has_quality_status(row, QUALITY_MISSING_RELEVANT),
+    "quality_dashboard_metric_sparse": lambda row: row_has_quality_status(row, QUALITY_SPARSE_DATA),
     "quality_dashboard_metric_scanner_details": lambda row: bool(row.get("scanner_detail_issue")),
-    "quality_dashboard_metric_low_confidence": lambda row: row.get("status") == QUALITY_LOW_CONFIDENCE,
-    "quality_dashboard_metric_unstable": lambda row: row.get("status") == QUALITY_UNSTABLE_SIGNAL,
+    "quality_dashboard_metric_low_confidence": lambda row: row_has_quality_status(row, QUALITY_LOW_CONFIDENCE),
+    "quality_dashboard_metric_unstable": lambda row: row_has_quality_status(row, QUALITY_UNSTABLE_SIGNAL),
     "quality_dashboard_metric_ap_diagnostic_points": (
         lambda row: row.get("ap_position_warning_count", 0) > 0
     ),
@@ -125,6 +123,26 @@ def point_rows_for_metric(rows, metric_key):
     if row_filter is None:
         return []
     return [row for row in rows if row_filter(row)]
+
+
+def row_quality_statuses(row):
+    statuses = {
+        item.get("status")
+        for item in row.get("quality_breakdown", [])
+        if item.get("status") and item.get("status") != QUALITY_GOOD
+    }
+    status = row.get("status")
+    if status and status != QUALITY_GOOD:
+        statuses.add(status)
+    return statuses
+
+
+def row_has_quality_status(row, status):
+    return status in row_quality_statuses(row)
+
+
+def count_rows_with_quality_status(rows, status):
+    return sum(1 for row in rows if row_has_quality_status(row, status))
 
 
 def is_point_metric_filter(metric_key, value):
@@ -168,28 +186,91 @@ def format_metric_point_issue(app, row, metric_key):
 def format_metric_quality_issue(app, row, target_status):
     no_issue = app.tr("quality_dashboard_no_issue")
     issues = [
-        f"{item.get('ssid', '-')}: {app.format_quality_breakdown_item(item)}"
+        format_quality_breakdown_issue(app, item)
         for item in row.get("quality_breakdown", [])
         if item.get("status") == target_status
     ]
     if issues:
         return "; ".join(issues)
     if row.get("status") == target_status:
-        return row.get("quality_issue") or app.format_point_quality(target_status)
+        return row.get("quality_issue") or format_quality_status_issue(app, target_status)
     return no_issue
+
+
+def format_quality_breakdown_issue(app, item):
+    ssid = format_issue_ssid(item.get("ssid", "-"))
+    status = item.get("status")
+    if status == QUALITY_MISSING_RELEVANT:
+        return app.tr("quality_dashboard_issue_missing_relevant", ssid=ssid)
+    if status == QUALITY_LOW_CONFIDENCE:
+        confidence = format_confidence_percent(item.get("min_confidence"))
+        if confidence:
+            return app.tr("quality_dashboard_issue_low_confidence", ssid=ssid, confidence=confidence)
+    if status == QUALITY_UNSTABLE_SIGNAL:
+        range_db = format_db_value(item.get("range_db"))
+        if range_db:
+            return app.tr("quality_dashboard_issue_unstable_signal", ssid=ssid, range=range_db)
+    if status == QUALITY_GOOD:
+        return app.tr("quality_dashboard_no_issue")
+    return f"{ssid}: {app.format_quality_breakdown_item(item)}"
+
+
+def format_quality_status_issue(app, status):
+    if status == QUALITY_SPARSE_DATA:
+        return app.tr("quality_dashboard_issue_sparse_data")
+    if status == QUALITY_MISSING_RELEVANT:
+        return app.tr("quality_missing_relevant")
+    if status == QUALITY_LOW_CONFIDENCE:
+        return app.tr("quality_low_confidence")
+    if status == QUALITY_UNSTABLE_SIGNAL:
+        return app.tr("quality_unstable_signal")
+    return app.format_point_quality(status)
+
+
+def format_issue_ssid(ssid):
+    text = str(ssid or "-")
+    return text.upper() if text != "-" else text
+
+
+def format_confidence_percent(value):
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return ""
+    return f"{number * 100:.0f}%"
+
+
+def format_db_value(value):
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return ""
+    return f"{number:.1f}"
 
 
 def rescan_kpi_labels_for_row(app, row):
     labels = []
+    seen_keys = set()
     status_metric_keys = {
         QUALITY_MISSING_RELEVANT: "quality_dashboard_metric_missing",
         QUALITY_SPARSE_DATA: "quality_dashboard_metric_sparse",
         QUALITY_LOW_CONFIDENCE: "quality_dashboard_metric_low_confidence",
         QUALITY_UNSTABLE_SIGNAL: "quality_dashboard_metric_unstable",
     }
-    metric_key = status_metric_keys.get(row.get("status"))
-    if metric_key:
-        labels.append(app.tr(metric_key))
+
+    for status in (
+        QUALITY_MISSING_RELEVANT,
+        QUALITY_SPARSE_DATA,
+        QUALITY_LOW_CONFIDENCE,
+        QUALITY_UNSTABLE_SIGNAL,
+    ):
+        if status not in row_quality_statuses(row):
+            continue
+        metric_key = status_metric_keys.get(status)
+        if metric_key and metric_key not in seen_keys:
+            labels.append(app.tr(metric_key))
+            seen_keys.add(metric_key)
+
     if row.get("scanner_detail_issue"):
         labels.append(app.tr("quality_dashboard_metric_scanner_details"))
     return labels
@@ -828,7 +909,7 @@ class PointRowsDialog(QDialog):
                 count=len(self.rows),
             )
         )
-        self.setMinimumSize(widget_px(self, 820), widget_px(self, 260))
+        self.setMinimumWidth(widget_px(self, 820))
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(widget_px(self, 14), widget_px(self, 14), widget_px(self, 14), widget_px(self, 14))
@@ -854,6 +935,8 @@ class PointRowsDialog(QDialog):
         self.table.setShowGrid(False)
         self.table.setWordWrap(False)
         self.table.setTextElideMode(Qt.TextElideMode.ElideRight)
+        self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerItem)
         self.table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         vertical_header = self.table.verticalHeader()
         vertical_header.setVisible(False)
@@ -900,9 +983,8 @@ class PointRowsDialog(QDialog):
         header_height = self.table.horizontalHeader().sizeHint().height()
         frame_height = self.table.frameWidth() * 2
         rows_height = visible_rows * row_height
-        scrollbar_height = self.table.horizontalScrollBar().sizeHint().height()
-        table_height = header_height + rows_height + scrollbar_height + frame_height + widget_px(self, 8)
-        self.table.setMinimumHeight(table_height)
+        table_height = header_height + rows_height + frame_height + widget_px(self, 2)
+        self.table.setFixedHeight(table_height)
 
     def resize_table_rows(self):
         for row in range(self.table.rowCount()):
@@ -912,7 +994,7 @@ class PointRowsDialog(QDialog):
         self.adjustSize()
         width = widget_px(self, 1180)
         max_height = widget_px(self, 760)
-        height = min(max_height, max(self.sizeHint().height(), self.minimumHeight()))
+        height = min(max_height, self.sizeHint().height())
         self.resize(width, height)
 
     def current_row_data(self):
@@ -1165,7 +1247,6 @@ def get_effective_ap_groups(app):
 def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None, ap_channel_changes=None):
     ap_metadata_warnings = ap_metadata_warnings or []
     ap_channel_changes = ap_channel_changes or []
-    status_counts = Counter(row["status"] for row in rows)
     ap_groups = ap_groups if ap_groups is not None else get_effective_ap_groups(app)
     visible_ap_groups = [
         group
@@ -1205,10 +1286,10 @@ def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None, ap_chann
         "good_points": sum(1 for row in rows if not row["needs_review"]),
         "review_points": sum(1 for row in rows if row["needs_review"]),
         "scan_review_points": scan_review_points,
-        "missing_relevant": status_counts.get(QUALITY_MISSING_RELEVANT, 0),
-        "low_confidence": status_counts.get(QUALITY_LOW_CONFIDENCE, 0),
-        "unstable": status_counts.get(QUALITY_UNSTABLE_SIGNAL, 0),
-        "sparse_data": status_counts.get(QUALITY_SPARSE_DATA, 0),
+        "missing_relevant": count_rows_with_quality_status(rows, QUALITY_MISSING_RELEVANT),
+        "low_confidence": count_rows_with_quality_status(rows, QUALITY_LOW_CONFIDENCE),
+        "unstable": count_rows_with_quality_status(rows, QUALITY_UNSTABLE_SIGNAL),
+        "sparse_data": count_rows_with_quality_status(rows, QUALITY_SPARSE_DATA),
         "scanner_detail_points": scanner_detail_points,
         "scanner_detail_items": build_scanner_detail_items(app, rows),
         "ap_position_warnings": sum(1 for row in rows if row.get("ap_position_warning_count", 0) > 0),
@@ -1973,7 +2054,7 @@ def format_scanner_detail_parts(app, scanner_details):
 def format_quality_issue(app, quality):
     breakdown = quality.get("breakdown", [])
     issues = [
-        f"{item.get('ssid', '-')}: {app.format_quality_breakdown_item(item)}"
+        format_quality_breakdown_issue(app, item)
         for item in breakdown
         if item.get("status") != QUALITY_GOOD
     ]
@@ -1982,7 +2063,7 @@ def format_quality_issue(app, quality):
 
     status = quality.get("status")
     if status and status != QUALITY_GOOD:
-        return app.format_point_quality(status)
+        return format_quality_status_issue(app, status)
 
     return app.tr("quality_dashboard_no_issue")
 
