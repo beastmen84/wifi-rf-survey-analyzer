@@ -426,11 +426,12 @@ class FakeQualityApp:
         if key == "quality_dashboard_scanner_details_finding":
             return "Limited Scanner Details"
         if key == "quality_dashboard_scanner_details_scanner":
-            return f"Scanner: <b>{kwargs.get('backends')}</b>{kwargs.get('fallback', '')}"
+            return (
+                f"Scanner: <b>{kwargs.get('backends')}</b>{kwargs.get('fallback', '')} | "
+                f"Raw Scan Rows: <b>{kwargs.get('count')}</b>"
+            )
         if key == "quality_dashboard_scanner_details_fallback_suffix":
             return " (fallback)"
-        if key == "quality_dashboard_scanner_details_checked_rows":
-            return f"Raw Scan Rows Checked: <b>{kwargs.get('count')}</b>"
         if key == "quality_dashboard_scanner_details_missing_width_detail":
             return f"Missing Channel Width: <b>{kwargs.get('count')}</b> channel-sensitive scan rows"
         if key == "quality_dashboard_scanner_details_missing_frequency_detail":

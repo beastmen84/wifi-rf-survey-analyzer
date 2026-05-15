@@ -2,7 +2,7 @@
 
 from html import escape
 
-from PySide6.QtCore import QRectF, Qt
+from PySide6.QtCore import QRectF, Qt, QTimer
 from PySide6.QtGui import QColor, QPainter, QPen, QTextDocument
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -1151,6 +1151,10 @@ class RecommendationDetailsDialog(QDialog):
         self.setWindowTitle(recommendation.get("title", self.app.tr("quality_dashboard_fix_next_title")))
         row_height = recommendation_detail_row_height(recommendation, items)
         visible_items = recommendation_detail_visible_item_count(recommendation, items)
+        self.detail_scroll = None
+        self.detail_rows = []
+        self.visible_detail_items = visible_items
+        self.limit_detail_scroll = is_scanner_detail_recommendation(recommendation) and len(items) > visible_items
         height = 150 + visible_items * row_height + (44 if detail_actions else 0)
         self.resize(
             widget_px(self, 980),
@@ -1199,12 +1203,8 @@ class RecommendationDetailsDialog(QDialog):
             detail_rows.append(detail_row)
             content_layout.addWidget(detail_row)
         scroll.setWidget(content)
-        if is_scanner_detail_recommendation(recommendation) and len(detail_rows) > visible_items:
-            scroll.setMaximumHeight(recommendation_detail_scroll_max_height(
-                [row.sizeHint().height() for row in detail_rows],
-                content_layout.spacing(),
-                visible_items,
-            ))
+        self.detail_scroll = scroll
+        self.detail_rows = detail_rows
         layout.addWidget(scroll, 1)
 
         button_row = QHBoxLayout()
@@ -1216,11 +1216,29 @@ class RecommendationDetailsDialog(QDialog):
         close_button.clicked.connect(self.accept)
         button_row.addWidget(close_button)
         layout.addLayout(button_row)
-        if is_scanner_detail_recommendation(recommendation):
-            self.resize(
-                widget_px(self, 980),
-                min(widget_px(self, recommendation_detail_max_height(recommendation)), self.sizeHint().height()),
-            )
+        if self.limit_detail_scroll:
+            QTimer.singleShot(0, self.apply_detail_scroll_limit)
+
+    def apply_detail_scroll_limit(self):
+        if not self.detail_scroll or not self.detail_rows:
+            return
+
+        row_heights = [row.height() for row in self.detail_rows[:self.visible_detail_items]]
+        if not row_heights or any(height <= 0 for height in row_heights):
+            row_heights = [row.sizeHint().height() for row in self.detail_rows[:self.visible_detail_items]]
+
+        scroll_height = recommendation_detail_scroll_max_height(
+            row_heights,
+            self.detail_scroll.widget().layout().spacing(),
+            self.visible_detail_items,
+        )
+        self.detail_scroll.setMinimumHeight(scroll_height)
+        self.detail_scroll.setMaximumHeight(scroll_height)
+        self.layout().activate()
+        self.resize(
+            self.width(),
+            min(widget_px(self, recommendation_detail_max_height(self.recommendation)), self.sizeHint().height()),
+        )
 
     def create_detail_row(self, item):
         palette = QT_THEMES.get(getattr(self.app, "theme", "light"), QT_THEMES["light"])
@@ -2242,9 +2260,6 @@ def format_scanner_detail_detail_parts(app, scanner_details):
             "quality_dashboard_scanner_details_scanner",
             backends=format_scanner_backends(scanner_details),
             fallback=fallback_suffix,
-        ),
-        app.tr(
-            "quality_dashboard_scanner_details_checked_rows",
             count=scanner_details.get("inspected_rows", 0),
         ),
     ]

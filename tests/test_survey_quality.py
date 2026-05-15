@@ -277,11 +277,7 @@ class QualityTests(unittest.TestCase):
             "Limited Scanner Details",
         )
         self.assertIn(
-            "Scanner: <b>NETSH</b> (fallback)",
-            summary["recommendations"][0]["detail_items"][0]["detail"],
-        )
-        self.assertIn(
-            "Raw Scan Rows Checked: <b>5</b>",
+            "Scanner: <b>NETSH</b> (fallback) | Raw Scan Rows: <b>5</b>",
             summary["recommendations"][0]["detail_items"][0]["detail"],
         )
         self.assertIn(

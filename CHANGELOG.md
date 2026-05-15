@@ -16,7 +16,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 - The redundant fallback row count was removed from scanner details; `NETSH` is
   labeled as the fallback scanner on the scanner line instead.
 - Scanner Details Extra Details now default to at most four visible cards, with
-  the remaining affected points available through the dialog scroll area.
+  the remaining affected points available through the dialog scroll area; the
+  scroll height is fitted to whole cards so the next card is not partially
+  visible.
 
 ## v0.9.3-beta.2 - 2026-05-15
 

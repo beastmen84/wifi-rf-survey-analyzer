@@ -65,8 +65,8 @@ Current status:
   and explicitly label counts as raw `scan rows` for the measurement point,
   while `NETSH` fallback is shown on the scanner line instead of as a duplicate
   fallback-row count; Scanner Details Extra Details default to four visible
-  cards before scrolling so large `netsh` finding sets do not open oversized
-  dialogs;
+  whole cards before scrolling so large `netsh` finding sets do not open
+  oversized dialogs or show a partially clipped next card;
 - the latest Windows release artifact remains the `v0.9.2-beta.1` PyInstaller
   `onedir` ZIP until an intentional package rebuild is requested;
 - Help content and structure have an expanded V2 Help Center implementation;
