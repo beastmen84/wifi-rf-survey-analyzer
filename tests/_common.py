@@ -135,6 +135,7 @@ from qt_ui.qt_quality_dashboard import (
     format_relevant_ssids,
     get_effective_relevant_ssids,
     get_effective_ap_groups,
+    format_metric_point_issue,
     is_point_metric_filter,
     point_table_visible_row_count,
     point_rows_for_metric,

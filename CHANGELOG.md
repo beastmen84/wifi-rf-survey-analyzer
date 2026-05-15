@@ -28,6 +28,9 @@ Beta focused on making Survey Quality scale better for larger real surveys.
   scroll area instead of hiding one behind a `+N more` summary.
 - Filtered point-list overlays now size their table to whole rows, defaulting
   to at most 14 visible rows and shrinking automatically for small result sets.
+- Point-list overlay issue text is now scoped to the KPI that opened the table,
+  wraps instead of eliding long text, and the table grows when the overlay is
+  resized vertically.
 - Help Center, README and V2 notes now describe KPI-driven point lists as the
   scalable way to inspect large surveys.
 

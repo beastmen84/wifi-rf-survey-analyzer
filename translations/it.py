@@ -204,6 +204,7 @@ TRANSLATIONS = {
     "quality_dashboard_visible_count": "{shown}/{total} punti mostrati",
     "quality_dashboard_quality": "Qualità",
     "quality_dashboard_scan_quality": "Qualità Scansione",
+    "quality_dashboard_scan_ok_issue": "Evidenza scansione OK",
     "quality_dashboard_confidence": "Confidenza",
     "quality_dashboard_issue": "Problema",
     "quality_dashboard_relevant_ssids": "SSID rilevanti",
@@ -719,7 +720,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card">
                     <div class="step-title">Liste Punti Da KPI</div>
-                    <p>La dashboard principale non mostra subito la tabella punti. Clicca le KPI legate ai punti, per esempio Da Ripetere, Dettagli Scanner Mancanti, Bassa Confidenza Scansione o Anomalie Dominant AP, per aprire la lista filtrata corrispondente.</p>
+                    <p>La dashboard principale non mostra subito la tabella punti. Clicca le KPI legate ai punti, per esempio Da Ripetere, Dettagli Scanner Mancanti, Bassa Confidenza Scansione o Anomalie Dominant AP, per aprire la lista filtrata corrispondente. La colonna Problema segue il contesto della KPI e manda a capo le diagnostiche lunghe.</p>
                     <div class="step-gate"><b>Vai Al Punto:</b> da una lista punti chiude la dashboard, seleziona il punto nel tab Survey e apre il pannello punto per ispezione o rescan.</div>
                 </td>
                 <td class="workflow-gap"></td>

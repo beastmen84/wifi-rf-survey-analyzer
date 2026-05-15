@@ -204,6 +204,7 @@ TRANSLATIONS = {
     "quality_dashboard_visible_count": "{shown}/{total} points shown",
     "quality_dashboard_quality": "Quality",
     "quality_dashboard_scan_quality": "Scan Quality",
+    "quality_dashboard_scan_ok_issue": "Scan evidence OK",
     "quality_dashboard_confidence": "Confidence",
     "quality_dashboard_issue": "Issue",
     "quality_dashboard_relevant_ssids": "Relevant SSIDs",
@@ -719,7 +720,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card">
                     <div class="step-title">KPI Point Lists</div>
-                    <p>The main dashboard keeps the point table out of the first view. Click point-related KPI cards such as Rescan Needed, Scanner Details Missing, Low Scan Confidence or Dominant AP Findings to open the matching point list.</p>
+                    <p>The main dashboard keeps the point table out of the first view. Click point-related KPI cards such as Rescan Needed, Scanner Details Missing, Low Scan Confidence or Dominant AP Findings to open the matching point list. The Issue column follows the KPI context and wraps long diagnostics.</p>
                     <div class="step-gate"><b>Focus Point:</b> from a point list, closes the dashboard, selects the point on the Survey tab and opens the point panel for inspection or rescan.</div>
                 </td>
                 <td class="workflow-gap"></td>

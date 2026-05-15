@@ -139,6 +139,35 @@ def point_table_visible_row_count(row_count):
     return max(1, min(count, POINT_TABLE_MAX_VISIBLE_ROWS))
 
 
+def format_metric_point_issue(app, row, metric_key):
+    no_issue = app.tr("quality_dashboard_no_issue")
+    if metric_key == "quality_dashboard_metric_points":
+        return row.get("issue") or no_issue
+    if metric_key == "quality_dashboard_metric_scan_ok":
+        return app.tr("quality_dashboard_scan_ok_issue")
+    if metric_key == "quality_dashboard_metric_rescan":
+        parts = []
+        quality_issue = row.get("quality_issue")
+        if row.get("status") != QUALITY_GOOD and quality_issue and quality_issue != no_issue:
+            parts.append(quality_issue)
+        scanner_issue = row.get("scanner_detail_issue_text")
+        if row.get("scanner_detail_issue") and scanner_issue and scanner_issue != no_issue:
+            parts.append(scanner_issue)
+        return "; ".join(parts) if parts else app.tr("quality_dashboard_scan_ok_issue")
+    if metric_key in {
+        "quality_dashboard_metric_missing",
+        "quality_dashboard_metric_sparse",
+        "quality_dashboard_metric_low_confidence",
+        "quality_dashboard_metric_unstable",
+    }:
+        return row.get("quality_issue") or no_issue
+    if metric_key == "quality_dashboard_metric_scanner_details":
+        return row.get("scanner_detail_issue_text") or no_issue
+    if metric_key == "quality_dashboard_metric_ap_diagnostic_points":
+        return row.get("ap_position_issue") or no_issue
+    return row.get("issue") or no_issue
+
+
 def configure_point_table_columns(table):
     header = table.horizontalHeader()
     header.setStretchLastSection(False)
@@ -148,10 +177,15 @@ def configure_point_table_columns(table):
     header.setSectionResizeMode(8, QHeaderView.ResizeMode.Stretch)
 
 
-def populate_point_table(table, rows, owner):
+def populate_point_table(table, rows, owner, metric_key=None):
     table.setRowCount(len(rows))
 
     for row_index, row in enumerate(rows):
+        issue_text = (
+            format_metric_point_issue(owner.app, row, metric_key)
+            if metric_key
+            else row["issue"]
+        )
         values = [
             row["number"],
             row["x"],
@@ -161,7 +195,7 @@ def populate_point_table(table, rows, owner):
             row["best"],
             row["row_count"],
             row["ssids"],
-            row["issue"],
+            issue_text,
         ]
         background = SEVERITY_COLORS.get(row["severity"])
         for column_index, value in enumerate(values):
@@ -174,7 +208,7 @@ def populate_point_table(table, rows, owner):
             if column_index <= 6:
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             else:
-                item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
                 item.setToolTip(str(value))
             table.setItem(row_index, column_index, item)
         table.setRowHeight(row_index, widget_px(owner, POINT_TABLE_ROW_HEIGHT))
@@ -560,7 +594,7 @@ class QualityDashboardDialog(QDialog):
 
     def open_metric_points(self, metric_key, label):
         rows = point_rows_for_metric(self.rows, metric_key)
-        dialog = PointRowsDialog(self, label, rows, len(self.rows))
+        dialog = PointRowsDialog(self, label, rows, len(self.rows), metric_key)
         dialog.exec()
 
     def build_recommendations_panel(self, summary):
@@ -760,11 +794,12 @@ class QualityDashboardDialog(QDialog):
 
 
 class PointRowsDialog(QDialog):
-    def __init__(self, owner, label, rows, total_count):
+    def __init__(self, owner, label, rows, total_count, metric_key=None):
         super().__init__(owner)
         self.owner = owner
         self.app = owner.app
         self.rows = list(rows)
+        self.metric_key = metric_key
         self.setProperty(SKIP_CENTERING_PROPERTY, True)
         self.setWindowTitle(
             self.app.tr(
@@ -797,8 +832,8 @@ class PointRowsDialog(QDialog):
         self.table.setObjectName("qualityDashboardTable")
         self.table.setAlternatingRowColors(True)
         self.table.setShowGrid(False)
-        self.table.setWordWrap(False)
-        self.table.setTextElideMode(Qt.TextElideMode.ElideRight)
+        self.table.setWordWrap(True)
+        self.table.setTextElideMode(Qt.TextElideMode.ElideNone)
         self.table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.table.verticalHeader().setVisible(False)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
@@ -815,10 +850,12 @@ class PointRowsDialog(QDialog):
             self.app.tr("quality_dashboard_issue"),
         ])
         configure_point_table_columns(self.table)
-        populate_point_table(self.table, self.rows, self)
-        self.apply_table_height()
+        populate_point_table(self.table, self.rows, self, self.metric_key)
         self.table.itemDoubleClicked.connect(lambda _item: self.focus_selected_point())
         layout.addWidget(self.table, 1)
+        self.resize(widget_px(self, 1180), self.minimumHeight())
+        self.layout().activate()
+        self.apply_table_height()
 
         if self.rows:
             selected_row = next(
@@ -840,13 +877,23 @@ class PointRowsDialog(QDialog):
         self.apply_initial_size()
 
     def apply_table_height(self):
+        self.resize_table_rows()
         visible_rows = point_table_visible_row_count(len(self.rows))
-        row_height = widget_px(self, POINT_TABLE_ROW_HEIGHT)
+        fallback_row_height = widget_px(self, POINT_TABLE_ROW_HEIGHT)
         header_height = self.table.horizontalHeader().sizeHint().height()
         frame_height = self.table.frameWidth() * 2
-        table_height = header_height + (visible_rows * row_height) + frame_height + widget_px(self, 2)
+        rows_height = sum(self.table.rowHeight(row) for row in range(min(visible_rows, len(self.rows))))
+        if not rows_height:
+            rows_height = fallback_row_height
+        scrollbar_height = self.table.horizontalScrollBar().sizeHint().height()
+        table_height = header_height + rows_height + scrollbar_height + frame_height + widget_px(self, 8)
         self.table.setMinimumHeight(table_height)
-        self.table.setMaximumHeight(table_height)
+
+    def resize_table_rows(self):
+        self.table.resizeRowsToContents()
+        min_height = widget_px(self, POINT_TABLE_ROW_HEIGHT)
+        for row in range(self.table.rowCount()):
+            self.table.setRowHeight(row, max(min_height, self.table.rowHeight(row)))
 
     def apply_initial_size(self):
         self.adjustSize()
@@ -1032,7 +1079,8 @@ def build_dashboard_rows(app, point_summaries, quality_by_point_id, ap_position_
         ap_position_issue = format_ap_position_issue(app, ap_position)
         scanner_details = quality.get("scanner_details", {})
         scanner_detail_issue = format_scanner_detail_issue(app, scanner_details)
-        issue = format_quality_issue(app, quality)
+        quality_issue = format_quality_issue(app, quality)
+        issue = quality_issue
         if scanner_detail_issue:
             issue = join_issues(issue, scanner_detail_issue, app.tr("quality_dashboard_no_issue"))
         if ap_position_issue:
@@ -1056,7 +1104,10 @@ def build_dashboard_rows(app, point_summaries, quality_by_point_id, ap_position_
             "severity": severity,
             "ap_position_warning_count": len(ap_position.get("warnings", [])) if ap_position else 0,
             "ap_position": ap_position or {},
+            "ap_position_issue": ap_position_issue,
+            "quality_issue": quality_issue,
             "scanner_detail_issue": has_scanner_detail_issue,
+            "scanner_detail_issue_text": scanner_detail_issue,
             "scanner_details": scanner_details,
             "confidence": format_point_confidence(app.session.rows, point.get("point_id", ""), relevant_ssids),
             "best": f"{point['best_signal_dbm']:.1f}",

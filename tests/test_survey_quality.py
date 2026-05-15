@@ -511,6 +511,38 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(point_table_visible_row_count(14), 14)
         self.assertEqual(point_table_visible_row_count(25), 14)
 
+    def test_quality_point_table_issue_matches_selected_kpi(self):
+        app = FakeQualityApp([])
+        row = {
+            "status": QUALITY_LOW_CONFIDENCE,
+            "quality_issue": "quality issue",
+            "scanner_detail_issue": True,
+            "scanner_detail_issue_text": "scanner issue",
+            "ap_position_issue": "ap issue",
+            "issue": "quality issue; scanner issue; ap issue",
+        }
+
+        self.assertEqual(
+            format_metric_point_issue(app, row, "quality_dashboard_metric_points"),
+            "quality issue; scanner issue; ap issue",
+        )
+        self.assertEqual(
+            format_metric_point_issue(app, row, "quality_dashboard_metric_rescan"),
+            "quality issue; scanner issue",
+        )
+        self.assertEqual(
+            format_metric_point_issue(app, row, "quality_dashboard_metric_scanner_details"),
+            "scanner issue",
+        )
+        self.assertEqual(
+            format_metric_point_issue(app, row, "quality_dashboard_metric_ap_diagnostic_points"),
+            "ap issue",
+        )
+        self.assertEqual(
+            format_metric_point_issue(app, row, "quality_dashboard_metric_scan_ok"),
+            "quality_dashboard_scan_ok_issue",
+        )
+
     def test_quality_ap_position_details_use_global_dominant_action(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)
         app = FakeQualityApp([row], relevant_ssids={"MAIN"})
