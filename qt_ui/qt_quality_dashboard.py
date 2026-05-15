@@ -3,7 +3,7 @@
 from collections import Counter
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QDialog,
@@ -88,7 +88,7 @@ SEVERITY_COLORS = {
     "danger": QColor("#fdecea"),
 }
 
-METRIC_GRID_COLUMNS = 5
+METRIC_GRID_COLUMNS = 3
 
 
 POINT_METRIC_FILTERS = {
@@ -219,6 +219,24 @@ def metric_card_tokens(palette, severity):
     }
 
 
+class DiagonalPlaceholderFrame(QFrame):
+    def __init__(self, stripe_color, parent=None):
+        super().__init__(parent)
+        self.stripe_color = QColor(stripe_color)
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        pen = QPen(self.stripe_color)
+        pen.setWidth(max(1, widget_px(self, 1)))
+        painter.setPen(pen)
+        spacing = max(8, widget_px(self, 13))
+        height = self.height()
+        for x in range(-height, self.width() + height, spacing):
+            painter.drawLine(x, height, x + height, 0)
+
+
 class QualityDashboardDialog(QDialog):
     def __init__(self, app, rows, summary):
         super().__init__(app)
@@ -330,7 +348,8 @@ class QualityDashboardDialog(QDialog):
         ]
 
         for title_key, metrics in metric_groups:
-            layout.addWidget(self.create_metric_group(title_key, metrics), 1)
+            row_count = max(1, (len(metrics) + METRIC_GRID_COLUMNS - 1) // METRIC_GRID_COLUMNS)
+            layout.addWidget(self.create_metric_group(title_key, metrics), row_count)
 
         return panel
 
@@ -374,27 +393,52 @@ class QualityDashboardDialog(QDialog):
         grid.setVerticalSpacing(widget_px(self, 10))
         for column in range(METRIC_GRID_COLUMNS):
             grid.setColumnStretch(column, 1)
-        start_column = 0
-        if len(metrics) < METRIC_GRID_COLUMNS:
-            start_column = (METRIC_GRID_COLUMNS - len(metrics)) // 2
-        occupied_columns = set()
         for index, (label_key, value, severity) in enumerate(metrics):
             metric_severity = resolve_metric_severity(label_key, value, severity)
             metric = self.create_metric_box(self.app.tr(label_key), value, metric_severity, label_key)
             row = index // METRIC_GRID_COLUMNS
-            column = (index % METRIC_GRID_COLUMNS) + (start_column if row == 0 else 0)
+            column = index % METRIC_GRID_COLUMNS
             grid.addWidget(metric, row, column)
-            occupied_columns.add(column)
-        if len(metrics) < METRIC_GRID_COLUMNS:
-            for column in range(METRIC_GRID_COLUMNS):
-                if column in occupied_columns:
-                    continue
-                spacer = QFrame()
-                spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-                grid.addWidget(spacer, 0, column)
-        grid.setRowStretch(0, 1)
+        remainder = len(metrics) % METRIC_GRID_COLUMNS
+        if remainder:
+            row = len(metrics) // METRIC_GRID_COLUMNS
+            for column in range(remainder, METRIC_GRID_COLUMNS):
+                grid.addWidget(self.create_metric_placeholder_box(), row, column)
+        row_count = max(1, (len(metrics) + METRIC_GRID_COLUMNS - 1) // METRIC_GRID_COLUMNS)
+        for row in range(row_count):
+            grid.setRowStretch(row, 1)
         layout.addLayout(grid, 1)
         return group
+
+    def create_metric_placeholder_box(self):
+        palette = QT_THEMES.get(getattr(self.app, "theme", "light"), QT_THEMES["light"])
+        tokens = metric_card_tokens(palette, "info")
+        box = DiagonalPlaceholderFrame(
+            mix_hex(palette["border"], tokens["accent"], 0.28),
+            self,
+        )
+        box.setObjectName("qualityMetricPlaceholder")
+        box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        box.setStyleSheet(
+            f"""
+            QFrame#qualityMetricPlaceholder {{
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:1,
+                    stop:0 {mix_hex(tokens["top"], palette["panel"], 0.55)},
+                    stop:1 {mix_hex(tokens["bottom"], palette["panel_alt"], 0.55)}
+                );
+                border: 1px solid {mix_hex(tokens["border"], palette["panel"], 0.45)};
+                border-left: {widget_px(self, 6)}px solid {mix_hex(tokens["accent"], palette["panel"], 0.52)};
+                border-radius: {widget_px(self, 9)}px;
+            }}
+            """
+        )
+        shadow = QGraphicsDropShadowEffect(box)
+        shadow.setBlurRadius(widget_px(self, 12))
+        shadow.setOffset(0, widget_px(self, 1))
+        shadow.setColor(QColor(0, 0, 0, 18))
+        box.setGraphicsEffect(shadow)
+        return box
 
     def create_metric_box(self, label, value, severity, metric_key=None):
         palette = QT_THEMES.get(getattr(self.app, "theme", "light"), QT_THEMES["light"])
@@ -532,16 +576,47 @@ class QualityDashboardDialog(QDialog):
         for recommendation in recommendations:
             content_layout.addWidget(self.create_recommendation_card(recommendation))
 
-        for line in summary.get("context_lines", []):
-            context = QLabel(line)
-            context.setObjectName("mutedText")
-            context.setWordWrap(True)
-            context.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-            content_layout.addWidget(context)
-
         content_layout.addStretch(1)
         scroll.setWidget(content)
         layout.addWidget(scroll, 1)
+        layout.addWidget(self.create_scope_panel(summary), 0)
+        return panel
+
+    def create_scope_panel(self, summary):
+        palette = QT_THEMES.get(getattr(self.app, "theme", "light"), QT_THEMES["light"])
+        accent = palette["metric_info"]
+        panel = QFrame()
+        panel.setObjectName("qualityScopePanel")
+        panel.setStyleSheet(
+            f"""
+            QFrame#qualityScopePanel {{
+                background: {mix_hex(palette["panel_alt"], accent, 0.08)};
+                border: 1px solid {mix_hex(palette["border"], accent, 0.24)};
+                border-left: {widget_px(self, 4)}px solid {accent};
+                border-radius: {widget_px(self, 6)}px;
+            }}
+            """
+        )
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(widget_px(self, 10), widget_px(self, 7), widget_px(self, 10), widget_px(self, 8))
+        layout.setSpacing(widget_px(self, 3))
+
+        title = QLabel(self.app.tr("quality_dashboard_scope_title"))
+        title.setStyleSheet(f"color: {accent}; font-weight: 800; background: transparent;")
+        layout.addWidget(title)
+
+        rows = [
+            self.app.tr("quality_dashboard_scope_relevant", networks=summary["relevant_networks"]),
+            self.app.tr("quality_dashboard_scope_positions", positions=summary["ap_positions"]),
+            self.app.tr("quality_dashboard_scope_test_aps", test_aps=summary["test_aps"]),
+        ]
+        for row in rows:
+            label = QLabel(row)
+            label.setObjectName("mutedText")
+            label.setWordWrap(True)
+            label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            layout.addWidget(label)
+
         return panel
 
     def create_recommendation_card(self, recommendation):
