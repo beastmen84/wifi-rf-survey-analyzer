@@ -157,14 +157,16 @@ def recommendation_detail_scroll_height(row_heights, spacing, visible_items, mar
 
 def detail_row_height_for_width(row, width):
     width = max(1, int(width))
+    size_hint_height = row.sizeHint().height()
+    minimum_height = row.minimumSizeHint().height()
     layout = row.layout()
     if layout:
         layout.activate()
         if layout.hasHeightForWidth():
-            return max(1, layout.heightForWidth(width), row.minimumSizeHint().height())
+            return max(1, layout.heightForWidth(width), size_hint_height, minimum_height)
     if row.hasHeightForWidth():
-        return max(1, row.heightForWidth(width), row.minimumSizeHint().height())
-    return max(1, row.sizeHint().height(), row.minimumSizeHint().height())
+        return max(1, row.heightForWidth(width), size_hint_height, minimum_height)
+    return max(1, size_hint_height, minimum_height)
 
 
 def detail_row_heights_for_width(rows, width):
@@ -1216,7 +1218,6 @@ class RecommendationDetailsDialog(QDialog):
             detail_row = self.create_detail_row(item)
             detail_rows.append(detail_row)
             content_layout.addWidget(detail_row)
-        content_layout.addStretch(1)
         scroll.setWidget(content)
         self.detail_scroll = scroll
         self.detail_rows = detail_rows

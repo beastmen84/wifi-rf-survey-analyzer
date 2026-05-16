@@ -386,11 +386,19 @@ class QualityTests(unittest.TestCase):
             self.assertEqual(dialog.detail_scroll.height(), expected_visible_height)
             self.assertGreater(dialog.detail_scroll.maximumHeight(), expected_visible_height)
             self.assertGreater(dialog.maximumHeight(), dialog.minimumHeight())
+            self.assertEqual(
+                dialog.detail_scroll.widget().height(),
+                dialog.detail_rows[-1].geometry().bottom() + 1,
+            )
 
             initial_scroll_height = dialog.detail_scroll.height()
             dialog.resize(dialog.width(), min(dialog.maximumHeight(), dialog.height() + 120))
             QApplication.processEvents()
             self.assertGreater(dialog.detail_scroll.height(), initial_scroll_height)
+            self.assertEqual(
+                dialog.detail_scroll.widget().height(),
+                dialog.detail_rows[-1].geometry().bottom() + 1,
+            )
         finally:
             dialog.close()
             owner.deleteLater()

@@ -854,6 +854,9 @@ Implemented:
   width, then sizes the scroll area to the configured visible card count plus
   layout spacing/margins. Sparse dialogs lock to content height, while overflow
   dialogs keep the default whole-card fit and can expand the scroll area.
+  Follow-up removed the trailing layout stretch from the scroll content and uses
+  each row's `sizeHint` as a lower bound, preventing scrollable blank space below
+  the last card.
 
 Remaining closeout:
 
