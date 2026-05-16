@@ -2,16 +2,16 @@
 
 import re
 from dataclasses import dataclass
-from html import escape
+from html import escape, unescape
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QDialog,
-    QListWidget,
-    QListWidgetItem,
     QSplitter,
     QTextBrowser,
+    QTreeWidget,
+    QTreeWidgetItem,
     QVBoxLayout,
 )
 
@@ -26,6 +26,14 @@ _CALLOUT_ACCENT_TD_RE = re.compile(
     r"<td(?P<attrs>[^>]*\bclass=\"callout-accent-(?:info|good|warning|danger)\"[^>]*)>\s*</td>",
     re.IGNORECASE,
 )
+_H2_RE = re.compile(r"(<h2\b[^>]*>)(.*?)(</h2>)", re.IGNORECASE | re.DOTALL)
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+
+
+@dataclass(frozen=True)
+class HelpSubsection:
+    title: str
+    anchor: str
 
 
 @dataclass(frozen=True)
@@ -35,6 +43,7 @@ class HelpSection:
     title: str
     subtitle: str
     body_html: str
+    subsections: tuple[HelpSubsection, ...] = ()
 
 
 def open_qt_help_dialog(parent, tr):
@@ -58,9 +67,14 @@ def open_qt_help_dialog(parent, tr):
     splitter.setChildrenCollapsible(False)
     layout.addWidget(splitter)
 
-    navigation = QListWidget()
+    navigation = QTreeWidget()
     navigation.setObjectName("helpNavigation")
-    navigation.setFixedWidth(widget_px(parent, 250))
+    navigation.setHeaderHidden(True)
+    navigation.setRootIsDecorated(True)
+    navigation.setItemsExpandable(True)
+    navigation.setExpandsOnDoubleClick(False)
+    navigation.setIndentation(widget_px(parent, 16))
+    navigation.setFixedWidth(widget_px(parent, 292))
     splitter.addWidget(navigation)
 
     browser = QTextBrowser()
@@ -71,19 +85,39 @@ def open_qt_help_dialog(parent, tr):
     splitter.setStretchFactor(1, 1)
 
     for index, section in enumerate(sections):
-        item = QListWidgetItem(section.nav_title)
-        item.setData(Qt.ItemDataRole.UserRole, index)
-        navigation.addItem(item)
+        item = QTreeWidgetItem([section.nav_title])
+        item.setData(0, Qt.ItemDataRole.UserRole, (index, ""))
+        navigation.addTopLevelItem(item)
+        for subsection in section.subsections:
+            child = QTreeWidgetItem([subsection.title])
+            child.setData(0, Qt.ItemDataRole.UserRole, (index, subsection.anchor))
+            item.addChild(child)
 
-    def select_section(row):
-        if row < 0:
+    def collapse_other_sections(selected_item):
+        selected_top = selected_item
+        while selected_top and selected_top.parent():
+            selected_top = selected_top.parent()
+        for index in range(navigation.topLevelItemCount()):
+            item = navigation.topLevelItem(index)
+            item.setExpanded(item is selected_top)
+
+    def select_section(item, _previous=None):
+        if item is None:
             return
-        browser.setHtml(build_help_html(parent, palette, sections[row]))
-        browser.verticalScrollBar().setValue(0)
+        data = item.data(0, Qt.ItemDataRole.UserRole)
+        if not data:
+            return
+        section_index, anchor = data
+        collapse_other_sections(item)
+        browser.setHtml(build_help_html(parent, palette, sections[section_index]))
+        if anchor:
+            QTimer.singleShot(0, lambda selected_anchor=anchor: browser.scrollToAnchor(selected_anchor))
+        else:
+            browser.verticalScrollBar().setValue(0)
 
-    navigation.currentRowChanged.connect(select_section)
+    navigation.currentItemChanged.connect(select_section)
     apply_help_dialog_style(dialog, parent, palette)
-    navigation.setCurrentRow(0)
+    navigation.setCurrentItem(navigation.topLevelItem(0))
 
     dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
     dialog.exec()
@@ -96,63 +130,63 @@ def help_palette(parent):
 
 def build_help_sections(parent, tr):
     return [
-        HelpSection(
+        build_help_section(
             "overview",
             tr("help_overview_nav"),
             tr("help_overview_title"),
             tr("help_overview_subtitle"),
             tr("help_overview_body"),
         ),
-        HelpSection(
+        build_help_section(
             "controls",
             tr("help_controls_nav"),
             tr("help_controls_title"),
             tr("help_controls_subtitle"),
             build_controls_body(parent, tr) + tr("help_controls_body"),
         ),
-        HelpSection(
+        build_help_section(
             "survey",
             tr("help_survey_nav"),
             tr("help_survey_title"),
             tr("help_survey_subtitle"),
             tr("help_survey_body"),
         ),
-        HelpSection(
+        build_help_section(
             "quality",
             tr("help_quality_nav"),
             tr("help_quality_title"),
             tr("help_quality_subtitle"),
             tr("help_quality_body"),
         ),
-        HelpSection(
+        build_help_section(
             "ap_groups",
             tr("help_ap_groups_nav"),
             tr("help_ap_groups_title"),
             tr("help_ap_groups_subtitle"),
             tr("help_ap_groups_body"),
         ),
-        HelpSection(
+        build_help_section(
             "live_maps",
             tr("help_live_maps_nav"),
             tr("help_live_maps_title"),
             tr("help_live_maps_subtitle"),
             tr("help_live_maps_body"),
         ),
-        HelpSection(
+        build_help_section(
             "reports",
             tr("help_reports_nav"),
             tr("help_reports_title"),
             tr("help_reports_subtitle"),
             tr("help_reports_body"),
         ),
-        HelpSection(
+        build_help_section(
             "diagnostics",
             tr("help_diagnostics_nav"),
             tr("help_diagnostics_title"),
             tr("help_diagnostics_subtitle"),
             tr("help_diagnostics_body"),
         ),
-        HelpSection(
+        build_help_section(
             "glossary",
             tr("help_glossary_nav"),
             tr("help_glossary_title"),
@@ -160,6 +194,39 @@ def build_help_sections(parent, tr):
             tr("help_glossary_body"),
         ),
     ]
+
+
+def build_help_section(key, nav_title, title, subtitle, body_html):
+    return HelpSection(
+        key,
+        nav_title,
+        title,
+        subtitle,
+        body_html,
+        extract_help_subsections(key, body_html),
+    )
+
+
+def extract_help_subsections(section_key, body_html):
+    subsections = []
+    for index, match in enumerate(_H2_RE.finditer(body_html), start=1):
+        title = unescape(_HTML_TAG_RE.sub("", match.group(2))).strip()
+        if title:
+            subsections.append(HelpSubsection(title, f"{section_key}-{index}"))
+    return tuple(subsections)
+
+
+def add_help_subsection_anchors(body_html, subsections):
+    subsection_iter = iter(subsections)
+
+    def replace(match):
+        try:
+            subsection = next(subsection_iter)
+        except StopIteration:
+            return match.group(0)
+        return f'<a name="{escape(subsection.anchor)}"></a>{match.group(0)}'
+
+    return _H2_RE.sub(replace, body_html)
 
 
 def build_controls_body(parent, tr):
@@ -218,7 +285,8 @@ def build_help_html(parent, palette, section):
     padding = widget_px(parent, 18)
     right_padding = padding + widget_px(parent, 14)
 
-    body_html = normalize_help_tables(section.body_html, callout_accent_width=widget_px(parent, 6))
+    body_html = add_help_subsection_anchors(section.body_html, section.subsections)
+    body_html = normalize_help_tables(body_html, callout_accent_width=widget_px(parent, 6))
 
     return f"""
     <html>
@@ -527,26 +595,29 @@ def apply_help_dialog_style(dialog, parent, palette):
             font-family: Segoe UI;
             font-size: {widget_font(parent, 10.5):.2f}pt;
         }}
-        QListWidget#helpNavigation {{
+        QTreeWidget#helpNavigation {{
             background: {palette["toolbar"]};
             border: 1px solid {palette["border"]};
             border-radius: {s(8)}px;
             padding: {s(6)}px;
             outline: 0;
         }}
-        QListWidget#helpNavigation::item {{
+        QTreeWidget#helpNavigation::item {{
             color: {palette["text"]};
-            padding: {s(9)}px {s(10)}px;
+            padding: {s(7)}px {s(8)}px;
             border-radius: {s(6)}px;
             margin: {s(1)}px 0;
         }}
-        QListWidget#helpNavigation::item:hover {{
+        QTreeWidget#helpNavigation::item:hover {{
             background: {palette["button_hover"]};
         }}
-        QListWidget#helpNavigation::item:selected {{
+        QTreeWidget#helpNavigation::item:selected {{
             background: {palette["metric_info"]};
             color: #FFFFFF;
             font-weight: 700;
+        }}
+        QTreeWidget#helpNavigation::branch {{
+            background: transparent;
         }}
         QTextBrowser#helpContent {{
             background: {palette["panel"]};
@@ -558,6 +629,6 @@ def apply_help_dialog_style(dialog, parent, palette):
             width: {s(10)}px;
         }}
         {build_scrollbar_stylesheet(palette, s, "QTextBrowser#helpContent")}
-        {build_scrollbar_stylesheet(palette, s, "QListWidget#helpNavigation")}
+        {build_scrollbar_stylesheet(palette, s, "QTreeWidget#helpNavigation")}
         """
     )

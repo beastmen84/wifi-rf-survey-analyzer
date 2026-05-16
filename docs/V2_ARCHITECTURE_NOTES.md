@@ -94,6 +94,10 @@ Current status:
   after Local Area scope is applied, and Dominant AP position diagnostics use
   the same per-point scope to avoid local AP nearest-position noise outside the
   expected area;
+- `v0.9.4-beta.2` has started as a Help usability candidate: the Help Center
+  left navigation now supports expandable subsection entries generated from the
+  page headings, so long pages can be scanned and jumped through without
+  splitting the current content into separate fragile pages;
 - Help content and structure have an expanded V2 Help Center implementation;
   the Recommended Workflow page has received the first visual-density polish
   pass with step cards, decision-gate rows and Qt-compatible accent-column

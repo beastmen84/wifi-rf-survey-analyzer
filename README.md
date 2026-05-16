@@ -9,7 +9,7 @@ survey quality, and export explainable RF maps.
 
 ## Release Status
 
-- Current source version: `v0.9.4-beta.1`
+- Current source version: `v0.9.4-beta.2`
 - Release type: beta / pre-release
 - Active UI: PySide6
 - Main entry point: `main.py`
@@ -261,7 +261,7 @@ dist/WifiHeatmap/WifiHeatmap.exe
 For distribution, publish the zipped PyInstaller `onedir` folder:
 
 ```text
-dist/WifiHeatmap-v0.9.4-beta.1-win64.zip
+dist/WifiHeatmap-v0.9.4-beta.2-win64.zip
 ```
 
 The `onedir` format is intentional for this PySide6/scientific stack. It starts
@@ -278,7 +278,7 @@ between official release builds.
 
 Current source beta:
 
-- `v0.9.4-beta.1`
+- `v0.9.4-beta.2`
 
 Latest packaged Windows ZIP:
 
