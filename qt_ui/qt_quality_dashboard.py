@@ -97,11 +97,6 @@ METRIC_GRID_COLUMNS = 3
 POINT_TABLE_MAX_VISIBLE_ROWS = 14
 POINT_TABLE_ROW_HEIGHT = 38
 SCANNER_DETAIL_DEFAULT_VISIBLE_CARDS = 4
-DETAIL_ROW_HEIGHT = 78
-DETAIL_FINDING_ROW_HEIGHT = 98
-DETAIL_MEMORY_ROW_HEIGHT = 128
-DETAIL_MULTILINE_ROW_HEIGHT = 128
-SCANNER_DETAIL_ROW_HEIGHT = 145
 DETAIL_DIALOG_MAX_HEIGHT = 720
 SCANNER_DETAIL_DIALOG_MAX_HEIGHT = 760
 DETAIL_VISIBLE_CARD_LIMITS = {
@@ -115,12 +110,6 @@ DETAIL_VISIBLE_CARD_LIMITS = {
 DETAIL_DIALOG_MAX_HEIGHTS = {
     "quality_dashboard_metric_scanner_details": SCANNER_DETAIL_DIALOG_MAX_HEIGHT,
     "quality_dashboard_metric_ap_missing_positions": 820,
-}
-DETAIL_ROW_HEIGHTS = {
-    "quality_dashboard_metric_ap_memory_applied": DETAIL_MEMORY_ROW_HEIGHT,
-    "quality_dashboard_metric_ap_metadata_warnings": DETAIL_MULTILINE_ROW_HEIGHT,
-    "quality_dashboard_metric_channel_changes": DETAIL_MULTILINE_ROW_HEIGHT,
-    "quality_dashboard_metric_ap_missing_positions": DETAIL_MEMORY_ROW_HEIGHT,
 }
 
 
@@ -153,30 +142,33 @@ def recommendation_detail_visible_item_count(recommendation, items):
     return min(item_count, limit) if limit else item_count
 
 
-def recommendation_detail_row_height(recommendation, items):
-    if is_scanner_detail_recommendation(recommendation):
-        return SCANNER_DETAIL_ROW_HEIGHT
-    metric_height = DETAIL_ROW_HEIGHTS.get(recommendation.get("metric_key"))
-    if metric_height:
-        return metric_height
-    if any(item.get("finding") for item in items):
-        return DETAIL_FINDING_ROW_HEIGHT
-    return DETAIL_ROW_HEIGHT
-
-
 def recommendation_detail_max_height(recommendation):
     return DETAIL_DIALOG_MAX_HEIGHTS.get(recommendation.get("metric_key"), DETAIL_DIALOG_MAX_HEIGHT)
 
 
-def recommendation_detail_scroll_max_height(row_heights, spacing, visible_items):
+def recommendation_detail_scroll_height(row_heights, spacing, visible_items, margins=None, frame_width=0):
     shown_heights = list(row_heights[:visible_items])
     if not shown_heights:
         return 0
-    return sum(shown_heights) + max(0, len(shown_heights) - 1) * spacing
+    margin_height = margins.top() + margins.bottom() if margins is not None else 0
+    frame_height = max(0, frame_width) * 2
+    return sum(shown_heights) + max(0, len(shown_heights) - 1) * spacing + margin_height + frame_height
 
 
-def is_scanner_detail_recommendation(recommendation):
-    return recommendation.get("metric_key") == "quality_dashboard_metric_scanner_details"
+def detail_row_height_for_width(row, width):
+    width = max(1, int(width))
+    layout = row.layout()
+    if layout:
+        layout.activate()
+        if layout.hasHeightForWidth():
+            return max(1, layout.heightForWidth(width), row.minimumSizeHint().height())
+    if row.hasHeightForWidth():
+        return max(1, row.heightForWidth(width), row.minimumSizeHint().height())
+    return max(1, row.sizeHint().height(), row.minimumSizeHint().height())
+
+
+def detail_row_heights_for_width(rows, width):
+    return [detail_row_height_for_width(row, width) for row in rows]
 
 
 def point_rows_for_metric(rows, metric_key):
@@ -1171,17 +1163,12 @@ class RecommendationDetailsDialog(QDialog):
         items = recommendation.get("detail_items", [])
         detail_actions = recommendation.get("detail_actions", [])
         self.setWindowTitle(recommendation.get("title", self.app.tr("quality_dashboard_fix_next_title")))
-        row_height = recommendation_detail_row_height(recommendation, items)
         visible_items = recommendation_detail_visible_item_count(recommendation, items)
         self.detail_scroll = None
         self.detail_rows = []
         self.visible_detail_items = visible_items
-        self.limit_detail_scroll = len(items) > visible_items
-        height = 150 + visible_items * row_height + (44 if detail_actions else 0)
-        self.resize(
-            widget_px(self, 980),
-            min(widget_px(self, recommendation_detail_max_height(recommendation)), widget_px(self, height)),
-        )
+        self.has_detail_overflow = len(items) > visible_items
+        self.resize(widget_px(self, 980), widget_px(self, 420))
         self.setMinimumSize(widget_px(self, 720), widget_px(self, 220))
 
         layout = QVBoxLayout(self)
@@ -1214,6 +1201,11 @@ class RecommendationDetailsDialog(QDialog):
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
+        scroll.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOn
+            if self.has_detail_overflow
+            else Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         content = QFrame()
         content_layout = QVBoxLayout(content)
@@ -1246,26 +1238,59 @@ class RecommendationDetailsDialog(QDialog):
         if not self.detail_scroll or not self.detail_rows:
             return
 
-        visible_rows = self.detail_rows[:self.visible_detail_items]
-        if is_scanner_detail_recommendation(self.recommendation):
-            row_heights = [row.height() for row in visible_rows]
-            if not row_heights or any(height <= 0 for height in row_heights):
-                row_heights = [row.sizeHint().height() for row in visible_rows]
-        else:
-            row_heights = [row.sizeHint().height() for row in visible_rows]
-
-        scroll_height = recommendation_detail_scroll_max_height(
-            row_heights,
-            self.detail_scroll.widget().layout().spacing(),
-            self.visible_detail_items,
+        content_layout = self.detail_scroll.widget().layout()
+        self.detail_scroll.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOn
+            if self.has_detail_overflow
+            else Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )
-        self.detail_scroll.setMinimumHeight(scroll_height)
-        self.detail_scroll.setMaximumHeight(scroll_height)
         self.layout().activate()
-        self.resize(
-            self.width(),
-            min(widget_px(self, recommendation_detail_max_height(self.recommendation)), self.sizeHint().height()),
+        viewport_width = self.detail_scroll.viewport().width()
+        if viewport_width <= 0:
+            scrollbar_width = (
+                self.detail_scroll.verticalScrollBar().sizeHint().width()
+                if self.has_detail_overflow
+                else 0
+            )
+            viewport_width = max(
+                1,
+                self.width()
+                - self.layout().contentsMargins().left()
+                - self.layout().contentsMargins().right()
+                - scrollbar_width,
+            )
+
+        row_heights = detail_row_heights_for_width(self.detail_rows, viewport_width)
+        visible_scroll_height = recommendation_detail_scroll_height(
+            row_heights,
+            content_layout.spacing(),
+            self.visible_detail_items,
+            content_layout.contentsMargins(),
+            self.detail_scroll.frameWidth(),
         )
+        all_scroll_height = recommendation_detail_scroll_height(
+            row_heights,
+            content_layout.spacing(),
+            len(self.detail_rows),
+            content_layout.contentsMargins(),
+            self.detail_scroll.frameWidth(),
+        )
+        self.detail_scroll.setMinimumHeight(visible_scroll_height)
+        self.detail_scroll.setMaximumHeight(visible_scroll_height)
+        self.detail_scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.layout().activate()
+        target_height = min(
+            widget_px(self, recommendation_detail_max_height(self.recommendation)),
+            self.sizeHint().height(),
+        )
+        self.resize(self.width(), target_height)
+        self.setMinimumHeight(target_height)
+        if self.has_detail_overflow:
+            self.detail_scroll.setMaximumHeight(all_scroll_height)
+            self.detail_scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            self.setMaximumHeight(widget_px(self, recommendation_detail_max_height(self.recommendation)))
+        else:
+            self.setMaximumHeight(target_height)
 
     def create_detail_row(self, item):
         palette = QT_THEMES.get(getattr(self.app, "theme", "light"), QT_THEMES["light"])

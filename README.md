@@ -111,8 +111,10 @@ Actionable point-related KPI cards open compact point lists for point-evidence
 issues. Structured diagnostics such as scanner details, dominant-AP position,
 AP Memory matches, AP metadata warnings, missing AP positions, and channel
 changes open Extra Details dialogs from their KPI cards, with structured
-label/value detail rows and whole-card dialog sizing for dense AP-model
-findings. AP Memory Review and missing AP position diagnostics are kept as
+label/value detail rows and measured whole-card dialog sizing for dense
+AP-model findings. Dialog height is based on the actual visible card widgets,
+spacing and margins rather than fixed row estimates. AP Memory Review and
+missing AP position diagnostics are kept as
 separate states so remembered AP data is not confused with missing physical
 placement. AP Memory Review opens its AP-specific action from Extra Details
 rather than duplicating AP Group buttons in the dashboard card, and it includes

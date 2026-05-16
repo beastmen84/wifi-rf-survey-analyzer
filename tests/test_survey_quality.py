@@ -332,33 +332,95 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(recommendation_detail_visible_item_count(missing_position_recommendation, items), 8)
         self.assertEqual(recommendation_detail_visible_item_count(memory_recommendation, items), 6)
         self.assertGreater(
-            recommendation_detail_row_height(scanner_recommendation, items),
-            recommendation_detail_row_height(dominant_recommendation, items),
-        )
-        self.assertGreater(
-            recommendation_detail_row_height(metadata_recommendation, items),
-            recommendation_detail_row_height(dominant_recommendation, items),
-        )
-        self.assertGreater(
-            recommendation_detail_row_height(channel_recommendation, items),
-            recommendation_detail_row_height(dominant_recommendation, items),
-        )
-        self.assertGreater(
-            recommendation_detail_row_height(memory_recommendation, items),
-            recommendation_detail_row_height(dominant_recommendation, items),
-        )
-        self.assertGreater(
-            recommendation_detail_row_height(missing_position_recommendation, items),
-            recommendation_detail_row_height(dominant_recommendation, items),
-        )
-        self.assertGreater(
             recommendation_detail_max_height(scanner_recommendation),
             recommendation_detail_max_height(dominant_recommendation),
         )
         self.assertEqual(
-            recommendation_detail_scroll_max_height([120, 122, 124, 126, 128], 6, 4),
+            recommendation_detail_scroll_height([120, 122, 124, 126, 128], 6, 4),
             120 + 122 + 124 + 126 + (3 * 6),
         )
+
+    def test_recommendation_details_dialog_fits_visible_cards_exactly(self):
+        QApplication.instance() or QApplication([])
+        owner = QWidget()
+        owner.app = FakeQualityApp([])
+        recommendation = {
+            "title": "Scanner Details Missing",
+            "dialog_detail": "Review these points before reading channel-sensitive maps.",
+            "metric_key": "quality_dashboard_metric_scanner_details",
+            "detail_items": [
+                {
+                    "label": f"Point {index + 1}",
+                    "finding": "Limited Scanner Details",
+                    "detail": (
+                        "<b>Scanner:</b> NETSH<br>"
+                        "<b>Checked Scan Rows:</b> 40<br>"
+                        "<b>Missing Channel Width:</b> 40 channel-sensitive scan rows<br>"
+                        "<b>Impact:</b> interference and 6 GHz interpretation may be incomplete"
+                    ),
+                }
+                for index in range(6)
+            ],
+        }
+        dialog = RecommendationDetailsDialog(owner, recommendation)
+
+        try:
+            dialog.show()
+            QApplication.processEvents()
+
+            content_layout = dialog.detail_scroll.widget().layout()
+            row_heights = detail_row_heights_for_width(
+                dialog.detail_rows,
+                dialog.detail_scroll.viewport().width(),
+            )
+            expected_visible_height = recommendation_detail_scroll_height(
+                row_heights,
+                content_layout.spacing(),
+                dialog.visible_detail_items,
+                content_layout.contentsMargins(),
+                dialog.detail_scroll.frameWidth(),
+            )
+
+            self.assertEqual(dialog.visible_detail_items, 4)
+            self.assertEqual(dialog.detail_scroll.minimumHeight(), expected_visible_height)
+            self.assertEqual(dialog.detail_scroll.height(), expected_visible_height)
+            self.assertGreater(dialog.detail_scroll.maximumHeight(), expected_visible_height)
+            self.assertGreater(dialog.maximumHeight(), dialog.minimumHeight())
+
+            initial_scroll_height = dialog.detail_scroll.height()
+            dialog.resize(dialog.width(), min(dialog.maximumHeight(), dialog.height() + 120))
+            QApplication.processEvents()
+            self.assertGreater(dialog.detail_scroll.height(), initial_scroll_height)
+        finally:
+            dialog.close()
+            owner.deleteLater()
+
+    def test_recommendation_details_dialog_locks_height_when_all_cards_are_visible(self):
+        QApplication.instance() or QApplication([])
+        owner = QWidget()
+        owner.app = FakeQualityApp([])
+        recommendation = {
+            "title": "APs Without Position",
+            "dialog_detail": "Only relevant non-test AP groups without a physical map position are listed.",
+            "metric_key": "quality_dashboard_metric_ap_missing_positions",
+            "detail_items": [
+                {
+                    "label": f"AP {index + 1}",
+                    "detail": "<b>AP Group:</b> ap-demo<br><b>Required Action:</b> place this AP on the floor plan",
+                }
+                for index in range(3)
+            ],
+        }
+        dialog = RecommendationDetailsDialog(owner, recommendation)
+
+        try:
+            dialog.show()
+            QApplication.processEvents()
+            self.assertEqual(dialog.detail_scroll.minimumHeight(), dialog.detail_scroll.maximumHeight())
+            self.assertEqual(dialog.minimumHeight(), dialog.maximumHeight())
+        finally:
+            dialog.close()
+            owner.deleteLater()
 
     def test_quality_summary_formats_metadata_warning_labels(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)

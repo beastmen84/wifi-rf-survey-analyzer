@@ -30,6 +30,11 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 - Survey Quality `Scanner Details Missing` Extra Details now use the same
   finding/detail structure as Dominant AP diagnostics, with separate scanner,
   checked scan-row count, missing channel-width/frequency rows and impact text.
+- Survey Quality Extra Details sizing now measures the actual card widgets
+  after construction instead of relying on per-category estimated row heights.
+  Default dialog height is the sum of the configured visible card count,
+  measured card heights, spacing and margins; sparse dialogs lock to content
+  height while overflow dialogs can expand the scroll area.
 - Scanner-detail wording now says `scan rows` so the count is clearly raw scan
   evidence for that measurement point, not a count of measurement points.
 - The redundant fallback row count was removed from scanner details; `NETSH` is

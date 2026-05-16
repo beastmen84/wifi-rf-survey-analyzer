@@ -848,6 +848,12 @@ Implemented:
   explains the missing physical position and exposes the row-specific Open AP
   Group action. Follow-up simplification removed the unused short AP label
   summary and repeated label field from each missing-position card.
+- Extra Details dialog sizing was consolidated around measured card widgets.
+  The previous per-metric estimated row-height constants were removed; each
+  dialog now builds its cards, measures their real height at the available
+  width, then sizes the scroll area to the configured visible card count plus
+  layout spacing/margins. Sparse dialogs lock to content height, while overflow
+  dialogs keep the default whole-card fit and can expand the scroll area.
 
 Remaining closeout:
 
