@@ -642,6 +642,27 @@ class APGroupManagerDialogTests(unittest.TestCase):
             manager.deleteLater()
             app.deleteLater()
 
+    def test_metadata_coverage_scope_loads_existing_local_auto_area(self):
+        app, manager = self.make_ap_manager_dialog()
+        try:
+            group = manager.get_group_by_id("neighbor-ap")
+            group["metadata"] = {"coverage_scope": "local"}
+            dialog = MetadataDialog(manager, group)
+            try:
+                values = dialog.metadata_values()
+
+                self.assertEqual(dialog.coverage_scope_combo.currentData(), AP_COVERAGE_SCOPE_LOCAL)
+                self.assertTrue(dialog.coverage_auto_check.isChecked())
+                self.assertTrue(dialog.coverage_auto_check.isEnabled())
+                self.assertFalse(dialog.coverage_radius_spin.isEnabled())
+                self.assertEqual(values["coverage_scope"], AP_COVERAGE_SCOPE_LOCAL)
+                self.assertNotIn("coverage_radius_m", values)
+            finally:
+                dialog.deleteLater()
+        finally:
+            manager.deleteLater()
+            app.deleteLater()
+
     def test_metadata_coverage_radius_uses_selected_measurement_system(self):
         app, manager = self.make_ap_manager_dialog()
         try:

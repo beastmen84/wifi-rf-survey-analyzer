@@ -1423,13 +1423,11 @@ class MetadataDialog(QDialog):
         scope = normalize_ap_coverage_scope(self.metadata.get("coverage_scope", ""))
         scope_index = self.coverage_scope_combo.findData(scope)
         self.coverage_scope_combo.setCurrentIndex(max(0, scope_index))
-        self.coverage_scope_combo.currentIndexChanged.connect(self.update_coverage_scope_state)
 
         radius_label = self.header_label("ap_group_metadata_coverage_radius")
         self.coverage_auto_check = QCheckBox(self.manager.tr("ap_group_metadata_coverage_auto_area"))
         self.coverage_auto_check.setMinimumWidth(widget_px(self, 112))
         self.coverage_auto_check.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
-        self.coverage_auto_check.stateChanged.connect(self.update_coverage_scope_state)
 
         measurement_system = getattr(self.manager.app, "measurement_system", "metric")
         unit_label = distance_unit_label(measurement_system)
@@ -1467,10 +1465,20 @@ class MetadataDialog(QDialog):
         section_layout.setColumnStretch(3, 0)
         section_layout.setColumnStretch(4, 1)
 
+        self.coverage_scope_combo.currentIndexChanged.connect(self.update_coverage_scope_state)
+        self.coverage_auto_check.stateChanged.connect(self.update_coverage_scope_state)
         self.update_coverage_scope_state()
         parent_layout.addWidget(section)
 
     def update_coverage_scope_state(self, _index=None):
+        if not all((
+            self.coverage_scope_combo,
+            self.coverage_auto_check,
+            self.coverage_radius_spin,
+            self.coverage_scope_hint,
+        )):
+            return
+
         is_local = self.coverage_scope_combo.currentData() == AP_COVERAGE_SCOPE_LOCAL
         self.coverage_auto_check.setEnabled(is_local)
         self.coverage_radius_spin.setEnabled(is_local and not self.coverage_auto_check.isChecked())

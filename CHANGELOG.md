@@ -17,6 +17,8 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   local, Auto Area keeps radius derivation automatic, and an optional manual
   Local Radius uses the selected measurement system while still storing meters
   internally for later Quality logic.
+- Fixed Coverage Scope initialization when reopening Local Area metadata with
+  automatic area enabled.
 
 ## v0.9.3-beta.2 - 2026-05-16
 
