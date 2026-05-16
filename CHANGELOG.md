@@ -8,17 +8,20 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
-- Added the AP metadata foundation for local/zone-only coverage scope:
-  AP groups can now persist normalized `coverage_scope=local` and optional
-  `coverage_radius_m` values through survey save/load and AP Memory. UI and
-  Survey Quality behavior will be wired in the next `v0.9.4` steps.
+- Added local/zone-only coverage scope for AP groups: metadata can now persist
+  normalized `coverage_scope=local` and optional `coverage_radius_m` values
+  through survey save/load and AP Memory.
 - AP Group Metadata now exposes Coverage Scope controls: Site-wide is the
   default, Local Area can be selected for APs or SSIDs that are intentionally
   local, Auto Area keeps radius derivation automatic, and an optional manual
   Local Radius uses the selected measurement system while still storing meters
-  internally for later Quality logic.
+  internally.
 - Fixed Coverage Scope initialization when reopening Local Area metadata with
   automatic area enabled.
+- Survey Quality now applies Local Area scope per measurement point: local-only
+  SSIDs are evaluated only inside their manual radius when scale and AP
+  position are available, or from usable Auto Area evidence otherwise, reducing
+  whole-building quality noise for intentionally local SSIDs.
 
 ## v0.9.3-beta.2 - 2026-05-16
 

@@ -134,6 +134,7 @@ from maps.config import MapConfig
 from qt_ui.qt_quality_dashboard import (
     build_ap_position_quality_by_point,
     build_dashboard_rows,
+    build_quality_relevant_ssids_by_point,
     build_summary,
     format_point_confidence,
     format_relevant_ssids,

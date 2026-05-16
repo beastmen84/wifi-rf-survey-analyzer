@@ -748,7 +748,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card"><b>Top Status</b><br>Coherent means the main checks are clean. Rescan Needed means one or more measurement points have evidence problems. AP Setup Needs Attention means the points may be usable, but metadata, memory, channel changes or AP positions need review.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Survey Scope</b><br>The bottom-right scope box reminds you which SSIDs are relevant, how many relevant AP groups have positions, and which AP groups are excluded as test APs.</td>
+                <td class="workflow-card"><b>Survey Scope</b><br>The bottom-right scope box reminds you which SSIDs are relevant, how many relevant AP groups have positions, and which AP groups are excluded as test APs. AP groups marked Local Area are evaluated only where their local scope applies.</td>
             </tr>
         </table>
         <h2>Dashboard Controls</h2>
@@ -792,7 +792,7 @@ TRANSLATIONS = {
                 <td class="survey-gap"></td>
                 <td class="survey-card">
                     <div class="survey-card-title">Scan Quality</div>
-                    <p><b>Missing Relevant Networks:</b> intended SSIDs not seen at a point.</p>
+                    <p><b>Missing Relevant Networks:</b> intended SSIDs not seen at a point. Local Area SSIDs are not expected across the whole survey.</p>
                     <p><b>Sparse Data:</b> too little repeated evidence.</p>
                     <p><b>Scanner Details Missing:</b> fallback scanner data, missing channel width or missing 6 GHz frequency can weaken Interference, 5 GHz width-overlap and 6 GHz conclusions.</p>
                     <p><b>Low Scan Confidence:</b> the dominant candidate has weak repeated-scan confidence.</p>
@@ -907,9 +907,9 @@ TRANSLATIONS = {
             </tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
-                <td class="workflow-card"><b>Coverage Scope</b><br>Site-wide is the default. Local Area marks APs or SSIDs that are intentionally valid only near their own zone.</td>
+                <td class="workflow-card"><b>Coverage Scope</b><br>Site-wide is the default. Local Area marks APs or SSIDs that are intentionally valid only near their own zone. Survey Quality uses that scope before judging point evidence.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Local Radius</b><br>Optional expected-area radius in the selected measurement system. Leave Auto Area checked until the physical scope is known; Survey Quality wiring follows in the next step.</td>
+                <td class="workflow-card"><b>Local Radius</b><br>Optional expected-area radius in the selected measurement system. With AP position and scale, Quality uses the radius as the expected zone. With Auto Area, Quality infers the zone from usable local evidence.</td>
             </tr>
         </table>
         <h2>Clean Channel Changes</h2>

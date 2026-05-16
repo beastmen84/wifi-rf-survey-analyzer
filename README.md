@@ -107,6 +107,8 @@ Current checks include missing relevant networks, low scan confidence, unstable
 signals, sparse point data, limited scanner details, AP metadata warnings, AP
 Memory review states, AP group conflicts, missing AP positions, dominant-AP
 position anomalies, and AP channel changes that affect channel-sensitive maps.
+AP groups marked as Local Area are scoped per measurement point so intentionally
+local SSIDs are not treated as whole-building quality requirements.
 Actionable point-related KPI cards open compact point lists for point-evidence
 issues. Structured diagnostics such as scanner details, dominant-AP position,
 AP Memory matches, AP metadata warnings, missing AP positions, and channel
@@ -282,8 +284,6 @@ Before `v1.0.0`:
 - finish Help Center review in the running UI;
 - run broader real-world validation on operational survey data;
 - fix concrete issues found during that review/test cycle.
-- finish Survey Quality wiring for local/zone-only SSID coverage scope; AP
-  metadata can already record site-wide/local intent and optional local radius.
 
 Possible future product areas:
 

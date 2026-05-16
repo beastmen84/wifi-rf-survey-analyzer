@@ -21,6 +21,20 @@ class QualityTests(unittest.TestCase):
             ["main"],
         )
 
+    def test_quality_treats_explicit_empty_point_scope_as_no_relevant_expected(self):
+        row = build_row("p1", "LOCAL", "70:4f:57:aa:bb:10", -82, 1)
+        row["scan_confidence"] = "0.1"
+
+        quality = evaluate_point_quality(
+            [row],
+            relevant_ssids={"LOCAL"},
+            relevant_ssids_by_point={"p1": set()},
+        )
+
+        self.assertEqual(quality["p1"]["status"], QUALITY_GOOD)
+        self.assertEqual(quality["p1"]["breakdown"], [])
+        self.assertFalse(quality["p1"]["scanner_details"]["has_issue"])
+
     def test_quality_ignores_low_confidence_weak_non_dominant_bssid(self):
         strong_row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -52, 1)
         weak_row = build_row("p1", "MAIN", "80:11:22:33:44:10", -82, 1)
@@ -144,6 +158,121 @@ class QualityTests(unittest.TestCase):
             ),
             {"guest"},
         )
+
+    def test_quality_relevant_ssids_by_point_limits_auto_local_scope_to_usable_evidence(self):
+        main_bssid = "70:4f:57:aa:bb:10"
+        local_bssid = "80:11:22:33:44:10"
+        p1_main = build_row("p1", "MAIN", main_bssid, -55, 1)
+        p1_local = build_row("p1", "LOCAL", local_bssid, -48, 1)
+        p2_main = build_row("p2", "MAIN", main_bssid, -54, 1)
+        p2_local = build_row("p2", "LOCAL", local_bssid, -82, 1)
+        p2_local["scan_confidence"] = "0.1"
+        groups = [
+            build_manual_ap_group("main-ap", [main_bssid]),
+            build_manual_ap_group(
+                "local-ap",
+                [local_bssid],
+                metadata={"coverage_scope": "local"},
+            ),
+        ]
+        app = FakeQualityApp([p1_main, p1_local, p2_main, p2_local], groups, relevant_ssids={"MAIN", "LOCAL"})
+
+        relevant_by_point = build_quality_relevant_ssids_by_point(app, groups, get_effective_relevant_ssids(app))
+        quality = evaluate_point_quality(
+            app.session.rows,
+            relevant_ssids=get_effective_relevant_ssids(app),
+            relevant_ssids_by_point=relevant_by_point,
+        )
+
+        self.assertEqual(relevant_by_point["p1"], {"main", "local"})
+        self.assertEqual(relevant_by_point["p2"], {"main"})
+        self.assertEqual(quality["p2"]["status"], QUALITY_GOOD)
+        self.assertEqual(
+            format_relevant_ssids(
+                app.session.rows,
+                "p2",
+                relevant_by_point["p2"],
+                infer_when_empty=False,
+                allow_row_flags=False,
+            ),
+            "MAIN",
+        )
+        self.assertEqual(
+            format_point_confidence(
+                app.session.rows,
+                "p2",
+                relevant_by_point["p2"],
+                infer_when_empty=False,
+                allow_row_flags=False,
+            ),
+            "1.00",
+        )
+
+    def test_quality_relevant_ssids_by_point_uses_manual_local_radius(self):
+        local_bssid = "80:11:22:33:44:10"
+        inside = build_row("p1", "LOCAL", local_bssid, -48, 1)
+        inside["x"] = "10"
+        inside["y"] = "20"
+        outside = build_row("p2", "LOCAL", local_bssid, -45, 1)
+        outside["x"] = "200"
+        outside["y"] = "20"
+        groups = [
+            build_manual_ap_group(
+                "local-ap",
+                [local_bssid],
+                position={"x": 10, "y": 20},
+                metadata={"coverage_scope": "local", "coverage_radius_m": "5"},
+            ),
+        ]
+        app = FakeQualityApp([inside, outside], groups, relevant_ssids={"LOCAL"})
+        app.px_per_meter = 10
+
+        relevant_by_point = build_quality_relevant_ssids_by_point(app, groups, get_effective_relevant_ssids(app))
+
+        self.assertEqual(relevant_by_point["p1"], {"local"})
+        self.assertEqual(relevant_by_point["p2"], set())
+
+    def test_ap_position_quality_uses_point_scoped_relevant_ssids(self):
+        main_bssid = "70:4f:57:aa:bb:10"
+        local_bssid = "80:11:22:33:44:10"
+        inside_local = build_row("p1", "LOCAL", local_bssid, -48, 1)
+        inside_local["x"] = "10"
+        inside_local["y"] = "20"
+        outside_main = build_row("p2", "MAIN", main_bssid, -55, 1)
+        outside_main["x"] = "200"
+        outside_main["y"] = "20"
+        outside_local = build_row("p2", "LOCAL", local_bssid, -20, 1)
+        outside_local["x"] = "200"
+        outside_local["y"] = "20"
+        groups = [
+            build_manual_ap_group(
+                "main-ap",
+                [main_bssid],
+                position={"x": 200, "y": 20},
+            ),
+            build_manual_ap_group(
+                "local-ap",
+                [local_bssid],
+                position={"x": 10, "y": 20},
+                metadata={"coverage_scope": "local", "coverage_radius_m": "5"},
+            ),
+        ]
+        app = FakeQualityApp(
+            [inside_local, outside_main, outside_local],
+            groups,
+            relevant_ssids={"MAIN", "LOCAL"},
+        )
+        app.px_per_meter = 10
+
+        relevant_by_point = build_quality_relevant_ssids_by_point(app, groups, get_effective_relevant_ssids(app))
+        position_warnings = build_ap_position_quality_by_point(
+            app,
+            groups,
+            relevant_ssids_by_point=relevant_by_point,
+        )
+
+        self.assertEqual(relevant_by_point["p2"], {"main"})
+        self.assertNotIn("p2", position_warnings)
 
     def test_quality_summary_counts_auto_ap_groups_without_position(self):
         rows = [build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)]

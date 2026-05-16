@@ -84,8 +84,9 @@ Current status:
   survey save/load and AP Memory. AP Group Metadata now exposes Site-wide vs
   Local Area controls, an explicit Auto Area checkbox, and an optional manual
   Local Radius displayed in the selected measurement system while stored
-  internally in meters; Survey Quality filtering is still pending as the next
-  follow-up step;
+  internally in meters. Survey Quality now consumes this scope per measurement
+  point: local-only SSIDs are evaluated inside a manual AP radius when scale and
+  AP position are available, or from usable Auto Area evidence otherwise;
 - Help content and structure have an expanded V2 Help Center implementation;
   the Recommended Workflow page has received the first visual-density polish
   pass with step cards, decision-gate rows and Qt-compatible accent-column
@@ -688,6 +689,10 @@ Current implemented expansion:
   the main dashboard;
 - detail rows include shortcuts into the live map, AP metadata, AP Group
   Manager and point-focus workflows.
+- local/zone-only AP coverage scope is applied before point-quality evaluation,
+  so SSIDs marked Local Area are not treated as whole-building expectations.
+  A manual radius uses scale and AP position; Auto Area uses usable local
+  evidence as the inferred zone.
 
 Post-V2 possible additions:
 
@@ -892,9 +897,9 @@ Remaining closeout:
 
 V2 closeout:
 
-1. Continue relevant-network scope for local/zone-only SSIDs as
-   `v0.9.4-beta.1`: next wire Survey Quality so AP groups marked Local Area do
-   not create whole-building quality noise for SSIDs like office-local routers.
+1. Review `v0.9.4-beta.1` local/zone-only SSID scope against real survey data,
+   especially intentionally local office-router SSIDs, and tune Auto Area
+   behavior only if the evidence shows false positives or false negatives.
 2. Add connected-client BSSID/roaming diagnostics as `v0.9.5-beta.1` if Windows
    exposes stable connected-BSSID evidence during capture.
 3. Review the new Help Center in the running UI and polish wording/formatting

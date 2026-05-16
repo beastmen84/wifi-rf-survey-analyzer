@@ -36,7 +36,9 @@ from ap.groups import (
     AP_ROLE_TEST,
     build_default_manual_groups,
     build_bssid_to_manual_group_map,
+    is_local_coverage_metadata,
     merge_new_bssids_into_manual_groups,
+    normalize_coverage_radius_m,
     normalize_ap_role,
     resolve_ap_group_key,
 )
@@ -111,6 +113,7 @@ DETAIL_DIALOG_MAX_HEIGHTS = {
     "quality_dashboard_metric_scanner_details": SCANNER_DETAIL_DIALOG_MAX_HEIGHT,
     "quality_dashboard_metric_ap_missing_positions": 820,
 }
+LOCAL_COVERAGE_AUTO_MIN_SIGNAL_DBM = -70.0
 
 
 QUALITY_METRIC_STATUSES = {
@@ -1405,34 +1408,60 @@ def open_qt_quality_dashboard(app):
         return
 
     relevant_ssids = get_effective_relevant_ssids(app)
+    ap_groups = get_effective_ap_groups(app)
+    relevant_ssids_by_point = build_quality_relevant_ssids_by_point(
+        app,
+        ap_groups,
+        relevant_ssids,
+    )
     quality_by_point_id = evaluate_point_quality(
         app.session.rows,
         app.session.raw_scan_rows,
         relevant_ssids=relevant_ssids,
+        relevant_ssids_by_point=relevant_ssids_by_point,
     )
-    ap_groups = get_effective_ap_groups(app)
-    ap_position_by_point = build_ap_position_quality_by_point(app, ap_groups)
+    ap_position_by_point = build_ap_position_quality_by_point(
+        app,
+        ap_groups,
+        relevant_ssids_by_point=relevant_ssids_by_point,
+    )
     ap_metadata_warnings = build_ap_metadata_warnings(
         app.session.rows,
         ap_groups,
         app.channel_sort_key,
     )
     ap_channel_changes = build_ap_channel_changes(app.session.rows, ap_groups, app.channel_sort_key)
-    rows = build_dashboard_rows(app, point_summaries, quality_by_point_id, ap_position_by_point)
+    rows = build_dashboard_rows(
+        app,
+        point_summaries,
+        quality_by_point_id,
+        ap_position_by_point,
+        relevant_ssids_by_point=relevant_ssids_by_point,
+    )
     summary = build_summary(app, rows, ap_metadata_warnings, ap_groups, ap_channel_changes)
     dialog = QualityDashboardDialog(app, rows, summary)
     dialog.showMaximized()
     dialog.exec()
 
 
-def build_dashboard_rows(app, point_summaries, quality_by_point_id, ap_position_by_point=None):
+def build_dashboard_rows(
+    app,
+    point_summaries,
+    quality_by_point_id,
+    ap_position_by_point=None,
+    relevant_ssids_by_point=None,
+):
     total_points = len(point_summaries)
     rows = []
     ap_position_by_point = ap_position_by_point or {}
     relevant_ssids = get_effective_relevant_ssids(app)
+    relevant_ssids_by_point = relevant_ssids_by_point or {}
 
     for index, point in enumerate(reversed(point_summaries), start=1):
         survey_number = total_points - index + 1
+        point_id = point.get("point_id", "")
+        point_relevant_ssids = relevant_ssids_by_point.get(point_id, relevant_ssids)
+        infer_relevant_labels = point_id not in relevant_ssids_by_point
         quality = quality_by_point_id.get(point.get("point_id", ""), {})
         status = quality.get("status", QUALITY_SPARSE_DATA)
         ap_position = ap_position_by_point.get(point_key(point))
@@ -1453,7 +1482,7 @@ def build_dashboard_rows(app, point_summaries, quality_by_point_id, ap_position_
             severity = "warning"
 
         rows.append({
-            "point_id": point.get("point_id", ""),
+            "point_id": point_id,
             "timestamp": point["timestamp"],
             "number": survey_number,
             "x": point["x"],
@@ -1470,10 +1499,22 @@ def build_dashboard_rows(app, point_summaries, quality_by_point_id, ap_position_
             "scanner_detail_issue": has_scanner_detail_issue,
             "scanner_detail_issue_text": scanner_detail_issue,
             "scanner_details": scanner_details,
-            "confidence": format_point_confidence(app.session.rows, point.get("point_id", ""), relevant_ssids),
+            "confidence": format_point_confidence(
+                app.session.rows,
+                point_id,
+                point_relevant_ssids,
+                infer_when_empty=infer_relevant_labels,
+                allow_row_flags=infer_relevant_labels,
+            ),
             "best": f"{point['best_signal_dbm']:.1f}",
             "row_count": point["row_count"],
-            "ssids": format_relevant_ssids(app.session.rows, point.get("point_id", ""), relevant_ssids),
+            "ssids": format_relevant_ssids(
+                app.session.rows,
+                point_id,
+                point_relevant_ssids,
+                infer_when_empty=infer_relevant_labels,
+                allow_row_flags=infer_relevant_labels,
+            ),
             "issue": issue,
         })
 
@@ -1507,6 +1548,163 @@ def get_effective_ap_groups(app):
         return merge_new_bssids_into_manual_groups(saved_groups, app.session.rows)
 
     return build_default_manual_groups(app.session.rows)
+
+
+def build_quality_relevant_ssids_by_point(app, ap_groups=None, relevant_ssids=None):
+    if not getattr(app, "session", None):
+        return {}
+
+    relevant_ssids = {
+        normalize_ssid(ssid)
+        for ssid in (relevant_ssids if relevant_ssids is not None else get_effective_relevant_ssids(app))
+        if normalize_ssid(ssid)
+    }
+    if not relevant_ssids:
+        return {}
+
+    ap_groups = ap_groups if ap_groups is not None else get_effective_ap_groups(app)
+    local_scopes_by_ssid, global_ssids = build_local_coverage_scopes(app, ap_groups, relevant_ssids)
+    if not local_scopes_by_ssid:
+        return {}
+
+    rows_by_point = {}
+    for row in app.session.rows:
+        point_id = row.get("point_id")
+        if point_id:
+            rows_by_point.setdefault(point_id, []).append(row)
+
+    px_per_meter = app.get_px_per_meter() if hasattr(app, "get_px_per_meter") else None
+    relevant_by_point = {}
+    for point_id, point_rows in rows_by_point.items():
+        point_relevant_ssids = set(global_ssids)
+        for ssid, scopes in local_scopes_by_ssid.items():
+            if any(local_scope_applies_to_point(scope, point_rows, px_per_meter) for scope in scopes):
+                point_relevant_ssids.add(ssid)
+        relevant_by_point[point_id] = point_relevant_ssids
+
+    return relevant_by_point
+
+
+def build_local_coverage_scopes(app, ap_groups, relevant_ssids):
+    group_map = build_bssid_to_manual_group_map(ap_groups)
+    groups_by_id = {
+        str(group.get("group_id", "")): group
+        for group in ap_groups
+        if str(group.get("group_id", ""))
+    }
+    ssids_by_group = {}
+    groups_by_ssid = {}
+
+    for row in app.session.rows:
+        ssid = normalize_ssid(row.get("ssid"))
+        if not ssid or ssid not in relevant_ssids:
+            continue
+
+        group_id = resolve_ap_group_key(row.get("bssid", ""), group_map)
+        group = groups_by_id.get(group_id)
+        if not group or normalize_ap_role(group.get("role")) == AP_ROLE_TEST:
+            continue
+
+        ssids_by_group.setdefault(group_id, set()).add(ssid)
+        groups_by_ssid.setdefault(ssid, set()).add(group_id)
+
+    local_only_ssids = {
+        ssid
+        for ssid, group_ids in groups_by_ssid.items()
+        if group_ids and all(is_local_coverage_group(groups_by_id.get(group_id)) for group_id in group_ids)
+    }
+    if not local_only_ssids:
+        return {}, set(relevant_ssids)
+
+    scopes_by_ssid = {}
+    for group_id, ssids in ssids_by_group.items():
+        group = groups_by_id.get(group_id)
+        if not is_local_coverage_group(group):
+            continue
+
+        for ssid in sorted(ssids & local_only_ssids):
+            scopes_by_ssid.setdefault(ssid, []).append(build_local_coverage_scope(group, group_map, ssid))
+
+    return scopes_by_ssid, set(relevant_ssids) - set(scopes_by_ssid)
+
+
+def is_local_coverage_group(group):
+    if not group or normalize_ap_role(group.get("role")) == AP_ROLE_TEST:
+        return False
+    metadata = group.get("metadata") or {}
+    return is_local_coverage_metadata(metadata)
+
+
+def build_local_coverage_scope(group, group_map, ssid):
+    metadata = group.get("metadata") or {}
+    radius = parse_float(normalize_coverage_radius_m(metadata.get("coverage_radius_m", "")))
+    bssids = {
+        str(bssid or "").strip().lower()
+        for bssid in group.get("bssids", [])
+        if str(bssid or "").strip()
+    }
+    return {
+        "group_id": str(group.get("group_id", "")),
+        "ssid": ssid,
+        "bssids": bssids,
+        "position": group.get("position") or {},
+        "radius_m": radius,
+        "group_map": group_map,
+    }
+
+
+def local_scope_applies_to_point(scope, point_rows, px_per_meter):
+    if scope_has_manual_radius(scope, px_per_meter):
+        return point_is_inside_local_radius(scope, point_rows, px_per_meter)
+
+    return point_has_auto_local_evidence(scope, point_rows)
+
+
+def scope_has_manual_radius(scope, px_per_meter):
+    return bool(scope.get("position")) and bool(scope.get("radius_m")) and bool(px_per_meter)
+
+
+def point_is_inside_local_radius(scope, point_rows, px_per_meter):
+    point_x, point_y = point_coordinates(point_rows)
+    position = scope.get("position") or {}
+    ap_x = parse_float(position.get("x"))
+    ap_y = parse_float(position.get("y"))
+    radius_m = scope.get("radius_m")
+    if None in (point_x, point_y, ap_x, ap_y, radius_m) or not px_per_meter:
+        return False
+
+    distance_px = ((point_x - ap_x) ** 2 + (point_y - ap_y) ** 2) ** 0.5
+    return (distance_px / px_per_meter) <= radius_m
+
+
+def point_coordinates(point_rows):
+    for row in point_rows:
+        x = parse_float(row.get("x"))
+        y = parse_float(row.get("y"))
+        if x is not None and y is not None:
+            return x, y
+    return None, None
+
+
+def point_has_auto_local_evidence(scope, point_rows):
+    for row in point_rows:
+        if normalize_ssid(row.get("ssid")) != scope.get("ssid"):
+            continue
+        if not row_matches_local_scope_group(row, scope):
+            continue
+        signal_dbm = parse_float(row.get("signal_dbm"))
+        if signal_dbm is not None and signal_dbm >= LOCAL_COVERAGE_AUTO_MIN_SIGNAL_DBM:
+            return True
+    return False
+
+
+def row_matches_local_scope_group(row, scope):
+    bssid = str(row.get("bssid", "") or "").strip().lower()
+    if not bssid:
+        return False
+    if bssid in scope.get("bssids", set()):
+        return True
+    return resolve_ap_group_key(bssid, scope.get("group_map", {})) == scope.get("group_id")
 
 
 def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None, ap_channel_changes=None):
@@ -2245,7 +2443,7 @@ def filter_ap_groups_for_relevant_ssids(app, ap_groups):
     ]
 
 
-def build_ap_position_quality_by_point(app, ap_groups=None):
+def build_ap_position_quality_by_point(app, ap_groups=None, relevant_ssids_by_point=None):
     ap_groups = ap_groups if ap_groups is not None else get_effective_ap_groups(app)
     if not ap_groups:
         return {}
@@ -2261,10 +2459,14 @@ def build_ap_position_quality_by_point(app, ap_groups=None):
         for ssid in app.relevant_ssids or []
         if normalize_ssid(ssid)
     }
+    relevant_ssids_by_point = relevant_ssids_by_point or {}
     best_by_point = {}
 
     for row in app.session.rows:
-        if not row_is_relevant_for_position(row, relevant_ssids):
+        key = row_point_key(row)
+        point_relevant_ssids = relevant_ssids_by_point.get(key, relevant_ssids)
+        infer_relevant = key not in relevant_ssids_by_point
+        if not row_is_relevant_for_position(row, point_relevant_ssids, infer_relevant=infer_relevant):
             continue
 
         bssid = row.get("bssid", "")
@@ -2276,7 +2478,6 @@ def build_ap_position_quality_by_point(app, ap_groups=None):
         if signal_dbm is None:
             continue
 
-        key = row_point_key(row)
         current = best_by_point.get(key)
         if current and signal_dbm <= current["dominant_signal_dbm"]:
             continue
@@ -2310,9 +2511,14 @@ def build_ap_position_quality_by_point(app, ap_groups=None):
     return result
 
 
-def row_is_relevant_for_position(row, relevant_ssids):
+def row_is_relevant_for_position(row, relevant_ssids, infer_relevant=True):
     if not relevant_ssids:
+        if not infer_relevant:
+            return False
         return True
+
+    if not infer_relevant:
+        return normalize_ssid(row.get("ssid")) in relevant_ssids
 
     return normalize_ssid(row.get("ssid")) in relevant_ssids or is_truthy(row.get("is_relevant"))
 
@@ -2497,20 +2703,25 @@ def format_quality_issue(app, quality):
     return app.tr("quality_dashboard_no_issue")
 
 
-def format_point_confidence(rows, point_id, relevant_ssids):
+def format_point_confidence(rows, point_id, relevant_ssids, infer_when_empty=True, allow_row_flags=True):
     values = []
     relevant_ssids = {
         normalize_ssid(ssid)
         for ssid in relevant_ssids or []
         if normalize_ssid(ssid)
     }
+    if not relevant_ssids and not infer_when_empty:
+        return "-"
     point_rows = []
 
     for row in rows:
         if row.get("point_id") != point_id:
             continue
         if relevant_ssids:
-            if normalize_ssid(row.get("ssid")) not in relevant_ssids and not is_truthy(row.get("is_relevant")):
+            if (
+                normalize_ssid(row.get("ssid")) not in relevant_ssids
+                and not (allow_row_flags and is_truthy(row.get("is_relevant")))
+            ):
                 continue
         point_rows.append(row)
 
@@ -2532,12 +2743,14 @@ def format_point_confidence(rows, point_id, relevant_ssids):
     return f"{min(values):.2f}"
 
 
-def format_relevant_ssids(rows, point_id, relevant_ssids):
+def format_relevant_ssids(rows, point_id, relevant_ssids, infer_when_empty=True, allow_row_flags=True):
     relevant_ssids = {
         normalize_ssid(ssid)
         for ssid in relevant_ssids or []
         if normalize_ssid(ssid)
     }
+    if not relevant_ssids and not infer_when_empty:
+        return "-"
     labels_by_key = {}
 
     for row in rows:
@@ -2550,9 +2763,9 @@ def format_relevant_ssids(rows, point_id, relevant_ssids):
             continue
 
         if relevant_ssids:
-            if ssid_key not in relevant_ssids:
+            if ssid_key not in relevant_ssids and not (allow_row_flags and is_truthy(row.get("is_relevant"))):
                 continue
-        elif not is_truthy(row.get("is_relevant")):
+        elif not infer_when_empty or not is_truthy(row.get("is_relevant")):
             continue
 
         labels_by_key.setdefault(ssid_key, ssid)

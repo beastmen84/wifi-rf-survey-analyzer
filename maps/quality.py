@@ -16,16 +16,27 @@ SCANNER_DETAIL_MISSING_6GHZ_FREQUENCY = "MISSING_6GHZ_FREQUENCY"
 DOMINANT_SIGNAL_WINDOW_DB = 5
 
 
-def evaluate_point_quality(rows, raw_scan_rows=None, relevant_ssids=None):
+def evaluate_point_quality(rows, raw_scan_rows=None, relevant_ssids=None, relevant_ssids_by_point=None):
     raw_scan_rows = raw_scan_rows or []
     relevant_ssids = normalize_ssids(relevant_ssids or get_relevant_ssids_from_rows(rows))
+    relevant_ssids_by_point = {
+        str(point_id): normalize_ssids(point_relevant_ssids)
+        for point_id, point_relevant_ssids in (relevant_ssids_by_point or {}).items()
+        if str(point_id)
+    }
     grouped_rows = group_by_point_id(rows)
     grouped_raw_rows = group_by_point_id(raw_scan_rows)
     results = {}
 
     for point_id, point_rows in grouped_rows.items():
         raw_rows = grouped_raw_rows.get(point_id, [])
-        results[point_id] = evaluate_single_point(point_rows, raw_rows, relevant_ssids)
+        point_relevant_ssids = relevant_ssids_by_point.get(point_id, relevant_ssids)
+        results[point_id] = evaluate_single_point(
+            point_rows,
+            raw_rows,
+            point_relevant_ssids,
+            infer_relevant=False,
+        )
 
     return results
 
@@ -41,14 +52,30 @@ def group_by_point_id(rows):
     return grouped
 
 
-def evaluate_single_point(rows, raw_rows, relevant_ssids=None):
+def evaluate_single_point(rows, raw_rows, relevant_ssids=None, infer_relevant=True):
     if not rows:
         return build_quality_result(QUALITY_SPARSE_DATA, scanner_details=build_scanner_detail_result())
 
-    relevant_ssids = normalize_ssids(relevant_ssids or get_relevant_ssids_from_rows(rows))
-    quality_rows = get_quality_rows(rows, relevant_ssids)
+    if relevant_ssids is None or (infer_relevant and not relevant_ssids):
+        relevant_ssids = normalize_ssids(get_relevant_ssids_from_rows(rows))
+    else:
+        relevant_ssids = normalize_ssids(relevant_ssids)
+
+    if not relevant_ssids and not infer_relevant:
+        return build_quality_result(
+            QUALITY_GOOD,
+            breakdown=[],
+            scanner_details=build_scanner_detail_result(),
+        )
+
+    quality_rows = get_quality_rows(rows, relevant_ssids, include_all_when_empty=infer_relevant)
     breakdown = build_quality_breakdown(rows, raw_rows, relevant_ssids)
-    scanner_details = evaluate_scanner_details(rows, raw_rows, relevant_ssids)
+    scanner_details = evaluate_scanner_details(
+        rows,
+        raw_rows,
+        relevant_ssids,
+        infer_relevant=infer_relevant,
+    )
     missing_relevant = sorted(
         item["ssid"]
         for item in breakdown
@@ -85,7 +112,7 @@ def build_quality_result(status, **details):
     return result
 
 
-def evaluate_scanner_details(rows, raw_rows=None, relevant_ssids=None):
+def evaluate_scanner_details(rows, raw_rows=None, relevant_ssids=None, infer_relevant=True):
     """Return point-level scanner evidence issues that affect channel-sensitive maps."""
     scan_rows = list(raw_rows or []) or list(rows or [])
     if not scan_rows:
@@ -95,7 +122,12 @@ def evaluate_scanner_details(rows, raw_rows=None, relevant_ssids=None):
     fallback_rows = 0
     missing_channel_width_rows = 0
     missing_6ghz_frequency_rows = 0
-    relevant_ssids = normalize_ssids(relevant_ssids or get_relevant_ssids_from_rows(rows or []))
+    if relevant_ssids is None or (infer_relevant and not relevant_ssids):
+        relevant_ssids = normalize_ssids(get_relevant_ssids_from_rows(rows or []))
+        filter_relevant = bool(relevant_ssids)
+    else:
+        relevant_ssids = normalize_ssids(relevant_ssids)
+        filter_relevant = True
 
     for row in scan_rows:
         backend = str(row.get("backend", "") or "").strip().lower()
@@ -104,7 +136,7 @@ def evaluate_scanner_details(rows, raw_rows=None, relevant_ssids=None):
         if backend == "netsh":
             fallback_rows += 1
 
-        if relevant_ssids and normalize_ssid(row.get("ssid")) not in relevant_ssids:
+        if filter_relevant and normalize_ssid(row.get("ssid")) not in relevant_ssids:
             continue
 
         band = get_row_band(row)
@@ -151,9 +183,9 @@ def build_scanner_detail_result(
     }
 
 
-def get_quality_rows(rows, relevant_ssids):
+def get_quality_rows(rows, relevant_ssids, include_all_when_empty=True):
     if not relevant_ssids:
-        return rows
+        return rows if include_all_when_empty else []
 
     return [
         row

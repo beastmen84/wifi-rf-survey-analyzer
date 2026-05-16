@@ -748,7 +748,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card"><b>Stato In Alto</b><br>Coerente significa che i controlli principali sono puliti. Riscansione necessaria indica punti con problemi di evidenza. Configurazione AP da completare indica che i punti possono essere utilizzabili, ma metadati, memoria, cambi canale o posizioni AP vanno rivisti.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Ambito Rilievo</b><br>Il box in basso a destra ricorda quali SSID sono rilevanti, quanti gruppi AP rilevanti hanno posizione e quali gruppi AP sono esclusi come test.</td>
+                <td class="workflow-card"><b>Ambito Rilievo</b><br>Il box in basso a destra ricorda quali SSID sono rilevanti, quanti gruppi AP rilevanti hanno posizione e quali gruppi AP sono esclusi come test. I gruppi AP marcati Area Locale vengono valutati solo dove il loro ambito locale si applica.</td>
             </tr>
         </table>
         <h2>Controlli Dashboard</h2>
@@ -792,7 +792,7 @@ TRANSLATIONS = {
                 <td class="survey-gap"></td>
                 <td class="survey-card">
                     <div class="survey-card-title">Qualità Scan</div>
-                    <p><b>Reti Rilevanti Mancanti:</b> SSID previsti non visti in un punto.</p>
+                    <p><b>Reti Rilevanti Mancanti:</b> SSID previsti non visti in un punto. Gli SSID Area Locale non sono attesi in tutto il rilievo.</p>
                     <p><b>Dati Scarsi:</b> evidenza ripetuta troppo limitata.</p>
                     <p><b>Dettagli Scanner Mancanti:</b> dati da scanner fallback, ampiezza canale mancante o frequenza 6 GHz mancante possono indebolire conclusioni su Interferenza, overlap ampiezza 5 GHz e 6 GHz.</p>
                     <p><b>Bassa Confidenza Scansione:</b> il candidato dominante ha confidenza debole nelle scansioni ripetute.</p>
@@ -907,9 +907,9 @@ TRANSLATIONS = {
             </tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
-                <td class="workflow-card"><b>Ambito Copertura</b><br>Tutto Il Rilievo è il default. Area Locale marca AP o SSID intenzionalmente validi solo vicino alla loro zona.</td>
+                <td class="workflow-card"><b>Ambito Copertura</b><br>Tutto Il Rilievo è il default. Area Locale marca AP o SSID intenzionalmente validi solo vicino alla loro zona. Qualità Rilievo usa questo ambito prima di giudicare l'evidenza dei punti.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Raggio Locale</b><br>Raggio opzionale dell'area attesa nel sistema di misura selezionato. Lascia Area Auto selezionato finché l'ambito fisico non è noto; il collegamento con Qualità Rilievo arriva nello step successivo.</td>
+                <td class="workflow-card"><b>Raggio Locale</b><br>Raggio opzionale dell'area attesa nel sistema di misura selezionato. Con posizione AP e scala, Qualità usa il raggio come zona attesa. Con Area Auto, Qualità deduce la zona dall'evidenza locale utilizzabile.</td>
             </tr>
         </table>
         <h2>Cambi Canale Puliti</h2>
