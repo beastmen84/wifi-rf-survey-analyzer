@@ -1291,12 +1291,18 @@ class RecommendationDetailsDialog(QDialog):
             self.sizeHint().height(),
         )
         self.resize(self.width(), target_height)
-        self.setMinimumHeight(target_height)
         if self.has_detail_overflow:
             self.detail_scroll.setMaximumHeight(all_scroll_height)
             self.detail_scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             self.setMaximumHeight(widget_px(self, recommendation_detail_max_height(self.recommendation)))
+            self.layout().activate()
+            extra_scroll_height = max(0, self.detail_scroll.height() - visible_scroll_height)
+            if extra_scroll_height:
+                target_height = max(widget_px(self, 220), target_height - extra_scroll_height)
+                self.resize(self.width(), target_height)
+            self.setMinimumHeight(target_height)
         else:
+            self.setMinimumHeight(target_height)
             self.setMaximumHeight(target_height)
 
     def create_detail_row(self, item):

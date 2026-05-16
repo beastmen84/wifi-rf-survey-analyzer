@@ -37,7 +37,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   height while overflow dialogs can expand the scroll area. Follow-up fixed the
   scroll content itself by removing the trailing stretch below the last card and
   fixing each card to its measured height-for-width so internal labels do not
-  stretch vertically.
+  stretch vertically. A final pass keeps the initial overflow height locked to
+  the configured whole-card boundary even when translated header text reflows to
+  a shorter rendered height.
 - Scanner-detail wording now says `scan rows` so the count is clearly raw scan
   evidence for that measurement point, not a count of measurement points.
 - The redundant fallback row count was removed from scanner details; `NETSH` is

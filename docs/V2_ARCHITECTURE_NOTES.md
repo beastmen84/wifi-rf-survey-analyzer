@@ -856,7 +856,10 @@ Implemented:
   dialogs keep the default whole-card fit and can expand the scroll area.
   Follow-up removed the trailing layout stretch from the scroll content and
   fixes each card to its measured height-for-width, preventing both scrollable
-  blank space below the last card and vertically stretched card content.
+  blank space below the last card and vertically stretched card content. The
+  initial overflow window height is also corrected after header reflow so
+  translated dialog text cannot donate extra height to the scroll area and show
+  a partial next card.
 
 Remaining closeout:
 

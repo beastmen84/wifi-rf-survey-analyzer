@@ -442,6 +442,62 @@ class QualityTests(unittest.TestCase):
             dialog.close()
             owner.deleteLater()
 
+    def test_recommendation_details_dialog_does_not_show_next_card_after_header_reflow(self):
+        from translations.it import TRANSLATIONS
+
+        class LocalizedQualityApp(FakeQualityApp):
+            theme = "light"
+
+            def tr(self, key, **kwargs):
+                text = TRANSLATIONS.get(key, key)
+                return text.format(**kwargs) if kwargs else text
+
+        QApplication.instance() or QApplication([])
+        owner = QWidget()
+        owner.app = LocalizedQualityApp([])
+        detail = "<br>".join([
+            owner.app.tr(
+                "quality_dashboard_scanner_details_scanner",
+                backends="NETSH",
+                fallback=owner.app.tr("quality_dashboard_scanner_details_fallback_suffix"),
+                count=40,
+            ),
+            owner.app.tr("quality_dashboard_scanner_details_missing_width_detail", count=40),
+            owner.app.tr("quality_dashboard_scanner_details_missing_frequency_detail", count=40),
+            owner.app.tr("quality_dashboard_scanner_details_impact"),
+        ])
+        recommendation = {
+            "title": owner.app.tr("quality_dashboard_fix_scanner_details_title"),
+            "dialog_detail": owner.app.tr("quality_dashboard_fix_scanner_details_dialog_detail"),
+            "metric_key": "quality_dashboard_metric_scanner_details",
+            "detail_items": [
+                {
+                    "label": f"Punto {index + 1} (100, 100)",
+                    "finding": owner.app.tr("quality_dashboard_scanner_details_finding"),
+                    "detail": detail,
+                }
+                for index in range(8)
+            ],
+        }
+        dialog = RecommendationDetailsDialog(owner, recommendation)
+
+        try:
+            dialog.show()
+            QApplication.processEvents()
+
+            self.assertEqual(dialog.visible_detail_items, 4)
+            self.assertEqual(
+                dialog.detail_rows[3].geometry().bottom(),
+                dialog.detail_scroll.viewport().height() - 1,
+            )
+            self.assertGreater(
+                dialog.detail_rows[4].geometry().top(),
+                dialog.detail_scroll.viewport().height() - 1,
+            )
+        finally:
+            dialog.close()
+            owner.deleteLater()
+
     def test_quality_summary_formats_metadata_warning_labels(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)
         app = FakeQualityApp([row], relevant_ssids={"MAIN"})
