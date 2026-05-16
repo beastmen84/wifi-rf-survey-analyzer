@@ -8,7 +8,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
-No unreleased changes yet.
+- Added a README Development Approach note documenting transparent use of
+  AI-assisted coding tools while keeping project direction, field testing and
+  validation manually driven.
 
 ## v0.9.4-beta.2 - 2026-05-16
 

@@ -286,6 +286,15 @@ remaining understandable, inspectable, and adaptable. The goal is not only to
 generate heatmaps, but to explain the RF behavior and scan reliability behind
 them.
 
+## Development Approach
+
+This project was developed with extensive help from AI-assisted coding tools,
+primarily OpenAI Codex/ChatGPT, to accelerate implementation, refactoring,
+debugging and UI iteration.
+
+Feature direction, real-world survey testing, RF interpretation, validation and
+release decisions were driven manually through practical field use.
+
 ## Author
 
 Davide Marchi
