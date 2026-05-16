@@ -114,7 +114,8 @@ changes open Extra Details dialogs from their KPI cards, with structured
 label/value detail rows and whole-card dialog sizing for dense AP-model
 findings. AP Memory review and missing AP position diagnostics are kept as
 separate states so remembered AP data is not confused with missing physical
-placement.
+placement. Memory Applied opens its AP-specific action from Extra Details
+rather than duplicating AP Group buttons in the dashboard card.
 Scanner detail diagnostics report raw scan-row counts for the selected
 measurement point, so missing channel-width or 6 GHz frequency evidence is not
 confused with the number of survey points.

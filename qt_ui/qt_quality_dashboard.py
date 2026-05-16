@@ -1626,7 +1626,6 @@ def build_quality_recommendations(app, summary):
         "quality_dashboard_fix_ap_memory_title",
         "quality_dashboard_fix_ap_memory_detail",
         "info",
-        actions=build_ap_group_actions(app, summary.get("ap_memory_applied_items", []), open_metadata=False),
         detail_items=build_ap_memory_detail_items(app, summary.get("ap_memory_applied_items", [])),
         detail_count_key="quality_dashboard_detail_ap_groups",
         dialog_detail_key="quality_dashboard_fix_ap_memory_dialog_detail",

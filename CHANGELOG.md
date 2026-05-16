@@ -18,6 +18,10 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   empty dialog space, keeping top/bottom card padding consistent. AP Memory and
   APs Without Position detail text now distinguish remembered AP data from a
   missing physical map position.
+- Survey Quality `Memory Applied` recommendation cards now route through Extra
+  Details only; the direct AP Group shortcut was removed from the main
+  dashboard card because each detail row already has its specific AP Group
+  action.
 - Survey Quality `Scanner Details Missing` Extra Details now use the same
   finding/detail structure as Dominant AP diagnostics, with separate scanner,
   checked scan-row count, missing channel-width/frequency rows and impact text.

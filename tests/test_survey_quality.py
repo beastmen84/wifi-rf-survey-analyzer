@@ -536,6 +536,7 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(summary["ap_memory_applied"], 1)
         self.assertEqual(memory_recommendation["metric_key"], "quality_dashboard_metric_ap_memory_applied")
         self.assertEqual(memory_recommendation["dialog_detail"], "quality_dashboard_fix_ap_memory_dialog_detail")
+        self.assertEqual(memory_recommendation["actions"], [])
         self.assertEqual(memory_recommendation["detail_items"][0]["label"], "ap-1")
         self.assertIn("70:4f:57:aa:bb:10", memory_recommendation["detail_items"][0]["detail"])
         self.assertTrue(any(

@@ -839,6 +839,9 @@ Implemented:
   centered inside extra space. `Memory Applied` now explains the AP Memory
   review state, while `APs Without Position` explicitly shows AP group/label
   and the missing physical-position data.
+- `Memory Applied` dashboard recommendation now keeps navigation inside Extra
+  Details: the main card no longer shows a direct `AP Group: ...` button because
+  the detail row already carries the AP-specific action.
 
 Remaining closeout:
 
