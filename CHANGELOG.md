@@ -68,6 +68,8 @@ Beta focused on making Survey Quality scale better for larger real surveys.
   below-limit, exact-limit and overflow fake detail sets, checking whole-card
   default sizing, overflow behavior and the absence of scroll slack below the
   final card.
+- Windows `onedir` executable and ZIP package were regenerated for
+  `v0.9.3-beta.2`.
 - Survey Quality no longer shows the full measurement-point table in the main
   dashboard view.
 - Actionable KPI cards now open the most useful diagnostic view: Points To
