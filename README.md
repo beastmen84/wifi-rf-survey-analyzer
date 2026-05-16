@@ -14,7 +14,7 @@ survey quality, and export explainable RF maps.
 - Active UI: PySide6
 - Main entry point: `main.py`
 - Current survey format: CSV plus linked `.scan` raw-data sidecar
-- Latest packaged Windows ZIP: `WifiHeatmap-v0.9.4-beta.2-win64.zip`
+- Latest packaged Windows ZIP: `WifiHeatmap-v0.9.5-beta.1-win64.zip`
 
 The current beta is intended for real-world validation of the Qt workflow. A
 stable `v1.0.0` is planned after Help Center review and broader field testing.
@@ -260,7 +260,7 @@ Current source beta:
 
 Latest packaged Windows ZIP:
 
-- `WifiHeatmap-v0.9.4-beta.2-win64.zip`
+- `WifiHeatmap-v0.9.5-beta.1-win64.zip`
 
 ## Roadmap
 

@@ -74,17 +74,16 @@ Current status:
   Position 6; Extra Details header descriptions are also measured after layout
   at their real dialog width so longer recommendation text does not create
   inconsistent blank space above the cards;
-- `v0.9.4-beta.2` is closed/tagged; Windows PyInstaller `onedir` executable
-  and ZIP release package have been regenerated on request from this beta line.
-  Latest zipped Windows release artifact:
-  `dist\WifiHeatmap-v0.9.4-beta.2-win64.zip`;
 - `v0.9.5-beta.1` is closed/tagged as a source beta for connected-client
-  roaming diagnostics; no Windows exe/ZIP was regenerated for this beta:
+  roaming diagnostics:
   scanner code normalizes the currently associated BSSID from `lswifi` and
   `netsh`, survey CSV and raw `.scan` rows persist optional `is_connected`
   evidence, and Survey Quality now flags possible sticky-client points when the
   laptop stayed connected to one AP group while another AP group on the same
-  SSID was at least 8 dB stronger;
+  SSID was at least 8 dB stronger. Windows PyInstaller `onedir` executable and
+  ZIP release package have been regenerated on request from this beta line.
+  Latest zipped Windows release artifact:
+  `dist\WifiHeatmap-v0.9.5-beta.1-win64.zip`;
 - `v0.9.4-beta.1` is closed as a source-tagged beta with the AP metadata
   foundation for
   local/zone-only coverage scope: AP group metadata now normalizes and
