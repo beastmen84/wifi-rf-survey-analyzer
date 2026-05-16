@@ -327,10 +327,10 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(recommendation_detail_visible_item_count(scanner_recommendation, items), 4)
         self.assertEqual(recommendation_detail_visible_item_count(scanner_recommendation, items[:2]), 2)
         self.assertEqual(recommendation_detail_visible_item_count(dominant_recommendation, items), 5)
-        self.assertEqual(recommendation_detail_visible_item_count(metadata_recommendation, items), 5)
-        self.assertEqual(recommendation_detail_visible_item_count(channel_recommendation, items), 5)
-        self.assertEqual(recommendation_detail_visible_item_count(missing_position_recommendation, items), 8)
-        self.assertEqual(recommendation_detail_visible_item_count(memory_recommendation, items), 6)
+        self.assertEqual(recommendation_detail_visible_item_count(metadata_recommendation, items), 6)
+        self.assertEqual(recommendation_detail_visible_item_count(channel_recommendation, items), 4)
+        self.assertEqual(recommendation_detail_visible_item_count(missing_position_recommendation, items), 6)
+        self.assertEqual(recommendation_detail_visible_item_count(memory_recommendation, items), 5)
         self.assertGreater(
             recommendation_detail_max_height(scanner_recommendation),
             recommendation_detail_max_height(dominant_recommendation),
@@ -503,10 +503,10 @@ class QualityTests(unittest.TestCase):
         metrics = [
             ("quality_dashboard_metric_scanner_details", 4, "scanner"),
             ("quality_dashboard_metric_ap_diagnostic_points", 5, "dominant"),
-            ("quality_dashboard_metric_ap_metadata_warnings", 5, "metadata"),
-            ("quality_dashboard_metric_channel_changes", 5, "channel"),
-            ("quality_dashboard_metric_ap_memory_applied", 6, "memory"),
-            ("quality_dashboard_metric_ap_missing_positions", 8, "missing_position"),
+            ("quality_dashboard_metric_ap_metadata_warnings", 6, "metadata"),
+            ("quality_dashboard_metric_channel_changes", 4, "channel"),
+            ("quality_dashboard_metric_ap_memory_applied", 5, "memory"),
+            ("quality_dashboard_metric_ap_missing_positions", 6, "missing_position"),
         ]
 
         for metric_key, visible_limit, item_kind in metrics:

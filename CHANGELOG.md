@@ -51,8 +51,8 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 - AP Model KPI cards now open their matching Extra Details dialogs for AP
   Memory matches, APs without position, AP config warnings, channel changes,
   and Dominant AP findings. Detail dialogs use metric-specific whole-card
-  limits: Scanner Details 4, Dominant AP/AP Config/Channel Changes 5, AP Memory
-  Review 6, and APs Without Position 8.
+  limits: Scanner Details 4, Dominant AP Findings 5, AP Config Warnings 6,
+  Channel Changes 4, AP Memory Review 5, and APs Without Position 6.
 - Survey Quality tests now exercise every Extra Details dialog type with
   below-limit, exact-limit and overflow fake detail sets, checking whole-card
   default sizing, overflow behavior and the absence of scroll slack below the

@@ -69,8 +69,9 @@ Current status:
   oversized dialogs or show a partially clipped next card; AP Model KPI cards
   now route to their matching Extra Details for AP Memory matches, APs without
   position, AP config warnings, channel changes and Dominant AP findings, with
-  metric-specific whole-card limits: Scanner Details 4, Dominant AP/AP Config/
-  Channel Changes 5, AP Memory Review 6 and APs Without Position 8;
+  metric-specific whole-card limits: Scanner Details 4, Dominant AP Findings 5,
+  AP Config Warnings 6, Channel Changes 4, AP Memory Review 5 and APs Without
+  Position 6;
 - the latest Windows release artifact remains the `v0.9.2-beta.1` PyInstaller
   `onedir` ZIP until an intentional package rebuild is requested;
 - Help content and structure have an expanded V2 Help Center implementation;
