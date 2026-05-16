@@ -127,7 +127,7 @@ TRANSLATIONS = {
     "quality_dashboard_metric_low_confidence": "Low Scan Confidence",
     "quality_dashboard_metric_unstable": "Unstable Signal",
     "quality_dashboard_metric_ap_diagnostic_points": "Dominant AP Findings",
-    "quality_dashboard_metric_ap_memory_applied": "Memory Applied",
+    "quality_dashboard_metric_ap_memory_applied": "AP Memory Review",
     "quality_dashboard_metric_ap_position_warnings": "AP Position Warnings",
     "quality_dashboard_metric_ap_missing_positions": "APs Without Position",
     "quality_dashboard_metric_ap_metadata_warnings": "AP Config Warnings",
@@ -144,9 +144,9 @@ TRANSLATIONS = {
     "quality_dashboard_fix_low_confidence_detail": "{count} points have low dominant-candidate confidence. Repeat them or verify scanner stability.",
     "quality_dashboard_fix_unstable_title": "Repeat Unstable Points",
     "quality_dashboard_fix_unstable_detail": "{count} points have raw-sample spread high enough to affect maps. Repeat them if they drive decisions.",
-    "quality_dashboard_fix_ap_memory_title": "Review AP Memory Matches",
-    "quality_dashboard_fix_ap_memory_detail": "{count} AP groups have metadata applied from AP Memory. Confirm them or edit the AP model if the remembered data is not correct.",
-    "quality_dashboard_fix_ap_memory_dialog_detail": "Use Open AP Group to inspect AP groups marked from memory, then confirm or edit them in AP Group Manager.",
+    "quality_dashboard_fix_ap_memory_title": "Review AP Memory",
+    "quality_dashboard_fix_ap_memory_detail": "{count} AP groups need AP Memory review. Confirm data applied from memory, or decide whether current manual data should replace remembered data.",
+    "quality_dashboard_fix_ap_memory_dialog_detail": "Use Open AP Group to inspect AP groups with memory state. Confirm memory-applied groups, or update/keep groups whose current data differs from AP Memory.",
     "quality_dashboard_fix_ap_position_title": "Review Dominant AP Warnings",
     "quality_dashboard_fix_ap_position_detail": "{count} points disagree with AP physical positions. Inspect warning markers before relying on AP-based conclusions.",
     "quality_dashboard_fix_ap_position_dialog_detail": "Use Focus Point to inspect each finding on the floor plan.",
@@ -196,7 +196,8 @@ TRANSLATIONS = {
     "quality_dashboard_context_config_warnings": "AP Config Details",
     "quality_dashboard_ap_metadata_channels": "<b>Observed Channels:</b> {channels}<br><b>Expected Channels:</b> {expected}",
     "quality_dashboard_ap_metadata_bands": "<b>Observed Bands:</b> {bands}<br><b>Expected Bands:</b> {expected}",
-    "quality_dashboard_ap_memory_item_detail": "<b>Memory Status:</b> applied from AP Memory<br><b>Matched BSSIDs:</b> {matched_bssids}<br><b>Applied At:</b> {applied_at}<br><b>Next Step:</b> confirm or edit remembered AP data",
+    "quality_dashboard_ap_memory_item_detail": "<b>Memory Status:</b> M - applied from AP Memory<br><b>Matched BSSIDs:</b> {matched_bssids}<br><b>Next Step:</b> confirm or edit remembered AP data",
+    "quality_dashboard_ap_memory_update_item_detail": "<b>Memory Status:</b> <s>M</s> - current AP data differs from AP Memory<br><b>Different Fields:</b> {fields}<br><b>Next Step:</b> update from memory, or keep current data and save it",
     "quality_dashboard_scanner_details_issue": "Scanner Details: {detail}",
     "quality_dashboard_scanner_details_fallback": "Scanner Used: <b>{backends}</b> (Limited Channel Details)",
     "quality_dashboard_scanner_details_missing_width": "Channel Width Missing On <b>{count}</b> Scan Rows",
@@ -783,7 +784,7 @@ TRANSLATIONS = {
                     <p><b>Dominant AP Findings:</b> roaming or AP-position observations worth checking.</p>
                     <p><b>APs Without Position:</b> relevant AP groups missing map coordinates.</p>
                     <p><b>AP Config Warnings:</b> metadata/deployment mismatch.</p>
-                    <p><b>Memory Applied / Channel Changes:</b> AP data or channel assumptions still need review.</p>
+                    <p><b>AP Memory Review / Channel Changes:</b> remembered AP data, manual AP-memory differences or channel assumptions still need review.</p>
                 </td>
             </tr>
         </table>
@@ -792,13 +793,13 @@ TRANSLATIONS = {
             <div class="gate-row"><b>1. Fix point evidence first:</b> missing relevant networks, sparse data, limited scanner details, low confidence and unstable signal can poison every map. Focus the point and rescan before tuning AP interpretation.</div>
             <div class="gate-row"><b>2. Fix AP identity and position next:</b> dominant AP findings and missing AP positions usually mean the AP model needs review before roaming or position diagnostics are trusted.</div>
             <div class="gate-row"><b>3. Review AP metadata and channels:</b> AP config warnings and channel changes affect AP Channels and Interference. Open AP Metadata when expected channels, observed channels or analysis-channel overrides need review.</div>
-            <div class="gate-row"><b>4. Confirm memory-derived AP data:</b> From Memory is not an error. It means aliases, roles, metadata, overrides or compatible positions were reused and should be confirmed or edited.</div>
+            <div class="gate-row"><b>4. Review AP Memory:</b> From Memory is not an error. It means aliases, roles, metadata, overrides or compatible positions were reused and should be confirmed or edited. A struck-through memory state means current manual AP data differs from saved memory.</div>
         </div>
         <h2>Detail Dialogs</h2>
         <p>Use point KPI cards for filtered measurement-point lists. Use <b>Extra Details</b> when a recommendation card shows AP groups, channel changes or long diagnostic context. Detail rows are designed for large surveys: each affected point, AP group or channel change gets its own row, and action buttons open the right map or editor without forcing every problem onto the main dashboard.</p>
         <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Scalable By Design</span><br>The main dashboard gives counts and priorities. Detail dialogs hold the long lists so many AP groups or many bad points remain readable.</td></tr></table>
         <h2>AP Memory Review</h2>
-        <p>When a repeated survey sees known BSSIDs, the program can reuse saved AP aliases, roles, metadata, analysis-channel overrides and compatible floor-plan positions. Survey Quality keeps that visible as an AP Model finding until the AP Group data is confirmed or edited.</p>
+        <p>When a repeated survey sees known BSSIDs, the program can reuse saved AP aliases, roles, metadata, analysis-channel overrides and compatible floor-plan positions. Survey Quality also reports AP groups whose current manual data differs from saved memory, so the user can decide whether to update from memory or keep the current model.</p>
         <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Important</span><br>A setup warning does not mean the survey point is bad. It means the AP model, expected channel, or real deployment needs review.</td></tr></table>
     """,
     "help_ap_groups_nav": "AP Groups",

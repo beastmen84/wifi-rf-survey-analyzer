@@ -836,10 +836,11 @@ Implemented:
   does not clip the taller cards or expose partial next cards.
 - Follow-up quality detail polish fixed sparse detail-card stretching in
   dialogs, so card content keeps a stable top margin instead of being vertically
-  centered inside extra space. `Memory Applied` now explains the AP Memory
-  review state, while `APs Without Position` explicitly shows AP group/label
-  and the missing physical-position data.
-- `Memory Applied` dashboard recommendation now keeps navigation inside Extra
+  centered inside extra space. `AP Memory Review` now explains both memory
+  states: `M` for data applied from memory, and struck-through `M` for manual
+  AP data that differs from saved memory. `APs Without Position` explicitly
+  shows AP group/label and the missing physical-position data.
+- `AP Memory Review` dashboard recommendation now keeps navigation inside Extra
   Details: the main card no longer shows a direct `AP Group: ...` button because
   the detail row already carries the AP-specific action.
 

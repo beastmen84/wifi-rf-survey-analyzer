@@ -412,7 +412,7 @@ class FakeQualityApp:
         if key == "quality_dashboard_metric_ap_diagnostic_points":
             return "Dominant AP Findings"
         if key == "quality_dashboard_metric_ap_memory_applied":
-            return "Memory Applied"
+            return "AP Memory Review"
         if key == "quality_dashboard_metric_ap_missing_positions":
             return "APs Without Position"
         if key == "quality_dashboard_metric_ap_metadata_warnings":
@@ -427,6 +427,14 @@ class FakeQualityApp:
             return "Click To Open Details"
         if key == "quality_dashboard_check_kpi_issue":
             return f"Check KPI: {kwargs.get('kpis', '')}"
+        if key == "ap_group_alias_menu":
+            return "Alias"
+        if key == "ap_group_role":
+            return "Role"
+        if key == "ap_group_metadata":
+            return "Metadata"
+        if key == "ap_group_position":
+            return "Position"
         if key == "quality_dashboard_scanner_details_fallback":
             return f"Scanner Used: <b>{kwargs.get('backends')}</b> (Limited Channel Details)"
         if key == "quality_dashboard_scanner_details_missing_width":
@@ -485,10 +493,15 @@ class FakeQualityApp:
             )
         if key == "quality_dashboard_ap_memory_item_detail":
             return (
-                f"<b>Memory Status:</b> applied from AP Memory<br>"
+                f"<b>Memory Status:</b> M - applied from AP Memory<br>"
                 f"<b>Matched BSSIDs:</b> {kwargs.get('matched_bssids')}<br>"
-                f"<b>Applied At:</b> {kwargs.get('applied_at')}<br>"
                 "<b>Next Step:</b> confirm or edit remembered AP data"
+            )
+        if key == "quality_dashboard_ap_memory_update_item_detail":
+            return (
+                "<b>Memory Status:</b> <s>M</s> - current AP data differs from AP Memory<br>"
+                f"<b>Different Fields:</b> {kwargs.get('fields')}<br>"
+                "<b>Next Step:</b> update from memory, or keep current data and save it"
             )
         if key == "quality_dashboard_missing_position_item_detail":
             return (

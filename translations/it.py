@@ -127,7 +127,7 @@ TRANSLATIONS = {
     "quality_dashboard_metric_low_confidence": "Bassa Confidenza Scansione",
     "quality_dashboard_metric_unstable": "Segnale Instabile",
     "quality_dashboard_metric_ap_diagnostic_points": "Anomalie Dominant AP",
-    "quality_dashboard_metric_ap_memory_applied": "Dati Da Memoria",
+    "quality_dashboard_metric_ap_memory_applied": "Verifica Memoria AP",
     "quality_dashboard_metric_ap_position_warnings": "Warning Posizione AP",
     "quality_dashboard_metric_ap_missing_positions": "AP Senza Posizione",
     "quality_dashboard_metric_ap_metadata_warnings": "Warning Configurazione AP",
@@ -144,9 +144,9 @@ TRANSLATIONS = {
     "quality_dashboard_fix_low_confidence_detail": "{count} punti hanno bassa confidenza sul candidato dominante. Ripetili o verifica la stabilità dello scanner.",
     "quality_dashboard_fix_unstable_title": "Ripeti Punti Instabili",
     "quality_dashboard_fix_unstable_detail": "{count} punti hanno una variazione dei campioni sufficiente a influenzare le mappe. Ripetili se guidano decisioni.",
-    "quality_dashboard_fix_ap_memory_title": "Verifica Dati Da Memoria",
-    "quality_dashboard_fix_ap_memory_detail": "{count} gruppi AP hanno metadati applicati da AP Memory. Confermali oppure correggi il modello AP se il dato ricordato non è corretto.",
-    "quality_dashboard_fix_ap_memory_dialog_detail": "Usa Apri Gruppo AP per controllare i gruppi AP segnati da memoria, poi confermali o modificali in AP Group Manager.",
+    "quality_dashboard_fix_ap_memory_title": "Verifica Memoria AP",
+    "quality_dashboard_fix_ap_memory_detail": "{count} gruppi AP richiedono verifica della Memoria AP. Conferma i dati applicati da memoria oppure decidi se i dati manuali correnti devono sostituire quelli ricordati.",
+    "quality_dashboard_fix_ap_memory_dialog_detail": "Usa Apri Gruppo AP per controllare i gruppi con stato memoria. Conferma quelli applicati da memoria oppure aggiorna/mantieni quelli con dati correnti diversi dalla Memoria AP.",
     "quality_dashboard_fix_ap_position_title": "Verifica Warning Dominant AP",
     "quality_dashboard_fix_ap_position_detail": "{count} punti non tornano con le posizioni fisiche AP. Controlla i marker warning prima di trarre conclusioni.",
     "quality_dashboard_fix_ap_position_dialog_detail": "Usa Vai Al Punto per controllare ogni finding sulla pianta.",
@@ -196,7 +196,8 @@ TRANSLATIONS = {
     "quality_dashboard_context_config_warnings": "Dettagli Configurazione AP",
     "quality_dashboard_ap_metadata_channels": "<b>Canali Rilevati:</b> {channels}<br><b>Canali Attesi:</b> {expected}",
     "quality_dashboard_ap_metadata_bands": "<b>Bande Rilevate:</b> {bands}<br><b>Bande Attese:</b> {expected}",
-    "quality_dashboard_ap_memory_item_detail": "<b>Stato Memoria:</b> applicato dalla Memoria AP<br><b>BSSID Corrispondenti:</b> {matched_bssids}<br><b>Applicato Il:</b> {applied_at}<br><b>Prossimo Passo:</b> conferma o modifica i dati ricordati",
+    "quality_dashboard_ap_memory_item_detail": "<b>Stato Memoria:</b> M - applicato dalla Memoria AP<br><b>BSSID Corrispondenti:</b> {matched_bssids}<br><b>Prossimo Passo:</b> conferma o modifica i dati ricordati",
+    "quality_dashboard_ap_memory_update_item_detail": "<b>Stato Memoria:</b> <s>M</s> - i dati AP correnti sono diversi dalla Memoria AP<br><b>Campi Diversi:</b> {fields}<br><b>Prossimo Passo:</b> aggiorna dalla memoria oppure mantieni i dati correnti e salvali",
     "quality_dashboard_scanner_details_issue": "Dettagli Scanner: {detail}",
     "quality_dashboard_scanner_details_fallback": "Scanner usato: <b>{backends}</b> (dettagli canale limitati)",
     "quality_dashboard_scanner_details_missing_width": "Ampiezza canale mancante su <b>{count}</b> righe scan",
@@ -783,7 +784,7 @@ TRANSLATIONS = {
                     <p><b>Finding AP Dominante:</b> osservazioni roaming o posizione AP da controllare.</p>
                     <p><b>AP Senza Posizione:</b> gruppi AP rilevanti senza coordinate mappa.</p>
                     <p><b>Warning Config AP:</b> mismatch metadata/deployment.</p>
-                    <p><b>Memoria Applicata / Cambi Canale:</b> dati AP o ipotesi canale ancora da rivedere.</p>
+                    <p><b>Verifica Memoria AP / Cambi Canale:</b> dati AP ricordati, differenze manuali rispetto alla memoria o ipotesi canale ancora da rivedere.</p>
                 </td>
             </tr>
         </table>
@@ -792,13 +793,13 @@ TRANSLATIONS = {
             <div class="gate-row"><b>1. Sistema prima l'evidenza dei punti:</b> reti rilevanti mancanti, dati radi, dettagli scanner limitati, bassa confidenza e segnale instabile possono falsare ogni mappa. Vai al punto e riscansiona prima di ragionare sugli AP.</div>
             <div class="gate-row"><b>2. Sistema poi identità e posizione AP:</b> finding AP Dominante e AP senza posizione di solito indicano che il modello AP va rivisto prima di fidarsi di roaming o diagnostica posizione.</div>
             <div class="gate-row"><b>3. Rivedi metadata AP e canali:</b> warning config AP e cambi canale influenzano Canali AP e Interferenza. Apri Metadati AP quando canali attesi, osservati o override canale analisi vanno controllati.</div>
-            <div class="gate-row"><b>4. Conferma i dati AP da memoria:</b> Da Memoria non è un errore. Significa che alias, ruoli, metadata, override o posizioni compatibili sono stati riusati e vanno confermati o modificati.</div>
+            <div class="gate-row"><b>4. Verifica Memoria AP:</b> Da Memoria non è un errore. Significa che alias, ruoli, metadata, override o posizioni compatibili sono stati riusati e vanno confermati o modificati. Uno stato memoria barrato indica dati AP manuali correnti diversi da quelli salvati in memoria.</div>
         </div>
         <h2>Finestra Dettagli</h2>
         <p>Usa le KPI punto per aprire liste filtrate dei punti di misura. Usa <b>Dettagli</b> quando una card raccomandazione mostra gruppi AP, cambi canale o contesto diagnostico lungo. Le righe dettaglio sono pensate per survey grandi: ogni punto, gruppo AP o cambio canale coinvolto ha la sua riga, e i pulsanti aprono la mappa o l'editor corretto senza caricare tutto nella dashboard principale.</p>
         <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Scalabile Per Scelta</span><br>La dashboard principale mostra conteggi e priorità. Le finestre dettaglio contengono le liste lunghe, così molti gruppi AP o molti punti problematici restano leggibili.</td></tr></table>
         <h2>Revisione Memoria AP</h2>
-        <p>Quando un nuovo rilievo vede BSSID già noti, il programma può riusare alias, ruoli, metadata, override canale analisi e posizioni mappa compatibili. Qualità Rilievo mantiene questa cosa visibile come finding del modello AP finché i dati non vengono confermati o modificati da Gruppi AP.</p>
+        <p>Quando un nuovo rilievo vede BSSID già noti, il programma può riusare alias, ruoli, metadata, override canale analisi e posizioni mappa compatibili. Qualità Rilievo mostra anche i gruppi AP i cui dati manuali correnti sono diversi dalla memoria salvata, così l'utente può decidere se aggiornare da memoria o mantenere il modello corrente.</p>
         <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Importante</span><br>Un warning di setup non significa che il punto sia sbagliato. Significa che modello AP, canale atteso o deployment reale vanno controllati.</td></tr></table>
     """,
     "help_ap_groups_nav": "Gruppi AP",

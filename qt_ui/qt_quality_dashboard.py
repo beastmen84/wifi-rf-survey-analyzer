@@ -31,7 +31,6 @@ from ap.checks import (
     build_ap_channel_changes,
 )
 from ap.groups import (
-    AP_MEMORY_APPLIED_AT_KEY,
     AP_MEMORY_APPLIED_KEY,
     AP_MEMORY_MATCH_BSSIDS_KEY,
     AP_ROLE_TEST,
@@ -41,7 +40,7 @@ from ap.groups import (
     normalize_ap_role,
     resolve_ap_group_key,
 )
-from ap.memory import count_memory_applied_groups
+from ap.memory import get_group_memory_update_fields, load_ap_memory
 from ap.metadata import build_ap_metadata_warnings, infer_band_from_channel, sort_bands
 from ap.positioning import (
     AP_POSITION_NO_SCALE,
@@ -585,7 +584,7 @@ class QualityDashboardDialog(QDialog):
                 "quality_dashboard_metric_group_ap",
                 [
                     ("quality_dashboard_metric_ap_diagnostic_points", summary["ap_diagnostic_points"], "warning"),
-                    ("quality_dashboard_metric_ap_memory_applied", summary["ap_memory_applied"], "info"),
+                    ("quality_dashboard_metric_ap_memory_applied", summary["ap_memory_review"], "info"),
                     ("quality_dashboard_metric_ap_missing_positions", summary["ap_missing_positions"], "warning"),
                     ("quality_dashboard_metric_ap_metadata_warnings", summary["ap_metadata_warnings"], "warning"),
                     ("quality_dashboard_metric_channel_changes", summary["channel_change_count"], channel_change_severity),
@@ -1444,11 +1443,7 @@ def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None, ap_chann
     test_ap_count = len(ap_groups) - len(visible_ap_groups)
     positioned_count = sum(1 for group in positioned_ap_groups if group.get("position"))
     missing_position_groups = [group for group in positioned_ap_groups if not group.get("position")]
-    memory_applied_groups = [
-        group
-        for group in visible_ap_groups
-        if group.get(AP_MEMORY_APPLIED_KEY)
-    ]
+    ap_memory_review_items = build_ap_memory_review_items(app, visible_ap_groups)
     relevant_networks = (
         ", ".join(sorted(app.relevant_ssids))
         if app.relevant_ssids
@@ -1495,8 +1490,10 @@ def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None, ap_chann
         "relevant_networks": relevant_networks,
         "ap_positions": f"{positioned_count}/{len(positioned_ap_groups)}" if positioned_ap_groups else "0/0",
         "test_aps": test_ap_count,
-        "ap_memory_applied": count_memory_applied_groups(memory_applied_groups),
-        "ap_memory_applied_items": build_ap_memory_applied_items(app, memory_applied_groups),
+        "ap_memory_review": len(ap_memory_review_items),
+        "ap_memory_applied": sum(1 for item in ap_memory_review_items if item.get("state") == "applied"),
+        "ap_memory_update": sum(1 for item in ap_memory_review_items if item.get("state") == "update"),
+        "ap_memory_applied_items": ap_memory_review_items,
         "ap_metadata_warnings": len(ap_metadata_warnings),
         "ap_metadata_warning_labels": format_ap_metadata_warning_labels(app, ap_metadata_warnings),
         "ap_metadata_warning_items": build_ap_metadata_warning_items(app, ap_metadata_warnings),
@@ -1622,7 +1619,7 @@ def build_quality_recommendations(app, summary):
         "warning",
     )
     add(
-        summary["ap_memory_applied"],
+        summary["ap_memory_review"],
         "quality_dashboard_fix_ap_memory_title",
         "quality_dashboard_fix_ap_memory_detail",
         "info",
@@ -1834,23 +1831,65 @@ def build_ap_group_items(app, groups):
     ]
 
 
+def build_ap_memory_review_items(app, groups):
+    records = load_ap_memory().get("groups", [])
+    metadata = getattr(getattr(app, "session", None), "metadata", {}) or {}
+    map_file = metadata.get("map_file", "")
+    applied_items = build_ap_memory_applied_items(app, groups)
+    update_items = build_ap_memory_update_items(app, groups, map_file, records)
+    return applied_items + update_items
+
+
 def build_ap_memory_applied_items(app, groups):
     items = []
     for group in groups:
         group_id = str(group.get("group_id", ""))
-        if not group_id:
+        if not group_id or not group.get(AP_MEMORY_APPLIED_KEY):
             continue
         matched_bssids = ", ".join(group.get(AP_MEMORY_MATCH_BSSIDS_KEY, [])[:3]) or "-"
         items.append({
+            "state": "applied",
             "group_id": group_id,
             "label": app.get_ap_group_display_name(group_id),
             "detail": app.tr(
                 "quality_dashboard_ap_memory_item_detail",
                 matched_bssids=matched_bssids,
-                applied_at=str(group.get(AP_MEMORY_APPLIED_AT_KEY, "") or "-"),
             ),
         })
     return items
+
+
+def build_ap_memory_update_items(app, groups, map_file, records):
+    items = []
+    for group in groups:
+        group_id = str(group.get("group_id", ""))
+        if not group_id or group.get(AP_MEMORY_APPLIED_KEY):
+            continue
+
+        fields = get_group_memory_update_fields(group, map_file, records=records)
+        if not fields:
+            continue
+
+        items.append({
+            "state": "update",
+            "group_id": group_id,
+            "label": app.get_ap_group_display_name(group_id),
+            "detail": app.tr(
+                "quality_dashboard_ap_memory_update_item_detail",
+                fields=format_memory_update_fields(app, fields),
+            ),
+        })
+    return items
+
+
+def format_memory_update_fields(app, fields):
+    labels = {
+        "alias": app.tr("ap_group_alias_menu"),
+        "role": app.tr("ap_group_role"),
+        "metadata": app.tr("ap_group_metadata"),
+        "position": app.tr("ap_group_position"),
+    }
+    return ", ".join(labels.get(field, str(field)) for field in fields) or "-"
 
 
 def build_ap_metadata_warning_items(app, warnings):

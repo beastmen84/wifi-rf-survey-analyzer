@@ -112,10 +112,11 @@ issues. Structured diagnostics such as scanner details, dominant-AP position,
 AP Memory matches, AP metadata warnings, missing AP positions, and channel
 changes open Extra Details dialogs from their KPI cards, with structured
 label/value detail rows and whole-card dialog sizing for dense AP-model
-findings. AP Memory review and missing AP position diagnostics are kept as
+findings. AP Memory Review and missing AP position diagnostics are kept as
 separate states so remembered AP data is not confused with missing physical
-placement. Memory Applied opens its AP-specific action from Extra Details
-rather than duplicating AP Group buttons in the dashboard card.
+placement. AP Memory Review opens its AP-specific action from Extra Details
+rather than duplicating AP Group buttons in the dashboard card, and it includes
+both memory-applied groups and manual groups that differ from saved memory.
 Scanner detail diagnostics report raw scan-row counts for the selected
 measurement point, so missing channel-width or 6 GHz frequency evidence is not
 confused with the number of survey points.

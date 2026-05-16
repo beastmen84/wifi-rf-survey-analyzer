@@ -534,15 +534,76 @@ class QualityTests(unittest.TestCase):
         )
 
         self.assertEqual(summary["ap_memory_applied"], 1)
+        self.assertEqual(summary["ap_memory_review"], 1)
+        self.assertEqual(summary["ap_memory_update"], 0)
         self.assertEqual(memory_recommendation["metric_key"], "quality_dashboard_metric_ap_memory_applied")
         self.assertEqual(memory_recommendation["dialog_detail"], "quality_dashboard_fix_ap_memory_dialog_detail")
         self.assertEqual(memory_recommendation["actions"], [])
         self.assertEqual(memory_recommendation["detail_items"][0]["label"], "ap-1")
         self.assertIn("70:4f:57:aa:bb:10", memory_recommendation["detail_items"][0]["detail"])
+        self.assertNotIn("Applied At", memory_recommendation["detail_items"][0]["detail"])
         self.assertTrue(any(
             action["kind"] == "ap_group"
             for action in memory_recommendation["detail_items"][0]["actions"]
         ))
+
+    def test_quality_recommends_manual_ap_memory_update_review(self):
+        temp_dir = tempfile.TemporaryDirectory()
+        previous = os.environ.get("WIFI_HEATMAP_AP_MEMORY_FILE")
+        os.environ["WIFI_HEATMAP_AP_MEMORY_FILE"] = os.path.join(temp_dir.name, "ap_memory.memory")
+        ensure_ap_memory_file()
+        try:
+            bssid = "70:4f:57:aa:bb:10"
+            rows = [build_row("p1", "MAIN", bssid, -55, 60, band="5")]
+            update_ap_memory_from_groups(
+                [
+                    build_manual_ap_group(
+                        "office-ap",
+                        [bssid],
+                        alias="Office AP",
+                        metadata={"expected_channels": "60"},
+                    )
+                ],
+                rows,
+            )
+            groups = [
+                build_manual_ap_group(
+                    "office-ap",
+                    [bssid],
+                    alias="Old AP",
+                    metadata={"expected_channels": "40"},
+                )
+            ]
+            app = FakeQualityApp(rows, groups, relevant_ssids={"MAIN"})
+
+            summary = build_summary(
+                app,
+                [{"status": QUALITY_GOOD, "needs_review": False, "ap_position_warning_count": 0}],
+                [],
+                groups,
+            )
+
+            memory_recommendation = next(
+                recommendation
+                for recommendation in summary["recommendations"]
+                if recommendation["title"] == "quality_dashboard_fix_ap_memory_title"
+            )
+
+            self.assertEqual(summary["ap_memory_review"], 1)
+            self.assertEqual(summary["ap_memory_applied"], 0)
+            self.assertEqual(summary["ap_memory_update"], 1)
+            self.assertIn(
+                "<s>M</s>",
+                memory_recommendation["detail_items"][0]["detail"],
+            )
+            self.assertIn("Alias", memory_recommendation["detail_items"][0]["detail"])
+            self.assertIn("Metadata", memory_recommendation["detail_items"][0]["detail"])
+        finally:
+            if previous is None:
+                os.environ.pop("WIFI_HEATMAP_AP_MEMORY_FILE", None)
+            else:
+                os.environ["WIFI_HEATMAP_AP_MEMORY_FILE"] = previous
+            temp_dir.cleanup()
 
     def test_quality_summary_counts_ap_position_warnings_in_point_review(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)
