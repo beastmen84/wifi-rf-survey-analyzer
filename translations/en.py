@@ -152,6 +152,7 @@ TRANSLATIONS = {
     "quality_dashboard_fix_ap_position_dialog_detail": "Use Focus Point to inspect each finding on the floor plan.",
     "quality_dashboard_fix_ap_missing_title": "Place Missing APs",
     "quality_dashboard_fix_ap_missing_detail": "{count} relevant AP groups have no position. Add their physical position before relying on AP-distance diagnostics.",
+    "quality_dashboard_fix_ap_missing_dialog_detail": "Use Open AP Group on each row to place the physical AP on the floor plan. Test APs are excluded; only AP groups seen on relevant networks are listed.",
     "quality_dashboard_fix_ap_metadata_title": "Review AP Metadata",
     "quality_dashboard_fix_ap_metadata_detail": "{count} AP groups have expected channel or band mismatches. Correct metadata or set an analysis channel override when the measured channel is intentional.",
     "quality_dashboard_fix_ap_metadata_dialog_detail": "Use Open AP Metadata to correct expected channels/bands or set an analysis-channel override for each AP group.",

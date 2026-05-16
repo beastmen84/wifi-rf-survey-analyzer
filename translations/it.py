@@ -152,6 +152,7 @@ TRANSLATIONS = {
     "quality_dashboard_fix_ap_position_dialog_detail": "Usa Vai Al Punto per controllare ogni finding sulla pianta.",
     "quality_dashboard_fix_ap_missing_title": "Posiziona AP Mancanti",
     "quality_dashboard_fix_ap_missing_detail": "{count} gruppi AP rilevanti non hanno posizione. Aggiungi la posizione fisica prima di fidarti della diagnostica basata su distanza AP.",
+    "quality_dashboard_fix_ap_missing_dialog_detail": "Usa Apri Gruppo AP su ogni riga per posizionare l'AP fisico sulla planimetria. Gli AP test sono esclusi; vengono elencati solo i gruppi AP visti sulle reti rilevanti.",
     "quality_dashboard_fix_ap_metadata_title": "Verifica Metadati AP",
     "quality_dashboard_fix_ap_metadata_detail": "{count} gruppi AP hanno canali o bande fuori dai metadati attesi. Correggi i metadati oppure imposta un override del canale di analisi quando il canale misurato è intenzionale.",
     "quality_dashboard_fix_ap_metadata_dialog_detail": "Usa Apri Metadati AP per correggere canali/bande attesi o impostare un override del canale di analisi per ogni gruppo AP.",

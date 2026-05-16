@@ -22,6 +22,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   and manual AP groups whose current data differs from saved AP Memory. The
   direct AP Group shortcut was removed from the main dashboard card because
   each detail row already has its specific AP Group action.
+- Survey Quality `APs Without Position` now follows the same interaction model:
+  the dashboard recommendation no longer duplicates AP Group buttons, and Extra
+  Details carries the row-specific Open AP Group action plus placement guidance.
 - Survey Quality `Scanner Details Missing` Extra Details now use the same
   finding/detail structure as Dominant AP diagnostics, with separate scanner,
   checked scan-row count, missing channel-width/frequency rows and impact text.

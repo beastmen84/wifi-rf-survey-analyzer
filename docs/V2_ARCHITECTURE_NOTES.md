@@ -843,6 +843,10 @@ Implemented:
 - `AP Memory Review` dashboard recommendation now keeps navigation inside Extra
   Details: the main card no longer shows a direct `AP Group: ...` button because
   the detail row already carries the AP-specific action.
+- `APs Without Position` now follows the same scalable interaction pattern: the
+  dashboard recommendation reports the aggregate count, while Extra Details
+  explains the missing physical position and exposes the row-specific Open AP
+  Group action.
 
 Remaining closeout:
 

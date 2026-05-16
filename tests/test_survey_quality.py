@@ -169,6 +169,11 @@ class QualityTests(unittest.TestCase):
             missing_position_recommendation["metric_key"],
             "quality_dashboard_metric_ap_missing_positions",
         )
+        self.assertEqual(missing_position_recommendation["actions"], [])
+        self.assertEqual(
+            missing_position_recommendation["dialog_detail"],
+            "quality_dashboard_fix_ap_missing_dialog_detail",
+        )
         self.assertIn(
             "<b>AP Group:</b>",
             missing_position_recommendation["detail_items"][0]["detail"],

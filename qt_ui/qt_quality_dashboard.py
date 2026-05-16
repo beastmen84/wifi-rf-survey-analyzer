@@ -1664,9 +1664,9 @@ def build_quality_recommendations(app, summary):
         "quality_dashboard_fix_ap_missing_title",
         "quality_dashboard_fix_ap_missing_detail",
         "warning",
-        actions=build_ap_group_actions(app, summary.get("missing_position_items", []), open_metadata=False),
         detail_items=build_missing_position_detail_items(app, summary.get("missing_position_items", [])),
         detail_count_key="quality_dashboard_detail_ap_groups",
+        dialog_detail_key="quality_dashboard_fix_ap_missing_dialog_detail",
         metric_key="quality_dashboard_metric_ap_missing_positions",
         names=summary["missing_position_labels"],
     )
