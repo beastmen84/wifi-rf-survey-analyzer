@@ -157,20 +157,23 @@ def recommendation_detail_scroll_height(row_heights, spacing, visible_items, mar
 
 def detail_row_height_for_width(row, width):
     width = max(1, int(width))
-    size_hint_height = row.sizeHint().height()
-    minimum_height = row.minimumSizeHint().height()
+    if row.hasHeightForWidth():
+        return max(1, row.heightForWidth(width))
     layout = row.layout()
     if layout:
         layout.activate()
         if layout.hasHeightForWidth():
-            return max(1, layout.heightForWidth(width), size_hint_height, minimum_height)
-    if row.hasHeightForWidth():
-        return max(1, row.heightForWidth(width), size_hint_height, minimum_height)
-    return max(1, size_hint_height, minimum_height)
+            return max(1, layout.heightForWidth(width) + (row.frameWidth() * 2))
+    return max(1, row.minimumSizeHint().height())
 
 
 def detail_row_heights_for_width(rows, width):
     return [detail_row_height_for_width(row, width) for row in rows]
+
+
+def apply_detail_row_heights(rows, heights):
+    for row, height in zip(rows, heights):
+        row.setFixedHeight(max(1, int(height)))
 
 
 def point_rows_for_metric(rows, metric_key):
@@ -1213,6 +1216,7 @@ class RecommendationDetailsDialog(QDialog):
         content_layout = QVBoxLayout(content)
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(widget_px(self, 6))
+        content.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         detail_rows = []
         for item in items:
             detail_row = self.create_detail_row(item)
@@ -1262,6 +1266,8 @@ class RecommendationDetailsDialog(QDialog):
             )
 
         row_heights = detail_row_heights_for_width(self.detail_rows, viewport_width)
+        apply_detail_row_heights(self.detail_rows, row_heights)
+        content_layout.activate()
         visible_scroll_height = recommendation_detail_scroll_height(
             row_heights,
             content_layout.spacing(),
@@ -1315,17 +1321,20 @@ class RecommendationDetailsDialog(QDialog):
         text_column.setSpacing(widget_px(self, 2))
         label = QLabel(item.get("label", ""))
         label.setStyleSheet(f"color: {palette['title']}; font-weight: 700; background: transparent;")
+        label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         text_column.addWidget(label)
 
         if item.get("finding"):
             finding = QLabel(item.get("finding", ""))
             finding.setStyleSheet(f"color: {palette['metric_warning']}; font-weight: 600; background: transparent;")
             finding.setWordWrap(True)
+            finding.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             text_column.addWidget(finding)
 
         detail = QLabel(item.get("detail", ""))
         detail.setObjectName("mutedText")
         detail.setWordWrap(True)
+        detail.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         text_column.addWidget(detail)
         layout.addLayout(text_column, 1)
 

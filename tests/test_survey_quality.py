@@ -391,6 +391,18 @@ class QualityTests(unittest.TestCase):
                 dialog.detail_rows[-1].geometry().bottom() + 1,
             )
 
+            first_card_layout = dialog.detail_rows[0].layout().itemAt(0).layout()
+            title_label = first_card_layout.itemAt(0).widget()
+            finding_label = first_card_layout.itemAt(1).widget()
+            detail_label = first_card_layout.itemAt(2).widget()
+            self.assertEqual(title_label.height(), title_label.sizeHint().height())
+            self.assertLessEqual(finding_label.height(), finding_label.sizeHint().height())
+            self.assertLessEqual(detail_label.height(), detail_label.sizeHint().height())
+            self.assertEqual(
+                dialog.detail_rows[0].height(),
+                dialog.detail_rows[0].heightForWidth(dialog.detail_scroll.viewport().width()),
+            )
+
             initial_scroll_height = dialog.detail_scroll.height()
             dialog.resize(dialog.width(), min(dialog.maximumHeight(), dialog.height() + 120))
             QApplication.processEvents()
