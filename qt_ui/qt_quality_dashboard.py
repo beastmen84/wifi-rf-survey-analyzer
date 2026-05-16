@@ -36,6 +36,7 @@ from ap.groups import (
     AP_ROLE_TEST,
     build_default_manual_groups,
     build_bssid_to_manual_group_map,
+    format_short_bssid,
     is_local_coverage_metadata,
     merge_new_bssids_into_manual_groups,
     normalize_coverage_radius_m,
@@ -115,6 +116,7 @@ DETAIL_DIALOG_MAX_HEIGHTS = {
 }
 LOCAL_COVERAGE_AUTO_MIN_SIGNAL_DBM = -70.0
 LOCAL_COVERAGE_AUTO_RADIUS_MARGIN_M = 2.0
+CONNECTED_CLIENT_SIGNAL_DELTA_DB = 8.0
 
 
 QUALITY_METRIC_STATUSES = {
@@ -131,12 +133,14 @@ POINT_METRIC_FILTERS = {
             row.get("status") != QUALITY_GOOD
             or row.get("scanner_detail_issue")
             or row.get("ap_position_warning_count", 0) > 0
+            or row.get("connected_client_issue")
         )
     ),
     "quality_dashboard_metric_missing": lambda row: row_has_quality_status(row, QUALITY_MISSING_RELEVANT),
     "quality_dashboard_metric_sparse": lambda row: row_has_quality_status(row, QUALITY_SPARSE_DATA),
     "quality_dashboard_metric_low_confidence": lambda row: row_has_quality_status(row, QUALITY_LOW_CONFIDENCE),
     "quality_dashboard_metric_unstable": lambda row: row_has_quality_status(row, QUALITY_UNSTABLE_SIGNAL),
+    "quality_dashboard_metric_connected_client": lambda row: bool(row.get("connected_client_issue")),
 }
 
 
@@ -284,6 +288,8 @@ def format_metric_point_issue(app, row, metric_key):
         return format_scanner_detail_summary(app, row.get("scanner_details", {}))
     if metric_key == "quality_dashboard_metric_ap_diagnostic_points":
         return format_ap_position_point_issue(app, row) or no_issue
+    if metric_key == "quality_dashboard_metric_connected_client":
+        return row.get("connected_client_issue_text") or no_issue
     return row.get("issue") or no_issue
 
 
@@ -379,6 +385,8 @@ def rescan_kpi_labels_for_row(app, row):
         labels.append(app.tr("quality_dashboard_metric_scanner_details"))
     if row.get("ap_position_warning_count", 0) > 0:
         labels.append(app.tr("quality_dashboard_metric_ap_diagnostic_points"))
+    if row.get("connected_client_issue"):
+        labels.append(app.tr("quality_dashboard_metric_connected_client"))
     return labels
 
 
@@ -592,6 +600,7 @@ class QualityDashboardDialog(QDialog):
                     ("quality_dashboard_metric_scanner_details", summary["scanner_detail_points"], "warning"),
                     ("quality_dashboard_metric_low_confidence", summary["low_confidence"], "warning"),
                     ("quality_dashboard_metric_unstable", summary["unstable"], "warning"),
+                    ("quality_dashboard_metric_connected_client", summary["connected_client_points"], "warning"),
                 ],
             ),
             (
@@ -1437,6 +1446,7 @@ def open_qt_quality_dashboard(app):
         point_summaries,
         quality_by_point_id,
         ap_position_by_point,
+        ap_groups=ap_groups,
         relevant_ssids_by_point=relevant_ssids_by_point,
     )
     summary = build_summary(app, rows, ap_metadata_warnings, ap_groups, ap_channel_changes)
@@ -1450,6 +1460,7 @@ def build_dashboard_rows(
     point_summaries,
     quality_by_point_id,
     ap_position_by_point=None,
+    ap_groups=None,
     relevant_ssids_by_point=None,
 ):
     total_points = len(point_summaries)
@@ -1457,6 +1468,13 @@ def build_dashboard_rows(
     ap_position_by_point = ap_position_by_point or {}
     relevant_ssids = get_effective_relevant_ssids(app)
     relevant_ssids_by_point = relevant_ssids_by_point or {}
+    ap_groups = ap_groups if ap_groups is not None else get_effective_ap_groups(app)
+    group_map = build_bssid_to_manual_group_map(ap_groups)
+    role_map = {
+        str(group.get("group_id", "")): normalize_ap_role(group.get("role"))
+        for group in ap_groups
+    }
+    point_rows_by_id = group_rows_by_point_key(app.session.rows)
 
     for index, point in enumerate(reversed(point_summaries), start=1):
         survey_number = total_points - index + 1
@@ -1467,6 +1485,15 @@ def build_dashboard_rows(
         status = quality.get("status", QUALITY_SPARSE_DATA)
         ap_position = ap_position_by_point.get(point_key(point))
         ap_position_issue = format_ap_position_issue(app, ap_position)
+        connected_client_issue = build_connected_client_issue(
+            app,
+            point_rows_by_id.get(point_key(point), []),
+            point_relevant_ssids,
+            group_map,
+            role_map,
+            infer_relevant=infer_relevant_labels,
+        )
+        connected_client_issue_text = format_connected_client_issue(app, connected_client_issue)
         scanner_details = quality.get("scanner_details", {})
         scanner_detail_issue = format_scanner_detail_issue(app, scanner_details)
         quality_issue = format_quality_issue(app, quality)
@@ -1475,11 +1502,18 @@ def build_dashboard_rows(
             issue = join_issues(issue, scanner_detail_issue, app.tr("quality_dashboard_no_issue"))
         if ap_position_issue:
             issue = join_issues(issue, ap_position_issue, app.tr("quality_dashboard_no_issue"))
+        if connected_client_issue_text:
+            issue = join_issues(issue, connected_client_issue_text, app.tr("quality_dashboard_no_issue"))
 
         has_scanner_detail_issue = bool(scanner_details.get("has_issue"))
-        needs_review = status != QUALITY_GOOD or bool(ap_position_issue) or has_scanner_detail_issue
+        needs_review = (
+            status != QUALITY_GOOD
+            or bool(ap_position_issue)
+            or has_scanner_detail_issue
+            or bool(connected_client_issue)
+        )
         severity = QUALITY_SEVERITY.get(status, "warning")
-        if (ap_position_issue or has_scanner_detail_issue) and status == QUALITY_GOOD:
+        if (ap_position_issue or has_scanner_detail_issue or connected_client_issue) and status == QUALITY_GOOD:
             severity = "warning"
 
         rows.append({
@@ -1495,6 +1529,8 @@ def build_dashboard_rows(
             "ap_position_warning_count": len(ap_position.get("warnings", [])) if ap_position else 0,
             "ap_position": ap_position or {},
             "ap_position_issue": ap_position_issue,
+            "connected_client_issue": connected_client_issue,
+            "connected_client_issue_text": connected_client_issue_text,
             "quality_issue": quality_issue,
             "quality_breakdown": quality.get("breakdown", []),
             "scanner_detail_issue": has_scanner_detail_issue,
@@ -1520,6 +1556,128 @@ def build_dashboard_rows(
         })
 
     return rows
+
+
+def group_rows_by_point_key(rows):
+    grouped = {}
+    for row in rows:
+        key = row_point_key(row)
+        if key:
+            grouped.setdefault(key, []).append(row)
+    return grouped
+
+
+def build_connected_client_issue(
+    app,
+    point_rows,
+    relevant_ssids,
+    group_map,
+    role_map,
+    infer_relevant=True,
+):
+    candidates = build_connected_client_candidates(
+        app,
+        point_rows,
+        relevant_ssids,
+        group_map,
+        role_map,
+        infer_relevant=infer_relevant,
+    )
+    connected_candidates = [
+        candidate
+        for candidate in candidates
+        if is_truthy(candidate["row"].get("is_connected"))
+    ]
+    if not connected_candidates:
+        return {}
+
+    connected = max(connected_candidates, key=lambda candidate: candidate["signal_dbm"])
+    same_ssid_candidates = [
+        candidate
+        for candidate in candidates
+        if candidate["ssid_key"] == connected["ssid_key"]
+    ]
+    if not same_ssid_candidates:
+        return {}
+
+    strongest = max(same_ssid_candidates, key=lambda candidate: candidate["signal_dbm"])
+    if strongest["group_id"] == connected["group_id"]:
+        return {}
+
+    delta_db = strongest["signal_dbm"] - connected["signal_dbm"]
+    if delta_db < CONNECTED_CLIENT_SIGNAL_DELTA_DB:
+        return {}
+
+    return {
+        "ssid": connected["ssid"],
+        "connected_group_id": connected["group_id"],
+        "connected_label": connected["label"],
+        "connected_bssid": connected["bssid"],
+        "connected_signal_dbm": connected["signal_dbm"],
+        "stronger_group_id": strongest["group_id"],
+        "stronger_label": strongest["label"],
+        "stronger_bssid": strongest["bssid"],
+        "stronger_signal_dbm": strongest["signal_dbm"],
+        "delta_db": delta_db,
+        "threshold_db": CONNECTED_CLIENT_SIGNAL_DELTA_DB,
+    }
+
+
+def build_connected_client_candidates(
+    app,
+    point_rows,
+    relevant_ssids,
+    group_map,
+    role_map,
+    infer_relevant=True,
+):
+    candidates = []
+    for row in point_rows:
+        if not row_is_relevant_for_position(row, relevant_ssids, infer_relevant=infer_relevant):
+            continue
+
+        bssid = str(row.get("bssid", "") or "").strip()
+        group_id = resolve_ap_group_key(bssid, group_map)
+        if not group_id or role_map.get(group_id) == AP_ROLE_TEST:
+            continue
+
+        signal_dbm = parse_float(row.get("signal_dbm"))
+        ssid_key = normalize_ssid(row.get("ssid"))
+        if signal_dbm is None or not ssid_key:
+            continue
+
+        candidates.append({
+            "row": row,
+            "ssid": str(row.get("ssid", "") or "").strip() or ssid_key,
+            "ssid_key": ssid_key,
+            "bssid": bssid,
+            "group_id": group_id,
+            "label": format_connected_ap_label(app, group_id, bssid),
+            "signal_dbm": signal_dbm,
+        })
+    return candidates
+
+
+def format_connected_ap_label(app, group_id, bssid):
+    group_label = app.get_ap_group_display_name(group_id) if group_id else ""
+    short_bssid = format_short_bssid(bssid)
+    if group_label and group_label != group_id:
+        return f"{group_label} ({short_bssid})"
+    return group_label or short_bssid
+
+
+def format_connected_client_issue(app, issue):
+    if not issue:
+        return ""
+    return app.tr(
+        "quality_dashboard_connected_client_issue",
+        ssid=format_issue_ssid(issue.get("ssid", "-")),
+        connected=escape(str(issue.get("connected_label", "-"))),
+        connected_signal=format_dbm(issue.get("connected_signal_dbm")),
+        stronger=escape(str(issue.get("stronger_label", "-"))),
+        stronger_signal=format_dbm(issue.get("stronger_signal_dbm")),
+        delta=format_db_value(issue.get("delta_db")),
+    )
 
 
 def get_effective_relevant_ssids(app):
@@ -1781,6 +1939,7 @@ def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None, ap_chann
             row["status"] != QUALITY_GOOD
             or row.get("scanner_detail_issue")
             or row.get("ap_position_warning_count", 0) > 0
+            or row.get("connected_client_issue")
         )
     )
     summary = {
@@ -1794,6 +1953,7 @@ def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None, ap_chann
         "sparse_data": count_rows_with_quality_status(rows, QUALITY_SPARSE_DATA),
         "scanner_detail_points": scanner_detail_points,
         "scanner_detail_items": build_scanner_detail_items(app, rows),
+        "connected_client_points": sum(1 for row in rows if row.get("connected_client_issue")),
         "ap_position_warnings": sum(1 for row in rows if row.get("ap_position_warning_count", 0) > 0),
         "ap_missing_positions": len(missing_position_groups),
         "missing_position_items": build_ap_group_items(app, missing_position_groups),
@@ -1926,6 +2086,12 @@ def build_quality_recommendations(app, summary):
         summary["unstable"],
         "quality_dashboard_fix_unstable_title",
         "quality_dashboard_fix_unstable_detail",
+        "warning",
+    )
+    add(
+        summary["connected_client_points"],
+        "quality_dashboard_fix_connected_client_title",
+        "quality_dashboard_fix_connected_client_detail",
         "warning",
     )
     add(

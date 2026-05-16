@@ -414,6 +414,8 @@ class FakeQualityApp:
             return "Low Scan Confidence"
         if key == "quality_dashboard_metric_unstable":
             return "Unstable Signal"
+        if key == "quality_dashboard_metric_connected_client":
+            return "Client Roaming"
         if key == "quality_dashboard_metric_scanner_details":
             return "Scanner Details Missing"
         if key == "quality_dashboard_metric_ap_diagnostic_points":
@@ -434,6 +436,10 @@ class FakeQualityApp:
             return "Click To Open Details"
         if key == "quality_dashboard_check_kpi_issue":
             return f"Check KPI: {kwargs.get('kpis', '')}"
+        if key == "quality_dashboard_fix_connected_client_title":
+            return "Review Client Roaming"
+        if key == "quality_dashboard_fix_connected_client_detail":
+            return f"{kwargs.get('count', 0)} points show connected-client roaming evidence"
         if key == "ap_group_alias_menu":
             return "Alias"
         if key == "ap_group_role":
@@ -469,6 +475,12 @@ class FakeQualityApp:
             return f"<b>{kwargs.get('ssid')}</b>: Signal Varies By {kwargs.get('range')} dB"
         if key == "quality_dashboard_issue_sparse_data":
             return "Not Enough Scan Samples At This Point"
+        if key == "quality_dashboard_connected_client_issue":
+            return (
+                f"<b>{kwargs.get('ssid')}</b>: Connected AP <b>{kwargs.get('connected')}</b> "
+                f"({kwargs.get('connected_signal')}); stronger AP <b>{kwargs.get('stronger')}</b> "
+                f"({kwargs.get('stronger_signal')}); gap {kwargs.get('delta')} dB"
+            )
         if key == "quality_missing_relevant":
             return "Missing Relevant Networks"
         if key == "quality_low_confidence":

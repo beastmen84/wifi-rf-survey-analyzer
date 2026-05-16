@@ -126,6 +126,7 @@ TRANSLATIONS = {
     "quality_dashboard_metric_scanner_details": "Scanner Details Missing",
     "quality_dashboard_metric_low_confidence": "Low Scan Confidence",
     "quality_dashboard_metric_unstable": "Unstable Signal",
+    "quality_dashboard_metric_connected_client": "Client Roaming",
     "quality_dashboard_metric_ap_diagnostic_points": "Dominant AP Findings",
     "quality_dashboard_metric_ap_memory_applied": "AP Memory Review",
     "quality_dashboard_metric_ap_position_warnings": "AP Position Warnings",
@@ -144,6 +145,8 @@ TRANSLATIONS = {
     "quality_dashboard_fix_low_confidence_detail": "{count} points have low dominant-candidate confidence. Repeat them or verify scanner stability.",
     "quality_dashboard_fix_unstable_title": "Repeat Unstable Points",
     "quality_dashboard_fix_unstable_detail": "{count} points have raw-sample spread high enough to affect maps. Repeat them if they drive decisions.",
+    "quality_dashboard_fix_connected_client_title": "Review Client Roaming",
+    "quality_dashboard_fix_connected_client_detail": "{count} points show the survey laptop associated to a weaker AP while another AP group on the same SSID was clearly stronger. Review sticky-client behavior or rescan after reconnecting.",
     "quality_dashboard_fix_ap_memory_title": "Review AP Memory",
     "quality_dashboard_fix_ap_memory_detail": "{count} AP groups need AP Memory review. Confirm data applied from memory, or decide whether current manual data should replace remembered data.",
     "quality_dashboard_fix_ap_memory_dialog_detail": "Use Open AP Group to inspect AP groups with memory state. Confirm memory-applied groups, or update/keep groups whose current data differs from AP Memory.",
@@ -213,6 +216,7 @@ TRANSLATIONS = {
     "quality_dashboard_issue_low_confidence": "<b>{ssid}</b>: {confidence} Confidence Level",
     "quality_dashboard_issue_unstable_signal": "<b>{ssid}</b>: Signal Varies By {range} dB",
     "quality_dashboard_issue_sparse_data": "Not Enough Scan Samples At This Point",
+    "quality_dashboard_connected_client_issue": "<b>{ssid}</b>: Connected AP <b>{connected}</b> ({connected_signal}); stronger AP <b>{stronger}</b> ({stronger_signal}); gap {delta} dB",
     "quality_dashboard_more_issues": "+{count} more",
     "quality_dashboard_metric_view_points": "View Points",
     "quality_dashboard_metric_extra_details": "Extra Details",
@@ -756,7 +760,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card">
                     <div class="step-title">KPI Point Lists</div>
-                    <p>The main dashboard keeps the full point table out of the first view. Click point-evidence KPI cards such as Points To Review, Missing Relevant Networks, Sparse Data, Low Scan Confidence or Unstable Signal to open compact point lists with point number, X/Y coordinates and a KPI-specific issue. Scanner Details Missing and structured AP-model KPI cards open Extra Details instead. Total Points and Scan OK are summary cards only.</p>
+                    <p>The main dashboard keeps the full point table out of the first view. Click point-evidence KPI cards such as Points To Review, Missing Relevant Networks, Sparse Data, Low Scan Confidence, Unstable Signal or Client Roaming to open compact point lists with point number, X/Y coordinates and a KPI-specific issue. Scanner Details Missing and structured AP-model KPI cards open Extra Details instead. Total Points and Scan OK are summary cards only.</p>
                     <div class="step-gate"><b>Focus Point:</b> from a point list, closes the dashboard, selects the point on the Survey tab and opens the point panel for inspection or rescan.</div>
                 </td>
                 <td class="workflow-gap"></td>
@@ -797,6 +801,7 @@ TRANSLATIONS = {
                     <p><b>Scanner Details Missing:</b> fallback scanner data, missing channel width or missing 6 GHz frequency can weaken Interference, 5 GHz width-overlap and 6 GHz conclusions.</p>
                     <p><b>Low Scan Confidence:</b> the dominant candidate has weak repeated-scan confidence.</p>
                     <p><b>Unstable Signal:</b> repeated raw samples vary enough to affect map interpretation.</p>
+                    <p><b>Client Roaming:</b> connected-BSSID evidence shows the survey laptop stayed associated to one AP group while another AP group on the same SSID was at least 8 dB stronger. Treat this as sticky-client evidence: rescan after reconnecting if it affects validation.</p>
                 </td>
                 <td class="survey-gap"></td>
                 <td class="survey-card">
@@ -811,7 +816,7 @@ TRANSLATIONS = {
         </table>
         <h2>What To Fix First</h2>
         <div class="gate-list">
-            <div class="gate-row"><b>1. Fix point evidence first:</b> missing relevant networks, sparse data, limited scanner details, low confidence and unstable signal can poison every map. Focus the point and rescan before tuning AP interpretation.</div>
+            <div class="gate-row"><b>1. Fix point evidence first:</b> missing relevant networks, sparse data, limited scanner details, low confidence, unstable signal and sticky-client evidence can poison every map. Focus the point and rescan before tuning AP interpretation.</div>
             <div class="gate-row"><b>2. Fix AP identity and position next:</b> dominant AP findings and missing AP positions usually mean the AP model needs review before roaming or position diagnostics are trusted.</div>
             <div class="gate-row"><b>3. Review AP metadata and channels:</b> AP config warnings and channel changes affect AP Channels and Interference. Open AP Metadata when expected channels, observed channels or analysis-channel overrides need review.</div>
             <div class="gate-row"><b>4. Review AP Memory:</b> From Memory is not an error. It means aliases, roles, metadata, overrides or compatible positions were reused and should be confirmed or edited. A struck-through memory state means current manual AP data differs from saved memory.</div>

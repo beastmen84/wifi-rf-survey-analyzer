@@ -78,6 +78,12 @@ Current status:
   and ZIP release package have been regenerated on request from this beta line.
   Latest zipped Windows release artifact:
   `dist\WifiHeatmap-v0.9.4-beta.2-win64.zip`;
+- `v0.9.5-beta.1` connected-client/roaming diagnostics are in progress:
+  scanner code normalizes the currently associated BSSID from `lswifi` and
+  `netsh`, survey CSV and raw `.scan` rows persist optional `is_connected`
+  evidence, and Survey Quality now flags possible sticky-client points when the
+  laptop stayed connected to one AP group while another AP group on the same
+  SSID was at least 8 dB stronger;
 - `v0.9.4-beta.1` is closed as a source-tagged beta with the AP metadata
   foundation for
   local/zone-only coverage scope: AP group metadata now normalizes and
@@ -189,6 +195,7 @@ Implemented:
   - `vendor`;
   - `model`;
   - `ap_name`;
+  - `is_connected`;
 - opening a raw sidecar directly is rejected.
 
 Current format decision:
@@ -923,13 +930,11 @@ V2 closeout:
    real survey data, especially intentionally local office-router SSIDs, and
    tune Auto Area behavior only if the evidence shows false positives or false
    negatives.
-2. Add connected-client BSSID/roaming diagnostics as `v0.9.5-beta.1`. Step 1 is
-   started: both `lswifi` and `netsh wlan show interfaces` expose the connected
-   BSSID, and scanner code now normalizes that current-connection evidence so
-   `netsh` scans can mark the connected BSSID like `lswifi` already did. Next
-   Step 2 persists `is_connected` evidence in new survey CSV rows and raw
-   `.scan` sidecar rows while keeping the field optional for existing V2 files.
-   Next step is Quality Dashboard diagnostics.
+2. Finish connected-client BSSID/roaming diagnostics as `v0.9.5-beta.1`.
+   Steps 1-3 are complete: scanner normalization, optional persistence of
+   `is_connected`, and Quality Dashboard diagnostics. Remaining work is visual
+   verification on real and synthetic data plus Help wording review before
+   closing the beta.
 3. Review the new Help Center in the running UI and polish wording/formatting
    where real screenshots show a problem.
 4. Do a short EN/IT Help and UI smoke pass after the Help review.

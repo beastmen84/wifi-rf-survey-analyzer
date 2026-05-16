@@ -19,6 +19,10 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   each aggregate row and raw scan sample when the scanner backend exposes the
   currently associated BSSID. The new field is optional in older V2 survey
   files.
+- Survey Quality now uses connected-BSSID evidence to flag possible sticky
+  client/roaming points: when the survey laptop stayed connected to one AP
+  group while another AP group on the same SSID was at least 8 dB stronger, the
+  point appears in a new `Client Roaming` KPI and in `Points To Review`.
 
 ## v0.9.4-beta.2 - 2026-05-16
 

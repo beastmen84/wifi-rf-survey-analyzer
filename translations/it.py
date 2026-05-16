@@ -126,6 +126,7 @@ TRANSLATIONS = {
     "quality_dashboard_metric_scanner_details": "Dettagli Scanner Mancanti",
     "quality_dashboard_metric_low_confidence": "Bassa Confidenza Scansione",
     "quality_dashboard_metric_unstable": "Segnale Instabile",
+    "quality_dashboard_metric_connected_client": "Roaming Client",
     "quality_dashboard_metric_ap_diagnostic_points": "Anomalie Dominant AP",
     "quality_dashboard_metric_ap_memory_applied": "Verifica Memoria AP",
     "quality_dashboard_metric_ap_position_warnings": "Warning Posizione AP",
@@ -144,6 +145,8 @@ TRANSLATIONS = {
     "quality_dashboard_fix_low_confidence_detail": "{count} punti hanno bassa confidenza sul candidato dominante. Ripetili o verifica la stabilità dello scanner.",
     "quality_dashboard_fix_unstable_title": "Ripeti Punti Instabili",
     "quality_dashboard_fix_unstable_detail": "{count} punti hanno una variazione dei campioni sufficiente a influenzare le mappe. Ripetili se guidano decisioni.",
+    "quality_dashboard_fix_connected_client_title": "Verifica Roaming Client",
+    "quality_dashboard_fix_connected_client_detail": "{count} punti mostrano il portatile associato a un AP più debole mentre un altro gruppo AP dello stesso SSID era nettamente più forte. Verifica comportamento sticky client o ripeti il punto dopo una riconnessione.",
     "quality_dashboard_fix_ap_memory_title": "Verifica Memoria AP",
     "quality_dashboard_fix_ap_memory_detail": "{count} gruppi AP richiedono verifica della Memoria AP. Conferma i dati applicati da memoria oppure decidi se i dati manuali correnti devono sostituire quelli ricordati.",
     "quality_dashboard_fix_ap_memory_dialog_detail": "Usa Apri Gruppo AP per controllare i gruppi con stato memoria. Conferma quelli applicati da memoria oppure aggiorna/mantieni quelli con dati correnti diversi dalla Memoria AP.",
@@ -213,6 +216,7 @@ TRANSLATIONS = {
     "quality_dashboard_issue_low_confidence": "<b>{ssid}</b>: livello di confidenza {confidence}",
     "quality_dashboard_issue_unstable_signal": "<b>{ssid}</b>: segnale variabile di {range} dB",
     "quality_dashboard_issue_sparse_data": "Campioni scansione insufficienti in questo punto",
+    "quality_dashboard_connected_client_issue": "<b>{ssid}</b>: AP connesso <b>{connected}</b> ({connected_signal}); AP più forte <b>{stronger}</b> ({stronger_signal}); differenza {delta} dB",
     "quality_dashboard_more_issues": "+{count} altri",
     "quality_dashboard_metric_view_points": "Vedi Punti",
     "quality_dashboard_metric_extra_details": "Extra Details",
@@ -756,7 +760,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card">
                     <div class="step-title">Liste Punti Da KPI</div>
-                    <p>La dashboard principale non mostra subito la tabella punti completa. Clicca le KPI di evidenza punto, per esempio Punti Da Verificare, Reti Rilevanti Mancanti, Dati Scarsi, Bassa Confidenza Scansione o Segnale Instabile, per aprire liste compatte con numero punto, coordinate X/Y e problema filtrato per quella KPI. Dettagli Scanner Mancanti e le KPI strutturate del modello AP aprono invece Extra Details. Punti Totali e Scan OK sono solo riepiloghi.</p>
+                    <p>La dashboard principale non mostra subito la tabella punti completa. Clicca le KPI di evidenza punto, per esempio Punti Da Verificare, Reti Rilevanti Mancanti, Dati Scarsi, Bassa Confidenza Scansione, Segnale Instabile o Roaming Client, per aprire liste compatte con numero punto, coordinate X/Y e problema filtrato per quella KPI. Dettagli Scanner Mancanti e le KPI strutturate del modello AP aprono invece Extra Details. Punti Totali e Scan OK sono solo riepiloghi.</p>
                     <div class="step-gate"><b>Vai Al Punto:</b> da una lista punti chiude la dashboard, seleziona il punto nel tab Survey e apre il pannello punto per ispezione o rescan.</div>
                 </td>
                 <td class="workflow-gap"></td>
@@ -797,6 +801,7 @@ TRANSLATIONS = {
                     <p><b>Dettagli Scanner Mancanti:</b> dati da scanner fallback, ampiezza canale mancante o frequenza 6 GHz mancante possono indebolire conclusioni su Interferenza, overlap ampiezza 5 GHz e 6 GHz.</p>
                     <p><b>Bassa Confidenza Scansione:</b> il candidato dominante ha confidenza debole nelle scansioni ripetute.</p>
                     <p><b>Segnale Instabile:</b> i campioni grezzi ripetuti variano abbastanza da influenzare l'interpretazione delle mappe.</p>
+                    <p><b>Roaming Client:</b> l'evidenza BSSID connesso mostra che il portatile è rimasto associato a un gruppo AP mentre un altro gruppo AP dello stesso SSID era almeno 8 dB più forte. Consideralo evidenza di sticky client: ripeti il punto dopo una riconnessione se influenza la validazione.</p>
                 </td>
                 <td class="survey-gap"></td>
                 <td class="survey-card">
@@ -811,7 +816,7 @@ TRANSLATIONS = {
         </table>
         <h2>Cosa Sistemare Prima</h2>
         <div class="gate-list">
-            <div class="gate-row"><b>1. Sistema prima l'evidenza dei punti:</b> reti rilevanti mancanti, dati scarsi, dettagli scanner limitati, bassa confidenza e segnale instabile possono falsare ogni mappa. Vai al punto e riscansiona prima di ragionare sugli AP.</div>
+            <div class="gate-row"><b>1. Sistema prima l'evidenza dei punti:</b> reti rilevanti mancanti, dati scarsi, dettagli scanner limitati, bassa confidenza, segnale instabile ed evidenza sticky client possono falsare ogni mappa. Vai al punto e riscansiona prima di ragionare sugli AP.</div>
             <div class="gate-row"><b>2. Sistema poi identità e posizione AP:</b> finding AP Dominante e AP senza posizione di solito indicano che il modello AP va rivisto prima di fidarsi di roaming o diagnostica posizione.</div>
             <div class="gate-row"><b>3. Rivedi metadati AP e canali:</b> Warning Configurazione AP e cambi canale influenzano Canali AP e Interferenza. Apri Metadati AP quando canali attesi, osservati o override canale analisi vanno controllati.</div>
             <div class="gate-row"><b>4. Verifica Memoria AP:</b> Da Memoria non è un errore. Significa che alias, ruoli, metadata, override o posizioni compatibili sono stati riusati e vanno confermati o modificati. Uno stato memoria barrato indica dati AP manuali correnti diversi da quelli salvati in memoria.</div>

@@ -564,6 +564,65 @@ class QualityTests(unittest.TestCase):
             summary["recommendations"][0]["detail_items"][0]["detail"],
         )
 
+    def test_dashboard_flags_connected_client_stuck_on_weaker_same_ssid_ap(self):
+        connected_row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -67, 36, band="5")
+        connected_row["is_connected"] = "1"
+        stronger_row = build_row("p1", "MAIN", "80:11:22:33:44:10", -50, 36, band="5")
+        groups = [
+            build_manual_ap_group("weak-ap", ["70:4f:57:aa:bb:10"]),
+            build_manual_ap_group("strong-ap", ["80:11:22:33:44:10"]),
+        ]
+        app = FakeQualityApp([connected_row, stronger_row], groups, relevant_ssids={"MAIN"})
+        point_summaries = get_survey_point_summaries_from_rows([connected_row, stronger_row])
+        quality_by_point_id = {
+            "p1": {
+                "status": QUALITY_GOOD,
+                "breakdown": [{"ssid": "main", "status": QUALITY_GOOD, "message": "good"}],
+            }
+        }
+
+        rows = build_dashboard_rows(app, point_summaries, quality_by_point_id, {}, ap_groups=groups)
+        summary = build_summary(app, rows, [], groups)
+
+        self.assertTrue(rows[0]["needs_review"])
+        self.assertEqual(rows[0]["severity"], "warning")
+        self.assertEqual(summary["connected_client_points"], 1)
+        self.assertEqual(summary["scan_review_points"], 1)
+        self.assertIn("<b>MAIN</b>: Connected AP", rows[0]["connected_client_issue_text"])
+        self.assertIn("weak-ap", rows[0]["connected_client_issue_text"])
+        self.assertIn("strong-ap", rows[0]["connected_client_issue_text"])
+        self.assertEqual(summary["recommendations"][0]["title"], "Review Client Roaming")
+
+    def test_dashboard_connected_client_ignores_small_delta_and_other_ssids(self):
+        connected_row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -58, 36, band="5")
+        connected_row["is_connected"] = "1"
+        same_ssid_close_row = build_row("p1", "MAIN", "80:11:22:33:44:10", -52, 36, band="5")
+        other_ssid_stronger_row = build_row("p1", "GUEST", "90:11:22:33:44:10", -40, 36, band="5")
+        groups = [
+            build_manual_ap_group("connected-ap", ["70:4f:57:aa:bb:10"]),
+            build_manual_ap_group("close-ap", ["80:11:22:33:44:10"]),
+            build_manual_ap_group("guest-ap", ["90:11:22:33:44:10"]),
+        ]
+        app = FakeQualityApp(
+            [connected_row, same_ssid_close_row, other_ssid_stronger_row],
+            groups,
+            relevant_ssids={"MAIN", "GUEST"},
+        )
+        point_summaries = get_survey_point_summaries_from_rows(
+            [connected_row, same_ssid_close_row, other_ssid_stronger_row]
+        )
+        quality_by_point_id = {
+            "p1": {
+                "status": QUALITY_GOOD,
+                "breakdown": [{"ssid": "main", "status": QUALITY_GOOD, "message": "good"}],
+            }
+        }
+
+        rows = build_dashboard_rows(app, point_summaries, quality_by_point_id, {}, ap_groups=groups)
+
+        self.assertFalse(rows[0]["connected_client_issue"])
+        self.assertFalse(rows[0]["needs_review"])
+
     def test_detail_dialog_visible_card_limits_are_metric_specific(self):
         scanner_recommendation = {"metric_key": "quality_dashboard_metric_scanner_details"}
         dominant_recommendation = {"metric_key": "quality_dashboard_metric_ap_diagnostic_points"}
@@ -1221,15 +1280,22 @@ class QualityTests(unittest.TestCase):
                 "scanner_detail_issue": False,
                 "ap_position_warning_count": 1,
             },
+            {
+                "status": QUALITY_GOOD,
+                "scanner_detail_issue": False,
+                "ap_position_warning_count": 0,
+                "connected_client_issue": {"delta_db": 12},
+            },
         ]
 
         self.assertEqual(point_rows_for_metric(rows, "quality_dashboard_metric_points"), [])
         self.assertEqual(point_rows_for_metric(rows, "quality_dashboard_metric_scan_ok"), [])
-        self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_rescan")), 4)
+        self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_rescan")), 5)
         self.assertEqual(point_rows_for_metric(rows, "quality_dashboard_metric_scanner_details"), [])
         self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_low_confidence")), 1)
         self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_unstable")), 1)
         self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_missing")), 1)
+        self.assertEqual(len(point_rows_for_metric(rows, "quality_dashboard_metric_connected_client")), 1)
         self.assertEqual(point_rows_for_metric(rows, "quality_dashboard_metric_ap_diagnostic_points"), [])
         self.assertEqual(point_rows_for_metric(rows, "quality_dashboard_metric_ap_metadata_warnings"), [])
 
@@ -1238,6 +1304,7 @@ class QualityTests(unittest.TestCase):
         self.assertFalse(is_point_metric_filter("quality_dashboard_metric_scan_ok", 10))
         self.assertFalse(is_point_metric_filter("quality_dashboard_metric_scanner_details", 2))
         self.assertFalse(is_point_metric_filter("quality_dashboard_metric_ap_diagnostic_points", 2))
+        self.assertTrue(is_point_metric_filter("quality_dashboard_metric_connected_client", 2))
         self.assertTrue(is_point_metric_filter("quality_dashboard_metric_rescan", 2))
         self.assertFalse(is_point_metric_filter("quality_dashboard_metric_rescan", 0))
         self.assertFalse(is_point_metric_filter("quality_dashboard_metric_ap_metadata_warnings", 2))
@@ -1351,6 +1418,8 @@ class QualityTests(unittest.TestCase):
             },
             "ap_position_issue": "ap issue",
             "ap_position_warning_count": 1,
+            "connected_client_issue": {"delta_db": 12},
+            "connected_client_issue_text": "connected client issue",
             "issue": "quality issue; scanner issue; ap issue",
         }
 
@@ -1360,7 +1429,8 @@ class QualityTests(unittest.TestCase):
         )
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_rescan"),
-            "Check KPI: Low Scan Confidence; Unstable Signal; Scanner Details Missing; Dominant AP Findings",
+            "Check KPI: Low Scan Confidence; Unstable Signal; Scanner Details Missing; "
+            "Dominant AP Findings; Client Roaming",
         )
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_scanner_details"),
@@ -1378,6 +1448,10 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_ap_diagnostic_points"),
             "ap issue",
+        )
+        self.assertEqual(
+            format_metric_point_issue(app, row, "quality_dashboard_metric_connected_client"),
+            "connected client issue",
         )
         self.assertEqual(
             format_metric_point_issue(app, row, "quality_dashboard_metric_scan_ok"),

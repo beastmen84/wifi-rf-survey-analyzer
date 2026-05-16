@@ -107,10 +107,11 @@ It separates measurement-point problems from AP model/setup diagnostics, so
 users can fix scan evidence before interpreting live maps or PDF reports.
 
 Current checks cover scan confidence, missing relevant networks, sparse or
-unstable data, limited scanner details, AP metadata, AP Memory review states,
-missing AP positions, dominant-AP position anomalies, and AP channel changes.
-Local-area AP groups can be scoped per measurement point, so intentionally
-zone-only SSIDs are not treated as whole-building requirements.
+unstable data, limited scanner details, connected-client roaming evidence, AP
+metadata, AP Memory review states, missing AP positions, dominant-AP position
+anomalies, and AP channel changes. Local-area AP groups can be scoped per
+measurement point, so intentionally zone-only SSIDs are not treated as
+whole-building requirements.
 
 The dashboard uses KPI cards, filtered point lists, and detail dialogs to keep
 large surveys readable. Full behavior and review guidance are documented in the
