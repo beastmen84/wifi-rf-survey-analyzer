@@ -79,6 +79,8 @@ inference.
 Survey Quality also flags points where fallback scanner data or missing
 channel-width/frequency details may weaken channel-sensitive conclusions such
 as Interference, 5 GHz width overlap, or future 6 GHz validation.
+When available, connected-BSSID evidence is preserved with survey data for
+roaming and sticky-client diagnostics.
 
 ## AP Modeling
 

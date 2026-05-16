@@ -96,6 +96,7 @@ class SurveySession:
                 "channel_width_mhz": net.get("channel_width_mhz", ""),
                 "band": get_row_band(net),
                 "radio": net["radio"],
+                "is_connected": bool_flag(net.get("is_connected")),
                 "is_relevant": "1" if str(net.get("ssid", "")).lower() in relevant_ssids else "0"
             }
             row.update(copy_scan_detail_fields(net))
@@ -125,6 +126,7 @@ class SurveySession:
                 "channel_width_mhz": sample.get("channel_width_mhz", ""),
                 "band": get_row_band(sample),
                 "radio": sample.get("radio", ""),
+                "is_connected": bool_flag(sample.get("is_connected")),
                 "backend": sample.get("backend", "")
             }
             row.update(copy_scan_detail_fields(sample))
@@ -348,6 +350,13 @@ def copy_scan_detail_fields(network):
         field: network.get(field, "")
         for field in SCAN_DETAIL_FIELDNAMES
     }
+
+
+def bool_flag(value):
+    if isinstance(value, str):
+        return "1" if value.strip().lower() in {"1", "true", "yes", "y", "connected"} else "0"
+
+    return "1" if bool(value) else "0"
 
 
 def build_new_point_id():

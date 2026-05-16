@@ -15,6 +15,10 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   scanner code now normalizes current connection details from both `lswifi` and
   `netsh`, and `netsh` scans can mark the currently connected BSSID just like
   `lswifi` scans already did.
+- Survey CSV and raw `.scan` sidecars now persist `is_connected` evidence for
+  each aggregate row and raw scan sample when the scanner backend exposes the
+  currently associated BSSID. The new field is optional in older V2 survey
+  files.
 
 ## v0.9.4-beta.2 - 2026-05-16
 

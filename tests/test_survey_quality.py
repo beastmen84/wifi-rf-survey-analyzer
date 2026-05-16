@@ -1,4 +1,7 @@
+import csv
+
 from tests._common import *
+from app_core.constants import RAW_SCAN_FIELDNAMES
 
 class QualityTests(unittest.TestCase):
     def test_quality_marks_missing_relevant_network(self):
@@ -1554,6 +1557,7 @@ class SurveyStoreTests(unittest.TestCase):
                         "channel": "6",
                         "channel_width_mhz": "20",
                         "radio": "802.11ax",
+                        "is_connected": True,
                         "frequency_mhz": "2437",
                         "security": "WPA2-Personal / CCMP",
                         "auth": "WPA2-Personal",
@@ -1578,6 +1582,7 @@ class SurveyStoreTests(unittest.TestCase):
                                 "channel": "6",
                                 "channel_width_mhz": "20",
                                 "radio": "802.11ax",
+                                "is_connected": True,
                                 "frequency_mhz": "2437",
                                 "security": "WPA2-Personal / CCMP",
                                 "auth": "WPA2-Personal",
@@ -1603,6 +1608,7 @@ class SurveyStoreTests(unittest.TestCase):
                                 "channel": "6",
                                 "channel_width_mhz": "20",
                                 "radio": "802.11ax",
+                                "is_connected": True,
                                 "frequency_mhz": "2437",
                                 "security": "WPA2-Personal / CCMP",
                                 "auth": "WPA2-Personal",
@@ -1658,6 +1664,7 @@ class SurveyStoreTests(unittest.TestCase):
             self.assertEqual(len(loaded.rows), 1)
             self.assertEqual(loaded.rows[0]["is_relevant"], "1")
             self.assertEqual(loaded.rows[0]["signal_median_dbm"], "-51")
+            self.assertEqual(loaded.rows[0]["is_connected"], "1")
             self.assertEqual(loaded.rows[0]["frequency_mhz"], "2437")
             self.assertEqual(loaded.rows[0]["pmf"], "Disabled")
             self.assertEqual(loaded.rows[0]["channel_utilization"], "18%")
@@ -1668,6 +1675,7 @@ class SurveyStoreTests(unittest.TestCase):
             self.assertEqual(len(loaded.raw_scan_rows), 2)
             self.assertEqual(loaded.raw_scan_rows[0]["auth"], "WPA2-Personal")
             self.assertEqual(loaded.raw_scan_rows[0]["encryption"], "CCMP")
+            self.assertEqual({row["is_connected"] for row in loaded.raw_scan_rows}, {"1"})
             self.assertEqual(
                 {row["backend"] for row in loaded.raw_scan_rows},
                 {"netsh", "lswifi"},
@@ -1804,6 +1812,63 @@ class SurveyStoreTests(unittest.TestCase):
                 SurveySession(survey_file)
 
             self.assertEqual(str(error.exception), "invalid_raw_scan_format")
+
+    def test_existing_survey_without_connected_fields_is_allowed(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            survey_file = os.path.join(temp_dir, "office.csv")
+            raw_scan_file = os.path.join(temp_dir, "office_raw_data.scan")
+            survey_fields = [field for field in SURVEY_FIELDNAMES if field != "is_connected"]
+            raw_fields = [field for field in RAW_SCAN_FIELDNAMES if field != "is_connected"]
+            survey_row = {field: "" for field in survey_fields}
+            survey_row.update({
+                "point_id": "p1",
+                "timestamp": "2026-05-16T10:00:00",
+                "x": "10",
+                "y": "20",
+                "ssid": "MAIN",
+                "bssid": "70:4f:57:aa:bb:10",
+                "signal_percent": "80",
+                "signal_dbm": "-50",
+                "channel": "6",
+                "channel_width_mhz": "20",
+                "radio": "802.11ax",
+                "is_relevant": "1",
+            })
+            raw_row = {field: "" for field in raw_fields}
+            raw_row.update({
+                "point_id": "p1",
+                "scan_attempt": "1",
+                "timestamp": "2026-05-16T10:00:00",
+                "x": "10",
+                "y": "20",
+                "ssid": "MAIN",
+                "bssid": "70:4f:57:aa:bb:10",
+                "signal_percent": "80",
+                "signal_dbm": "-50",
+                "channel": "6",
+                "channel_width_mhz": "20",
+                "radio": "802.11ax",
+                "backend": "lswifi",
+            })
+
+            with open(survey_file, "w", newline="", encoding="utf-8") as f:
+                f.write("# app=wifi_heatmap\n")
+                f.write("# schema_version=2\n")
+                f.write("# raw_data_file=office_raw_data.scan\n")
+                writer = csv.DictWriter(f, fieldnames=survey_fields)
+                writer.writeheader()
+                writer.writerow(survey_row)
+            with open(raw_scan_file, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=raw_fields)
+                writer.writeheader()
+                writer.writerow(raw_row)
+
+            loaded = SurveySession(survey_file)
+
+            self.assertEqual(len(loaded.rows), 1)
+            self.assertNotIn("is_connected", loaded.rows[0])
+            self.assertEqual(len(loaded.raw_scan_rows), 1)
+            self.assertNotIn("is_connected", loaded.raw_scan_rows[0])
 
     def test_invalid_survey_header_is_rejected(self):
         with tempfile.TemporaryDirectory() as temp_dir:

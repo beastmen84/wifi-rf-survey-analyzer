@@ -927,7 +927,9 @@ V2 closeout:
    started: both `lswifi` and `netsh wlan show interfaces` expose the connected
    BSSID, and scanner code now normalizes that current-connection evidence so
    `netsh` scans can mark the connected BSSID like `lswifi` already did. Next
-   steps are persistence in survey/raw data and Quality Dashboard diagnostics.
+   Step 2 persists `is_connected` evidence in new survey CSV rows and raw
+   `.scan` sidecar rows while keeping the field optional for existing V2 files.
+   Next step is Quality Dashboard diagnostics.
 3. Review the new Help Center in the running UI and polish wording/formatting
    where real screenshots show a problem.
 4. Do a short EN/IT Help and UI smoke pass after the Help review.
