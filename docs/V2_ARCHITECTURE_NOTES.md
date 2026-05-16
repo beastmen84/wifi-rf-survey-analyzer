@@ -846,7 +846,8 @@ Implemented:
 - `APs Without Position` now follows the same scalable interaction pattern: the
   dashboard recommendation reports the aggregate count, while Extra Details
   explains the missing physical position and exposes the row-specific Open AP
-  Group action.
+  Group action. Follow-up simplification removed the unused short AP label
+  summary and repeated label field from each missing-position card.
 
 Remaining closeout:
 

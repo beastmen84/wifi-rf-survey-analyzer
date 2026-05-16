@@ -178,8 +178,12 @@ class QualityTests(unittest.TestCase):
             "<b>AP Group:</b>",
             missing_position_recommendation["detail_items"][0]["detail"],
         )
+        self.assertNotIn(
+            "<b>Label:</b>",
+            missing_position_recommendation["detail_items"][0]["detail"],
+        )
         self.assertIn(
-            "<b>Missing Data:</b>",
+            "<b>Required Action:</b>",
             missing_position_recommendation["detail_items"][0]["detail"],
         )
 

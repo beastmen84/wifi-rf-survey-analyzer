@@ -506,8 +506,7 @@ class FakeQualityApp:
         if key == "quality_dashboard_missing_position_item_detail":
             return (
                 f"<b>AP Group:</b> {kwargs.get('group')}<br>"
-                f"<b>Label:</b> {kwargs.get('alias')}<br>"
-                "<b>Missing Data:</b> physical AP position on the floor plan"
+                "<b>Required Action:</b> place this AP on the floor plan"
             )
         if key == "quality_dashboard_channel_change_status_clean":
             return "clean"

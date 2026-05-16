@@ -25,6 +25,8 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 - Survey Quality `APs Without Position` now follows the same interaction model:
   the dashboard recommendation no longer duplicates AP Group buttons, and Extra
   Details carries the row-specific Open AP Group action plus placement guidance.
+  Follow-up simplification removed repeated AP labels and unused label-summary
+  data from the missing-position cards.
 - Survey Quality `Scanner Details Missing` Extra Details now use the same
   finding/detail structure as Dominant AP diagnostics, with separate scanner,
   checked scan-row count, missing channel-width/frequency rows and impact text.

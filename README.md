@@ -118,7 +118,8 @@ placement. AP Memory Review opens its AP-specific action from Extra Details
 rather than duplicating AP Group buttons in the dashboard card, and it includes
 both memory-applied groups and manual groups that differ from saved memory. APs
 Without Position follows the same pattern: the dashboard card shows the
-aggregate finding and each detail row opens the specific AP Group to place.
+aggregate finding and each detail row opens the specific AP Group to place,
+without repeating AP labels already shown by the card title.
 Scanner detail diagnostics report raw scan-row counts for the selected
 measurement point, so missing channel-width or 6 GHz frequency evidence is not
 confused with the number of survey points.

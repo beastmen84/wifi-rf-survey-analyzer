@@ -1449,19 +1449,6 @@ def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None, ap_chann
         if app.relevant_ssids
         else app.tr("relevant_networks_none")
     )
-    missing_position_labels = ", ".join(
-        app.get_ap_group_display_name(group.get("group_id", ""))
-        for group in missing_position_groups[:4]
-    )
-    if len(missing_position_groups) > 4:
-        missing_position_labels = app.tr(
-            "quality_dashboard_missing_positions_more",
-            names=missing_position_labels,
-            count=len(missing_position_groups) - 4,
-        )
-    if not missing_position_labels:
-        missing_position_labels = app.tr("quality_dashboard_missing_positions_none")
-
     scanner_detail_points = sum(1 for row in rows if row.get("scanner_detail_issue"))
     scan_review_points = sum(
         1
@@ -1485,7 +1472,6 @@ def build_summary(app, rows, ap_metadata_warnings=None, ap_groups=None, ap_chann
         "scanner_detail_items": build_scanner_detail_items(app, rows),
         "ap_position_warnings": sum(1 for row in rows if row.get("ap_position_warning_count", 0) > 0),
         "ap_missing_positions": len(missing_position_groups),
-        "missing_position_labels": missing_position_labels,
         "missing_position_items": build_ap_group_items(app, missing_position_groups),
         "relevant_networks": relevant_networks,
         "ap_positions": f"{positioned_count}/{len(positioned_ap_groups)}" if positioned_ap_groups else "0/0",
@@ -1668,7 +1654,6 @@ def build_quality_recommendations(app, summary):
         detail_count_key="quality_dashboard_detail_ap_groups",
         dialog_detail_key="quality_dashboard_fix_ap_missing_dialog_detail",
         metric_key="quality_dashboard_metric_ap_missing_positions",
-        names=summary["missing_position_labels"],
     )
 
     if not recommendations:
@@ -2017,7 +2002,6 @@ def build_missing_position_detail_items(app, items):
             "detail": app.tr(
                 "quality_dashboard_missing_position_item_detail",
                 group=item.get("group_id", "") or "-",
-                alias=item.get("label", "") or "-",
             ),
             "actions": [
                 {
