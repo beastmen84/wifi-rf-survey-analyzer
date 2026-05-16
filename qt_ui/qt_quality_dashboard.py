@@ -2,7 +2,7 @@
 
 from html import escape
 
-from PySide6.QtCore import QRectF, Qt, QTimer
+from PySide6.QtCore import QRect, QRectF, Qt, QTimer
 from PySide6.QtGui import QColor, QPainter, QPen, QTextDocument
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -174,6 +174,19 @@ def detail_row_heights_for_width(rows, width):
 def apply_detail_row_heights(rows, heights):
     for row, height in zip(rows, heights):
         row.setFixedHeight(max(1, int(height)))
+
+
+def label_text_height_for_width(label, width):
+    width = max(1, int(width))
+    text = label.text()
+    if not text:
+        return max(1, label.sizeHint().height())
+    return max(
+        1,
+        label.fontMetrics()
+        .boundingRect(QRect(0, 0, width, 100000), Qt.TextFlag.TextWordWrap, text)
+        .height(),
+    )
 
 
 def point_rows_for_metric(rows, metric_key):
@@ -1171,6 +1184,8 @@ class RecommendationDetailsDialog(QDialog):
         visible_items = recommendation_detail_visible_item_count(recommendation, items)
         self.detail_scroll = None
         self.detail_rows = []
+        self.header_title_label = None
+        self.header_detail_label = None
         self.visible_detail_items = visible_items
         self.has_detail_overflow = len(items) > visible_items
         self.resize(widget_px(self, 980), widget_px(self, 420))
@@ -1183,6 +1198,7 @@ class RecommendationDetailsDialog(QDialog):
         title = QLabel(recommendation.get("title", ""))
         title.setObjectName("sectionTitle")
         title.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.header_title_label = title
         layout.addWidget(title)
 
         detail_text = recommendation.get("dialog_detail", recommendation.get("detail", ""))
@@ -1191,6 +1207,7 @@ class RecommendationDetailsDialog(QDialog):
             detail.setObjectName("mutedText")
             detail.setWordWrap(True)
             detail.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            self.header_detail_label = detail
             layout.addWidget(detail)
 
         if detail_actions:
@@ -1241,6 +1258,23 @@ class RecommendationDetailsDialog(QDialog):
         if self.detail_rows:
             QTimer.singleShot(0, self.apply_detail_scroll_limit)
 
+    def fit_header_labels(self):
+        if self.header_title_label is not None:
+            self.header_title_label.setFixedHeight(max(1, self.header_title_label.sizeHint().height()))
+
+        if self.header_detail_label is None:
+            return
+
+        label = self.header_detail_label
+        label.setMinimumHeight(0)
+        label.setMaximumHeight(16777215)
+        width = label.width()
+        if width <= 0:
+            margins = self.layout().contentsMargins()
+            width = max(1, self.width() - margins.left() - margins.right())
+        height = label_text_height_for_width(label, width)
+        label.setFixedHeight(max(1, height))
+
     def apply_detail_scroll_limit(self):
         if not self.detail_scroll or not self.detail_rows:
             return
@@ -1251,6 +1285,8 @@ class RecommendationDetailsDialog(QDialog):
             if self.has_detail_overflow
             else Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )
+        self.layout().activate()
+        self.fit_header_labels()
         self.layout().activate()
         viewport_width = self.detail_scroll.viewport().width()
         if viewport_width <= 0:

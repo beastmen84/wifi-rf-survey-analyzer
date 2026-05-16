@@ -142,6 +142,7 @@ from qt_ui.qt_quality_dashboard import (
     PointRowsDialog,
     RecommendationDetailsDialog,
     detail_row_heights_for_width,
+    label_text_height_for_width,
     recommendation_detail_max_height,
     recommendation_detail_scroll_height,
     recommendation_detail_visible_item_count,

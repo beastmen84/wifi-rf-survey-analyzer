@@ -552,6 +552,36 @@ class QualityTests(unittest.TestCase):
                         dialog.close()
                         owner.deleteLater()
 
+    def test_recommendation_details_dialog_header_fits_actual_width(self):
+        QApplication.instance() or QApplication([])
+        owner = QWidget()
+        owner.app = FakeQualityApp([])
+        recommendation = {
+            "title": "Review AP Memory",
+            "dialog_detail": (
+                "Use Open AP Group to inspect AP groups with memory state. "
+                "Confirm memory-applied groups, or update/keep groups whose "
+                "current data differs from AP Memory."
+            ),
+            "metric_key": "quality_dashboard_metric_ap_memory_applied",
+            "detail_items": [self.build_fake_detail_item("memory", 0)],
+        }
+        dialog = RecommendationDetailsDialog(owner, recommendation)
+
+        try:
+            dialog.show()
+            for _ in range(3):
+                QApplication.processEvents()
+
+            detail = dialog.header_detail_label
+            self.assertIsNotNone(detail)
+            fitted_height = label_text_height_for_width(detail, detail.width())
+            self.assertLess(fitted_height, detail.sizeHint().height())
+            self.assertEqual(detail.height(), fitted_height)
+        finally:
+            dialog.close()
+            owner.deleteLater()
+
     @staticmethod
     def build_fake_detail_item(kind, index):
         label = f"{kind.title()} {index + 1}"

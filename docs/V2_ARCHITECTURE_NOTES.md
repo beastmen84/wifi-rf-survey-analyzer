@@ -71,7 +71,9 @@ Current status:
   position, AP config warnings, channel changes and Dominant AP findings, with
   metric-specific whole-card limits: Scanner Details 4, Dominant AP Findings 5,
   AP Config Warnings 5, Channel Changes 4, AP Memory Review 5 and APs Without
-  Position 6;
+  Position 6; Extra Details header descriptions are also measured after layout
+  at their real dialog width so longer recommendation text does not create
+  inconsistent blank space above the cards;
 - the latest Windows release artifact remains the `v0.9.2-beta.1` PyInstaller
   `onedir` ZIP until an intentional package rebuild is requested;
 - Help content and structure have an expanded V2 Help Center implementation;
