@@ -8,6 +8,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Survey Quality Help now explains the quality dashboard status, Survey Scope,
+  KPI point lists, Extra Details, AP-model findings and review order more
+  explicitly in both English and Italian.
 - Survey Quality AP-model Extra Details now use structured multiline detail
   text for AP Memory matches, AP metadata warnings and channel-change items,
   making dense warning datasets easier to inspect visually.

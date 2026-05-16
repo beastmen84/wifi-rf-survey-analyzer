@@ -715,6 +715,7 @@ TRANSLATIONS = {
     "help_quality_title": "Survey Quality Dashboard",
     "help_quality_subtitle": "The dashboard separates scan evidence, AP model diagnostics, and the points worth reviewing before maps are trusted.",
     "help_quality_body": """
+        <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Main Rule</span><br>Read Survey Quality before interpreting live maps or exported PDFs. The dashboard tells you whether the survey evidence needs a rescan, whether the AP model needs review, or whether the maps can be generated with reasonable confidence.</td></tr></table>
         <h2>Read The Dashboard In Two Layers</h2>
         <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
             <tr>
@@ -733,12 +734,20 @@ TRANSLATIONS = {
                 </td>
             </tr>
         </table>
+        <h2>Status And Scope</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Top Status</b><br>Coherent means the main checks are clean. Rescan Needed means one or more measurement points have evidence problems. AP Setup Needs Attention means the points may be usable, but metadata, memory, channel changes or AP positions need review.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Survey Scope</b><br>The bottom-right scope box reminds you which SSIDs are relevant, how many relevant AP groups have positions, and which AP groups are excluded as test APs.</td>
+            </tr>
+        </table>
         <h2>Dashboard Controls</h2>
         <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
             <tr>
                 <td class="workflow-card">
                     <div class="step-title">KPI Point Lists</div>
-                    <p>The main dashboard keeps the point table out of the first view. Click point-evidence KPI cards such as Points To Review, Missing Relevant Networks, Sparse Data, Low Scan Confidence or Unstable Signal to open compact point lists. Scanner Details Missing and structured AP-model KPI cards open Extra Details instead. Total Points and Scan OK are summary cards only. The Issue column follows the KPI context; long diagnostics stay on one row and expose the full text through the tooltip.</p>
+                    <p>The main dashboard keeps the full point table out of the first view. Click point-evidence KPI cards such as Points To Review, Missing Relevant Networks, Sparse Data, Low Scan Confidence or Unstable Signal to open compact point lists with point number, X/Y coordinates and a KPI-specific issue. Scanner Details Missing and structured AP-model KPI cards open Extra Details instead. Total Points and Scan OK are summary cards only.</p>
                     <div class="step-gate"><b>Focus Point:</b> from a point list, closes the dashboard, selects the point on the Survey tab and opens the point panel for inspection or rescan.</div>
                 </td>
                 <td class="workflow-gap"></td>
@@ -776,17 +785,18 @@ TRANSLATIONS = {
                     <div class="survey-card-title">Scan Quality</div>
                     <p><b>Missing Relevant Networks:</b> intended SSIDs not seen at a point.</p>
                     <p><b>Sparse Data:</b> too little repeated evidence.</p>
-                    <p><b>Scanner Details Missing:</b> fallback scanner data or missing channel width/frequency can weaken Interference and 6 GHz conclusions.</p>
-                    <p><b>Low Confidence / Unstable Signal:</b> weak or inconsistent repeated scans.</p>
+                    <p><b>Scanner Details Missing:</b> fallback scanner data, missing channel width or missing 6 GHz frequency can weaken Interference, 5 GHz width-overlap and 6 GHz conclusions.</p>
+                    <p><b>Low Scan Confidence:</b> the dominant candidate has weak repeated-scan confidence.</p>
+                    <p><b>Unstable Signal:</b> repeated raw samples vary enough to affect map interpretation.</p>
                 </td>
                 <td class="survey-gap"></td>
                 <td class="survey-card">
                     <div class="survey-card-title">AP Model</div>
-                    <p><b>Dominant AP Findings:</b> roaming or AP-position observations worth checking.</p>
+                    <p><b>Dominant AP Findings:</b> dominant AP, closest physical AP and distance evidence disagree enough to inspect the point/map.</p>
                     <p><b>APs Without Position:</b> relevant AP groups missing map coordinates.</p>
-                    <p><b>AP Config Warnings:</b> metadata/deployment mismatch.</p>
-                    <p><b>AP Memory Review:</b> AP data reused from memory or current manual AP data that differs from saved memory.</p>
-                    <p><b>Channel Changes:</b> clean or ambiguous channel changes that affect AP Channels and Interference assumptions.</p>
+                    <p><b>AP Config Warnings:</b> observed channels or bands do not match expected AP metadata.</p>
+                    <p><b>AP Memory Review:</b> AP data was reused from memory, or current manual AP data differs from saved memory.</p>
+                    <p><b>Channel Changes:</b> clean or ambiguous channel changes affect AP Channels and Interference assumptions.</p>
                 </td>
             </tr>
         </table>
@@ -798,7 +808,7 @@ TRANSLATIONS = {
             <div class="gate-row"><b>4. Review AP Memory:</b> From Memory is not an error. It means aliases, roles, metadata, overrides or compatible positions were reused and should be confirmed or edited. A struck-through memory state means current manual AP data differs from saved memory.</div>
         </div>
         <h2>Detail Dialogs</h2>
-        <p>Use point KPI cards for filtered measurement-point lists. Use <b>Extra Details</b> when a recommendation card shows AP groups, channel changes or long diagnostic context. Detail rows are designed for large surveys: each affected point, AP group or channel change gets its own card, and action buttons open the right map or editor without forcing every problem onto the main dashboard.</p>
+        <p>Use point KPI cards for filtered measurement-point lists. Use <b>Extra Details</b> when a recommendation card shows AP groups, channel changes, scanner detail limitations or long diagnostic context. Detail rows are designed for large surveys: each affected point, AP group or channel change gets its own card, and action buttons open the right map or editor without forcing every problem onto the main dashboard.</p>
         <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Scalable By Design</span><br>The main dashboard gives counts and priorities. Detail dialogs hold the long lists so many AP groups or many bad points remain readable.</td></tr></table>
         <h2>AP Memory Review</h2>
         <p>When a repeated survey sees known BSSIDs, the program can reuse saved AP aliases, roles, metadata, analysis-channel overrides and compatible floor-plan positions. Survey Quality also reports AP groups whose current manual data differs from saved memory, so the user can decide whether to update from memory or keep the current model.</p>

@@ -828,7 +828,9 @@ Implemented:
   guide: point quality and AP model are shown as two decision layers, KPI
   meanings are grouped like the real dashboard, "what to fix first" is expressed
   as priority gates, and detail dialogs are explained as the scalable path for
-  large surveys.
+  large surveys. The latest wording pass also documents dashboard status,
+  Survey Scope, point-list overlays versus Extra Details, AP-model findings and
+  the recommended review order.
 - The Glossary Help page remains as a final terminology reference but is now
   grouped into Wi-Fi evidence, AP model, quality/warnings, memory/persistence
   and live-map/report terms instead of a single long table.
