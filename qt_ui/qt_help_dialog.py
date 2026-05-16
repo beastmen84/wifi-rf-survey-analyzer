@@ -101,7 +101,9 @@ def open_qt_help_dialog(parent, tr):
             item = navigation.topLevelItem(index)
             item.setExpanded(item is selected_top)
 
-    def select_section(item, _previous=None):
+    pressed_navigation_item = {"item": None}
+
+    def select_section(item):
         if item is None:
             return
         data = item.data(0, Qt.ItemDataRole.UserRole)
@@ -115,9 +117,25 @@ def open_qt_help_dialog(parent, tr):
         else:
             browser.verticalScrollBar().setValue(0)
 
-    navigation.currentItemChanged.connect(select_section)
+    def remember_pressed_item(item, _column):
+        pressed_navigation_item["item"] = item
+
+    def handle_navigation_click(item, _column):
+        selected_item = pressed_navigation_item.get("item") or item
+        pressed_navigation_item["item"] = None
+        navigation.setCurrentItem(selected_item)
+        select_section(selected_item)
+
+    def handle_navigation_activation(item, _column):
+        navigation.setCurrentItem(item)
+        select_section(item)
+
+    navigation.itemPressed.connect(remember_pressed_item)
+    navigation.itemClicked.connect(handle_navigation_click)
+    navigation.itemActivated.connect(handle_navigation_activation)
     apply_help_dialog_style(dialog, parent, palette)
     navigation.setCurrentItem(navigation.topLevelItem(0))
+    select_section(navigation.topLevelItem(0))
 
     dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
     dialog.exec()
