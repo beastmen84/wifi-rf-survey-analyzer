@@ -4,7 +4,7 @@ This is the public application version, not the V2 survey CSV schema version.
 """
 
 APP_DISPLAY_NAME = "Wi-Fi RF Survey Analyzer"
-APP_VERSION = "0.9.4-beta.2"
+APP_VERSION = "0.9.5-beta.1"
 APP_RELEASE_TAG = f"v{APP_VERSION}"
 APP_VERSION_LABEL = APP_RELEASE_TAG
 APP_RELEASE_CHANNEL = "beta"

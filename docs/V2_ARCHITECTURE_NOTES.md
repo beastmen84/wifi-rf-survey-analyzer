@@ -23,7 +23,7 @@ interpolated colors.
 Current status:
 
 - public release versioning is separate from the internal V2 generation:
-  `v0.9.4-beta.2` is closed as a source-tagged beta, while `v1.0.0` should
+  `v0.9.5-beta.1` is closed as a source-tagged beta, while `v1.0.0` should
   wait for the remaining real-survey validation fixes;
 - future beta release candidates should use the current minor beta line for
   validation/polish or a new minor beta for feature-level additions; do not
@@ -78,7 +78,8 @@ Current status:
   and ZIP release package have been regenerated on request from this beta line.
   Latest zipped Windows release artifact:
   `dist\WifiHeatmap-v0.9.4-beta.2-win64.zip`;
-- `v0.9.5-beta.1` connected-client/roaming diagnostics are in progress:
+- `v0.9.5-beta.1` is closed/tagged as a source beta for connected-client
+  roaming diagnostics; no Windows exe/ZIP was regenerated for this beta:
   scanner code normalizes the currently associated BSSID from `lswifi` and
   `netsh`, survey CSV and raw `.scan` rows persist optional `is_connected`
   evidence, and Survey Quality now flags possible sticky-client points when the
@@ -925,19 +926,14 @@ Remaining closeout:
 
 V2 closeout:
 
-1. Review `v0.9.4-beta.2` Help navigation and Local Area scope in the running
-   UI against
-   real survey data, especially intentionally local office-router SSIDs, and
-   tune Auto Area behavior only if the evidence shows false positives or false
-   negatives.
-2. Finish connected-client BSSID/roaming diagnostics as `v0.9.5-beta.1`.
-   Steps 1-3 are complete: scanner normalization, optional persistence of
-   `is_connected`, and Quality Dashboard diagnostics. Remaining work is visual
-   verification on real and synthetic data plus Help wording review before
-   closing the beta.
-3. Review the new Help Center in the running UI and polish wording/formatting
+1. Review `v0.9.5-beta.1` Help navigation, Local Area scope and Client Roaming
+   diagnostics in the running UI against real survey data, especially
+   intentionally local office-router SSIDs, and
+   tune Auto Area or connected-client thresholds only if the evidence shows
+   false positives or false negatives.
+2. Review the new Help Center in the running UI and polish wording/formatting
    where real screenshots show a problem.
-4. Do a short EN/IT Help and UI smoke pass after the Help review.
+3. Do a short EN/IT Help and UI smoke pass after the Help review.
 
 Monitoring:
 
