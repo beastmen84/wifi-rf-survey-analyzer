@@ -664,6 +664,27 @@ class APGroupManagerDialogTests(unittest.TestCase):
             manager.deleteLater()
             app.deleteLater()
 
+    def test_metadata_coverage_controls_have_stable_widths(self):
+        app, manager = self.make_ap_manager_dialog()
+        try:
+            group = manager.get_group_by_id("warning-ap")
+            group.pop("metadata", None)
+            dialog = MetadataDialog(manager, group)
+            try:
+                controls = (
+                    dialog.coverage_scope_combo,
+                    dialog.coverage_auto_check,
+                    dialog.coverage_radius_spin,
+                )
+                for control in controls:
+                    with self.subTest(control=type(control).__name__):
+                        self.assertGreaterEqual(control.minimumWidth(), control.sizeHint().width())
+            finally:
+                dialog.deleteLater()
+        finally:
+            manager.deleteLater()
+            app.deleteLater()
+
     def test_ap_manager_styles_modern_scrollbars(self):
         app, dialog = self.make_ap_manager_dialog()
         try:
