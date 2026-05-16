@@ -74,10 +74,10 @@ Current status:
   Position 6; Extra Details header descriptions are also measured after layout
   at their real dialog width so longer recommendation text does not create
   inconsistent blank space above the cards;
-- `v0.9.3-beta.2` is closed/tagged; Windows PyInstaller `onedir` executable
+- `v0.9.4-beta.2` is closed/tagged; Windows PyInstaller `onedir` executable
   and ZIP release package have been regenerated on request from this beta line.
   Latest zipped Windows release artifact:
-  `dist\WifiHeatmap-v0.9.3-beta.2-win64.zip`;
+  `dist\WifiHeatmap-v0.9.4-beta.2-win64.zip`;
 - `v0.9.4-beta.1` is closed as a source-tagged beta with the AP metadata
   foundation for
   local/zone-only coverage scope: AP group metadata now normalizes and

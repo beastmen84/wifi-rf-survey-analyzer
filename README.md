@@ -14,7 +14,7 @@ survey quality, and export explainable RF maps.
 - Active UI: PySide6
 - Main entry point: `main.py`
 - Current survey format: CSV plus linked `.scan` raw-data sidecar
-- Latest packaged Windows ZIP: `WifiHeatmap-v0.9.3-beta.2-win64.zip`
+- Latest packaged Windows ZIP: `WifiHeatmap-v0.9.4-beta.2-win64.zip`
 
 The current beta is intended for real-world validation of the Qt workflow. A
 stable `v1.0.0` is planned after Help Center review and broader field testing.
@@ -101,44 +101,18 @@ for review until confirmed or edited.
 ## Quality Review
 
 The Survey Quality Dashboard is designed to be reviewed before trusting maps.
-It separates measurement-point problems from AP model/setup diagnostics.
+It separates measurement-point problems from AP model/setup diagnostics, so
+users can fix scan evidence before interpreting live maps or PDF reports.
 
-Current checks include missing relevant networks, low scan confidence, unstable
-signals, sparse point data, limited scanner details, AP metadata warnings, AP
-Memory review states, AP group conflicts, missing AP positions, dominant-AP
-position anomalies, and AP channel changes that affect channel-sensitive maps.
-Missing relevant network checks are scoped by expected SSID: global relevant
-SSIDs are expected at every point, while Local Area SSIDs are expected only
-inside their manual or inferred scope.
-AP groups marked as Local Area are scoped per measurement point so intentionally
-local SSIDs are not treated as whole-building quality requirements, and the
-same scope is used by Dominant AP position diagnostics. Auto Area works best
-when AP position and scale are available: the app estimates a local radius from
-usable readings and falls back to signal evidence at each point when it cannot
-derive that radius.
-Actionable point-related KPI cards open compact point lists for point-evidence
-issues. Structured diagnostics such as scanner details, dominant-AP position,
-AP Memory matches, AP metadata warnings, missing AP positions, and channel
-changes open Extra Details dialogs from their KPI cards, with structured
-label/value detail rows and measured whole-card dialog sizing for dense
-AP-model findings. Dialog height is based on the actual visible card widgets,
-spacing and margins rather than fixed row estimates, and overflow dialogs open
-on whole-card boundaries before manual resizing. The default visible-card
-counts are tuned per diagnostic type so dense scanner/AP-model findings stay
-readable without opening oversized windows. AP Memory Review and missing AP
-position diagnostics are kept as
-separate states so remembered AP data is not confused with missing physical
-placement. AP Memory Review opens its AP-specific action from Extra Details
-rather than duplicating AP Group buttons in the dashboard card, and it includes
-both memory-applied groups and manual groups that differ from saved memory. APs
-Without Position follows the same pattern: the dashboard card shows the
-aggregate finding and each detail row opens the specific AP Group to place,
-without repeating AP labels already shown by the card title.
-Scanner detail diagnostics report raw scan-row counts for the selected
-measurement point, so missing channel-width or 6 GHz frequency evidence is not
-confused with the number of survey points.
-Total Points and Scan OK stay as summary-only cards, keeping larger surveys
-focused on readable KPI groups, survey context, and next actions.
+Current checks cover scan confidence, missing relevant networks, sparse or
+unstable data, limited scanner details, AP metadata, AP Memory review states,
+missing AP positions, dominant-AP position anomalies, and AP channel changes.
+Local-area AP groups can be scoped per measurement point, so intentionally
+zone-only SSIDs are not treated as whole-building requirements.
+
+The dashboard uses KPI cards, filtered point lists, and detail dialogs to keep
+large surveys readable. Full behavior and review guidance are documented in the
+in-app Help Center.
 
 ## Live Maps And PDF Reports
 
@@ -282,7 +256,7 @@ Current source beta:
 
 Latest packaged Windows ZIP:
 
-- `WifiHeatmap-v0.9.3-beta.2-win64.zip`
+- `WifiHeatmap-v0.9.4-beta.2-win64.zip`
 
 ## Roadmap
 
