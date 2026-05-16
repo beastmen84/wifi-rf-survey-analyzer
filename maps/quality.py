@@ -210,15 +210,13 @@ def build_quality_breakdown(rows, raw_rows, relevant_ssids):
     ranges_by_key = get_signal_ranges_by_key(rows, raw_rows, relevant_ssids)
     breakdown = []
     observed_relevant_ssids = sorted(set(rows_by_ssid) & set(relevant_ssids))
-
-    if not observed_relevant_ssids:
-        for ssid in sorted(relevant_ssids):
-            breakdown.append({
-                "ssid": ssid,
-                "status": QUALITY_MISSING_RELEVANT,
-                "message": "missing"
-            })
-        return breakdown
+    missing_relevant_ssids = sorted(set(relevant_ssids) - set(observed_relevant_ssids))
+    for ssid in missing_relevant_ssids:
+        breakdown.append({
+            "ssid": ssid,
+            "status": QUALITY_MISSING_RELEVANT,
+            "message": "missing"
+        })
 
     for ssid in observed_relevant_ssids:
         ssid_rows = rows_by_ssid.get(ssid, [])

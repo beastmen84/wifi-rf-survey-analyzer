@@ -27,6 +27,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 - Dominant AP position diagnostics now use the same per-point scope, so APs
   marked Local Area are not considered nearest-position candidates outside
   their expected area.
+- Missing Relevant Networks now reports each expected SSID absent at a point,
+  after Local Area scope is applied. This keeps local SSIDs quiet outside their
+  area while still warning when a local SSID is missing inside scope.
 
 ## v0.9.3-beta.2 - 2026-05-16
 

@@ -134,7 +134,7 @@ TRANSLATIONS = {
     "quality_dashboard_metric_channel_changes": "Cambi Canale",
     "quality_dashboard_fix_next_title": "Cosa Sistemare Ora",
     "quality_dashboard_fix_missing_title": "Ripeti Reti Mancanti",
-    "quality_dashboard_fix_missing_detail": "{count} punti non vedono gli SSID rilevanti selezionati. Ripeti la scansione o controlla la lista reti rilevanti.",
+    "quality_dashboard_fix_missing_detail": "{count} punti non vedono uno o più SSID attesi in quel punto. Ripeti la scansione, controlla la lista reti rilevanti o rivedi l'ambito Area Locale.",
     "quality_dashboard_fix_sparse_title": "Ripeti Scansioni Scarse",
     "quality_dashboard_fix_sparse_detail": "{count} punti hanno troppo pochi campioni utilizzabili. Ripeti quelle scansioni prima di fidarti dell'interpolazione.",
     "quality_dashboard_fix_scanner_details_title": "Ripeti Punti Con Dettagli Scanner Limitati",
@@ -792,7 +792,7 @@ TRANSLATIONS = {
                 <td class="survey-gap"></td>
                 <td class="survey-card">
                     <div class="survey-card-title">Qualità Scan</div>
-                    <p><b>Reti Rilevanti Mancanti:</b> SSID previsti non visti in un punto. Gli SSID Area Locale non sono attesi in tutto il rilievo.</p>
+                    <p><b>Reti Rilevanti Mancanti:</b> SSID previsti non visti dove sono attesi. Gli SSID globali sono attesi ovunque; gli SSID Area Locale sono attesi solo dentro il loro ambito stimato o manuale.</p>
                     <p><b>Dati Scarsi:</b> evidenza ripetuta troppo limitata.</p>
                     <p><b>Dettagli Scanner Mancanti:</b> dati da scanner fallback, ampiezza canale mancante o frequenza 6 GHz mancante possono indebolire conclusioni su Interferenza, overlap ampiezza 5 GHz e 6 GHz.</p>
                     <p><b>Bassa Confidenza Scansione:</b> il candidato dominante ha confidenza debole nelle scansioni ripetute.</p>

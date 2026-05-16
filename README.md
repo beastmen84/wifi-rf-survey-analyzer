@@ -107,6 +107,9 @@ Current checks include missing relevant networks, low scan confidence, unstable
 signals, sparse point data, limited scanner details, AP metadata warnings, AP
 Memory review states, AP group conflicts, missing AP positions, dominant-AP
 position anomalies, and AP channel changes that affect channel-sensitive maps.
+Missing relevant network checks are scoped by expected SSID: global relevant
+SSIDs are expected at every point, while Local Area SSIDs are expected only
+inside their manual or inferred scope.
 AP groups marked as Local Area are scoped per measurement point so intentionally
 local SSIDs are not treated as whole-building quality requirements, and the
 same scope is used by Dominant AP position diagnostics. Auto Area works best

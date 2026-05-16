@@ -10,15 +10,16 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(quality["p1"]["status"], QUALITY_MISSING_RELEVANT)
         self.assertEqual(quality["p1"]["missing_relevant"], ["guest", "main"])
 
-    def test_quality_accepts_any_observed_relevant_network(self):
+    def test_quality_marks_missing_peer_relevant_network(self):
         rows = [build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)]
 
         quality = evaluate_point_quality(rows, relevant_ssids={"MAIN", "GUEST"})
 
-        self.assertEqual(quality["p1"]["status"], QUALITY_GOOD)
+        self.assertEqual(quality["p1"]["status"], QUALITY_MISSING_RELEVANT)
+        self.assertEqual(quality["p1"]["missing_relevant"], ["guest"])
         self.assertEqual(
-            [item["ssid"] for item in quality["p1"]["breakdown"]],
-            ["main"],
+            [(item["ssid"], item["status"]) for item in quality["p1"]["breakdown"]],
+            [("guest", QUALITY_MISSING_RELEVANT), ("main", QUALITY_GOOD)],
         )
 
     def test_quality_treats_explicit_empty_point_scope_as_no_relevant_expected(self):
@@ -106,14 +107,17 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(scanner_details["missing_6ghz_frequency_rows"], 1)
         self.assertIn(SCANNER_DETAIL_MISSING_6GHZ_FREQUENCY, scanner_details["issue_types"])
 
-    def test_quality_checks_present_relevant_network_before_missing_peer_ssid(self):
+    def test_quality_prioritizes_missing_peer_relevant_network(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -52, 1)
         row["scan_confidence"] = "0.1"
 
         quality = evaluate_point_quality([row], relevant_ssids={"MAIN", "GUEST"})
 
-        self.assertEqual(quality["p1"]["status"], QUALITY_LOW_CONFIDENCE)
-        self.assertEqual(quality["p1"]["breakdown"][0]["ssid"], "main")
+        self.assertEqual(quality["p1"]["status"], QUALITY_MISSING_RELEVANT)
+        self.assertEqual(quality["p1"]["missing_relevant"], ["guest"])
+        self.assertEqual(quality["p1"]["breakdown"][0]["ssid"], "guest")
+        self.assertEqual(quality["p1"]["breakdown"][1]["ssid"], "main")
+        self.assertEqual(quality["p1"]["breakdown"][1]["status"], QUALITY_LOW_CONFIDENCE)
 
     def test_dashboard_confidence_uses_dominant_candidates(self):
         strong_row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -52, 1)
@@ -267,6 +271,47 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(relevant_by_point["p2"], {"local"})
         self.assertEqual(relevant_by_point["p3"], set())
         self.assertEqual(quality["p2"]["status"], QUALITY_LOW_CONFIDENCE)
+        self.assertEqual(quality["p3"]["status"], QUALITY_GOOD)
+
+    def test_quality_marks_local_ssid_missing_inside_scope(self):
+        main_bssid = "70:4f:57:aa:bb:10"
+        local_bssid = "80:11:22:33:44:10"
+        inside_good = build_row("p1", "LOCAL", local_bssid, -55, 1)
+        inside_good["x"] = "40"
+        inside_good["y"] = "20"
+        inside_missing_main = build_row("p2", "MAIN", main_bssid, -52, 1)
+        inside_missing_main["x"] = "55"
+        inside_missing_main["y"] = "20"
+        outside_main = build_row("p3", "MAIN", main_bssid, -52, 1)
+        outside_main["x"] = "120"
+        outside_main["y"] = "20"
+        groups = [
+            build_manual_ap_group("main-ap", [main_bssid]),
+            build_manual_ap_group(
+                "local-ap",
+                [local_bssid],
+                position={"x": 10, "y": 20},
+                metadata={"coverage_scope": "local"},
+            ),
+        ]
+        app = FakeQualityApp(
+            [inside_good, inside_missing_main, outside_main],
+            groups,
+            relevant_ssids={"MAIN", "LOCAL"},
+        )
+        app.px_per_meter = 10
+
+        relevant_by_point = build_quality_relevant_ssids_by_point(app, groups, get_effective_relevant_ssids(app))
+        quality = evaluate_point_quality(
+            app.session.rows,
+            relevant_ssids=get_effective_relevant_ssids(app),
+            relevant_ssids_by_point=relevant_by_point,
+        )
+
+        self.assertEqual(relevant_by_point["p2"], {"main", "local"})
+        self.assertEqual(relevant_by_point["p3"], {"main"})
+        self.assertEqual(quality["p2"]["status"], QUALITY_MISSING_RELEVANT)
+        self.assertEqual(quality["p2"]["missing_relevant"], ["local"])
         self.assertEqual(quality["p3"]["status"], QUALITY_GOOD)
 
     def test_ap_position_quality_uses_point_scoped_relevant_ssids(self):

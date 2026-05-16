@@ -134,7 +134,7 @@ TRANSLATIONS = {
     "quality_dashboard_metric_channel_changes": "Channel Changes",
     "quality_dashboard_fix_next_title": "What To Fix Next",
     "quality_dashboard_fix_missing_title": "Rescan Missing Networks",
-    "quality_dashboard_fix_missing_detail": "{count} points do not see the selected relevant SSIDs. Rescan them or check the relevant network list.",
+    "quality_dashboard_fix_missing_detail": "{count} points do not see one or more SSIDs expected at that point. Rescan them, check the relevant network list, or review Local Area scope.",
     "quality_dashboard_fix_sparse_title": "Repeat Sparse Scans",
     "quality_dashboard_fix_sparse_detail": "{count} points have too few usable samples. Repeat those scans before trusting interpolation.",
     "quality_dashboard_fix_scanner_details_title": "Rescan Points With Limited Scanner Details",
@@ -792,7 +792,7 @@ TRANSLATIONS = {
                 <td class="survey-gap"></td>
                 <td class="survey-card">
                     <div class="survey-card-title">Scan Quality</div>
-                    <p><b>Missing Relevant Networks:</b> intended SSIDs not seen at a point. Local Area SSIDs are not expected across the whole survey.</p>
+                    <p><b>Missing Relevant Networks:</b> intended SSIDs not seen where they are expected. Global SSIDs are expected everywhere; Local Area SSIDs are expected only inside their inferred or manual scope.</p>
                     <p><b>Sparse Data:</b> too little repeated evidence.</p>
                     <p><b>Scanner Details Missing:</b> fallback scanner data, missing channel width or missing 6 GHz frequency can weaken Interference, 5 GHz width-overlap and 6 GHz conclusions.</p>
                     <p><b>Low Scan Confidence:</b> the dominant candidate has weak repeated-scan confidence.</p>

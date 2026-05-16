@@ -699,6 +699,10 @@ Current implemented expansion:
   evidence if the spatial data are missing. Dominant AP position diagnostics use
   the same per-point scope, so local APs outside their expected area are not
   used as nearest-position candidates.
+- Missing Relevant Networks now evaluates missing expected SSIDs after that
+  per-point scope is known. A global relevant SSID absent at a point is a
+  warning; a Local Area SSID outside scope is ignored; a Local Area SSID inside
+  scope but absent is a warning.
 
 Post-V2 possible additions:
 
