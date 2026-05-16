@@ -20,8 +20,10 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   automatic area enabled.
 - Survey Quality now applies Local Area scope per measurement point: local-only
   SSIDs are evaluated only inside their manual radius when scale and AP
-  position are available, or from usable Auto Area evidence otherwise, reducing
-  whole-building quality noise for intentionally local SSIDs.
+  position are available. Auto Area now estimates a temporary radius from the
+  farthest usable local reading plus a small margin when AP position and scale
+  are available, then falls back to per-point usable signal evidence when those
+  data are missing.
 - Dominant AP position diagnostics now use the same per-point scope, so APs
   marked Local Area are not considered nearest-position candidates outside
   their expected area.

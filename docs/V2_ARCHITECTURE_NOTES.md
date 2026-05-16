@@ -86,7 +86,9 @@ Current status:
   Local Radius displayed in the selected measurement system while stored
   internally in meters. Survey Quality now consumes this scope per measurement
   point: local-only SSIDs are evaluated inside a manual AP radius when scale and
-  AP position are available, or from usable Auto Area evidence otherwise;
+  AP position are available. Auto Area estimates a temporary radius from the
+  farthest usable local reading plus a small margin when AP position and scale
+  are available, and falls back to per-point usable signal evidence otherwise;
 - Help content and structure have an expanded V2 Help Center implementation;
   the Recommended Workflow page has received the first visual-density polish
   pass with step cards, decision-gate rows and Qt-compatible accent-column
@@ -691,10 +693,12 @@ Current implemented expansion:
   Manager and point-focus workflows.
 - local/zone-only AP coverage scope is applied before point-quality evaluation,
   so SSIDs marked Local Area are not treated as whole-building expectations.
-  A manual radius uses scale and AP position; Auto Area uses usable local
-  evidence as the inferred zone. Dominant AP position diagnostics use the same
-  per-point scope, so local APs outside their expected area are not used as
-  nearest-position candidates.
+  A manual radius uses scale and AP position. Auto Area first estimates a local
+  radius from the farthest usable local reading plus a small margin when AP
+  position and scale are available, then falls back to per-point usable signal
+  evidence if the spatial data are missing. Dominant AP position diagnostics use
+  the same per-point scope, so local APs outside their expected area are not
+  used as nearest-position candidates.
 
 Post-V2 possible additions:
 

@@ -232,6 +232,43 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(relevant_by_point["p1"], {"local"})
         self.assertEqual(relevant_by_point["p2"], set())
 
+    def test_quality_relevant_ssids_by_point_estimates_auto_local_radius_from_good_evidence(self):
+        local_bssid = "80:11:22:33:44:10"
+        good_edge = build_row("p1", "LOCAL", local_bssid, -60, 1)
+        good_edge["x"] = "40"
+        good_edge["y"] = "20"
+        weak_near = build_row("p2", "LOCAL", local_bssid, -82, 1)
+        weak_near["x"] = "55"
+        weak_near["y"] = "20"
+        weak_near["scan_confidence"] = "0.1"
+        weak_far = build_row("p3", "LOCAL", local_bssid, -82, 1)
+        weak_far["x"] = "90"
+        weak_far["y"] = "20"
+        weak_far["scan_confidence"] = "0.1"
+        groups = [
+            build_manual_ap_group(
+                "local-ap",
+                [local_bssid],
+                position={"x": 10, "y": 20},
+                metadata={"coverage_scope": "local"},
+            ),
+        ]
+        app = FakeQualityApp([good_edge, weak_near, weak_far], groups, relevant_ssids={"LOCAL"})
+        app.px_per_meter = 10
+
+        relevant_by_point = build_quality_relevant_ssids_by_point(app, groups, get_effective_relevant_ssids(app))
+        quality = evaluate_point_quality(
+            app.session.rows,
+            relevant_ssids=get_effective_relevant_ssids(app),
+            relevant_ssids_by_point=relevant_by_point,
+        )
+
+        self.assertEqual(relevant_by_point["p1"], {"local"})
+        self.assertEqual(relevant_by_point["p2"], {"local"})
+        self.assertEqual(relevant_by_point["p3"], set())
+        self.assertEqual(quality["p2"]["status"], QUALITY_LOW_CONFIDENCE)
+        self.assertEqual(quality["p3"]["status"], QUALITY_GOOD)
+
     def test_ap_position_quality_uses_point_scoped_relevant_ssids(self):
         main_bssid = "70:4f:57:aa:bb:10"
         local_bssid = "80:11:22:33:44:10"

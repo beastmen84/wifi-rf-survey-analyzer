@@ -345,7 +345,7 @@ TRANSLATIONS = {
     "ap_group_metadata_coverage_auto_area": "Auto Area",
     "ap_group_metadata_coverage_hint": "Choose whether this AP is expected across the whole survey or only near its local area.",
     "ap_group_metadata_coverage_site_wide_hint": "Quality checks treat this AP/network as part of the whole surveyed area.",
-    "ap_group_metadata_coverage_local_hint": "Quality checks can limit this AP/network to its local area. Leave Auto Area checked until the expected area is known.",
+    "ap_group_metadata_coverage_local_hint": "Quality checks can limit this AP/network to its local area. Auto Area works best with AP position and calibrated scale; otherwise it falls back to point signal evidence.",
     "ap_group_metadata_notes": "Notes",
     "ap_group_set_position": "Place on Map",
     "ap_group_position": "Position",
@@ -909,7 +909,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card"><b>Coverage Scope</b><br>Site-wide is the default. Local Area marks APs or SSIDs that are intentionally valid only near their own zone. Survey Quality uses that scope before judging point evidence.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Local Radius</b><br>Optional expected-area radius in the selected measurement system. With AP position and scale, Quality uses the radius as the expected zone. With Auto Area, Quality infers the zone from usable local evidence.</td>
+                <td class="workflow-card"><b>Local Radius</b><br>Optional expected-area radius in the selected measurement system. With AP position and scale, Quality uses the manual radius as the expected zone. With Auto Area, Quality estimates a temporary radius from the farthest usable local reading plus a small margin; if position or scale is missing, it falls back to signal evidence at each point.</td>
             </tr>
         </table>
         <h2>Clean Channel Changes</h2>

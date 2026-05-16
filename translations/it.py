@@ -345,7 +345,7 @@ TRANSLATIONS = {
     "ap_group_metadata_coverage_auto_area": "Area Auto",
     "ap_group_metadata_coverage_hint": "Scegli se questo AP è atteso in tutto il rilievo o solo nella sua area locale.",
     "ap_group_metadata_coverage_site_wide_hint": "I controlli qualità trattano questo AP/rete come parte dell'intera area rilevata.",
-    "ap_group_metadata_coverage_local_hint": "I controlli qualità potranno limitare questo AP/rete alla sua area locale. Lascia Area Auto selezionato finché l'area attesa non è nota.",
+    "ap_group_metadata_coverage_local_hint": "I controlli qualità possono limitare questo AP/rete alla sua area locale. Area Auto funziona meglio con posizione AP e scala calibrata; altrimenti usa il segnale rilevato nel singolo punto.",
     "ap_group_metadata_notes": "Note",
     "ap_group_set_position": "Posiziona su Mappa",
     "ap_group_position": "Posizione",
@@ -909,7 +909,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card"><b>Ambito Copertura</b><br>Tutto Il Rilievo è il default. Area Locale marca AP o SSID intenzionalmente validi solo vicino alla loro zona. Qualità Rilievo usa questo ambito prima di giudicare l'evidenza dei punti.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Raggio Locale</b><br>Raggio opzionale dell'area attesa nel sistema di misura selezionato. Con posizione AP e scala, Qualità usa il raggio come zona attesa. Con Area Auto, Qualità deduce la zona dall'evidenza locale utilizzabile.</td>
+                <td class="workflow-card"><b>Raggio Locale</b><br>Raggio opzionale dell'area attesa nel sistema di misura selezionato. Con posizione AP e scala, Qualità usa il raggio manuale come zona attesa. Con Area Auto, Qualità stima un raggio temporaneo dal punto locale utilizzabile più lontano, più un piccolo margine; se posizione o scala mancano, torna al segnale rilevato nel singolo punto.</td>
             </tr>
         </table>
         <h2>Cambi Canale Puliti</h2>

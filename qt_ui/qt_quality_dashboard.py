@@ -114,6 +114,7 @@ DETAIL_DIALOG_MAX_HEIGHTS = {
     "quality_dashboard_metric_ap_missing_positions": 820,
 }
 LOCAL_COVERAGE_AUTO_MIN_SIGNAL_DBM = -70.0
+LOCAL_COVERAGE_AUTO_RADIUS_MARGIN_M = 2.0
 
 
 QUALITY_METRIC_STATUSES = {
@@ -1574,6 +1575,7 @@ def build_quality_relevant_ssids_by_point(app, ap_groups=None, relevant_ssids=No
             rows_by_point.setdefault(point_id, []).append(row)
 
     px_per_meter = app.get_px_per_meter() if hasattr(app, "get_px_per_meter") else None
+    apply_auto_local_scope_radii(local_scopes_by_ssid, rows_by_point, px_per_meter)
     relevant_by_point = {}
     for point_id, point_rows in rows_by_point.items():
         point_relevant_ssids = set(global_ssids)
@@ -1657,6 +1659,9 @@ def local_scope_applies_to_point(scope, point_rows, px_per_meter):
     if scope_has_manual_radius(scope, px_per_meter):
         return point_is_inside_local_radius(scope, point_rows, px_per_meter)
 
+    if scope_has_auto_radius(scope, px_per_meter):
+        return point_is_inside_local_radius(scope, point_rows, px_per_meter, radius_key="auto_radius_m")
+
     return point_has_auto_local_evidence(scope, point_rows)
 
 
@@ -1664,17 +1669,59 @@ def scope_has_manual_radius(scope, px_per_meter):
     return bool(scope.get("position")) and bool(scope.get("radius_m")) and bool(px_per_meter)
 
 
-def point_is_inside_local_radius(scope, point_rows, px_per_meter):
+def scope_has_auto_radius(scope, px_per_meter):
+    return bool(scope.get("position")) and bool(scope.get("auto_radius_m")) and bool(px_per_meter)
+
+
+def apply_auto_local_scope_radii(local_scopes_by_ssid, rows_by_point, px_per_meter):
+    if not px_per_meter:
+        return
+
+    for scopes in local_scopes_by_ssid.values():
+        for scope in scopes:
+            if scope_has_manual_radius(scope, px_per_meter):
+                continue
+            radius_m = estimate_auto_local_scope_radius_m(scope, rows_by_point, px_per_meter)
+            if radius_m is not None:
+                scope["auto_radius_m"] = radius_m
+
+
+def estimate_auto_local_scope_radius_m(scope, rows_by_point, px_per_meter):
+    if not scope.get("position") or not px_per_meter:
+        return None
+
+    distances_m = []
+    for point_rows in rows_by_point.values():
+        if not point_has_auto_local_evidence(scope, point_rows):
+            continue
+        distance_m = point_distance_to_scope_ap_m(scope, point_rows, px_per_meter)
+        if distance_m is not None:
+            distances_m.append(distance_m)
+
+    if not distances_m:
+        return None
+    return max(distances_m) + LOCAL_COVERAGE_AUTO_RADIUS_MARGIN_M
+
+
+def point_is_inside_local_radius(scope, point_rows, px_per_meter, radius_key="radius_m"):
+    distance_m = point_distance_to_scope_ap_m(scope, point_rows, px_per_meter)
+    radius_m = scope.get(radius_key)
+    if distance_m is None or radius_m is None:
+        return False
+
+    return distance_m <= radius_m
+
+
+def point_distance_to_scope_ap_m(scope, point_rows, px_per_meter):
     point_x, point_y = point_coordinates(point_rows)
     position = scope.get("position") or {}
     ap_x = parse_float(position.get("x"))
     ap_y = parse_float(position.get("y"))
-    radius_m = scope.get("radius_m")
-    if None in (point_x, point_y, ap_x, ap_y, radius_m) or not px_per_meter:
-        return False
+    if None in (point_x, point_y, ap_x, ap_y) or not px_per_meter:
+        return None
 
     distance_px = ((point_x - ap_x) ** 2 + (point_y - ap_y) ** 2) ** 0.5
-    return (distance_px / px_per_meter) <= radius_m
+    return distance_px / px_per_meter
 
 
 def point_coordinates(point_rows):
