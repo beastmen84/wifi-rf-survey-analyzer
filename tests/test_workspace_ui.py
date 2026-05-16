@@ -577,6 +577,63 @@ class APGroupManagerDialogTests(unittest.TestCase):
             manager.deleteLater()
             app.deleteLater()
 
+    def test_metadata_coverage_scope_defaults_to_site_wide(self):
+        app, manager = self.make_ap_manager_dialog()
+        try:
+            group = manager.get_group_by_id("warning-ap")
+            group.pop("metadata", None)
+            dialog = MetadataDialog(manager, group)
+            try:
+                self.assertEqual(dialog.coverage_scope_combo.currentData(), AP_COVERAGE_SCOPE_GLOBAL)
+                self.assertFalse(dialog.coverage_radius_spin.isEnabled())
+                values = dialog.metadata_values()
+                self.assertNotIn("coverage_scope", values)
+                self.assertNotIn("coverage_radius_m", values)
+            finally:
+                dialog.deleteLater()
+        finally:
+            manager.deleteLater()
+            app.deleteLater()
+
+    def test_metadata_coverage_scope_saves_local_radius(self):
+        app, manager = self.make_ap_manager_dialog()
+        try:
+            group = manager.get_group_by_id("warning-ap")
+            dialog = MetadataDialog(manager, group)
+            try:
+                self.set_combo_value(dialog.coverage_scope_combo, AP_COVERAGE_SCOPE_LOCAL)
+                dialog.coverage_radius_spin.setValue(18.5)
+                values = dialog.metadata_values()
+
+                self.assertTrue(dialog.coverage_radius_spin.isEnabled())
+                self.assertEqual(values["coverage_scope"], AP_COVERAGE_SCOPE_LOCAL)
+                self.assertEqual(values["coverage_radius_m"], "18.5")
+            finally:
+                dialog.deleteLater()
+        finally:
+            manager.deleteLater()
+            app.deleteLater()
+
+    def test_metadata_coverage_scope_loads_existing_local_metadata(self):
+        app, manager = self.make_ap_manager_dialog()
+        try:
+            group = manager.get_group_by_id("neighbor-ap")
+            group["metadata"] = {"coverage_scope": "zone-only", "coverage_radius_m": "12,25"}
+            dialog = MetadataDialog(manager, group)
+            try:
+                values = dialog.metadata_values()
+
+                self.assertEqual(dialog.coverage_scope_combo.currentData(), AP_COVERAGE_SCOPE_LOCAL)
+                self.assertTrue(dialog.coverage_radius_spin.isEnabled())
+                self.assertAlmostEqual(dialog.coverage_radius_spin.value(), 12.25, places=2)
+                self.assertEqual(values["coverage_scope"], AP_COVERAGE_SCOPE_LOCAL)
+                self.assertEqual(values["coverage_radius_m"], "12.25")
+            finally:
+                dialog.deleteLater()
+        finally:
+            manager.deleteLater()
+            app.deleteLater()
+
     def test_ap_manager_styles_modern_scrollbars(self):
         app, dialog = self.make_ap_manager_dialog()
         try:
@@ -1418,4 +1475,3 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             live_mock.assert_not_called()
         finally:
             window.deleteLater()
-

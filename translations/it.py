@@ -337,6 +337,15 @@ TRANSLATIONS = {
     "ap_group_metadata_analysis_channel": "Canale Analisi",
     "ap_group_metadata_analysis_channel_auto": "Auto",
     "ap_group_metadata_analysis_channel_not_observed": "Non Rilevata",
+    "ap_group_metadata_coverage_scope": "Ambito Copertura",
+    "ap_group_metadata_coverage_expected_area": "Area Attesa",
+    "ap_group_metadata_coverage_site_wide": "Tutto Il Rilievo",
+    "ap_group_metadata_coverage_local": "Area Locale",
+    "ap_group_metadata_coverage_radius": "Raggio Locale",
+    "ap_group_metadata_coverage_radius_auto": "Auto",
+    "ap_group_metadata_coverage_hint": "Scegli se questo AP è atteso in tutto il rilievo o solo nella sua area locale.",
+    "ap_group_metadata_coverage_site_wide_hint": "I controlli qualità trattano questo AP/rete come parte dell'intera area rilevata.",
+    "ap_group_metadata_coverage_local_hint": "I controlli qualità potranno limitare questo AP/rete alla sua area locale. Lascia raggio Auto finché l'area attesa non è nota.",
     "ap_group_metadata_notes": "Note",
     "ap_group_set_position": "Posiziona su Mappa",
     "ap_group_position": "Posizione",
@@ -854,7 +863,7 @@ TRANSLATIONS = {
             <tr><td class="gate-row"><b>1. Appartenenza Gruppo</b><br>SSID guest/main e radio multiple dello stesso AP fisico dovrebbero stare nello stesso gruppo AP. Separa o sposta BSSID quando il suggerimento automatico è sbagliato.</td></tr>
             <tr><td class="gate-row"><b>2. Alias E Ruolo</b><br>Usa nomi fisici leggibili per legende, tooltip e schede PDF. Marca AP temporanei come Test/nascosto, vicini come Esterno e dispositivi solo interferenti come Interferente.</td></tr>
             <tr><td class="gate-row"><b>3. Posizione</b><br>La diagnostica AP Dominante richiede coordinate fisiche degli AP. Usa Imposta Posizione e clicca sulla pianta per gli AP importanti per il rilievo.</td></tr>
-            <tr><td class="gate-row"><b>4. Metadata E Modello Canale</b><br>Bande/canali attesi rendono significativi i warning setup. Gli override canale sono scelte di modellazione per mappe sensibili al canale, non etichette estetiche.</td></tr>
+            <tr><td class="gate-row"><b>4. Metadata, Ambito Copertura E Modello Canale</b><br>Bande/canali attesi rendono significativi i warning setup. Ambito Copertura indica se AP/rete sono attesi in tutto il rilievo o solo in area locale. Gli override canale sono scelte di modellazione per mappe sensibili al canale, non etichette estetiche.</td></tr>
             <tr><td class="gate-row"><b>5. Stato Memoria</b><br>Le righe Da Memoria o Aggiornamento Memoria vanno riviste, così i dati AP riusati non diventano ipotesi silenziose.</td></tr>
         </table>
         <h2>BSSID Manager</h2>
@@ -882,8 +891,8 @@ TRANSLATIONS = {
                 <td class="workflow-card"><b>Test/nascosto</b><br>Escluso dall'analisi utente per non far distorcere mappe da AP temporanei o nascosti.</td>
             </tr>
         </table>
-        <h2>Metadata E Override Canale</h2>
-        <p>Bande/canali attesi sono regole di validazione. L'override del canale di analisi è diverso: è una scelta esplicita di modellazione usata dalle mappe sensibili al canale quando il rilievo ha osservato un cambio canale pulito o ambiguo.</p>
+        <h2>Metadata, Ambito Copertura E Override Canale</h2>
+        <p>Bande/canali attesi sono regole di validazione. Ambito Copertura descrive se AP/rete sono attesi in tutto il rilievo o solo in un'area locale. L'override del canale di analisi è diverso: è una scelta esplicita di modellazione usata dalle mappe sensibili al canale quando il rilievo ha osservato un cambio canale pulito o ambiguo.</p>
         <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
             <tr>
                 <td class="workflow-card"><b>Campi Di Documentazione</b><br>Vendor, modello, montaggio e note sono contesto di revisione. Il montaggio non è ancora usato come formula RF.</td>
@@ -895,6 +904,12 @@ TRANSLATIONS = {
                 <td class="workflow-card"><b>Override Canale Analisi</b><br>Forza le mappe sensibili al canale a usare il canale osservato selezionato per quel gruppo AP e banda.</td>
                 <td class="workflow-gap"></td>
                 <td class="workflow-card"><b>Regola Del Selettore</b><br>Il selettore elenca solo i canali realmente osservati per quel gruppo AP/banda. Se una banda non è stata osservata, l'override è disattivato e mostra Non Rilevata.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Ambito Copertura</b><br>Tutto Il Rilievo è il default. Area Locale marca AP o SSID intenzionalmente validi solo vicino alla loro zona.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Raggio Locale</b><br>Raggio opzionale dell'area attesa in metri. Lascia Auto finché l'ambito fisico non è noto; il collegamento con Qualità Rilievo arriva nello step successivo.</td>
             </tr>
         </table>
         <h2>Cambi Canale Puliti</h2>

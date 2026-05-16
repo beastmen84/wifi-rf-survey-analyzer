@@ -337,6 +337,15 @@ TRANSLATIONS = {
     "ap_group_metadata_analysis_channel": "Analysis Channel",
     "ap_group_metadata_analysis_channel_auto": "Auto",
     "ap_group_metadata_analysis_channel_not_observed": "Not Observed",
+    "ap_group_metadata_coverage_scope": "Coverage Scope",
+    "ap_group_metadata_coverage_expected_area": "Expected Area",
+    "ap_group_metadata_coverage_site_wide": "Site-wide",
+    "ap_group_metadata_coverage_local": "Local Area",
+    "ap_group_metadata_coverage_radius": "Local Radius",
+    "ap_group_metadata_coverage_radius_auto": "Auto",
+    "ap_group_metadata_coverage_hint": "Choose whether this AP is expected across the whole survey or only near its local area.",
+    "ap_group_metadata_coverage_site_wide_hint": "Quality checks treat this AP/network as part of the whole surveyed area.",
+    "ap_group_metadata_coverage_local_hint": "Quality checks can limit this AP/network to its local area. Leave radius Auto until the expected area is known.",
     "ap_group_metadata_notes": "Notes",
     "ap_group_set_position": "Place on Map",
     "ap_group_position": "Position",
@@ -854,7 +863,7 @@ TRANSLATIONS = {
             <tr><td class="gate-row"><b>1. Group Membership</b><br>Guest/main SSIDs and multiple radios from the same physical AP should be in the same AP group. Split or move BSSIDs when the automatic suggestion is wrong.</td></tr>
             <tr><td class="gate-row"><b>2. Alias And Role</b><br>Use readable physical names for legends, tooltips and PDF cards. Mark temporary APs as Test/hidden, neighbors as External, and interference-only devices as Interferer.</td></tr>
             <tr><td class="gate-row"><b>3. Position</b><br>Dominant AP diagnostics need physical AP coordinates. Use Set Position and click the floor plan for APs that matter to the survey.</td></tr>
-            <tr><td class="gate-row"><b>4. Metadata And Channel Model</b><br>Expected bands/channels make setup warnings meaningful. Analysis-channel overrides are modeling choices for channel-sensitive maps, not cosmetic labels.</td></tr>
+            <tr><td class="gate-row"><b>4. Metadata, Coverage Scope And Channel Model</b><br>Expected bands/channels make setup warnings meaningful. Coverage Scope says whether the AP/network is site-wide or local. Analysis-channel overrides are modeling choices for channel-sensitive maps, not cosmetic labels.</td></tr>
             <tr><td class="gate-row"><b>5. Memory State</b><br>Rows marked From Memory or Memory Update need review so reused AP data does not silently become an assumption.</td></tr>
         </table>
         <h2>BSSID Manager</h2>
@@ -882,8 +891,8 @@ TRANSLATIONS = {
                 <td class="workflow-card"><b>Test/hidden</b><br>Excluded from user-facing analysis so temporary or hidden test APs do not distort maps.</td>
             </tr>
         </table>
-        <h2>Metadata And Channel Overrides</h2>
-        <p>Expected bands/channels are validation rules. Analysis-channel override is different: it is an explicit modeling choice used by channel-sensitive maps when the survey observed a clean or ambiguous channel change.</p>
+        <h2>Metadata, Coverage Scope And Channel Overrides</h2>
+        <p>Expected bands/channels are validation rules. Coverage Scope describes whether the AP/network is expected across the whole survey or only in a local area. Analysis-channel override is different: it is an explicit modeling choice used by channel-sensitive maps when the survey observed a clean or ambiguous channel change.</p>
         <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
             <tr>
                 <td class="workflow-card"><b>Documentation Fields</b><br>Vendor, model, mounting and notes are review context. Mounting is not yet used as an RF formula.</td>
@@ -895,6 +904,12 @@ TRANSLATIONS = {
                 <td class="workflow-card"><b>Analysis Channel Override</b><br>Forces channel-sensitive maps to use the selected observed channel for that AP group and band.</td>
                 <td class="workflow-gap"></td>
                 <td class="workflow-card"><b>Picker Rule</b><br>The picker only lists channels actually observed for that AP group/band. If a band was not observed, that band's override is disabled and shows Not Observed.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Coverage Scope</b><br>Site-wide is the default. Local Area marks APs or SSIDs that are intentionally valid only near their own zone.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Local Radius</b><br>Optional expected-area radius in meters. Leave Auto until the physical scope is known; Survey Quality wiring follows in the next step.</td>
             </tr>
         </table>
         <h2>Clean Channel Changes</h2>

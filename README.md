@@ -282,7 +282,8 @@ Before `v1.0.0`:
 - finish Help Center review in the running UI;
 - run broader real-world validation on operational survey data;
 - fix concrete issues found during that review/test cycle.
-- refine relevant-network scope for local/zone-only SSIDs.
+- finish Survey Quality wiring for local/zone-only SSID coverage scope; AP
+  metadata can already record site-wide/local intent.
 
 Possible future product areas:
 

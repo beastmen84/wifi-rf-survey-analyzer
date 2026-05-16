@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
+    QDoubleSpinBox,
     QFrame,
     QGridLayout,
     QGroupBox,
@@ -38,6 +39,8 @@ from ap.metadata import (
 )
 from ap.groups import (
     AP_ANALYSIS_CHANNEL_OVERRIDE_FIELDS,
+    AP_COVERAGE_SCOPE_GLOBAL,
+    AP_COVERAGE_SCOPE_LOCAL,
     AP_MEMORY_APPLIED_KEY,
     AP_ROLE_CHOICES,
     AP_ROLE_INTERNAL,
@@ -47,9 +50,11 @@ from ap.groups import (
     build_unique_group_id,
     get_ap_analysis_channel_override_field,
     merge_new_bssids_into_manual_groups,
+    normalize_ap_coverage_scope,
     normalize_ap_analysis_channel_override,
     normalize_ap_metadata,
     normalize_ap_role,
+    normalize_coverage_radius_m,
     normalize_bssid,
 )
 from ap.memory import (
@@ -1303,6 +1308,9 @@ class MetadataDialog(QDialog):
         self.analysis_channel_combos = {}
         self.observed_channels_by_band = self.build_observed_channels_by_band()
         self.selected_channels_by_band = self.initial_selected_channels_by_band()
+        self.coverage_scope_combo = None
+        self.coverage_radius_spin = None
+        self.coverage_scope_hint = None
 
         self.setWindowTitle(manager.tr("ap_group_metadata_title"))
         self.resize(widget_px(self, 980), widget_px(self, 560))
@@ -1369,12 +1377,13 @@ class MetadataDialog(QDialog):
             form.addWidget(edit, 1, column)
         content_layout.addLayout(form)
 
+        self.build_coverage_scope_section(content_layout)
         self.build_band_channel_section(content_layout)
 
         content_layout.addWidget(QLabel(self.manager.tr("ap_group_metadata_notes")))
         self.notes_edit = QTextEdit()
         self.notes_edit.setPlainText(self.metadata.get("notes", ""))
-        self.notes_edit.setMinimumHeight(widget_px(self, 104))
+        self.notes_edit.setMinimumHeight(widget_px(self, 88))
         content_layout.addWidget(self.notes_edit)
         outer.addLayout(content_layout, 1)
 
@@ -1391,6 +1400,59 @@ class MetadataDialog(QDialog):
         buttons.addWidget(save_button)
         buttons.addWidget(cancel_button)
         outer.addLayout(buttons)
+
+    def build_coverage_scope_section(self, parent_layout):
+        section = QGroupBox(self.manager.tr("ap_group_metadata_coverage_scope"))
+        section_layout = QGridLayout(section)
+        section_layout.setContentsMargins(widget_px(self, 10), widget_px(self, 8), widget_px(self, 10), widget_px(self, 8))
+        section_layout.setHorizontalSpacing(widget_px(self, 10))
+        section_layout.setVerticalSpacing(widget_px(self, 4))
+
+        scope_label = self.header_label("ap_group_metadata_coverage_expected_area")
+        self.coverage_scope_combo = QComboBox()
+        self.coverage_scope_combo.addItem(self.manager.tr("ap_group_metadata_coverage_site_wide"), AP_COVERAGE_SCOPE_GLOBAL)
+        self.coverage_scope_combo.addItem(self.manager.tr("ap_group_metadata_coverage_local"), AP_COVERAGE_SCOPE_LOCAL)
+        scope = normalize_ap_coverage_scope(self.metadata.get("coverage_scope", ""))
+        scope_index = self.coverage_scope_combo.findData(scope)
+        self.coverage_scope_combo.setCurrentIndex(max(0, scope_index))
+        self.coverage_scope_combo.currentIndexChanged.connect(self.update_coverage_scope_state)
+
+        radius_label = self.header_label("ap_group_metadata_coverage_radius")
+        self.coverage_radius_spin = QDoubleSpinBox()
+        self.coverage_radius_spin.setRange(0.0, 500.0)
+        self.coverage_radius_spin.setDecimals(2)
+        self.coverage_radius_spin.setSingleStep(1.0)
+        self.coverage_radius_spin.setSpecialValueText(self.manager.tr("ap_group_metadata_coverage_radius_auto"))
+        self.coverage_radius_spin.setSuffix(" m")
+        self.coverage_radius_spin.setMinimumWidth(widget_px(self, 120))
+        radius = normalize_coverage_radius_m(self.metadata.get("coverage_radius_m", ""))
+        self.coverage_radius_spin.setValue(float(radius) if radius else 0.0)
+
+        self.coverage_scope_hint = QLabel(self.manager.tr("ap_group_metadata_coverage_hint"))
+        self.coverage_scope_hint.setObjectName("apDialogHint")
+        self.coverage_scope_hint.setWordWrap(True)
+
+        section_layout.addWidget(scope_label, 0, 0)
+        section_layout.addWidget(self.coverage_scope_combo, 0, 1)
+        section_layout.addWidget(radius_label, 0, 2)
+        section_layout.addWidget(self.coverage_radius_spin, 0, 3)
+        section_layout.addWidget(self.coverage_scope_hint, 1, 0, 1, 4)
+        section_layout.setColumnStretch(1, 1)
+        section_layout.setColumnStretch(3, 0)
+
+        self.update_coverage_scope_state()
+        parent_layout.addWidget(section)
+
+    def update_coverage_scope_state(self, _index=None):
+        is_local = self.coverage_scope_combo.currentData() == AP_COVERAGE_SCOPE_LOCAL
+        self.coverage_radius_spin.setEnabled(is_local)
+        self.coverage_scope_hint.setText(
+            self.manager.tr(
+                "ap_group_metadata_coverage_local_hint"
+                if is_local
+                else "ap_group_metadata_coverage_site_wide_hint"
+            )
+        )
 
     def build_band_channel_section(self, parent_layout):
         selected_bands = parse_expected_bands(self.metadata.get("expected_bands", ""))
@@ -1537,6 +1599,11 @@ class MetadataDialog(QDialog):
             field: edit.text()
             for field, edit in self.field_edits.items()
         }
+        values["coverage_scope"] = self.coverage_scope_combo.currentData() or AP_COVERAGE_SCOPE_GLOBAL
+        if values["coverage_scope"] == AP_COVERAGE_SCOPE_LOCAL and self.coverage_radius_spin.value() > 0:
+            values["coverage_radius_m"] = normalize_coverage_radius_m(self.coverage_radius_spin.value())
+        else:
+            values["coverage_radius_m"] = ""
         values["expected_bands"] = ", ".join(sort_bands(expected_bands))
         values["expected_channels"] = ", ".join(expected_channels)
         for band, combo in self.analysis_channel_combos.items():

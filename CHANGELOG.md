@@ -12,6 +12,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   AP groups can now persist normalized `coverage_scope=local` and optional
   `coverage_radius_m` values through survey save/load and AP Memory. UI and
   Survey Quality behavior will be wired in the next `v0.9.4` steps.
+- AP Group Metadata now exposes Coverage Scope controls: Site-wide is the
+  default, Local Area can be selected for APs or SSIDs that are intentionally
+  local, and an optional Local Radius can be stored for later Quality logic.
 
 ## v0.9.3-beta.2 - 2026-05-16
 

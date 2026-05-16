@@ -38,6 +38,7 @@ from ap.groups import (
     AP_ROLE_INTERNAL,
     AP_ROLE_INTERFERER,
     AP_ROLE_TEST,
+    AP_COVERAGE_SCOPE_GLOBAL,
     AP_COVERAGE_SCOPE_LOCAL,
     build_ap_group_channel_override_map,
     build_ap_group_role_map,
