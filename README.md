@@ -283,7 +283,7 @@ Before `v1.0.0`:
 - run broader real-world validation on operational survey data;
 - fix concrete issues found during that review/test cycle.
 - finish Survey Quality wiring for local/zone-only SSID coverage scope; AP
-  metadata can already record site-wide/local intent.
+  metadata can already record site-wide/local intent and optional local radius.
 
 Possible future product areas:
 

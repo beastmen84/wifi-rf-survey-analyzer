@@ -342,10 +342,10 @@ TRANSLATIONS = {
     "ap_group_metadata_coverage_site_wide": "Site-wide",
     "ap_group_metadata_coverage_local": "Local Area",
     "ap_group_metadata_coverage_radius": "Local Radius",
-    "ap_group_metadata_coverage_radius_auto": "Auto",
+    "ap_group_metadata_coverage_auto_area": "Auto Area",
     "ap_group_metadata_coverage_hint": "Choose whether this AP is expected across the whole survey or only near its local area.",
     "ap_group_metadata_coverage_site_wide_hint": "Quality checks treat this AP/network as part of the whole surveyed area.",
-    "ap_group_metadata_coverage_local_hint": "Quality checks can limit this AP/network to its local area. Leave radius Auto until the expected area is known.",
+    "ap_group_metadata_coverage_local_hint": "Quality checks can limit this AP/network to its local area. Leave Auto Area checked until the expected area is known.",
     "ap_group_metadata_notes": "Notes",
     "ap_group_set_position": "Place on Map",
     "ap_group_position": "Position",
@@ -909,7 +909,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card"><b>Coverage Scope</b><br>Site-wide is the default. Local Area marks APs or SSIDs that are intentionally valid only near their own zone.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Local Radius</b><br>Optional expected-area radius in meters. Leave Auto until the physical scope is known; Survey Quality wiring follows in the next step.</td>
+                <td class="workflow-card"><b>Local Radius</b><br>Optional expected-area radius in the selected measurement system. Leave Auto Area checked until the physical scope is known; Survey Quality wiring follows in the next step.</td>
             </tr>
         </table>
         <h2>Clean Channel Changes</h2>

@@ -585,6 +585,8 @@ class APGroupManagerDialogTests(unittest.TestCase):
             dialog = MetadataDialog(manager, group)
             try:
                 self.assertEqual(dialog.coverage_scope_combo.currentData(), AP_COVERAGE_SCOPE_GLOBAL)
+                self.assertTrue(dialog.coverage_auto_check.isChecked())
+                self.assertFalse(dialog.coverage_auto_check.isEnabled())
                 self.assertFalse(dialog.coverage_radius_spin.isEnabled())
                 values = dialog.metadata_values()
                 self.assertNotIn("coverage_scope", values)
@@ -599,12 +601,17 @@ class APGroupManagerDialogTests(unittest.TestCase):
         app, manager = self.make_ap_manager_dialog()
         try:
             group = manager.get_group_by_id("warning-ap")
+            group.pop("metadata", None)
             dialog = MetadataDialog(manager, group)
             try:
                 self.set_combo_value(dialog.coverage_scope_combo, AP_COVERAGE_SCOPE_LOCAL)
+                self.assertTrue(dialog.coverage_auto_check.isChecked())
+                self.assertFalse(dialog.coverage_radius_spin.isEnabled())
+                dialog.coverage_auto_check.setChecked(False)
                 dialog.coverage_radius_spin.setValue(18.5)
                 values = dialog.metadata_values()
 
+                self.assertFalse(dialog.coverage_auto_check.isChecked())
                 self.assertTrue(dialog.coverage_radius_spin.isEnabled())
                 self.assertEqual(values["coverage_scope"], AP_COVERAGE_SCOPE_LOCAL)
                 self.assertEqual(values["coverage_radius_m"], "18.5")
@@ -624,10 +631,33 @@ class APGroupManagerDialogTests(unittest.TestCase):
                 values = dialog.metadata_values()
 
                 self.assertEqual(dialog.coverage_scope_combo.currentData(), AP_COVERAGE_SCOPE_LOCAL)
+                self.assertFalse(dialog.coverage_auto_check.isChecked())
                 self.assertTrue(dialog.coverage_radius_spin.isEnabled())
                 self.assertAlmostEqual(dialog.coverage_radius_spin.value(), 12.25, places=2)
                 self.assertEqual(values["coverage_scope"], AP_COVERAGE_SCOPE_LOCAL)
                 self.assertEqual(values["coverage_radius_m"], "12.25")
+            finally:
+                dialog.deleteLater()
+        finally:
+            manager.deleteLater()
+            app.deleteLater()
+
+    def test_metadata_coverage_radius_uses_selected_measurement_system(self):
+        app, manager = self.make_ap_manager_dialog()
+        try:
+            app.measurement_system = MEASUREMENT_SYSTEM_IMPERIAL
+            group = manager.get_group_by_id("neighbor-ap")
+            group["metadata"] = {"coverage_scope": "local", "coverage_radius_m": "10"}
+            dialog = MetadataDialog(manager, group)
+            try:
+                self.assertEqual(dialog.coverage_radius_spin.suffix(), " ft")
+                self.assertAlmostEqual(dialog.coverage_radius_spin.value(), 32.81, places=2)
+
+                dialog.coverage_radius_spin.setValue(65.62)
+                values = dialog.metadata_values()
+
+                self.assertEqual(values["coverage_scope"], AP_COVERAGE_SCOPE_LOCAL)
+                self.assertEqual(values["coverage_radius_m"], "20")
             finally:
                 dialog.deleteLater()
         finally:

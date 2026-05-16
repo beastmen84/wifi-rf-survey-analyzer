@@ -342,10 +342,10 @@ TRANSLATIONS = {
     "ap_group_metadata_coverage_site_wide": "Tutto Il Rilievo",
     "ap_group_metadata_coverage_local": "Area Locale",
     "ap_group_metadata_coverage_radius": "Raggio Locale",
-    "ap_group_metadata_coverage_radius_auto": "Auto",
+    "ap_group_metadata_coverage_auto_area": "Area Auto",
     "ap_group_metadata_coverage_hint": "Scegli se questo AP è atteso in tutto il rilievo o solo nella sua area locale.",
     "ap_group_metadata_coverage_site_wide_hint": "I controlli qualità trattano questo AP/rete come parte dell'intera area rilevata.",
-    "ap_group_metadata_coverage_local_hint": "I controlli qualità potranno limitare questo AP/rete alla sua area locale. Lascia raggio Auto finché l'area attesa non è nota.",
+    "ap_group_metadata_coverage_local_hint": "I controlli qualità potranno limitare questo AP/rete alla sua area locale. Lascia Area Auto selezionato finché l'area attesa non è nota.",
     "ap_group_metadata_notes": "Note",
     "ap_group_set_position": "Posiziona su Mappa",
     "ap_group_position": "Posizione",
@@ -909,7 +909,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card"><b>Ambito Copertura</b><br>Tutto Il Rilievo è il default. Area Locale marca AP o SSID intenzionalmente validi solo vicino alla loro zona.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Raggio Locale</b><br>Raggio opzionale dell'area attesa in metri. Lascia Auto finché l'ambito fisico non è noto; il collegamento con Qualità Rilievo arriva nello step successivo.</td>
+                <td class="workflow-card"><b>Raggio Locale</b><br>Raggio opzionale dell'area attesa nel sistema di misura selezionato. Lascia Area Auto selezionato finché l'ambito fisico non è noto; il collegamento con Qualità Rilievo arriva nello step successivo.</td>
             </tr>
         </table>
         <h2>Cambi Canale Puliti</h2>

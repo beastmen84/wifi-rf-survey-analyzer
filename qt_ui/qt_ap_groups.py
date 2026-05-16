@@ -64,6 +64,11 @@ from ap.memory import (
     group_has_memory_flag,
     load_ap_memory,
 )
+from app_core.units import (
+    distance_unit_label,
+    display_units_to_meters,
+    meters_to_display_units,
+)
 from qt_ui.qt_theme import QT_THEMES, build_scrollbar_stylesheet
 from qt_ui.scaling import widget_font, widget_px
 from wifi.band import get_row_band
@@ -1309,6 +1314,7 @@ class MetadataDialog(QDialog):
         self.observed_channels_by_band = self.build_observed_channels_by_band()
         self.selected_channels_by_band = self.initial_selected_channels_by_band()
         self.coverage_scope_combo = None
+        self.coverage_auto_check = None
         self.coverage_radius_spin = None
         self.coverage_scope_hint = None
 
@@ -1412,21 +1418,35 @@ class MetadataDialog(QDialog):
         self.coverage_scope_combo = QComboBox()
         self.coverage_scope_combo.addItem(self.manager.tr("ap_group_metadata_coverage_site_wide"), AP_COVERAGE_SCOPE_GLOBAL)
         self.coverage_scope_combo.addItem(self.manager.tr("ap_group_metadata_coverage_local"), AP_COVERAGE_SCOPE_LOCAL)
+        self.coverage_scope_combo.setMinimumWidth(widget_px(self, 150))
+        self.coverage_scope_combo.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         scope = normalize_ap_coverage_scope(self.metadata.get("coverage_scope", ""))
         scope_index = self.coverage_scope_combo.findData(scope)
         self.coverage_scope_combo.setCurrentIndex(max(0, scope_index))
         self.coverage_scope_combo.currentIndexChanged.connect(self.update_coverage_scope_state)
 
         radius_label = self.header_label("ap_group_metadata_coverage_radius")
+        self.coverage_auto_check = QCheckBox(self.manager.tr("ap_group_metadata_coverage_auto_area"))
+        self.coverage_auto_check.stateChanged.connect(self.update_coverage_scope_state)
+
+        measurement_system = getattr(self.manager.app, "measurement_system", "metric")
+        unit_label = distance_unit_label(measurement_system)
         self.coverage_radius_spin = QDoubleSpinBox()
-        self.coverage_radius_spin.setRange(0.0, 500.0)
+        self.coverage_radius_spin.setRange(
+            meters_to_display_units(0.1, measurement_system),
+            meters_to_display_units(500.0, measurement_system),
+        )
         self.coverage_radius_spin.setDecimals(2)
-        self.coverage_radius_spin.setSingleStep(1.0)
-        self.coverage_radius_spin.setSpecialValueText(self.manager.tr("ap_group_metadata_coverage_radius_auto"))
-        self.coverage_radius_spin.setSuffix(" m")
+        self.coverage_radius_spin.setSingleStep(1.0 if unit_label == "m" else 5.0)
+        self.coverage_radius_spin.setSuffix(f" {unit_label}")
         self.coverage_radius_spin.setMinimumWidth(widget_px(self, 120))
         radius = normalize_coverage_radius_m(self.metadata.get("coverage_radius_m", ""))
-        self.coverage_radius_spin.setValue(float(radius) if radius else 0.0)
+        self.coverage_auto_check.setChecked(not radius)
+        self.coverage_radius_spin.setValue(
+            meters_to_display_units(float(radius), measurement_system)
+            if radius
+            else meters_to_display_units(10.0, measurement_system)
+        )
 
         self.coverage_scope_hint = QLabel(self.manager.tr("ap_group_metadata_coverage_hint"))
         self.coverage_scope_hint.setObjectName("apDialogHint")
@@ -1434,18 +1454,22 @@ class MetadataDialog(QDialog):
 
         section_layout.addWidget(scope_label, 0, 0)
         section_layout.addWidget(self.coverage_scope_combo, 0, 1)
-        section_layout.addWidget(radius_label, 0, 2)
-        section_layout.addWidget(self.coverage_radius_spin, 0, 3)
-        section_layout.addWidget(self.coverage_scope_hint, 1, 0, 1, 4)
-        section_layout.setColumnStretch(1, 1)
-        section_layout.setColumnStretch(3, 0)
+        section_layout.addWidget(self.coverage_auto_check, 0, 2)
+        section_layout.addWidget(radius_label, 0, 3)
+        section_layout.addWidget(self.coverage_radius_spin, 0, 4)
+        section_layout.addWidget(self.coverage_scope_hint, 1, 0, 1, 5)
+        section_layout.setColumnStretch(1, 0)
+        section_layout.setColumnStretch(2, 0)
+        section_layout.setColumnStretch(4, 0)
+        section_layout.setColumnStretch(5, 1)
 
         self.update_coverage_scope_state()
         parent_layout.addWidget(section)
 
     def update_coverage_scope_state(self, _index=None):
         is_local = self.coverage_scope_combo.currentData() == AP_COVERAGE_SCOPE_LOCAL
-        self.coverage_radius_spin.setEnabled(is_local)
+        self.coverage_auto_check.setEnabled(is_local)
+        self.coverage_radius_spin.setEnabled(is_local and not self.coverage_auto_check.isChecked())
         self.coverage_scope_hint.setText(
             self.manager.tr(
                 "ap_group_metadata_coverage_local_hint"
@@ -1600,8 +1624,11 @@ class MetadataDialog(QDialog):
             for field, edit in self.field_edits.items()
         }
         values["coverage_scope"] = self.coverage_scope_combo.currentData() or AP_COVERAGE_SCOPE_GLOBAL
-        if values["coverage_scope"] == AP_COVERAGE_SCOPE_LOCAL and self.coverage_radius_spin.value() > 0:
-            values["coverage_radius_m"] = normalize_coverage_radius_m(self.coverage_radius_spin.value())
+        if values["coverage_scope"] == AP_COVERAGE_SCOPE_LOCAL and not self.coverage_auto_check.isChecked():
+            measurement_system = getattr(self.manager.app, "measurement_system", "metric")
+            values["coverage_radius_m"] = normalize_coverage_radius_m(
+                display_units_to_meters(self.coverage_radius_spin.value(), measurement_system)
+            )
         else:
             values["coverage_radius_m"] = ""
         values["expected_bands"] = ", ".join(sort_bands(expected_bands))
