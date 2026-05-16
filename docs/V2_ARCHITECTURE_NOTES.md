@@ -23,7 +23,7 @@ interpolated colors.
 Current status:
 
 - public release versioning is separate from the internal V2 generation:
-  `v0.9.4-beta.1` is closed as a source-tagged beta, while `v1.0.0` should
+  `v0.9.4-beta.2` is closed as a source-tagged beta, while `v1.0.0` should
   wait for the remaining real-survey validation fixes;
 - future beta release candidates should use the current minor beta line for
   validation/polish or a new minor beta for feature-level additions; do not
@@ -94,10 +94,12 @@ Current status:
   after Local Area scope is applied, and Dominant AP position diagnostics use
   the same per-point scope to avoid local AP nearest-position noise outside the
   expected area;
-- `v0.9.4-beta.2` has started as a Help usability candidate: the Help Center
-  left navigation now supports expandable subsection entries generated from the
-  page headings, so long pages can be scanned and jumped through without
-  splitting the current content into separate fragile pages;
+- `v0.9.4-beta.2` is closed as a Help usability beta: the Help Center left
+  navigation now supports expandable subsection entries generated from the page
+  headings, so long pages can be scanned and jumped through without splitting
+  the current content into separate fragile pages. Parent-section selection was
+  stabilized after visual review so expanding a page no longer jumps to a child
+  subsection;
 - Help content and structure have an expanded V2 Help Center implementation;
   the Recommended Workflow page has received the first visual-density polish
   pass with step cards, decision-gate rows and Qt-compatible accent-column
@@ -916,7 +918,8 @@ Remaining closeout:
 
 V2 closeout:
 
-1. Review `v0.9.4-beta.1` local/zone-only SSID scope in the running UI against
+1. Review `v0.9.4-beta.2` Help navigation and Local Area scope in the running
+   UI against
    real survey data, especially intentionally local office-router SSIDs, and
    tune Auto Area behavior only if the evidence shows false positives or false
    negatives.

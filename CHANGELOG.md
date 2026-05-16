@@ -8,10 +8,17 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+No unreleased changes yet.
+
+## v0.9.4-beta.2 - 2026-05-16
+
 - Help Center navigation now uses expandable section groups with automatically
   generated subsection entries from each page heading, making long pages such
   as Survey Quality, AP Groups and Live Maps easier to scan without splitting
   the content into fragile separate dialogs.
+- Fixed parent-section selection in the Help Center tree so clicking a main
+  page such as AP Groups keeps that page selected instead of jumping to a child
+  subsection after the tree expands.
 
 ## v0.9.4-beta.1 - 2026-05-16
 
