@@ -23,7 +23,7 @@ interpolated colors.
 Current status:
 
 - public release versioning is separate from the internal V2 generation:
-  `v0.9.3-beta.2` is closed as a source-tagged beta, while `v1.0.0` should
+  `v0.9.4-beta.1` is closed as a source-tagged beta, while `v1.0.0` should
   wait for the remaining real-survey validation fixes;
 - future beta release candidates should use the current minor beta line for
   validation/polish or a new minor beta for feature-level additions; do not
@@ -78,7 +78,8 @@ Current status:
   and ZIP release package have been regenerated on request from this beta line.
   Latest zipped Windows release artifact:
   `dist\WifiHeatmap-v0.9.3-beta.2-win64.zip`;
-- `v0.9.4-beta.1` has started with the AP metadata foundation for
+- `v0.9.4-beta.1` is closed as a source-tagged beta with the AP metadata
+  foundation for
   local/zone-only coverage scope: AP group metadata now normalizes and
   persists `coverage_scope=local` plus optional `coverage_radius_m` through
   survey save/load and AP Memory. AP Group Metadata now exposes Site-wide vs
@@ -88,7 +89,11 @@ Current status:
   point: local-only SSIDs are evaluated inside a manual AP radius when scale and
   AP position are available. Auto Area estimates a temporary radius from the
   farthest usable local reading plus a small margin when AP position and scale
-  are available, and falls back to per-point usable signal evidence otherwise;
+  are available, and falls back to per-point usable signal evidence otherwise.
+  Missing Relevant Networks now warns for any expected SSID absent at a point
+  after Local Area scope is applied, and Dominant AP position diagnostics use
+  the same per-point scope to avoid local AP nearest-position noise outside the
+  expected area;
 - Help content and structure have an expanded V2 Help Center implementation;
   the Recommended Workflow page has received the first visual-density polish
   pass with step cards, decision-gate rows and Qt-compatible accent-column
@@ -907,9 +912,10 @@ Remaining closeout:
 
 V2 closeout:
 
-1. Review `v0.9.4-beta.1` local/zone-only SSID scope against real survey data,
-   especially intentionally local office-router SSIDs, and tune Auto Area
-   behavior only if the evidence shows false positives or false negatives.
+1. Review `v0.9.4-beta.1` local/zone-only SSID scope in the running UI against
+   real survey data, especially intentionally local office-router SSIDs, and
+   tune Auto Area behavior only if the evidence shows false positives or false
+   negatives.
 2. Add connected-client BSSID/roaming diagnostics as `v0.9.5-beta.1` if Windows
    exposes stable connected-BSSID evidence during capture.
 3. Review the new Help Center in the running UI and polish wording/formatting
