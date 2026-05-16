@@ -84,6 +84,12 @@ Current status:
   ZIP release package have been regenerated on request from this beta line.
   Latest zipped Windows release artifact:
   `dist\WifiHeatmap-v0.9.5-beta.1-win64.zip`;
+- post-`v0.9.5-beta.1` EN/IT wording polish normalized the most visible UI and
+  Help terminology before the 1.0 validation survey: Italian now avoids weaker
+  hybrid phrases such as `Finding`, `Extra Details`, `Dominant AP` and
+  `metadata` where natural Italian wording is clearer, while preserving
+  established technical terms such as BSSID, SSID, AP, dBm, fallback and
+  override where appropriate;
 - `v0.9.4-beta.1` is closed as a source-tagged beta with the AP metadata
   foundation for
   local/zone-only coverage scope: AP group metadata now normalizes and

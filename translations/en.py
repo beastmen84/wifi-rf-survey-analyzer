@@ -110,7 +110,7 @@ TRANSLATIONS = {
     "quality_dashboard_status_early_title": "Initial Data Only",
     "quality_dashboard_status_early_message": "No scan issue was detected across {total} points, but the picture will become more useful after more measurement points.",
     "quality_dashboard_status_review_title": "Review Recommended",
-    "quality_dashboard_status_review_message": "{count} of {total} points deserve review or a rescan before relying on generated maps.",
+    "quality_dashboard_status_review_message": "{count} of {total} points should be reviewed or rescanned before relying on generated maps.",
     "quality_dashboard_status_setup_title": "AP Setup Needs Attention",
     "quality_dashboard_status_setup_message": "Points do not need a rescan, but AP positions, metadata, or channel-change diagnostics still need review.",
     "quality_dashboard_metric_points": "Total Points",
@@ -443,7 +443,7 @@ TRANSLATIONS = {
     "dominant_map_legend_title": "Dominant AP",
     "dominant_map_roaming_overlap": "Δ <= 5 dB",
     "dominant_roaming_issue_title": "Roaming Overlap",
-    "dominant_roaming_issue_detail": "The strongest AP is within the {threshold} roaming threshold:\nDominant AP: {dominant} | {dominant_signal}\nSecondary AP: {second} | {second_signal}\nA client can roam or oscillate here.",
+    "dominant_roaming_issue_detail": "The strongest AP is within the {threshold} roaming threshold:\nDominant AP: {dominant} | {dominant_signal}\nSecondary AP: {second} | {second_signal}\nClients may roam or oscillate here.",
     "point_labels": "Point Labels",
     "point_labels_auto": "Automatic",
     "point_labels_critical": "Critical Only",
@@ -577,7 +577,7 @@ TRANSLATIONS = {
     "help_title": "Help Center",
     "help_overview_nav": "Recommended Workflow",
     "help_overview_title": "Recommended Survey Workflow",
-    "help_overview_subtitle": "Use the application as a validation workflow: collect evidence, review quality, fix the model, then export maps.",
+    "help_overview_subtitle": "Use the application as a validation workflow: collect evidence, review quality, correct the AP model, then export maps.",
     "help_overview_body": """
         <table class="callout-table"><tr><td class="callout-accent-good"></td><td class="callout-content"><span class="callout-label">Best Rule</span><br>Do not trust a map before the survey data and AP model have passed review. The heatmap is the final output, not the first step.</td></tr></table>
         <h2>Operational Sequence</h2>
@@ -830,7 +830,7 @@ TRANSLATIONS = {
     """,
     "help_ap_groups_nav": "AP Groups",
     "help_ap_groups_title": "AP Groups, Roles And Metadata",
-    "help_ap_groups_subtitle": "AP Group Manager turns raw BSSIDs into a physical AP model that maps can reason about.",
+    "help_ap_groups_subtitle": "AP Group Manager turns raw BSSIDs into a physical AP model used by maps and quality checks.",
     "help_ap_groups_body": """
         <table class="callout-table"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Core Rule</span><br>The program can suggest AP groups, but the final model must describe the real physical deployment. Treat automatic grouping as evidence, not final truth.</td></tr></table>
         <h2>How AP Group Manager Thinks</h2>
@@ -1026,7 +1026,7 @@ TRANSLATIONS = {
     """,
     "help_reports_nav": "PDF Reports",
     "help_reports_title": "Live PDF Reports",
-    "help_reports_subtitle": "PDF export captures the current live map options and adds diagnostic pages where the map type supports them.",
+    "help_reports_subtitle": "PDF export captures the current live map options and adds diagnostic pages when supported by the selected map type.",
     "help_reports_body": """
         <h2>Export Workflow</h2>
         <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">

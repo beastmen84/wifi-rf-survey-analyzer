@@ -8,7 +8,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
-No unreleased changes.
+- Polished English and Italian UI/Help wording for the 1.0 validation pass,
+  normalizing technical terms such as AP dominant diagnostics, extended details,
+  raw scan evidence, warnings, AP metadata and client roaming.
 
 ## v0.9.5-beta.1 - 2026-05-16
 
