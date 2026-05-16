@@ -8,6 +8,12 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+No unreleased changes.
+
+## v0.9.3-beta.2 - 2026-05-16
+
+Beta focused on making Survey Quality scale better for larger real surveys.
+
 - Survey Quality Help now explains the quality dashboard status, Survey Scope,
   KPI point lists, Extra Details, AP-model findings and review order more
   explicitly in both English and Italian.
@@ -62,11 +68,6 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   below-limit, exact-limit and overflow fake detail sets, checking whole-card
   default sizing, overflow behavior and the absence of scroll slack below the
   final card.
-
-## v0.9.3-beta.2 - 2026-05-15
-
-Beta focused on making Survey Quality scale better for larger real surveys.
-
 - Survey Quality no longer shows the full measurement-point table in the main
   dashboard view.
 - Actionable KPI cards now open the most useful diagnostic view: Points To

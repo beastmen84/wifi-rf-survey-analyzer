@@ -23,8 +23,8 @@ interpolated colors.
 Current status:
 
 - public release versioning is separate from the internal V2 generation:
-  the current feature beta is `v0.9.3-beta.2`, while `v1.0.0` should wait for
-  completion of real-survey validation fixes;
+  `v0.9.3-beta.2` is closed as a source-tagged beta, while `v1.0.0` should
+  wait for the remaining real-survey validation fixes;
 - future beta release candidates should use the current minor beta line for
   validation/polish or a new minor beta for feature-level additions; do not
   regenerate exe/ZIP for every commit, only when cutting an intentional release
@@ -74,8 +74,10 @@ Current status:
   Position 6; Extra Details header descriptions are also measured after layout
   at their real dialog width so longer recommendation text does not create
   inconsistent blank space above the cards;
-- the latest Windows release artifact remains the `v0.9.2-beta.1` PyInstaller
-  `onedir` ZIP until an intentional package rebuild is requested;
+- `v0.9.3-beta.2` is closed as a source-only beta step; no exe/ZIP was
+  regenerated, so the latest Windows release artifact remains the
+  `v0.9.2-beta.1` PyInstaller `onedir` ZIP until an intentional package rebuild
+  is requested;
 - Help content and structure have an expanded V2 Help Center implementation;
   the Recommended Workflow page has received the first visual-density polish
   pass with step cards, decision-gate rows and Qt-compatible accent-column
@@ -882,25 +884,22 @@ Remaining closeout:
 
 V2 closeout:
 
-1. Validate `v0.9.3-beta.2` on the office survey and confirm that scanner detail
-   findings correctly identify points worth rescanning and that KPI-driven point
-   lists keep Survey Quality usable with larger datasets.
-2. Add relevant-network scope for local/zone-only SSIDs as `v0.9.4-beta.1`, so
+1. Add relevant-network scope for local/zone-only SSIDs as `v0.9.4-beta.1`, so
    SSIDs like office-local routers do not create whole-building quality noise.
-3. Add connected-client BSSID/roaming diagnostics as `v0.9.5-beta.1` if Windows
+2. Add connected-client BSSID/roaming diagnostics as `v0.9.5-beta.1` if Windows
    exposes stable connected-BSSID evidence during capture.
-4. Review the new Help Center in the running UI and polish wording/formatting
+3. Review the new Help Center in the running UI and polish wording/formatting
    where real screenshots show a problem.
-5. Do a short EN/IT Help and UI smoke pass after the Help review.
+4. Do a short EN/IT Help and UI smoke pass after the Help review.
 
 Monitoring:
 
-6. Keep AP Group, live PDF and Survey Quality in monitoring mode unless new
+5. Keep AP Group, live PDF and Survey Quality in monitoring mode unless new
    real data exposes a concrete issue.
-7. Validate AP Memory behavior on repeat surveys, especially large AP sets,
+6. Validate AP Memory behavior on repeat surveys, especially large AP sets,
    copied memory files and floor-plan position reuse.
-8. Validate 6 GHz behavior with real 6E/7 hardware data when available.
-9. Tune performance only after larger real surveys show measurable lag.
+7. Validate 6 GHz behavior with real 6E/7 hardware data when available.
+8. Tune performance only after larger real surveys show measurable lag.
 
 Post-V2 expansion:
 
