@@ -74,10 +74,11 @@ Current status:
   Position 6; Extra Details header descriptions are also measured after layout
   at their real dialog width so longer recommendation text does not create
   inconsistent blank space above the cards;
-- `v0.9.3-beta.2` is closed as a source-only beta step; no exe/ZIP was
-  regenerated, so the latest Windows release artifact remains the
-  `v0.9.2-beta.1` PyInstaller `onedir` ZIP until an intentional package rebuild
-  is requested;
+- `v0.9.3-beta.2` is closed/tagged; a Windows PyInstaller `onedir`
+  executable has been regenerated on request from this beta line, while no
+  release ZIP has been generated yet. The latest zipped Windows release
+  artifact therefore remains the `v0.9.2-beta.1` PyInstaller `onedir` ZIP
+  until an intentional ZIP package rebuild is requested;
 - Help content and structure have an expanded V2 Help Center implementation;
   the Recommended Workflow page has received the first visual-density polish
   pass with step cards, decision-gate rows and Qt-compatible accent-column
