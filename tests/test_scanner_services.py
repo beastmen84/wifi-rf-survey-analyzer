@@ -44,6 +44,39 @@ BSSID                  : 70:4f:57:aa:bb:10
     def test_decode_lswifi_ssid_strips_null_padding(self):
         self.assertEqual(scanner_module.decode_lswifi_ssid(b"MAIN\x00\x00\x00"), "MAIN")
 
+    def test_parse_netsh_interfaces_output_reads_connected_bssid(self):
+        output = """
+Name                   : Wi-Fi
+State                  : connected
+SSID                   : MAIN
+AP BSSID               : 70:4f:57:aa:bb:10
+Band                   : 5 GHz
+Channel                : 40
+Radio type             : 802.11ax
+Signal                 : 90%
+Rssi                   : -44
+"""
+
+        connected = scanner_module.parse_netsh_interfaces_output(output)
+
+        self.assertEqual(connected["ssid"], "MAIN")
+        self.assertEqual(connected["bssid"], "70:4f:57:aa:bb:10")
+        self.assertEqual(connected["band"], "5")
+        self.assertEqual(connected["channel"], "40")
+        self.assertEqual(connected["radio"], "802.11ax")
+        self.assertEqual(connected["signal_percent"], 90)
+        self.assertEqual(connected["signal_dbm"], -44.0)
+
+    def test_parse_netsh_interfaces_output_ignores_disconnected_interface(self):
+        output = """
+Name                   : Wi-Fi
+State                  : disconnected
+SSID                   : MAIN
+AP BSSID               : 70:4f:57:aa:bb:10
+"""
+
+        self.assertEqual(scanner_module.parse_netsh_interfaces_output(output), {})
+
     def test_parse_netsh_output_handles_multiple_bssids_per_ssid(self):
         output = """
 SSID 1 : MAIN
@@ -158,6 +191,58 @@ SSID 2 : GUEST
 
         self.assertTrue(networks[0]["is_connected"])
         self.assertFalse(networks[1]["is_connected"])
+
+    def test_mark_connected_networks_uses_normalized_bssid(self):
+        networks = [
+            {"ssid": "MAIN", "bssid": "70:4F:57:AA:BB:10"},
+            {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:11"},
+        ]
+
+        scanner_module.mark_connected_networks(networks, {"bssid": "70-4f-57-aa-bb-10"})
+
+        self.assertTrue(networks[0]["is_connected"])
+        self.assertFalse(networks[1]["is_connected"])
+
+    def test_scan_wifi_netsh_marks_connected_bssid_from_interface_state(self):
+        calls = []
+        networks_output = """
+SSID 1 : MAIN
+    BSSID 1                 : 70:4f:57:aa:bb:10
+         Signal             : 82%
+         Radio type         : 802.11ax
+         Channel            : 40
+    BSSID 2                 : 70:4f:57:aa:bb:11
+         Signal             : 70%
+         Radio type         : 802.11ax
+         Channel            : 40
+"""
+        interfaces_output = """
+Name                   : Wi-Fi
+State                  : connected
+SSID                   : MAIN
+AP BSSID               : 70:4f:57:aa:bb:10
+"""
+
+        class Result:
+            def __init__(self, stdout):
+                self.stdout = stdout
+
+        def fake_run(args, *_positional, **_kwargs):
+            calls.append(args)
+            if args == ["netsh", "wlan", "show", "interfaces"]:
+                return Result(interfaces_output)
+            return Result(networks_output)
+
+        with (
+            patch.object(scanner_module, "WIFI_SCAN_ATTEMPTS", 1),
+            patch.object(scanner_module.subprocess, "run", side_effect=fake_run),
+        ):
+            networks = scanner_module.scan_wifi_netsh(show_errors=False)
+
+        self.assertEqual(len(networks), 2)
+        self.assertTrue(networks[0]["is_connected"])
+        self.assertFalse(networks[1]["is_connected"])
+        self.assertIn(["netsh", "wlan", "show", "interfaces"], calls)
 
     def test_frequency_band_inference_accepts_mhz_khz_hz_and_ghz_values(self):
         self.assertEqual(infer_band_from_frequency_mhz(5975), "6")

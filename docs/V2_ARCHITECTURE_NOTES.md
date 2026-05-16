@@ -923,8 +923,11 @@ V2 closeout:
    real survey data, especially intentionally local office-router SSIDs, and
    tune Auto Area behavior only if the evidence shows false positives or false
    negatives.
-2. Add connected-client BSSID/roaming diagnostics as `v0.9.5-beta.1` if Windows
-   exposes stable connected-BSSID evidence during capture.
+2. Add connected-client BSSID/roaming diagnostics as `v0.9.5-beta.1`. Step 1 is
+   started: both `lswifi` and `netsh wlan show interfaces` expose the connected
+   BSSID, and scanner code now normalizes that current-connection evidence so
+   `netsh` scans can mark the connected BSSID like `lswifi` already did. Next
+   steps are persistence in survey/raw data and Quality Dashboard diagnostics.
 3. Review the new Help Center in the running UI and polish wording/formatting
    where real screenshots show a problem.
 4. Do a short EN/IT Help and UI smoke pass after the Help review.

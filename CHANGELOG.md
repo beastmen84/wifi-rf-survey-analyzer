@@ -11,6 +11,10 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 - Added a README Development Approach note documenting transparent use of
   AI-assisted coding tools while keeping project direction, field testing and
   validation manually driven.
+- Started connected-client BSSID evidence for future roaming diagnostics:
+  scanner code now normalizes current connection details from both `lswifi` and
+  `netsh`, and `netsh` scans can mark the currently connected BSSID just like
+  `lswifi` scans already did.
 
 ## v0.9.4-beta.2 - 2026-05-16
 

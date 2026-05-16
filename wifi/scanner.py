@@ -31,20 +31,24 @@ def get_connected_ssid():
     return get_connected_ssid_lswifi() or get_connected_ssid_netsh()
 
 
+def get_connected_network():
+    return get_connected_network_lswifi() or get_connected_network_netsh() or {}
+
+
 def get_connected_ssid_lswifi():
+    connected = get_connected_network_lswifi()
+    return connected.get("ssid", "") if connected else None
+
+
+def get_connected_network_lswifi():
     try:
         from lswifi import wlanapi as lswifi_wlanapi
 
         interfaces = lswifi_wlanapi.WLAN.get_wireless_interfaces()
         for _interface_index, interface in interfaces.items():
-            _raw_result, connection = lswifi_wlanapi.WLAN.query_interface(interface, "current_connection")
-            if not isinstance(connection, dict) or connection.get("isState") != "connected":
-                continue
-
-            association = connection.get("wlanAssociationAttributes") or {}
-            ssid = decode_lswifi_ssid(association.get("dot11Ssid"))
-            if ssid:
-                return ssid
+            connected = get_lswifi_connected_network(lswifi_wlanapi, interface)
+            if connected.get("ssid"):
+                return connected
     except Exception:
         return None
 
@@ -59,6 +63,11 @@ def decode_lswifi_ssid(value):
 
 
 def get_connected_ssid_netsh():
+    connected = get_connected_network_netsh()
+    return connected.get("ssid", "") if connected else None
+
+
+def get_connected_network_netsh():
     try:
         result = subprocess.run(
             ["netsh", "wlan", "show", "interfaces"],
@@ -70,20 +79,43 @@ def get_connected_ssid_netsh():
             **hidden_subprocess_kwargs(),
         )
 
-        for line in result.stdout.splitlines():
-            line = line.strip()
-
-            if re.match(r"^BSSID\s+:", line, flags=re.IGNORECASE):
-                continue
-
-            ssid_match = re.match(r"^SSID\s+:\s+(.*)", line, flags=re.IGNORECASE)
-            if ssid_match:
-                return ssid_match.group(1).strip()
+        return parse_netsh_interfaces_output(result.stdout)
 
     except Exception:
         return None
 
     return None
+
+
+def parse_netsh_interfaces_output(output):
+    fields = {}
+
+    for line in str(output or "").splitlines():
+        match = re.match(r"^([^:]+?)\s+:\s+(.*)$", line.strip())
+        if not match:
+            continue
+        key = re.sub(r"\s+", " ", match.group(1).strip()).lower()
+        fields[key] = match.group(2).strip()
+
+    state = fields.get("state", "")
+    if state and state.lower() != "connected":
+        return {}
+
+    ssid = clean_scan_text(fields.get("ssid", ""))
+    bssid = clean_bssid_text(fields.get("ap bssid") or fields.get("bssid"))
+    if not ssid and not bssid:
+        return {}
+
+    return {
+        "ssid": ssid,
+        "bssid": bssid,
+        "channel": clean_scan_text(fields.get("channel", "")),
+        "band": normalize_band(fields.get("band", "")),
+        "radio": clean_scan_text(fields.get("radio type", "")),
+        "signal_percent": parse_percent(fields.get("signal", "")),
+        "signal_dbm": parse_netsh_rssi(fields.get("rssi", "")),
+        "backend": "netsh",
+    }
 
 
 def hidden_subprocess_kwargs():
@@ -113,7 +145,9 @@ def scan_wifi_netsh(show_errors=True):
                 errors="ignore",
                 **hidden_subprocess_kwargs(),
             )
-            scans.extend(annotate_raw_scan_samples(parse_netsh_output(result.stdout), attempt + 1, "netsh"))
+            connected = get_connected_network_netsh()
+            networks = mark_connected_networks(parse_netsh_output(result.stdout), connected)
+            scans.extend(annotate_raw_scan_samples(networks, attempt + 1, "netsh"))
 
             if attempt < WIFI_SCAN_ATTEMPTS - 1:
                 time.sleep(WIFI_SCAN_DELAY_SECONDS)
@@ -141,7 +175,6 @@ def scan_wifi_lswifi(show_errors=True):
         interface_count = max(1, len(interfaces))
 
         for _interface_index, interface in interfaces.items():
-            connected_bssids = get_lswifi_connected_bssids(lswifi_wlanapi, interface)
             for attempt in range(WIFI_SCAN_ATTEMPTS):
                 try:
                     lswifi_wlanapi.WLAN.scan(interface.guid)
@@ -154,6 +187,8 @@ def scan_wifi_lswifi(show_errors=True):
                     interface,
                     False
                 )
+                connected = get_lswifi_connected_network(lswifi_wlanapi, interface)
+                connected_bssids = {connected.get("bssid", "")} if connected.get("bssid") else set()
                 scans.extend(annotate_raw_scan_samples(
                     parse_lswifi_bss_list(bss_list, connected_bssids=connected_bssids),
                     attempt + 1,
@@ -187,17 +222,68 @@ def annotate_raw_scan_samples(networks, scan_attempt, backend):
 
 
 def get_lswifi_connected_bssids(lswifi_wlanapi, interface):
-    try:
-        connected_bssid = lswifi_wlanapi.WLAN.get_connected_bssid(interface)
-    except Exception:
-        return set()
-
-    normalized = normalize_bssid(clean_scan_text(connected_bssid))
+    connected = get_lswifi_connected_network(lswifi_wlanapi, interface)
+    normalized = normalize_bssid(connected.get("bssid", ""))
     return {normalized} if normalized else set()
+
+
+def get_lswifi_connected_network(lswifi_wlanapi, interface):
+    try:
+        _raw_result, connection = lswifi_wlanapi.WLAN.query_interface(interface, "current_connection")
+    except Exception:
+        connection = {}
+
+    if not isinstance(connection, dict) or connection.get("isState") != "connected":
+        return {}
+
+    association = connection.get("wlanAssociationAttributes") or {}
+    bssid = clean_bssid_text(association.get("dot11Bssid"))
+    if not bssid:
+        try:
+            bssid = clean_bssid_text(lswifi_wlanapi.WLAN.get_connected_bssid(interface))
+        except Exception:
+            bssid = ""
+
+    return {
+        "ssid": decode_lswifi_ssid(association.get("dot11Ssid")),
+        "bssid": bssid,
+        "radio": format_lswifi_radio(association.get("dot11PhyType")) or clean_scan_text(association.get("dot11PhyType")),
+        "signal_percent": parse_percent(association.get("wlanSignalQuality")),
+        "backend": "lswifi",
+    }
 
 
 def normalize_bssid(value):
     return re.sub(r"[^0-9a-f]", "", str(value or "").lower())
+
+
+def clean_bssid_text(value):
+    if isinstance(value, (bytes, bytearray)):
+        return ":".join(f"{byte:02x}" for byte in bytes(value)[:6])
+
+    return clean_scan_text(value)
+
+
+def parse_percent(value):
+    match = re.search(r"-?\d+", str(value or ""))
+    if not match:
+        return ""
+
+    try:
+        return int(match.group(0))
+    except ValueError:
+        return ""
+
+
+def parse_netsh_rssi(value):
+    match = re.search(r"-?\d+", str(value or ""))
+    if not match:
+        return ""
+
+    try:
+        return float(match.group(0))
+    except ValueError:
+        return ""
 
 
 def lswifi_value(value, default=""):
@@ -253,6 +339,20 @@ def parse_lswifi_bss_list(bss_list, connected_bssids=None):
             "is_connected": normalize_bssid(bssid) in connected_bssids,
             **extra_details,
         })
+
+    return networks
+
+
+def mark_connected_networks(networks, connected):
+    connected_bssid = normalize_bssid((connected or {}).get("bssid"))
+    if not connected_bssid:
+        return networks
+
+    for network in networks:
+        if normalize_bssid(network.get("bssid")) == connected_bssid:
+            network["is_connected"] = True
+        else:
+            network.setdefault("is_connected", False)
 
     return networks
 
