@@ -744,7 +744,7 @@ TRANSLATIONS = {
                 <td class="workflow-gap"></td>
                 <td class="workflow-card">
                     <div class="step-title">Recommendation Details</div>
-                    <p><b>Extra Details</b> opens a larger detail window for one recommendation. Rows are measured as real cards, so the dialog opens on whole-card boundaries and long lists continue inside the scroll area. Current default visible-card counts are Scanner Details 4, Dominant AP Findings 5, AP Config Warnings 6, Channel Changes 4, AP Memory Review 5 and APs Without Position 6.</p>
+                    <p><b>Extra Details</b> opens a larger detail window for one recommendation. Rows are measured as real cards, so the dialog opens on whole-card boundaries and long lists continue inside the scroll area. Current default visible-card counts are Scanner Details 4, Dominant AP Findings 5, AP Config Warnings 5, Channel Changes 4, AP Memory Review 5 and APs Without Position 6.</p>
                     <div class="step-gate"><b>Use when:</b> the card summary is not enough to decide the next action.</div>
                 </td>
             </tr>

@@ -744,7 +744,7 @@ TRANSLATIONS = {
                 <td class="workflow-gap"></td>
                 <td class="workflow-card">
                     <div class="step-title">Dettagli Raccomandazioni</div>
-                    <p><b>Extra Details</b> apre una finestra più grande per una raccomandazione. Le righe sono misurate come vere card, quindi il dialog si apre su limiti di card intere e le liste lunghe proseguono nell'area scroll. I default attuali sono Dettagli Scanner 4, Anomalie Dominant AP 5, Warning Configurazione AP 6, Cambi Canale 4, Verifica Memoria AP 5 e AP Senza Posizione 6.</p>
+                    <p><b>Extra Details</b> apre una finestra più grande per una raccomandazione. Le righe sono misurate come vere card, quindi il dialog si apre su limiti di card intere e le liste lunghe proseguono nell'area scroll. I default attuali sono Dettagli Scanner 4, Anomalie Dominant AP 5, Warning Configurazione AP 5, Cambi Canale 4, Verifica Memoria AP 5 e AP Senza Posizione 6.</p>
                     <div class="step-gate"><b>Usalo quando:</b> il riepilogo della card non basta per decidere l'azione successiva.</div>
                 </td>
             </tr>

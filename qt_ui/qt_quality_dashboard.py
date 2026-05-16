@@ -102,14 +102,13 @@ SCANNER_DETAIL_DIALOG_MAX_HEIGHT = 760
 DETAIL_VISIBLE_CARD_LIMITS = {
     "quality_dashboard_metric_scanner_details": SCANNER_DETAIL_DEFAULT_VISIBLE_CARDS,
     "quality_dashboard_metric_ap_diagnostic_points": 5,
-    "quality_dashboard_metric_ap_metadata_warnings": 6,
+    "quality_dashboard_metric_ap_metadata_warnings": 5,
     "quality_dashboard_metric_channel_changes": 4,
     "quality_dashboard_metric_ap_missing_positions": 6,
     "quality_dashboard_metric_ap_memory_applied": 5,
 }
 DETAIL_DIALOG_MAX_HEIGHTS = {
     "quality_dashboard_metric_scanner_details": SCANNER_DETAIL_DIALOG_MAX_HEIGHT,
-    "quality_dashboard_metric_ap_metadata_warnings": 820,
     "quality_dashboard_metric_ap_missing_positions": 820,
 }
 
@@ -1183,6 +1182,7 @@ class RecommendationDetailsDialog(QDialog):
 
         title = QLabel(recommendation.get("title", ""))
         title.setObjectName("sectionTitle")
+        title.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         layout.addWidget(title)
 
         detail_text = recommendation.get("dialog_detail", recommendation.get("detail", ""))
@@ -1190,6 +1190,7 @@ class RecommendationDetailsDialog(QDialog):
             detail = QLabel(detail_text)
             detail.setObjectName("mutedText")
             detail.setWordWrap(True)
+            detail.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             layout.addWidget(detail)
 
         if detail_actions:
