@@ -1,6 +1,6 @@
 # WiFi Heatmap - V2 Architecture Notes
 
-Last updated: 2026-05-15
+Last updated: 2026-05-16
 
 This document is the forward-looking V2 roadmap. Completed items are kept only
 as context; the actionable backlog is in the "Remaining Work" section.
@@ -69,7 +69,8 @@ Current status:
   oversized dialogs or show a partially clipped next card; AP Model KPI cards
   now route to their matching Extra Details for AP Memory matches, APs without
   position, AP config warnings, channel changes and Dominant AP findings, with
-  metric-specific whole-card limits;
+  metric-specific whole-card limits: Scanner Details 4, Dominant AP/AP Config/
+  Channel Changes 5, AP Memory Review 6 and APs Without Position 8;
 - the latest Windows release artifact remains the `v0.9.2-beta.1` PyInstaller
   `onedir` ZIP until an intentional package rebuild is requested;
 - Help content and structure have an expanded V2 Help Center implementation;
@@ -860,6 +861,10 @@ Implemented:
   initial overflow window height is also corrected after header reflow so
   translated dialog text cannot donate extra height to the scroll area and show
   a partial next card.
+- Extra Details sizing now has explicit fake-data regression coverage for all
+  detail types. Tests open each dialog below its limit, exactly at its limit and
+  above its limit, then verify full-card boundaries, overflow behavior and no
+  extra scrollable blank space after the last card.
 
 Remaining closeout:
 

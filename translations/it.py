@@ -738,13 +738,13 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card">
                     <div class="step-title">Liste Punti Da KPI</div>
-                    <p>La dashboard principale non mostra subito la tabella punti. Clicca le KPI di evidenza punto, per esempio Punti Da Verificare, Bassa Confidenza Scansione o Segnale Instabile, per aprire liste punti compatte. Dettagli Scanner Mancanti e Anomalie Dominant AP aprono invece le rispettive finestre Extra Details più ricche. Totale Punti e Scan OK sono solo riepiloghi. La colonna Problema segue il contesto della KPI; le diagnostiche lunghe restano su una riga e mostrano il testo completo nel tooltip.</p>
+                    <p>La dashboard principale non mostra subito la tabella punti. Clicca le KPI di evidenza punto, per esempio Punti Da Verificare, Reti Rilevanti Mancanti, Dati Scarsi, Bassa Confidenza Scansione o Segnale Instabile, per aprire liste punti compatte. Dettagli Scanner Mancanti e le KPI strutturate del modello AP aprono invece Extra Details. Totale Punti e Scan OK sono solo riepiloghi. La colonna Problema segue il contesto della KPI; le diagnostiche lunghe restano su una riga e mostrano il testo completo nel tooltip.</p>
                     <div class="step-gate"><b>Vai Al Punto:</b> da una lista punti chiude la dashboard, seleziona il punto nel tab Survey e apre il pannello punto per ispezione o rescan.</div>
                 </td>
                 <td class="workflow-gap"></td>
                 <td class="workflow-card">
                     <div class="step-title">Dettagli Raccomandazioni</div>
-                    <p><b>Dettagli</b> apre una finestra più grande per una raccomandazione. Così la dashboard principale resta compatta anche con molti gruppi AP o punti da rivedere.</p>
+                    <p><b>Extra Details</b> apre una finestra più grande per una raccomandazione. Le righe sono misurate come vere card, quindi il dialog si apre su limiti di card intere e le liste lunghe proseguono nell'area scroll. I default attuali sono Dettagli Scanner 4, Dominant AP/Config AP/Cambi Canale 5, Verifica Memoria AP 6 e AP Senza Posizione 8.</p>
                     <div class="step-gate"><b>Usalo quando:</b> il riepilogo della card non basta per decidere l'azione successiva.</div>
                 </td>
             </tr>
@@ -769,13 +769,13 @@ TRANSLATIONS = {
                     <p><b>Punti Totali:</b> evidenza spaziale raccolta.</p>
                     <p><b>Scan OK:</b> punti con evidenza scan utilizzabile.</p>
                     <p><b>Punti Da Verificare:</b> punti da ispezionare prima di fidarsi delle mappe. Non tutti richiedono per forza una nuova misura: alcuni richiedono controllo del modello o della posizione AP.</p>
-                    <p><b>Card cliccabili:</b> aprono una lista punti o una finestra Extra Details, in base al tipo di diagnostica.</p>
+                    <p><b>Card cliccabili:</b> le card di evidenza punto aprono liste punti compatte; le card scanner/modello AP strutturate aprono Extra Details; Punti Totali e Scan OK non sono cliccabili.</p>
                 </td>
                 <td class="survey-gap"></td>
                 <td class="survey-card">
                     <div class="survey-card-title">Qualità Scan</div>
                     <p><b>Reti Rilevanti Mancanti:</b> SSID previsti non visti in un punto.</p>
-                    <p><b>Dati Radi:</b> evidenza ripetuta troppo limitata.</p>
+                    <p><b>Dati Scarsi:</b> evidenza ripetuta troppo limitata.</p>
                     <p><b>Dettagli Scanner Mancanti:</b> dati da scanner fallback o ampiezza/frequenza mancanti possono indebolire conclusioni su Interferenza e 6 GHz.</p>
                     <p><b>Bassa Confidenza / Segnale Instabile:</b> scan ripetuti deboli o incoerenti.</p>
                 </td>
@@ -785,7 +785,8 @@ TRANSLATIONS = {
                     <p><b>Finding AP Dominante:</b> osservazioni roaming o posizione AP da controllare.</p>
                     <p><b>AP Senza Posizione:</b> gruppi AP rilevanti senza coordinate mappa.</p>
                     <p><b>Warning Config AP:</b> mismatch metadata/deployment.</p>
-                    <p><b>Verifica Memoria AP / Cambi Canale:</b> dati AP ricordati, differenze manuali rispetto alla memoria o ipotesi canale ancora da rivedere.</p>
+                    <p><b>Verifica Memoria AP:</b> dati AP riusati dalla memoria oppure dati AP manuali correnti diversi dalla memoria salvata.</p>
+                    <p><b>Cambi Canale:</b> cambi canale puliti o ambigui che influenzano le ipotesi di Canali AP e Interferenza.</p>
                 </td>
             </tr>
         </table>
@@ -797,7 +798,7 @@ TRANSLATIONS = {
             <div class="gate-row"><b>4. Verifica Memoria AP:</b> Da Memoria non è un errore. Significa che alias, ruoli, metadata, override o posizioni compatibili sono stati riusati e vanno confermati o modificati. Uno stato memoria barrato indica dati AP manuali correnti diversi da quelli salvati in memoria.</div>
         </div>
         <h2>Finestra Dettagli</h2>
-        <p>Usa le KPI punto per aprire liste filtrate dei punti di misura. Usa <b>Dettagli</b> quando una card raccomandazione mostra gruppi AP, cambi canale o contesto diagnostico lungo. Le righe dettaglio sono pensate per survey grandi: ogni punto, gruppo AP o cambio canale coinvolto ha la sua riga, e i pulsanti aprono la mappa o l'editor corretto senza caricare tutto nella dashboard principale.</p>
+        <p>Usa le KPI punto per aprire liste filtrate dei punti di misura. Usa <b>Extra Details</b> quando una card raccomandazione mostra gruppi AP, cambi canale o contesto diagnostico lungo. Le righe dettaglio sono pensate per survey grandi: ogni punto, gruppo AP o cambio canale coinvolto ha la sua card, e i pulsanti aprono la mappa o l'editor corretto senza caricare tutto nella dashboard principale.</p>
         <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Scalabile Per Scelta</span><br>La dashboard principale mostra conteggi e priorità. Le finestre dettaglio contengono le liste lunghe, così molti gruppi AP o molti punti problematici restano leggibili.</td></tr></table>
         <h2>Revisione Memoria AP</h2>
         <p>Quando un nuovo rilievo vede BSSID già noti, il programma può riusare alias, ruoli, metadata, override canale analisi e posizioni mappa compatibili. Qualità Rilievo mostra anche i gruppi AP i cui dati manuali correnti sono diversi dalla memoria salvata, così l'utente può decidere se aggiornare da memoria o mantenere il modello corrente.</p>

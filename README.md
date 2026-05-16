@@ -114,8 +114,10 @@ changes open Extra Details dialogs from their KPI cards, with structured
 label/value detail rows and measured whole-card dialog sizing for dense
 AP-model findings. Dialog height is based on the actual visible card widgets,
 spacing and margins rather than fixed row estimates, and overflow dialogs open
-on whole-card boundaries before manual resizing. AP Memory Review and missing
-AP position diagnostics are kept as
+on whole-card boundaries before manual resizing. The default visible-card
+counts are tuned per diagnostic type so dense scanner/AP-model findings stay
+readable without opening oversized windows. AP Memory Review and missing AP
+position diagnostics are kept as
 separate states so remembered AP data is not confused with missing physical
 placement. AP Memory Review opens its AP-specific action from Extra Details
 rather than duplicating AP Group buttons in the dashboard card, and it includes

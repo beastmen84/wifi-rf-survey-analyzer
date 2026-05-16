@@ -328,7 +328,7 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(recommendation_detail_visible_item_count(scanner_recommendation, items[:2]), 2)
         self.assertEqual(recommendation_detail_visible_item_count(dominant_recommendation, items), 5)
         self.assertEqual(recommendation_detail_visible_item_count(metadata_recommendation, items), 5)
-        self.assertEqual(recommendation_detail_visible_item_count(channel_recommendation, items), 6)
+        self.assertEqual(recommendation_detail_visible_item_count(channel_recommendation, items), 5)
         self.assertEqual(recommendation_detail_visible_item_count(missing_position_recommendation, items), 8)
         self.assertEqual(recommendation_detail_visible_item_count(memory_recommendation, items), 6)
         self.assertGreater(
@@ -497,6 +497,120 @@ class QualityTests(unittest.TestCase):
         finally:
             dialog.close()
             owner.deleteLater()
+
+    def test_recommendation_details_dialog_card_fit_for_all_extra_detail_metrics(self):
+        QApplication.instance() or QApplication([])
+        metrics = [
+            ("quality_dashboard_metric_scanner_details", 4, "scanner"),
+            ("quality_dashboard_metric_ap_diagnostic_points", 5, "dominant"),
+            ("quality_dashboard_metric_ap_metadata_warnings", 5, "metadata"),
+            ("quality_dashboard_metric_channel_changes", 5, "channel"),
+            ("quality_dashboard_metric_ap_memory_applied", 6, "memory"),
+            ("quality_dashboard_metric_ap_missing_positions", 8, "missing_position"),
+        ]
+
+        for metric_key, visible_limit, item_kind in metrics:
+            for item_count in (max(1, visible_limit - 1), visible_limit, visible_limit + 3):
+                with self.subTest(metric_key=metric_key, item_count=item_count):
+                    owner = QWidget()
+                    owner.app = FakeQualityApp([])
+                    recommendation = {
+                        "title": metric_key,
+                        "dialog_detail": f"Detail header for {metric_key}.",
+                        "metric_key": metric_key,
+                        "detail_items": [
+                            self.build_fake_detail_item(item_kind, index)
+                            for index in range(item_count)
+                        ],
+                    }
+                    dialog = RecommendationDetailsDialog(owner, recommendation)
+
+                    try:
+                        dialog.show()
+                        for _ in range(3):
+                            QApplication.processEvents()
+
+                        expected_visible = min(item_count, visible_limit)
+                        viewport_bottom = dialog.detail_scroll.viewport().height() - 1
+                        last_visible = dialog.detail_rows[expected_visible - 1]
+
+                        self.assertEqual(dialog.visible_detail_items, expected_visible)
+                        self.assertEqual(last_visible.geometry().bottom(), viewport_bottom)
+                        self.assertEqual(
+                            dialog.detail_scroll.widget().height(),
+                            dialog.detail_rows[-1].geometry().bottom() + 1,
+                        )
+
+                        if item_count > visible_limit:
+                            first_hidden = dialog.detail_rows[expected_visible]
+                            self.assertGreater(first_hidden.geometry().top(), viewport_bottom)
+                            self.assertGreater(dialog.maximumHeight(), dialog.minimumHeight())
+                        else:
+                            self.assertEqual(dialog.detail_scroll.minimumHeight(), dialog.detail_scroll.maximumHeight())
+                            self.assertEqual(dialog.minimumHeight(), dialog.maximumHeight())
+                    finally:
+                        dialog.close()
+                        owner.deleteLater()
+
+    @staticmethod
+    def build_fake_detail_item(kind, index):
+        label = f"{kind.title()} {index + 1}"
+        if kind == "scanner":
+            return {
+                "label": f"Point {index + 1} ({100 + index}, {200 + index})",
+                "finding": "Limited Scanner Details",
+                "detail": (
+                    "<b>Scanner:</b> NETSH (fallback)<br>"
+                    "<b>Checked Scan Rows:</b> 40<br>"
+                    "<b>Missing Channel Width:</b> 40 channel-sensitive scan rows<br>"
+                    "<b>Impact:</b> channel-sensitive maps may be less reliable at this point."
+                ),
+            }
+        if kind == "dominant":
+            return {
+                "label": f"Point {index + 1} ({100 + index}, {200 + index})",
+                "finding": "Finding: unexpected dominant AP",
+                "detail": (
+                    "<b>Dominant AP:</b> AP-WEST (-48.0 dBm, 21.4 m)<br>"
+                    "<b>Closest AP:</b> AP-EAST (2.6 m)"
+                ),
+            }
+        if kind == "metadata":
+            return {
+                "label": label,
+                "detail": (
+                    "<b>Observed Channels:</b> 40, 44<br>"
+                    "<b>Expected Channels:</b> 36<br>"
+                    "<b>Observed Bands:</b> 5 GHz<br>"
+                    "<b>Expected Bands:</b> 2.4 GHz"
+                ),
+            }
+        if kind == "channel":
+            return {
+                "label": label,
+                "detail": (
+                    "<b>Band:</b> 5 GHz<br>"
+                    "<b>Observed Channels:</b> 36, 40<br>"
+                    "<b>Maps Use:</b> 40<br>"
+                    "<b>Status:</b> clean"
+                ),
+            }
+        if kind == "memory":
+            return {
+                "label": label,
+                "detail": (
+                    "<b>Memory Status:</b> <s>M</s> - current AP data differs from AP Memory<br>"
+                    "<b>Different Fields:</b> Alias, Metadata<br>"
+                    "<b>Next Step:</b> update from memory, or keep current data and save it"
+                ),
+            }
+        return {
+            "label": label,
+            "detail": (
+                f"<b>AP Group:</b> ap-{index + 1}<br>"
+                "<b>Required Action:</b> place this AP on the floor plan"
+            ),
+        }
 
     def test_quality_summary_formats_metadata_warning_labels(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)

@@ -738,13 +738,13 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card">
                     <div class="step-title">KPI Point Lists</div>
-                    <p>The main dashboard keeps the point table out of the first view. Click point-evidence KPI cards such as Points To Review, Low Scan Confidence or Unstable Signal to open compact point lists. Scanner Details Missing and Dominant AP Findings open their richer Extra Details windows. Total Points and Scan OK are summary cards only. The Issue column follows the KPI context; long diagnostics stay on one row and expose the full text through the tooltip.</p>
+                    <p>The main dashboard keeps the point table out of the first view. Click point-evidence KPI cards such as Points To Review, Missing Relevant Networks, Sparse Data, Low Scan Confidence or Unstable Signal to open compact point lists. Scanner Details Missing and structured AP-model KPI cards open Extra Details instead. Total Points and Scan OK are summary cards only. The Issue column follows the KPI context; long diagnostics stay on one row and expose the full text through the tooltip.</p>
                     <div class="step-gate"><b>Focus Point:</b> from a point list, closes the dashboard, selects the point on the Survey tab and opens the point panel for inspection or rescan.</div>
                 </td>
                 <td class="workflow-gap"></td>
                 <td class="workflow-card">
                     <div class="step-title">Recommendation Details</div>
-                    <p><b>Extra Details</b> opens a larger detail window for one recommendation. This keeps the main dashboard compact even when many AP groups or points need review.</p>
+                    <p><b>Extra Details</b> opens a larger detail window for one recommendation. Rows are measured as real cards, so the dialog opens on whole-card boundaries and long lists continue inside the scroll area. Current default visible-card counts are Scanner Details 4, Dominant AP/AP Config/Channel Changes 5, AP Memory Review 6 and APs Without Position 8.</p>
                     <div class="step-gate"><b>Use when:</b> the card summary is not enough to decide the next action.</div>
                 </td>
             </tr>
@@ -769,7 +769,7 @@ TRANSLATIONS = {
                     <p><b>Total Points:</b> spatial evidence collected.</p>
                     <p><b>Scan OK:</b> points with usable scan evidence.</p>
                     <p><b>Points To Review:</b> points that should be inspected before maps are trusted. Not every point necessarily needs a rescan; some require AP model or position review.</p>
-                    <p><b>Clickable cards:</b> open either a compact point list or an Extra Details window, depending on the diagnostic type.</p>
+                    <p><b>Clickable cards:</b> point-evidence cards open compact point lists; structured scanner/AP-model cards open Extra Details; Total Points and Scan OK are not clickable.</p>
                 </td>
                 <td class="survey-gap"></td>
                 <td class="survey-card">
@@ -785,7 +785,8 @@ TRANSLATIONS = {
                     <p><b>Dominant AP Findings:</b> roaming or AP-position observations worth checking.</p>
                     <p><b>APs Without Position:</b> relevant AP groups missing map coordinates.</p>
                     <p><b>AP Config Warnings:</b> metadata/deployment mismatch.</p>
-                    <p><b>AP Memory Review / Channel Changes:</b> remembered AP data, manual AP-memory differences or channel assumptions still need review.</p>
+                    <p><b>AP Memory Review:</b> AP data reused from memory or current manual AP data that differs from saved memory.</p>
+                    <p><b>Channel Changes:</b> clean or ambiguous channel changes that affect AP Channels and Interference assumptions.</p>
                 </td>
             </tr>
         </table>
@@ -797,7 +798,7 @@ TRANSLATIONS = {
             <div class="gate-row"><b>4. Review AP Memory:</b> From Memory is not an error. It means aliases, roles, metadata, overrides or compatible positions were reused and should be confirmed or edited. A struck-through memory state means current manual AP data differs from saved memory.</div>
         </div>
         <h2>Detail Dialogs</h2>
-        <p>Use point KPI cards for filtered measurement-point lists. Use <b>Extra Details</b> when a recommendation card shows AP groups, channel changes or long diagnostic context. Detail rows are designed for large surveys: each affected point, AP group or channel change gets its own row, and action buttons open the right map or editor without forcing every problem onto the main dashboard.</p>
+        <p>Use point KPI cards for filtered measurement-point lists. Use <b>Extra Details</b> when a recommendation card shows AP groups, channel changes or long diagnostic context. Detail rows are designed for large surveys: each affected point, AP group or channel change gets its own card, and action buttons open the right map or editor without forcing every problem onto the main dashboard.</p>
         <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Scalable By Design</span><br>The main dashboard gives counts and priorities. Detail dialogs hold the long lists so many AP groups or many bad points remain readable.</td></tr></table>
         <h2>AP Memory Review</h2>
         <p>When a repeated survey sees known BSSIDs, the program can reuse saved AP aliases, roles, metadata, analysis-channel overrides and compatible floor-plan positions. Survey Quality also reports AP groups whose current manual data differs from saved memory, so the user can decide whether to update from memory or keep the current model.</p>
