@@ -2450,6 +2450,7 @@ def build_ap_position_quality_by_point(app, ap_groups=None, relevant_ssids_by_po
 
     group_map = build_bssid_to_manual_group_map(ap_groups)
     position_ap_groups = filter_ap_groups_for_relevant_ssids(app, ap_groups)
+    ssids_by_group_id = build_ap_group_ssids_by_id(app.session.rows, ap_groups, group_map)
     role_map = {
         str(group.get("group_id", "")): normalize_ap_role(group.get("role"))
         for group in ap_groups
@@ -2482,6 +2483,14 @@ def build_ap_position_quality_by_point(app, ap_groups=None, relevant_ssids_by_po
         if current and signal_dbm <= current["dominant_signal_dbm"]:
             continue
 
+        point_position_ap_groups = position_ap_groups
+        if not infer_relevant:
+            point_position_ap_groups = filter_ap_groups_for_point_relevant_scope(
+                position_ap_groups,
+                ssids_by_group_id,
+                point_relevant_ssids,
+            )
+
         best_by_point[key] = {
             "timestamp": row.get("timestamp", ""),
             "x": row.get("x", ""),
@@ -2489,13 +2498,14 @@ def build_ap_position_quality_by_point(app, ap_groups=None, relevant_ssids_by_po
             "dominant_ap_group": group_id,
             "dominant_bssid": bssid,
             "dominant_signal_dbm": signal_dbm,
+            "position_ap_groups": point_position_ap_groups,
         }
 
     result = {}
     for key, dominant_row in best_by_point.items():
         analysis = analyze_dominant_ap_position(
             dominant_row,
-            position_ap_groups,
+            dominant_row.get("position_ap_groups", position_ap_groups),
             app.get_px_per_meter(),
         )
         warnings = analysis.get("warnings", [])
@@ -2521,6 +2531,42 @@ def row_is_relevant_for_position(row, relevant_ssids, infer_relevant=True):
         return normalize_ssid(row.get("ssid")) in relevant_ssids
 
     return normalize_ssid(row.get("ssid")) in relevant_ssids or is_truthy(row.get("is_relevant"))
+
+
+def build_ap_group_ssids_by_id(rows, ap_groups, group_map=None):
+    group_map = group_map if group_map is not None else build_bssid_to_manual_group_map(ap_groups)
+    group_ids = {
+        str(group.get("group_id", ""))
+        for group in ap_groups
+        if str(group.get("group_id", ""))
+    }
+    ssids_by_group_id = {group_id: set() for group_id in group_ids}
+
+    for row in rows:
+        ssid = normalize_ssid(row.get("ssid"))
+        if not ssid:
+            continue
+        group_id = resolve_ap_group_key(row.get("bssid", ""), group_map)
+        if group_id in ssids_by_group_id:
+            ssids_by_group_id[group_id].add(ssid)
+
+    return ssids_by_group_id
+
+
+def filter_ap_groups_for_point_relevant_scope(ap_groups, ssids_by_group_id, point_relevant_ssids):
+    point_relevant_ssids = {
+        normalize_ssid(ssid)
+        for ssid in point_relevant_ssids or []
+        if normalize_ssid(ssid)
+    }
+    if not point_relevant_ssids:
+        return []
+
+    return [
+        group
+        for group in ap_groups
+        if ssids_by_group_id.get(str(group.get("group_id", "")), set()) & point_relevant_ssids
+    ]
 
 
 def row_point_key(row):

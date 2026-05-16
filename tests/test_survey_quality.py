@@ -274,6 +274,41 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(relevant_by_point["p2"], {"main"})
         self.assertNotIn("p2", position_warnings)
 
+    def test_ap_position_quality_excludes_local_ap_positions_outside_point_scope(self):
+        main_bssid = "70:4f:57:aa:bb:10"
+        local_bssid = "80:11:22:33:44:10"
+        main_row = build_row("p1", "MAIN", main_bssid, -56, 1)
+        main_row["x"] = "80"
+        main_row["y"] = "0"
+        local_row = build_row("p1", "LOCAL", local_bssid, -42, 1)
+        local_row["x"] = "80"
+        local_row["y"] = "0"
+        groups = [
+            build_manual_ap_group(
+                "main-ap",
+                [main_bssid],
+                position={"x": 300, "y": 0},
+            ),
+            build_manual_ap_group(
+                "local-ap",
+                [local_bssid],
+                position={"x": 0, "y": 0},
+                metadata={"coverage_scope": "local", "coverage_radius_m": "5"},
+            ),
+        ]
+        app = FakeQualityApp([main_row, local_row], groups, relevant_ssids={"MAIN", "LOCAL"})
+        app.px_per_meter = 10
+
+        relevant_by_point = build_quality_relevant_ssids_by_point(app, groups, get_effective_relevant_ssids(app))
+        position_warnings = build_ap_position_quality_by_point(
+            app,
+            groups,
+            relevant_ssids_by_point=relevant_by_point,
+        )
+
+        self.assertEqual(relevant_by_point["p1"], {"main"})
+        self.assertNotIn("p1", position_warnings)
+
     def test_quality_summary_counts_auto_ap_groups_without_position(self):
         rows = [build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)]
         app = FakeQualityApp(rows)

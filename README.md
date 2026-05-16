@@ -108,7 +108,8 @@ signals, sparse point data, limited scanner details, AP metadata warnings, AP
 Memory review states, AP group conflicts, missing AP positions, dominant-AP
 position anomalies, and AP channel changes that affect channel-sensitive maps.
 AP groups marked as Local Area are scoped per measurement point so intentionally
-local SSIDs are not treated as whole-building quality requirements.
+local SSIDs are not treated as whole-building quality requirements, and the
+same scope is used by Dominant AP position diagnostics.
 Actionable point-related KPI cards open compact point lists for point-evidence
 issues. Structured diagnostics such as scanner details, dominant-AP position,
 AP Memory matches, AP metadata warnings, missing AP positions, and channel

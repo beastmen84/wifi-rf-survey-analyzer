@@ -692,7 +692,9 @@ Current implemented expansion:
 - local/zone-only AP coverage scope is applied before point-quality evaluation,
   so SSIDs marked Local Area are not treated as whole-building expectations.
   A manual radius uses scale and AP position; Auto Area uses usable local
-  evidence as the inferred zone.
+  evidence as the inferred zone. Dominant AP position diagnostics use the same
+  per-point scope, so local APs outside their expected area are not used as
+  nearest-position candidates.
 
 Post-V2 possible additions:
 

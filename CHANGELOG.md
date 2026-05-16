@@ -22,6 +22,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   SSIDs are evaluated only inside their manual radius when scale and AP
   position are available, or from usable Auto Area evidence otherwise, reducing
   whole-building quality noise for intentionally local SSIDs.
+- Dominant AP position diagnostics now use the same per-point scope, so APs
+  marked Local Area are not considered nearest-position candidates outside
+  their expected area.
 
 ## v0.9.3-beta.2 - 2026-05-16
 
