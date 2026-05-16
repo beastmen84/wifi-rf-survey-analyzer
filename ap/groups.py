@@ -19,6 +19,8 @@ AP_METADATA_FIELDS = (
     "analysis_channel_override_24",
     "analysis_channel_override_5",
     "analysis_channel_override_6",
+    "coverage_scope",
+    "coverage_radius_m",
     "notes",
 )
 AP_ANALYSIS_CHANNEL_OVERRIDE_FIELDS = (
@@ -36,6 +38,12 @@ AP_ROLE_CHOICES = (
     AP_ROLE_EXTERNAL,
     AP_ROLE_INTERFERER,
     AP_ROLE_TEST,
+)
+AP_COVERAGE_SCOPE_GLOBAL = "global"
+AP_COVERAGE_SCOPE_LOCAL = "local"
+AP_COVERAGE_SCOPE_CHOICES = (
+    AP_COVERAGE_SCOPE_GLOBAL,
+    AP_COVERAGE_SCOPE_LOCAL,
 )
 
 
@@ -161,11 +169,55 @@ def normalize_ap_metadata(value):
     if not isinstance(value, dict):
         return {}
 
-    return {
+    metadata = {
         field: str(value.get(field, "")).strip()
         for field in AP_METADATA_FIELDS
         if str(value.get(field, "")).strip()
     }
+    scope = normalize_ap_coverage_scope(metadata.get("coverage_scope", ""))
+    if scope == AP_COVERAGE_SCOPE_LOCAL:
+        metadata["coverage_scope"] = scope
+        radius = normalize_coverage_radius_m(metadata.get("coverage_radius_m", ""))
+        if radius:
+            metadata["coverage_radius_m"] = radius
+        else:
+            metadata.pop("coverage_radius_m", None)
+    else:
+        metadata.pop("coverage_scope", None)
+        metadata.pop("coverage_radius_m", None)
+    return metadata
+
+
+def normalize_ap_coverage_scope(value):
+    scope = str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+    if scope in {"local", "zone", "zone_only", "local_area", "area"}:
+        return AP_COVERAGE_SCOPE_LOCAL
+    return AP_COVERAGE_SCOPE_GLOBAL
+
+
+def normalize_coverage_radius_m(value):
+    text = str(value or "").strip().replace(",", ".")
+    if not text:
+        return ""
+
+    try:
+        radius = float(text)
+    except ValueError:
+        return ""
+
+    if radius <= 0:
+        return ""
+
+    rounded = round(radius, 2)
+    if rounded.is_integer():
+        return str(int(rounded))
+    return f"{rounded:.2f}".rstrip("0").rstrip(".")
+
+
+def is_local_coverage_metadata(value):
+    if not isinstance(value, dict):
+        return False
+    return normalize_ap_coverage_scope(value.get("coverage_scope", "")) == AP_COVERAGE_SCOPE_LOCAL
 
 
 def normalize_ap_analysis_channel_override(value):

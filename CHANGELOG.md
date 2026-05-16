@@ -8,7 +8,10 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
-No unreleased changes.
+- Added the AP metadata foundation for local/zone-only coverage scope:
+  AP groups can now persist normalized `coverage_scope=local` and optional
+  `coverage_radius_m` values through survey save/load and AP Memory. UI and
+  Survey Quality behavior will be wired in the next `v0.9.4` steps.
 
 ## v0.9.3-beta.2 - 2026-05-16
 

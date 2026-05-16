@@ -1390,6 +1390,8 @@ class SurveyStoreTests(unittest.TestCase):
                         "model": "AX-1",
                         "expected_bands": "2.4,5",
                         "expected_channels": "6,36",
+                        "coverage_scope": "local",
+                        "coverage_radius_m": "22.5",
                         "notes": "Mounted in office",
                     },
                 )
@@ -1434,6 +1436,8 @@ class SurveyStoreTests(unittest.TestCase):
             self.assertEqual(groups[0]["position"], {"x": 21, "y": 45})
             self.assertEqual(groups[0]["role"], AP_ROLE_EXTERNAL)
             self.assertEqual(groups[0]["metadata"]["expected_channels"], "6,36")
+            self.assertEqual(groups[0]["metadata"]["coverage_scope"], AP_COVERAGE_SCOPE_LOCAL)
+            self.assertEqual(groups[0]["metadata"]["coverage_radius_m"], "22.5")
 
     def test_opening_raw_scan_sidecar_as_survey_is_rejected(self):
         with tempfile.TemporaryDirectory() as temp_dir:

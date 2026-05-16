@@ -78,6 +78,11 @@ Current status:
   and ZIP release package have been regenerated on request from this beta line.
   Latest zipped Windows release artifact:
   `dist\WifiHeatmap-v0.9.3-beta.2-win64.zip`;
+- `v0.9.4-beta.1` has started with the AP metadata foundation for
+  local/zone-only coverage scope: AP group metadata now normalizes and
+  persists `coverage_scope=local` plus optional `coverage_radius_m` through
+  survey save/load and AP Memory. UI controls and Survey Quality filtering are
+  still pending follow-up steps;
 - Help content and structure have an expanded V2 Help Center implementation;
   the Recommended Workflow page has received the first visual-density polish
   pass with step cards, decision-gate rows and Qt-compatible accent-column
@@ -884,8 +889,10 @@ Remaining closeout:
 
 V2 closeout:
 
-1. Add relevant-network scope for local/zone-only SSIDs as `v0.9.4-beta.1`, so
-   SSIDs like office-local routers do not create whole-building quality noise.
+1. Continue relevant-network scope for local/zone-only SSIDs as
+   `v0.9.4-beta.1`: next add AP Group UI controls for local coverage metadata,
+   then wire Survey Quality so SSIDs like office-local routers do not create
+   whole-building quality noise.
 2. Add connected-client BSSID/roaming diagnostics as `v0.9.5-beta.1` if Windows
    exposes stable connected-BSSID evidence during capture.
 3. Review the new Help Center in the running UI and polish wording/formatting

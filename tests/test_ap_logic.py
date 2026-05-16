@@ -111,6 +111,30 @@ class ApGroupTests(unittest.TestCase):
         self.assertEqual(overrides, {("office-ap", "5"): "60"})
         self.assertEqual(serialize_ap_group_channel_overrides(overrides), (("office-ap", "5", "60"),))
 
+    def test_ap_metadata_normalizes_local_coverage_scope_and_radius(self):
+        metadata = normalize_ap_metadata({
+            "coverage_scope": "Local Area",
+            "coverage_radius_m": "18,50",
+            "vendor": "Acme",
+        })
+
+        self.assertEqual(metadata["coverage_scope"], AP_COVERAGE_SCOPE_LOCAL)
+        self.assertEqual(metadata["coverage_radius_m"], "18.5")
+        self.assertEqual(metadata["vendor"], "Acme")
+        self.assertTrue(is_local_coverage_metadata(metadata))
+
+    def test_ap_metadata_omits_global_coverage_scope_and_radius(self):
+        metadata = normalize_ap_metadata({
+            "coverage_scope": "global",
+            "coverage_radius_m": "25",
+            "vendor": "Acme",
+        })
+
+        self.assertNotIn("coverage_scope", metadata)
+        self.assertNotIn("coverage_radius_m", metadata)
+        self.assertEqual(metadata["vendor"], "Acme")
+        self.assertFalse(is_local_coverage_metadata(metadata))
+
     def test_ap_group_conflicts_detect_same_band_multi_channel_and_ignore_test_groups(self):
         internal_bssids = ["70:4f:57:aa:bb:10", "70:4f:57:aa:bb:11", "70:4f:57:aa:bb:50"]
         test_bssids = ["80:11:22:33:44:10", "80:11:22:33:44:11"]
@@ -229,6 +253,33 @@ class ApMemoryTests(unittest.TestCase):
             self.assertEqual(groups[0]["metadata"]["vendor"], "Acme")
             self.assertTrue(groups[0][AP_MEMORY_APPLIED_KEY])
             self.assertEqual(count_memory_applied_groups(groups), 1)
+        finally:
+            self.restore_memory_env(previous)
+            temp_dir.cleanup()
+
+    def test_ap_memory_applies_local_coverage_metadata_by_bssid(self):
+        temp_dir, previous = self.with_isolated_memory()
+        try:
+            bssid = "70:4f:57:aa:bb:10"
+            known_group = build_manual_ap_group(
+                "office-ap",
+                [bssid],
+                alias="Local Office AP",
+                metadata={"coverage_scope": "local", "coverage_radius_m": "16.25"},
+            )
+            self.assertTrue(update_ap_memory_from_groups(
+                [known_group],
+                [build_row("old", "LOCAL", bssid, -50, 36, band="5")],
+            ))
+
+            rows = [build_row("new", "LOCAL", bssid, -52, 36, band="5")]
+            groups, applied_count = apply_ap_memory_to_groups(build_default_manual_groups(rows), rows)
+
+            self.assertEqual(applied_count, 1)
+            self.assertEqual(groups[0]["metadata"]["coverage_scope"], AP_COVERAGE_SCOPE_LOCAL)
+            self.assertEqual(groups[0]["metadata"]["coverage_radius_m"], "16.25")
+            self.assertTrue(is_local_coverage_metadata(groups[0]["metadata"]))
+            self.assertTrue(groups[0][AP_MEMORY_APPLIED_KEY])
         finally:
             self.restore_memory_env(previous)
             temp_dir.cleanup()
