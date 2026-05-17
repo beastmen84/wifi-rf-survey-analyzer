@@ -3,7 +3,7 @@
 from pathlib import Path
 import math
 
-from PySide6.QtCore import QPointF, QRectF, Qt, Signal
+from PySide6.QtCore import QPointF, QRect, QRectF, Qt, Signal
 from PySide6.QtGui import QBrush, QColor, QImage, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QGraphicsEllipseItem,
@@ -169,25 +169,48 @@ class FloorplanView(QGraphicsView):
             self.hide_boundaries_brush_preview()
             return
 
+        old_rect = self.boundaries_brush_preview_viewport_rect()
         if scene_point is not None:
             self.boundaries_brush_preview_pos = self.clamp_boundaries_point(scene_point)
         if self.boundaries_brush_preview_pos is None:
             self.hide_boundaries_brush_preview()
             return
 
-        self.viewport().update()
+        new_rect = self.boundaries_brush_preview_viewport_rect()
+        self.update_boundaries_preview_region(old_rect, new_rect)
 
     def boundaries_brush_preview_rect(self):
         if self.boundaries_brush_preview_pos is None:
             return QRectF()
+        return self.boundaries_brush_preview_rect_for_point(
+            self.boundaries_brush_preview_pos
+        )
+
+    def boundaries_brush_preview_rect_for_point(self, point):
         half = self.boundaries_brush_size_px / 2.0
-        point = self.boundaries_brush_preview_pos
         return QRectF(
             point.x() - half,
             point.y() - half,
             self.boundaries_brush_size_px,
             self.boundaries_brush_size_px,
         )
+
+    def boundaries_brush_preview_viewport_rect(self):
+        if self.boundaries_brush_preview_pos is None:
+            return QRect()
+        preview_rect = self.boundaries_brush_preview_rect()
+        viewport_rect = self.mapFromScene(preview_rect).boundingRect()
+        viewport_rect = viewport_rect.adjusted(-3, -3, 3, 3)
+        return viewport_rect.intersected(self.viewport().rect())
+
+    def update_boundaries_preview_region(self, *rects):
+        dirty_rect = QRect()
+        for rect in rects:
+            if rect.isNull() or rect.isEmpty():
+                continue
+            dirty_rect = rect if dirty_rect.isNull() else dirty_rect.united(rect)
+        if not dirty_rect.isNull() and not dirty_rect.isEmpty():
+            self.viewport().update(dirty_rect)
 
     def draw_boundaries_brush_preview(self, painter, rect):
         if not self.boundaries_edit_active or self.boundaries_brush_preview_pos is None:
@@ -222,8 +245,9 @@ class FloorplanView(QGraphicsView):
 
     def hide_boundaries_brush_preview(self):
         if self.boundaries_brush_preview_pos is not None:
+            old_rect = self.boundaries_brush_preview_viewport_rect()
             self.boundaries_brush_preview_pos = None
-            self.viewport().update()
+            self.update_boundaries_preview_region(old_rect)
 
     def has_boundaries_mask(self):
         return self.boundaries_mask_has_content
@@ -831,7 +855,6 @@ class FloorplanView(QGraphicsView):
                 self.viewport().setCursor(Qt.CursorShape.ArrowCursor)
 
     def leaveEvent(self, event):
-        self.boundaries_brush_preview_pos = None
         self.hide_boundaries_brush_preview()
         super().leaveEvent(event)
 

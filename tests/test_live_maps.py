@@ -314,6 +314,9 @@ class FloorplanViewTests(unittest.TestCase):
                 view.boundaries_brush_preview_rect().width(),
                 view.boundaries_brush_size_px,
             )
+            viewport_rect = view.boundaries_brush_preview_viewport_rect()
+            self.assertGreater(viewport_rect.width(), 0)
+            self.assertLess(viewport_rect.width(), view.viewport().width())
             view.set_zoom(4.0)
             preview_rect = view.boundaries_brush_preview_rect()
             preview_width = abs(

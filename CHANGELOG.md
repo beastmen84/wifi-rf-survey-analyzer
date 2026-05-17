@@ -16,7 +16,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   transparency when strokes overlap, a slightly lighter fill and a subtle
   feathered edge. The brush footprint preview is now painted as a lightweight
   floorplan foreground overlay, so the visible circle/square shape matches the
-  painted area at every zoom level while avoiding a movable scene item.
+  painted area at every zoom level while avoiding a movable scene item. Preview
+  repainting is restricted to the old/new footprint area to keep fast mouse
+  movement responsive.
   Persistence and
   Live/PDF application are planned as follow-up steps.
 - Made the Boundaries toolbar load lazily on first use, keeping its icon setup
