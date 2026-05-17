@@ -1,5 +1,10 @@
 from tests._common import *
-from app_core.constants import HEATMAP_MAX_DISTANCE_PX
+from app_core.constants import (
+    DEFAULT_FLOORPLAN_HEIGHT_PX,
+    DEFAULT_FLOORPLAN_METADATA_KEY,
+    DEFAULT_FLOORPLAN_WIDTH_PX,
+    HEATMAP_MAX_DISTANCE_PX,
+)
 from app_core.version import (
     APP_VERSION,
     APP_VERSION_LABEL,
@@ -868,6 +873,101 @@ class PointCaptureDialogTests(unittest.TestCase):
         finally:
             dialog.deleteLater()
             app.deleteLater()
+
+
+class SurveySessionWorkflowTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.qt_app = QApplication.instance() or QApplication([])
+
+    def test_new_survey_loads_blank_a4_floorplan_without_dirtying_session(self):
+        window = WifiHeatmapQtApp()
+        try:
+            self.assertTrue(window.new_survey())
+
+            self.assertTrue(window.floorplan_view.has_floorplan())
+            self.assertEqual(window.session.metadata.get(DEFAULT_FLOORPLAN_METADATA_KEY), "1")
+            self.assertTrue(os.path.exists(window.session.metadata["map_file"]))
+            self.assertEqual(window.map_label.text(), window.tr("default_floorplan_name"))
+            self.assertFalse(window.session.dirty)
+
+            pixmap = window.floorplan_view.pixmap_item.pixmap()
+            self.assertEqual(pixmap.width(), DEFAULT_FLOORPLAN_WIDTH_PX)
+            self.assertEqual(pixmap.height(), DEFAULT_FLOORPLAN_HEIGHT_PX)
+        finally:
+            window.deleteLater()
+
+    def test_saving_default_floorplan_materializes_same_name_png_next_to_csv(self):
+        window = WifiHeatmapQtApp()
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                self.assertTrue(window.new_survey())
+                csv_file = os.path.join(temp_dir, "survey.csv")
+                image_file = os.path.join(temp_dir, "survey.png")
+                window.session.csv_file = csv_file
+
+                self.assertTrue(window.save_survey())
+
+                self.assertTrue(os.path.exists(csv_file))
+                self.assertTrue(os.path.exists(image_file))
+                self.assertEqual(window.session.metadata["map_file"], os.path.abspath(image_file))
+                self.assertNotIn(DEFAULT_FLOORPLAN_METADATA_KEY, window.session.metadata)
+                self.assertEqual(window.map_label.text(), "survey.png")
+
+                with Image.open(image_file) as image:
+                    self.assertEqual(image.size, (DEFAULT_FLOORPLAN_WIDTH_PX, DEFAULT_FLOORPLAN_HEIGHT_PX))
+                    self.assertEqual(image.getpixel((0, 0)), (255, 255, 255))
+
+                loaded = SurveySession(csv_file)
+                self.assertEqual(loaded.metadata["map_file"], os.path.abspath(image_file))
+                self.assertNotIn(DEFAULT_FLOORPLAN_METADATA_KEY, loaded.metadata)
+        finally:
+            window.deleteLater()
+
+    def test_saving_default_floorplan_does_not_overwrite_existing_png_without_confirmation(self):
+        window = WifiHeatmapQtApp()
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                self.assertTrue(window.new_survey())
+                csv_file = os.path.join(temp_dir, "survey.csv")
+                image_file = os.path.join(temp_dir, "survey.png")
+                Image.new("RGB", (10, 10), "red").save(image_file)
+                window.session.csv_file = csv_file
+
+                with patch(
+                    "qt_ui.qt_floorplan_workflow.QMessageBox.question",
+                    return_value=QMessageBox.StandardButton.Cancel,
+                ):
+                    self.assertFalse(window.save_survey())
+
+                self.assertFalse(os.path.exists(csv_file))
+                with Image.open(image_file) as image:
+                    self.assertEqual(image.size, (10, 10))
+                    self.assertEqual(image.getpixel((0, 0)), (255, 0, 0))
+                self.assertEqual(window.session.metadata.get(DEFAULT_FLOORPLAN_METADATA_KEY), "1")
+        finally:
+            window.deleteLater()
+
+    def test_loaded_plan_replaces_default_floorplan_without_same_name_png(self):
+        window = WifiHeatmapQtApp()
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                real_plan = os.path.join(temp_dir, "real_plan.png")
+                csv_file = os.path.join(temp_dir, "survey.csv")
+                Image.new("RGB", (120, 90), "white").save(real_plan)
+
+                self.assertTrue(window.new_survey())
+                window.load_plan_file(real_plan, save_metadata=True)
+                window.session.csv_file = csv_file
+
+                self.assertTrue(window.save_survey())
+
+                self.assertEqual(window.session.metadata["map_file"], os.path.abspath(real_plan))
+                self.assertNotIn(DEFAULT_FLOORPLAN_METADATA_KEY, window.session.metadata)
+                self.assertFalse(os.path.exists(os.path.join(temp_dir, "survey.png")))
+                self.assertEqual(window.map_label.text(), "real_plan.png")
+        finally:
+            window.deleteLater()
 
 
 class PointCaptureWorkflowTests(unittest.TestCase):

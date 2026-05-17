@@ -96,6 +96,9 @@ TRANSLATIONS = {
     "ap_memory_status_applied": "Memoria AP: {applied} Da Confermare / {total} Salvati",
     "unsaved_survey": "Rilievo Non Salvato",
     "no_map": "Nessuna Mappa",
+    "default_floorplan_name": "Pianta A4 Bianca",
+    "replace_default_floorplan_title": "Sostituire La Pianta Bianca?",
+    "replace_default_floorplan": "La pianta bianca generata sarà salvata come:\n{path}\n\nIl file esiste già. Vuoi sostituirlo?",
     "load_plan": "Carica Pianta",
     "generate_heatmap": "Genera Heatmap",
     "generate": "Genera",
@@ -587,7 +590,7 @@ TRANSLATIONS = {
                 <td class="workflow-card">
                     <div class="step-label">1. Setup</div>
                     <div class="step-title">Prepara il rilievo</div>
-                    <p>Crea o apri il rilievo, carica la pianta, scegli il sistema di misura se serve, calibra la scala e scegli gli SSID rilevanti.</p>
+                    <p>Crea o apri il rilievo, carica la pianta quando disponibile, scegli il sistema di misura se serve, calibra la scala e scegli gli SSID rilevanti.</p>
                     <div class="step-gate"><b>Vai avanti quando:</b> pianta, scala e reti da giudicare sono corrette.</div>
                 </td>
                 <td class="workflow-gap"></td>
@@ -674,7 +677,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="survey-card"><span class="survey-card-title">CSV</span><br>Il file rilievo salvato, con commenti metadati e righe aggregate.<br><span class="survey-card-use">Salva prima di esportare PDF o spostare il rilievo su un altro PC.</span></td>
                 <td class="survey-gap"></td>
-                <td class="survey-card"><span class="survey-card-title">Mappa</span><br>Il file pianta collegato al rilievo.<br><span class="survey-card-use">Se il vecchio percorso manca, seleziona manualmente la pianta aggiornata.</span></td>
+                <td class="survey-card"><span class="survey-card-title">Mappa</span><br>Il file pianta collegato al rilievo. I nuovi rilievi partono con una pianta A4 bianca.<br><span class="survey-card-use">Se salvi senza sostituirla, viene scritto un PNG con lo stesso nome del CSV.</span></td>
                 <td class="survey-gap"></td>
                 <td class="survey-card"><span class="survey-card-title">Punti</span><br>Posizioni di misura raccolte sulla pianta.<br><span class="survey-card-use">Aggiungi punti dove i client lavorano, fanno roaming o segnalano problemi.</span></td>
             </tr>

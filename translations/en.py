@@ -96,6 +96,9 @@ TRANSLATIONS = {
     "ap_memory_status_applied": "AP Memory: {applied} To Confirm / {total} Saved",
     "unsaved_survey": "Unsaved Survey",
     "no_map": "No Map",
+    "default_floorplan_name": "A4 Blank Plan",
+    "replace_default_floorplan_title": "Replace Blank Plan Image?",
+    "replace_default_floorplan": "The generated blank plan will be saved as:\n{path}\n\nThat file already exists. Replace it?",
     "load_plan": "Load Plan",
     "generate_heatmap": "Generate Heatmap",
     "generate": "Generate",
@@ -587,7 +590,7 @@ TRANSLATIONS = {
                 <td class="workflow-card">
                     <div class="step-label">1. Setup</div>
                     <div class="step-title">Prepare the survey</div>
-                    <p>Create or open the survey, load the plan, choose the measurement system if needed, calibrate scale and choose relevant SSIDs.</p>
+                    <p>Create or open the survey, load the plan when available, choose the measurement system if needed, calibrate scale and choose relevant SSIDs.</p>
                     <div class="step-gate"><b>Move forward when:</b> the floor plan, scale and networks to judge are correct.</div>
                 </td>
                 <td class="workflow-gap"></td>
@@ -674,7 +677,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="survey-card"><span class="survey-card-title">CSV</span><br>The saved survey file with metadata comments and aggregated rows.<br><span class="survey-card-use">Save before PDF export or moving between machines.</span></td>
                 <td class="survey-gap"></td>
-                <td class="survey-card"><span class="survey-card-title">Map</span><br>The floor-plan file linked to the survey.<br><span class="survey-card-use">If the old map path is missing, select the updated plan manually.</span></td>
+                <td class="survey-card"><span class="survey-card-title">Map</span><br>The floor-plan file linked to the survey. New surveys start with an A4 blank plan.<br><span class="survey-card-use">If you save without replacing it, a same-name PNG is written next to the CSV.</span></td>
                 <td class="survey-gap"></td>
                 <td class="survey-card"><span class="survey-card-title">Points</span><br>Measurement locations collected on the floor plan.<br><span class="survey-card-use">Add points where clients work, roam or report problems.</span></td>
             </tr>

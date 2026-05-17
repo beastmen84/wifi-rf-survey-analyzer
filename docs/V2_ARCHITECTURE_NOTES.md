@@ -1,6 +1,6 @@
 # WiFi Heatmap - V2 Architecture Notes
 
-Last updated: 2026-05-16
+Last updated: 2026-05-17
 
 This document is the forward-looking V2 roadmap. Completed items are kept only
 as context; the actionable backlog is in the "Remaining Work" section.
@@ -90,6 +90,10 @@ Current status:
   `metadata` where natural Italian wording is clearer, while preserving
   established technical terms such as BSSID, SSID, AP, dBm, fallback and
   override where appropriate;
+- post-`v0.9.5-beta.1` new-survey workflow no longer blocks tests on an
+  external plan image: a generated A4 blank PNG is loaded temporarily for new
+  surveys, then materialized beside the CSV as `<survey_stem>.png` only if the
+  user saves without loading a real plan;
 - `v0.9.4-beta.1` is closed as a source-tagged beta with the AP metadata
   foundation for
   local/zone-only coverage scope: AP group metadata now normalizes and
@@ -596,6 +600,10 @@ Implemented:
 - toolbar-based workflow;
 - balanced top app-bar sections for Project, Analysis and View actions;
 - new/open/save survey handling;
+- new surveys start with a generated A4 blank plan so points can be captured
+  for tests before a real plan is available; saving while that generated plan
+  is still active writes a same-name PNG beside the CSV, while loading a real
+  plan clears the generated-plan marker and keeps the previous behavior;
 - dirty-state save button highlighting;
 - save prompt before close/new/open;
 - PDF export requires saved survey;
@@ -835,6 +843,8 @@ Implemented:
 - detailed workflow gates, point capture guidance, raw sidecar/aggregation,
   scanner backend behavior and relevant SSID logic;
 - survey screen boxes, point-table actions and saved/raw data meaning;
+- generated A4 blank plan behavior for new surveys and same-name PNG save
+  behavior when no real plan has been loaded;
 - Survey Quality KPI meanings, "what to fix next" guidance, AP setup
   diagnostics, dashboard controls, scalable detail dialogs and point-rescan
   recommendations;

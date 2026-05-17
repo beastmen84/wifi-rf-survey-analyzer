@@ -9,7 +9,13 @@ except ModuleNotFoundError as exc:
     print("PySide6 is required for main.py. Run: pip install -r requirements.txt")
     raise SystemExit(1) from exc
 
+from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY
 from app_core.units import display_units_to_meters, format_scale_density, meters_to_display_units
+from qt_ui.default_floorplan import (
+    default_floorplan_save_path,
+    ensure_default_floorplan,
+    write_default_floorplan,
+)
 from qt_ui.qt_windowing import get_centered_open_file_name
 
 
@@ -30,6 +36,54 @@ class FloorplanWorkflowMixin:
             return
 
         self.load_plan_file(file_path, save_metadata=True)
+
+    def load_default_floorplan(self):
+        if self.session is None:
+            return False
+
+        try:
+            file_path = ensure_default_floorplan()
+            self.floorplan_view.load_floorplan(str(file_path))
+        except Exception as exc:
+            QMessageBox.warning(
+                self,
+                self.tr("warning"),
+                str(exc),
+            )
+            return False
+
+        was_dirty = self.session.dirty
+        self.session.metadata["map_file"] = os.path.abspath(file_path)
+        self.session.metadata[DEFAULT_FLOORPLAN_METADATA_KEY] = "1"
+        self.session.dirty = was_dirty
+        self.floorplan_view.set_points(self.session.get_point_summaries())
+        self.floorplan_view.set_ap_groups(self.session.get_ap_groups())
+        QTimer.singleShot(0, self.floorplan_view.fit_to_view)
+        return True
+
+    def materialize_default_floorplan(self, csv_file):
+        if self.session is None:
+            return True
+
+        if self.session.metadata.get(DEFAULT_FLOORPLAN_METADATA_KEY) != "1":
+            return True
+
+        image_file = default_floorplan_save_path(csv_file)
+        if image_file.exists():
+            response = QMessageBox.question(
+                self,
+                self.tr("replace_default_floorplan_title"),
+                self.tr("replace_default_floorplan", path=str(image_file)),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Cancel,
+            )
+            if response != QMessageBox.StandardButton.Yes:
+                return False
+
+        write_default_floorplan(image_file)
+        self.session.metadata["map_file"] = os.path.abspath(image_file)
+        self.session.metadata.pop(DEFAULT_FLOORPLAN_METADATA_KEY, None)
+        return True
 
     def load_saved_plan(self):
         if self.session is None:
@@ -66,7 +120,12 @@ class FloorplanWorkflowMixin:
             return
 
         if save_metadata:
+            was_default_floorplan = (
+                self.session.metadata.pop(DEFAULT_FLOORPLAN_METADATA_KEY, None) is not None
+            )
             self.session.update_metadata({"map_file": os.path.abspath(file_path)})
+            if was_default_floorplan:
+                self.session.dirty = True
             self.session.refresh_ap_groups_from_rows(update_memory=False)
 
         self.floorplan_view.set_points(self.session.get_point_summaries())

@@ -9,6 +9,7 @@ except ModuleNotFoundError as exc:
     print("PySide6 is required for main.py. Run: pip install -r requirements.txt")
     raise SystemExit(1) from exc
 
+from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY
 from app_core.settings import get_last_survey_directory, save_last_survey_path
 from ap.memory import count_memory_applied_groups, get_ap_memory_summary
 from qt_ui.qt_windowing import get_centered_open_file_name, get_centered_save_file_name
@@ -32,7 +33,8 @@ class SurveySessionWorkflowMixin:
         self.session = SurveySession()
         self.load_session_ssid_state()
         self.reset_live_option_memory()
-        self.floorplan_view.clear_floorplan()
+        if not self.load_default_floorplan():
+            self.floorplan_view.clear_floorplan()
         self.live_view.clear()
         self.show_workspace_page()
         return True
@@ -82,6 +84,13 @@ class SurveySessionWorkflowMixin:
                 return False
             if Path(csv_file).suffix.lower() != ".csv":
                 csv_file = f"{csv_file}.csv"
+
+        try:
+            if not self.materialize_default_floorplan(csv_file):
+                return False
+        except Exception as exc:
+            QMessageBox.warning(self, self.tr("warning"), str(exc))
+            return False
 
         self.session.save(csv_file)
         save_last_survey_path(csv_file)
@@ -162,7 +171,11 @@ class SurveySessionWorkflowMixin:
         else:
             csv_name = self.session_display_name()
             map_file = self.session.metadata.get("map_file", "")
-            map_name = os.path.basename(map_file) if map_file else self.tr("no_map")
+            map_name = (
+                self.tr("default_floorplan_name")
+                if self.session.metadata.get(DEFAULT_FLOORPLAN_METADATA_KEY) == "1"
+                else os.path.basename(map_file) if map_file else self.tr("no_map")
+            )
             point_summaries = self.session.get_point_summaries()
             point_count = len(point_summaries)
             raw_count = len(self.session.raw_scan_rows)

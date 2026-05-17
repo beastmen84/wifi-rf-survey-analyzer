@@ -22,6 +22,8 @@ stable `v1.0.0` is planned after Help Center review and broader field testing.
 ## Core Features
 
 - PDF/image floor-plan loading with scale calibration.
+- New surveys start with a generated A4 blank plan for quick tests when no real
+  floor plan is available.
 - Measurement-point capture with repeated Wi-Fi scans.
 - Raw scan preservation in a linked `.scan` sidecar file.
 - Relevant SSID selection for focused quality checks and map interpretation.
@@ -39,7 +41,7 @@ stable `v1.0.0` is planned after Help Center review and broader field testing.
 ## Main Workflow
 
 1. Start a new survey or open an existing survey CSV.
-2. Load a floor plan image or PDF.
+2. Load a floor plan image/PDF, or keep the generated blank A4 plan for tests.
 3. Calibrate scale when real-world distances matter.
 4. Select relevant SSIDs.
 5. Place measurement points on the floor plan.
@@ -61,6 +63,10 @@ survey_raw_data.scan
 
 The CSV stores aggregated measurement-point data. The `.scan` sidecar preserves
 the raw scan samples used to build those measurements.
+
+If a new survey is saved without replacing the generated blank plan, the app
+also writes a same-name PNG beside the CSV, for example `survey.csv` and
+`survey.png`.
 
 Stored survey metadata includes floor-plan path, scale calibration, relevant
 SSIDs, AP groups, AP roles, AP metadata, AP positions, analysis-channel
