@@ -180,19 +180,21 @@ class FloorplanView(QGraphicsView):
 
         painter.save()
         painter.resetTransform()
+        painter.setClipping(False)
         font = painter.font()
         font.setBold(True)
         painter.setFont(font)
         metrics = painter.fontMetrics()
         margin = 12
-        padding_x = 8
+        padding_x = 10
         padding_y = 5
-        text_rect = metrics.boundingRect(self.grid_label)
+        text_width = metrics.horizontalAdvance(self.grid_label)
+        text_height = metrics.height()
         label_rect = QRectF(
             margin,
             margin,
-            text_rect.width() + padding_x * 2,
-            text_rect.height() + padding_y * 2,
+            text_width + padding_x * 2 + 8,
+            text_height + padding_y * 2,
         )
         background = QColor("#FFFFFF")
         background.setAlpha(230)
