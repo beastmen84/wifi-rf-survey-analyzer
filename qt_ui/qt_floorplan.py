@@ -38,6 +38,7 @@ class BoundariesMaskItem(QGraphicsItem):
         super().__init__()
         self.image = image
         self.setZValue(6)
+        self.setOpacity(BOUNDARIES_MASK_ALPHA / 255.0)
 
     def boundingRect(self):
         return QRectF(0, 0, self.image.width(), self.image.height())
@@ -341,12 +342,12 @@ class FloorplanView(QGraphicsView):
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
             color = QColor(0, 0, 0, 255)
         else:
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source)
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
             color = QColor(
                 BOUNDARIES_MASK_COLOR.red(),
                 BOUNDARIES_MASK_COLOR.green(),
                 BOUNDARIES_MASK_COLOR.blue(),
-                BOUNDARIES_MASK_ALPHA,
+                255,
             )
 
         half = self.boundaries_brush_size_px / 2.0
