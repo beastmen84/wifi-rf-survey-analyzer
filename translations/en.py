@@ -1000,7 +1000,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card"><b>Smoothing</b><br>Makes coverage/interference surfaces visually calmer.<br><span class="survey-card-use">Use Carefully:</span> high smoothing can hide sharp RF transitions.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Max Distance</b><br>Limits continuous rendering to areas near measured points. Uses the selected measurement system when scale is calibrated, pixels otherwise. If you change measurement system after calibration, the scale is cleared and must be calibrated again.<br><span class="survey-card-use">Use Carefully:</span> increase only when point density is good.</td>
+                <td class="workflow-card"><b>Max Distance</b><br>Limits continuous rendering to areas near measured points. On calibrated surveys with at least 4 unique points, the default is estimated from point-spacing percentiles; otherwise it falls back to pixels. If you change measurement system after calibration, the scale is cleared and must be calibrated again.<br><span class="survey-card-use">Use Carefully:</span> increase only when point density is good.</td>
             </tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>

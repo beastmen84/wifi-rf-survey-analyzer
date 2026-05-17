@@ -12,7 +12,8 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   of assigning it by nearest point, reducing polygonal artifacts in continuous
   overlays. Default continuous-map settings now use smoothing 5.0 and, on
   calibrated surveys, derive max distance from survey-point spacing with a
-  conservative 260 px fallback when spacing cannot be estimated.
+  conservative 260 px fallback when spacing cannot be estimated. Live Maps Help
+  now documents the adaptive Max Distance default and its 4-point threshold.
 - Polished English and Italian UI/Help wording for the 1.0 validation pass,
   normalizing technical terms such as AP dominant diagnostics, extended details,
   raw scan evidence, warnings, AP metadata and client roaming.
