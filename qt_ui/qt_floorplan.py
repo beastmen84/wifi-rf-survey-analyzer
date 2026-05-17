@@ -62,6 +62,7 @@ class FloorplanView(QGraphicsView):
         self.grid_measurement_system = "metric"
         self.grid_color = "#3A6EA5"
         self.grid_label = ""
+        self.grid_ui_scale = 1.0
 
         self.setObjectName("floorplanView")
         self.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform)
@@ -111,12 +112,21 @@ class FloorplanView(QGraphicsView):
     def has_floorplan(self):
         return self.pixmap_item is not None
 
-    def set_grid(self, visible, px_per_meter=None, measurement_system="metric", color="#3A6EA5", label=""):
+    def set_grid(
+        self,
+        visible,
+        px_per_meter=None,
+        measurement_system="metric",
+        color="#3A6EA5",
+        label="",
+        ui_scale=1.0,
+    ):
         self.grid_visible = bool(visible and px_per_meter)
         self.grid_px_per_meter = float(px_per_meter) if px_per_meter else None
         self.grid_measurement_system = normalize_measurement_system(measurement_system)
         self.grid_color = color
         self.grid_label = str(label or "") if self.grid_visible else ""
+        self.grid_ui_scale = max(0.5, float(ui_scale or 1.0))
         self.refresh_grid()
         self.viewport().update()
 
@@ -183,17 +193,20 @@ class FloorplanView(QGraphicsView):
         painter.setClipping(False)
         font = painter.font()
         font.setBold(True)
+        font.setPointSizeF(font.pointSizeF() * self.grid_ui_scale)
         painter.setFont(font)
         metrics = painter.fontMetrics()
-        margin = 12
-        padding_x = 10
-        padding_y = 5
+        margin = scaled_grid_value(12, self.grid_ui_scale)
+        padding_x = scaled_grid_value(10, self.grid_ui_scale)
+        padding_y = scaled_grid_value(5, self.grid_ui_scale)
+        extra_width = scaled_grid_value(8, self.grid_ui_scale)
+        radius = scaled_grid_value(4, self.grid_ui_scale)
         text_width = metrics.horizontalAdvance(self.grid_label)
         text_height = metrics.height()
         label_rect = QRectF(
             margin,
             margin,
-            text_width + padding_x * 2 + 8,
+            text_width + padding_x * 2 + extra_width,
             text_height + padding_y * 2,
         )
         background = QColor("#FFFFFF")
@@ -202,7 +215,7 @@ class FloorplanView(QGraphicsView):
         border.setAlpha(180)
         painter.setBrush(QBrush(background))
         painter.setPen(QPen(border, 1.0))
-        painter.drawRoundedRect(label_rect, 4, 4)
+        painter.drawRoundedRect(label_rect, radius, radius)
         painter.setPen(QColor(self.grid_color))
         painter.drawText(
             label_rect.adjusted(padding_x, padding_y, -padding_x, -padding_y),
@@ -566,6 +579,10 @@ def format_grid_interval(px_per_meter, measurement_system):
     else:
         value_text = f"{value:.1f}".rstrip("0").rstrip(".")
     return f"{value_text} {distance_unit_label(measurement_system)}"
+
+
+def scaled_grid_value(value, ui_scale):
+    return max(1, int(round(float(value) * float(ui_scale or 1.0))))
 
 
 def point_color(signal_dbm):

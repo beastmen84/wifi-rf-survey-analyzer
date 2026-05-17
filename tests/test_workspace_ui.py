@@ -900,6 +900,7 @@ class SurveySessionWorkflowTests(unittest.TestCase):
             self.assertTrue(window.grid_button.isChecked())
             self.assertTrue(window.floorplan_view.grid_visible)
             self.assertEqual(window.floorplan_view.grid_label, "1 square = 1 m")
+            self.assertEqual(window.floorplan_view.grid_ui_scale, window.ui_scale)
             self.assertGreater(len(window.floorplan_view.grid_items), 0)
 
             pixmap = window.floorplan_view.pixmap_item.pixmap()

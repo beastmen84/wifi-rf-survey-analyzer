@@ -238,6 +238,7 @@ class FloorplanWorkflowMixin:
             self.tr("grid_scale_label", interval=format_grid_interval(px_per_meter, self.measurement_system))
             if enabled
             else "",
+            self.ui_scale,
         )
         self.update_floorplan_grid_button_state()
         if show_status:
