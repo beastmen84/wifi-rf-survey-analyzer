@@ -8,6 +8,10 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- No changes yet.
+
+## v0.9.6-beta.1 - 2026-05-17
+
 - Live Coverage and Interference maps now smooth scan-confidence opacity instead
   of assigning it by nearest point, reducing polygonal artifacts in continuous
   overlays. Default continuous-map settings now use smoothing 5.0 and, on
@@ -40,6 +44,8 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 - Polished English and Italian UI/Help wording for the 1.0 validation pass,
   normalizing technical terms such as AP dominant diagnostics, extended details,
   raw scan evidence, warnings, AP metadata and client roaming.
+- Windows `onedir` executable and ZIP package were regenerated for
+  `v0.9.6-beta.1`.
 
 ## v0.9.5-beta.1 - 2026-05-16
 

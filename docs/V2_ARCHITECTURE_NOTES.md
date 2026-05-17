@@ -23,8 +23,8 @@ interpolated colors.
 Current status:
 
 - public release versioning is separate from the internal V2 generation:
-  `v0.9.5-beta.1` is closed as a source-tagged beta, while `v1.0.0` should
-  wait for the remaining real-survey validation fixes;
+  `v0.9.6-beta.1` is closed as the current source-tagged beta, while `v1.0.0`
+  should wait for the remaining real-survey validation fixes;
 - future beta release candidates should use the current minor beta line for
   validation/polish or a new minor beta for feature-level additions; do not
   regenerate exe/ZIP for every commit, only when cutting an intentional release
@@ -84,6 +84,10 @@ Current status:
   ZIP release package have been regenerated on request from this beta line.
   Latest zipped Windows release artifact:
   `dist\WifiHeatmap-v0.9.5-beta.1-win64.zip`;
+- `v0.9.6-beta.1` closes the post-`v0.9.5-beta.1` validation polish line. The
+  Windows PyInstaller `onedir` executable and ZIP package were regenerated on
+  request. Latest zipped Windows release artifact:
+  `dist\WifiHeatmap-v0.9.6-beta.1-win64.zip`;
 - post-`v0.9.5-beta.1` EN/IT wording polish normalized the most visible UI and
   Help terminology before the 1.0 validation survey: Italian now avoids weaker
   hybrid phrases such as `Finding`, `Extra Details`, `Dominant AP` and
@@ -966,9 +970,9 @@ Remaining closeout:
 
 V2 closeout:
 
-1. Review `v0.9.5-beta.1` Help navigation, Local Area scope and Client Roaming
-   diagnostics in the running UI against real survey data, especially
-   intentionally local office-router SSIDs, and
+1. Review `v0.9.6-beta.1` Help navigation, Local Area scope, Client Roaming,
+   blank-plan workflow and continuous map bounds diagnostics in the running UI
+   against real survey data, especially intentionally local office-router SSIDs, and
    tune Auto Area or connected-client thresholds only if the evidence shows
    false positives or false negatives.
 2. Review the new Help Center in the running UI and polish wording/formatting
