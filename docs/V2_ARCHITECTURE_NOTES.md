@@ -525,6 +525,9 @@ Implemented:
 - continuous map confidence opacity is smoothed across the grid rather than
   assigned by nearest survey point, avoiding polygonal opacity artifacts when
   neighboring scans have different confidence values;
+- calibrated continuous-map defaults derive max distance from survey-point
+  spacing percentiles, clamped to a conservative range, instead of using a fixed
+  meter value for every survey density;
 - live PDF export supports 6 GHz map filters, legends and Interference
   summaries;
 - exported map pages are flattened to avoid accidental page-image selection in

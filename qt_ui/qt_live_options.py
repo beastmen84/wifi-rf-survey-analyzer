@@ -1,5 +1,7 @@
 """Live map option controls for the Qt workspace."""
 
+import math
+
 try:
     from PySide6.QtCore import Qt, QTimer
     from PySide6.QtWidgets import QComboBox, QDoubleSpinBox
@@ -16,7 +18,9 @@ from ap.groups import (
     resolve_ap_group_key,
 )
 from app_core.constants import (
-    HEATMAP_MAX_DISTANCE_METERS,
+    HEATMAP_ADAPTIVE_MAX_DISTANCE_MAX_METERS,
+    HEATMAP_ADAPTIVE_MAX_DISTANCE_MIN_METERS,
+    HEATMAP_ADAPTIVE_MAX_DISTANCE_MULTIPLIER,
     HEATMAP_MAX_DISTANCE_PX,
     HEATMAP_SMOOTHING_SIGMA,
 )
@@ -164,7 +168,12 @@ class LiveOptionsMixin:
     def default_live_max_distance_px(self):
         px_per_meter = self.get_px_per_meter()
         if px_per_meter:
-            return max(1, int(round(HEATMAP_MAX_DISTANCE_METERS * px_per_meter)))
+            adaptive_max_distance_px = estimate_adaptive_live_max_distance_px(
+                getattr(self.session, "rows", []),
+                px_per_meter,
+            )
+            if adaptive_max_distance_px:
+                return adaptive_max_distance_px
 
         return HEATMAP_MAX_DISTANCE_PX
 
@@ -562,3 +571,99 @@ class LiveOptionsMixin:
 
         if hasattr(self, "live_options_overlay"):
             QTimer.singleShot(0, self.position_live_options_overlay)
+
+
+def estimate_adaptive_live_max_distance_px(rows, px_per_meter):
+    if not px_per_meter:
+        return None
+
+    spacing = survey_point_spacing_percentiles_px(rows)
+    if not spacing:
+        return None
+
+    median_m = spacing["median"] / px_per_meter
+    p75_m = spacing["p75"] / px_per_meter
+    p90_m = spacing["p90"] / px_per_meter
+    reference_spacing_m = max(p75_m, (median_m + p90_m) / 2.0)
+    distance_m = reference_spacing_m * HEATMAP_ADAPTIVE_MAX_DISTANCE_MULTIPLIER
+    distance_m = min(
+        HEATMAP_ADAPTIVE_MAX_DISTANCE_MAX_METERS,
+        max(HEATMAP_ADAPTIVE_MAX_DISTANCE_MIN_METERS, distance_m),
+    )
+    distance_m = round(distance_m * 2.0) / 2.0
+    return max(1, int(round(distance_m * px_per_meter)))
+
+
+def survey_point_spacing_percentiles_px(rows):
+    points = unique_survey_points(rows)
+    if len(points) < 4:
+        return None
+
+    distances = nearest_neighbor_distances(points)
+    if len(distances) < 3:
+        return None
+
+    sorted_distances = sorted(distances)
+    return {
+        "median": percentile(sorted_distances, 50),
+        "p75": percentile(sorted_distances, 75),
+        "p90": percentile(sorted_distances, 90),
+    }
+
+
+def unique_survey_points(rows):
+    points = []
+    seen = set()
+
+    for row in rows or []:
+        try:
+            x = float(row.get("x", ""))
+            y = float(row.get("y", ""))
+        except (TypeError, ValueError):
+            continue
+
+        if not math.isfinite(x) or not math.isfinite(y):
+            continue
+
+        key = (x, y)
+        if key in seen:
+            continue
+
+        seen.add(key)
+        points.append(key)
+
+    return points
+
+
+def nearest_neighbor_distances(points):
+    distances = []
+
+    for index, (x, y) in enumerate(points):
+        nearest_sq = None
+        for other_index, (other_x, other_y) in enumerate(points):
+            if index == other_index:
+                continue
+
+            distance_sq = ((x - other_x) ** 2) + ((y - other_y) ** 2)
+            if nearest_sq is None or distance_sq < nearest_sq:
+                nearest_sq = distance_sq
+
+        if nearest_sq is not None:
+            distances.append(math.sqrt(nearest_sq))
+
+    return distances
+
+
+def percentile(sorted_values, percentile_value):
+    if not sorted_values:
+        return 0.0
+
+    rank = (len(sorted_values) - 1) * (percentile_value / 100.0)
+    lower_index = int(math.floor(rank))
+    upper_index = int(math.ceil(rank))
+    if lower_index == upper_index:
+        return sorted_values[lower_index]
+
+    lower_value = sorted_values[lower_index]
+    upper_value = sorted_values[upper_index]
+    return lower_value + ((upper_value - lower_value) * (rank - lower_index))

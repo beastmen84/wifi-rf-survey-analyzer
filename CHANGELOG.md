@@ -10,8 +10,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 
 - Live Coverage and Interference maps now smooth scan-confidence opacity instead
   of assigning it by nearest point, reducing polygonal artifacts in continuous
-  overlays. Default continuous-map settings were also softened to smoothing 5.0
-  and a 6 m max distance on calibrated maps, with a 260 px fallback.
+  overlays. Default continuous-map settings now use smoothing 5.0 and, on
+  calibrated surveys, derive max distance from survey-point spacing with a
+  conservative 260 px fallback when spacing cannot be estimated.
 - Polished English and Italian UI/Help wording for the 1.0 validation pass,
   normalizing technical terms such as AP dominant diagnostics, extended details,
   raw scan evidence, warnings, AP metadata and client roaming.

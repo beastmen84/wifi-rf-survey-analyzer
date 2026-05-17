@@ -1,5 +1,5 @@
 from tests._common import *
-from app_core.constants import HEATMAP_MAX_DISTANCE_METERS
+from app_core.constants import HEATMAP_MAX_DISTANCE_PX
 from app_core.version import (
     APP_VERSION,
     APP_VERSION_LABEL,
@@ -1483,7 +1483,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             window.measurement_system = MEASUREMENT_SYSTEM_METRIC
             self.assertEqual(
                 window.default_live_option_state("signal")["max_distance_px"],
-                int(round(HEATMAP_MAX_DISTANCE_METERS * 10)),
+                HEATMAP_MAX_DISTANCE_PX,
             )
             window.set_live_max_distance_px_silent(100)
 
@@ -1499,6 +1499,25 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertAlmostEqual(window.live_max_distance_spin.value(), 32.8, places=1)
             self.assertEqual(window.live_max_distance_spin.suffix(), " ft")
             self.assertEqual(window.current_live_max_distance_px(), 100)
+        finally:
+            window.deleteLater()
+
+    def test_live_max_distance_default_uses_survey_point_spacing_when_scaled(self):
+        window = WifiHeatmapQtApp()
+        try:
+            class Session:
+                metadata = {"px_per_meter": "10"}
+                rows = [
+                    {"x": "0", "y": "0"},
+                    {"x": "20", "y": "0"},
+                    {"x": "45", "y": "0"},
+                    {"x": "70", "y": "0"},
+                    {"x": "95", "y": "0"},
+                ]
+
+            window.session = Session()
+
+            self.assertEqual(window.default_live_option_state("signal")["max_distance_px"], 40)
         finally:
             window.deleteLater()
 
