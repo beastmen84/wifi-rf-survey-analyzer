@@ -26,10 +26,11 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   actual floor plan, so it remains visible in gray viewport margins.
 - Boundaries drawing now uses fixed transparency, a lighter fill, subtle
   feathered edges, zoom-accurate brush preview and native continuous strokes
-  with round or square caps for smoother fast paint/erase gestures. Mask
-  rendering now paints an opaque in-memory image through fixed item opacity,
-  avoiding overlap darkening and square-stroke edge artifacts without rebuilding
-  a full pixmap during drag.
+  with round or square caps for smoother fast paint/erase gestures. Square
+  brush drags now render recent mouse points as one joined path, avoiding
+  intermediate cap artifacts during small direction corrections. Mask rendering
+  now paints an opaque in-memory image through fixed item opacity, avoiding
+  overlap darkening without rebuilding a full pixmap during drag.
 - Boundaries toolbar icons are loaded lazily on first use, keeping them out of
   the startup "Loading components" path.
 - Current survey files now require the full aggregate/raw headers,

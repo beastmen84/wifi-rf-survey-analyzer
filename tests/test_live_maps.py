@@ -421,6 +421,32 @@ class FloorplanViewTests(unittest.TestCase):
             view.deleteLater()
             os.remove(floorplan_path)
 
+    def test_square_boundaries_live_stroke_does_not_stamp_internal_caps(self):
+        view = FloorplanView()
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
+            floorplan_path = temp_file.name
+        Image.new("RGB", (120, 100), "white").save(floorplan_path)
+
+        try:
+            view.load_floorplan(floorplan_path)
+            view.set_boundaries_edit_mode(True)
+            view.set_boundaries_tool_state("draw", "square")
+
+            stroke_points = [
+                QPoint(20, 80),
+                QPoint(55, 45),
+                QPoint(60, 80),
+            ]
+            self.assertTrue(view.apply_boundaries_brush(20, 80))
+            self.assertTrue(view.apply_boundaries_live_stroke(stroke_points[:2]))
+            self.assertTrue(view.apply_boundaries_live_stroke(stroke_points))
+
+            self.assertGreater(view.boundaries_mask_image.pixelColor(55, 45).alpha(), 0)
+            self.assertEqual(view.boundaries_mask_image.pixelColor(66, 34).alpha(), 0)
+        finally:
+            view.deleteLater()
+            os.remove(floorplan_path)
+
 
 class LiveMapViewTests(unittest.TestCase):
     @classmethod

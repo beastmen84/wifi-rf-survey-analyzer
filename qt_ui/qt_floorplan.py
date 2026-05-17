@@ -4,7 +4,7 @@ from pathlib import Path
 import math
 
 from PySide6.QtCore import QPointF, QRect, QRectF, Qt, Signal
-from PySide6.QtGui import QBrush, QColor, QImage, QPainter, QPen, QPixmap
+from PySide6.QtGui import QBrush, QColor, QImage, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import (
     QGraphicsEllipseItem,
     QGraphicsItem,
@@ -31,6 +31,7 @@ MIN_GRID_SPACING_PX = 40.0
 GRID_MAJOR_EVERY = 5
 BOUNDARIES_MASK_ALPHA = 78
 BOUNDARIES_MASK_COLOR = QColor(37, 99, 235)
+BOUNDARIES_STROKE_POINT_WINDOW = 8
 
 
 class BoundariesMaskItem(QGraphicsItem):
@@ -91,6 +92,7 @@ class FloorplanView(QGraphicsView):
         self.boundaries_mask_has_content = False
         self.boundaries_drawing_active = False
         self.boundaries_last_point = None
+        self.boundaries_stroke_points = []
         self.boundaries_mask_dirty_rect = QRectF()
         self.boundaries_brush_preview_pos = None
 
@@ -142,6 +144,7 @@ class FloorplanView(QGraphicsView):
         self.boundaries_edit_active = False
         self.boundaries_drawing_active = False
         self.boundaries_last_point = None
+        self.boundaries_stroke_points = []
         self.selected_point_key = None
         self.zoom_level = 1.0
         self.cancel_ap_position_pick(emit_signal=False)
@@ -159,6 +162,7 @@ class FloorplanView(QGraphicsView):
         self.boundaries_edit_active = active
         self.boundaries_drawing_active = False
         self.boundaries_last_point = None
+        self.boundaries_stroke_points = []
         if self.boundaries_mask_item is not None:
             self.boundaries_mask_item.setVisible(active)
         if not active:
@@ -292,6 +296,7 @@ class FloorplanView(QGraphicsView):
         self.boundaries_mask_has_content = False
         self.boundaries_drawing_active = False
         self.boundaries_last_point = None
+        self.boundaries_stroke_points = []
         if emit_signal:
             self.boundariesMaskChanged.emit(False)
 
@@ -310,6 +315,7 @@ class FloorplanView(QGraphicsView):
         self.boundaries_mask_has_content = False
         self.boundaries_drawing_active = False
         self.boundaries_last_point = None
+        self.boundaries_stroke_points = []
         self.boundaries_mask_dirty_rect = QRectF()
         self.viewport().update()
         if changed:
@@ -339,14 +345,21 @@ class FloorplanView(QGraphicsView):
             return False
 
         point = self.clamp_boundaries_point(QPointF(float(x), float(y)))
-        changed = self.apply_boundaries_segment(point, point)
+        changed = self.apply_boundaries_polyline([point], cap_endpoints=True)
         if changed and refresh:
             self.refresh_boundaries_mask_after_change()
         return changed
 
     def apply_boundaries_segment(self, start_point, end_point):
-        start_point = self.clamp_boundaries_point(start_point)
-        end_point = self.clamp_boundaries_point(end_point)
+        return self.apply_boundaries_polyline([start_point, end_point], cap_endpoints=True)
+
+    def apply_boundaries_polyline(self, points, cap_endpoints=True):
+        if not points:
+            return False
+        clamped_points = [
+            self.clamp_boundaries_point(QPointF(float(point.x()), float(point.y())))
+            for point in points
+        ]
         painter = QPainter(self.boundaries_mask_image)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         if self.boundaries_tool == "eraser":
@@ -362,8 +375,17 @@ class FloorplanView(QGraphicsView):
             )
 
         half = self.boundaries_brush_size_px / 2.0
-        dirty_rect = self.boundaries_segment_dirty_rect(start_point, end_point)
-        if math.hypot(end_point.x() - start_point.x(), end_point.y() - start_point.y()) < 0.01:
+        start_point = clamped_points[0]
+        dirty_rect = self.boundaries_points_dirty_rect(clamped_points)
+        is_point_stroke = len(clamped_points) == 1 or all(
+            math.hypot(
+                current_point.x() - previous_point.x(),
+                current_point.y() - previous_point.y(),
+            )
+            < 0.01
+            for previous_point, current_point in zip(clamped_points, clamped_points[1:])
+        )
+        if is_point_stroke:
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QBrush(color))
             rect = QRectF(
@@ -377,22 +399,43 @@ class FloorplanView(QGraphicsView):
             else:
                 painter.drawEllipse(rect)
         else:
+            path = QPainterPath(start_point)
+            for point in clamped_points[1:]:
+                path.lineTo(point)
             pen = QPen(color, self.boundaries_brush_size_px)
             if self.boundaries_shape == "square":
-                pen.setCapStyle(Qt.PenCapStyle.SquareCap)
-                pen.setJoinStyle(Qt.PenJoinStyle.MiterJoin)
+                pen.setCapStyle(
+                    Qt.PenCapStyle.SquareCap
+                    if cap_endpoints
+                    else Qt.PenCapStyle.FlatCap
+                )
+                pen.setJoinStyle(Qt.PenJoinStyle.BevelJoin)
             else:
                 pen.setCapStyle(Qt.PenCapStyle.RoundCap)
                 pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
             painter.setPen(pen)
-            painter.drawLine(start_point, end_point)
+            painter.drawPath(path)
         painter.end()
         self.boundaries_mask_dirty_rect = dirty_rect
         return True
 
     def boundaries_segment_dirty_rect(self, start_point, end_point):
+        return self.boundaries_points_dirty_rect([start_point, end_point])
+
+    def boundaries_points_dirty_rect(self, points):
+        if not points:
+            return QRectF()
         half = self.boundaries_brush_size_px / 2.0 + 2.0
-        dirty_rect = QRectF(start_point, end_point).normalized().adjusted(
+        first_point = self.clamp_boundaries_point(
+            QPointF(float(points[0].x()), float(points[0].y()))
+        )
+        dirty_rect = QRectF(first_point, first_point)
+        for point in points[1:]:
+            clamped_point = self.clamp_boundaries_point(
+                QPointF(float(point.x()), float(point.y()))
+            )
+            dirty_rect = dirty_rect.united(QRectF(clamped_point, clamped_point))
+        dirty_rect = dirty_rect.normalized().adjusted(
             -half,
             -half,
             half,
@@ -420,6 +463,14 @@ class FloorplanView(QGraphicsView):
         if not self.ensure_boundaries_mask():
             return False
         changed = self.apply_boundaries_segment(start_point, end_point)
+        if changed:
+            self.refresh_boundaries_mask_after_change()
+        return changed
+
+    def apply_boundaries_live_stroke(self, points):
+        if not self.ensure_boundaries_mask():
+            return False
+        changed = self.apply_boundaries_polyline(points, cap_endpoints=False)
         if changed:
             self.refresh_boundaries_mask_after_change()
         return changed
@@ -789,6 +840,7 @@ class FloorplanView(QGraphicsView):
             self.update_boundaries_brush_preview(point)
             self.boundaries_drawing_active = True
             self.boundaries_last_point = point
+            self.boundaries_stroke_points = [point]
             self.apply_boundaries_brush(point.x(), point.y())
             event.accept()
             return
@@ -843,7 +895,9 @@ class FloorplanView(QGraphicsView):
         ):
             point = self.clamp_boundaries_point(scene_point)
             self.update_boundaries_brush_preview(point)
-            self.apply_boundaries_stroke(self.boundaries_last_point, point)
+            self.boundaries_stroke_points.append(point)
+            stroke_points = self.boundaries_stroke_points[-BOUNDARIES_STROKE_POINT_WINDOW:]
+            self.apply_boundaries_live_stroke(stroke_points)
             self.boundaries_last_point = point
             event.accept()
             return
@@ -858,8 +912,11 @@ class FloorplanView(QGraphicsView):
                 self.mapToScene(event.position().toPoint())
             )
             self.update_boundaries_brush_preview(point)
+            if self.boundaries_drawing_active:
+                self.apply_boundaries_brush(point.x(), point.y())
             self.boundaries_drawing_active = False
             self.boundaries_last_point = None
+            self.boundaries_stroke_points = []
             event.accept()
             return
 
