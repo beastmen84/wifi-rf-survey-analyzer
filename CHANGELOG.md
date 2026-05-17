@@ -25,8 +25,8 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   Grid overlay so test captures can start without a real floor plan. New survey
   creation from the start page now asks only for metric or imperial units before
   creating that default blank-plan scale. Starting a new survey while another
-  survey is open first asks whether to save and close the current survey, then
-  asks for metric or imperial units without a second cancel path.
+  survey is open now asks whether to discard changes, save, or cancel before
+  asking for metric or imperial units.
   If the blank plan is still active on save, the app writes a same-name PNG next
   to the CSV and links the survey metadata to that file. Loading a real plan
   later clears the generated scale/grid state, and the obsolete blank PNG is

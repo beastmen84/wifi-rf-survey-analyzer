@@ -972,10 +972,7 @@ class SurveySessionWorkflowTests(unittest.TestCase):
             )
             current_session = window.session
 
-            with patch(
-                "qt_ui.qt_session_workflow.QMessageBox.question",
-                return_value=QMessageBox.StandardButton.No,
-            ):
+            with patch.object(window, "choose_current_survey_close_action", return_value="cancel"):
                 self.assertFalse(window.new_survey())
 
             self.assertIs(window.session, current_session)
@@ -989,7 +986,7 @@ class SurveySessionWorkflowTests(unittest.TestCase):
             current_session = window.session
 
             with (
-                patch("qt_ui.qt_session_workflow.QMessageBox.question") as question_mock,
+                patch.object(window, "choose_current_survey_close_action") as action_mock,
                 patch.object(
                     window,
                     "choose_new_survey_measurement_system",
@@ -999,9 +996,38 @@ class SurveySessionWorkflowTests(unittest.TestCase):
             ):
                 self.assertTrue(window.new_survey())
 
-            question_mock.assert_not_called()
+            action_mock.assert_not_called()
             self.assertIsNot(window.session, current_session)
             self.assertIsNone(window.session.csv_file)
+            self.assertFalse(window.session.rows)
+        finally:
+            window.deleteLater()
+
+    def test_new_survey_from_open_session_can_discard_changes(self):
+        window = WifiHeatmapQtApp()
+        try:
+            self.assertTrue(self.start_new_survey(window))
+            window.session.add_points(
+                10,
+                20,
+                [{"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_percent": "80", "signal_dbm": -50, "channel": "1", "radio": "802.11ax"}],
+            )
+            previous_session = window.session
+
+            with (
+                patch.object(window, "choose_current_survey_close_action", return_value="discard"),
+                patch.object(window, "save_survey") as save_mock,
+                patch.object(
+                    window,
+                    "choose_new_survey_measurement_system",
+                    return_value=MEASUREMENT_SYSTEM_METRIC,
+                ),
+                patch("qt_ui.qt_session_workflow.save_measurement_system", return_value=True),
+            ):
+                self.assertTrue(window.new_survey())
+
+            save_mock.assert_not_called()
+            self.assertIsNot(window.session, previous_session)
             self.assertFalse(window.session.rows)
         finally:
             window.deleteLater()
@@ -1022,10 +1048,7 @@ class SurveySessionWorkflowTests(unittest.TestCase):
                 window.session.csv_file = current_csv
 
                 with (
-                    patch(
-                        "qt_ui.qt_session_workflow.QMessageBox.question",
-                        return_value=QMessageBox.StandardButton.Yes,
-                    ),
+                    patch.object(window, "choose_current_survey_close_action", return_value="save"),
                     patch.object(
                         window,
                         "choose_new_survey_measurement_system",

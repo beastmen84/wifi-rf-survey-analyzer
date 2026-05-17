@@ -95,8 +95,8 @@ Current status:
   surveys with a practical default scale and Grid enabled. New survey creation
   from the app start page asks only for metric or imperial before that scale is
   generated. Starting a new survey from an open survey first asks whether to
-  save and close the current survey, then shows the same unit choice without a
-  second cancel path. The blank plan is materialized beside the CSV as
+  discard changes, save, or cancel, then shows the same unit choice when the
+  current survey has been handled. The blank plan is materialized beside the CSV as
   `<survey_stem>.png` only if the user saves without loading a real plan. If a
   real plan is loaded later and the survey is saved, the obsolete generated PNG
   is deleted. Grid now draws a compact in-map scale label such as
@@ -611,8 +611,9 @@ Implemented:
   pre-scaled A4 blank plan and Grid, so points can be captured for tests before
   a real plan is available without immediately invalidating scale. From the app
   start page this unit prompt has no Cancel button; from an open survey, New
-  first asks whether to save and close the current survey, then shows the same
-  no-Cancel unit prompt. Saving while that generated plan is still active writes
+  first asks whether to discard changes, save, or cancel, then shows the same
+  no-Cancel unit prompt if the current survey is closed. Saving while that
+  generated plan is still active writes
   a same-name PNG beside the CSV, while loading a real plan clears generated
   scale/grid state, marks the generated PNG for deletion, and removes it after
   the next successful save; the Grid overlay displays its current square size

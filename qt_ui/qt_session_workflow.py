@@ -56,17 +56,40 @@ class SurveySessionWorkflowMixin:
         if self.is_empty_generated_survey():
             return True
 
-        response = QMessageBox.question(
-            self,
-            self.tr("new_survey_close_current_title"),
-            self.tr("new_survey_close_current_message"),
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
-        if response != QMessageBox.StandardButton.Yes:
-            return False
+        action = self.choose_current_survey_close_action()
+        if action == "save":
+            return self.save_survey()
+        if action == "discard":
+            return True
+        return False
 
-        return self.save_survey()
+    def choose_current_survey_close_action(self):
+        message_box = QMessageBox(self)
+        message_box.setIcon(QMessageBox.Icon.Question)
+        message_box.setWindowTitle(self.tr("new_survey_close_current_title"))
+        message_box.setText(self.tr("new_survey_close_current_message"))
+        discard_button = message_box.addButton(
+            self.tr("discard_changes"),
+            QMessageBox.ButtonRole.DestructiveRole,
+        )
+        save_button = message_box.addButton(
+            self.tr("save"),
+            QMessageBox.ButtonRole.AcceptRole,
+        )
+        cancel_button = message_box.addButton(
+            self.tr("cancel"),
+            QMessageBox.ButtonRole.RejectRole,
+        )
+        message_box.setDefaultButton(save_button)
+        message_box.setEscapeButton(cancel_button)
+        message_box.exec()
+
+        clicked_button = message_box.clickedButton()
+        if clicked_button == save_button:
+            return "save"
+        if clicked_button == discard_button:
+            return "discard"
+        return "cancel"
 
     def is_empty_generated_survey(self):
         if self.session is None:
