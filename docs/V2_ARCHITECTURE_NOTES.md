@@ -93,11 +93,14 @@ Current status:
 - post-`v0.9.5-beta.1` new-survey workflow no longer blocks tests on an
   external plan image: a generated A4 blank PNG is loaded temporarily for new
   surveys with a practical default scale and Grid enabled. New survey creation
-  asks for metric or imperial before that scale is generated, then the blank
-  plan is materialized beside the CSV as `<survey_stem>.png` only if the user
-  saves without loading a real plan. If a real plan is loaded later and the
-  survey is saved, the obsolete generated PNG is deleted. Grid now draws a
-  compact in-map scale label such as `1 square = 1 m` or `1 square = 5 ft`;
+  from the app start page asks only for metric or imperial before that scale is
+  generated. Starting a new survey from an open survey first asks whether to
+  save and close the current survey, then shows the same unit choice without a
+  second cancel path. The blank plan is materialized beside the CSV as
+  `<survey_stem>.png` only if the user saves without loading a real plan. If a
+  real plan is loaded later and the survey is saved, the obsolete generated PNG
+  is deleted. Grid now draws a compact in-map scale label such as
+  `1 square = 1 m` or `1 square = 5 ft`;
 - `v0.9.4-beta.1` is closed as a source-tagged beta with the AP metadata
   foundation for
   local/zone-only coverage scope: AP group metadata now normalizes and
@@ -606,11 +609,14 @@ Implemented:
 - new/open/save survey handling;
 - new surveys ask for metric or imperial units before creating the generated,
   pre-scaled A4 blank plan and Grid, so points can be captured for tests before
-  a real plan is available without immediately invalidating scale. Saving while
-  that generated plan is still active writes a same-name PNG beside the CSV,
-  while loading a real plan clears generated scale/grid state, marks the
-  generated PNG for deletion, and removes it after the next successful save; the
-  Grid overlay displays its current square size directly on the map;
+  a real plan is available without immediately invalidating scale. From the app
+  start page this unit prompt has no Cancel button; from an open survey, New
+  first asks whether to save and close the current survey, then shows the same
+  no-Cancel unit prompt. Saving while that generated plan is still active writes
+  a same-name PNG beside the CSV, while loading a real plan clears generated
+  scale/grid state, marks the generated PNG for deletion, and removes it after
+  the next successful save; the Grid overlay displays its current square size
+  directly on the map;
 - dirty-state save button highlighting;
 - save prompt before close/new/open;
 - PDF export requires saved survey;

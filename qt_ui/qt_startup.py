@@ -709,7 +709,7 @@ class StartWindow(QMainWindow):
             window = self.app_class()
             window.change_language(self.language.upper())
             if action == "new":
-                if not window.new_survey():
+                if not window.new_survey(from_start_page=True):
                     window.deleteLater()
                     self.set_ready(True)
                     return

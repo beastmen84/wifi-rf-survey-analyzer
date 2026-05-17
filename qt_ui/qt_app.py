@@ -340,7 +340,7 @@ class WifiHeatmapQtApp(
         self.new_button = QPushButton()
         self.open_button = QPushButton()
         self.exit_button = QPushButton()
-        self.new_button.clicked.connect(self.new_survey)
+        self.new_button.clicked.connect(lambda _checked=False: self.new_survey(from_start_page=True))
         self.open_button.clicked.connect(lambda _checked=False: self.open_survey())
         self.exit_button.clicked.connect(self.close)
         for button in (self.new_button, self.open_button, self.exit_button):

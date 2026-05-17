@@ -32,14 +32,11 @@ class SurveySessionWorkflowMixin:
         self.refresh_points_table()
         self.maybe_update_live_preview()
 
-    def new_survey(self):
+    def new_survey(self, from_start_page=False):
+        if not from_start_page and not self.confirm_new_survey_replaces_current():
+            return False
+
         measurement_system = self.choose_new_survey_measurement_system()
-        if measurement_system is None:
-            return False
-
-        if not self.confirm_switch_survey():
-            return False
-
         if not self.set_new_survey_measurement_system(measurement_system):
             return False
 
@@ -52,6 +49,22 @@ class SurveySessionWorkflowMixin:
         self.live_view.clear()
         self.show_workspace_page()
         return True
+
+    def confirm_new_survey_replaces_current(self):
+        if self.session is None:
+            return True
+
+        response = QMessageBox.question(
+            self,
+            self.tr("new_survey_close_current_title"),
+            self.tr("new_survey_close_current_message"),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if response != QMessageBox.StandardButton.Yes:
+            return False
+
+        return self.save_survey()
 
     def choose_new_survey_measurement_system(self):
         message_box = QMessageBox(self)
@@ -66,7 +79,6 @@ class SurveySessionWorkflowMixin:
             self.tr("measurement_system_imperial"),
             QMessageBox.ButtonRole.AcceptRole,
         )
-        message_box.addButton(self.tr("cancel"), QMessageBox.ButtonRole.RejectRole)
         default_button = (
             imperial_button
             if self.measurement_system == MEASUREMENT_SYSTEM_IMPERIAL
@@ -80,7 +92,7 @@ class SurveySessionWorkflowMixin:
             return MEASUREMENT_SYSTEM_METRIC
         if clicked_button == imperial_button:
             return MEASUREMENT_SYSTEM_IMPERIAL
-        return None
+        return self.measurement_system
 
     def set_new_survey_measurement_system(self, measurement_system):
         measurement_system = normalize_measurement_system(measurement_system)

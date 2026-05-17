@@ -889,7 +889,7 @@ class SurveySessionWorkflowTests(unittest.TestCase):
             patch.object(window, "choose_new_survey_measurement_system", return_value=measurement_system),
             patch("qt_ui.qt_session_workflow.save_measurement_system", return_value=True),
         ):
-            return window.new_survey()
+            return window.new_survey(from_start_page=True)
 
     def test_new_survey_loads_blank_a4_floorplan_without_dirtying_session(self):
         window = WifiHeatmapQtApp()
@@ -943,13 +943,70 @@ class SurveySessionWorkflowTests(unittest.TestCase):
         finally:
             window.deleteLater()
 
-    def test_new_survey_units_prompt_cancel_keeps_current_session(self):
+    def test_new_survey_from_start_page_skips_current_survey_confirmation(self):
         window = WifiHeatmapQtApp()
         try:
-            with patch.object(window, "choose_new_survey_measurement_system", return_value=None):
+            with (
+                patch.object(
+                    window,
+                    "choose_new_survey_measurement_system",
+                    return_value=MEASUREMENT_SYSTEM_METRIC,
+                ),
+                patch.object(window, "confirm_new_survey_replaces_current") as confirm_mock,
+                patch("qt_ui.qt_session_workflow.save_measurement_system", return_value=True),
+            ):
+                self.assertTrue(window.new_survey(from_start_page=True))
+
+            confirm_mock.assert_not_called()
+        finally:
+            window.deleteLater()
+
+    def test_new_survey_from_open_session_can_be_cancelled_before_save(self):
+        window = WifiHeatmapQtApp()
+        try:
+            self.assertTrue(self.start_new_survey(window))
+            current_session = window.session
+
+            with patch(
+                "qt_ui.qt_session_workflow.QMessageBox.question",
+                return_value=QMessageBox.StandardButton.No,
+            ):
                 self.assertFalse(window.new_survey())
 
-            self.assertIsNone(window.session)
+            self.assertIs(window.session, current_session)
+        finally:
+            window.deleteLater()
+
+    def test_new_survey_from_open_session_saves_current_before_units_prompt(self):
+        window = WifiHeatmapQtApp()
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                self.assertTrue(self.start_new_survey(window))
+                current_csv = os.path.join(temp_dir, "current.csv")
+                current_png = os.path.join(temp_dir, "current.png")
+                previous_session = window.session
+                window.session.csv_file = current_csv
+
+                with (
+                    patch(
+                        "qt_ui.qt_session_workflow.QMessageBox.question",
+                        return_value=QMessageBox.StandardButton.Yes,
+                    ),
+                    patch.object(
+                        window,
+                        "choose_new_survey_measurement_system",
+                        return_value=MEASUREMENT_SYSTEM_IMPERIAL,
+                    ) as units_mock,
+                    patch("qt_ui.qt_session_workflow.save_measurement_system", return_value=True),
+                ):
+                    self.assertTrue(window.new_survey())
+
+                units_mock.assert_called_once()
+                self.assertTrue(os.path.exists(current_csv))
+                self.assertTrue(os.path.exists(current_png))
+                self.assertIsNot(window.session, previous_session)
+                self.assertEqual(window.measurement_system, MEASUREMENT_SYSTEM_IMPERIAL)
+                self.assertEqual(window.floorplan_view.grid_label, "1 square = 5 ft")
         finally:
             window.deleteLater()
 
