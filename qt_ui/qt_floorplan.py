@@ -3,7 +3,7 @@
 from pathlib import Path
 import math
 
-from PySide6.QtCore import QRectF, Qt, Signal
+from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QBrush, QColor, QImage, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QGraphicsEllipseItem,
@@ -39,6 +39,7 @@ class FloorplanView(QGraphicsView):
     scaleCalibrationCancelled = Signal()
     pointSelected = Signal(dict)
     pointSelectionCleared = Signal()
+    boundariesMaskChanged = Signal(bool)
 
     def __init__(self):
         super().__init__()
@@ -64,6 +65,14 @@ class FloorplanView(QGraphicsView):
         self.grid_label = ""
         self.grid_ui_scale = 1.0
         self.boundaries_edit_active = False
+        self.boundaries_tool = "draw"
+        self.boundaries_shape = "circle"
+        self.boundaries_brush_size_px = 36.0
+        self.boundaries_mask_image = None
+        self.boundaries_mask_item = None
+        self.boundaries_mask_has_content = False
+        self.boundaries_drawing_active = False
+        self.boundaries_last_point = None
 
         self.setObjectName("floorplanView")
         self.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform)
@@ -77,6 +86,7 @@ class FloorplanView(QGraphicsView):
         if pixmap.isNull():
             raise ValueError(f"Cannot load floor plan: {file_path}")
 
+        self.reset_boundaries_mask(emit_signal=False)
         self.scene.clear()
         self.marker_items = []
         self.ap_marker_items = []
@@ -98,6 +108,7 @@ class FloorplanView(QGraphicsView):
         self.fit_to_view()
 
     def clear_floorplan(self):
+        self.reset_boundaries_mask(emit_signal=False)
         self.scene.clear()
         self.pixmap_item = None
         self.marker_items = []
@@ -107,6 +118,8 @@ class FloorplanView(QGraphicsView):
         self.scale_calibration_items = []
         self.scale_calibration_points = []
         self.boundaries_edit_active = False
+        self.boundaries_drawing_active = False
+        self.boundaries_last_point = None
         self.selected_point_key = None
         self.zoom_level = 1.0
         self.cancel_ap_position_pick(emit_signal=False)
@@ -122,6 +135,10 @@ class FloorplanView(QGraphicsView):
             self.cancel_scale_calibration_pick(emit_signal=False)
 
         self.boundaries_edit_active = active
+        self.boundaries_drawing_active = False
+        self.boundaries_last_point = None
+        if self.boundaries_mask_item is not None:
+            self.boundaries_mask_item.setVisible(active)
         self.setDragMode(
             QGraphicsView.DragMode.NoDrag
             if active
@@ -131,6 +148,126 @@ class FloorplanView(QGraphicsView):
             self.viewport().setCursor(Qt.CursorShape.CrossCursor)
         else:
             self.viewport().unsetCursor()
+
+    def set_boundaries_tool_state(self, tool="draw", shape="circle"):
+        self.boundaries_tool = "eraser" if tool == "eraser" else "draw"
+        self.boundaries_shape = "square" if shape == "square" else "circle"
+
+    def has_boundaries_mask(self):
+        return self.boundaries_mask_has_content
+
+    def reset_boundaries_mask(self, emit_signal=True):
+        if (
+            self.boundaries_mask_item is not None
+            and self.boundaries_mask_item.scene() is self.scene
+        ):
+            self.scene.removeItem(self.boundaries_mask_item)
+        self.boundaries_mask_image = None
+        self.boundaries_mask_item = None
+        self.boundaries_mask_has_content = False
+        self.boundaries_drawing_active = False
+        self.boundaries_last_point = None
+        if emit_signal:
+            self.boundariesMaskChanged.emit(False)
+
+    def clear_boundaries_mask(self):
+        if self.boundaries_mask_image is None and self.boundaries_mask_item is None:
+            if self.boundaries_mask_has_content:
+                self.boundaries_mask_has_content = False
+                self.boundariesMaskChanged.emit(False)
+            return
+
+        if self.boundaries_mask_image is not None:
+            self.boundaries_mask_image.fill(Qt.GlobalColor.transparent)
+        if self.boundaries_mask_item is not None and self.boundaries_mask_image is not None:
+            self.boundaries_mask_item.setPixmap(QPixmap.fromImage(self.boundaries_mask_image))
+        changed = self.boundaries_mask_has_content
+        self.boundaries_mask_has_content = False
+        self.boundaries_drawing_active = False
+        self.boundaries_last_point = None
+        self.viewport().update()
+        if changed:
+            self.boundariesMaskChanged.emit(False)
+
+    def ensure_boundaries_mask(self):
+        if not self.has_floorplan():
+            return False
+
+        if self.boundaries_mask_image is None:
+            source_pixmap = self.pixmap_item.pixmap()
+            self.boundaries_mask_image = QImage(
+                source_pixmap.size(),
+                QImage.Format.Format_ARGB32_Premultiplied,
+            )
+            self.boundaries_mask_image.fill(Qt.GlobalColor.transparent)
+
+        if self.boundaries_mask_item is None:
+            self.boundaries_mask_item = QGraphicsPixmapItem(
+                QPixmap.fromImage(self.boundaries_mask_image)
+            )
+            self.boundaries_mask_item.setZValue(6)
+            self.boundaries_mask_item.setVisible(self.boundaries_edit_active)
+            self.scene.addItem(self.boundaries_mask_item)
+
+        return True
+
+    def apply_boundaries_brush(self, x, y):
+        if not self.ensure_boundaries_mask():
+            return
+
+        point = self.clamp_boundaries_point(QPointF(float(x), float(y)))
+        painter = QPainter(self.boundaries_mask_image)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setPen(Qt.PenStyle.NoPen)
+        if self.boundaries_tool == "eraser":
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
+            painter.setBrush(Qt.GlobalColor.transparent)
+        else:
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+            painter.setBrush(QColor(37, 99, 235, 90))
+
+        half = self.boundaries_brush_size_px / 2.0
+        rect = QRectF(
+            point.x() - half,
+            point.y() - half,
+            self.boundaries_brush_size_px,
+            self.boundaries_brush_size_px,
+        )
+        if self.boundaries_shape == "square":
+            painter.drawRect(rect)
+        else:
+            painter.drawEllipse(rect)
+        painter.end()
+
+        self.boundaries_mask_item.setPixmap(QPixmap.fromImage(self.boundaries_mask_image))
+        if self.boundaries_tool != "eraser" and not self.boundaries_mask_has_content:
+            self.boundaries_mask_has_content = True
+            self.boundariesMaskChanged.emit(True)
+        self.viewport().update()
+
+    def apply_boundaries_stroke(self, start_point, end_point):
+        start_point = self.clamp_boundaries_point(start_point)
+        end_point = self.clamp_boundaries_point(end_point)
+        dx = end_point.x() - start_point.x()
+        dy = end_point.y() - start_point.y()
+        distance = math.hypot(dx, dy)
+        step = max(4.0, self.boundaries_brush_size_px / 3.0)
+        steps = max(1, int(math.ceil(distance / step)))
+        for index in range(1, steps + 1):
+            ratio = index / steps
+            self.apply_boundaries_brush(
+                start_point.x() + dx * ratio,
+                start_point.y() + dy * ratio,
+            )
+
+    def clamp_boundaries_point(self, point):
+        rect = self.scene.sceneRect()
+        if rect.isNull():
+            return point
+        return QPointF(
+            min(max(point.x(), rect.left()), rect.right()),
+            min(max(point.y(), rect.top()), rect.bottom()),
+        )
 
     def set_grid(
         self,
@@ -480,6 +617,12 @@ class FloorplanView(QGraphicsView):
 
     def mousePressEvent(self, event):
         if self.boundaries_edit_active:
+            if event.button() == Qt.MouseButton.LeftButton:
+                point = self.mapToScene(event.position().toPoint())
+                point = self.clamp_boundaries_point(point)
+                self.boundaries_drawing_active = True
+                self.boundaries_last_point = point
+                self.apply_boundaries_brush(point.x(), point.y())
             event.accept()
             return
 
@@ -523,7 +666,31 @@ class FloorplanView(QGraphicsView):
 
         super().mousePressEvent(event)
 
+    def mouseMoveEvent(self, event):
+        if self.boundaries_edit_active:
+            if (
+                self.boundaries_drawing_active
+                and event.buttons() & Qt.MouseButton.LeftButton
+                and self.boundaries_last_point is not None
+            ):
+                point = self.clamp_boundaries_point(
+                    self.mapToScene(event.position().toPoint())
+                )
+                self.apply_boundaries_stroke(self.boundaries_last_point, point)
+                self.boundaries_last_point = point
+            event.accept()
+            return
+
+        super().mouseMoveEvent(event)
+
     def mouseReleaseEvent(self, event):
+        if self.boundaries_edit_active:
+            if event.button() == Qt.MouseButton.LeftButton:
+                self.boundaries_drawing_active = False
+                self.boundaries_last_point = None
+            event.accept()
+            return
+
         super().mouseReleaseEvent(event)
         if not self.pending_ap_position_group_id and not self.scale_calibration_active:
             self.viewport().setCursor(Qt.CursorShape.ArrowCursor)

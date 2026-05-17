@@ -1272,6 +1272,15 @@ class SurveySessionWorkflowTests(unittest.TestCase):
             self.assertTrue(window.boundaries_circle_button.isChecked())
             self.assertFalse(window.boundaries_clear_button.isEnabled())
 
+            window.floorplan_view.apply_boundaries_brush(80, 80)
+            self.assertTrue(window.boundaries_clear_button.isEnabled())
+            with patch(
+                "qt_ui.qt_floorplan_workflow.QMessageBox.question",
+                return_value=QMessageBox.StandardButton.Yes,
+            ):
+                window.clear_boundaries_mask()
+            self.assertFalse(window.boundaries_clear_button.isEnabled())
+
             window.set_boundaries_tool("eraser")
             window.set_boundaries_shape("square")
 

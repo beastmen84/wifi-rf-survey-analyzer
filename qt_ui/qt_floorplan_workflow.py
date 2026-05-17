@@ -302,6 +302,7 @@ class FloorplanWorkflowMixin:
 
         toolbar = self.ensure_boundaries_toolbar() if enabled else getattr(self, "boundaries_toolbar", None)
         self.floorplan_view.set_boundaries_edit_mode(enabled)
+        self.floorplan_view.set_boundaries_tool_state(self.boundaries_tool, self.boundaries_shape)
         if toolbar is not None:
             toolbar.setVisible(enabled)
         self.position_boundaries_toolbar()
@@ -315,11 +316,34 @@ class FloorplanWorkflowMixin:
 
     def set_boundaries_tool(self, tool):
         self.boundaries_tool = "eraser" if tool == "eraser" else "draw"
+        self.floorplan_view.set_boundaries_tool_state(self.boundaries_tool, self.boundaries_shape)
         self.update_boundaries_controls_state()
 
     def set_boundaries_shape(self, shape):
         self.boundaries_shape = "square" if shape == "square" else "circle"
+        self.floorplan_view.set_boundaries_tool_state(self.boundaries_tool, self.boundaries_shape)
         self.update_boundaries_controls_state()
+
+    def on_boundaries_mask_changed(self, _has_mask):
+        self.update_boundaries_controls_state()
+
+    def clear_boundaries_mask(self):
+        if not self.floorplan_view.has_boundaries_mask():
+            return
+
+        answer = QMessageBox.question(
+            self,
+            self.tr("boundaries_clear_title"),
+            self.tr("boundaries_clear_confirm"),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        self.floorplan_view.clear_boundaries_mask()
+        self.update_boundaries_controls_state()
+        self.status.showMessage(self.tr("boundaries_cleared"))
 
     def update_boundaries_button_state(self):
         if not hasattr(self, "boundaries_button"):
@@ -351,7 +375,9 @@ class FloorplanWorkflowMixin:
         self.boundaries_eraser_button.setEnabled(active)
         self.boundaries_circle_button.setEnabled(active)
         self.boundaries_square_button.setEnabled(active)
-        self.boundaries_clear_button.setEnabled(False)
+        self.boundaries_clear_button.setEnabled(
+            active and self.floorplan_view.has_boundaries_mask()
+        )
 
         self.boundaries_draw_button.setChecked(active and self.boundaries_tool == "draw")
         self.boundaries_eraser_button.setChecked(active and self.boundaries_tool == "eraser")

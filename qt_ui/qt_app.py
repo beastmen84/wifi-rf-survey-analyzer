@@ -634,6 +634,7 @@ class WifiHeatmapQtApp(
         self.floorplan_view.scaleCalibrationCancelled.connect(self.cancel_scale_calibration)
         self.floorplan_view.pointSelected.connect(self.select_point_in_table)
         self.floorplan_view.pointSelectionCleared.connect(self.clear_point_selection)
+        self.floorplan_view.boundariesMaskChanged.connect(self.on_boundaries_mask_changed)
         floorplan_layout.addWidget(self.floorplan_view)
 
         self.points_overlay = QFrame(self.floorplan_container)
@@ -755,7 +756,7 @@ class WifiHeatmapQtApp(
         self.boundaries_eraser_button.clicked.connect(lambda _checked=False: self.set_boundaries_tool("eraser"))
         self.boundaries_circle_button.clicked.connect(lambda _checked=False: self.set_boundaries_shape("circle"))
         self.boundaries_square_button.clicked.connect(lambda _checked=False: self.set_boundaries_shape("square"))
-        self.boundaries_clear_button.clicked.connect(lambda _checked=False: None)
+        self.boundaries_clear_button.clicked.connect(lambda _checked=False: self.clear_boundaries_mask())
 
         for button in (
             self.boundaries_draw_button,

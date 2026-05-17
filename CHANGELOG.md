@@ -9,8 +9,8 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 ## Unreleased
 
 - Started the manual Boundaries mask workflow with a Survey-tab View toggle and
-  floating drawing toolbar. This first step wires the toolbar, tool state and
-  two-way Grid/Boundaries switching; mask drawing, persistence and Live/PDF
+  floating drawing toolbar. The toolbar now supports in-memory draw/erase,
+  circle/square brush selection and confirmed clear; persistence and Live/PDF
   application are planned as follow-up steps.
 - Made the Boundaries toolbar load lazily on first use, keeping its icon setup
   out of the startup "Loading components" path while preserving the same

@@ -296,6 +296,41 @@ class FloorplanViewTests(unittest.TestCase):
             view.deleteLater()
             os.remove(floorplan_path)
 
+    def test_boundaries_mask_draw_erase_and_clear_are_in_memory(self):
+        view = FloorplanView()
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
+            floorplan_path = temp_file.name
+        Image.new("RGB", (120, 90), "white").save(floorplan_path)
+        mask_changes = []
+        view.boundariesMaskChanged.connect(mask_changes.append)
+
+        try:
+            view.load_floorplan(floorplan_path)
+            view.set_boundaries_edit_mode(True)
+            view.set_boundaries_tool_state("draw", "circle")
+            view.apply_boundaries_brush(50, 40)
+
+            self.assertTrue(view.has_boundaries_mask())
+            self.assertTrue(view.boundaries_mask_item.isVisible())
+            self.assertGreater(view.boundaries_mask_image.pixelColor(50, 40).alpha(), 0)
+            self.assertEqual(mask_changes[-1], True)
+
+            view.set_boundaries_tool_state("eraser", "square")
+            view.apply_boundaries_brush(50, 40)
+
+            self.assertTrue(view.has_boundaries_mask())
+            self.assertEqual(view.boundaries_mask_image.pixelColor(50, 40).alpha(), 0)
+
+            view.set_boundaries_edit_mode(False)
+            self.assertFalse(view.boundaries_mask_item.isVisible())
+
+            view.clear_boundaries_mask()
+            self.assertFalse(view.has_boundaries_mask())
+            self.assertEqual(mask_changes[-1], False)
+        finally:
+            view.deleteLater()
+            os.remove(floorplan_path)
+
 
 class LiveMapViewTests(unittest.TestCase):
     @classmethod
