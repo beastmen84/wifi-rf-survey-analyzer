@@ -522,6 +522,9 @@ Implemented:
 - page 1 is arranged as map first, then summary/scale/legend below the map;
 - continuous Coverage and Interference exports honor color scale, smoothing and
   max-distance settings;
+- continuous map confidence opacity is smoothed across the grid rather than
+  assigned by nearest survey point, avoiding polygonal opacity artifacts when
+  neighboring scans have different confidence values;
 - live PDF export supports 6 GHz map filters, legends and Interference
   summaries;
 - exported map pages are flattened to avoid accidental page-image selection in

@@ -2022,6 +2022,27 @@ class HeatmapMathTests(unittest.TestCase):
         self.assertAlmostEqual(alpha[2, 0], 0.0)
         self.assertAlmostEqual(alpha[3, 0], 0.0)
 
+    def test_distance_alpha_smooths_confidence_between_points(self):
+        grid_x, grid_y = np.meshgrid(np.linspace(0.0, 100.0, 11), np.array([0.0]), indexing="ij")
+
+        alpha = get_distance_alpha(
+            grid_x,
+            grid_y,
+            np.array([0.0, 100.0]),
+            np.array([0.0, 0.0]),
+            max_distance_px=80,
+            fade_ratio=0.25,
+            point_confidence=[1.0, 0.05],
+            min_confidence_alpha=0.45,
+        )
+
+        low_confidence_alpha = 0.45 + ((1 - 0.45) * 0.05)
+        self.assertAlmostEqual(alpha[0, 0], 1.0, places=2)
+        self.assertAlmostEqual(alpha[-1, 0], low_confidence_alpha, delta=0.02)
+        self.assertGreater(alpha[5, 0], low_confidence_alpha)
+        self.assertLess(alpha[5, 0], 1.0)
+        self.assertLess(abs(alpha[5, 0] - alpha[6, 0]), 0.25)
+
     def test_apply_signal_threshold_masks_only_weak_values(self):
         grid = np.array([[-72.0, -70.0], [-65.0, np.nan]])
 

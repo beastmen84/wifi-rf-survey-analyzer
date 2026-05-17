@@ -888,10 +888,43 @@ def get_distance_alpha(
     alpha[min_distance > max_distance_px] = 0
 
     if nearest_confidence is not None:
+        nearest_confidence = smooth_confidence_surface(
+            nearest_confidence,
+            grid_x,
+            grid_y,
+            max_distance_px,
+        )
         confidence_alpha = min_confidence_alpha + ((1 - min_confidence_alpha) * nearest_confidence)
         alpha *= confidence_alpha
 
     return np.clip(alpha, 0, 1)
+
+
+def smooth_confidence_surface(confidence_grid, grid_x, grid_y, max_distance_px):
+    cell_size_px = get_grid_cell_size_px(grid_x, grid_y)
+    sigma_cells = max(1.0, (max_distance_px * 0.25) / cell_size_px)
+    return gaussian_filter(confidence_grid, sigma=sigma_cells)
+
+
+def get_grid_cell_size_px(grid_x, grid_y):
+    steps = []
+
+    if grid_x.shape[0] > 1:
+        x_steps = np.abs(np.diff(grid_x[:, 0]))
+        x_steps = x_steps[np.isfinite(x_steps) & (x_steps > 0)]
+        if x_steps.size:
+            steps.append(float(np.median(x_steps)))
+
+    if grid_y.shape[1] > 1:
+        y_steps = np.abs(np.diff(grid_y[0, :]))
+        y_steps = y_steps[np.isfinite(y_steps) & (y_steps > 0)]
+        if y_steps.size:
+            steps.append(float(np.median(y_steps)))
+
+    if not steps:
+        return 1.0
+
+    return max(1.0, float(np.mean(steps)))
 
 
 def apply_distance_mask(grid_z, grid_x, grid_y, point_x, point_y, max_distance_px):

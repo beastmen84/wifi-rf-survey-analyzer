@@ -1,4 +1,5 @@
 from tests._common import *
+from app_core.constants import HEATMAP_MAX_DISTANCE_METERS
 from app_core.version import (
     APP_VERSION,
     APP_VERSION_LABEL,
@@ -1464,8 +1465,8 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(window.current_combo_value(window.live_aggregation_combo), "max")
             self.assertEqual(window.current_combo_value(window.live_interpolation_combo), "rbf")
             self.assertEqual(window.current_combo_value(window.live_color_scale_combo), "fixed")
-            self.assertEqual(window.live_smoothing_spin.value(), 3.0)
-            self.assertEqual(window.current_live_max_distance_px(), 180)
+            self.assertEqual(window.live_smoothing_spin.value(), 5.0)
+            self.assertEqual(window.current_live_max_distance_px(), 260)
             self.assertFalse(window.live_usable_check.isChecked())
             set_map_type("channel")
             self.assertEqual(window.current_combo_value(window.live_point_labels_combo), "auto")
@@ -1480,6 +1481,10 @@ class WorkspaceLiveStateTests(unittest.TestCase):
 
             window.session = Session()
             window.measurement_system = MEASUREMENT_SYSTEM_METRIC
+            self.assertEqual(
+                window.default_live_option_state("signal")["max_distance_px"],
+                int(round(HEATMAP_MAX_DISTANCE_METERS * 10)),
+            )
             window.set_live_max_distance_px_silent(100)
 
             self.assertEqual(window.live_max_distance_label.text(), "Max Distance (m)")

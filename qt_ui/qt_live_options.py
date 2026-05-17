@@ -15,7 +15,11 @@ from ap.groups import (
     normalize_ap_role,
     resolve_ap_group_key,
 )
-from app_core.constants import HEATMAP_MAX_DISTANCE_PX, HEATMAP_SMOOTHING_SIGMA
+from app_core.constants import (
+    HEATMAP_MAX_DISTANCE_METERS,
+    HEATMAP_MAX_DISTANCE_PX,
+    HEATMAP_SMOOTHING_SIGMA,
+)
 from app_core.units import (
     distance_unit_label,
     display_units_to_meters,
@@ -157,6 +161,13 @@ class LiveOptionsMixin:
         combo.setCurrentIndex(index)
         combo.blockSignals(False)
 
+    def default_live_max_distance_px(self):
+        px_per_meter = self.get_px_per_meter()
+        if px_per_meter:
+            return max(1, int(round(HEATMAP_MAX_DISTANCE_METERS * px_per_meter)))
+
+        return HEATMAP_MAX_DISTANCE_PX
+
     def default_live_option_state(self, map_type):
         return {
             "band": "2.4" if map_type == "interference" else "all",
@@ -168,7 +179,7 @@ class LiveOptionsMixin:
             "ap_group_filter": "",
             "usable_only": False,
             "smoothing_sigma": HEATMAP_SMOOTHING_SIGMA,
-            "max_distance_px": HEATMAP_MAX_DISTANCE_PX,
+            "max_distance_px": self.default_live_max_distance_px(),
         }
 
     def current_live_option_state(self):
