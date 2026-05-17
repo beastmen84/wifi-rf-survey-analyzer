@@ -8,7 +8,10 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
-- No changes yet.
+- Started the manual Boundaries mask workflow with a Survey-tab View toggle and
+  floating drawing toolbar. This first step wires the toolbar, tool state and
+  Grid mutual exclusion; mask drawing, persistence and Live/PDF application are
+  planned as follow-up steps.
 
 ## v0.9.6-beta.1 - 2026-05-17
 

@@ -115,6 +115,7 @@ class FloorplanWorkflowMixin:
         if self.session is None:
             return
 
+        self.set_boundaries_mode_enabled(False, show_status=False)
         previous_generated_floorplan = self.current_generated_floorplan_file()
         force_grid_off = False
         try:
@@ -222,6 +223,7 @@ class FloorplanWorkflowMixin:
         if self.session is None or not self.has_calibrated_scale():
             return
 
+        self.set_boundaries_mode_enabled(False, show_status=False)
         self.set_floorplan_grid_enabled(
             not self.floorplan_view.grid_visible,
             show_status=True,
@@ -268,11 +270,102 @@ class FloorplanWorkflowMixin:
             and self.has_calibrated_scale()
             and self.tabs.currentIndex() == 0
             and not self.scan_in_progress
+            and not getattr(self.floorplan_view, "boundaries_edit_active", False)
         )
         self.grid_button.setEnabled(can_show_grid)
         self.grid_button.blockSignals(True)
         self.grid_button.setChecked(bool(can_show_grid and self.floorplan_view.grid_visible))
         self.grid_button.blockSignals(False)
+
+    def can_use_boundaries_mode(self):
+        return (
+            self.session is not None
+            and self.tabs.currentIndex() == 0
+            and self.floorplan_view.has_floorplan()
+            and not self.scan_in_progress
+        )
+
+    def toggle_boundaries_mode(self):
+        self.set_boundaries_mode_enabled(self.boundaries_button.isChecked())
+
+    def set_boundaries_mode_enabled(self, enabled, show_status=True):
+        if not hasattr(self, "boundaries_button"):
+            return
+
+        enabled = bool(enabled and self.can_use_boundaries_mode())
+        if enabled and self.floorplan_view.grid_visible:
+            self.set_floorplan_grid_enabled(False, show_status=False)
+
+        self.floorplan_view.set_boundaries_edit_mode(enabled)
+        self.boundaries_toolbar.setVisible(enabled)
+        self.position_boundaries_toolbar()
+        self.update_floorplan_grid_button_state()
+        self.update_boundaries_button_state()
+        self.update_boundaries_controls_state()
+        if show_status:
+            self.status.showMessage(
+                self.tr("boundaries_enabled") if enabled else self.tr("boundaries_disabled")
+            )
+
+    def set_boundaries_tool(self, tool):
+        self.boundaries_tool = "eraser" if tool == "eraser" else "draw"
+        self.update_boundaries_controls_state()
+
+    def set_boundaries_shape(self, shape):
+        self.boundaries_shape = "square" if shape == "square" else "circle"
+        self.update_boundaries_controls_state()
+
+    def update_boundaries_button_state(self):
+        if not hasattr(self, "boundaries_button"):
+            return
+
+        can_edit = self.can_use_boundaries_mode()
+        active = bool(
+            can_edit
+            and getattr(self.floorplan_view, "boundaries_edit_active", False)
+        )
+        if not can_edit and getattr(self.floorplan_view, "boundaries_edit_active", False):
+            self.floorplan_view.set_boundaries_edit_mode(False)
+            self.boundaries_toolbar.setVisible(False)
+            active = False
+
+        self.boundaries_button.setEnabled(can_edit)
+        self.boundaries_button.blockSignals(True)
+        self.boundaries_button.setChecked(active)
+        self.boundaries_button.blockSignals(False)
+
+    def update_boundaries_controls_state(self):
+        if not hasattr(self, "boundaries_toolbar"):
+            return
+
+        active = bool(getattr(self.floorplan_view, "boundaries_edit_active", False))
+        self.boundaries_draw_button.setEnabled(active)
+        self.boundaries_eraser_button.setEnabled(active)
+        self.boundaries_circle_button.setEnabled(active)
+        self.boundaries_square_button.setEnabled(active)
+        self.boundaries_clear_button.setEnabled(False)
+
+        self.boundaries_draw_button.setChecked(active and self.boundaries_tool == "draw")
+        self.boundaries_eraser_button.setChecked(active and self.boundaries_tool == "eraser")
+        self.boundaries_circle_button.setChecked(active and self.boundaries_shape == "circle")
+        self.boundaries_square_button.setChecked(active and self.boundaries_shape == "square")
+
+    def position_boundaries_toolbar(self):
+        if not hasattr(self, "boundaries_toolbar") or self.boundaries_toolbar.isHidden():
+            return
+
+        container_width = self.floorplan_container.width()
+        container_height = self.floorplan_container.height()
+        if container_width <= 0 or container_height <= 0:
+            return
+
+        margin = self.spx(12)
+        width = self.boundaries_toolbar.sizeHint().width()
+        height = self.boundaries_toolbar.sizeHint().height()
+        x = margin
+        y = max(margin, (container_height - height) // 2)
+        self.boundaries_toolbar.setGeometry(x, y, width, height)
+        self.boundaries_toolbar.raise_()
 
     def zoom_in(self):
         view = self.current_zoom_view()

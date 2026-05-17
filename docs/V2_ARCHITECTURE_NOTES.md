@@ -105,6 +105,10 @@ Current status:
   real plan is loaded later and the survey is saved, the obsolete generated PNG
   is deleted. Grid now draws a compact in-map scale label such as
   `1 square = 1 m` or `1 square = 3 ft`;
+- post-`v0.9.6-beta.1` manual Boundaries mask work has started. Step 1 adds the
+  Survey-tab View toggle, floating vertical toolbar, tool/shape state and Grid
+  mutual exclusion. Follow-up steps still need raster mask drawing/erasing,
+  sidecar persistence and Live/PDF mask application;
 - `v0.9.4-beta.1` is closed as a source-tagged beta with the AP metadata
   foundation for
   local/zone-only coverage scope: AP group metadata now normalizes and
@@ -965,6 +969,8 @@ Remaining closeout:
 - refine section ordering and formatting only if visual inspection shows a real
   readability problem;
 - keep text concise and visual where possible.
+- complete the manual Boundaries mask workflow one step at a time: raster draw
+  and erase, save/load sidecar, Live/PDF application and Help text.
 
 ## Suggested Next Priorities
 

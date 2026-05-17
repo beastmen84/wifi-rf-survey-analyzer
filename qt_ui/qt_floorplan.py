@@ -63,6 +63,7 @@ class FloorplanView(QGraphicsView):
         self.grid_color = "#3A6EA5"
         self.grid_label = ""
         self.grid_ui_scale = 1.0
+        self.boundaries_edit_active = False
 
         self.setObjectName("floorplanView")
         self.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform)
@@ -84,6 +85,7 @@ class FloorplanView(QGraphicsView):
         self.scale_calibration_points = []
         self.selected_point_key = None
         self.scale_calibration_active = False
+        self.boundaries_edit_active = False
         self.pending_ap_position_group_id = ""
         self.pending_ap_position_label = ""
         self.viewport().unsetCursor()
@@ -104,6 +106,7 @@ class FloorplanView(QGraphicsView):
         self.grid_visible = False
         self.scale_calibration_items = []
         self.scale_calibration_points = []
+        self.boundaries_edit_active = False
         self.selected_point_key = None
         self.zoom_level = 1.0
         self.cancel_ap_position_pick(emit_signal=False)
@@ -111,6 +114,23 @@ class FloorplanView(QGraphicsView):
 
     def has_floorplan(self):
         return self.pixmap_item is not None
+
+    def set_boundaries_edit_mode(self, active):
+        active = bool(active and self.has_floorplan())
+        if active:
+            self.cancel_ap_position_pick(emit_signal=False)
+            self.cancel_scale_calibration_pick(emit_signal=False)
+
+        self.boundaries_edit_active = active
+        self.setDragMode(
+            QGraphicsView.DragMode.NoDrag
+            if active
+            else QGraphicsView.DragMode.ScrollHandDrag
+        )
+        if active:
+            self.viewport().setCursor(Qt.CursorShape.CrossCursor)
+        else:
+            self.viewport().unsetCursor()
 
     def set_grid(
         self,
@@ -459,6 +479,10 @@ class FloorplanView(QGraphicsView):
         super().wheelEvent(event)
 
     def mousePressEvent(self, event):
+        if self.boundaries_edit_active:
+            event.accept()
+            return
+
         if self.scale_calibration_active:
             if event.button() == Qt.MouseButton.LeftButton:
                 point = self.mapToScene(event.position().toPoint())

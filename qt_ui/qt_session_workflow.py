@@ -341,6 +341,7 @@ class SurveySessionWorkflowMixin:
         )
         self.delete_scale_button.setEnabled(can_use_session and not live_tab_active and has_scale)
         self.update_floorplan_grid_button_state()
+        self.update_boundaries_button_state()
         self.update_save_action_state()
         self.refresh_live_controls()
         self.update_point_action_state()

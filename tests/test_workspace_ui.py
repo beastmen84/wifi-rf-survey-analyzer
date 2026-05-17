@@ -1202,6 +1202,46 @@ class SurveySessionWorkflowTests(unittest.TestCase):
         finally:
             window.deleteLater()
 
+    def test_boundaries_mode_shows_survey_toolbar_and_disables_grid(self):
+        window = WifiHeatmapQtApp()
+        try:
+            self.assertFalse(window.boundaries_button.isEnabled())
+            self.assertFalse(window.boundaries_toolbar.isVisible())
+
+            self.assertTrue(self.start_new_survey(window))
+            self.assertTrue(window.boundaries_button.isEnabled())
+            self.assertTrue(window.floorplan_view.grid_visible)
+
+            window.boundaries_button.setChecked(True)
+            window.toggle_boundaries_mode()
+
+            self.assertFalse(window.boundaries_toolbar.isHidden())
+            self.assertTrue(window.boundaries_button.isChecked())
+            self.assertTrue(window.floorplan_view.boundaries_edit_active)
+            self.assertFalse(window.floorplan_view.grid_visible)
+            self.assertFalse(window.grid_button.isEnabled())
+            self.assertTrue(window.boundaries_draw_button.isChecked())
+            self.assertTrue(window.boundaries_circle_button.isChecked())
+            self.assertFalse(window.boundaries_clear_button.isEnabled())
+
+            window.set_boundaries_tool("eraser")
+            window.set_boundaries_shape("square")
+
+            self.assertTrue(window.boundaries_eraser_button.isChecked())
+            self.assertTrue(window.boundaries_square_button.isChecked())
+            self.assertFalse(window.boundaries_draw_button.isChecked())
+            self.assertFalse(window.boundaries_circle_button.isChecked())
+
+            window.tabs.setCurrentIndex(1)
+            QApplication.processEvents()
+
+            self.assertTrue(window.boundaries_toolbar.isHidden())
+            self.assertFalse(window.boundaries_button.isChecked())
+            self.assertFalse(window.boundaries_button.isEnabled())
+            self.assertFalse(window.floorplan_view.boundaries_edit_active)
+        finally:
+            window.deleteLater()
+
 
 class PointCaptureWorkflowTests(unittest.TestCase):
     class FakeStatus:

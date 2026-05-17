@@ -5,7 +5,7 @@ from pathlib import Path
 
 try:
     from PySide6.QtCore import QEvent, QRect, QSize, Qt, QTimer
-    from PySide6.QtGui import QColor, QLinearGradient, QPalette
+    from PySide6.QtGui import QColor, QIcon, QLinearGradient, QPalette
     from PySide6.QtWidgets import (
         QAbstractItemView,
         QApplication,
@@ -40,6 +40,7 @@ except ModuleNotFoundError as exc:
 
 from translations.i18n import DEFAULT_LANGUAGE, LANGUAGE_OPTIONS, translate
 from app_core.logging import configure_logging, log_event, log_exception, log_unhandled_exception
+from app_core.resources import resource_path
 from app_core.settings import (
     get_saved_measurement_system,
     get_saved_theme,
@@ -248,6 +249,8 @@ class WifiHeatmapQtApp(
         self.points_overlay_resize_active = False
         self.points_overlay_resize_start_y = 0
         self.points_overlay_resize_start_height = 0
+        self.boundaries_tool = "draw"
+        self.boundaries_shape = "circle"
         self.live_options_panel_expanded = False
         self.live_map_option_memory = {}
         self.live_current_map_type = "signal"
@@ -432,6 +435,8 @@ class WifiHeatmapQtApp(
         self.calibrate_button = self.create_app_bar_button(self.start_scale_calibration)
         self.grid_button = self.create_app_bar_button(self.toggle_floorplan_grid, "appBarToggleButton")
         self.grid_button.setCheckable(True)
+        self.boundaries_button = self.create_app_bar_button(self.toggle_boundaries_mode, "appBarToggleButton")
+        self.boundaries_button.setCheckable(True)
         self.delete_scale_button = QPushButton()
         self.delete_scale_button.setObjectName("appBarTitleDangerButton")
         self.delete_scale_button.clicked.connect(self.delete_scale_calibration)
@@ -443,6 +448,7 @@ class WifiHeatmapQtApp(
             self.fit_view_button,
             self.calibrate_button,
             self.grid_button,
+            self.boundaries_button,
         ):
             view_row.addWidget(button)
         layout.addWidget(view_section)
@@ -613,6 +619,8 @@ class WifiHeatmapQtApp(
         self.floorplan_view.pointSelected.connect(self.select_point_in_table)
         self.floorplan_view.pointSelectionCleared.connect(self.clear_point_selection)
         floorplan_layout.addWidget(self.floorplan_view)
+        self.boundaries_toolbar = self.build_boundaries_toolbar()
+        self.boundaries_toolbar.setVisible(False)
 
         self.points_overlay = QFrame(self.floorplan_container)
         self.points_overlay.setObjectName("floatingPointsPanel")
@@ -686,8 +694,69 @@ class WifiHeatmapQtApp(
         self.points_panel_resize_button.setVisible(False)
         self.update_points_panel_toggle()
         layout.addWidget(self.floorplan_container, 1)
+        QTimer.singleShot(0, self.position_boundaries_toolbar)
         QTimer.singleShot(0, self.position_points_overlay)
         return tab
+
+    def build_boundaries_toolbar(self):
+        toolbar = QFrame(self.floorplan_container)
+        toolbar.setObjectName("boundariesToolbar")
+        toolbar.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        layout = QVBoxLayout(toolbar)
+        layout.setContentsMargins(self.spx(6), self.spx(6), self.spx(6), self.spx(6))
+        layout.setSpacing(self.spx(6))
+
+        self.boundaries_draw_button = self.create_boundaries_tool_button(
+            "brush.png",
+            "boundaries_draw_tooltip",
+            checkable=True,
+        )
+        self.boundaries_eraser_button = self.create_boundaries_tool_button(
+            "eraser.png",
+            "boundaries_eraser_tooltip",
+            checkable=True,
+        )
+        self.boundaries_circle_button = self.create_boundaries_tool_button(
+            "circle.png",
+            "boundaries_circle_tooltip",
+            checkable=True,
+        )
+        self.boundaries_square_button = self.create_boundaries_tool_button(
+            "square.png",
+            "boundaries_square_tooltip",
+            checkable=True,
+        )
+        self.boundaries_clear_button = self.create_boundaries_tool_button(
+            "clear.png",
+            "boundaries_clear_tooltip",
+        )
+
+        self.boundaries_draw_button.clicked.connect(lambda _checked=False: self.set_boundaries_tool("draw"))
+        self.boundaries_eraser_button.clicked.connect(lambda _checked=False: self.set_boundaries_tool("eraser"))
+        self.boundaries_circle_button.clicked.connect(lambda _checked=False: self.set_boundaries_shape("circle"))
+        self.boundaries_square_button.clicked.connect(lambda _checked=False: self.set_boundaries_shape("square"))
+        self.boundaries_clear_button.clicked.connect(lambda _checked=False: None)
+
+        for button in (
+            self.boundaries_draw_button,
+            self.boundaries_eraser_button,
+            self.boundaries_circle_button,
+            self.boundaries_square_button,
+            self.boundaries_clear_button,
+        ):
+            layout.addWidget(button)
+
+        return toolbar
+
+    def create_boundaries_tool_button(self, icon_name, tooltip_key, checkable=False):
+        button = QPushButton()
+        button.setObjectName("boundariesToolButton")
+        button.setCheckable(checkable)
+        button.setIcon(QIcon(str(resource_path("images", "bound_toolbar", icon_name))))
+        button.setIconSize(QSize(self.spx(22), self.spx(22)))
+        button.setFixedSize(self.spx(38), self.spx(38))
+        button.setToolTip(self.tr(tooltip_key))
+        return button
 
     def toggle_points_panel(self):
         self.points_panel_expanded = not self.points_panel_expanded
@@ -766,6 +835,7 @@ class WifiHeatmapQtApp(
 
     def eventFilter(self, source, event):
         if source is getattr(self, "floorplan_container", None) and event.type() == QEvent.Type.Resize:
+            QTimer.singleShot(0, self.position_boundaries_toolbar)
             QTimer.singleShot(0, self.position_points_overlay)
             return False
 
@@ -1144,6 +1214,34 @@ class WifiHeatmapQtApp(
             QFrame#floatingLiveOptionsPanelCollapsed {{
                 background: transparent;
                 border: 0;
+            }}
+            QFrame#boundariesToolbar {{
+                background: {palette["panel"]};
+                border: 1px solid {palette["border"]};
+                border-radius: {s(9)}px;
+            }}
+            QPushButton#boundariesToolButton {{
+                min-width: {s(38)}px;
+                max-width: {s(38)}px;
+                min-height: {s(38)}px;
+                max-height: {s(38)}px;
+                padding: {s(5)}px;
+                border-radius: {s(5)}px;
+                background: {palette["button_bg"]};
+                color: {palette["text"]};
+                border: 1px solid {palette["border"]};
+            }}
+            QPushButton#boundariesToolButton:hover {{
+                background: {palette["button_hover"]};
+                border: 1px solid {palette["metric_info"]};
+            }}
+            QPushButton#boundariesToolButton:checked {{
+                background: {palette["metric_info"]};
+                border: 1px solid {palette["metric_info"]};
+            }}
+            QPushButton#boundariesToolButton:disabled {{
+                background: {palette["panel_alt"]};
+                border: 1px solid {palette["border"]};
             }}
             QDialog#settingsMenuPanel, QWidget#settingsMenuPanel {{
                 background: {palette["panel"]};
@@ -1657,6 +1755,7 @@ class WifiHeatmapQtApp(
         self.fit_view_button.setText(self.tr("fit"))
         self.calibrate_button.setText(self.tr("calibrate_scale"))
         self.grid_button.setText(self.tr("grid"))
+        self.boundaries_button.setText(self.tr("boundaries"))
         self.delete_scale_button.setText(self.tr("delete_scale"))
         self.ap_groups_button.setText(self.tr("ap_groups_title"))
         self.quality_button.setText(self.tr("quality_dashboard_title"))
@@ -1687,6 +1786,11 @@ class WifiHeatmapQtApp(
         self.live_auto_check.setText(self.tr("live_auto_update"))
         self.live_pdf_export_button.setText(self.tr("live_export_pdf"))
         self.live_update_button.setText(self.tr("live_update_now"))
+        self.boundaries_draw_button.setToolTip(self.tr("boundaries_draw_tooltip"))
+        self.boundaries_eraser_button.setToolTip(self.tr("boundaries_eraser_tooltip"))
+        self.boundaries_circle_button.setToolTip(self.tr("boundaries_circle_tooltip"))
+        self.boundaries_square_button.setToolTip(self.tr("boundaries_square_tooltip"))
+        self.boundaries_clear_button.setToolTip(self.tr("boundaries_clear_tooltip"))
         self.fit_localized_button_widths()
         self.refresh_live_static_options()
         self.points_table.setHorizontalHeaderLabels([

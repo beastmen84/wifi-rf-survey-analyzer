@@ -24,6 +24,8 @@ from qt_ui.qt_live_map import LiveMapRenderWorker, create_marker_icon
 
 class LivePreviewMixin:
     def on_workspace_tab_changed(self, index):
+        if index != 0:
+            self.set_boundaries_mode_enabled(False, show_status=False)
         self.refresh_session_labels()
         if index == 1:
             self.maybe_update_live_preview()
