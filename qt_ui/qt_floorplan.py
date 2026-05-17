@@ -31,6 +31,9 @@ GRID_MAJOR_EVERY = 5
 BOUNDARIES_CURSOR_MIN_SIZE_PX = 14
 BOUNDARIES_CURSOR_MAX_SIZE_PX = 96
 BOUNDARIES_CURSOR_PADDING_PX = 3
+BOUNDARIES_MASK_ALPHA = 78
+BOUNDARIES_MASK_FEATHER_PX = 4.0
+BOUNDARIES_MASK_COLOR = QColor(37, 99, 235)
 
 
 class FloorplanView(QGraphicsView):
@@ -289,34 +292,81 @@ class FloorplanView(QGraphicsView):
             return
 
         point = self.clamp_boundaries_point(QPointF(float(x), float(y)))
-        painter = QPainter(self.boundaries_mask_image)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        painter.setPen(Qt.PenStyle.NoPen)
-        if self.boundaries_tool == "eraser":
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
-            painter.setBrush(Qt.GlobalColor.transparent)
-        else:
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source)
-            painter.setBrush(QColor(37, 99, 235, 90))
-
         half = self.boundaries_brush_size_px / 2.0
-        rect = QRectF(
-            point.x() - half,
-            point.y() - half,
-            self.boundaries_brush_size_px,
-            self.boundaries_brush_size_px,
+        image_width = self.boundaries_mask_image.width()
+        image_height = self.boundaries_mask_image.height()
+        min_x = max(
+            0,
+            int(math.floor(point.x() - half - BOUNDARIES_MASK_FEATHER_PX)),
         )
-        if self.boundaries_shape == "square":
-            painter.drawRect(rect)
-        else:
-            painter.drawEllipse(rect)
-        painter.end()
+        max_x = min(
+            image_width - 1,
+            int(math.ceil(point.x() + half + BOUNDARIES_MASK_FEATHER_PX)),
+        )
+        min_y = max(
+            0,
+            int(math.floor(point.y() - half - BOUNDARIES_MASK_FEATHER_PX)),
+        )
+        max_y = min(
+            image_height - 1,
+            int(math.ceil(point.y() + half + BOUNDARIES_MASK_FEATHER_PX)),
+        )
+
+        for pixel_y in range(min_y, max_y + 1):
+            for pixel_x in range(min_x, max_x + 1):
+                coverage = self.boundaries_brush_coverage(
+                    pixel_x + 0.5 - point.x(),
+                    pixel_y + 0.5 - point.y(),
+                )
+                if coverage <= 0:
+                    continue
+                self.apply_boundaries_mask_pixel(pixel_x, pixel_y, coverage)
 
         self.boundaries_mask_item.setPixmap(QPixmap.fromImage(self.boundaries_mask_image))
         if self.boundaries_tool != "eraser" and not self.boundaries_mask_has_content:
             self.boundaries_mask_has_content = True
             self.boundariesMaskChanged.emit(True)
         self.viewport().update()
+
+    def boundaries_brush_coverage(self, dx, dy):
+        half = self.boundaries_brush_size_px / 2.0
+        feather = min(BOUNDARIES_MASK_FEATHER_PX, max(1.0, half))
+        if self.boundaries_shape == "square":
+            distance_to_edge = half - max(abs(dx), abs(dy))
+        else:
+            distance_to_edge = half - math.hypot(dx, dy)
+
+        if distance_to_edge <= 0:
+            return 0.0
+        if distance_to_edge >= feather:
+            return 1.0
+        return distance_to_edge / feather
+
+    def apply_boundaries_mask_pixel(self, x, y, coverage):
+        existing = self.boundaries_mask_image.pixelColor(x, y)
+        existing_alpha = existing.alpha()
+        if self.boundaries_tool == "eraser":
+            if existing_alpha <= 0:
+                return
+            new_alpha = int(round(existing_alpha * (1.0 - coverage)))
+            if new_alpha <= 0:
+                self.boundaries_mask_image.setPixelColor(x, y, QColor(0, 0, 0, 0))
+                return
+            color = QColor(existing)
+            color.setAlpha(new_alpha)
+            self.boundaries_mask_image.setPixelColor(x, y, color)
+            return
+
+        target_alpha = int(round(BOUNDARIES_MASK_ALPHA * coverage))
+        if target_alpha <= existing_alpha:
+            return
+        color = QColor(
+            BOUNDARIES_MASK_COLOR.red(),
+            BOUNDARIES_MASK_COLOR.green(),
+            BOUNDARIES_MASK_COLOR.blue(),
+            target_alpha,
+        )
+        self.boundaries_mask_image.setPixelColor(x, y, color)
 
     def apply_boundaries_stroke(self, start_point, end_point):
         start_point = self.clamp_boundaries_point(start_point)

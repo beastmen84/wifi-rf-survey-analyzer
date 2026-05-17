@@ -13,9 +13,10 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   circle/square brush selection and confirmed clear. Boundaries mode keeps the
   normal floorplan zoom, pan and left-click controls; right-drag paints or
   erases the mask instead of adding survey points. Drawing now uses fixed
-  transparency when strokes overlap, and the floorplan cursor switches to a
-  zoom-aware circle/square footprint for the selected brush shape while
-  Boundaries is active. Persistence and
+  transparency when strokes overlap, a slightly lighter fill and a subtle
+  feathered edge, and the floorplan cursor switches to a zoom-aware
+  circle/square footprint for the selected brush shape while Boundaries is
+  active. Persistence and
   Live/PDF application are planned as follow-up steps.
 - Made the Boundaries toolbar load lazily on first use, keeping its icon setup
   out of the startup "Loading components" path while preserving the same

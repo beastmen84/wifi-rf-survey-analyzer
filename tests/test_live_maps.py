@@ -318,7 +318,10 @@ class FloorplanViewTests(unittest.TestCase):
             self.assertTrue(view.has_boundaries_mask())
             self.assertTrue(view.boundaries_mask_item.isVisible())
             draw_alpha = view.boundaries_mask_image.pixelColor(50, 40).alpha()
+            edge_alpha = view.boundaries_mask_image.pixelColor(67, 40).alpha()
             self.assertGreater(draw_alpha, 0)
+            self.assertGreater(edge_alpha, 0)
+            self.assertLess(edge_alpha, draw_alpha)
             self.assertEqual(mask_changes[-1], True)
 
             view.apply_boundaries_brush(50, 40)
