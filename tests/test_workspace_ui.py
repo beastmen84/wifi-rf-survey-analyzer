@@ -1219,7 +1219,7 @@ class SurveySessionWorkflowTests(unittest.TestCase):
             self.assertTrue(window.boundaries_button.isChecked())
             self.assertTrue(window.floorplan_view.boundaries_edit_active)
             self.assertFalse(window.floorplan_view.grid_visible)
-            self.assertFalse(window.grid_button.isEnabled())
+            self.assertTrue(window.grid_button.isEnabled())
             self.assertTrue(window.boundaries_draw_button.isChecked())
             self.assertTrue(window.boundaries_circle_button.isChecked())
             self.assertFalse(window.boundaries_clear_button.isEnabled())
@@ -1231,6 +1231,17 @@ class SurveySessionWorkflowTests(unittest.TestCase):
             self.assertTrue(window.boundaries_square_button.isChecked())
             self.assertFalse(window.boundaries_draw_button.isChecked())
             self.assertFalse(window.boundaries_circle_button.isChecked())
+
+            window.toggle_floorplan_grid()
+
+            self.assertFalse(window.boundaries_toolbar.isVisible())
+            self.assertFalse(window.boundaries_button.isChecked())
+            self.assertFalse(window.floorplan_view.boundaries_edit_active)
+            self.assertTrue(window.floorplan_view.grid_visible)
+            self.assertTrue(window.grid_button.isChecked())
+
+            window.boundaries_button.setChecked(True)
+            window.toggle_boundaries_mode()
 
             window.tabs.setCurrentIndex(1)
             QApplication.processEvents()

@@ -270,7 +270,6 @@ class FloorplanWorkflowMixin:
             and self.has_calibrated_scale()
             and self.tabs.currentIndex() == 0
             and not self.scan_in_progress
-            and not getattr(self.floorplan_view, "boundaries_edit_active", False)
         )
         self.grid_button.setEnabled(can_show_grid)
         self.grid_button.blockSignals(True)

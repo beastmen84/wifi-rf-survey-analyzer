@@ -107,7 +107,8 @@ Current status:
   `1 square = 1 m` or `1 square = 3 ft`;
 - post-`v0.9.6-beta.1` manual Boundaries mask work has started. Step 1 adds the
   Survey-tab View toggle, floating vertical toolbar, tool/shape state and Grid
-  mutual exclusion. Follow-up steps still need raster mask drawing/erasing,
+  mutual exclusion, with Grid also acting as the switch back from Boundaries
+  when scale is available. Follow-up steps still need raster mask drawing/erasing,
   sidecar persistence and Live/PDF mask application;
 - `v0.9.4-beta.1` is closed as a source-tagged beta with the AP metadata
   foundation for
