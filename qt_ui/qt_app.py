@@ -217,6 +217,7 @@ class WifiHeatmapQtApp(
     QMainWindow,
 ):
     def __init__(self):
+        log_event("qt workspace init start", logger_name="ui")
         super().__init__()
         self.language = DEFAULT_LANGUAGE
         self.theme = get_saved_theme(default="light", valid_themes=QT_THEMES)
@@ -274,14 +275,23 @@ class WifiHeatmapQtApp(
         self.status = QStatusBar()
         self.setStatusBar(self.status)
 
+        log_event("qt workspace build start page start", logger_name="ui")
         self.start_page = self.build_start_page()
+        log_event("qt workspace build start page done", logger_name="ui")
+        log_event("qt workspace build workspace page start", logger_name="ui")
         self.workspace_page = self.build_workspace_page()
+        log_event("qt workspace build workspace page done", logger_name="ui")
         self.stack.addWidget(self.start_page)
         self.stack.addWidget(self.workspace_page)
 
+        log_event("qt workspace apply styles start", logger_name="ui")
         self.apply_styles()
+        log_event("qt workspace apply styles done", logger_name="ui")
+        log_event("qt workspace retranslate start", logger_name="ui")
         self.retranslate()
+        log_event("qt workspace retranslate done", logger_name="ui")
         self.show_start_page()
+        log_event("qt workspace init done", logger_name="ui")
 
     def tr(self, key, **kwargs):
         return translate(self.language, key, **kwargs)

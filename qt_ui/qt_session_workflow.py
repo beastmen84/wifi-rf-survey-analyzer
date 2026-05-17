@@ -9,7 +9,12 @@ except ModuleNotFoundError as exc:
     print("PySide6 is required for main.py. Run: pip install -r requirements.txt")
     raise SystemExit(1) from exc
 
-from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
+from app_core.constants import (
+    DEFAULT_FLOORPLAN_METADATA_KEY,
+    GENERATED_FLOORPLAN_METADATA_KEY,
+    MEASUREMENT_SYSTEM_METADATA_KEY,
+)
+from app_core.logging import log_event, log_exception
 from app_core.settings import get_last_survey_directory, save_last_survey_path, save_measurement_system
 from app_core.units import (
     MEASUREMENT_SYSTEM_IMPERIAL,
@@ -18,7 +23,7 @@ from app_core.units import (
 )
 from ap.memory import count_memory_applied_groups, get_ap_memory_summary
 from qt_ui.qt_windowing import get_centered_open_file_name, get_centered_save_file_name
-from survey.store import SurveyFormatError, SurveySession
+from survey.store import SurveyFormatError, SurveySession, infer_survey_measurement_system
 
 
 class SurveySessionWorkflowMixin:
@@ -33,14 +38,18 @@ class SurveySessionWorkflowMixin:
         self.maybe_update_live_preview()
 
     def new_survey(self, from_start_page=False):
+        log_event(f"qt new survey start from_start_page={from_start_page}", logger_name="main")
         if not from_start_page and not self.confirm_new_survey_replaces_current():
+            log_event("qt new survey cancelled by current-survey prompt", logger_name="main")
             return False
 
         measurement_system = self.choose_new_survey_measurement_system()
         if not self.set_new_survey_measurement_system(measurement_system):
+            log_event("qt new survey cancelled by measurement-system selection", logger_name="main")
             return False
 
         self.session = SurveySession()
+        self.set_session_measurement_system_metadata(self.measurement_system, mark_dirty=False)
         self.generated_floorplans_pending_delete = set()
         self.load_session_ssid_state()
         self.reset_live_option_memory()
@@ -48,6 +57,7 @@ class SurveySessionWorkflowMixin:
             self.floorplan_view.clear_floorplan()
         self.live_view.clear()
         self.show_workspace_page()
+        log_event(f"qt new survey done measurement_system={self.measurement_system}", logger_name="main")
         return True
 
     def confirm_new_survey_replaces_current(self):
@@ -141,6 +151,38 @@ class SurveySessionWorkflowMixin:
         self.measurement_system = measurement_system
         return True
 
+    def apply_session_measurement_system(self, mark_dirty=False):
+        if self.session is None:
+            return self.measurement_system
+
+        measurement_system = infer_survey_measurement_system(
+            self.session.metadata,
+            default=self.measurement_system,
+        )
+        previous_system = self.measurement_system
+        self.measurement_system = measurement_system
+        self.set_session_measurement_system_metadata(measurement_system, mark_dirty=mark_dirty)
+        if measurement_system != previous_system:
+            log_event(
+                f"qt survey measurement system applied mode={measurement_system}",
+                logger_name="main",
+            )
+        return measurement_system
+
+    def set_session_measurement_system_metadata(self, measurement_system=None, mark_dirty=True):
+        if self.session is None:
+            return
+
+        measurement_system = normalize_measurement_system(measurement_system or self.measurement_system)
+        if hasattr(self.session, "set_measurement_system"):
+            self.session.set_measurement_system(measurement_system, mark_dirty=mark_dirty)
+            return
+
+        changed = self.session.metadata.get(MEASUREMENT_SYSTEM_METADATA_KEY) != measurement_system
+        self.session.metadata[MEASUREMENT_SYSTEM_METADATA_KEY] = measurement_system
+        if changed and mark_dirty and hasattr(self.session, "dirty"):
+            self.session.dirty = True
+
     def open_survey(self, csv_file=None):
         if not self.confirm_switch_survey():
             return False
@@ -156,12 +198,18 @@ class SurveySessionWorkflowMixin:
             return False
 
         try:
+            log_event(f"qt open survey load start path={csv_file}", logger_name="main")
             self.session = SurveySession(csv_file)
         except SurveyFormatError as exc:
+            log_exception("qt open survey invalid format", exc, logger_name="main")
             self.show_survey_format_error(str(exc))
             return False
+        except Exception as exc:
+            log_exception("qt open survey load failed", exc, logger_name="main")
+            raise
 
         self.generated_floorplans_pending_delete = set()
+        self.apply_session_measurement_system(mark_dirty=False)
         self.load_session_ssid_state()
         self.reset_live_option_memory()
         save_last_survey_path(csv_file)
@@ -169,6 +217,13 @@ class SurveySessionWorkflowMixin:
         self.show_workspace_page()
         self.load_saved_plan()
         self.status.showMessage(self.tr("active_survey", name=self.session_display_name()))
+        log_event(
+            (
+                f"qt open survey done path={csv_file} rows={len(self.session.rows)} "
+                f"raw_rows={len(self.session.raw_scan_rows)} measurement_system={self.measurement_system}"
+            ),
+            logger_name="main",
+        )
         return True
 
     def save_survey(self):
@@ -176,6 +231,7 @@ class SurveySessionWorkflowMixin:
             return False
 
         csv_file = self.session.csv_file
+        log_event(f"qt save survey start path={csv_file or '<prompt>'}", logger_name="main")
         if not csv_file:
             csv_file, _selected_filter = get_centered_save_file_name(
                 self,
@@ -193,13 +249,22 @@ class SurveySessionWorkflowMixin:
                 return False
         except Exception as exc:
             QMessageBox.warning(self, self.tr("warning"), str(exc))
+            log_exception("qt save survey default floorplan materialization failed", exc, logger_name="main")
             return False
 
+        self.set_session_measurement_system_metadata(self.measurement_system, mark_dirty=False)
         self.session.save(csv_file)
         self.cleanup_replaced_generated_floorplans()
         save_last_survey_path(csv_file)
         self.refresh_session_labels()
         self.status.showMessage(self.tr("survey_saved", name=self.session.display_name))
+        log_event(
+            (
+                f"qt save survey done path={csv_file} rows={len(self.session.rows)} "
+                f"raw_rows={len(self.session.raw_scan_rows)} measurement_system={self.measurement_system}"
+            ),
+            logger_name="main",
+        )
         return True
 
     def confirm_switch_survey(self):

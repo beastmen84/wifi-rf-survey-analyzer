@@ -643,6 +643,7 @@ class StartWindow(QMainWindow):
         self.load_thread.start()
 
     def finish_app_import(self, app_class):
+        log_event("qt app module ready", logger_name="startup")
         self.app_class = app_class
         self.load_error = None
         self.set_ready(True)
@@ -692,6 +693,7 @@ class StartWindow(QMainWindow):
         if self.app_class is None:
             return
 
+        log_event(f"qt workspace launch requested action={action}", logger_name="startup")
         csv_file = None
         if action == "open":
             csv_file, _selected_filter = get_centered_open_file_name(
@@ -701,28 +703,41 @@ class StartWindow(QMainWindow):
                 self.tr("qt_survey_file_filter"),
             )
             if not csv_file:
+                log_event("qt workspace launch cancelled before open path selection", logger_name="startup")
                 return
 
         self.new_button.setEnabled(False)
         self.open_button.setEnabled(False)
         try:
+            log_event("qt workspace construct start", logger_name="startup")
             window = self.app_class()
+            log_event("qt workspace construct done", logger_name="startup")
+            log_event(f"qt workspace language apply start language={self.language}", logger_name="startup")
             window.change_language(self.language.upper())
+            log_event("qt workspace language apply done", logger_name="startup")
             if action == "new":
+                log_event("qt workspace new survey start", logger_name="startup")
                 if not window.new_survey(from_start_page=True):
+                    log_event("qt workspace new survey cancelled", logger_name="startup")
                     window.deleteLater()
                     self.set_ready(True)
                     return
+                log_event("qt workspace new survey done", logger_name="startup")
             else:
+                log_event(f"qt workspace open survey start path={csv_file}", logger_name="startup")
                 if not window.open_survey(csv_file):
+                    log_event("qt workspace open survey cancelled", logger_name="startup")
                     window.deleteLater()
                     self.set_ready(True)
                     return
+                log_event("qt workspace open survey done", logger_name="startup")
 
             self.workspace_window = window
             window.destroyed.connect(QApplication.instance().quit)
+            log_event("qt workspace show start", logger_name="startup")
             self.hide()
             window.showMaximized()
+            log_event("qt workspace show done", logger_name="startup")
         except Exception as exc:
             log_exception("qt workspace launch failed", exc, logger_name="startup")
             self.set_ready(True)

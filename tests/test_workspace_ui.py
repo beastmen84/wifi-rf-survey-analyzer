@@ -1,5 +1,6 @@
 from tests._common import *
 from app_core.constants import (
+    APP_ID,
     DEFAULT_FLOORPLAN_HEIGHT_PX,
     DEFAULT_FLOORPLAN_IMPERIAL_PX_PER_FOOT,
     DEFAULT_FLOORPLAN_METRIC_PX_PER_METER,
@@ -7,6 +8,8 @@ from app_core.constants import (
     DEFAULT_FLOORPLAN_WIDTH_PX,
     GENERATED_FLOORPLAN_METADATA_KEY,
     HEATMAP_MAX_DISTANCE_PX,
+    MEASUREMENT_SYSTEM_METADATA_KEY,
+    SURVEY_SCHEMA_VERSION,
 )
 from app_core.units import FEET_PER_METER
 from app_core.version import (
@@ -17,6 +20,7 @@ from app_core.version import (
     get_app_icon_path,
 )
 from PySide6.QtWidgets import QPushButton
+from survey.store import write_survey_file
 from qt_ui.qt_help_dialog import build_help_html, build_help_sections, help_palette
 from qt_ui.qt_point_workflow import MissingRelevantNetworksDialog, PointCaptureMixin
 from qt_ui.qt_settings_memory import confirm_clear_ap_memory
@@ -898,6 +902,7 @@ class SurveySessionWorkflowTests(unittest.TestCase):
 
             self.assertTrue(window.floorplan_view.has_floorplan())
             self.assertEqual(window.session.metadata.get(DEFAULT_FLOORPLAN_METADATA_KEY), "1")
+            self.assertEqual(window.session.metadata.get(MEASUREMENT_SYSTEM_METADATA_KEY), MEASUREMENT_SYSTEM_METRIC)
             self.assertTrue(os.path.exists(window.session.metadata["map_file"]))
             self.assertAlmostEqual(
                 float(window.session.metadata["px_per_meter"]),
@@ -934,6 +939,7 @@ class SurveySessionWorkflowTests(unittest.TestCase):
 
             save_mock.assert_called_once_with(MEASUREMENT_SYSTEM_IMPERIAL)
             self.assertEqual(window.measurement_system, MEASUREMENT_SYSTEM_IMPERIAL)
+            self.assertEqual(window.session.metadata.get(MEASUREMENT_SYSTEM_METADATA_KEY), MEASUREMENT_SYSTEM_IMPERIAL)
             self.assertAlmostEqual(
                 float(window.session.metadata["px_per_meter"]),
                 DEFAULT_FLOORPLAN_IMPERIAL_PX_PER_FOOT * FEET_PER_METER,
@@ -1091,6 +1097,7 @@ class SurveySessionWorkflowTests(unittest.TestCase):
 
                 loaded = SurveySession(csv_file)
                 self.assertEqual(loaded.metadata["map_file"], os.path.abspath(image_file))
+                self.assertEqual(loaded.metadata[MEASUREMENT_SYSTEM_METADATA_KEY], MEASUREMENT_SYSTEM_METRIC)
                 self.assertNotIn(DEFAULT_FLOORPLAN_METADATA_KEY, loaded.metadata)
                 self.assertEqual(loaded.metadata[GENERATED_FLOORPLAN_METADATA_KEY], "1")
         finally:
@@ -1199,6 +1206,72 @@ class SurveySessionWorkflowTests(unittest.TestCase):
 
                 self.assertFalse(window.floorplan_view.grid_visible)
                 self.assertFalse(window.grid_button.isChecked())
+        finally:
+            window.deleteLater()
+
+    def test_open_legacy_scaled_survey_uses_metric_instead_of_global_imperial(self):
+        window = WifiHeatmapQtApp()
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                real_plan = os.path.join(temp_dir, "real_plan.png")
+                csv_file = os.path.join(temp_dir, "legacy_metric.csv")
+                Image.new("RGB", (120, 90), "white").save(real_plan)
+                write_survey_file(
+                    csv_file,
+                    {
+                        "app": APP_ID,
+                        "schema_version": SURVEY_SCHEMA_VERSION,
+                        "map_file": os.path.abspath(real_plan),
+                        "px_per_meter": "10",
+                    },
+                    [],
+                )
+
+                window.measurement_system = MEASUREMENT_SYSTEM_IMPERIAL
+
+                self.assertTrue(window.open_survey(csv_file))
+
+                self.assertEqual(window.measurement_system, MEASUREMENT_SYSTEM_METRIC)
+                self.assertEqual(window.session.metadata[MEASUREMENT_SYSTEM_METADATA_KEY], MEASUREMENT_SYSTEM_METRIC)
+                self.assertFalse(window.session.dirty)
+
+                window.toggle_floorplan_grid()
+
+                self.assertTrue(window.floorplan_view.grid_visible)
+                self.assertEqual(window.floorplan_view.grid_label, "1 square = 5 m")
+        finally:
+            window.deleteLater()
+
+    def test_open_survey_uses_saved_measurement_system_metadata(self):
+        window = WifiHeatmapQtApp()
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                real_plan = os.path.join(temp_dir, "real_plan.png")
+                csv_file = os.path.join(temp_dir, "imperial.csv")
+                Image.new("RGB", (120, 90), "white").save(real_plan)
+                write_survey_file(
+                    csv_file,
+                    {
+                        "app": APP_ID,
+                        "schema_version": SURVEY_SCHEMA_VERSION,
+                        "map_file": os.path.abspath(real_plan),
+                        "px_per_meter": f"{DEFAULT_FLOORPLAN_IMPERIAL_PX_PER_FOOT * FEET_PER_METER:.6f}",
+                        MEASUREMENT_SYSTEM_METADATA_KEY: MEASUREMENT_SYSTEM_IMPERIAL,
+                    },
+                    [],
+                )
+
+                window.measurement_system = MEASUREMENT_SYSTEM_METRIC
+
+                self.assertTrue(window.open_survey(csv_file))
+
+                self.assertEqual(window.measurement_system, MEASUREMENT_SYSTEM_IMPERIAL)
+                self.assertFalse(window.session.dirty)
+
+                window.toggle_floorplan_grid()
+
+                self.assertTrue(window.floorplan_view.grid_visible)
+                self.assertEqual(window.floorplan_view.grid_label, "1 square = 3 ft")
         finally:
             window.deleteLater()
 
@@ -1941,6 +2014,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertTrue(changed)
             self.assertEqual(window.measurement_system, MEASUREMENT_SYSTEM_IMPERIAL)
             self.assertNotIn("px_per_meter", window.session.metadata)
+            self.assertEqual(window.session.metadata[MEASUREMENT_SYSTEM_METADATA_KEY], MEASUREMENT_SYSTEM_IMPERIAL)
             self.assertTrue(window.session.dirty)
             self.assertEqual(window.live_max_distance_label.text(), "Max Distance (px)")
             self.assertEqual(window.live_max_distance_spin.suffix(), " px")

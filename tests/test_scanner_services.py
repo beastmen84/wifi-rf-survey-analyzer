@@ -496,6 +496,21 @@ class AppSettingsTests(unittest.TestCase):
             else:
                 os.environ["WIFI_HEATMAP_SETTINGS_FILE"] = previous
 
+    def test_missing_survey_measurement_system_infers_generated_imperial_blank(self):
+        from app_core.constants import DEFAULT_FLOORPLAN_IMPERIAL_PX_PER_FOOT, GENERATED_FLOORPLAN_METADATA_KEY
+        from app_core.units import FEET_PER_METER
+        from survey.store import infer_survey_measurement_system
+
+        metadata = {
+            GENERATED_FLOORPLAN_METADATA_KEY: "1",
+            "px_per_meter": f"{DEFAULT_FLOORPLAN_IMPERIAL_PX_PER_FOOT * FEET_PER_METER:.6f}",
+        }
+
+        self.assertEqual(
+            infer_survey_measurement_system(metadata),
+            MEASUREMENT_SYSTEM_IMPERIAL,
+        )
+
     def test_last_survey_directory_uses_saved_file_parent(self):
         previous = os.environ.get("WIFI_HEATMAP_SETTINGS_FILE")
         try:

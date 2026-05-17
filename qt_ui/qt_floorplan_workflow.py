@@ -9,7 +9,11 @@ except ModuleNotFoundError as exc:
     print("PySide6 is required for main.py. Run: pip install -r requirements.txt")
     raise SystemExit(1) from exc
 
-from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
+from app_core.constants import (
+    DEFAULT_FLOORPLAN_METADATA_KEY,
+    GENERATED_FLOORPLAN_METADATA_KEY,
+    MEASUREMENT_SYSTEM_METADATA_KEY,
+)
 from app_core.units import display_units_to_meters, format_scale_density, meters_to_display_units
 from qt_ui.default_floorplan import (
     default_floorplan_px_per_meter,
@@ -57,6 +61,7 @@ class FloorplanWorkflowMixin:
 
         was_dirty = self.session.dirty
         self.session.metadata["map_file"] = os.path.abspath(file_path)
+        self.session.metadata[MEASUREMENT_SYSTEM_METADATA_KEY] = self.measurement_system
         self.session.metadata[DEFAULT_FLOORPLAN_METADATA_KEY] = "1"
         self.session.metadata["px_per_meter"] = f"{default_floorplan_px_per_meter(self.measurement_system):.6f}"
         self.session.dirty = was_dirty

@@ -103,6 +103,8 @@ class WorkspaceSettingsMixin:
             return False
 
         self.measurement_system = mode
+        if self.session is not None and hasattr(self, "set_session_measurement_system_metadata"):
+            self.set_session_measurement_system_metadata(mode, mark_dirty=True)
         log_event(f"workspace measurement system changed mode={mode}", logger_name="ui")
         self.set_live_max_distance_px_silent(current_max_distance_px)
         self.remember_live_option_state()

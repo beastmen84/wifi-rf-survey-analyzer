@@ -15,6 +15,13 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 - Made the Boundaries toolbar load lazily on first use, keeping its icon setup
   out of the startup "Loading components" path while preserving the same
   Survey-tab behavior.
+- Survey CSV metadata now stores the selected measurement system, so reopening a
+  metric or imperial survey no longer depends on the current global preference.
+  Legacy scaled surveys without this metadata are treated as metric, with a
+  compatibility inference for recent generated imperial blank plans.
+- Startup and survey lifecycle logging now marks workspace construction,
+  language application, new/open/save survey phases and workspace show steps, so
+  future freezes during loading leave a clearer last-known phase in the log.
 
 ## v0.9.6-beta.1 - 2026-05-17
 

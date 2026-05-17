@@ -75,9 +75,9 @@ also writes a same-name PNG beside the CSV, for example `survey.csv` and
 `survey.png`. If that generated PNG is later replaced by a real floor plan and
 the survey is saved again, the obsolete blank PNG is removed.
 
-Stored survey metadata includes floor-plan path, scale calibration, relevant
-SSIDs, AP groups, AP roles, AP metadata, AP positions, analysis-channel
-overrides, and product/schema version fields.
+Stored survey metadata includes floor-plan path, scale calibration, measurement
+system, relevant SSIDs, AP groups, AP roles, AP metadata, AP positions,
+analysis-channel overrides, and product/schema version fields.
 
 ## Wi-Fi Scanning
 
