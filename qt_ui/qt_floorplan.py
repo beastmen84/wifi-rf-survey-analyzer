@@ -564,7 +564,7 @@ class FloorplanView(QGraphicsView):
         if self.boundaries_mask_item is not None:
             if self.boundaries_mask_dirty_rect.isNull():
                 self.boundaries_mask_item.update()
-                self.viewport().update()
+                self.repaint_or_update_boundaries_viewport()
             else:
                 self.boundaries_mask_item.update(self.boundaries_mask_dirty_rect)
                 self.update_boundaries_mask_viewport_region(
@@ -577,15 +577,33 @@ class FloorplanView(QGraphicsView):
 
     def update_boundaries_mask_viewport_region(self, rect):
         if rect.isNull() or rect.isEmpty():
-            self.viewport().update()
+            self.repaint_or_update_boundaries_viewport()
             return
 
+        self.scene.invalidate(rect, QGraphicsScene.SceneLayer.AllLayers)
         viewport_rect = self.mapFromScene(rect).boundingRect().adjusted(-4, -4, 4, 4)
         viewport_rect = viewport_rect.intersected(self.viewport().rect())
         if viewport_rect.isNull() or viewport_rect.isEmpty():
             return
 
-        self.viewport().update(viewport_rect)
+        self.repaint_or_update_boundaries_viewport(viewport_rect)
+
+    def repaint_or_update_boundaries_viewport(self, rect=None):
+        is_active_stroke = (
+            self.boundaries_drawing_active
+            and self.boundaries_stroke_base_image is not None
+        )
+        if rect is None:
+            if is_active_stroke:
+                self.viewport().repaint()
+            else:
+                self.viewport().update()
+            return
+
+        if is_active_stroke:
+            self.viewport().repaint(rect)
+        else:
+            self.viewport().update(rect)
 
     def apply_boundaries_stroke(self, start_point, end_point):
         if not self.ensure_boundaries_mask():

@@ -38,8 +38,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   square endpoint stamps and simplify dense slow-move points, preventing leftover
   cap pixels along the stroke. Mask rendering now paints an opaque in-memory
   image through fixed item opacity and explicitly invalidates the viewport when
-  transparent mask regions are restored, avoiding overlap darkening, stale paint
-  and full-pixmap rebuilds during drag.
+  transparent mask regions are restored. Active strokes repaint the affected
+  viewport region synchronously, avoiding overlap darkening, stale paint and
+  full-pixmap rebuilds during drag.
 - Boundaries toolbar icons are loaded lazily on first use, keeping them out of
   the startup "Loading components" path.
 - Current survey files now require the full aggregate/raw headers,
