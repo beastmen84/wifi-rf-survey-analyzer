@@ -12,7 +12,11 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 
 - Manual Boundaries mask workflow on the Survey tab, with a View toggle,
   floating toolbar, draw/erase tools, circle/square brush shapes and confirmed
-  clear.
+  clear. Boundary masks are saved next to the survey CSV as
+  `<survey>.boundaries.png` and reopen with the survey.
+- Saved manual Boundaries masks are applied to continuous Live Maps and PDF
+  exports. When a manual mask exists, Survey Bounds is enabled and locked; when
+  it does not, the existing automatic Survey Bounds option remains available.
 - Survey CSV metadata now stores the selected measurement system, so metric and
   imperial surveys reopen independently from the current global preference.
 - Startup and survey lifecycle logging now records workspace construction,

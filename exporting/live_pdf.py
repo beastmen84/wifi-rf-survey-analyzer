@@ -19,6 +19,7 @@ from ap.groups import (
     normalize_ap_role,
 )
 from app_core.constants import HEATMAP_GRID_SIZE
+from maps.boundaries import get_boundary_mask_alpha
 from maps.heatmap import (
     add_ap_group_metadata,
     apply_distance_mask,
@@ -100,6 +101,7 @@ def generate_live_pdf_export(
     px_per_meter=None,
     measurement_system="metric",
     output_file=None,
+    boundary_mask_image=None,
 ):
     config = config.normalized()
     aliases = aliases or {}
@@ -120,6 +122,7 @@ def generate_live_pdf_export(
             language,
             aliases,
             ap_groups,
+            boundary_mask_image=boundary_mask_image,
         )
         summary = build_interference_summary(risk_df, output_file, "", config.band, tr, language)
         figures.append(map_fig)
@@ -147,7 +150,18 @@ def generate_live_pdf_export(
             measurement_system=measurement_system,
         ))
     else:
-        figures.append(build_live_pdf_signal_figure(df, bg_image, config, tr, language, aliases, ap_groups))
+        figures.append(
+            build_live_pdf_signal_figure(
+                df,
+                bg_image,
+                config,
+                tr,
+                language,
+                aliases,
+                ap_groups,
+                boundary_mask_image=boundary_mask_image,
+            )
+        )
 
     try:
         write_figures_as_live_pdf(figures, output_file)
@@ -158,7 +172,16 @@ def generate_live_pdf_export(
     return MapExportResult(output_file=output_file, map_type=config.map_type, summary=summary)
 
 
-def build_live_pdf_signal_figure(df, bg_image, config, tr, language, aliases, ap_groups):
+def build_live_pdf_signal_figure(
+    df,
+    bg_image,
+    config,
+    tr,
+    language,
+    aliases,
+    ap_groups,
+    boundary_mask_image=None,
+):
     rows = df[df["ssid"].str.lower() == config.ssid.lower()]
     rows = filter_by_band(rows, config.band)
     rows = add_ap_group_metadata(rows, config.ap_group_map, config.ap_group_roles)
@@ -187,7 +210,14 @@ def build_live_pdf_signal_figure(df, bg_image, config, tr, language, aliases, ap
     )
     grid_z = smooth_heatmap_grid(grid_z, sigma=config.smoothing_sigma)
     grid_z = apply_distance_mask(grid_z, grid_x, grid_y, x, y, config.max_distance_px)
-    bounds_alpha = get_live_pdf_bounds_alpha(config, grid_x, grid_y, x, y)
+    bounds_alpha = get_live_pdf_bounds_alpha(
+        config,
+        grid_x,
+        grid_y,
+        x,
+        y,
+        boundary_mask_image=boundary_mask_image,
+    )
     grid_z = apply_live_pdf_bounds_mask(grid_z, bounds_alpha)
 
     if config.usable_only:
@@ -242,7 +272,16 @@ def build_live_pdf_signal_figure(df, bg_image, config, tr, language, aliases, ap
     return fig
 
 
-def build_live_pdf_interference_figure(df, bg_image, config, tr, language, aliases, ap_groups):
+def build_live_pdf_interference_figure(
+    df,
+    bg_image,
+    config,
+    tr,
+    language,
+    aliases,
+    ap_groups,
+    boundary_mask_image=None,
+):
     if config.band not in {"2.4", "5", "6"}:
         raise MapExportError(tr("warning"), tr("interference_requires_band"))
 
@@ -275,7 +314,14 @@ def build_live_pdf_interference_figure(df, bg_image, config, tr, language, alias
     )
     grid_z = smooth_heatmap_grid(grid_z, sigma=config.smoothing_sigma)
     grid_z = apply_distance_mask(grid_z, grid_x, grid_y, x, y, config.max_distance_px)
-    bounds_alpha = get_live_pdf_bounds_alpha(config, grid_x, grid_y, x, y)
+    bounds_alpha = get_live_pdf_bounds_alpha(
+        config,
+        grid_x,
+        grid_y,
+        x,
+        y,
+        boundary_mask_image=boundary_mask_image,
+    )
     grid_z = apply_live_pdf_bounds_mask(grid_z, bounds_alpha)
     distance_alpha = get_distance_alpha(
         grid_x,
@@ -451,9 +497,13 @@ def build_grid(bg_image):
     ]
 
 
-def get_live_pdf_bounds_alpha(config, grid_x, grid_y, point_x, point_y):
+def get_live_pdf_bounds_alpha(config, grid_x, grid_y, point_x, point_y, boundary_mask_image=None):
     if not getattr(config, "survey_bounds", False):
         return np.ones(grid_x.shape)
+
+    boundary_alpha = get_boundary_mask_alpha(boundary_mask_image, grid_x, grid_y)
+    if boundary_alpha is not None:
+        return boundary_alpha
 
     return get_survey_bounds_alpha(
         grid_x,

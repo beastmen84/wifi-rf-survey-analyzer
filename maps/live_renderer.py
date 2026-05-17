@@ -14,6 +14,7 @@ from PIL import Image
 
 from app_core.constants import HEATMAP_GRID_SIZE
 from ap.groups import AP_ROLE_TEST
+from maps.boundaries import boundary_mask_fingerprint, get_boundary_mask_alpha
 from maps.heatmap import (
     add_ap_group_metadata,
     apply_distance_mask,
@@ -35,17 +36,41 @@ _cache_lock = Lock()
 _MAX_RESULT_CACHE_ITEMS = 8
 
 
-def render_live_continuous_map(df, config, bg_image, translations, point_tooltip_builder, color_scale_limits):
-    cache_key = build_result_cache_key(df, config, bg_image, translations)
+def render_live_continuous_map(
+    df,
+    config,
+    bg_image,
+    translations,
+    point_tooltip_builder,
+    color_scale_limits,
+    boundary_mask_image=None,
+):
+    cache_key = build_result_cache_key(df, config, bg_image, translations, boundary_mask_image)
     with _cache_lock:
         cached = _result_cache.get(cache_key)
         if cached is not None:
             return clone_cached_result(cached)
 
     if config.is_interference:
-        payload = build_interference_payload(df, config, bg_image, translations, point_tooltip_builder, color_scale_limits)
+        payload = build_interference_payload(
+            df,
+            config,
+            bg_image,
+            translations,
+            point_tooltip_builder,
+            color_scale_limits,
+            boundary_mask_image=boundary_mask_image,
+        )
     else:
-        payload = build_signal_payload(df, config, bg_image, translations, point_tooltip_builder, color_scale_limits)
+        payload = build_signal_payload(
+            df,
+            config,
+            bg_image,
+            translations,
+            point_tooltip_builder,
+            color_scale_limits,
+            boundary_mask_image=boundary_mask_image,
+        )
 
     if payload is None:
         return None
@@ -58,7 +83,15 @@ def render_live_continuous_map(df, config, bg_image, translations, point_tooltip
     return clone_cached_result(result)
 
 
-def build_signal_payload(df, config, bg_image, translations, point_tooltip_builder, color_scale_limits):
+def build_signal_payload(
+    df,
+    config,
+    bg_image,
+    translations,
+    point_tooltip_builder,
+    color_scale_limits,
+    boundary_mask_image=None,
+):
     rows = df[df["ssid"].str.lower() == config.ssid.lower()]
     rows = filter_by_band(rows, config.band)
     rows = add_ap_group_metadata(rows, config.ap_group_map, config.ap_group_roles)
@@ -89,7 +122,14 @@ def build_signal_payload(df, config, bg_image, translations, point_tooltip_build
     )
     grid_z = smooth_heatmap_grid(grid_z, sigma=config.smoothing_sigma)
     grid_z = apply_distance_mask(grid_z, grid_x, grid_y, x, y, max_distance_px=config.max_distance_px)
-    bounds_alpha = get_continuous_bounds_alpha(config, grid_x, grid_y, x, y)
+    bounds_alpha = get_continuous_bounds_alpha(
+        config,
+        grid_x,
+        grid_y,
+        x,
+        y,
+        boundary_mask_image=boundary_mask_image,
+    )
     grid_z = apply_continuous_bounds_mask(grid_z, bounds_alpha)
 
     if config.usable_only:
@@ -136,7 +176,15 @@ def build_signal_payload(df, config, bg_image, translations, point_tooltip_build
     return {"fig": fig, "point_infos": point_infos, "scale_payload": scale_payload}
 
 
-def build_interference_payload(df, config, bg_image, translations, point_tooltip_builder, color_scale_limits):
+def build_interference_payload(
+    df,
+    config,
+    bg_image,
+    translations,
+    point_tooltip_builder,
+    color_scale_limits,
+    boundary_mask_image=None,
+):
     if config.band not in {"2.4", "5", "6"}:
         return None
 
@@ -170,7 +218,14 @@ def build_interference_payload(df, config, bg_image, translations, point_tooltip
     )
     grid_z = smooth_heatmap_grid(grid_z, sigma=config.smoothing_sigma)
     grid_z = apply_distance_mask(grid_z, grid_x, grid_y, x, y, max_distance_px=config.max_distance_px)
-    bounds_alpha = get_continuous_bounds_alpha(config, grid_x, grid_y, x, y)
+    bounds_alpha = get_continuous_bounds_alpha(
+        config,
+        grid_x,
+        grid_y,
+        x,
+        y,
+        boundary_mask_image=boundary_mask_image,
+    )
     grid_z = apply_continuous_bounds_mask(grid_z, bounds_alpha)
     distance_alpha = get_distance_alpha(
         grid_x,
@@ -238,9 +293,13 @@ def get_grid(width, height):
     return grid_x, grid_y
 
 
-def get_continuous_bounds_alpha(config, grid_x, grid_y, point_x, point_y):
+def get_continuous_bounds_alpha(config, grid_x, grid_y, point_x, point_y, boundary_mask_image=None):
     if not getattr(config, "survey_bounds", False):
         return np.ones(grid_x.shape)
+
+    boundary_alpha = get_boundary_mask_alpha(boundary_mask_image, grid_x, grid_y)
+    if boundary_alpha is not None:
+        return boundary_alpha
 
     return get_survey_bounds_alpha(
         grid_x,
@@ -270,7 +329,7 @@ def fig_payload_to_image_payload(payload):
     }
 
 
-def build_result_cache_key(df, config, bg_image, translations):
+def build_result_cache_key(df, config, bg_image, translations, boundary_mask_image=None):
     return (
         bg_image.size,
         image_fingerprint(bg_image),
@@ -291,6 +350,7 @@ def build_result_cache_key(df, config, bg_image, translations):
         config.ap_group_channel_overrides,
         config.usable_only,
         config.survey_bounds,
+        boundary_mask_fingerprint(boundary_mask_image),
         round(float(config.smoothing_sigma), 4),
         int(config.max_distance_px),
     )

@@ -206,6 +206,24 @@ class LiveRendererCacheTests(unittest.TestCase):
         self.assertNotEqual(second["point_infos"][0]["tooltip"], "mutated")
         self.assertIsNot(second["image"], first["image"])
 
+    def test_manual_boundary_mask_overrides_continuous_bounds_alpha(self):
+        grid_x, grid_y = np.mgrid[0:100:complex(10), 0:80:complex(10)]
+        mask = Image.new("RGBA", (100, 80), (0, 0, 0, 0))
+        mask.paste((37, 99, 235, 255), (0, 0, 50, 80))
+        config = MapConfig(survey_bounds=True, max_distance_px=10)
+
+        alpha = live_renderer_module.get_continuous_bounds_alpha(
+            config,
+            grid_x,
+            grid_y,
+            np.array([90, 95, 95]),
+            np.array([10, 40, 70]),
+            boundary_mask_image=mask,
+        )
+
+        self.assertGreater(alpha[2, 5], 0.9)
+        self.assertEqual(alpha[8, 5], 0)
+
     def test_stable_dataframe_fingerprint_tracks_render_inputs(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)
         df = rows_to_dataframe([row])

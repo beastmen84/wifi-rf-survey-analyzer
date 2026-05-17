@@ -1,6 +1,7 @@
 from tests._common import *
 from app_core.constants import (
     APP_ID,
+    BOUNDARIES_FILE_METADATA_KEY,
     DEFAULT_FLOORPLAN_HEIGHT_PX,
     DEFAULT_FLOORPLAN_IMPERIAL_PX_PER_FOOT,
     DEFAULT_FLOORPLAN_METRIC_PX_PER_METER,
@@ -1313,6 +1314,52 @@ class SurveySessionWorkflowTests(unittest.TestCase):
             self.assertFalse(window.floorplan_view.boundaries_edit_active)
         finally:
             window.deleteLater()
+
+    def test_boundaries_mask_saves_loads_and_clears_sidecar(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            csv_file = os.path.join(temp_dir, "office.csv")
+            boundaries_file = os.path.join(temp_dir, "office.boundaries.png")
+
+            window = WifiHeatmapQtApp()
+            try:
+                self.assertTrue(self.start_new_survey(window))
+                window.floorplan_view.apply_boundaries_brush(80, 80)
+
+                self.assertTrue(window.session.dirty)
+                with patch(
+                    "qt_ui.qt_session_workflow.get_centered_save_file_name",
+                    return_value=(csv_file, ""),
+                ):
+                    self.assertTrue(window.save_survey())
+
+                self.assertTrue(os.path.exists(boundaries_file))
+                self.assertEqual(
+                    window.session.metadata.get(BOUNDARIES_FILE_METADATA_KEY),
+                    "office.boundaries.png",
+                )
+                self.assertFalse(window.session.dirty)
+            finally:
+                window.deleteLater()
+
+            reopened = WifiHeatmapQtApp()
+            try:
+                self.assertTrue(reopened.open_survey(csv_file))
+
+                self.assertTrue(reopened.floorplan_view.has_boundaries_mask())
+                self.assertGreater(
+                    reopened.floorplan_view.boundaries_mask_image.pixelColor(80, 80).alpha(),
+                    0,
+                )
+                self.assertFalse(reopened.session.dirty)
+
+                reopened.floorplan_view.clear_boundaries_mask()
+                self.assertTrue(reopened.session.dirty)
+                self.assertTrue(reopened.save_survey())
+
+                self.assertFalse(os.path.exists(boundaries_file))
+                self.assertNotIn(BOUNDARIES_FILE_METADATA_KEY, reopened.session.metadata)
+            finally:
+                reopened.deleteLater()
 
 
 class PointCaptureWorkflowTests(unittest.TestCase):

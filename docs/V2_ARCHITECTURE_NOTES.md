@@ -551,6 +551,9 @@ Implemented:
 - continuous maps can optionally apply Survey Bounds, a Delaunay-based local
   point-envelope alpha mask that fades the rendered layer outside the measured
   survey area while preserving the original point data;
+- saved manual Boundaries masks (`<survey>.boundaries.png`) replace the
+  automatic point-envelope Survey Bounds mask for continuous Live Maps and PDF
+  exports when present;
 - calibrated continuous-map defaults derive max distance from survey-point
   spacing percentiles, clamped to a conservative range, instead of using a fixed
   meter value for every survey density;

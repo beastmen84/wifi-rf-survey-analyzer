@@ -19,7 +19,7 @@ from ap.groups import (
 )
 from app_core.logging import log_event
 from maps.config import MapConfig
-from qt_ui.qt_live_map import LiveMapRenderWorker, create_marker_icon
+from qt_ui.qt_live_map import LiveMapRenderWorker, create_marker_icon, qimage_to_pil_image
 
 
 class LivePreviewMixin:
@@ -70,6 +70,7 @@ class LivePreviewMixin:
             aliases=self.session.get_ap_aliases(),
             ap_groups=self.session.get_ap_groups(),
             px_per_meter=self.get_px_per_meter(),
+            boundary_mask_image=self.current_boundary_mask_image(),
         )
         worker.moveToThread(thread)
         thread.started.connect(worker.run)
@@ -124,7 +125,7 @@ class LivePreviewMixin:
             color_scale=self.current_combo_value(self.live_color_scale_combo, "fixed"),
             point_label_mode=self.current_combo_value(self.live_point_labels_combo, "auto"),
             usable_only=self.live_usable_check.isChecked(),
-            survey_bounds=self.live_survey_bounds_check.isChecked(),
+            survey_bounds=self.live_survey_bounds_check.isChecked() or self.has_manual_boundaries_mask(),
             smoothing_sigma=float(self.live_smoothing_spin.value()),
             max_distance_px=self.current_live_max_distance_px(),
             ap_group_filter=ap_group_filter,
@@ -177,7 +178,7 @@ class LivePreviewMixin:
             color_scale=self.current_combo_value(self.live_color_scale_combo, "fixed"),
             point_label_mode=self.current_combo_value(self.live_point_labels_combo, "auto"),
             usable_only=self.live_usable_check.isChecked(),
-            survey_bounds=self.live_survey_bounds_check.isChecked(),
+            survey_bounds=self.live_survey_bounds_check.isChecked() or self.has_manual_boundaries_mask(),
             smoothing_sigma=float(self.live_smoothing_spin.value()),
             max_distance_px=self.current_live_max_distance_px(),
             ap_group_filter=ap_group_filter,
@@ -187,6 +188,13 @@ class LivePreviewMixin:
                 build_ap_group_channel_override_map(groups)
             ),
         ).normalized()
+
+    def current_boundary_mask_image(self):
+        if not self.has_manual_boundaries_mask():
+            return None
+
+        image = self.floorplan_view.get_boundaries_mask_image_copy()
+        return qimage_to_pil_image(image)
 
     def build_live_renderer_translations(self):
         return {

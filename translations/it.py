@@ -267,6 +267,8 @@ TRANSLATIONS = {
     "boundaries_clear_title": "Pulisci Confini",
     "boundaries_clear_confirm": "Vuoi pulire la maschera confini corrente?",
     "boundaries_cleared": "Maschera confini pulita.",
+    "boundaries_save_failed": "Impossibile salvare la maschera confini: {path}",
+    "boundaries_cleanup_failed": "Impossibile eliminare la maschera confini sostituita: {path}",
     "delete_scale": "Elimina Scala",
     "delete_scale_title": "Elimina Scala",
     "delete_scale_confirm": "Vuoi eliminare la calibrazione della scala salvata per questo rilievo?",
@@ -1028,7 +1030,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card"><b>Smoothing</b><br>Rende copertura/interferenza visivamente più uniformi.<br><span class="survey-card-use">Usala Con Attenzione:</span> uno smoothing alto può nascondere transizioni RF nette.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Distanza Max</b><br>Limita il rendering continuo alle aree vicine ai punti misurati. Nei survey calibrati con almeno 4 punti unici, il default viene stimato dai percentili della distanza fra punti; altrimenti resta il fallback in pixel. Limite Rilievo può inoltre sfumare le mappe continue fuori dal perimetro dei punti misurati; funziona meglio quando i punti seguono anche il bordo dell'area da mostrare. Se taglia spazio utile, disattivalo o aggiungi punti di bordo.<br><span class="survey-card-use">Usala Con Attenzione:</span> aumentala solo quando la densità punti è buona.</td>
+                <td class="workflow-card"><b>Distanza Max</b><br>Limita il rendering continuo alle aree vicine ai punti misurati. Nei survey calibrati con almeno 4 punti unici, il default viene stimato dai percentili della distanza fra punti; altrimenti resta il fallback in pixel. Limite Rilievo può inoltre sfumare le mappe continue fuori dal perimetro dei punti misurati; funziona meglio quando i punti seguono anche il bordo dell'area da mostrare. Se esiste una maschera Confini salvata, Limite Rilievo viene attivato e bloccato perché l'area valida della mappa è quella disegnata. Se il limite automatico taglia spazio utile, disattivalo o aggiungi punti di bordo.<br><span class="survey-card-use">Usala Con Attenzione:</span> aumentala solo quando la densità punti è buona.</td>
             </tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>

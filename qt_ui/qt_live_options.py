@@ -205,7 +205,11 @@ class LiveOptionsMixin:
             "point_label_mode": self.current_combo_value(self.live_point_labels_combo, "auto"),
             "ap_group_filter": self.current_combo_value(self.live_ap_group_combo, ""),
             "usable_only": self.live_usable_check.isChecked(),
-            "survey_bounds": self.live_survey_bounds_check.isChecked(),
+            "survey_bounds": (
+                False
+                if self.has_manual_boundaries_mask()
+                else self.live_survey_bounds_check.isChecked()
+            ),
             "smoothing_sigma": float(self.live_smoothing_spin.value()),
             "max_distance_px": self.current_live_max_distance_px(),
         }
@@ -240,7 +244,9 @@ class LiveOptionsMixin:
             self.live_usable_check.setChecked(bool(state.get("usable_only", False)))
             self.live_usable_check.blockSignals(False)
             self.live_survey_bounds_check.blockSignals(True)
-            self.live_survey_bounds_check.setChecked(bool(state.get("survey_bounds", False)))
+            self.live_survey_bounds_check.setChecked(
+                self.has_manual_boundaries_mask() or bool(state.get("survey_bounds", False))
+            )
             self.live_survey_bounds_check.blockSignals(False)
             self.refresh_live_ap_group_filter()
             self.set_combo_value_silent(self.live_ap_group_combo, state.get("ap_group_filter", ""))
@@ -401,6 +407,7 @@ class LiveOptionsMixin:
         is_channel = map_type == "channel"
         is_dominant = map_type == "dominant"
         is_continuous = is_signal or is_interference
+        has_manual_boundaries = self.has_manual_boundaries_mask()
         self.set_live_max_distance_px_silent(self.current_live_max_distance_px())
         self.reflow_live_option_controls(map_type)
         can_use_controls = self.can_use_live_controls()
@@ -454,8 +461,14 @@ class LiveOptionsMixin:
         )
         self.live_usable_check.setVisible(is_signal)
         self.live_usable_check.setEnabled(can_use_controls and is_signal)
+        if has_manual_boundaries:
+            self.live_survey_bounds_check.blockSignals(True)
+            self.live_survey_bounds_check.setChecked(True)
+            self.live_survey_bounds_check.blockSignals(False)
         self.live_survey_bounds_check.setVisible(is_continuous)
-        self.live_survey_bounds_check.setEnabled(can_use_controls and is_continuous)
+        self.live_survey_bounds_check.setEnabled(
+            can_use_controls and is_continuous and not has_manual_boundaries
+        )
         can_filter_ap_group = (
             can_use_controls
             and (is_signal or is_channel)

@@ -4,7 +4,7 @@ from io import BytesIO
 
 import pandas as pd
 from PIL import Image
-from PySide6.QtCore import QObject, QPointF, QRectF, QSize, Qt, Signal, Slot
+from PySide6.QtCore import QBuffer, QIODevice, QObject, QPointF, QRectF, QSize, Qt, Signal, Slot
 from PySide6.QtGui import (
     QBrush,
     QColor,
@@ -65,7 +65,17 @@ class LiveMapRenderWorker(QObject):
     finished = Signal(object)
     failed = Signal(str)
 
-    def __init__(self, rows, map_file, config, translations, aliases=None, ap_groups=None, px_per_meter=None):
+    def __init__(
+        self,
+        rows,
+        map_file,
+        config,
+        translations,
+        aliases=None,
+        ap_groups=None,
+        px_per_meter=None,
+        boundary_mask_image=None,
+    ):
         super().__init__()
         self.rows = list(rows or [])
         self.map_file = map_file
@@ -74,6 +84,7 @@ class LiveMapRenderWorker(QObject):
         self.aliases = aliases or {}
         self.ap_groups = list(ap_groups or [])
         self.px_per_meter = px_per_meter
+        self.boundary_mask_image = boundary_mask_image
 
     @Slot()
     def run(self):
@@ -92,6 +103,7 @@ class LiveMapRenderWorker(QObject):
                 aliases=self.aliases,
                 ap_groups=self.ap_groups,
                 px_per_meter=self.px_per_meter,
+                boundary_mask_image=self.boundary_mask_image,
             )
         except Exception as exc:
             log_exception("qt live render worker failed", exc, logger_name="live_map")
@@ -509,6 +521,20 @@ def pil_to_qpixmap(image):
     return pixmap
 
 
+def qimage_to_pil_image(image):
+    if image is None or image.isNull():
+        return None
+
+    buffer = QBuffer()
+    buffer.open(QIODevice.OpenModeFlag.WriteOnly)
+    try:
+        image.save(buffer, "PNG")
+        data = bytes(buffer.data())
+    finally:
+        buffer.close()
+    return Image.open(BytesIO(data)).convert("RGBA")
+
+
 def create_marker_icon(color, shape="circle", outline_only=False):
     pixmap = QPixmap(18, 18)
     pixmap.fill(Qt.GlobalColor.transparent)
@@ -632,7 +658,16 @@ def midpoint_label(scale_payload, suffix):
     return f"{format_value((minimum + maximum) / 2)}{suffix}"
 
 
-def render_live_map_payload(df, config, bg_image, translations, aliases=None, ap_groups=None, px_per_meter=None):
+def render_live_map_payload(
+    df,
+    config,
+    bg_image,
+    translations,
+    aliases=None,
+    ap_groups=None,
+    px_per_meter=None,
+    boundary_mask_image=None,
+):
     if config.is_channel:
         payload = build_channel_payload(df, config, bg_image, translations, aliases or {})
         return attach_ap_position_markers(
@@ -668,6 +703,7 @@ def render_live_map_payload(df, config, bg_image, translations, aliases=None, ap
             aliases or {},
         ),
         get_color_scale_limits,
+        boundary_mask_image=boundary_mask_image,
     )
     return attach_ap_position_markers(
         payload,

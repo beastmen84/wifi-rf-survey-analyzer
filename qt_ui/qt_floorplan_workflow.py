@@ -10,6 +10,7 @@ except ModuleNotFoundError as exc:
     raise SystemExit(1) from exc
 
 from app_core.constants import (
+    BOUNDARIES_FILE_METADATA_KEY,
     DEFAULT_FLOORPLAN_METADATA_KEY,
     GENERATED_FLOORPLAN_METADATA_KEY,
     MEASUREMENT_SYSTEM_METADATA_KEY,
@@ -24,6 +25,7 @@ from qt_ui.default_floorplan import (
 from qt_ui.qt_floorplan import format_grid_interval
 from qt_ui.qt_theme import QT_THEMES
 from qt_ui.qt_windowing import get_centered_open_file_name
+from survey.store import build_boundaries_file_path
 
 
 class FloorplanWorkflowMixin:
@@ -134,6 +136,7 @@ class FloorplanWorkflowMixin:
             return
 
         if save_metadata:
+            self.clear_saved_boundaries_metadata(mark_dirty=False)
             was_default_floorplan = (
                 self.session.metadata.pop(DEFAULT_FLOORPLAN_METADATA_KEY, None) is not None
             )
@@ -152,6 +155,8 @@ class FloorplanWorkflowMixin:
 
         self.floorplan_view.set_points(self.session.get_point_summaries())
         self.floorplan_view.set_ap_groups(self.session.get_ap_groups())
+        if not save_metadata:
+            self.load_saved_boundaries_mask()
         QTimer.singleShot(0, self.floorplan_view.fit_to_view)
         self.refresh_session_labels()
         point_count = len(self.session.get_point_summaries())
@@ -166,6 +171,104 @@ class FloorplanWorkflowMixin:
         else:
             self.sync_floorplan_grid_for_session()
         self.maybe_update_live_preview()
+
+    def current_boundaries_file(self):
+        if self.session is None or not self.session.csv_file:
+            return ""
+
+        boundaries_file = str(self.session.metadata.get(BOUNDARIES_FILE_METADATA_KEY, "")).strip()
+        if not boundaries_file:
+            return ""
+
+        return os.path.abspath(build_boundaries_file_path(self.session.csv_file, self.session.metadata))
+
+    def load_saved_boundaries_mask(self):
+        if self.session is None:
+            return False
+
+        boundaries_file = self.current_boundaries_file()
+        if not boundaries_file or not os.path.exists(boundaries_file):
+            self.floorplan_view.reset_boundaries_mask(emit_signal=False)
+            return False
+
+        loaded = self.floorplan_view.load_boundaries_mask(boundaries_file, emit_signal=False)
+        self.update_boundaries_controls_state()
+        self.refresh_live_controls()
+        return loaded
+
+    def has_manual_boundaries_mask(self):
+        return bool(
+            self.floorplan_view.has_floorplan()
+            and self.floorplan_view.has_boundaries_mask()
+        )
+
+    def persist_boundaries_mask(self, csv_file):
+        if self.session is None:
+            return True
+
+        previous_file = self.current_boundaries_file()
+        if self.floorplan_view.has_boundaries_mask():
+            boundaries_file = build_boundaries_file_path(csv_file)
+            if not self.floorplan_view.save_boundaries_mask(boundaries_file):
+                raise ValueError(self.tr("boundaries_save_failed", path=boundaries_file))
+            self.session.metadata[BOUNDARIES_FILE_METADATA_KEY] = os.path.basename(boundaries_file)
+            if previous_file and os.path.abspath(previous_file) != os.path.abspath(boundaries_file):
+                self.mark_boundaries_file_for_delete(previous_file)
+            return True
+
+        self.clear_saved_boundaries_metadata(mark_dirty=False)
+        if previous_file:
+            self.mark_boundaries_file_for_delete(previous_file)
+        return True
+
+    def clear_saved_boundaries_metadata(self, mark_dirty=True):
+        if self.session is None:
+            return
+
+        previous_file = self.current_boundaries_file()
+        removed = self.session.metadata.pop(BOUNDARIES_FILE_METADATA_KEY, None) is not None
+        if previous_file:
+            self.mark_boundaries_file_for_delete(previous_file)
+        if removed and mark_dirty:
+            self.session.dirty = True
+
+    def mark_boundaries_file_for_delete(self, file_path):
+        if not self.is_deletable_boundaries_file(file_path):
+            return
+
+        pending = getattr(self, "boundaries_files_pending_delete", set())
+        pending.add(os.path.abspath(file_path))
+        self.boundaries_files_pending_delete = pending
+
+    def is_deletable_boundaries_file(self, file_path):
+        path = os.path.abspath(file_path)
+        return path.lower().endswith(".boundaries.png")
+
+    def cleanup_removed_boundaries_files(self):
+        pending = set(getattr(self, "boundaries_files_pending_delete", set()))
+        if not pending or self.session is None:
+            return
+
+        current_file = self.current_boundaries_file()
+        current_file = os.path.abspath(current_file) if current_file else ""
+        kept = set()
+        failed = []
+        for file_path in pending:
+            if not file_path or file_path == current_file:
+                continue
+            if not self.is_deletable_boundaries_file(file_path):
+                continue
+
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except OSError:
+                kept.add(file_path)
+                failed.append(file_path)
+
+        self.boundaries_files_pending_delete = kept
+        if failed:
+            self.status.showMessage(self.tr("boundaries_cleanup_failed", path=failed[0]))
 
     def current_generated_floorplan_file(self):
         if self.session is None:
@@ -326,6 +429,17 @@ class FloorplanWorkflowMixin:
 
     def on_boundaries_mask_changed(self, _has_mask):
         self.update_boundaries_controls_state()
+        self.refresh_live_controls()
+
+    def on_boundaries_mask_edited(self):
+        if self.session is None:
+            return
+
+        was_dirty = self.session.dirty
+        self.session.dirty = True
+        self.update_boundaries_controls_state()
+        if not was_dirty:
+            self.refresh_session_labels()
 
     def clear_boundaries_mask(self):
         if not self.floorplan_view.has_boundaries_mask():

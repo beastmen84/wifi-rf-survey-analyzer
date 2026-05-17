@@ -59,6 +59,7 @@ class FloorplanView(QGraphicsView):
     pointSelected = Signal(dict)
     pointSelectionCleared = Signal()
     boundariesMaskChanged = Signal(bool)
+    boundariesMaskEdited = Signal()
 
     def __init__(self):
         super().__init__()
@@ -305,6 +306,7 @@ class FloorplanView(QGraphicsView):
             if self.boundaries_mask_has_content:
                 self.boundaries_mask_has_content = False
                 self.boundariesMaskChanged.emit(False)
+                self.boundariesMaskEdited.emit()
             return
 
         if self.boundaries_mask_image is not None:
@@ -320,6 +322,7 @@ class FloorplanView(QGraphicsView):
         self.viewport().update()
         if changed:
             self.boundariesMaskChanged.emit(False)
+            self.boundariesMaskEdited.emit()
 
     def ensure_boundaries_mask(self):
         if not self.has_floorplan():
@@ -339,6 +342,50 @@ class FloorplanView(QGraphicsView):
             self.scene.addItem(self.boundaries_mask_item)
 
         return True
+
+    def save_boundaries_mask(self, file_path):
+        if not self.has_boundaries_mask() or self.boundaries_mask_image is None:
+            return False
+
+        return bool(self.boundaries_mask_image.save(str(file_path), "PNG"))
+
+    def load_boundaries_mask(self, file_path, emit_signal=True):
+        if not self.has_floorplan():
+            return False
+
+        loaded_image = QImage(str(file_path))
+        if loaded_image.isNull():
+            return False
+
+        source_size = self.pixmap_item.pixmap().size()
+        if loaded_image.size() != source_size:
+            return False
+
+        self.reset_boundaries_mask(emit_signal=False)
+        self.boundaries_mask_image = loaded_image.convertToFormat(
+            QImage.Format.Format_ARGB32_Premultiplied
+        )
+        self.boundaries_mask_item = BoundariesMaskItem(self.boundaries_mask_image)
+        self.boundaries_mask_item.setVisible(self.boundaries_edit_active)
+        self.scene.addItem(self.boundaries_mask_item)
+        self.boundaries_mask_has_content = True
+        self.boundaries_mask_dirty_rect = QRectF(
+            0,
+            0,
+            self.boundaries_mask_image.width(),
+            self.boundaries_mask_image.height(),
+        )
+        self.boundaries_mask_item.update()
+        self.viewport().update()
+        if emit_signal:
+            self.boundariesMaskChanged.emit(True)
+        return True
+
+    def get_boundaries_mask_image_copy(self):
+        if not self.has_boundaries_mask() or self.boundaries_mask_image is None:
+            return None
+
+        return self.boundaries_mask_image.copy()
 
     def apply_boundaries_brush(self, x, y, refresh=True):
         if not self.ensure_boundaries_mask():
@@ -458,6 +505,7 @@ class FloorplanView(QGraphicsView):
         if self.boundaries_tool != "eraser" and not self.boundaries_mask_has_content:
             self.boundaries_mask_has_content = True
             self.boundariesMaskChanged.emit(True)
+        self.boundariesMaskEdited.emit()
 
     def apply_boundaries_stroke(self, start_point, end_point):
         if not self.ensure_boundaries_mask():

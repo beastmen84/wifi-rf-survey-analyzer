@@ -267,6 +267,8 @@ TRANSLATIONS = {
     "boundaries_clear_title": "Clear Boundaries",
     "boundaries_clear_confirm": "Do you want to clear the current boundary mask?",
     "boundaries_cleared": "Boundary mask cleared.",
+    "boundaries_save_failed": "Could not save boundary mask: {path}",
+    "boundaries_cleanup_failed": "Could not delete replaced boundary mask: {path}",
     "delete_scale": "Delete Scale",
     "delete_scale_title": "Delete Scale",
     "delete_scale_confirm": "Do you want to delete the saved scale calibration for this survey?",
@@ -1028,7 +1030,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card"><b>Smoothing</b><br>Makes coverage/interference surfaces visually calmer.<br><span class="survey-card-use">Use Carefully:</span> high smoothing can hide sharp RF transitions.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Max Distance</b><br>Limits continuous rendering to areas near measured points. On calibrated surveys with at least 4 unique points, the default is estimated from point-spacing percentiles; otherwise it falls back to pixels. Survey Bounds can additionally fade continuous maps outside the measured point envelope; it works best when measured points follow the edge of the area you want to show. If it clips useful space, turn it off or add boundary points.<br><span class="survey-card-use">Use Carefully:</span> increase only when point density is good.</td>
+                <td class="workflow-card"><b>Max Distance</b><br>Limits continuous rendering to areas near measured points. On calibrated surveys with at least 4 unique points, the default is estimated from point-spacing percentiles; otherwise it falls back to pixels. Survey Bounds can additionally fade continuous maps outside the measured point envelope; it works best when measured points follow the edge of the area you want to show. If a saved manual Boundaries mask exists, Survey Bounds is enabled and locked because the drawn mask defines the valid map area. If automatic bounds clip useful space, turn it off or add boundary points.<br><span class="survey-card-use">Use Carefully:</span> increase only when point density is good.</td>
             </tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>

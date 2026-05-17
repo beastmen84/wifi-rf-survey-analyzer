@@ -70,6 +70,7 @@ class LivePdfExportMixin:
                 px_per_meter=self.get_px_per_meter(),
                 measurement_system=self.measurement_system,
                 output_file=output_file,
+                boundary_mask_image=self.current_boundary_mask_image(),
             )
         except MapExportError as exc:
             map_error = exc

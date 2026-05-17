@@ -3,6 +3,7 @@
 APP_ID = "wifi_heatmap"
 SURVEY_SCHEMA_VERSION = "2"
 RAW_DATA_FILE_METADATA_KEY = "raw_data_file"
+BOUNDARIES_FILE_METADATA_KEY = "boundaries_file"
 MEASUREMENT_SYSTEM_METADATA_KEY = "measurement_system"
 DEFAULT_FLOORPLAN_METADATA_KEY = "_default_floorplan"
 GENERATED_FLOORPLAN_METADATA_KEY = "_generated_floorplan"

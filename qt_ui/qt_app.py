@@ -258,6 +258,7 @@ class WifiHeatmapQtApp(
         self.boundaries_circle_button = None
         self.boundaries_square_button = None
         self.boundaries_clear_button = None
+        self.boundaries_files_pending_delete = set()
         self.live_options_panel_expanded = False
         self.live_map_option_memory = {}
         self.live_current_map_type = "signal"
@@ -635,6 +636,7 @@ class WifiHeatmapQtApp(
         self.floorplan_view.pointSelected.connect(self.select_point_in_table)
         self.floorplan_view.pointSelectionCleared.connect(self.clear_point_selection)
         self.floorplan_view.boundariesMaskChanged.connect(self.on_boundaries_mask_changed)
+        self.floorplan_view.boundariesMaskEdited.connect(self.on_boundaries_mask_edited)
         floorplan_layout.addWidget(self.floorplan_view)
 
         self.points_overlay = QFrame(self.floorplan_container)

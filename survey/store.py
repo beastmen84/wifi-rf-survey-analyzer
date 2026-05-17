@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from app_core.constants import (
     APP_ID,
+    BOUNDARIES_FILE_METADATA_KEY,
     MEASUREMENT_SYSTEM_METADATA_KEY,
     RAW_DATA_FILE_METADATA_KEY,
     RAW_SCAN_FIELDNAMES,
@@ -363,6 +364,21 @@ def build_new_point_id():
 def build_default_raw_data_filename(csv_file):
     path = Path(csv_file)
     return f"{path.stem}_raw_data.scan"
+
+
+def build_default_boundaries_filename(csv_file):
+    path = Path(csv_file)
+    return f"{path.stem}.boundaries.png"
+
+
+def build_boundaries_file_path(csv_file, metadata=None):
+    path = Path(csv_file)
+    metadata = metadata if metadata is not None else read_survey_metadata(csv_file)
+    boundaries_file = str(metadata.get(BOUNDARIES_FILE_METADATA_KEY, "")).strip()
+    if not boundaries_file:
+        boundaries_file = build_default_boundaries_filename(csv_file)
+
+    return str(path.with_name(os.path.basename(boundaries_file)))
 
 
 def build_raw_scan_file_path(csv_file, metadata=None):

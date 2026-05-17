@@ -51,6 +51,7 @@ class SurveySessionWorkflowMixin:
         self.session = SurveySession()
         self.set_session_measurement_system_metadata(self.measurement_system, mark_dirty=False)
         self.generated_floorplans_pending_delete = set()
+        self.boundaries_files_pending_delete = set()
         self.load_session_ssid_state()
         self.reset_live_option_memory()
         if not self.load_default_floorplan():
@@ -209,6 +210,7 @@ class SurveySessionWorkflowMixin:
             raise
 
         self.generated_floorplans_pending_delete = set()
+        self.boundaries_files_pending_delete = set()
         self.apply_session_measurement_system(mark_dirty=False)
         self.load_session_ssid_state()
         self.reset_live_option_memory()
@@ -247,14 +249,16 @@ class SurveySessionWorkflowMixin:
         try:
             if not self.materialize_default_floorplan(csv_file):
                 return False
+            self.persist_boundaries_mask(csv_file)
         except Exception as exc:
             QMessageBox.warning(self, self.tr("warning"), str(exc))
-            log_exception("qt save survey default floorplan materialization failed", exc, logger_name="main")
+            log_exception("qt save survey sidecar materialization failed", exc, logger_name="main")
             return False
 
         self.set_session_measurement_system_metadata(self.measurement_system, mark_dirty=False)
         self.session.save(csv_file)
         self.cleanup_replaced_generated_floorplans()
+        self.cleanup_removed_boundaries_files()
         save_last_survey_path(csv_file)
         self.refresh_session_labels()
         self.status.showMessage(self.tr("survey_saved", name=self.session.display_name))
