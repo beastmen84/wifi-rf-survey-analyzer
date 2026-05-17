@@ -4,7 +4,7 @@ from pathlib import Path
 import math
 
 from PySide6.QtCore import QPointF, QRectF, Qt, Signal
-from PySide6.QtGui import QBrush, QColor, QImage, QPainter, QPen, QPixmap
+from PySide6.QtGui import QBrush, QColor, QCursor, QImage, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QGraphicsEllipseItem,
     QGraphicsLineItem,
@@ -28,6 +28,7 @@ METRIC_GRID_INTERVALS_M = (0.5, 1.0, 2.0, 5.0, 10.0, 20.0)
 IMPERIAL_GRID_INTERVALS_FT = (1.0, 2.0, 3.0, 5.0, 10.0, 20.0, 50.0)
 MIN_GRID_SPACING_PX = 40.0
 GRID_MAJOR_EVERY = 5
+BOUNDARIES_CURSOR_SIZE_PX = 28
 
 
 class FloorplanView(QGraphicsView):
@@ -73,6 +74,7 @@ class FloorplanView(QGraphicsView):
         self.boundaries_mask_has_content = False
         self.boundaries_drawing_active = False
         self.boundaries_last_point = None
+        self.boundaries_cursors = {}
 
         self.setObjectName("floorplanView")
         self.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform)
@@ -140,11 +142,49 @@ class FloorplanView(QGraphicsView):
         if self.boundaries_mask_item is not None:
             self.boundaries_mask_item.setVisible(active)
         self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
-        self.viewport().unsetCursor()
+        self.update_boundaries_cursor()
 
     def set_boundaries_tool_state(self, tool="draw", shape="circle"):
         self.boundaries_tool = "eraser" if tool == "eraser" else "draw"
         self.boundaries_shape = "square" if shape == "square" else "circle"
+        self.update_boundaries_cursor()
+
+    def update_boundaries_cursor(self):
+        if not self.boundaries_edit_active:
+            self.viewport().unsetCursor()
+            return
+
+        cursor = self.boundaries_cursor_for_tool(self.boundaries_tool)
+        if cursor is None:
+            self.viewport().setCursor(Qt.CursorShape.CrossCursor)
+            return
+        self.viewport().setCursor(cursor)
+
+    def boundaries_cursor_for_tool(self, tool):
+        tool = "eraser" if tool == "eraser" else "draw"
+        if tool in self.boundaries_cursors:
+            return self.boundaries_cursors[tool]
+
+        icon_name = "eraser.png" if tool == "eraser" else "brush.png"
+        icon_path = (
+            Path(__file__).resolve().parent.parent
+            / "images"
+            / "bound_toolbar"
+            / icon_name
+        )
+        pixmap = QPixmap(str(icon_path))
+        if pixmap.isNull():
+            return None
+
+        pixmap = pixmap.scaled(
+            BOUNDARIES_CURSOR_SIZE_PX,
+            BOUNDARIES_CURSOR_SIZE_PX,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        cursor = QCursor(pixmap, pixmap.width() // 2, pixmap.height() // 2)
+        self.boundaries_cursors[tool] = cursor
+        return cursor
 
     def has_boundaries_mask(self):
         return self.boundaries_mask_has_content
@@ -216,7 +256,7 @@ class FloorplanView(QGraphicsView):
             painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
             painter.setBrush(Qt.GlobalColor.transparent)
         else:
-            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source)
             painter.setBrush(QColor(37, 99, 235, 90))
 
         half = self.boundaries_brush_size_px / 2.0
@@ -684,7 +724,10 @@ class FloorplanView(QGraphicsView):
 
         super().mouseReleaseEvent(event)
         if not self.pending_ap_position_group_id and not self.scale_calibration_active:
-            self.viewport().setCursor(Qt.CursorShape.ArrowCursor)
+            if self.boundaries_edit_active:
+                self.update_boundaries_cursor()
+            else:
+                self.viewport().setCursor(Qt.CursorShape.ArrowCursor)
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Escape and self.cancel_scale_calibration_pick():

@@ -12,8 +12,10 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   floating drawing toolbar. The toolbar now supports in-memory draw/erase,
   circle/square brush selection and confirmed clear. Boundaries mode keeps the
   normal floorplan zoom, pan and left-click controls; right-drag paints or
-  erases the mask instead of adding survey points. Persistence and Live/PDF
-  application are planned as follow-up steps.
+  erases the mask instead of adding survey points. Drawing now uses fixed
+  transparency when strokes overlap, and the floorplan cursor switches to the
+  selected brush/eraser icon while Boundaries is active. Persistence and
+  Live/PDF application are planned as follow-up steps.
 - Made the Boundaries toolbar load lazily on first use, keeping its icon setup
   out of the startup "Loading components" path while preserving the same
   Survey-tab behavior.
