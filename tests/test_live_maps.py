@@ -310,6 +310,11 @@ class FloorplanViewTests(unittest.TestCase):
             view.set_boundaries_tool_state("draw", "circle")
             view.update_boundaries_brush_preview(view.scene.sceneRect().center())
             self.assertEqual(view.viewport().cursor().shape(), Qt.CursorShape.BlankCursor)
+            view.update_boundaries_brush_preview(QPoint(-25, -25))
+            self.assertIsNone(view.boundaries_brush_preview_pos)
+            self.assertNotEqual(view.viewport().cursor().shape(), Qt.CursorShape.BlankCursor)
+            view.update_boundaries_brush_preview(view.scene.sceneRect().center())
+            self.assertEqual(view.viewport().cursor().shape(), Qt.CursorShape.BlankCursor)
             self.assertAlmostEqual(
                 view.boundaries_brush_preview_rect().width(),
                 view.boundaries_brush_size_px,

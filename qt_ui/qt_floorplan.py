@@ -177,8 +177,11 @@ class FloorplanView(QGraphicsView):
             self.hide_boundaries_brush_preview()
             return
 
-        self.viewport().setCursor(Qt.CursorShape.BlankCursor)
-        self.update_boundaries_brush_preview()
+        if self.boundaries_brush_preview_pos is None:
+            self.viewport().unsetCursor()
+        else:
+            self.viewport().setCursor(Qt.CursorShape.BlankCursor)
+            self.update_boundaries_brush_preview()
 
     def update_boundaries_brush_preview(self, scene_point=None):
         if not self.boundaries_edit_active:
@@ -187,11 +190,16 @@ class FloorplanView(QGraphicsView):
 
         old_rect = self.boundaries_brush_preview_viewport_rect()
         if scene_point is not None:
-            self.boundaries_brush_preview_pos = self.clamp_boundaries_point(scene_point)
+            if not self.is_point_inside_floorplan(scene_point):
+                self.hide_boundaries_brush_preview()
+                self.viewport().unsetCursor()
+                return
+            self.boundaries_brush_preview_pos = scene_point
         if self.boundaries_brush_preview_pos is None:
             self.hide_boundaries_brush_preview()
             return
 
+        self.viewport().setCursor(Qt.CursorShape.BlankCursor)
         new_rect = self.boundaries_brush_preview_viewport_rect()
         self.update_boundaries_preview_region(old_rect, new_rect)
 
@@ -264,6 +272,9 @@ class FloorplanView(QGraphicsView):
             old_rect = self.boundaries_brush_preview_viewport_rect()
             self.boundaries_brush_preview_pos = None
             self.update_boundaries_preview_region(old_rect)
+
+    def is_point_inside_floorplan(self, point):
+        return self.has_floorplan() and self.scene.sceneRect().contains(point)
 
     def has_boundaries_mask(self):
         return self.boundaries_mask_has_content
@@ -823,15 +834,14 @@ class FloorplanView(QGraphicsView):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
+        scene_point = self.mapToScene(event.position().toPoint())
         if (
             self.boundaries_edit_active
             and self.boundaries_drawing_active
             and event.buttons() & Qt.MouseButton.RightButton
             and self.boundaries_last_point is not None
         ):
-            point = self.clamp_boundaries_point(
-                self.mapToScene(event.position().toPoint())
-            )
+            point = self.clamp_boundaries_point(scene_point)
             self.update_boundaries_brush_preview(point)
             self.apply_boundaries_stroke(self.boundaries_last_point, point)
             self.boundaries_last_point = point
@@ -840,10 +850,7 @@ class FloorplanView(QGraphicsView):
 
         super().mouseMoveEvent(event)
         if self.boundaries_edit_active:
-            point = self.clamp_boundaries_point(
-                self.mapToScene(event.position().toPoint())
-            )
-            self.update_boundaries_brush_preview(point)
+            self.update_boundaries_brush_preview(scene_point)
 
     def mouseReleaseEvent(self, event):
         if self.boundaries_edit_active and event.button() == Qt.MouseButton.RightButton:
