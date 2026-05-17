@@ -53,6 +53,8 @@ class SurveySessionWorkflowMixin:
     def confirm_new_survey_replaces_current(self):
         if self.session is None:
             return True
+        if self.is_empty_generated_survey():
+            return True
 
         response = QMessageBox.question(
             self,
@@ -65,6 +67,16 @@ class SurveySessionWorkflowMixin:
             return False
 
         return self.save_survey()
+
+    def is_empty_generated_survey(self):
+        if self.session is None:
+            return True
+
+        has_rows = bool(self.session.rows or self.session.raw_scan_rows)
+        has_csv = bool(self.session.csv_file)
+        has_default_floorplan = self.session.metadata.get(DEFAULT_FLOORPLAN_METADATA_KEY) == "1"
+        has_generated_floorplan = self.session.metadata.get(GENERATED_FLOORPLAN_METADATA_KEY) == "1"
+        return not has_rows and not has_csv and (has_default_floorplan or has_generated_floorplan)
 
     def choose_new_survey_measurement_system(self):
         message_box = QMessageBox(self)

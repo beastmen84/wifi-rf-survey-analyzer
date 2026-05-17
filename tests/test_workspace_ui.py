@@ -965,6 +965,11 @@ class SurveySessionWorkflowTests(unittest.TestCase):
         window = WifiHeatmapQtApp()
         try:
             self.assertTrue(self.start_new_survey(window))
+            window.session.add_points(
+                10,
+                20,
+                [{"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_percent": "80", "signal_dbm": -50, "channel": "1", "radio": "802.11ax"}],
+            )
             current_session = window.session
 
             with patch(
@@ -977,11 +982,40 @@ class SurveySessionWorkflowTests(unittest.TestCase):
         finally:
             window.deleteLater()
 
+    def test_new_survey_discards_empty_generated_survey_without_save_prompt(self):
+        window = WifiHeatmapQtApp()
+        try:
+            self.assertTrue(self.start_new_survey(window))
+            current_session = window.session
+
+            with (
+                patch("qt_ui.qt_session_workflow.QMessageBox.question") as question_mock,
+                patch.object(
+                    window,
+                    "choose_new_survey_measurement_system",
+                    return_value=MEASUREMENT_SYSTEM_METRIC,
+                ),
+                patch("qt_ui.qt_session_workflow.save_measurement_system", return_value=True),
+            ):
+                self.assertTrue(window.new_survey())
+
+            question_mock.assert_not_called()
+            self.assertIsNot(window.session, current_session)
+            self.assertIsNone(window.session.csv_file)
+            self.assertFalse(window.session.rows)
+        finally:
+            window.deleteLater()
+
     def test_new_survey_from_open_session_saves_current_before_units_prompt(self):
         window = WifiHeatmapQtApp()
         try:
             with tempfile.TemporaryDirectory() as temp_dir:
                 self.assertTrue(self.start_new_survey(window))
+                window.session.add_points(
+                    10,
+                    20,
+                    [{"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_percent": "80", "signal_dbm": -50, "channel": "1", "radio": "802.11ax"}],
+                )
                 current_csv = os.path.join(temp_dir, "current.csv")
                 current_png = os.path.join(temp_dir, "current.png")
                 previous_session = window.session
