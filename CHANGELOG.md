@@ -14,9 +14,10 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   normal floorplan zoom, pan and left-click controls; right-drag paints or
   erases the mask instead of adding survey points. Drawing now uses fixed
   transparency when strokes overlap, a slightly lighter fill and a subtle
-  feathered edge. The brush footprint preview now lives in the floorplan scene,
-  so the visible circle/square shape matches the painted area at every zoom
-  level while Boundaries is active. Persistence and
+  feathered edge. The brush footprint preview is now painted as a lightweight
+  floorplan foreground overlay, so the visible circle/square shape matches the
+  painted area at every zoom level while avoiding a movable scene item.
+  Persistence and
   Live/PDF application are planned as follow-up steps.
 - Made the Boundaries toolbar load lazily on first use, keeping its icon setup
   out of the startup "Loading components" path while preserving the same

@@ -9,7 +9,6 @@ from PySide6.QtWidgets import (
     QGraphicsEllipseItem,
     QGraphicsLineItem,
     QGraphicsPixmapItem,
-    QGraphicsRectItem,
     QGraphicsScene,
     QGraphicsView,
 )
@@ -77,7 +76,6 @@ class FloorplanView(QGraphicsView):
         self.boundaries_mask_has_content = False
         self.boundaries_drawing_active = False
         self.boundaries_last_point = None
-        self.boundaries_brush_preview_item = None
         self.boundaries_brush_preview_pos = None
 
         self.setObjectName("floorplanView")
@@ -177,31 +175,30 @@ class FloorplanView(QGraphicsView):
             self.hide_boundaries_brush_preview()
             return
 
-        preview = self.ensure_boundaries_brush_preview_item()
+        self.viewport().update()
+
+    def boundaries_brush_preview_rect(self):
+        if self.boundaries_brush_preview_pos is None:
+            return QRectF()
         half = self.boundaries_brush_size_px / 2.0
         point = self.boundaries_brush_preview_pos
-        preview.setRect(
-            QRectF(
-                point.x() - half,
-                point.y() - half,
-                self.boundaries_brush_size_px,
-                self.boundaries_brush_size_px,
-            )
+        return QRectF(
+            point.x() - half,
+            point.y() - half,
+            self.boundaries_brush_size_px,
+            self.boundaries_brush_size_px,
         )
-        preview.setVisible(True)
 
-    def ensure_boundaries_brush_preview_item(self):
-        want_square = self.boundaries_shape == "square"
-        has_square = isinstance(self.boundaries_brush_preview_item, QGraphicsRectItem)
-        if self.boundaries_brush_preview_item is None or want_square != has_square:
-            self.remove_boundaries_brush_preview_item()
-            if want_square:
-                self.boundaries_brush_preview_item = QGraphicsRectItem()
-            else:
-                self.boundaries_brush_preview_item = QGraphicsEllipseItem()
-            self.boundaries_brush_preview_item.setZValue(80)
-            self.scene.addItem(self.boundaries_brush_preview_item)
+    def draw_boundaries_brush_preview(self, painter, rect):
+        if not self.boundaries_edit_active or self.boundaries_brush_preview_pos is None:
+            return
 
+        preview_rect = self.boundaries_brush_preview_rect()
+        if not rect.intersects(preview_rect):
+            return
+
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         fill = (
             QColor(37, 99, 235, 45)
             if self.boundaries_tool == "draw"
@@ -215,27 +212,23 @@ class FloorplanView(QGraphicsView):
         pen = QPen(outline, 0)
         if self.boundaries_tool == "eraser":
             pen.setStyle(Qt.PenStyle.DashLine)
-        self.boundaries_brush_preview_item.setPen(pen)
-        self.boundaries_brush_preview_item.setBrush(QBrush(fill))
-        return self.boundaries_brush_preview_item
+        painter.setPen(pen)
+        painter.setBrush(QBrush(fill))
+        if self.boundaries_shape == "square":
+            painter.drawRect(preview_rect)
+        else:
+            painter.drawEllipse(preview_rect)
+        painter.restore()
 
     def hide_boundaries_brush_preview(self):
-        if self.boundaries_brush_preview_item is not None:
-            self.boundaries_brush_preview_item.setVisible(False)
-
-    def remove_boundaries_brush_preview_item(self):
-        if (
-            self.boundaries_brush_preview_item is not None
-            and self.boundaries_brush_preview_item.scene() is self.scene
-        ):
-            self.scene.removeItem(self.boundaries_brush_preview_item)
-        self.boundaries_brush_preview_item = None
+        if self.boundaries_brush_preview_pos is not None:
+            self.boundaries_brush_preview_pos = None
+            self.viewport().update()
 
     def has_boundaries_mask(self):
         return self.boundaries_mask_has_content
 
     def reset_boundaries_mask(self, emit_signal=True):
-        self.remove_boundaries_brush_preview_item()
         self.boundaries_brush_preview_pos = None
         if (
             self.boundaries_mask_item is not None
@@ -469,6 +462,7 @@ class FloorplanView(QGraphicsView):
 
     def drawForeground(self, painter, rect):
         super().drawForeground(painter, rect)
+        self.draw_boundaries_brush_preview(painter, rect)
         if not self.grid_visible or not self.grid_label:
             return
 

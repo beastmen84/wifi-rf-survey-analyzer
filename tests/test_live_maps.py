@@ -310,16 +310,12 @@ class FloorplanViewTests(unittest.TestCase):
             view.set_boundaries_tool_state("draw", "circle")
             view.update_boundaries_brush_preview(view.scene.sceneRect().center())
             self.assertEqual(view.viewport().cursor().shape(), Qt.CursorShape.BlankCursor)
-            self.assertEqual(
-                view.boundaries_brush_preview_item.__class__.__name__,
-                "QGraphicsEllipseItem",
-            )
             self.assertAlmostEqual(
-                view.boundaries_brush_preview_item.rect().width(),
+                view.boundaries_brush_preview_rect().width(),
                 view.boundaries_brush_size_px,
             )
             view.set_zoom(4.0)
-            preview_rect = view.boundaries_brush_preview_item.rect()
+            preview_rect = view.boundaries_brush_preview_rect()
             preview_width = abs(
                 view.mapFromScene(preview_rect.topRight()).x()
                 - view.mapFromScene(preview_rect.topLeft()).x()
@@ -327,10 +323,7 @@ class FloorplanViewTests(unittest.TestCase):
             expected_width = view.boundaries_brush_size_px * view.transform().m11()
             self.assertAlmostEqual(preview_width, expected_width, delta=2.0)
             view.set_boundaries_tool_state("draw", "square")
-            self.assertEqual(
-                view.boundaries_brush_preview_item.__class__.__name__,
-                "QGraphicsRectItem",
-            )
+            self.assertEqual(view.boundaries_shape, "square")
             view.set_boundaries_tool_state("draw", "circle")
             view.apply_boundaries_brush(50, 40)
 
