@@ -99,6 +99,7 @@ TRANSLATIONS = {
     "default_floorplan_name": "Pianta A4 Bianca",
     "replace_default_floorplan_title": "Sostituire La Pianta Bianca?",
     "replace_default_floorplan": "La pianta bianca generata sarà salvata come:\n{path}\n\nIl file esiste già. Vuoi sostituirlo?",
+    "generated_floorplan_cleanup_failed": "Impossibile eliminare la pianta bianca sostituita: {path}",
     "load_plan": "Carica Pianta",
     "generate_heatmap": "Genera Heatmap",
     "generate": "Genera",
@@ -246,6 +247,9 @@ TRANSLATIONS = {
     "calibrate_scale_invalid": "Distanza non valida.",
     "calibrate_scale_cancelled": "Calibrazione scala annullata.",
     "calibrate_scale_already_set": "Scala già calibrata. Elimina la scala attuale per rifarla.",
+    "grid": "Griglia",
+    "grid_enabled": "Griglia attiva.",
+    "grid_disabled": "Griglia disattivata.",
     "delete_scale": "Elimina Scala",
     "delete_scale_title": "Elimina Scala",
     "delete_scale_confirm": "Vuoi eliminare la calibrazione della scala salvata per questo rilievo?",
@@ -677,7 +681,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="survey-card"><span class="survey-card-title">CSV</span><br>Il file rilievo salvato, con commenti metadati e righe aggregate.<br><span class="survey-card-use">Salva prima di esportare PDF o spostare il rilievo su un altro PC.</span></td>
                 <td class="survey-gap"></td>
-                <td class="survey-card"><span class="survey-card-title">Mappa</span><br>Il file pianta collegato al rilievo. I nuovi rilievi partono con una pianta A4 bianca.<br><span class="survey-card-use">Se salvi senza sostituirla, viene scritto un PNG con lo stesso nome del CSV.</span></td>
+                <td class="survey-card"><span class="survey-card-title">Mappa</span><br>Il file pianta collegato al rilievo. I nuovi rilievi partono con una pianta A4 bianca già scalata e griglia attiva.<br><span class="survey-card-use">Se salvi senza sostituirla, viene scritto un PNG con lo stesso nome del CSV.</span></td>
                 <td class="survey-gap"></td>
                 <td class="survey-card"><span class="survey-card-title">Punti</span><br>Posizioni di misura raccolte sulla pianta.<br><span class="survey-card-use">Aggiungi punti dove i client lavorano, fanno roaming o segnalano problemi.</span></td>
             </tr>
@@ -727,6 +731,8 @@ TRANSLATIONS = {
                 <li>Evita scansioni mentre ti muovi. Fermati, lascia completare la scansione, poi passa al punto successivo.</li>
             </ul>
         </td></tr></table>
+        <h2>Pianta Bianca E Griglia</h2>
+        <p>I nuovi rilievi possono essere usati senza una pianta esterna. La pianta A4 bianca generata è pre-scalata per test pratici d'ufficio e si apre con la Griglia attiva. Sulle piante reali, la Griglia diventa disponibile dopo la calibrazione della scala.</p>
     """,
     "help_quality_nav": "Qualità Rilievo",
     "help_quality_title": "Dashboard Qualità Rilievo",

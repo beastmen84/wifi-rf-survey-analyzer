@@ -9,13 +9,15 @@ except ModuleNotFoundError as exc:
     print("PySide6 is required for main.py. Run: pip install -r requirements.txt")
     raise SystemExit(1) from exc
 
-from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY
+from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
 from app_core.units import display_units_to_meters, format_scale_density, meters_to_display_units
 from qt_ui.default_floorplan import (
+    default_floorplan_px_per_meter,
     default_floorplan_save_path,
     ensure_default_floorplan,
     write_default_floorplan,
 )
+from qt_ui.qt_theme import QT_THEMES
 from qt_ui.qt_windowing import get_centered_open_file_name
 
 
@@ -55,9 +57,11 @@ class FloorplanWorkflowMixin:
         was_dirty = self.session.dirty
         self.session.metadata["map_file"] = os.path.abspath(file_path)
         self.session.metadata[DEFAULT_FLOORPLAN_METADATA_KEY] = "1"
+        self.session.metadata["px_per_meter"] = f"{default_floorplan_px_per_meter(self.measurement_system):.6f}"
         self.session.dirty = was_dirty
         self.floorplan_view.set_points(self.session.get_point_summaries())
         self.floorplan_view.set_ap_groups(self.session.get_ap_groups())
+        self.set_floorplan_grid_enabled(True, show_status=False)
         QTimer.singleShot(0, self.floorplan_view.fit_to_view)
         return True
 
@@ -83,6 +87,7 @@ class FloorplanWorkflowMixin:
         write_default_floorplan(image_file)
         self.session.metadata["map_file"] = os.path.abspath(image_file)
         self.session.metadata.pop(DEFAULT_FLOORPLAN_METADATA_KEY, None)
+        self.session.metadata[GENERATED_FLOORPLAN_METADATA_KEY] = "1"
         return True
 
     def load_saved_plan(self):
@@ -109,6 +114,8 @@ class FloorplanWorkflowMixin:
         if self.session is None:
             return
 
+        previous_generated_floorplan = self.current_generated_floorplan_file()
+        force_grid_off = False
         try:
             self.floorplan_view.load_floorplan(file_path)
         except Exception as exc:
@@ -123,9 +130,17 @@ class FloorplanWorkflowMixin:
             was_default_floorplan = (
                 self.session.metadata.pop(DEFAULT_FLOORPLAN_METADATA_KEY, None) is not None
             )
+            was_generated_floorplan = (
+                was_default_floorplan
+                or self.session.metadata.pop(GENERATED_FLOORPLAN_METADATA_KEY, None) is not None
+            )
             self.session.update_metadata({"map_file": os.path.abspath(file_path)})
-            if was_default_floorplan:
+            if was_generated_floorplan:
+                self.session.metadata.pop("px_per_meter", None)
                 self.session.dirty = True
+                force_grid_off = True
+                if previous_generated_floorplan:
+                    self.mark_generated_floorplan_for_delete(previous_generated_floorplan)
             self.session.refresh_ap_groups_from_rows(update_memory=False)
 
         self.floorplan_view.set_points(self.session.get_point_summaries())
@@ -139,7 +154,120 @@ class FloorplanWorkflowMixin:
             )
         else:
             self.status.showMessage(self.tr("map_loaded", name=self.session_display_name()))
+        if force_grid_off:
+            self.set_floorplan_grid_enabled(False, show_status=False)
+        else:
+            self.sync_floorplan_grid_for_session()
         self.maybe_update_live_preview()
+
+    def current_generated_floorplan_file(self):
+        if self.session is None:
+            return ""
+
+        if self.session.metadata.get(GENERATED_FLOORPLAN_METADATA_KEY) != "1":
+            return ""
+
+        map_file = self.session.metadata.get("map_file", "")
+        if not map_file:
+            return ""
+
+        return os.path.abspath(map_file)
+
+    def mark_generated_floorplan_for_delete(self, file_path):
+        path = os.path.abspath(file_path)
+        if not self.is_deletable_generated_floorplan(path):
+            return
+
+        pending = getattr(self, "generated_floorplans_pending_delete", set())
+        pending.add(path)
+        self.generated_floorplans_pending_delete = pending
+
+    def is_deletable_generated_floorplan(self, file_path):
+        if self.session is None or not self.session.csv_file:
+            return False
+
+        expected_path = os.path.abspath(default_floorplan_save_path(self.session.csv_file))
+        return os.path.abspath(file_path) == expected_path
+
+    def cleanup_replaced_generated_floorplans(self):
+        pending = set(getattr(self, "generated_floorplans_pending_delete", set()))
+        if not pending or self.session is None:
+            return
+
+        current_map_file = os.path.abspath(self.session.metadata.get("map_file", ""))
+        kept = set()
+        failed = []
+        for file_path in pending:
+            if not file_path or file_path == current_map_file:
+                continue
+            if not self.is_deletable_generated_floorplan(file_path):
+                continue
+
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except OSError:
+                kept.add(file_path)
+                failed.append(file_path)
+
+        self.generated_floorplans_pending_delete = kept
+        if failed:
+            self.status.showMessage(self.tr("generated_floorplan_cleanup_failed", path=failed[0]))
+
+    def floorplan_grid_color(self):
+        return QT_THEMES.get(self.theme, QT_THEMES["light"])["metric_info"]
+
+    def toggle_floorplan_grid(self):
+        if self.session is None or not self.has_calibrated_scale():
+            return
+
+        self.set_floorplan_grid_enabled(
+            not self.floorplan_view.grid_visible,
+            show_status=True,
+        )
+
+    def set_floorplan_grid_enabled(self, enabled, show_status=True):
+        px_per_meter = self.get_px_per_meter()
+        enabled = bool(enabled and px_per_meter and self.floorplan_view.has_floorplan())
+        self.floorplan_view.set_grid(
+            enabled,
+            px_per_meter,
+            self.measurement_system,
+            self.floorplan_grid_color(),
+        )
+        self.update_floorplan_grid_button_state()
+        if show_status:
+            self.status.showMessage(
+                self.tr("grid_enabled") if enabled else self.tr("grid_disabled")
+            )
+
+    def sync_floorplan_grid_for_session(self):
+        if self.session is None:
+            self.set_floorplan_grid_enabled(False, show_status=False)
+            return
+
+        default_grid = (
+            self.session.metadata.get(DEFAULT_FLOORPLAN_METADATA_KEY) == "1"
+            or self.session.metadata.get(GENERATED_FLOORPLAN_METADATA_KEY) == "1"
+        )
+        current_visible = self.floorplan_view.grid_visible
+        self.set_floorplan_grid_enabled(default_grid or current_visible, show_status=False)
+
+    def update_floorplan_grid_button_state(self):
+        if not hasattr(self, "grid_button"):
+            return
+
+        can_show_grid = (
+            self.session is not None
+            and self.floorplan_view.has_floorplan()
+            and self.has_calibrated_scale()
+            and self.tabs.currentIndex() == 0
+            and not self.scan_in_progress
+        )
+        self.grid_button.setEnabled(can_show_grid)
+        self.grid_button.blockSignals(True)
+        self.grid_button.setChecked(bool(can_show_grid and self.floorplan_view.grid_visible))
+        self.grid_button.blockSignals(False)
 
     def zoom_in(self):
         view = self.current_zoom_view()
@@ -218,6 +346,7 @@ class FloorplanWorkflowMixin:
         px_per_meter = float(pixel_distance) / float(meters)
         self.session.update_metadata({"px_per_meter": f"{px_per_meter:.6f}"})
         self.refresh_session_labels()
+        self.update_floorplan_grid_button_state()
         self.status.showMessage(
             self.tr("calibrate_scale_saved", scale=format_scale_density(px_per_meter, self.measurement_system))
         )
@@ -243,6 +372,7 @@ class FloorplanWorkflowMixin:
         self.session.metadata.pop("px_per_meter", None)
         self.session.dirty = True
         self.floorplan_view.clear_scale_calibration_overlay()
+        self.set_floorplan_grid_enabled(False, show_status=False)
         self.refresh_session_labels()
         self.status.showMessage(self.tr("delete_scale_done"))
         self.maybe_update_live_preview()

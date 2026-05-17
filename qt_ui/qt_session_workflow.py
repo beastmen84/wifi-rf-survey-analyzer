@@ -9,7 +9,7 @@ except ModuleNotFoundError as exc:
     print("PySide6 is required for main.py. Run: pip install -r requirements.txt")
     raise SystemExit(1) from exc
 
-from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY
+from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
 from app_core.settings import get_last_survey_directory, save_last_survey_path
 from ap.memory import count_memory_applied_groups, get_ap_memory_summary
 from qt_ui.qt_windowing import get_centered_open_file_name, get_centered_save_file_name
@@ -31,6 +31,7 @@ class SurveySessionWorkflowMixin:
         if not self.confirm_switch_survey():
             return False
         self.session = SurveySession()
+        self.generated_floorplans_pending_delete = set()
         self.load_session_ssid_state()
         self.reset_live_option_memory()
         if not self.load_default_floorplan():
@@ -59,6 +60,7 @@ class SurveySessionWorkflowMixin:
             self.show_survey_format_error(str(exc))
             return False
 
+        self.generated_floorplans_pending_delete = set()
         self.load_session_ssid_state()
         self.reset_live_option_memory()
         save_last_survey_path(csv_file)
@@ -93,6 +95,7 @@ class SurveySessionWorkflowMixin:
             return False
 
         self.session.save(csv_file)
+        self.cleanup_replaced_generated_floorplans()
         save_last_survey_path(csv_file)
         self.refresh_session_labels()
         self.status.showMessage(self.tr("survey_saved", name=self.session.display_name))
@@ -173,7 +176,10 @@ class SurveySessionWorkflowMixin:
             map_file = self.session.metadata.get("map_file", "")
             map_name = (
                 self.tr("default_floorplan_name")
-                if self.session.metadata.get(DEFAULT_FLOORPLAN_METADATA_KEY) == "1"
+                if (
+                    self.session.metadata.get(DEFAULT_FLOORPLAN_METADATA_KEY) == "1"
+                    or self.session.metadata.get(GENERATED_FLOORPLAN_METADATA_KEY) == "1"
+                )
                 else os.path.basename(map_file) if map_file else self.tr("no_map")
             )
             point_summaries = self.session.get_point_summaries()
@@ -233,6 +239,7 @@ class SurveySessionWorkflowMixin:
             has_map and not live_tab_active and not self.scan_in_progress and not has_scale
         )
         self.delete_scale_button.setEnabled(can_use_session and not live_tab_active and has_scale)
+        self.update_floorplan_grid_button_state()
         self.update_save_action_state()
         self.refresh_live_controls()
         self.update_point_action_state()

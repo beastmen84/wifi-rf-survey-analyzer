@@ -1,8 +1,10 @@
 from tests._common import *
 from app_core.constants import (
     DEFAULT_FLOORPLAN_HEIGHT_PX,
+    DEFAULT_FLOORPLAN_METRIC_PX_PER_METER,
     DEFAULT_FLOORPLAN_METADATA_KEY,
     DEFAULT_FLOORPLAN_WIDTH_PX,
+    GENERATED_FLOORPLAN_METADATA_KEY,
     HEATMAP_MAX_DISTANCE_PX,
 )
 from app_core.version import (
@@ -888,8 +890,16 @@ class SurveySessionWorkflowTests(unittest.TestCase):
             self.assertTrue(window.floorplan_view.has_floorplan())
             self.assertEqual(window.session.metadata.get(DEFAULT_FLOORPLAN_METADATA_KEY), "1")
             self.assertTrue(os.path.exists(window.session.metadata["map_file"]))
+            self.assertAlmostEqual(
+                float(window.session.metadata["px_per_meter"]),
+                DEFAULT_FLOORPLAN_METRIC_PX_PER_METER,
+            )
             self.assertEqual(window.map_label.text(), window.tr("default_floorplan_name"))
             self.assertFalse(window.session.dirty)
+            self.assertTrue(window.grid_button.isEnabled())
+            self.assertTrue(window.grid_button.isChecked())
+            self.assertTrue(window.floorplan_view.grid_visible)
+            self.assertGreater(len(window.floorplan_view.grid_items), 0)
 
             pixmap = window.floorplan_view.pixmap_item.pixmap()
             self.assertEqual(pixmap.width(), DEFAULT_FLOORPLAN_WIDTH_PX)
@@ -912,7 +922,8 @@ class SurveySessionWorkflowTests(unittest.TestCase):
                 self.assertTrue(os.path.exists(image_file))
                 self.assertEqual(window.session.metadata["map_file"], os.path.abspath(image_file))
                 self.assertNotIn(DEFAULT_FLOORPLAN_METADATA_KEY, window.session.metadata)
-                self.assertEqual(window.map_label.text(), "survey.png")
+                self.assertEqual(window.session.metadata[GENERATED_FLOORPLAN_METADATA_KEY], "1")
+                self.assertEqual(window.map_label.text(), window.tr("default_floorplan_name"))
 
                 with Image.open(image_file) as image:
                     self.assertEqual(image.size, (DEFAULT_FLOORPLAN_WIDTH_PX, DEFAULT_FLOORPLAN_HEIGHT_PX))
@@ -921,6 +932,7 @@ class SurveySessionWorkflowTests(unittest.TestCase):
                 loaded = SurveySession(csv_file)
                 self.assertEqual(loaded.metadata["map_file"], os.path.abspath(image_file))
                 self.assertNotIn(DEFAULT_FLOORPLAN_METADATA_KEY, loaded.metadata)
+                self.assertEqual(loaded.metadata[GENERATED_FLOORPLAN_METADATA_KEY], "1")
         finally:
             window.deleteLater()
 
@@ -948,6 +960,34 @@ class SurveySessionWorkflowTests(unittest.TestCase):
         finally:
             window.deleteLater()
 
+    def test_replacing_saved_blank_floorplan_deletes_generated_png_after_save(self):
+        window = WifiHeatmapQtApp()
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                self.assertTrue(window.new_survey())
+                csv_file = os.path.join(temp_dir, "survey.csv")
+                image_file = os.path.join(temp_dir, "survey.png")
+                real_plan = os.path.join(temp_dir, "real_plan.png")
+                Image.new("RGB", (120, 90), "white").save(real_plan)
+                window.session.csv_file = csv_file
+                self.assertTrue(window.save_survey())
+                self.assertTrue(os.path.exists(image_file))
+
+                window.load_plan_file(real_plan, save_metadata=True)
+
+                self.assertEqual(window.session.metadata["map_file"], os.path.abspath(real_plan))
+                self.assertNotIn(GENERATED_FLOORPLAN_METADATA_KEY, window.session.metadata)
+                self.assertNotIn("px_per_meter", window.session.metadata)
+                self.assertFalse(window.floorplan_view.grid_visible)
+                self.assertFalse(window.grid_button.isEnabled())
+
+                self.assertTrue(window.save_survey())
+
+                self.assertFalse(os.path.exists(image_file))
+                self.assertTrue(os.path.exists(real_plan))
+        finally:
+            window.deleteLater()
+
     def test_loaded_plan_replaces_default_floorplan_without_same_name_png(self):
         window = WifiHeatmapQtApp()
         try:
@@ -964,8 +1004,40 @@ class SurveySessionWorkflowTests(unittest.TestCase):
 
                 self.assertEqual(window.session.metadata["map_file"], os.path.abspath(real_plan))
                 self.assertNotIn(DEFAULT_FLOORPLAN_METADATA_KEY, window.session.metadata)
+                self.assertNotIn(GENERATED_FLOORPLAN_METADATA_KEY, window.session.metadata)
+                self.assertNotIn("px_per_meter", window.session.metadata)
                 self.assertFalse(os.path.exists(os.path.join(temp_dir, "survey.png")))
                 self.assertEqual(window.map_label.text(), "real_plan.png")
+        finally:
+            window.deleteLater()
+
+    def test_grid_toggle_is_available_after_real_plan_scale_exists(self):
+        window = WifiHeatmapQtApp()
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                real_plan = os.path.join(temp_dir, "real_plan.png")
+                Image.new("RGB", (120, 90), "white").save(real_plan)
+
+                self.assertTrue(window.new_survey())
+                window.load_plan_file(real_plan, save_metadata=True)
+                self.assertFalse(window.grid_button.isEnabled())
+                self.assertFalse(window.floorplan_view.grid_visible)
+
+                window.session.update_metadata({"px_per_meter": "10"})
+                window.refresh_session_labels()
+                self.assertTrue(window.grid_button.isEnabled())
+                self.assertFalse(window.grid_button.isChecked())
+
+                window.toggle_floorplan_grid()
+
+                self.assertTrue(window.floorplan_view.grid_visible)
+                self.assertTrue(window.grid_button.isChecked())
+                self.assertGreater(len(window.floorplan_view.grid_items), 0)
+
+                window.toggle_floorplan_grid()
+
+                self.assertFalse(window.floorplan_view.grid_visible)
+                self.assertFalse(window.grid_button.isChecked())
         finally:
             window.deleteLater()
 

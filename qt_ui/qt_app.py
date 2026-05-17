@@ -430,6 +430,8 @@ class WifiHeatmapQtApp(
         self.zoom_in_button = self.create_app_bar_button(self.zoom_in, "appBarIconButton")
         self.fit_view_button = self.create_app_bar_button(self.fit_floorplan)
         self.calibrate_button = self.create_app_bar_button(self.start_scale_calibration)
+        self.grid_button = self.create_app_bar_button(self.toggle_floorplan_grid, "appBarToggleButton")
+        self.grid_button.setCheckable(True)
         self.delete_scale_button = QPushButton()
         self.delete_scale_button.setObjectName("appBarTitleDangerButton")
         self.delete_scale_button.clicked.connect(self.delete_scale_calibration)
@@ -440,6 +442,7 @@ class WifiHeatmapQtApp(
             self.zoom_in_button,
             self.fit_view_button,
             self.calibrate_button,
+            self.grid_button,
         ):
             view_row.addWidget(button)
         layout.addWidget(view_section)
@@ -1372,7 +1375,7 @@ class WifiHeatmapQtApp(
                 font-size: {font(9)}pt;
                 font-weight: 600;
             }}
-            QPushButton#appBarButton, QPushButton#appBarIconButton, QPushButton#primaryAppBarButton, QPushButton#dirtySaveButton {{
+            QPushButton#appBarButton, QPushButton#appBarIconButton, QPushButton#appBarToggleButton, QPushButton#primaryAppBarButton, QPushButton#dirtySaveButton {{
                 min-width: 0;
                 padding: {s(6)}px {s(10)}px;
                 border-radius: {s(5)}px;
@@ -1398,6 +1401,16 @@ class WifiHeatmapQtApp(
                 max-height: {s(30)}px;
                 padding: 0;
                 font-size: {font(12)}pt;
+            }}
+            QPushButton#appBarToggleButton:checked {{
+                background: {palette["metric_info"]};
+                color: #FFFFFF;
+                border: 1px solid {palette["metric_info"]};
+            }}
+            QPushButton#appBarToggleButton:disabled {{
+                background: {palette["button_bg"]};
+                color: {palette["muted"]};
+                border: 1px solid {palette["border"]};
             }}
             QPushButton#primaryAppBarButton {{
                 background: {palette["metric_info"]};
@@ -1643,6 +1656,7 @@ class WifiHeatmapQtApp(
         self.zoom_in_button.setText("+")
         self.fit_view_button.setText(self.tr("fit"))
         self.calibrate_button.setText(self.tr("calibrate_scale"))
+        self.grid_button.setText(self.tr("grid"))
         self.delete_scale_button.setText(self.tr("delete_scale"))
         self.ap_groups_button.setText(self.tr("ap_groups_title"))
         self.quality_button.setText(self.tr("quality_dashboard_title"))

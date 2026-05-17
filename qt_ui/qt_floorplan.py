@@ -13,10 +13,15 @@ from PySide6.QtWidgets import (
     QGraphicsView,
 )
 
+from app_core.units import MEASUREMENT_SYSTEM_IMPERIAL, display_units_to_meters, normalize_measurement_system
 from qt_ui.qt_tooltips import build_html_tooltip
 
 
 AP_MARKER_BASE_SIZE = 20
+METRIC_GRID_INTERVALS_M = (0.5, 1.0, 2.0, 5.0, 10.0, 20.0)
+IMPERIAL_GRID_INTERVALS_FT = (1.0, 2.0, 5.0, 10.0, 20.0, 50.0)
+MIN_GRID_SPACING_PX = 40.0
+GRID_MAJOR_EVERY = 5
 
 
 class FloorplanView(QGraphicsView):
@@ -36,6 +41,7 @@ class FloorplanView(QGraphicsView):
         self.pixmap_item = None
         self.marker_items = []
         self.ap_marker_items = []
+        self.grid_items = []
         self.scale_calibration_items = []
         self.scale_calibration_points = []
         self.selected_point_key = None
@@ -45,6 +51,10 @@ class FloorplanView(QGraphicsView):
         self.scale_calibration_active = False
         self.ap_position_icon = load_ap_position_icon()
         self.ap_tooltip_formatter = None
+        self.grid_visible = False
+        self.grid_px_per_meter = None
+        self.grid_measurement_system = "metric"
+        self.grid_color = "#3A6EA5"
 
         self.setObjectName("floorplanView")
         self.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform)
@@ -61,6 +71,7 @@ class FloorplanView(QGraphicsView):
         self.scene.clear()
         self.marker_items = []
         self.ap_marker_items = []
+        self.grid_items = []
         self.scale_calibration_items = []
         self.scale_calibration_points = []
         self.selected_point_key = None
@@ -71,6 +82,7 @@ class FloorplanView(QGraphicsView):
         self.pixmap_item = QGraphicsPixmapItem(pixmap)
         self.scene.addItem(self.pixmap_item)
         self.scene.setSceneRect(pixmap.rect())
+        self.refresh_grid()
         self.resetTransform()
         self.zoom_level = 1.0
         self.fit_to_view()
@@ -80,6 +92,8 @@ class FloorplanView(QGraphicsView):
         self.pixmap_item = None
         self.marker_items = []
         self.ap_marker_items = []
+        self.grid_items = []
+        self.grid_visible = False
         self.scale_calibration_items = []
         self.scale_calibration_points = []
         self.selected_point_key = None
@@ -89,6 +103,66 @@ class FloorplanView(QGraphicsView):
 
     def has_floorplan(self):
         return self.pixmap_item is not None
+
+    def set_grid(self, visible, px_per_meter=None, measurement_system="metric", color="#3A6EA5"):
+        self.grid_visible = bool(visible and px_per_meter)
+        self.grid_px_per_meter = float(px_per_meter) if px_per_meter else None
+        self.grid_measurement_system = normalize_measurement_system(measurement_system)
+        self.grid_color = color
+        self.refresh_grid()
+
+    def refresh_grid(self):
+        self.clear_grid_items()
+        if not self.has_floorplan() or not self.grid_visible or not self.grid_px_per_meter:
+            return
+
+        interval_m = choose_grid_interval_meters(
+            self.grid_px_per_meter,
+            self.grid_measurement_system,
+        )
+        spacing_px = interval_m * self.grid_px_per_meter
+        if spacing_px <= 0:
+            return
+
+        rect = self.scene.sceneRect()
+        width = rect.width()
+        height = rect.height()
+        if width <= 0 or height <= 0:
+            return
+
+        minor_color = QColor(self.grid_color)
+        minor_color.setAlpha(65)
+        major_color = QColor(self.grid_color)
+        major_color.setAlpha(115)
+        minor_pen = QPen(minor_color, 1.0)
+        major_pen = QPen(major_color, 1.5)
+
+        x = 0.0
+        index = 0
+        while x <= width:
+            item = QGraphicsLineItem(x, 0, x, height)
+            item.setPen(major_pen if index % GRID_MAJOR_EVERY == 0 else minor_pen)
+            item.setZValue(4)
+            self.scene.addItem(item)
+            self.grid_items.append(item)
+            index += 1
+            x = index * spacing_px
+
+        y = 0.0
+        index = 0
+        while y <= height:
+            item = QGraphicsLineItem(0, y, width, y)
+            item.setPen(major_pen if index % GRID_MAJOR_EVERY == 0 else minor_pen)
+            item.setZValue(4)
+            self.scene.addItem(item)
+            self.grid_items.append(item)
+            index += 1
+            y = index * spacing_px
+
+    def clear_grid_items(self):
+        for item in self.grid_items:
+            self.scene.removeItem(item)
+        self.grid_items = []
 
     def set_points(self, points):
         for item in self.marker_items:
@@ -416,6 +490,24 @@ def load_ap_position_icon():
         return QPixmap()
 
     return QPixmap(str(icon_path))
+
+
+def choose_grid_interval_meters(px_per_meter, measurement_system, min_spacing_px=MIN_GRID_SPACING_PX):
+    px_per_meter = float(px_per_meter)
+    if px_per_meter <= 0:
+        return 1.0
+
+    if normalize_measurement_system(measurement_system) == MEASUREMENT_SYSTEM_IMPERIAL:
+        for interval_ft in IMPERIAL_GRID_INTERVALS_FT:
+            interval_m = display_units_to_meters(interval_ft, MEASUREMENT_SYSTEM_IMPERIAL)
+            if interval_m * px_per_meter >= min_spacing_px:
+                return interval_m
+        return display_units_to_meters(IMPERIAL_GRID_INTERVALS_FT[-1], MEASUREMENT_SYSTEM_IMPERIAL)
+
+    for interval_m in METRIC_GRID_INTERVALS_M:
+        if interval_m * px_per_meter >= min_spacing_px:
+            return interval_m
+    return METRIC_GRID_INTERVALS_M[-1]
 
 
 def point_color(signal_dbm):

@@ -49,6 +49,8 @@ class WorkspaceSettingsMixin:
         save_theme(theme)
         log_event(f"workspace theme changed theme={theme}", logger_name="ui")
         self.apply_styles()
+        if getattr(self.floorplan_view, "grid_visible", False):
+            self.set_floorplan_grid_enabled(True, show_status=False)
 
     def change_ui_scale(self, mode):
         mode = normalize_ui_scale_mode(mode)
@@ -93,6 +95,7 @@ class WorkspaceSettingsMixin:
             self.session.metadata.pop("px_per_meter", None)
             self.session.dirty = True
             self.floorplan_view.clear_scale_calibration_overlay()
+            self.set_floorplan_grid_enabled(False, show_status=False)
             scale_was_cleared = True
 
         if not save_measurement_system(mode):

@@ -99,6 +99,7 @@ TRANSLATIONS = {
     "default_floorplan_name": "A4 Blank Plan",
     "replace_default_floorplan_title": "Replace Blank Plan Image?",
     "replace_default_floorplan": "The generated blank plan will be saved as:\n{path}\n\nThat file already exists. Replace it?",
+    "generated_floorplan_cleanup_failed": "Could not delete replaced blank plan: {path}",
     "load_plan": "Load Plan",
     "generate_heatmap": "Generate Heatmap",
     "generate": "Generate",
@@ -246,6 +247,9 @@ TRANSLATIONS = {
     "calibrate_scale_invalid": "Invalid distance.",
     "calibrate_scale_cancelled": "Scale calibration cancelled.",
     "calibrate_scale_already_set": "Scale already calibrated. Delete the current scale to recalibrate it.",
+    "grid": "Grid",
+    "grid_enabled": "Grid enabled.",
+    "grid_disabled": "Grid disabled.",
     "delete_scale": "Delete Scale",
     "delete_scale_title": "Delete Scale",
     "delete_scale_confirm": "Do you want to delete the saved scale calibration for this survey?",
@@ -677,7 +681,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="survey-card"><span class="survey-card-title">CSV</span><br>The saved survey file with metadata comments and aggregated rows.<br><span class="survey-card-use">Save before PDF export or moving between machines.</span></td>
                 <td class="survey-gap"></td>
-                <td class="survey-card"><span class="survey-card-title">Map</span><br>The floor-plan file linked to the survey. New surveys start with an A4 blank plan.<br><span class="survey-card-use">If you save without replacing it, a same-name PNG is written next to the CSV.</span></td>
+                <td class="survey-card"><span class="survey-card-title">Map</span><br>The floor-plan file linked to the survey. New surveys start with a scaled A4 blank plan and grid.<br><span class="survey-card-use">If you save without replacing it, a same-name PNG is written next to the CSV.</span></td>
                 <td class="survey-gap"></td>
                 <td class="survey-card"><span class="survey-card-title">Points</span><br>Measurement locations collected on the floor plan.<br><span class="survey-card-use">Add points where clients work, roam or report problems.</span></td>
             </tr>
@@ -727,6 +731,8 @@ TRANSLATIONS = {
                 <li>Avoid collecting while moving. Pause, let the scan complete, then move to the next point.</li>
             </ul>
         </td></tr></table>
+        <h2>Blank Plan And Grid</h2>
+        <p>New surveys can be used without an external floor plan. The generated A4 blank plan is pre-scaled for practical office tests and opens with Grid enabled. On real floor plans, Grid becomes available after scale calibration.</p>
     """,
     "help_quality_nav": "Survey Quality",
     "help_quality_title": "Survey Quality Dashboard",
