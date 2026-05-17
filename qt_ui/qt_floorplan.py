@@ -564,12 +564,28 @@ class FloorplanView(QGraphicsView):
         if self.boundaries_mask_item is not None:
             if self.boundaries_mask_dirty_rect.isNull():
                 self.boundaries_mask_item.update()
+                self.viewport().update()
             else:
                 self.boundaries_mask_item.update(self.boundaries_mask_dirty_rect)
+                self.update_boundaries_mask_viewport_region(
+                    self.boundaries_mask_dirty_rect
+                )
         if self.boundaries_tool != "eraser" and not self.boundaries_mask_has_content:
             self.boundaries_mask_has_content = True
             self.boundariesMaskChanged.emit(True)
         self.boundariesMaskEdited.emit()
+
+    def update_boundaries_mask_viewport_region(self, rect):
+        if rect.isNull() or rect.isEmpty():
+            self.viewport().update()
+            return
+
+        viewport_rect = self.mapFromScene(rect).boundingRect().adjusted(-4, -4, 4, 4)
+        viewport_rect = viewport_rect.intersected(self.viewport().rect())
+        if viewport_rect.isNull() or viewport_rect.isEmpty():
+            return
+
+        self.viewport().update(viewport_rect)
 
     def apply_boundaries_stroke(self, start_point, end_point):
         if not self.ensure_boundaries_mask():
