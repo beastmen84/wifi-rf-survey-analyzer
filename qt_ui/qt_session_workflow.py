@@ -23,7 +23,7 @@ from app_core.units import (
 )
 from ap.memory import count_memory_applied_groups, get_ap_memory_summary
 from qt_ui.qt_windowing import get_centered_open_file_name, get_centered_save_file_name
-from survey.store import SurveyFormatError, SurveySession, infer_survey_measurement_system
+from survey.store import SurveyFormatError, SurveySession, normalize_survey_measurement_system
 
 
 class SurveySessionWorkflowMixin:
@@ -155,7 +155,7 @@ class SurveySessionWorkflowMixin:
         if self.session is None:
             return self.measurement_system
 
-        measurement_system = infer_survey_measurement_system(
+        measurement_system = normalize_survey_measurement_system(
             self.session.metadata,
             default=self.measurement_system,
         )

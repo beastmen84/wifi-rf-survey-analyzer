@@ -9,10 +9,6 @@ from uuid import uuid4
 
 from app_core.constants import (
     APP_ID,
-    DEFAULT_FLOORPLAN_IMPERIAL_PX_PER_FOOT,
-    DEFAULT_FLOORPLAN_METADATA_KEY,
-    DEFAULT_FLOORPLAN_METRIC_PX_PER_METER,
-    GENERATED_FLOORPLAN_METADATA_KEY,
     MEASUREMENT_SYSTEM_METADATA_KEY,
     RAW_DATA_FILE_METADATA_KEY,
     RAW_SCAN_FIELDNAMES,
@@ -23,8 +19,6 @@ from app_core.constants import (
     SURVEY_SCHEMA_VERSION,
 )
 from app_core.units import (
-    FEET_PER_METER,
-    MEASUREMENT_SYSTEM_IMPERIAL,
     MEASUREMENT_SYSTEM_METRIC,
     normalize_measurement_system,
 )
@@ -60,9 +54,7 @@ class SurveySession:
             validate_survey_file(csv_file)
             loaded_metadata = read_survey_metadata(csv_file)
             self.metadata.update(loaded_metadata)
-            if MEASUREMENT_SYSTEM_METADATA_KEY not in loaded_metadata:
-                self.metadata.pop(MEASUREMENT_SYSTEM_METADATA_KEY, None)
-            self.metadata[MEASUREMENT_SYSTEM_METADATA_KEY] = infer_survey_measurement_system(self.metadata)
+            self.metadata[MEASUREMENT_SYSTEM_METADATA_KEY] = normalize_survey_measurement_system(self.metadata)
             self.rows = read_survey_rows(csv_file)
             self.raw_scan_rows = read_raw_scan_rows(csv_file)
             self.refresh_ap_groups_from_rows(update_memory=False)
@@ -82,7 +74,7 @@ class SurveySession:
             self.dirty = True
 
     def measurement_system(self, default=MEASUREMENT_SYSTEM_METRIC):
-        return infer_survey_measurement_system(self.metadata, default=default)
+        return normalize_survey_measurement_system(self.metadata, default=default)
 
     def set_measurement_system(self, measurement_system, mark_dirty=True):
         measurement_system = normalize_measurement_system(measurement_system)
@@ -350,7 +342,7 @@ class SurveySession:
             "app": APP_ID,
             "schema_version": SURVEY_SCHEMA_VERSION,
         })
-        self.metadata[MEASUREMENT_SYSTEM_METADATA_KEY] = infer_survey_measurement_system(self.metadata)
+        self.metadata[MEASUREMENT_SYSTEM_METADATA_KEY] = normalize_survey_measurement_system(self.metadata)
         self.metadata[RAW_DATA_FILE_METADATA_KEY] = os.path.basename(
             build_raw_scan_file_path(self.csv_file, self.metadata)
         )
@@ -373,41 +365,9 @@ def build_default_metadata(csv_file=None):
     return metadata
 
 
-def infer_survey_measurement_system(metadata, default=MEASUREMENT_SYSTEM_METRIC):
+def normalize_survey_measurement_system(metadata, default=MEASUREMENT_SYSTEM_METRIC):
     metadata = metadata or {}
-    saved = normalize_measurement_system(metadata.get(MEASUREMENT_SYSTEM_METADATA_KEY), default=None)
-    if saved:
-        return saved
-
-    px_per_meter = parse_positive_float(metadata.get("px_per_meter"))
-    if px_per_meter:
-        is_generated_blank = (
-            metadata.get(DEFAULT_FLOORPLAN_METADATA_KEY) == "1"
-            or metadata.get(GENERATED_FLOORPLAN_METADATA_KEY) == "1"
-        )
-        if is_generated_blank:
-            imperial_px_per_meter = DEFAULT_FLOORPLAN_IMPERIAL_PX_PER_FOOT * FEET_PER_METER
-            if nearly_equal(px_per_meter, imperial_px_per_meter):
-                return MEASUREMENT_SYSTEM_IMPERIAL
-            if nearly_equal(px_per_meter, DEFAULT_FLOORPLAN_METRIC_PX_PER_METER):
-                return MEASUREMENT_SYSTEM_METRIC
-
-        return MEASUREMENT_SYSTEM_METRIC
-
-    return normalize_measurement_system(default)
-
-
-def parse_positive_float(value):
-    try:
-        parsed = float(value)
-    except (TypeError, ValueError):
-        return None
-
-    return parsed if parsed > 0 else None
-
-
-def nearly_equal(left, right, tolerance=0.01):
-    return abs(float(left) - float(right)) <= tolerance
+    return normalize_measurement_system(metadata.get(MEASUREMENT_SYSTEM_METADATA_KEY), default=default)
 
 
 def copy_scan_detail_fields(network):

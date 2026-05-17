@@ -1209,39 +1209,6 @@ class SurveySessionWorkflowTests(unittest.TestCase):
         finally:
             window.deleteLater()
 
-    def test_open_legacy_scaled_survey_uses_metric_instead_of_global_imperial(self):
-        window = WifiHeatmapQtApp()
-        try:
-            with tempfile.TemporaryDirectory() as temp_dir:
-                real_plan = os.path.join(temp_dir, "real_plan.png")
-                csv_file = os.path.join(temp_dir, "legacy_metric.csv")
-                Image.new("RGB", (120, 90), "white").save(real_plan)
-                write_survey_file(
-                    csv_file,
-                    {
-                        "app": APP_ID,
-                        "schema_version": SURVEY_SCHEMA_VERSION,
-                        "map_file": os.path.abspath(real_plan),
-                        "px_per_meter": "10",
-                    },
-                    [],
-                )
-
-                window.measurement_system = MEASUREMENT_SYSTEM_IMPERIAL
-
-                self.assertTrue(window.open_survey(csv_file))
-
-                self.assertEqual(window.measurement_system, MEASUREMENT_SYSTEM_METRIC)
-                self.assertEqual(window.session.metadata[MEASUREMENT_SYSTEM_METADATA_KEY], MEASUREMENT_SYSTEM_METRIC)
-                self.assertFalse(window.session.dirty)
-
-                window.toggle_floorplan_grid()
-
-                self.assertTrue(window.floorplan_view.grid_visible)
-                self.assertEqual(window.floorplan_view.grid_label, "1 square = 5 m")
-        finally:
-            window.deleteLater()
-
     def test_open_survey_uses_saved_measurement_system_metadata(self):
         window = WifiHeatmapQtApp()
         try:
