@@ -17,7 +17,8 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 - Added an optional Survey Bounds / Limite Rilievo control for continuous Live
   Maps and PDF exports. When enabled, the app fades the overlay outside a local
   measured-point envelope, reducing unused edge bubbles around the survey area
-  without changing the underlying survey data.
+  without changing the underlying survey data. The Help text now notes that the
+  option works best when points also follow the boundary of the area to show.
 - Polished English and Italian UI/Help wording for the 1.0 validation pass,
   normalizing technical terms such as AP dominant diagnostics, extended details,
   raw scan evidence, warnings, AP metadata and client roaming.

@@ -1001,7 +1001,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card"><b>Smoothing</b><br>Makes coverage/interference surfaces visually calmer.<br><span class="survey-card-use">Use Carefully:</span> high smoothing can hide sharp RF transitions.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Max Distance</b><br>Limits continuous rendering to areas near measured points. On calibrated surveys with at least 4 unique points, the default is estimated from point-spacing percentiles; otherwise it falls back to pixels. Survey Bounds can additionally fade continuous maps outside the measured point envelope. If you change measurement system after calibration, the scale is cleared and must be calibrated again.<br><span class="survey-card-use">Use Carefully:</span> increase only when point density is good.</td>
+                <td class="workflow-card"><b>Max Distance</b><br>Limits continuous rendering to areas near measured points. On calibrated surveys with at least 4 unique points, the default is estimated from point-spacing percentiles; otherwise it falls back to pixels. Survey Bounds can additionally fade continuous maps outside the measured point envelope; it works best when measured points follow the edge of the area you want to show. If it clips useful space, turn it off or add boundary points.<br><span class="survey-card-use">Use Carefully:</span> increase only when point density is good.</td>
             </tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>

@@ -940,7 +940,7 @@ def apply_distance_mask(grid_z, grid_x, grid_y, point_x, point_y, max_distance_p
     return masked_grid
 
 
-def get_survey_bounds_alpha(grid_x, grid_y, point_x, point_y, max_distance_px, margin_ratio=0.45):
+def get_survey_bounds_alpha(grid_x, grid_y, point_x, point_y, max_distance_px, margin_ratio=0.60):
     points = unique_finite_points(point_x, point_y)
     if len(points) < 3:
         return np.ones(grid_x.shape)
@@ -981,7 +981,7 @@ def get_local_delaunay_simplices(points, triangulation, max_distance_px):
     with np.errstate(invalid="ignore", divide="ignore"):
         circumradius = (side_a * side_b * side_c) / (2.0 * double_area)
 
-    max_radius = max(1.0, float(max_distance_px) * 1.5)
+    max_radius = max(1.0, float(max_distance_px) * 1.8)
     return np.isfinite(circumradius) & (double_area > 1e-6) & (circumradius <= max_radius)
 
 
