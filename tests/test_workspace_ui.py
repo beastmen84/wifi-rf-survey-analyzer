@@ -1,12 +1,14 @@
 from tests._common import *
 from app_core.constants import (
     DEFAULT_FLOORPLAN_HEIGHT_PX,
+    DEFAULT_FLOORPLAN_IMPERIAL_PX_PER_FOOT,
     DEFAULT_FLOORPLAN_METRIC_PX_PER_METER,
     DEFAULT_FLOORPLAN_METADATA_KEY,
     DEFAULT_FLOORPLAN_WIDTH_PX,
     GENERATED_FLOORPLAN_METADATA_KEY,
     HEATMAP_MAX_DISTANCE_PX,
 )
+from app_core.units import FEET_PER_METER
 from app_core.version import (
     APP_VERSION,
     APP_VERSION_LABEL,
@@ -882,10 +884,17 @@ class SurveySessionWorkflowTests(unittest.TestCase):
     def setUpClass(cls):
         cls.qt_app = QApplication.instance() or QApplication([])
 
+    def start_new_survey(self, window, measurement_system=MEASUREMENT_SYSTEM_METRIC):
+        with (
+            patch.object(window, "choose_new_survey_measurement_system", return_value=measurement_system),
+            patch("qt_ui.qt_session_workflow.save_measurement_system", return_value=True),
+        ):
+            return window.new_survey()
+
     def test_new_survey_loads_blank_a4_floorplan_without_dirtying_session(self):
         window = WifiHeatmapQtApp()
         try:
-            self.assertTrue(window.new_survey())
+            self.assertTrue(self.start_new_survey(window))
 
             self.assertTrue(window.floorplan_view.has_floorplan())
             self.assertEqual(window.session.metadata.get(DEFAULT_FLOORPLAN_METADATA_KEY), "1")
@@ -909,11 +918,46 @@ class SurveySessionWorkflowTests(unittest.TestCase):
         finally:
             window.deleteLater()
 
+    def test_new_survey_units_prompt_sets_imperial_blank_floorplan_scale(self):
+        window = WifiHeatmapQtApp()
+        try:
+            window.measurement_system = MEASUREMENT_SYSTEM_METRIC
+            with (
+                patch.object(
+                    window,
+                    "choose_new_survey_measurement_system",
+                    return_value=MEASUREMENT_SYSTEM_IMPERIAL,
+                ),
+                patch("qt_ui.qt_session_workflow.save_measurement_system", return_value=True) as save_mock,
+            ):
+                self.assertTrue(window.new_survey())
+
+            save_mock.assert_called_once_with(MEASUREMENT_SYSTEM_IMPERIAL)
+            self.assertEqual(window.measurement_system, MEASUREMENT_SYSTEM_IMPERIAL)
+            self.assertAlmostEqual(
+                float(window.session.metadata["px_per_meter"]),
+                DEFAULT_FLOORPLAN_IMPERIAL_PX_PER_FOOT * FEET_PER_METER,
+                places=5,
+            )
+            self.assertEqual(window.floorplan_view.grid_label, "1 square = 5 ft")
+        finally:
+            window.deleteLater()
+
+    def test_new_survey_units_prompt_cancel_keeps_current_session(self):
+        window = WifiHeatmapQtApp()
+        try:
+            with patch.object(window, "choose_new_survey_measurement_system", return_value=None):
+                self.assertFalse(window.new_survey())
+
+            self.assertIsNone(window.session)
+        finally:
+            window.deleteLater()
+
     def test_saving_default_floorplan_materializes_same_name_png_next_to_csv(self):
         window = WifiHeatmapQtApp()
         try:
             with tempfile.TemporaryDirectory() as temp_dir:
-                self.assertTrue(window.new_survey())
+                self.assertTrue(self.start_new_survey(window))
                 csv_file = os.path.join(temp_dir, "survey.csv")
                 image_file = os.path.join(temp_dir, "survey.png")
                 window.session.csv_file = csv_file
@@ -942,7 +986,7 @@ class SurveySessionWorkflowTests(unittest.TestCase):
         window = WifiHeatmapQtApp()
         try:
             with tempfile.TemporaryDirectory() as temp_dir:
-                self.assertTrue(window.new_survey())
+                self.assertTrue(self.start_new_survey(window))
                 csv_file = os.path.join(temp_dir, "survey.csv")
                 image_file = os.path.join(temp_dir, "survey.png")
                 Image.new("RGB", (10, 10), "red").save(image_file)
@@ -966,7 +1010,7 @@ class SurveySessionWorkflowTests(unittest.TestCase):
         window = WifiHeatmapQtApp()
         try:
             with tempfile.TemporaryDirectory() as temp_dir:
-                self.assertTrue(window.new_survey())
+                self.assertTrue(self.start_new_survey(window))
                 csv_file = os.path.join(temp_dir, "survey.csv")
                 image_file = os.path.join(temp_dir, "survey.png")
                 real_plan = os.path.join(temp_dir, "real_plan.png")
@@ -998,7 +1042,7 @@ class SurveySessionWorkflowTests(unittest.TestCase):
                 csv_file = os.path.join(temp_dir, "survey.csv")
                 Image.new("RGB", (120, 90), "white").save(real_plan)
 
-                self.assertTrue(window.new_survey())
+                self.assertTrue(self.start_new_survey(window))
                 window.load_plan_file(real_plan, save_metadata=True)
                 window.session.csv_file = csv_file
 
@@ -1020,7 +1064,7 @@ class SurveySessionWorkflowTests(unittest.TestCase):
                 real_plan = os.path.join(temp_dir, "real_plan.png")
                 Image.new("RGB", (120, 90), "white").save(real_plan)
 
-                self.assertTrue(window.new_survey())
+                self.assertTrue(self.start_new_survey(window))
                 window.load_plan_file(real_plan, save_metadata=True)
                 self.assertFalse(window.grid_button.isEnabled())
                 self.assertFalse(window.floorplan_view.grid_visible)

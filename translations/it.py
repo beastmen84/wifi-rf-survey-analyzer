@@ -36,6 +36,8 @@ TRANSLATIONS = {
     "points_panel_hide": "▼ Punti Rilevati",
     "points_panel_resize": "Trascina verso l'alto o il basso per ridimensionare il pannello punti.",
     "new_survey": "Nuovo Rilievo",
+    "new_survey_measurement_system_title": "Unità Del Nuovo Rilievo",
+    "new_survey_measurement_system_message": "Scegli il sistema di misura per questo rilievo.\n\nScala e griglia della pianta bianca generata verranno create da questa scelta.",
     "open_existing_survey": "Apri Rilievo",
     "invalid_survey_title": "Rilievo Non Compatibile",
     "invalid_survey_format": "Il file selezionato non è un CSV rilievo V2 valido. Crea un nuovo rilievo o apri il CSV principale generato dal programma.",
@@ -733,7 +735,7 @@ TRANSLATIONS = {
             </ul>
         </td></tr></table>
         <h2>Pianta Bianca E Griglia</h2>
-        <p>I nuovi rilievi possono essere usati senza una pianta esterna. La pianta A4 bianca generata è pre-scalata per test pratici d'ufficio e si apre con la Griglia attiva. La label sulla mappa mostra la dimensione del quadrato, per esempio <code>1 quadrato = 1 m</code>. Sulle piante reali, la Griglia diventa disponibile dopo la calibrazione della scala.</p>
+        <p>I nuovi rilievi possono essere usati senza una pianta esterna. Scegli metrico o imperiale quando crei il rilievo; la pianta A4 bianca generata viene pre-scalata per test pratici d'ufficio e si apre con la Griglia attiva. La label sulla mappa mostra la dimensione del quadrato, per esempio <code>1 quadrato = 1 m</code>. Sulle piante reali, la Griglia diventa disponibile dopo la calibrazione della scala.</p>
     """,
     "help_quality_nav": "Qualità Rilievo",
     "help_quality_title": "Dashboard Qualità Rilievo",

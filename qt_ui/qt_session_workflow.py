@@ -10,7 +10,12 @@ except ModuleNotFoundError as exc:
     raise SystemExit(1) from exc
 
 from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
-from app_core.settings import get_last_survey_directory, save_last_survey_path
+from app_core.settings import get_last_survey_directory, save_last_survey_path, save_measurement_system
+from app_core.units import (
+    MEASUREMENT_SYSTEM_IMPERIAL,
+    MEASUREMENT_SYSTEM_METRIC,
+    normalize_measurement_system,
+)
 from ap.memory import count_memory_applied_groups, get_ap_memory_summary
 from qt_ui.qt_windowing import get_centered_open_file_name, get_centered_save_file_name
 from survey.store import SurveyFormatError, SurveySession
@@ -28,8 +33,16 @@ class SurveySessionWorkflowMixin:
         self.maybe_update_live_preview()
 
     def new_survey(self):
+        measurement_system = self.choose_new_survey_measurement_system()
+        if measurement_system is None:
+            return False
+
         if not self.confirm_switch_survey():
             return False
+
+        if not self.set_new_survey_measurement_system(measurement_system):
+            return False
+
         self.session = SurveySession()
         self.generated_floorplans_pending_delete = set()
         self.load_session_ssid_state()
@@ -38,6 +51,47 @@ class SurveySessionWorkflowMixin:
             self.floorplan_view.clear_floorplan()
         self.live_view.clear()
         self.show_workspace_page()
+        return True
+
+    def choose_new_survey_measurement_system(self):
+        message_box = QMessageBox(self)
+        message_box.setIcon(QMessageBox.Icon.Question)
+        message_box.setWindowTitle(self.tr("new_survey_measurement_system_title"))
+        message_box.setText(self.tr("new_survey_measurement_system_message"))
+        metric_button = message_box.addButton(
+            self.tr("measurement_system_metric"),
+            QMessageBox.ButtonRole.AcceptRole,
+        )
+        imperial_button = message_box.addButton(
+            self.tr("measurement_system_imperial"),
+            QMessageBox.ButtonRole.AcceptRole,
+        )
+        message_box.addButton(self.tr("cancel"), QMessageBox.ButtonRole.RejectRole)
+        default_button = (
+            imperial_button
+            if self.measurement_system == MEASUREMENT_SYSTEM_IMPERIAL
+            else metric_button
+        )
+        message_box.setDefaultButton(default_button)
+        message_box.exec()
+
+        clicked_button = message_box.clickedButton()
+        if clicked_button == metric_button:
+            return MEASUREMENT_SYSTEM_METRIC
+        if clicked_button == imperial_button:
+            return MEASUREMENT_SYSTEM_IMPERIAL
+        return None
+
+    def set_new_survey_measurement_system(self, measurement_system):
+        measurement_system = normalize_measurement_system(measurement_system)
+        if measurement_system == self.measurement_system:
+            return True
+
+        if not save_measurement_system(measurement_system):
+            QMessageBox.warning(self, self.tr("warning"), self.tr("settings_save_failed"))
+            return False
+
+        self.measurement_system = measurement_system
         return True
 
     def open_survey(self, csv_file=None):

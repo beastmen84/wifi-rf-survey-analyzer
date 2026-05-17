@@ -22,13 +22,16 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   The bounds mask intentionally keeps a strict local geometry and fade so it
   does not reopen large empty edge bubbles.
 - New surveys now open with a generated, pre-scaled A4 blank plan and an active
-  Grid overlay so test captures can start without a real floor plan. If the
-  blank plan is still active on save, the app writes a same-name PNG next to
-  the CSV and links the survey metadata to that file. Loading a real plan later
-  clears the generated scale/grid state, and the obsolete blank PNG is deleted
-  after the next successful save. The Grid overlay now shows its current step
-  directly on the map, for example `1 square = 1 m` or `1 square = 5 ft`, with
-  extra padding so the scale label does not clip at the right edge.
+  Grid overlay so test captures can start without a real floor plan. New survey
+  creation now asks for metric or imperial units before creating that default
+  blank-plan scale, avoiding an immediate unit change that would clear scale.
+  If the blank plan is still active on save, the app writes a same-name PNG next
+  to the CSV and links the survey metadata to that file. Loading a real plan
+  later clears the generated scale/grid state, and the obsolete blank PNG is
+  deleted after the next successful save. The Grid overlay now shows its
+  current step directly on the map, for example `1 square = 1 m` or
+  `1 square = 5 ft`, with extra padding so the scale label does not clip at the
+  right edge.
 - Polished English and Italian UI/Help wording for the 1.0 validation pass,
   normalizing technical terms such as AP dominant diagnostics, extended details,
   raw scan evidence, warnings, AP metadata and client roaming.

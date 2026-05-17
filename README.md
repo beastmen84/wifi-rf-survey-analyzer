@@ -23,8 +23,9 @@ stable `v1.0.0` is planned after Help Center review and broader field testing.
 
 - PDF/image floor-plan loading with scale calibration.
 - New surveys start with a generated, pre-scaled A4 blank plan and grid for
-  quick tests when no real floor plan is available. The grid overlay shows the
-  current square size directly on the map.
+  quick tests when no real floor plan is available. New survey creation asks
+  for metric or imperial units before creating that default scale, and the grid
+  overlay shows the current square size directly on the map.
 - Measurement-point capture with repeated Wi-Fi scans.
 - Raw scan preservation in a linked `.scan` sidecar file.
 - Relevant SSID selection for focused quality checks and map interpretation.
@@ -42,7 +43,8 @@ stable `v1.0.0` is planned after Help Center review and broader field testing.
 ## Main Workflow
 
 1. Start a new survey or open an existing survey CSV.
-2. Load a floor plan image/PDF, or keep the generated scaled A4 plan for tests.
+2. Choose metric or imperial units, then load a floor plan image/PDF or keep the
+   generated scaled A4 plan for tests.
 3. Calibrate scale when real-world distances matter.
 4. Select relevant SSIDs.
 5. Place measurement points on the floor plan.
