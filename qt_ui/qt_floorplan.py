@@ -3,7 +3,7 @@
 from pathlib import Path
 import math
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QRectF, Qt, Signal
 from PySide6.QtGui import QBrush, QColor, QImage, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QGraphicsEllipseItem,
@@ -13,7 +13,13 @@ from PySide6.QtWidgets import (
     QGraphicsView,
 )
 
-from app_core.units import MEASUREMENT_SYSTEM_IMPERIAL, display_units_to_meters, normalize_measurement_system
+from app_core.units import (
+    MEASUREMENT_SYSTEM_IMPERIAL,
+    distance_unit_label,
+    display_units_to_meters,
+    meters_to_display_units,
+    normalize_measurement_system,
+)
 from qt_ui.qt_tooltips import build_html_tooltip
 
 
@@ -55,6 +61,7 @@ class FloorplanView(QGraphicsView):
         self.grid_px_per_meter = None
         self.grid_measurement_system = "metric"
         self.grid_color = "#3A6EA5"
+        self.grid_label = ""
 
         self.setObjectName("floorplanView")
         self.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform)
@@ -104,12 +111,14 @@ class FloorplanView(QGraphicsView):
     def has_floorplan(self):
         return self.pixmap_item is not None
 
-    def set_grid(self, visible, px_per_meter=None, measurement_system="metric", color="#3A6EA5"):
+    def set_grid(self, visible, px_per_meter=None, measurement_system="metric", color="#3A6EA5", label=""):
         self.grid_visible = bool(visible and px_per_meter)
         self.grid_px_per_meter = float(px_per_meter) if px_per_meter else None
         self.grid_measurement_system = normalize_measurement_system(measurement_system)
         self.grid_color = color
+        self.grid_label = str(label or "") if self.grid_visible else ""
         self.refresh_grid()
+        self.viewport().update()
 
     def refresh_grid(self):
         self.clear_grid_items()
@@ -163,6 +172,42 @@ class FloorplanView(QGraphicsView):
         for item in self.grid_items:
             self.scene.removeItem(item)
         self.grid_items = []
+
+    def drawForeground(self, painter, rect):
+        super().drawForeground(painter, rect)
+        if not self.grid_visible or not self.grid_label:
+            return
+
+        painter.save()
+        painter.resetTransform()
+        font = painter.font()
+        font.setBold(True)
+        painter.setFont(font)
+        metrics = painter.fontMetrics()
+        margin = 12
+        padding_x = 8
+        padding_y = 5
+        text_rect = metrics.boundingRect(self.grid_label)
+        label_rect = QRectF(
+            margin,
+            margin,
+            text_rect.width() + padding_x * 2,
+            text_rect.height() + padding_y * 2,
+        )
+        background = QColor("#FFFFFF")
+        background.setAlpha(230)
+        border = QColor(self.grid_color)
+        border.setAlpha(180)
+        painter.setBrush(QBrush(background))
+        painter.setPen(QPen(border, 1.0))
+        painter.drawRoundedRect(label_rect, 4, 4)
+        painter.setPen(QColor(self.grid_color))
+        painter.drawText(
+            label_rect.adjusted(padding_x, padding_y, -padding_x, -padding_y),
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+            self.grid_label,
+        )
+        painter.restore()
 
     def set_points(self, points):
         for item in self.marker_items:
@@ -508,6 +553,17 @@ def choose_grid_interval_meters(px_per_meter, measurement_system, min_spacing_px
         if interval_m * px_per_meter >= min_spacing_px:
             return interval_m
     return METRIC_GRID_INTERVALS_M[-1]
+
+
+def format_grid_interval(px_per_meter, measurement_system):
+    measurement_system = normalize_measurement_system(measurement_system)
+    interval_m = choose_grid_interval_meters(px_per_meter, measurement_system)
+    value = meters_to_display_units(interval_m, measurement_system)
+    if abs(value - round(value)) < 0.01:
+        value_text = str(int(round(value)))
+    else:
+        value_text = f"{value:.1f}".rstrip("0").rstrip(".")
+    return f"{value_text} {distance_unit_label(measurement_system)}"
 
 
 def point_color(signal_dbm):

@@ -17,6 +17,7 @@ from qt_ui.default_floorplan import (
     ensure_default_floorplan,
     write_default_floorplan,
 )
+from qt_ui.qt_floorplan import format_grid_interval
 from qt_ui.qt_theme import QT_THEMES
 from qt_ui.qt_windowing import get_centered_open_file_name
 
@@ -234,6 +235,9 @@ class FloorplanWorkflowMixin:
             px_per_meter,
             self.measurement_system,
             self.floorplan_grid_color(),
+            self.tr("grid_scale_label", interval=format_grid_interval(px_per_meter, self.measurement_system))
+            if enabled
+            else "",
         )
         self.update_floorplan_grid_button_state()
         if show_status:

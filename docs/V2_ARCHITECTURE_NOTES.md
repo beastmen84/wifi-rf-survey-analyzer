@@ -95,7 +95,8 @@ Current status:
   surveys with a practical default scale and Grid enabled, then materialized
   beside the CSV as `<survey_stem>.png` only if the user saves without loading
   a real plan. If a real plan is loaded later and the survey is saved, the
-  obsolete generated PNG is deleted;
+  obsolete generated PNG is deleted. Grid now draws a compact in-map scale
+  label such as `1 square = 1 m` or `1 square = 5 ft`;
 - `v0.9.4-beta.1` is closed as a source-tagged beta with the AP metadata
   foundation for
   local/zone-only coverage scope: AP group metadata now normalizes and
@@ -607,6 +608,7 @@ Implemented:
   while that generated plan is still active writes a same-name PNG beside the
   CSV, while loading a real plan clears generated scale/grid state, marks the
   generated PNG for deletion, and removes it after the next successful save;
+  the Grid overlay displays its current square size directly on the map;
 - dirty-state save button highlighting;
 - save prompt before close/new/open;
 - PDF export requires saved survey;

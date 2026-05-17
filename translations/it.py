@@ -250,6 +250,7 @@ TRANSLATIONS = {
     "grid": "Griglia",
     "grid_enabled": "Griglia attiva.",
     "grid_disabled": "Griglia disattivata.",
+    "grid_scale_label": "1 quadrato = {interval}",
     "delete_scale": "Elimina Scala",
     "delete_scale_title": "Elimina Scala",
     "delete_scale_confirm": "Vuoi eliminare la calibrazione della scala salvata per questo rilievo?",
@@ -732,7 +733,7 @@ TRANSLATIONS = {
             </ul>
         </td></tr></table>
         <h2>Pianta Bianca E Griglia</h2>
-        <p>I nuovi rilievi possono essere usati senza una pianta esterna. La pianta A4 bianca generata è pre-scalata per test pratici d'ufficio e si apre con la Griglia attiva. Sulle piante reali, la Griglia diventa disponibile dopo la calibrazione della scala.</p>
+        <p>I nuovi rilievi possono essere usati senza una pianta esterna. La pianta A4 bianca generata è pre-scalata per test pratici d'ufficio e si apre con la Griglia attiva. La label sulla mappa mostra la dimensione del quadrato, per esempio <code>1 quadrato = 1 m</code>. Sulle piante reali, la Griglia diventa disponibile dopo la calibrazione della scala.</p>
     """,
     "help_quality_nav": "Qualità Rilievo",
     "help_quality_title": "Dashboard Qualità Rilievo",

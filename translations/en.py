@@ -250,6 +250,7 @@ TRANSLATIONS = {
     "grid": "Grid",
     "grid_enabled": "Grid enabled.",
     "grid_disabled": "Grid disabled.",
+    "grid_scale_label": "1 square = {interval}",
     "delete_scale": "Delete Scale",
     "delete_scale_title": "Delete Scale",
     "delete_scale_confirm": "Do you want to delete the saved scale calibration for this survey?",
@@ -732,7 +733,7 @@ TRANSLATIONS = {
             </ul>
         </td></tr></table>
         <h2>Blank Plan And Grid</h2>
-        <p>New surveys can be used without an external floor plan. The generated A4 blank plan is pre-scaled for practical office tests and opens with Grid enabled. On real floor plans, Grid becomes available after scale calibration.</p>
+        <p>New surveys can be used without an external floor plan. The generated A4 blank plan is pre-scaled for practical office tests and opens with Grid enabled. The map label shows the current square size, such as <code>1 square = 1 m</code>. On real floor plans, Grid becomes available after scale calibration.</p>
     """,
     "help_quality_nav": "Survey Quality",
     "help_quality_title": "Survey Quality Dashboard",

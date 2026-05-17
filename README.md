@@ -23,7 +23,8 @@ stable `v1.0.0` is planned after Help Center review and broader field testing.
 
 - PDF/image floor-plan loading with scale calibration.
 - New surveys start with a generated, pre-scaled A4 blank plan and grid for
-  quick tests when no real floor plan is available.
+  quick tests when no real floor plan is available. The grid overlay shows the
+  current square size directly on the map.
 - Measurement-point capture with repeated Wi-Fi scans.
 - Raw scan preservation in a linked `.scan` sidecar file.
 - Relevant SSID selection for focused quality checks and map interpretation.
