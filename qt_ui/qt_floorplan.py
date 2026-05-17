@@ -97,6 +97,7 @@ class FloorplanView(QGraphicsView):
         self.boundaries_stroke_dirty_rect = QRectF()
         self.boundaries_mask_dirty_rect = QRectF()
         self.boundaries_brush_preview_pos = None
+        self.default_viewport_update_mode = self.viewportUpdateMode()
 
         self.setObjectName("floorplanView")
         self.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform)
@@ -169,6 +170,11 @@ class FloorplanView(QGraphicsView):
         self.boundaries_stroke_points = []
         self.boundaries_stroke_base_image = None
         self.boundaries_stroke_dirty_rect = QRectF()
+        self.setViewportUpdateMode(
+            QGraphicsView.ViewportUpdateMode.FullViewportUpdate
+            if active
+            else self.default_viewport_update_mode
+        )
         if self.boundaries_mask_item is not None:
             self.boundaries_mask_item.setVisible(active)
         if not active:
@@ -601,7 +607,7 @@ class FloorplanView(QGraphicsView):
             return
 
         if is_active_stroke:
-            self.viewport().repaint(rect)
+            self.viewport().repaint()
         else:
             self.viewport().update(rect)
 
