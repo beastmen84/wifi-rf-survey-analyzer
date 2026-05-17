@@ -12,6 +12,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   floating drawing toolbar. This first step wires the toolbar, tool state and
   two-way Grid/Boundaries switching; mask drawing, persistence and Live/PDF
   application are planned as follow-up steps.
+- Made the Boundaries toolbar load lazily on first use, keeping its icon setup
+  out of the startup "Loading components" path while preserving the same
+  Survey-tab behavior.
 
 ## v0.9.6-beta.1 - 2026-05-17
 

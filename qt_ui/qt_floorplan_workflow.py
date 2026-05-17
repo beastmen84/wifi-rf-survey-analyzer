@@ -295,8 +295,10 @@ class FloorplanWorkflowMixin:
         if enabled and self.floorplan_view.grid_visible:
             self.set_floorplan_grid_enabled(False, show_status=False)
 
+        toolbar = self.ensure_boundaries_toolbar() if enabled else getattr(self, "boundaries_toolbar", None)
         self.floorplan_view.set_boundaries_edit_mode(enabled)
-        self.boundaries_toolbar.setVisible(enabled)
+        if toolbar is not None:
+            toolbar.setVisible(enabled)
         self.position_boundaries_toolbar()
         self.update_floorplan_grid_button_state()
         self.update_boundaries_button_state()
@@ -325,7 +327,9 @@ class FloorplanWorkflowMixin:
         )
         if not can_edit and getattr(self.floorplan_view, "boundaries_edit_active", False):
             self.floorplan_view.set_boundaries_edit_mode(False)
-            self.boundaries_toolbar.setVisible(False)
+            toolbar = getattr(self, "boundaries_toolbar", None)
+            if toolbar is not None:
+                toolbar.setVisible(False)
             active = False
 
         self.boundaries_button.setEnabled(can_edit)
@@ -334,7 +338,7 @@ class FloorplanWorkflowMixin:
         self.boundaries_button.blockSignals(False)
 
     def update_boundaries_controls_state(self):
-        if not hasattr(self, "boundaries_toolbar"):
+        if getattr(self, "boundaries_toolbar", None) is None:
             return
 
         active = bool(getattr(self.floorplan_view, "boundaries_edit_active", False))
@@ -350,7 +354,8 @@ class FloorplanWorkflowMixin:
         self.boundaries_square_button.setChecked(active and self.boundaries_shape == "square")
 
     def position_boundaries_toolbar(self):
-        if not hasattr(self, "boundaries_toolbar") or self.boundaries_toolbar.isHidden():
+        toolbar = getattr(self, "boundaries_toolbar", None)
+        if toolbar is None or toolbar.isHidden():
             return
 
         container_width = self.floorplan_container.width()
@@ -359,12 +364,12 @@ class FloorplanWorkflowMixin:
             return
 
         margin = self.spx(12)
-        width = self.boundaries_toolbar.sizeHint().width()
-        height = self.boundaries_toolbar.sizeHint().height()
+        width = toolbar.sizeHint().width()
+        height = toolbar.sizeHint().height()
         x = margin
         y = max(margin, (container_height - height) // 2)
-        self.boundaries_toolbar.setGeometry(x, y, width, height)
-        self.boundaries_toolbar.raise_()
+        toolbar.setGeometry(x, y, width, height)
+        toolbar.raise_()
 
     def zoom_in(self):
         view = self.current_zoom_view()

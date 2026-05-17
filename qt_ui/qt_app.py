@@ -5,7 +5,7 @@ from pathlib import Path
 
 try:
     from PySide6.QtCore import QEvent, QRect, QSize, Qt, QTimer
-    from PySide6.QtGui import QColor, QIcon, QLinearGradient, QPalette
+    from PySide6.QtGui import QColor, QLinearGradient, QPalette
     from PySide6.QtWidgets import (
         QAbstractItemView,
         QApplication,
@@ -251,6 +251,12 @@ class WifiHeatmapQtApp(
         self.points_overlay_resize_start_height = 0
         self.boundaries_tool = "draw"
         self.boundaries_shape = "circle"
+        self.boundaries_toolbar = None
+        self.boundaries_draw_button = None
+        self.boundaries_eraser_button = None
+        self.boundaries_circle_button = None
+        self.boundaries_square_button = None
+        self.boundaries_clear_button = None
         self.live_options_panel_expanded = False
         self.live_map_option_memory = {}
         self.live_current_map_type = "signal"
@@ -619,8 +625,6 @@ class WifiHeatmapQtApp(
         self.floorplan_view.pointSelected.connect(self.select_point_in_table)
         self.floorplan_view.pointSelectionCleared.connect(self.clear_point_selection)
         floorplan_layout.addWidget(self.floorplan_view)
-        self.boundaries_toolbar = self.build_boundaries_toolbar()
-        self.boundaries_toolbar.setVisible(False)
 
         self.points_overlay = QFrame(self.floorplan_container)
         self.points_overlay.setObjectName("floatingPointsPanel")
@@ -698,6 +702,12 @@ class WifiHeatmapQtApp(
         QTimer.singleShot(0, self.position_points_overlay)
         return tab
 
+    def ensure_boundaries_toolbar(self):
+        if self.boundaries_toolbar is None:
+            self.boundaries_toolbar = self.build_boundaries_toolbar()
+            self.boundaries_toolbar.setVisible(False)
+        return self.boundaries_toolbar
+
     def build_boundaries_toolbar(self):
         toolbar = QFrame(self.floorplan_container)
         toolbar.setObjectName("boundariesToolbar")
@@ -749,6 +759,8 @@ class WifiHeatmapQtApp(
         return toolbar
 
     def create_boundaries_tool_button(self, icon_name, tooltip_key, checkable=False):
+        from PySide6.QtGui import QIcon
+
         button = QPushButton()
         button.setObjectName("boundariesToolButton")
         button.setCheckable(checkable)
@@ -1786,11 +1798,12 @@ class WifiHeatmapQtApp(
         self.live_auto_check.setText(self.tr("live_auto_update"))
         self.live_pdf_export_button.setText(self.tr("live_export_pdf"))
         self.live_update_button.setText(self.tr("live_update_now"))
-        self.boundaries_draw_button.setToolTip(self.tr("boundaries_draw_tooltip"))
-        self.boundaries_eraser_button.setToolTip(self.tr("boundaries_eraser_tooltip"))
-        self.boundaries_circle_button.setToolTip(self.tr("boundaries_circle_tooltip"))
-        self.boundaries_square_button.setToolTip(self.tr("boundaries_square_tooltip"))
-        self.boundaries_clear_button.setToolTip(self.tr("boundaries_clear_tooltip"))
+        if self.boundaries_toolbar is not None:
+            self.boundaries_draw_button.setToolTip(self.tr("boundaries_draw_tooltip"))
+            self.boundaries_eraser_button.setToolTip(self.tr("boundaries_eraser_tooltip"))
+            self.boundaries_circle_button.setToolTip(self.tr("boundaries_circle_tooltip"))
+            self.boundaries_square_button.setToolTip(self.tr("boundaries_square_tooltip"))
+            self.boundaries_clear_button.setToolTip(self.tr("boundaries_clear_tooltip"))
         self.fit_localized_button_widths()
         self.refresh_live_static_options()
         self.points_table.setHorizontalHeaderLabels([

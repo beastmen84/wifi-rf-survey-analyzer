@@ -1206,15 +1206,17 @@ class SurveySessionWorkflowTests(unittest.TestCase):
         window = WifiHeatmapQtApp()
         try:
             self.assertFalse(window.boundaries_button.isEnabled())
-            self.assertFalse(window.boundaries_toolbar.isVisible())
+            self.assertIsNone(window.boundaries_toolbar)
 
             self.assertTrue(self.start_new_survey(window))
             self.assertTrue(window.boundaries_button.isEnabled())
             self.assertTrue(window.floorplan_view.grid_visible)
+            self.assertIsNone(window.boundaries_toolbar)
 
             window.boundaries_button.setChecked(True)
             window.toggle_boundaries_mode()
 
+            self.assertIsNotNone(window.boundaries_toolbar)
             self.assertFalse(window.boundaries_toolbar.isHidden())
             self.assertTrue(window.boundaries_button.isChecked())
             self.assertTrue(window.floorplan_view.boundaries_edit_active)
