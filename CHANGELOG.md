@@ -19,6 +19,8 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   measured-point envelope, reducing unused edge bubbles around the survey area
   without changing the underlying survey data. The Help text now notes that the
   option works best when points also follow the boundary of the area to show.
+  The bounds mask intentionally keeps a strict local geometry and fade so it
+  does not reopen large empty edge bubbles.
 - Polished English and Italian UI/Help wording for the 1.0 validation pass,
   normalizing technical terms such as AP dominant diagnostics, extended details,
   raw scan evidence, warnings, AP metadata and client roaming.
