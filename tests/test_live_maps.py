@@ -308,11 +308,30 @@ class FloorplanViewTests(unittest.TestCase):
             view.load_floorplan(floorplan_path)
             view.set_boundaries_edit_mode(True)
             view.set_boundaries_tool_state("draw", "circle")
-            self.assertEqual(view.viewport().cursor().shape(), Qt.CursorShape.BitmapCursor)
-            circle_cursor_image = view.boundaries_cursor_for_state("draw", "circle").pixmap().toImage()
-            square_cursor_image = view.boundaries_cursor_for_state("draw", "square").pixmap().toImage()
-            self.assertEqual(circle_cursor_image.pixelColor(4, 4).alpha(), 0)
-            self.assertGreater(square_cursor_image.pixelColor(4, 4).alpha(), 0)
+            view.update_boundaries_brush_preview(view.scene.sceneRect().center())
+            self.assertEqual(view.viewport().cursor().shape(), Qt.CursorShape.BlankCursor)
+            self.assertEqual(
+                view.boundaries_brush_preview_item.__class__.__name__,
+                "QGraphicsEllipseItem",
+            )
+            self.assertAlmostEqual(
+                view.boundaries_brush_preview_item.rect().width(),
+                view.boundaries_brush_size_px,
+            )
+            view.set_zoom(4.0)
+            preview_rect = view.boundaries_brush_preview_item.rect()
+            preview_width = abs(
+                view.mapFromScene(preview_rect.topRight()).x()
+                - view.mapFromScene(preview_rect.topLeft()).x()
+            )
+            expected_width = view.boundaries_brush_size_px * view.transform().m11()
+            self.assertAlmostEqual(preview_width, expected_width, delta=2.0)
+            view.set_boundaries_tool_state("draw", "square")
+            self.assertEqual(
+                view.boundaries_brush_preview_item.__class__.__name__,
+                "QGraphicsRectItem",
+            )
+            view.set_boundaries_tool_state("draw", "circle")
             view.apply_boundaries_brush(50, 40)
 
             self.assertTrue(view.has_boundaries_mask())
@@ -328,7 +347,7 @@ class FloorplanViewTests(unittest.TestCase):
             self.assertEqual(view.boundaries_mask_image.pixelColor(50, 40).alpha(), draw_alpha)
 
             view.set_boundaries_tool_state("eraser", "square")
-            self.assertEqual(view.viewport().cursor().shape(), Qt.CursorShape.BitmapCursor)
+            self.assertEqual(view.viewport().cursor().shape(), Qt.CursorShape.BlankCursor)
             view.apply_boundaries_brush(50, 40)
 
             self.assertTrue(view.has_boundaries_mask())
