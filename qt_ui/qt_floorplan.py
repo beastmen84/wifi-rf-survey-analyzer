@@ -28,7 +28,9 @@ METRIC_GRID_INTERVALS_M = (0.5, 1.0, 2.0, 5.0, 10.0, 20.0)
 IMPERIAL_GRID_INTERVALS_FT = (1.0, 2.0, 3.0, 5.0, 10.0, 20.0, 50.0)
 MIN_GRID_SPACING_PX = 40.0
 GRID_MAJOR_EVERY = 5
-BOUNDARIES_CURSOR_SIZE_PX = 28
+BOUNDARIES_CURSOR_MIN_SIZE_PX = 14
+BOUNDARIES_CURSOR_MAX_SIZE_PX = 96
+BOUNDARIES_CURSOR_PADDING_PX = 3
 
 
 class FloorplanView(QGraphicsView):
@@ -154,37 +156,75 @@ class FloorplanView(QGraphicsView):
             self.viewport().unsetCursor()
             return
 
-        cursor = self.boundaries_cursor_for_tool(self.boundaries_tool)
+        cursor = self.boundaries_cursor_for_state(
+            self.boundaries_tool,
+            self.boundaries_shape,
+        )
         if cursor is None:
             self.viewport().setCursor(Qt.CursorShape.CrossCursor)
             return
         self.viewport().setCursor(cursor)
 
-    def boundaries_cursor_for_tool(self, tool):
+    def boundaries_cursor_for_state(self, tool, shape):
         tool = "eraser" if tool == "eraser" else "draw"
-        if tool in self.boundaries_cursors:
-            return self.boundaries_cursors[tool]
+        shape = "square" if shape == "square" else "circle"
+        brush_size = self.boundaries_cursor_brush_size()
+        cache_key = (tool, shape, brush_size)
+        if cache_key in self.boundaries_cursors:
+            return self.boundaries_cursors[cache_key]
 
-        icon_name = "eraser.png" if tool == "eraser" else "brush.png"
-        icon_path = (
-            Path(__file__).resolve().parent.parent
-            / "images"
-            / "bound_toolbar"
-            / icon_name
-        )
-        pixmap = QPixmap(str(icon_path))
-        if pixmap.isNull():
-            return None
+        padding = BOUNDARIES_CURSOR_PADDING_PX
+        pixmap_size = brush_size + padding * 2
+        pixmap = QPixmap(pixmap_size, pixmap_size)
+        pixmap.fill(Qt.GlobalColor.transparent)
 
-        pixmap = pixmap.scaled(
-            BOUNDARIES_CURSOR_SIZE_PX,
-            BOUNDARIES_CURSOR_SIZE_PX,
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation,
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        fill = (
+            QColor(37, 99, 235, 45)
+            if tool == "draw"
+            else QColor(255, 255, 255, 45)
         )
-        cursor = QCursor(pixmap, pixmap.width() // 2, pixmap.height() // 2)
-        self.boundaries_cursors[tool] = cursor
+        outline = (
+            QColor(37, 99, 235, 230)
+            if tool == "draw"
+            else QColor(185, 28, 28, 230)
+        )
+        pen = QPen(outline, 2)
+        if tool == "eraser":
+            pen.setStyle(Qt.PenStyle.DashLine)
+        painter.setPen(pen)
+        painter.setBrush(QBrush(fill))
+        rect = QRectF(
+            padding + 1,
+            padding + 1,
+            max(1, brush_size - 2),
+            max(1, brush_size - 2),
+        )
+        if shape == "square":
+            painter.drawRect(rect)
+        else:
+            painter.drawEllipse(rect)
+
+        center = pixmap_size // 2
+        center_pen = QPen(outline, 1)
+        painter.setPen(center_pen)
+        painter.drawLine(center - 3, center, center + 3, center)
+        painter.drawLine(center, center - 3, center, center + 3)
+        painter.end()
+
+        cursor = QCursor(pixmap, center, center)
+        self.boundaries_cursors[cache_key] = cursor
         return cursor
+
+    def boundaries_cursor_brush_size(self):
+        transform = self.transform()
+        view_scale = max(abs(transform.m11()), abs(transform.m22()), 0.1)
+        size = int(round(self.boundaries_brush_size_px * view_scale))
+        return min(
+            BOUNDARIES_CURSOR_MAX_SIZE_PX,
+            max(BOUNDARIES_CURSOR_MIN_SIZE_PX, size),
+        )
 
     def has_boundaries_mask(self):
         return self.boundaries_mask_has_content
@@ -621,6 +661,7 @@ class FloorplanView(QGraphicsView):
         factor = zoom_level / self.zoom_level
         self.zoom_level = zoom_level
         self.scale(factor, factor)
+        self.update_boundaries_cursor()
 
     def fit_to_view(self):
         if not self.has_floorplan():
@@ -629,6 +670,7 @@ class FloorplanView(QGraphicsView):
         self.fitInView(self.scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
         transform = self.transform()
         self.zoom_level = max(transform.m11(), transform.m22())
+        self.update_boundaries_cursor()
 
     def wheelEvent(self, event):
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
