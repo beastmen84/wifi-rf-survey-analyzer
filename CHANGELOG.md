@@ -18,7 +18,10 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   floorplan foreground overlay, so the visible circle/square shape matches the
   painted area at every zoom level while avoiding a movable scene item. Preview
   repainting is restricted to the old/new footprint area to keep fast mouse
-  movement responsive.
+  movement responsive, and right-drag strokes now batch mask refreshes so rapid
+  paint/erase gestures do not update the full mask pixmap for every interpolated
+  brush dab. Stroke interpolation now uses fewer, still-overlapping dabs during
+  fast pointer movement.
   Persistence and
   Live/PDF application are planned as follow-up steps.
 - Made the Boundaries toolbar load lazily on first use, keeping its icon setup

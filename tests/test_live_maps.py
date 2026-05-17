@@ -328,7 +328,7 @@ class FloorplanViewTests(unittest.TestCase):
             view.set_boundaries_tool_state("draw", "square")
             self.assertEqual(view.boundaries_shape, "square")
             view.set_boundaries_tool_state("draw", "circle")
-            view.apply_boundaries_brush(50, 40)
+            self.assertTrue(view.apply_boundaries_brush(50, 40))
 
             self.assertTrue(view.has_boundaries_mask())
             self.assertTrue(view.boundaries_mask_item.isVisible())
@@ -339,12 +339,12 @@ class FloorplanViewTests(unittest.TestCase):
             self.assertLess(edge_alpha, draw_alpha)
             self.assertEqual(mask_changes[-1], True)
 
-            view.apply_boundaries_brush(50, 40)
+            self.assertFalse(view.apply_boundaries_brush(50, 40))
             self.assertEqual(view.boundaries_mask_image.pixelColor(50, 40).alpha(), draw_alpha)
 
             view.set_boundaries_tool_state("eraser", "square")
             self.assertEqual(view.viewport().cursor().shape(), Qt.CursorShape.BlankCursor)
-            view.apply_boundaries_brush(50, 40)
+            self.assertTrue(view.apply_boundaries_brush(50, 40))
 
             self.assertTrue(view.has_boundaries_mask())
             self.assertEqual(view.boundaries_mask_image.pixelColor(50, 40).alpha(), 0)

@@ -308,11 +308,17 @@ class FloorplanView(QGraphicsView):
 
         return True
 
-    def apply_boundaries_brush(self, x, y):
+    def apply_boundaries_brush(self, x, y, refresh=True):
         if not self.ensure_boundaries_mask():
-            return
+            return False
 
         point = self.clamp_boundaries_point(QPointF(float(x), float(y)))
+        changed = self.apply_boundaries_brush_pixels(point)
+        if changed and refresh:
+            self.refresh_boundaries_mask_after_change()
+        return changed
+
+    def apply_boundaries_brush_pixels(self, point):
         half = self.boundaries_brush_size_px / 2.0
         image_width = self.boundaries_mask_image.width()
         image_height = self.boundaries_mask_image.height()
@@ -333,6 +339,7 @@ class FloorplanView(QGraphicsView):
             int(math.ceil(point.y() + half + BOUNDARIES_MASK_FEATHER_PX)),
         )
 
+        changed = False
         for pixel_y in range(min_y, max_y + 1):
             for pixel_x in range(min_x, max_x + 1):
                 coverage = self.boundaries_brush_coverage(
@@ -341,8 +348,11 @@ class FloorplanView(QGraphicsView):
                 )
                 if coverage <= 0:
                     continue
-                self.apply_boundaries_mask_pixel(pixel_x, pixel_y, coverage)
+                if self.apply_boundaries_mask_pixel(pixel_x, pixel_y, coverage):
+                    changed = True
+        return changed
 
+    def refresh_boundaries_mask_after_change(self):
         self.boundaries_mask_item.setPixmap(QPixmap.fromImage(self.boundaries_mask_image))
         if self.boundaries_tool != "eraser" and not self.boundaries_mask_has_content:
             self.boundaries_mask_has_content = True
@@ -368,19 +378,21 @@ class FloorplanView(QGraphicsView):
         existing_alpha = existing.alpha()
         if self.boundaries_tool == "eraser":
             if existing_alpha <= 0:
-                return
+                return False
             new_alpha = int(round(existing_alpha * (1.0 - coverage)))
+            if new_alpha == existing_alpha:
+                return False
             if new_alpha <= 0:
                 self.boundaries_mask_image.setPixelColor(x, y, QColor(0, 0, 0, 0))
-                return
+                return True
             color = QColor(existing)
             color.setAlpha(new_alpha)
             self.boundaries_mask_image.setPixelColor(x, y, color)
-            return
+            return True
 
         target_alpha = int(round(BOUNDARIES_MASK_ALPHA * coverage))
         if target_alpha <= existing_alpha:
-            return
+            return False
         color = QColor(
             BOUNDARIES_MASK_COLOR.red(),
             BOUNDARIES_MASK_COLOR.green(),
@@ -388,6 +400,7 @@ class FloorplanView(QGraphicsView):
             target_alpha,
         )
         self.boundaries_mask_image.setPixelColor(x, y, color)
+        return True
 
     def apply_boundaries_stroke(self, start_point, end_point):
         start_point = self.clamp_boundaries_point(start_point)
@@ -395,14 +408,20 @@ class FloorplanView(QGraphicsView):
         dx = end_point.x() - start_point.x()
         dy = end_point.y() - start_point.y()
         distance = math.hypot(dx, dy)
-        step = max(4.0, self.boundaries_brush_size_px / 3.0)
+        step = max(6.0, self.boundaries_brush_size_px / 2.0)
         steps = max(1, int(math.ceil(distance / step)))
+        changed = False
         for index in range(1, steps + 1):
             ratio = index / steps
-            self.apply_boundaries_brush(
+            if self.apply_boundaries_brush(
                 start_point.x() + dx * ratio,
                 start_point.y() + dy * ratio,
-            )
+                refresh=False,
+            ):
+                changed = True
+        if changed:
+            self.refresh_boundaries_mask_after_change()
+        return changed
 
     def clamp_boundaries_point(self, point):
         rect = self.scene.sceneRect()
