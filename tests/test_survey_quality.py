@@ -1834,13 +1834,8 @@ class SurveyStoreTests(unittest.TestCase):
         self.assertEqual(len(session.raw_scan_rows), 1)
         self.assertFalse(session.dirty)
 
-    def test_ap_aliases_merge_legacy_aliases_with_group_aliases(self):
+    def test_ap_aliases_are_read_from_ap_groups(self):
         session = SurveySession()
-        session.set_ap_aliases({
-            "legacy-key": "Legacy AP",
-            "empty-key": " ",
-            "office-ap": "Old group alias",
-        })
         session.set_ap_groups([
             build_manual_ap_group(
                 "office-ap",
@@ -1851,11 +1846,10 @@ class SurveyStoreTests(unittest.TestCase):
 
         aliases = session.get_ap_aliases()
 
-        self.assertEqual(aliases["legacy-key"], "Legacy AP")
         self.assertEqual(aliases["office-ap"], "Office AP")
-        self.assertNotIn("empty-key", aliases)
+        self.assertEqual(aliases, {"office-ap": "Office AP"})
 
-    def test_missing_raw_sidecar_is_allowed_but_malformed_sidecar_is_rejected(self):
+    def test_missing_or_malformed_raw_sidecar_is_rejected(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             survey_file = os.path.join(temp_dir, "office.csv")
             session = SurveySession()
@@ -1876,8 +1870,9 @@ class SurveyStoreTests(unittest.TestCase):
             raw_scan_file = build_raw_scan_file_path(survey_file, session.metadata)
 
             os.remove(raw_scan_file)
-            loaded = SurveySession(survey_file)
-            self.assertEqual(loaded.raw_scan_rows, [])
+            with self.assertRaises(SurveyFormatError) as error:
+                SurveySession(survey_file)
+            self.assertEqual(str(error.exception), "invalid_raw_scan_format")
 
             with open(raw_scan_file, "w", newline="", encoding="utf-8") as f:
                 f.write("point_id,ssid\n")
@@ -1887,62 +1882,42 @@ class SurveyStoreTests(unittest.TestCase):
 
             self.assertEqual(str(error.exception), "invalid_raw_scan_format")
 
-    def test_existing_survey_without_connected_fields_is_allowed(self):
+    def test_current_survey_and_raw_headers_are_required(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             survey_file = os.path.join(temp_dir, "office.csv")
             raw_scan_file = os.path.join(temp_dir, "office_raw_data.scan")
-            survey_fields = [field for field in SURVEY_FIELDNAMES if field != "is_connected"]
-            raw_fields = [field for field in RAW_SCAN_FIELDNAMES if field != "is_connected"]
-            survey_row = {field: "" for field in survey_fields}
-            survey_row.update({
-                "point_id": "p1",
-                "timestamp": "2026-05-16T10:00:00",
-                "x": "10",
-                "y": "20",
-                "ssid": "MAIN",
-                "bssid": "70:4f:57:aa:bb:10",
-                "signal_percent": "80",
-                "signal_dbm": "-50",
-                "channel": "6",
-                "channel_width_mhz": "20",
-                "radio": "802.11ax",
-                "is_relevant": "1",
-            })
-            raw_row = {field: "" for field in raw_fields}
-            raw_row.update({
-                "point_id": "p1",
-                "scan_attempt": "1",
-                "timestamp": "2026-05-16T10:00:00",
-                "x": "10",
-                "y": "20",
-                "ssid": "MAIN",
-                "bssid": "70:4f:57:aa:bb:10",
-                "signal_percent": "80",
-                "signal_dbm": "-50",
-                "channel": "6",
-                "channel_width_mhz": "20",
-                "radio": "802.11ax",
-                "backend": "lswifi",
-            })
 
             with open(survey_file, "w", newline="", encoding="utf-8") as f:
                 f.write("# app=wifi_heatmap\n")
                 f.write("# schema_version=2\n")
+                f.write("# measurement_system=metric\n")
                 f.write("# raw_data_file=office_raw_data.scan\n")
+                survey_fields = [field for field in SURVEY_FIELDNAMES if field != "is_connected"]
                 writer = csv.DictWriter(f, fieldnames=survey_fields)
                 writer.writeheader()
-                writer.writerow(survey_row)
             with open(raw_scan_file, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=RAW_SCAN_FIELDNAMES)
+                writer.writeheader()
+
+            with self.assertRaises(SurveyFormatError) as error:
+                SurveySession(survey_file)
+            self.assertEqual(str(error.exception), "invalid_survey_format")
+
+            with open(survey_file, "w", newline="", encoding="utf-8") as f:
+                f.write("# app=wifi_heatmap\n")
+                f.write("# schema_version=2\n")
+                f.write("# measurement_system=metric\n")
+                f.write("# raw_data_file=office_raw_data.scan\n")
+                writer = csv.DictWriter(f, fieldnames=SURVEY_FIELDNAMES)
+                writer.writeheader()
+            with open(raw_scan_file, "w", newline="", encoding="utf-8") as f:
+                raw_fields = [field for field in RAW_SCAN_FIELDNAMES if field != "is_connected"]
                 writer = csv.DictWriter(f, fieldnames=raw_fields)
                 writer.writeheader()
-                writer.writerow(raw_row)
 
-            loaded = SurveySession(survey_file)
-
-            self.assertEqual(len(loaded.rows), 1)
-            self.assertNotIn("is_connected", loaded.rows[0])
-            self.assertEqual(len(loaded.raw_scan_rows), 1)
-            self.assertNotIn("is_connected", loaded.raw_scan_rows[0])
+            with self.assertRaises(SurveyFormatError) as error:
+                SurveySession(survey_file)
+            self.assertEqual(str(error.exception), "invalid_raw_scan_format")
 
     def test_invalid_survey_header_is_rejected(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -1950,6 +1925,8 @@ class SurveyStoreTests(unittest.TestCase):
             with open(survey_file, "w", newline="", encoding="utf-8") as f:
                 f.write("# app=wifi_heatmap\n")
                 f.write("# schema_version=2\n")
+                f.write("# measurement_system=metric\n")
+                f.write("# raw_data_file=office_raw_data.scan\n")
                 f.write(",".join(field for field in SURVEY_FIELDNAMES if field != "bssid"))
                 f.write("\n")
 

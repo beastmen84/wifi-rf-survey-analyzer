@@ -60,10 +60,7 @@ SURVEY_FIELDNAMES = [
     "is_connected",
     "is_relevant",
 ]
-OPTIONAL_SURVEY_FIELDNAMES = ["band", *SCAN_DETAIL_FIELDNAMES, "is_connected"]
-REQUIRED_SURVEY_FIELDNAMES = [
-    field for field in SURVEY_FIELDNAMES if field not in OPTIONAL_SURVEY_FIELDNAMES
-]
+REQUIRED_SURVEY_FIELDNAMES = list(SURVEY_FIELDNAMES)
 
 RAW_SCAN_FIELDNAMES = [
     "point_id",
@@ -83,7 +80,4 @@ RAW_SCAN_FIELDNAMES = [
     "is_connected",
     "backend"
 ]
-OPTIONAL_RAW_SCAN_FIELDNAMES = ["band", *SCAN_DETAIL_FIELDNAMES, "is_connected"]
-REQUIRED_RAW_SCAN_FIELDNAMES = [
-    field for field in RAW_SCAN_FIELDNAMES if field not in OPTIONAL_RAW_SCAN_FIELDNAMES
-]
+REQUIRED_RAW_SCAN_FIELDNAMES = list(RAW_SCAN_FIELDNAMES)

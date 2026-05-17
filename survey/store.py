@@ -208,45 +208,15 @@ class SurveySession:
         })
 
     def get_ap_aliases(self):
-        try:
-            aliases = json.loads(self.metadata.get("ap_aliases", "{}"))
-        except json.JSONDecodeError:
-            aliases = {}
-
-        if not isinstance(aliases, dict):
-            aliases = {}
-
-        clean_aliases = {str(key): str(value) for key, value in aliases.items() if value}
+        aliases = {}
         ap_groups = self.get_ap_groups()
-        group_ids = {
-            str(group.get("group_id", ""))
-            for group in ap_groups
-            if str(group.get("group_id", ""))
-        }
-        clean_aliases = {
-            key: value
-            for key, value in clean_aliases.items()
-            if key not in group_ids
-        }
-
         for group in ap_groups:
             group_id = str(group.get("group_id", ""))
             alias = str(group.get("alias", "")).strip()
             if group_id and alias:
-                clean_aliases[group_id] = alias
+                aliases[group_id] = alias
 
-        return clean_aliases
-
-    def set_ap_aliases(self, aliases):
-        clean_aliases = {
-            str(key): str(value).strip()
-            for key, value in aliases.items()
-            if str(value).strip()
-        }
-        serialized_aliases = json.dumps(clean_aliases, ensure_ascii=False, sort_keys=True)
-        changed = self.metadata.get("ap_aliases") != serialized_aliases
-        self.update_metadata({"ap_aliases": serialized_aliases})
-        return changed
+        return aliases
 
     def get_ap_groups(self):
         try:
@@ -344,7 +314,8 @@ class SurveySession:
         })
         self.metadata[MEASUREMENT_SYSTEM_METADATA_KEY] = normalize_survey_measurement_system(self.metadata)
         self.metadata[RAW_DATA_FILE_METADATA_KEY] = os.path.basename(
-            build_raw_scan_file_path(self.csv_file, self.metadata)
+            str(self.metadata.get(RAW_DATA_FILE_METADATA_KEY, "")).strip()
+            or build_default_raw_data_filename(self.csv_file)
         )
         write_survey_file(self.csv_file, self.metadata, self.rows)
         write_raw_scan_file(self.csv_file, self.raw_scan_rows, self.metadata)
@@ -397,11 +368,11 @@ def build_default_raw_data_filename(csv_file):
 def build_raw_scan_file_path(csv_file, metadata=None):
     path = Path(csv_file)
     metadata = metadata if metadata is not None else read_survey_metadata(csv_file)
-    raw_data_file = metadata.get(RAW_DATA_FILE_METADATA_KEY, "")
-    if raw_data_file:
-        return str(path.with_name(raw_data_file))
+    raw_data_file = str(metadata.get(RAW_DATA_FILE_METADATA_KEY, "")).strip()
+    if not raw_data_file:
+        raise SurveyFormatError("invalid_survey_format")
 
-    return str(path.with_name(build_default_raw_data_filename(csv_file)))
+    return str(path.with_name(os.path.basename(raw_data_file)))
 
 
 def is_raw_scan_file(csv_file):
@@ -417,6 +388,8 @@ def validate_survey_file(csv_file):
     if (
         metadata.get("app") != APP_ID
         or metadata.get("schema_version") != SURVEY_SCHEMA_VERSION
+        or not metadata.get(RAW_DATA_FILE_METADATA_KEY)
+        or normalize_survey_measurement_system(metadata, default="") == ""
     ):
         raise SurveyFormatError("invalid_survey_format")
 
@@ -426,11 +399,13 @@ def validate_survey_file(csv_file):
         raise SurveyFormatError("invalid_survey_format")
 
     raw_scan_file = build_raw_scan_file_path(csv_file, metadata)
-    if os.path.exists(raw_scan_file):
-        raw_header = read_csv_header(raw_scan_file)
-        missing_raw_fields = [field for field in REQUIRED_RAW_SCAN_FIELDNAMES if field not in raw_header]
-        if missing_raw_fields:
-            raise SurveyFormatError("invalid_raw_scan_format")
+    if not os.path.exists(raw_scan_file):
+        raise SurveyFormatError("invalid_raw_scan_format")
+
+    raw_header = read_csv_header(raw_scan_file)
+    missing_raw_fields = [field for field in REQUIRED_RAW_SCAN_FIELDNAMES if field not in raw_header]
+    if missing_raw_fields:
+        raise SurveyFormatError("invalid_raw_scan_format")
 
 
 def read_csv_header(csv_file):

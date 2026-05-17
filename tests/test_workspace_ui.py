@@ -20,7 +20,7 @@ from app_core.version import (
     get_app_icon_path,
 )
 from PySide6.QtWidgets import QPushButton
-from survey.store import write_survey_file
+from survey.store import write_raw_scan_file, write_survey_file
 from qt_ui.qt_help_dialog import build_help_html, build_help_sections, help_palette
 from qt_ui.qt_point_workflow import MissingRelevantNetworksDialog, PointCaptureMixin
 from qt_ui.qt_settings_memory import confirm_clear_ap_memory
@@ -1223,9 +1223,15 @@ class SurveySessionWorkflowTests(unittest.TestCase):
                         "schema_version": SURVEY_SCHEMA_VERSION,
                         "map_file": os.path.abspath(real_plan),
                         "px_per_meter": f"{DEFAULT_FLOORPLAN_IMPERIAL_PX_PER_FOOT * FEET_PER_METER:.6f}",
+                        RAW_DATA_FILE_METADATA_KEY: "imperial_raw_data.scan",
                         MEASUREMENT_SYSTEM_METADATA_KEY: MEASUREMENT_SYSTEM_IMPERIAL,
                     },
                     [],
+                )
+                write_raw_scan_file(
+                    csv_file,
+                    [],
+                    {RAW_DATA_FILE_METADATA_KEY: "imperial_raw_data.scan"},
                 )
 
                 window.measurement_system = MEASUREMENT_SYSTEM_METRIC

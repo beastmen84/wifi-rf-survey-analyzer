@@ -1277,16 +1277,10 @@ class APGroupManagerDialog(QDialog):
             )
 
     def persist_groups(self):
-        aliases = {
-            group["group_id"]: group.get("alias", "")
-            for group in self.groups
-            if group.get("alias", "").strip()
-        }
-        aliases_changed = self.session.set_ap_aliases(aliases)
         groups_changed = self.session.set_ap_groups(self.groups, force_memory_update=True)
-        if aliases_changed or groups_changed:
+        if groups_changed:
             self.session.dirty = True
-        return aliases_changed or groups_changed
+        return groups_changed
 
     def save_groups(self):
         self.persist_groups()

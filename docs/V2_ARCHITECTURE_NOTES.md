@@ -205,8 +205,9 @@ Implemented:
 - raw scan samples retained in a linked sidecar file;
 - sidecar extension changed to `.scan` to avoid confusing it with the main CSV;
 - main CSV contains aggregated survey rows;
-- raw sidecar path is stored in survey metadata;
-- new scans can retain optional scanner detail fields:
+- raw sidecar path is stored in survey metadata and is required by the current
+  survey format;
+- current aggregate and raw headers include scanner detail columns:
   - `frequency_mhz`;
   - `security`;
   - `auth`;
@@ -227,7 +228,9 @@ Implemented:
 Current format decision:
 
 - main survey file: `<name>.csv`;
-- linked raw file: `<name>_raw_data.scan`.
+- linked raw file: `<name>_raw_data.scan`;
+- full current aggregate/raw headers, `measurement_system`, `raw_data_file` and
+  a valid `.scan` sidecar are required for newly supported survey files.
 
 ### Scan Aggregation And Confidence
 
@@ -834,7 +837,7 @@ Current coverage includes:
 - AP position warning logic;
 - quality engine states;
 - old invalid CSV rejection;
-- raw `.scan` sidecar handling;
+- strict raw `.scan` sidecar handling;
 - survey save/load round-trip for V2 metadata, raw sidecar, relevant SSIDs, AP
   groups, AP positions and AP metadata;
 - Qt point-save workflow from scanned networks into aggregate rows/raw rows;

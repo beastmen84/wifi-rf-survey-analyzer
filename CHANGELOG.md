@@ -17,7 +17,10 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   Survey-tab behavior.
 - Survey CSV metadata now stores the selected measurement system, so reopening a
   metric or imperial survey no longer depends on the current global preference.
-  Files without this metadata use the metric default.
+  The current survey format now requires the full aggregate/raw headers,
+  `measurement_system`, an explicit `raw_data_file` metadata entry and a valid
+  `.scan` sidecar, and AP aliases are read from `ap_groups` instead of the old
+  duplicate `ap_aliases` metadata.
 - Startup and survey lifecycle logging now marks workspace construction,
   language application, new/open/save survey phases and workspace show steps, so
   future freezes during loading leave a clearer last-known phase in the log.
