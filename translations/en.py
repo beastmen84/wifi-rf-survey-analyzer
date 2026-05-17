@@ -733,12 +733,13 @@ TRANSLATIONS = {
         <table class="callout-table"><tr><td class="callout-accent-good"></td><td class="callout-content"><span class="callout-label">Field Rule</span><br>
             <ul>
                 <li>Place points where clients actually work: desks, meeting rooms, corridors, doors and known problem areas.</li>
+                <li>For precise surveys, aim for roughly 2-3 m between points (about 6-10 ft) when the space allows; tighten around AP transitions, doors and known problem areas.</li>
                 <li>Add points near AP transitions. Dominant AP and roaming findings are only as good as the transition evidence.</li>
                 <li>Avoid collecting while moving. Pause, let the scan complete, then move to the next point.</li>
             </ul>
         </td></tr></table>
         <h2>Blank Plan And Grid</h2>
-        <p>New surveys can be used without an external floor plan. Choose metric or imperial units when creating the survey; the generated A4 blank plan is then pre-scaled for practical office tests and opens with Grid enabled. The map label shows the current square size, such as <code>1 square = 1 m</code>. On real floor plans, Grid becomes available after scale calibration.</p>
+        <p>New surveys can be used without an external floor plan. Choose metric or imperial units when creating the survey; the generated A4 blank plan is then pre-scaled for practical office tests and opens with Grid enabled. The map label shows the current square size, such as <code>1 square = 1 m</code> or <code>1 square = 3 ft</code>. On real floor plans, Grid becomes available after scale calibration.</p>
     """,
     "help_quality_nav": "Survey Quality",
     "help_quality_title": "Survey Quality Dashboard",

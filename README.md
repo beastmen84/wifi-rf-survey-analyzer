@@ -49,7 +49,8 @@ stable `v1.0.0` is planned after Help Center review and broader field testing.
    generated scaled A4 plan for tests.
 3. Calibrate scale when real-world distances matter.
 4. Select relevant SSIDs.
-5. Place measurement points on the floor plan.
+5. Place measurement points on the floor plan, roughly every 2-3 m for
+   precise surveys when the space allows.
 6. Collect repeated Wi-Fi scans for each point.
 7. Review survey quality and fix point-level issues first.
 8. Review AP groups, metadata, channel overrides, and AP positions.

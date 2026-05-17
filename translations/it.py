@@ -733,12 +733,13 @@ TRANSLATIONS = {
         <table class="callout-table"><tr><td class="callout-accent-good"></td><td class="callout-content"><span class="callout-label">Regola Sul Campo</span><br>
             <ul>
                 <li>Metti punti dove i client lavorano davvero: scrivanie, sale riunioni, corridoi, porte e zone problematiche note.</li>
+                <li>Per rilievi precisi, punta a circa 2-3 m tra i punti (circa 6-10 ft) quando lo spazio lo consente; stringi vicino a transizioni AP, porte e zone problematiche note.</li>
                 <li>Aggiungi punti vicino alle transizioni AP. AP Dominante e roaming dipendono dall'evidenza in quelle zone.</li>
                 <li>Evita scansioni mentre ti muovi. Fermati, lascia completare la scansione, poi passa al punto successivo.</li>
             </ul>
         </td></tr></table>
         <h2>Pianta Bianca E Griglia</h2>
-        <p>I nuovi rilievi possono essere usati senza una pianta esterna. Scegli metrico o imperiale quando crei il rilievo; la pianta A4 bianca generata viene pre-scalata per test pratici d'ufficio e si apre con la Griglia attiva. La label sulla mappa mostra la dimensione del quadrato, per esempio <code>1 quadrato = 1 m</code>. Sulle piante reali, la Griglia diventa disponibile dopo la calibrazione della scala.</p>
+        <p>I nuovi rilievi possono essere usati senza una pianta esterna. Scegli metrico o imperiale quando crei il rilievo; la pianta A4 bianca generata viene pre-scalata per test pratici d'ufficio e si apre con la Griglia attiva. La label sulla mappa mostra la dimensione del quadrato, per esempio <code>1 quadrato = 1 m</code> o <code>1 quadrato = 3 ft</code>. Sulle piante reali, la Griglia diventa disponibile dopo la calibrazione della scala.</p>
     """,
     "help_quality_nav": "Qualità Rilievo",
     "help_quality_title": "Dashboard Qualità Rilievo",

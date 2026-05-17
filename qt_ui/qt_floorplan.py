@@ -25,7 +25,7 @@ from qt_ui.qt_tooltips import build_html_tooltip
 
 AP_MARKER_BASE_SIZE = 20
 METRIC_GRID_INTERVALS_M = (0.5, 1.0, 2.0, 5.0, 10.0, 20.0)
-IMPERIAL_GRID_INTERVALS_FT = (1.0, 2.0, 5.0, 10.0, 20.0, 50.0)
+IMPERIAL_GRID_INTERVALS_FT = (1.0, 2.0, 3.0, 5.0, 10.0, 20.0, 50.0)
 MIN_GRID_SPACING_PX = 40.0
 GRID_MAJOR_EVERY = 5
 

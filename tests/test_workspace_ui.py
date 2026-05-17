@@ -939,7 +939,7 @@ class SurveySessionWorkflowTests(unittest.TestCase):
                 DEFAULT_FLOORPLAN_IMPERIAL_PX_PER_FOOT * FEET_PER_METER,
                 places=5,
             )
-            self.assertEqual(window.floorplan_view.grid_label, "1 square = 5 ft")
+            self.assertEqual(window.floorplan_view.grid_label, "1 square = 3 ft")
         finally:
             window.deleteLater()
 
@@ -1063,7 +1063,7 @@ class SurveySessionWorkflowTests(unittest.TestCase):
                 self.assertTrue(os.path.exists(current_png))
                 self.assertIsNot(window.session, previous_session)
                 self.assertEqual(window.measurement_system, MEASUREMENT_SYSTEM_IMPERIAL)
-                self.assertEqual(window.floorplan_view.grid_label, "1 square = 5 ft")
+                self.assertEqual(window.floorplan_view.grid_label, "1 square = 3 ft")
         finally:
             window.deleteLater()
 

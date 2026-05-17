@@ -32,8 +32,10 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   later clears the generated scale/grid state, and the obsolete blank PNG is
   deleted after the next successful save. The Grid overlay now shows its
   current step directly on the map, for example `1 square = 1 m` or
-  `1 square = 5 ft`, with extra padding so the scale label does not clip at the
-  right edge. Starting another new survey from an untouched generated blank
+  `1 square = 3 ft`, with extra padding so the scale label does not clip at the
+  right edge. Imperial grids now prefer a 3 ft step when scale permits, keeping
+  the blank-plan grid close to the metric 1 m step used for practical point
+  placement. Starting another new survey from an untouched generated blank
   survey now discards that empty session without forcing a save prompt.
 - Polished English and Italian UI/Help wording for the 1.0 validation pass,
   normalizing technical terms such as AP dominant diagnostics, extended details,
