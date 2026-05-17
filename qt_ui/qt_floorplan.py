@@ -430,50 +430,105 @@ class FloorplanView(QGraphicsView):
                 255,
             )
 
-        half = self.boundaries_brush_size_px / 2.0
-        start_point = clamped_points[0]
+        draw_points = self.simplify_boundaries_polyline(clamped_points)
+        start_point = draw_points[0]
         dirty_rect = self.boundaries_points_dirty_rect(clamped_points)
-        is_point_stroke = len(clamped_points) == 1 or all(
+        is_point_stroke = len(draw_points) == 1 or all(
             math.hypot(
                 current_point.x() - previous_point.x(),
                 current_point.y() - previous_point.y(),
             )
             < 0.01
-            for previous_point, current_point in zip(clamped_points, clamped_points[1:])
+            for previous_point, current_point in zip(draw_points, draw_points[1:])
         )
         if is_point_stroke:
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QBrush(color))
-            rect = QRectF(
-                start_point.x() - half,
-                start_point.y() - half,
-                self.boundaries_brush_size_px,
-                self.boundaries_brush_size_px,
-            )
-            if self.boundaries_shape == "square":
-                painter.drawRect(rect)
-            else:
-                painter.drawEllipse(rect)
+            self.draw_boundaries_brush_shape(painter, start_point)
         else:
             path = QPainterPath(start_point)
-            for point in clamped_points[1:]:
+            for point in draw_points[1:]:
                 path.lineTo(point)
             pen = QPen(color, self.boundaries_brush_size_px)
             if self.boundaries_shape == "square":
-                pen.setCapStyle(
-                    Qt.PenCapStyle.SquareCap
-                    if cap_endpoints
-                    else Qt.PenCapStyle.FlatCap
-                )
+                pen.setCapStyle(Qt.PenCapStyle.FlatCap)
                 pen.setJoinStyle(Qt.PenJoinStyle.BevelJoin)
             else:
                 pen.setCapStyle(Qt.PenCapStyle.RoundCap)
                 pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
             painter.setPen(pen)
             painter.drawPath(path)
+            if self.boundaries_shape == "square" and cap_endpoints:
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(QBrush(color))
+                self.draw_boundaries_brush_shape(painter, draw_points[0])
+                self.draw_boundaries_brush_shape(painter, draw_points[-1])
         painter.end()
         self.boundaries_mask_dirty_rect = dirty_rect
         return True
+
+    def draw_boundaries_brush_shape(self, painter, point):
+        half = self.boundaries_brush_size_px / 2.0
+        rect = QRectF(
+            point.x() - half,
+            point.y() - half,
+            self.boundaries_brush_size_px,
+            self.boundaries_brush_size_px,
+        )
+        if self.boundaries_shape == "square":
+            painter.drawRect(rect)
+        else:
+            painter.drawEllipse(rect)
+
+    def simplify_boundaries_polyline(self, points):
+        if self.boundaries_shape != "square" or len(points) <= 2:
+            return points
+
+        tolerance = max(1.0, self.boundaries_brush_size_px * 0.12)
+        keep_indexes = {0, len(points) - 1}
+        stack = [(0, len(points) - 1)]
+        while stack:
+            start_index, end_index = stack.pop()
+            if end_index - start_index <= 1:
+                continue
+
+            start_point = points[start_index]
+            end_point = points[end_index]
+            farthest_index = None
+            farthest_distance = 0.0
+            for index in range(start_index + 1, end_index):
+                distance = self.point_to_segment_distance(
+                    points[index],
+                    start_point,
+                    end_point,
+                )
+                if distance > farthest_distance:
+                    farthest_distance = distance
+                    farthest_index = index
+
+            if farthest_index is not None and farthest_distance > tolerance:
+                keep_indexes.add(farthest_index)
+                stack.append((start_index, farthest_index))
+                stack.append((farthest_index, end_index))
+
+        return [points[index] for index in sorted(keep_indexes)]
+
+    @staticmethod
+    def point_to_segment_distance(point, start_point, end_point):
+        dx = end_point.x() - start_point.x()
+        dy = end_point.y() - start_point.y()
+        length_squared = dx * dx + dy * dy
+        if length_squared <= 0:
+            return math.hypot(point.x() - start_point.x(), point.y() - start_point.y())
+
+        t = (
+            ((point.x() - start_point.x()) * dx + (point.y() - start_point.y()) * dy)
+            / length_squared
+        )
+        t = min(1.0, max(0.0, t))
+        projection_x = start_point.x() + t * dx
+        projection_y = start_point.y() + t * dy
+        return math.hypot(point.x() - projection_x, point.y() - projection_y)
 
     def boundaries_segment_dirty_rect(self, start_point, end_point):
         return self.boundaries_points_dirty_rect([start_point, end_point])
@@ -481,7 +536,7 @@ class FloorplanView(QGraphicsView):
     def boundaries_points_dirty_rect(self, points):
         if not points:
             return QRectF()
-        half = self.boundaries_brush_size_px / 2.0 + 2.0
+        half = self.boundaries_brush_size_px / 2.0 + 8.0
         first_point = self.clamp_boundaries_point(
             QPointF(float(points[0].x()), float(points[0].y()))
         )

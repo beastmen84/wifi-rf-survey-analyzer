@@ -34,7 +34,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   brush drags now render recent mouse points as one joined path, avoiding
   intermediate cap artifacts during small direction corrections, and the active
   drag is redrawn from a per-gesture snapshot so the current square footprint is
-  complete before mouse release. Mask rendering now paints an opaque in-memory
+  complete before mouse release. Square strokes now use a flat path plus real
+  square endpoint stamps and simplify dense slow-move points, preventing leftover
+  cap pixels along the stroke. Mask rendering now paints an opaque in-memory
   image through fixed item opacity, avoiding overlap darkening without
   rebuilding a full pixmap during drag.
 - Boundaries toolbar icons are loaded lazily on first use, keeping them out of
