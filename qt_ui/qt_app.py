@@ -858,6 +858,9 @@ class WifiHeatmapQtApp(
         self.live_usable_check = QCheckBox()
         self.live_usable_check.setObjectName("liveOptionCheckbox")
         self.live_usable_check.setContentsMargins(0, 0, 0, 0)
+        self.live_survey_bounds_check = QCheckBox()
+        self.live_survey_bounds_check.setObjectName("liveOptionCheckbox")
+        self.live_survey_bounds_check.setContentsMargins(0, 0, 0, 0)
         self.live_auto_check = QCheckBox()
         self.live_auto_check.setChecked(True)
         self.live_pdf_export_button = QPushButton()
@@ -900,6 +903,7 @@ class WifiHeatmapQtApp(
             self.live_point_labels_label,
             self.live_point_labels_combo,
             self.live_usable_check,
+            self.live_survey_bounds_check,
             self.live_ap_group_label,
             self.live_ap_group_combo,
         )
@@ -919,6 +923,7 @@ class WifiHeatmapQtApp(
         for spin in (self.live_smoothing_spin, self.live_max_distance_spin):
             spin.valueChanged.connect(lambda *_args: self.on_live_option_changed())
         self.live_usable_check.toggled.connect(lambda *_args: self.on_live_option_changed())
+        self.live_survey_bounds_check.toggled.connect(lambda *_args: self.on_live_option_changed())
         self.live_auto_check.toggled.connect(lambda *_args: self.on_live_option_changed())
 
         toolbar = QFrame()
@@ -1664,6 +1669,7 @@ class WifiHeatmapQtApp(
         self.live_point_labels_label.setText(self.tr("point_labels"))
         self.live_ap_group_label.setText(self.tr("ap_group_filter"))
         self.live_usable_check.setText(self.tr("usable_only"))
+        self.live_survey_bounds_check.setText(self.tr("survey_bounds"))
         self.live_auto_check.setText(self.tr("live_auto_update"))
         self.live_pdf_export_button.setText(self.tr("live_export_pdf"))
         self.live_update_button.setText(self.tr("live_update_now"))

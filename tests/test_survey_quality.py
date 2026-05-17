@@ -2043,6 +2043,36 @@ class HeatmapMathTests(unittest.TestCase):
         self.assertLess(alpha[5, 0], 1.0)
         self.assertLess(abs(alpha[5, 0] - alpha[6, 0]), 0.25)
 
+    def test_survey_bounds_alpha_fades_outside_point_envelope(self):
+        grid_x, grid_y = np.meshgrid(np.array([50.0]), np.array([-20.0, -10.0, 0.0, 50.0]), indexing="ij")
+
+        alpha = get_survey_bounds_alpha(
+            grid_x,
+            grid_y,
+            np.array([0.0, 100.0, 100.0, 0.0]),
+            np.array([0.0, 0.0, 100.0, 100.0]),
+            max_distance_px=80,
+            margin_ratio=0.25,
+        )
+
+        self.assertAlmostEqual(alpha[0, 0], 0.0)
+        self.assertAlmostEqual(alpha[0, 1], 0.5)
+        self.assertAlmostEqual(alpha[0, 2], 1.0)
+        self.assertAlmostEqual(alpha[0, 3], 1.0)
+
+    def test_survey_bounds_alpha_is_noop_for_collinear_points(self):
+        grid_x, grid_y = np.meshgrid(np.array([0.0, 50.0]), np.array([0.0, 50.0]), indexing="ij")
+
+        alpha = get_survey_bounds_alpha(
+            grid_x,
+            grid_y,
+            np.array([0.0, 50.0, 100.0]),
+            np.array([0.0, 0.0, 0.0]),
+            max_distance_px=40,
+        )
+
+        self.assertTrue((alpha == 1.0).all())
+
     def test_apply_signal_threshold_masks_only_weak_values(self):
         grid = np.array([[-72.0, -70.0], [-65.0, np.nan]])
 

@@ -512,6 +512,7 @@ TRANSLATIONS = {
     "interference_quality_warning": "La larghezza canale è disponibile su pochi punti: la stima usa valori di fallback dove il dato manca.",
     "interference_quality_warning_5ghz": "La larghezza canale è disponibile su pochi punti: su 5/6 GHz la stima può sottovalutare sovrapposizioni tra canali larghi.",
     "usable_only": "Solo >= -70 dBm",
+    "survey_bounds": "Limite Rilievo",
     "max_distance_px": "Distanza max (px)",
     "interpolation": "Interpolazione",
     "interpolation_rbf": "RBF Morbida",
@@ -972,9 +973,9 @@ TRANSLATIONS = {
         <p>Il tab verticale Opzioni apre l'overlay a sinistra. Il programma mostra solo i controlli utili per il tipo mappa corrente e ricorda le opzioni separatamente per ogni tipo mappa.</p>
         <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
             <tr>
-                <td class="workflow-card"><b>Copertura Segnale</b><br><span class="survey-card-use">Opzioni Visibili:</span> Banda, Aggregazione, Scala Colori, Interpolazione, Distanza Max, Smoothing, Filtro Gruppo AP, Solo &gt;= -70 dBm.<br>Filtro Gruppo AP appare solo quando esistono gruppi AP non-test compatibili con SSID/banda selezionati.</td>
+                <td class="workflow-card"><b>Copertura Segnale</b><br><span class="survey-card-use">Opzioni Visibili:</span> Banda, Aggregazione, Scala Colori, Interpolazione, Distanza Max, Smoothing, Limite Rilievo, Filtro Gruppo AP, Solo &gt;= -70 dBm.<br>Filtro Gruppo AP appare solo quando esistono gruppi AP non-test compatibili con SSID/banda selezionati.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Interferenza AP</b><br><span class="survey-card-use">Opzioni Visibili:</span> Banda, Scala Colori, Modalità Interferenza, Interpolazione, Distanza Max, Smoothing.<br>Interferenza non offre Tutte Le Bande; parte da 2.4 GHz di default.</td>
+                <td class="workflow-card"><b>Interferenza AP</b><br><span class="survey-card-use">Opzioni Visibili:</span> Banda, Scala Colori, Modalità Interferenza, Interpolazione, Distanza Max, Smoothing, Limite Rilievo.<br>Interferenza non offre Tutte Le Bande; parte da 2.4 GHz di default.</td>
             </tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
@@ -1000,7 +1001,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card"><b>Smoothing</b><br>Rende copertura/interferenza visivamente più uniformi.<br><span class="survey-card-use">Usala Con Attenzione:</span> uno smoothing alto può nascondere transizioni RF nette.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Distanza Max</b><br>Limita il rendering continuo alle aree vicine ai punti misurati. Nei survey calibrati con almeno 4 punti unici, il default viene stimato dai percentili della distanza fra punti; altrimenti resta il fallback in pixel. Se cambi sistema di misura dopo la calibrazione, la scala viene eliminata e va rifatta.<br><span class="survey-card-use">Usala Con Attenzione:</span> aumentala solo quando la densità punti è buona.</td>
+                <td class="workflow-card"><b>Distanza Max</b><br>Limita il rendering continuo alle aree vicine ai punti misurati. Nei survey calibrati con almeno 4 punti unici, il default viene stimato dai percentili della distanza fra punti; altrimenti resta il fallback in pixel. Limite Rilievo può inoltre sfumare le mappe continue fuori dal perimetro dei punti misurati. Se cambi sistema di misura dopo la calibrazione, la scala viene eliminata e va rifatta.<br><span class="survey-card-use">Usala Con Attenzione:</span> aumentala solo quando la densità punti è buona.</td>
             </tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>

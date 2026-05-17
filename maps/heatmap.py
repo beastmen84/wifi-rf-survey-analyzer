@@ -2,8 +2,9 @@
 
 import pandas as pd
 import numpy as np
-from scipy.ndimage import gaussian_filter
+from scipy.ndimage import distance_transform_edt, gaussian_filter
 from scipy.interpolate import RBFInterpolator, griddata
+from scipy.spatial import Delaunay, QhullError
 
 from ap.checks import AP_CHANNEL_CHANGE_CLEAN, build_ap_channel_changes
 from ap.groups import (
@@ -937,6 +938,96 @@ def apply_distance_mask(grid_z, grid_x, grid_y, point_x, point_y, max_distance_p
     masked_grid = grid_z.copy()
     masked_grid[min_distance_sq > max_distance_px ** 2] = np.nan
     return masked_grid
+
+
+def get_survey_bounds_alpha(grid_x, grid_y, point_x, point_y, max_distance_px, margin_ratio=0.45):
+    points = unique_finite_points(point_x, point_y)
+    if len(points) < 3:
+        return np.ones(grid_x.shape)
+
+    try:
+        triangulation = Delaunay(points)
+    except QhullError:
+        return np.ones(grid_x.shape)
+
+    kept_simplices = get_local_delaunay_simplices(points, triangulation, max_distance_px)
+    if not kept_simplices.any():
+        return np.ones(grid_x.shape)
+
+    grid_points = np.column_stack([grid_x.ravel(), grid_y.ravel()])
+    simplex_indexes = triangulation.find_simplex(grid_points).reshape(grid_x.shape)
+    inside_bounds = np.zeros(grid_x.shape, dtype=bool)
+    valid_simplex = simplex_indexes >= 0
+    inside_bounds[valid_simplex] = kept_simplices[simplex_indexes[valid_simplex]]
+
+    margin_px = max(1.0, float(max_distance_px) * margin_ratio)
+    outside_distance = distance_transform_edt(
+        ~inside_bounds,
+        sampling=get_grid_sampling_px(grid_x, grid_y),
+    )
+    alpha = 1.0 - (outside_distance / margin_px)
+    return np.clip(alpha, 0, 1)
+
+
+def get_local_delaunay_simplices(points, triangulation, max_distance_px):
+    triangles = points[triangulation.simplices]
+    side_a = np.linalg.norm(triangles[:, 1] - triangles[:, 0], axis=1)
+    side_b = np.linalg.norm(triangles[:, 2] - triangles[:, 1], axis=1)
+    side_c = np.linalg.norm(triangles[:, 0] - triangles[:, 2], axis=1)
+    vector_a = triangles[:, 1] - triangles[:, 0]
+    vector_b = triangles[:, 2] - triangles[:, 0]
+    double_area = np.abs((vector_a[:, 0] * vector_b[:, 1]) - (vector_a[:, 1] * vector_b[:, 0]))
+
+    with np.errstate(invalid="ignore", divide="ignore"):
+        circumradius = (side_a * side_b * side_c) / (2.0 * double_area)
+
+    max_radius = max(1.0, float(max_distance_px) * 1.5)
+    return np.isfinite(circumradius) & (double_area > 1e-6) & (circumradius <= max_radius)
+
+
+def get_grid_sampling_px(grid_x, grid_y):
+    x_step = 1.0
+    y_step = 1.0
+
+    if grid_x.shape[0] > 1:
+        x_steps = np.abs(np.diff(grid_x[:, 0]))
+        x_steps = x_steps[np.isfinite(x_steps) & (x_steps > 0)]
+        if x_steps.size:
+            x_step = float(np.median(x_steps))
+
+    if grid_y.shape[1] > 1:
+        y_steps = np.abs(np.diff(grid_y[0, :]))
+        y_steps = y_steps[np.isfinite(y_steps) & (y_steps > 0)]
+        if y_steps.size:
+            y_step = float(np.median(y_steps))
+
+    return x_step, y_step
+
+
+def unique_finite_points(point_x, point_y):
+    points = []
+    seen = set()
+
+    for x, y in zip(point_x, point_y):
+        try:
+            x = float(x)
+            y = float(y)
+        except (TypeError, ValueError):
+            continue
+
+        if not np.isfinite(x) or not np.isfinite(y):
+            continue
+
+        key = (x, y)
+        if key in seen:
+            continue
+
+        seen.add(key)
+        points.append(key)
+
+    return np.asarray(points, dtype=float)
+
+
 def apply_signal_threshold(grid_z, min_signal_dbm):
     threshold_grid = grid_z.copy()
     threshold_grid[threshold_grid < min_signal_dbm] = np.nan

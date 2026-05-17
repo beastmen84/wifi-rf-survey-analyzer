@@ -23,6 +23,7 @@ from maps.heatmap import (
     filter_by_band,
     get_distance_alpha,
     get_scan_confidence_values,
+    get_survey_bounds_alpha,
     interpolate_signal_grid,
     smooth_heatmap_grid,
 )
@@ -88,6 +89,8 @@ def build_signal_payload(df, config, bg_image, translations, point_tooltip_build
     )
     grid_z = smooth_heatmap_grid(grid_z, sigma=config.smoothing_sigma)
     grid_z = apply_distance_mask(grid_z, grid_x, grid_y, x, y, max_distance_px=config.max_distance_px)
+    bounds_alpha = get_continuous_bounds_alpha(config, grid_x, grid_y, x, y)
+    grid_z = apply_continuous_bounds_mask(grid_z, bounds_alpha)
 
     if config.usable_only:
         grid_z = apply_signal_threshold(grid_z, min_signal_dbm=-70)
@@ -100,7 +103,7 @@ def build_signal_payload(df, config, bg_image, translations, point_tooltip_build
         max_distance_px=config.max_distance_px,
         point_confidence=confidence
     )
-    heatmap_alpha = np.where(np.isfinite(grid_z), distance_alpha * 0.55, 0)
+    heatmap_alpha = np.where(np.isfinite(grid_z), distance_alpha * bounds_alpha * 0.55, 0)
     vmin, vmax = color_scale_limits(grid_z, config)
     scale_payload = {
         "kind": "gradient",
@@ -167,6 +170,8 @@ def build_interference_payload(df, config, bg_image, translations, point_tooltip
     )
     grid_z = smooth_heatmap_grid(grid_z, sigma=config.smoothing_sigma)
     grid_z = apply_distance_mask(grid_z, grid_x, grid_y, x, y, max_distance_px=config.max_distance_px)
+    bounds_alpha = get_continuous_bounds_alpha(config, grid_x, grid_y, x, y)
+    grid_z = apply_continuous_bounds_mask(grid_z, bounds_alpha)
     distance_alpha = get_distance_alpha(
         grid_x,
         grid_y,
@@ -175,7 +180,7 @@ def build_interference_payload(df, config, bg_image, translations, point_tooltip
         max_distance_px=config.max_distance_px,
         point_confidence=confidence
     )
-    heatmap_alpha = np.where(np.isfinite(grid_z), distance_alpha * 0.58, 0)
+    heatmap_alpha = np.where(np.isfinite(grid_z), distance_alpha * bounds_alpha * 0.58, 0)
     vmin, vmax = color_scale_limits(grid_z, config)
     scale_payload = {
         "kind": "gradient",
@@ -233,6 +238,26 @@ def get_grid(width, height):
     return grid_x, grid_y
 
 
+def get_continuous_bounds_alpha(config, grid_x, grid_y, point_x, point_y):
+    if not getattr(config, "survey_bounds", False):
+        return np.ones(grid_x.shape)
+
+    return get_survey_bounds_alpha(
+        grid_x,
+        grid_y,
+        point_x,
+        point_y,
+        max_distance_px=config.max_distance_px,
+    )
+
+
+def apply_continuous_bounds_mask(grid_z, bounds_alpha):
+    if bounds_alpha is None:
+        return grid_z
+
+    return np.where(bounds_alpha > 0, grid_z, np.nan)
+
+
 def fig_payload_to_image_payload(payload):
     buffer = BytesIO()
     payload["fig"].savefig(buffer, format="png", dpi=120)
@@ -265,6 +290,7 @@ def build_result_cache_key(df, config, bg_image, translations):
         config.ap_group_roles,
         config.ap_group_channel_overrides,
         config.usable_only,
+        config.survey_bounds,
         round(float(config.smoothing_sigma), 4),
         int(config.max_distance_px),
     )

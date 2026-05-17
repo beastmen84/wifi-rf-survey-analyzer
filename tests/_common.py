@@ -102,6 +102,7 @@ from maps.heatmap import (
     get_dominant_ap_points,
     get_interference_data_quality,
     get_scan_confidence_values,
+    get_survey_bounds_alpha,
     interpolate_signal_grid,
     normalize_confidence_array,
     signal_interference_weight,

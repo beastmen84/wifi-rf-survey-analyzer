@@ -1299,6 +1299,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(grid_position(window.live_smoothing_label)[:2], (7, 0))
             self.assertEqual(grid_position(window.live_checkbox_separator), (8, 0, 1, 2))
             self.assertEqual(grid_position(window.live_usable_check), (9, 0, 1, 2))
+            self.assertEqual(grid_position(window.live_survey_bounds_check), (10, 0, 1, 2))
             self.assertEqual(window.live_band_combo.width(), window.live_interpolation_combo.width())
             self.assertEqual(window.live_band_combo.width(), window.live_max_distance_spin.width())
             required_group_width = window.live_ap_group_combo.fontMetrics().horizontalAdvance(
@@ -1313,6 +1314,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertFalse(window.live_max_distance_spin.isHidden())
             self.assertFalse(window.live_smoothing_spin.isHidden())
             self.assertFalse(window.live_usable_check.isHidden())
+            self.assertFalse(window.live_survey_bounds_check.isHidden())
             self.assertFalse(window.live_ap_group_combo.isHidden())
             self.assertFalse(window.live_options_separator.isHidden())
             self.assertFalse(window.live_checkbox_separator.isHidden())
@@ -1332,6 +1334,8 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(grid_position(window.live_options_separator), (4, 0, 1, 2))
             self.assertEqual(grid_position(window.live_max_distance_label)[:2], (5, 0))
             self.assertEqual(grid_position(window.live_smoothing_label)[:2], (6, 0))
+            self.assertEqual(grid_position(window.live_checkbox_separator), (7, 0, 1, 2))
+            self.assertEqual(grid_position(window.live_survey_bounds_check), (8, 0, 1, 2))
             self.assertFalse(window.live_band_combo.isHidden())
             self.assertFalse(window.live_color_scale_combo.isHidden())
             self.assertFalse(window.live_interference_mode_combo.isHidden())
@@ -1340,11 +1344,11 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertFalse(window.live_smoothing_spin.isHidden())
             self.assertTrue(window.live_aggregation_combo.isHidden())
             self.assertTrue(window.live_usable_check.isHidden())
+            self.assertFalse(window.live_survey_bounds_check.isHidden())
             self.assertTrue(window.live_ap_group_combo.isHidden())
             self.assertTrue(window.live_point_labels_combo.isHidden())
             self.assertFalse(window.live_options_separator.isHidden())
-            self.assertTrue(window.live_checkbox_separator.isHidden())
-            self.assertEqual(window.live_options_layout.indexOf(window.live_checkbox_separator), -1)
+            self.assertFalse(window.live_checkbox_separator.isHidden())
 
             set_map_type("channel")
             self.assertEqual(combo_values(window.live_band_combo), ["all", "2.4", "5", "6"])
@@ -1360,6 +1364,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertTrue(window.live_color_scale_combo.isHidden())
             self.assertTrue(window.live_max_distance_spin.isHidden())
             self.assertTrue(window.live_smoothing_spin.isHidden())
+            self.assertTrue(window.live_survey_bounds_check.isHidden())
             self.assertTrue(window.live_options_separator.isHidden())
             self.assertTrue(window.live_checkbox_separator.isHidden())
 
@@ -1376,6 +1381,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertTrue(window.live_max_distance_spin.isHidden())
             self.assertTrue(window.live_smoothing_spin.isHidden())
             self.assertTrue(window.live_usable_check.isHidden())
+            self.assertTrue(window.live_survey_bounds_check.isHidden())
             self.assertTrue(window.live_ap_group_combo.isHidden())
             self.assertTrue(window.live_options_separator.isHidden())
             self.assertTrue(window.live_checkbox_separator.isHidden())
@@ -1415,6 +1421,9 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             window.live_usable_check.blockSignals(True)
             window.live_usable_check.setChecked(True)
             window.live_usable_check.blockSignals(False)
+            window.live_survey_bounds_check.blockSignals(True)
+            window.live_survey_bounds_check.setChecked(True)
+            window.live_survey_bounds_check.blockSignals(False)
             window.update_live_option_state()
 
             set_map_type("interference")
@@ -1436,6 +1445,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(window.live_smoothing_spin.value(), 4.5)
             self.assertEqual(window.current_live_max_distance_px(), 260)
             self.assertTrue(window.live_usable_check.isChecked())
+            self.assertTrue(window.live_survey_bounds_check.isChecked())
 
             set_map_type("interference")
             self.assertEqual(window.current_combo_value(window.live_band_combo), "5")
@@ -1443,6 +1453,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(window.current_combo_value(window.live_interference_mode_combo), "all")
             self.assertEqual(window.current_combo_value(window.live_interpolation_combo), "rbf")
             self.assertEqual(window.live_smoothing_spin.value(), 2.0)
+            self.assertFalse(window.live_survey_bounds_check.isChecked())
 
             set_map_type("channel")
             self.assertEqual(window.current_combo_value(window.live_point_labels_combo), "auto")
@@ -1468,6 +1479,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(window.live_smoothing_spin.value(), 5.0)
             self.assertEqual(window.current_live_max_distance_px(), 260)
             self.assertFalse(window.live_usable_check.isChecked())
+            self.assertFalse(window.live_survey_bounds_check.isChecked())
             set_map_type("channel")
             self.assertEqual(window.current_combo_value(window.live_point_labels_combo), "auto")
         finally:

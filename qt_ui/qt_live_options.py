@@ -187,6 +187,7 @@ class LiveOptionsMixin:
             "point_label_mode": "auto",
             "ap_group_filter": "",
             "usable_only": False,
+            "survey_bounds": False,
             "smoothing_sigma": HEATMAP_SMOOTHING_SIGMA,
             "max_distance_px": self.default_live_max_distance_px(),
         }
@@ -204,6 +205,7 @@ class LiveOptionsMixin:
             "point_label_mode": self.current_combo_value(self.live_point_labels_combo, "auto"),
             "ap_group_filter": self.current_combo_value(self.live_ap_group_combo, ""),
             "usable_only": self.live_usable_check.isChecked(),
+            "survey_bounds": self.live_survey_bounds_check.isChecked(),
             "smoothing_sigma": float(self.live_smoothing_spin.value()),
             "max_distance_px": self.current_live_max_distance_px(),
         }
@@ -237,6 +239,9 @@ class LiveOptionsMixin:
             self.live_usable_check.blockSignals(True)
             self.live_usable_check.setChecked(bool(state.get("usable_only", False)))
             self.live_usable_check.blockSignals(False)
+            self.live_survey_bounds_check.blockSignals(True)
+            self.live_survey_bounds_check.setChecked(bool(state.get("survey_bounds", False)))
+            self.live_survey_bounds_check.blockSignals(False)
             self.refresh_live_ap_group_filter()
             self.set_combo_value_silent(self.live_ap_group_combo, state.get("ap_group_filter", ""))
         finally:
@@ -357,6 +362,7 @@ class LiveOptionsMixin:
             self.live_point_labels_combo,
             self.live_ap_group_combo,
             self.live_usable_check,
+            self.live_survey_bounds_check,
             self.live_auto_check,
             self.live_options_toggle_button,
         ):
@@ -448,6 +454,8 @@ class LiveOptionsMixin:
         )
         self.live_usable_check.setVisible(is_signal)
         self.live_usable_check.setEnabled(can_use_controls and is_signal)
+        self.live_survey_bounds_check.setVisible(is_continuous)
+        self.live_survey_bounds_check.setEnabled(can_use_controls and is_continuous)
         can_filter_ap_group = (
             can_use_controls
             and (is_signal or is_channel)
@@ -564,6 +572,10 @@ class LiveOptionsMixin:
         if map_type == "signal":
             add_separator(self.live_checkbox_separator)
             add_checkbox(self.live_usable_check)
+            add_checkbox(self.live_survey_bounds_check)
+        elif map_type == "interference":
+            add_separator(self.live_checkbox_separator)
+            add_checkbox(self.live_survey_bounds_check)
 
         control_width = self.update_live_option_dropdown_widths(dropdowns)
         for widget in value_widgets:

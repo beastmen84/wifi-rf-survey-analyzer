@@ -31,6 +31,7 @@ from maps.heatmap import (
     get_dominant_ap_points,
     get_distance_alpha,
     get_scan_confidence_values,
+    get_survey_bounds_alpha,
     interpolate_signal_grid,
     smooth_heatmap_grid,
 )
@@ -186,6 +187,8 @@ def build_live_pdf_signal_figure(df, bg_image, config, tr, language, aliases, ap
     )
     grid_z = smooth_heatmap_grid(grid_z, sigma=config.smoothing_sigma)
     grid_z = apply_distance_mask(grid_z, grid_x, grid_y, x, y, config.max_distance_px)
+    bounds_alpha = get_live_pdf_bounds_alpha(config, grid_x, grid_y, x, y)
+    grid_z = apply_live_pdf_bounds_mask(grid_z, bounds_alpha)
 
     if config.usable_only:
         grid_z = apply_signal_threshold(grid_z, min_signal_dbm=-70)
@@ -198,7 +201,7 @@ def build_live_pdf_signal_figure(df, bg_image, config, tr, language, aliases, ap
         config.max_distance_px,
         point_confidence=confidence,
     )
-    heatmap_alpha = np.where(np.isfinite(grid_z), distance_alpha * 0.55, 0)
+    heatmap_alpha = np.where(np.isfinite(grid_z), distance_alpha * bounds_alpha * 0.55, 0)
     vmin, vmax = get_live_signal_color_scale_limits(grid_z, config)
     title = f"{tr('export_signal_title')} - {config.ssid}"
     fig, ax, side_ax = create_live_pdf_map_figure(bg_image, title)
@@ -272,6 +275,8 @@ def build_live_pdf_interference_figure(df, bg_image, config, tr, language, alias
     )
     grid_z = smooth_heatmap_grid(grid_z, sigma=config.smoothing_sigma)
     grid_z = apply_distance_mask(grid_z, grid_x, grid_y, x, y, config.max_distance_px)
+    bounds_alpha = get_live_pdf_bounds_alpha(config, grid_x, grid_y, x, y)
+    grid_z = apply_live_pdf_bounds_mask(grid_z, bounds_alpha)
     distance_alpha = get_distance_alpha(
         grid_x,
         grid_y,
@@ -280,7 +285,7 @@ def build_live_pdf_interference_figure(df, bg_image, config, tr, language, alias
         config.max_distance_px,
         point_confidence=confidence,
     )
-    heatmap_alpha = np.where(np.isfinite(grid_z), distance_alpha * 0.58, 0)
+    heatmap_alpha = np.where(np.isfinite(grid_z), distance_alpha * bounds_alpha * 0.58, 0)
     vmin, vmax = get_risk_color_scale_limits(grid_z, config)
     title = f"{tr('export_interference_title')} - {config.ssid}"
     fig, ax, side_ax = create_live_pdf_map_figure(bg_image, title)
@@ -444,6 +449,23 @@ def build_grid(bg_image):
         0:width:complex(HEATMAP_GRID_SIZE),
         0:height:complex(HEATMAP_GRID_SIZE),
     ]
+
+
+def get_live_pdf_bounds_alpha(config, grid_x, grid_y, point_x, point_y):
+    if not getattr(config, "survey_bounds", False):
+        return np.ones(grid_x.shape)
+
+    return get_survey_bounds_alpha(
+        grid_x,
+        grid_y,
+        point_x,
+        point_y,
+        max_distance_px=config.max_distance_px,
+    )
+
+
+def apply_live_pdf_bounds_mask(grid_z, bounds_alpha):
+    return np.where(bounds_alpha > 0, grid_z, np.nan)
 
 
 def build_live_pdf_output_path(csv_file, config):

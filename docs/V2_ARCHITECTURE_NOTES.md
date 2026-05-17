@@ -525,6 +525,9 @@ Implemented:
 - continuous map confidence opacity is smoothed across the grid rather than
   assigned by nearest survey point, avoiding polygonal opacity artifacts when
   neighboring scans have different confidence values;
+- continuous maps can optionally apply Survey Bounds, a Delaunay-based local
+  point-envelope alpha mask that fades the rendered layer outside the measured
+  survey area while preserving the original point data;
 - calibrated continuous-map defaults derive max distance from survey-point
   spacing percentiles, clamped to a conservative range, instead of using a fixed
   meter value for every survey density;

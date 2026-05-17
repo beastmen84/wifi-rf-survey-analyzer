@@ -512,6 +512,7 @@ TRANSLATIONS = {
     "interference_quality_warning": "Channel width is available on few points: the estimate uses fallback where data is missing.",
     "interference_quality_warning_5ghz": "Channel width is available on few points: on 5/6 GHz the estimate may underestimate overlap between wide channels.",
     "usable_only": "Only >= -70 dBm",
+    "survey_bounds": "Survey Bounds",
     "max_distance_px": "Max Distance (px)",
     "interpolation": "Interpolation",
     "interpolation_rbf": "Smooth RBF",
@@ -972,9 +973,9 @@ TRANSLATIONS = {
         <p>The vertical Options tab opens the left overlay. The app shows only controls that matter for the current map type and remembers option state separately per map type.</p>
         <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
             <tr>
-                <td class="workflow-card"><b>Signal Coverage</b><br><span class="survey-card-use">Visible Options:</span> Band, Aggregation, Color Scale, Interpolation, Max Distance, Smoothing, AP Group Filter, Only &gt;= -70 dBm.<br>AP Group Filter appears only when matching non-test AP groups exist for the selected SSID/band.</td>
+                <td class="workflow-card"><b>Signal Coverage</b><br><span class="survey-card-use">Visible Options:</span> Band, Aggregation, Color Scale, Interpolation, Max Distance, Smoothing, Survey Bounds, AP Group Filter, Only &gt;= -70 dBm.<br>AP Group Filter appears only when matching non-test AP groups exist for the selected SSID/band.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>AP Interference</b><br><span class="survey-card-use">Visible Options:</span> Band, Color Scale, Interference Mode, Interpolation, Max Distance, Smoothing.<br>Interference does not offer All Bands; it starts from 2.4 GHz by default.</td>
+                <td class="workflow-card"><b>AP Interference</b><br><span class="survey-card-use">Visible Options:</span> Band, Color Scale, Interference Mode, Interpolation, Max Distance, Smoothing, Survey Bounds.<br>Interference does not offer All Bands; it starts from 2.4 GHz by default.</td>
             </tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
@@ -1000,7 +1001,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card"><b>Smoothing</b><br>Makes coverage/interference surfaces visually calmer.<br><span class="survey-card-use">Use Carefully:</span> high smoothing can hide sharp RF transitions.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Max Distance</b><br>Limits continuous rendering to areas near measured points. On calibrated surveys with at least 4 unique points, the default is estimated from point-spacing percentiles; otherwise it falls back to pixels. If you change measurement system after calibration, the scale is cleared and must be calibrated again.<br><span class="survey-card-use">Use Carefully:</span> increase only when point density is good.</td>
+                <td class="workflow-card"><b>Max Distance</b><br>Limits continuous rendering to areas near measured points. On calibrated surveys with at least 4 unique points, the default is estimated from point-spacing percentiles; otherwise it falls back to pixels. Survey Bounds can additionally fade continuous maps outside the measured point envelope. If you change measurement system after calibration, the scale is cleared and must be calibrated again.<br><span class="survey-card-use">Use Carefully:</span> increase only when point density is good.</td>
             </tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>

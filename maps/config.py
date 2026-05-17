@@ -20,6 +20,7 @@ class MapConfig:
     ap_group_roles: tuple = ()
     ap_group_channel_overrides: tuple = ()
     usable_only: bool = False
+    survey_bounds: bool = False
     smoothing_sigma: float = HEATMAP_SMOOTHING_SIGMA
     max_distance_px: int = HEATMAP_MAX_DISTANCE_PX
 
@@ -47,6 +48,7 @@ class MapConfig:
             ap_group_roles=self.ap_group_roles,
             ap_group_channel_overrides=self.ap_group_channel_overrides,
             usable_only=self.usable_only,
+            survey_bounds=self.survey_bounds,
             smoothing_sigma=self.smoothing_sigma,
             max_distance_px=self.max_distance_px,
         )
