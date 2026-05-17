@@ -1266,6 +1266,10 @@ class SurveySessionWorkflowTests(unittest.TestCase):
             self.assertFalse(window.boundaries_toolbar.isHidden())
             self.assertTrue(window.boundaries_button.isChecked())
             self.assertTrue(window.floorplan_view.boundaries_edit_active)
+            self.assertEqual(
+                window.floorplan_view.dragMode(),
+                QGraphicsView.DragMode.ScrollHandDrag,
+            )
             self.assertFalse(window.floorplan_view.grid_visible)
             self.assertTrue(window.grid_button.isEnabled())
             self.assertTrue(window.boundaries_draw_button.isChecked())

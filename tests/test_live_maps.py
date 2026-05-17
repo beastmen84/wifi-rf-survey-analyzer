@@ -331,6 +331,52 @@ class FloorplanViewTests(unittest.TestCase):
             view.deleteLater()
             os.remove(floorplan_path)
 
+    def test_boundaries_mode_keeps_left_controls_and_uses_right_button_for_mask(self):
+        view = FloorplanView()
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
+            floorplan_path = temp_file.name
+        Image.new("RGB", (120, 90), "white").save(floorplan_path)
+        survey_requests = []
+        selection_cleared = []
+        view.surveyPointRequested.connect(lambda x, y: survey_requests.append((x, y)))
+        view.pointSelectionCleared.connect(lambda: selection_cleared.append(True))
+
+        try:
+            view.resize(240, 180)
+            view.show()
+            view.load_floorplan(floorplan_path)
+            view.set_boundaries_edit_mode(True)
+            QApplication.processEvents()
+
+            self.assertEqual(view.dragMode(), QGraphicsView.DragMode.ScrollHandDrag)
+
+            click_pos = view.mapFromScene(view.scene.sceneRect().center())
+            QTest.mouseClick(
+                view.viewport(),
+                Qt.MouseButton.LeftButton,
+                Qt.KeyboardModifier.NoModifier,
+                click_pos,
+            )
+            QApplication.processEvents()
+
+            self.assertEqual(len(selection_cleared), 1)
+            self.assertFalse(view.has_boundaries_mask())
+            self.assertEqual(survey_requests, [])
+
+            QTest.mouseClick(
+                view.viewport(),
+                Qt.MouseButton.RightButton,
+                Qt.KeyboardModifier.NoModifier,
+                click_pos,
+            )
+            QApplication.processEvents()
+
+            self.assertTrue(view.has_boundaries_mask())
+            self.assertEqual(survey_requests, [])
+        finally:
+            view.deleteLater()
+            os.remove(floorplan_path)
+
 
 class LiveMapViewTests(unittest.TestCase):
     @classmethod

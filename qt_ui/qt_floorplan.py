@@ -139,15 +139,8 @@ class FloorplanView(QGraphicsView):
         self.boundaries_last_point = None
         if self.boundaries_mask_item is not None:
             self.boundaries_mask_item.setVisible(active)
-        self.setDragMode(
-            QGraphicsView.DragMode.NoDrag
-            if active
-            else QGraphicsView.DragMode.ScrollHandDrag
-        )
-        if active:
-            self.viewport().setCursor(Qt.CursorShape.CrossCursor)
-        else:
-            self.viewport().unsetCursor()
+        self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+        self.viewport().unsetCursor()
 
     def set_boundaries_tool_state(self, tool="draw", shape="circle"):
         self.boundaries_tool = "eraser" if tool == "eraser" else "draw"
@@ -616,13 +609,12 @@ class FloorplanView(QGraphicsView):
         super().wheelEvent(event)
 
     def mousePressEvent(self, event):
-        if self.boundaries_edit_active:
-            if event.button() == Qt.MouseButton.LeftButton:
-                point = self.mapToScene(event.position().toPoint())
-                point = self.clamp_boundaries_point(point)
-                self.boundaries_drawing_active = True
-                self.boundaries_last_point = point
-                self.apply_boundaries_brush(point.x(), point.y())
+        if self.boundaries_edit_active and event.button() == Qt.MouseButton.RightButton:
+            point = self.mapToScene(event.position().toPoint())
+            point = self.clamp_boundaries_point(point)
+            self.boundaries_drawing_active = True
+            self.boundaries_last_point = point
+            self.apply_boundaries_brush(point.x(), point.y())
             event.accept()
             return
 
@@ -667,27 +659,26 @@ class FloorplanView(QGraphicsView):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
-        if self.boundaries_edit_active:
-            if (
-                self.boundaries_drawing_active
-                and event.buttons() & Qt.MouseButton.LeftButton
-                and self.boundaries_last_point is not None
-            ):
-                point = self.clamp_boundaries_point(
-                    self.mapToScene(event.position().toPoint())
-                )
-                self.apply_boundaries_stroke(self.boundaries_last_point, point)
-                self.boundaries_last_point = point
+        if (
+            self.boundaries_edit_active
+            and self.boundaries_drawing_active
+            and event.buttons() & Qt.MouseButton.RightButton
+            and self.boundaries_last_point is not None
+        ):
+            point = self.clamp_boundaries_point(
+                self.mapToScene(event.position().toPoint())
+            )
+            self.apply_boundaries_stroke(self.boundaries_last_point, point)
+            self.boundaries_last_point = point
             event.accept()
             return
 
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
-        if self.boundaries_edit_active:
-            if event.button() == Qt.MouseButton.LeftButton:
-                self.boundaries_drawing_active = False
-                self.boundaries_last_point = None
+        if self.boundaries_edit_active and event.button() == Qt.MouseButton.RightButton:
+            self.boundaries_drawing_active = False
+            self.boundaries_last_point = None
             event.accept()
             return
 
