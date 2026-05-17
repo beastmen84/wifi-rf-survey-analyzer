@@ -455,12 +455,14 @@ class FloorplanViewTests(unittest.TestCase):
                 QPoint(55, 45),
                 QPoint(60, 80),
             ]
-            self.assertTrue(view.apply_boundaries_brush(20, 80))
-            self.assertTrue(view.apply_boundaries_live_stroke(stroke_points[:2]))
-            self.assertTrue(view.apply_boundaries_live_stroke(stroke_points))
+            self.assertTrue(view.begin_boundaries_stroke(stroke_points[0]))
+            self.assertTrue(view.continue_boundaries_stroke(stroke_points[1]))
+            self.assertGreater(view.boundaries_mask_image.pixelColor(66, 34).alpha(), 0)
+            self.assertTrue(view.continue_boundaries_stroke(stroke_points[2]))
 
             self.assertGreater(view.boundaries_mask_image.pixelColor(55, 45).alpha(), 0)
             self.assertEqual(view.boundaries_mask_image.pixelColor(66, 34).alpha(), 0)
+            self.assertTrue(view.finish_boundaries_stroke(stroke_points[2]))
         finally:
             view.deleteLater()
             os.remove(floorplan_path)

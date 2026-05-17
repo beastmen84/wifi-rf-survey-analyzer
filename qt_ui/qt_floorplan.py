@@ -31,7 +31,6 @@ MIN_GRID_SPACING_PX = 40.0
 GRID_MAJOR_EVERY = 5
 BOUNDARIES_MASK_ALPHA = 78
 BOUNDARIES_MASK_COLOR = QColor(37, 99, 235)
-BOUNDARIES_STROKE_POINT_WINDOW = 8
 
 
 class BoundariesMaskItem(QGraphicsItem):
@@ -94,6 +93,8 @@ class FloorplanView(QGraphicsView):
         self.boundaries_drawing_active = False
         self.boundaries_last_point = None
         self.boundaries_stroke_points = []
+        self.boundaries_stroke_base_image = None
+        self.boundaries_stroke_dirty_rect = QRectF()
         self.boundaries_mask_dirty_rect = QRectF()
         self.boundaries_brush_preview_pos = None
 
@@ -146,6 +147,8 @@ class FloorplanView(QGraphicsView):
         self.boundaries_drawing_active = False
         self.boundaries_last_point = None
         self.boundaries_stroke_points = []
+        self.boundaries_stroke_base_image = None
+        self.boundaries_stroke_dirty_rect = QRectF()
         self.selected_point_key = None
         self.zoom_level = 1.0
         self.cancel_ap_position_pick(emit_signal=False)
@@ -164,6 +167,8 @@ class FloorplanView(QGraphicsView):
         self.boundaries_drawing_active = False
         self.boundaries_last_point = None
         self.boundaries_stroke_points = []
+        self.boundaries_stroke_base_image = None
+        self.boundaries_stroke_dirty_rect = QRectF()
         if self.boundaries_mask_item is not None:
             self.boundaries_mask_item.setVisible(active)
         if not active:
@@ -298,6 +303,8 @@ class FloorplanView(QGraphicsView):
         self.boundaries_drawing_active = False
         self.boundaries_last_point = None
         self.boundaries_stroke_points = []
+        self.boundaries_stroke_base_image = None
+        self.boundaries_stroke_dirty_rect = QRectF()
         if emit_signal:
             self.boundariesMaskChanged.emit(False)
 
@@ -318,6 +325,8 @@ class FloorplanView(QGraphicsView):
         self.boundaries_drawing_active = False
         self.boundaries_last_point = None
         self.boundaries_stroke_points = []
+        self.boundaries_stroke_base_image = None
+        self.boundaries_stroke_dirty_rect = QRectF()
         self.boundaries_mask_dirty_rect = QRectF()
         self.viewport().update()
         if changed:
@@ -518,10 +527,94 @@ class FloorplanView(QGraphicsView):
     def apply_boundaries_live_stroke(self, points):
         if not self.ensure_boundaries_mask():
             return False
-        changed = self.apply_boundaries_polyline(points, cap_endpoints=False)
+        if self.boundaries_stroke_base_image is not None:
+            self.boundaries_stroke_points = [
+                self.clamp_boundaries_point(QPointF(float(point.x()), float(point.y())))
+                for point in points
+            ]
+            changed = self.apply_boundaries_active_stroke()
+        else:
+            changed = self.apply_boundaries_polyline(points, cap_endpoints=False)
         if changed:
             self.refresh_boundaries_mask_after_change()
         return changed
+
+    def begin_boundaries_stroke(self, point):
+        if not self.ensure_boundaries_mask():
+            return False
+
+        point = self.clamp_boundaries_point(point)
+        self.boundaries_stroke_base_image = self.boundaries_mask_image.copy()
+        self.boundaries_stroke_points = [point]
+        self.boundaries_stroke_dirty_rect = QRectF()
+        self.boundaries_last_point = point
+        changed = self.apply_boundaries_active_stroke()
+        if changed:
+            self.refresh_boundaries_mask_after_change()
+        return changed
+
+    def continue_boundaries_stroke(self, point):
+        if self.boundaries_stroke_base_image is None:
+            return self.begin_boundaries_stroke(point)
+
+        point = self.clamp_boundaries_point(point)
+        self.boundaries_stroke_points.append(point)
+        self.boundaries_last_point = point
+        changed = self.apply_boundaries_active_stroke()
+        if changed:
+            self.refresh_boundaries_mask_after_change()
+        return changed
+
+    def finish_boundaries_stroke(self, point=None):
+        if self.boundaries_stroke_base_image is None:
+            self.boundaries_stroke_points = []
+            self.boundaries_stroke_dirty_rect = QRectF()
+            return False
+
+        if point is not None:
+            point = self.clamp_boundaries_point(point)
+            if not self.boundaries_stroke_points or math.hypot(
+                point.x() - self.boundaries_stroke_points[-1].x(),
+                point.y() - self.boundaries_stroke_points[-1].y(),
+            ) >= 0.01:
+                self.boundaries_stroke_points.append(point)
+            self.boundaries_last_point = point
+
+        changed = self.apply_boundaries_active_stroke()
+        if changed:
+            self.refresh_boundaries_mask_after_change()
+        self.boundaries_stroke_base_image = None
+        self.boundaries_stroke_points = []
+        self.boundaries_stroke_dirty_rect = QRectF()
+        return changed
+
+    def apply_boundaries_active_stroke(self):
+        if not self.boundaries_stroke_points:
+            return False
+
+        new_dirty_rect = self.boundaries_points_dirty_rect(self.boundaries_stroke_points)
+        repaint_rect = new_dirty_rect
+        if not self.boundaries_stroke_dirty_rect.isNull():
+            repaint_rect = repaint_rect.united(self.boundaries_stroke_dirty_rect)
+        self.restore_boundaries_stroke_base_region(repaint_rect)
+        changed = self.apply_boundaries_polyline(self.boundaries_stroke_points, cap_endpoints=True)
+        self.boundaries_stroke_dirty_rect = new_dirty_rect
+        self.boundaries_mask_dirty_rect = repaint_rect
+        return changed
+
+    def restore_boundaries_stroke_base_region(self, rect):
+        if self.boundaries_stroke_base_image is None or rect.isNull() or rect.isEmpty():
+            return
+
+        image_rect = QRect(0, 0, self.boundaries_mask_image.width(), self.boundaries_mask_image.height())
+        target_rect = rect.toAlignedRect().intersected(image_rect)
+        if target_rect.isNull() or target_rect.isEmpty():
+            return
+
+        painter = QPainter(self.boundaries_mask_image)
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source)
+        painter.drawImage(target_rect, self.boundaries_stroke_base_image, target_rect)
+        painter.end()
 
     def clamp_boundaries_point(self, point):
         rect = self.scene.sceneRect()
@@ -887,9 +980,7 @@ class FloorplanView(QGraphicsView):
             point = self.clamp_boundaries_point(point)
             self.update_boundaries_brush_preview(point)
             self.boundaries_drawing_active = True
-            self.boundaries_last_point = point
-            self.boundaries_stroke_points = [point]
-            self.apply_boundaries_brush(point.x(), point.y())
+            self.begin_boundaries_stroke(point)
             event.accept()
             return
 
@@ -943,10 +1034,7 @@ class FloorplanView(QGraphicsView):
         ):
             point = self.clamp_boundaries_point(scene_point)
             self.update_boundaries_brush_preview(point)
-            self.boundaries_stroke_points.append(point)
-            stroke_points = self.boundaries_stroke_points[-BOUNDARIES_STROKE_POINT_WINDOW:]
-            self.apply_boundaries_live_stroke(stroke_points)
-            self.boundaries_last_point = point
+            self.continue_boundaries_stroke(point)
             event.accept()
             return
 
@@ -961,7 +1049,7 @@ class FloorplanView(QGraphicsView):
             )
             self.update_boundaries_brush_preview(point)
             if self.boundaries_drawing_active:
-                self.apply_boundaries_brush(point.x(), point.y())
+                self.finish_boundaries_stroke(point)
             self.boundaries_drawing_active = False
             self.boundaries_last_point = None
             self.boundaries_stroke_points = []
