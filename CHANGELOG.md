@@ -24,8 +24,10 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   selection still work, while right-drag paints or erases the mask instead of
   adding survey points.
 - Boundaries drawing now uses fixed transparency, a lighter fill, subtle
-  feathered edges, zoom-accurate brush preview and batched mask refreshes for
-  smoother fast paint/erase gestures.
+  feathered edges, zoom-accurate brush preview and native continuous strokes
+  with round or square caps for smoother fast paint/erase gestures. Mask
+  rendering now paints the in-memory image directly instead of rebuilding a full
+  pixmap during drag.
 - Boundaries toolbar icons are loaded lazily on first use, keeping them out of
   the startup "Loading components" path.
 - Current survey files now require the full aggregate/raw headers,

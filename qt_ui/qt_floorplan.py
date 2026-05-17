@@ -7,6 +7,7 @@ from PySide6.QtCore import QPointF, QRect, QRectF, Qt, Signal
 from PySide6.QtGui import QBrush, QColor, QImage, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QGraphicsEllipseItem,
+    QGraphicsItem,
     QGraphicsLineItem,
     QGraphicsPixmapItem,
     QGraphicsScene,
@@ -29,8 +30,21 @@ IMPERIAL_GRID_INTERVALS_FT = (1.0, 2.0, 3.0, 5.0, 10.0, 20.0, 50.0)
 MIN_GRID_SPACING_PX = 40.0
 GRID_MAJOR_EVERY = 5
 BOUNDARIES_MASK_ALPHA = 78
-BOUNDARIES_MASK_FEATHER_PX = 4.0
 BOUNDARIES_MASK_COLOR = QColor(37, 99, 235)
+
+
+class BoundariesMaskItem(QGraphicsItem):
+    def __init__(self, image):
+        super().__init__()
+        self.image = image
+        self.setZValue(6)
+
+    def boundingRect(self):
+        return QRectF(0, 0, self.image.width(), self.image.height())
+
+    def paint(self, painter, option, widget=None):
+        exposed_rect = option.exposedRect if option is not None else self.boundingRect()
+        painter.drawImage(exposed_rect, self.image, exposed_rect)
 
 
 class FloorplanView(QGraphicsView):
@@ -76,6 +90,7 @@ class FloorplanView(QGraphicsView):
         self.boundaries_mask_has_content = False
         self.boundaries_drawing_active = False
         self.boundaries_last_point = None
+        self.boundaries_mask_dirty_rect = QRectF()
         self.boundaries_brush_preview_pos = None
 
         self.setObjectName("floorplanView")
@@ -254,6 +269,7 @@ class FloorplanView(QGraphicsView):
 
     def reset_boundaries_mask(self, emit_signal=True):
         self.boundaries_brush_preview_pos = None
+        self.boundaries_mask_dirty_rect = QRectF()
         if (
             self.boundaries_mask_item is not None
             and self.boundaries_mask_item.scene() is self.scene
@@ -276,12 +292,13 @@ class FloorplanView(QGraphicsView):
 
         if self.boundaries_mask_image is not None:
             self.boundaries_mask_image.fill(Qt.GlobalColor.transparent)
-        if self.boundaries_mask_item is not None and self.boundaries_mask_image is not None:
-            self.boundaries_mask_item.setPixmap(QPixmap.fromImage(self.boundaries_mask_image))
+        if self.boundaries_mask_item is not None:
+            self.boundaries_mask_item.update()
         changed = self.boundaries_mask_has_content
         self.boundaries_mask_has_content = False
         self.boundaries_drawing_active = False
         self.boundaries_last_point = None
+        self.boundaries_mask_dirty_rect = QRectF()
         self.viewport().update()
         if changed:
             self.boundariesMaskChanged.emit(False)
@@ -299,10 +316,7 @@ class FloorplanView(QGraphicsView):
             self.boundaries_mask_image.fill(Qt.GlobalColor.transparent)
 
         if self.boundaries_mask_item is None:
-            self.boundaries_mask_item = QGraphicsPixmapItem(
-                QPixmap.fromImage(self.boundaries_mask_image)
-            )
-            self.boundaries_mask_item.setZValue(6)
+            self.boundaries_mask_item = BoundariesMaskItem(self.boundaries_mask_image)
             self.boundaries_mask_item.setVisible(self.boundaries_edit_active)
             self.scene.addItem(self.boundaries_mask_item)
 
@@ -313,112 +327,87 @@ class FloorplanView(QGraphicsView):
             return False
 
         point = self.clamp_boundaries_point(QPointF(float(x), float(y)))
-        changed = self.apply_boundaries_brush_pixels(point)
+        changed = self.apply_boundaries_segment(point, point)
         if changed and refresh:
             self.refresh_boundaries_mask_after_change()
         return changed
 
-    def apply_boundaries_brush_pixels(self, point):
-        half = self.boundaries_brush_size_px / 2.0
-        image_width = self.boundaries_mask_image.width()
-        image_height = self.boundaries_mask_image.height()
-        min_x = max(
-            0,
-            int(math.floor(point.x() - half - BOUNDARIES_MASK_FEATHER_PX)),
-        )
-        max_x = min(
-            image_width - 1,
-            int(math.ceil(point.x() + half + BOUNDARIES_MASK_FEATHER_PX)),
-        )
-        min_y = max(
-            0,
-            int(math.floor(point.y() - half - BOUNDARIES_MASK_FEATHER_PX)),
-        )
-        max_y = min(
-            image_height - 1,
-            int(math.ceil(point.y() + half + BOUNDARIES_MASK_FEATHER_PX)),
-        )
+    def apply_boundaries_segment(self, start_point, end_point):
+        start_point = self.clamp_boundaries_point(start_point)
+        end_point = self.clamp_boundaries_point(end_point)
+        painter = QPainter(self.boundaries_mask_image)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        if self.boundaries_tool == "eraser":
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
+            color = QColor(0, 0, 0, 255)
+        else:
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_Source)
+            color = QColor(
+                BOUNDARIES_MASK_COLOR.red(),
+                BOUNDARIES_MASK_COLOR.green(),
+                BOUNDARIES_MASK_COLOR.blue(),
+                BOUNDARIES_MASK_ALPHA,
+            )
 
-        changed = False
-        for pixel_y in range(min_y, max_y + 1):
-            for pixel_x in range(min_x, max_x + 1):
-                coverage = self.boundaries_brush_coverage(
-                    pixel_x + 0.5 - point.x(),
-                    pixel_y + 0.5 - point.y(),
-                )
-                if coverage <= 0:
-                    continue
-                if self.apply_boundaries_mask_pixel(pixel_x, pixel_y, coverage):
-                    changed = True
-        return changed
+        half = self.boundaries_brush_size_px / 2.0
+        dirty_rect = self.boundaries_segment_dirty_rect(start_point, end_point)
+        if math.hypot(end_point.x() - start_point.x(), end_point.y() - start_point.y()) < 0.01:
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QBrush(color))
+            rect = QRectF(
+                start_point.x() - half,
+                start_point.y() - half,
+                self.boundaries_brush_size_px,
+                self.boundaries_brush_size_px,
+            )
+            if self.boundaries_shape == "square":
+                painter.drawRect(rect)
+            else:
+                painter.drawEllipse(rect)
+        else:
+            pen = QPen(color, self.boundaries_brush_size_px)
+            if self.boundaries_shape == "square":
+                pen.setCapStyle(Qt.PenCapStyle.SquareCap)
+                pen.setJoinStyle(Qt.PenJoinStyle.MiterJoin)
+            else:
+                pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+                pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+            painter.setPen(pen)
+            painter.drawLine(start_point, end_point)
+        painter.end()
+        self.boundaries_mask_dirty_rect = dirty_rect
+        return True
+
+    def boundaries_segment_dirty_rect(self, start_point, end_point):
+        half = self.boundaries_brush_size_px / 2.0 + 2.0
+        dirty_rect = QRectF(start_point, end_point).normalized().adjusted(
+            -half,
+            -half,
+            half,
+            half,
+        )
+        image_rect = QRectF(
+            0,
+            0,
+            self.boundaries_mask_image.width(),
+            self.boundaries_mask_image.height(),
+        )
+        return dirty_rect.intersected(image_rect)
 
     def refresh_boundaries_mask_after_change(self):
-        self.boundaries_mask_item.setPixmap(QPixmap.fromImage(self.boundaries_mask_image))
+        if self.boundaries_mask_item is not None:
+            if self.boundaries_mask_dirty_rect.isNull():
+                self.boundaries_mask_item.update()
+            else:
+                self.boundaries_mask_item.update(self.boundaries_mask_dirty_rect)
         if self.boundaries_tool != "eraser" and not self.boundaries_mask_has_content:
             self.boundaries_mask_has_content = True
             self.boundariesMaskChanged.emit(True)
-        self.viewport().update()
-
-    def boundaries_brush_coverage(self, dx, dy):
-        half = self.boundaries_brush_size_px / 2.0
-        feather = min(BOUNDARIES_MASK_FEATHER_PX, max(1.0, half))
-        if self.boundaries_shape == "square":
-            distance_to_edge = half - max(abs(dx), abs(dy))
-        else:
-            distance_to_edge = half - math.hypot(dx, dy)
-
-        if distance_to_edge <= 0:
-            return 0.0
-        if distance_to_edge >= feather:
-            return 1.0
-        return distance_to_edge / feather
-
-    def apply_boundaries_mask_pixel(self, x, y, coverage):
-        existing = self.boundaries_mask_image.pixelColor(x, y)
-        existing_alpha = existing.alpha()
-        if self.boundaries_tool == "eraser":
-            if existing_alpha <= 0:
-                return False
-            new_alpha = int(round(existing_alpha * (1.0 - coverage)))
-            if new_alpha == existing_alpha:
-                return False
-            if new_alpha <= 0:
-                self.boundaries_mask_image.setPixelColor(x, y, QColor(0, 0, 0, 0))
-                return True
-            color = QColor(existing)
-            color.setAlpha(new_alpha)
-            self.boundaries_mask_image.setPixelColor(x, y, color)
-            return True
-
-        target_alpha = int(round(BOUNDARIES_MASK_ALPHA * coverage))
-        if target_alpha <= existing_alpha:
-            return False
-        color = QColor(
-            BOUNDARIES_MASK_COLOR.red(),
-            BOUNDARIES_MASK_COLOR.green(),
-            BOUNDARIES_MASK_COLOR.blue(),
-            target_alpha,
-        )
-        self.boundaries_mask_image.setPixelColor(x, y, color)
-        return True
 
     def apply_boundaries_stroke(self, start_point, end_point):
-        start_point = self.clamp_boundaries_point(start_point)
-        end_point = self.clamp_boundaries_point(end_point)
-        dx = end_point.x() - start_point.x()
-        dy = end_point.y() - start_point.y()
-        distance = math.hypot(dx, dy)
-        step = max(6.0, self.boundaries_brush_size_px / 2.0)
-        steps = max(1, int(math.ceil(distance / step)))
-        changed = False
-        for index in range(1, steps + 1):
-            ratio = index / steps
-            if self.apply_boundaries_brush(
-                start_point.x() + dx * ratio,
-                start_point.y() + dy * ratio,
-                refresh=False,
-            ):
-                changed = True
+        if not self.ensure_boundaries_mask():
+            return False
+        changed = self.apply_boundaries_segment(start_point, end_point)
         if changed:
             self.refresh_boundaries_mask_after_change()
         return changed
