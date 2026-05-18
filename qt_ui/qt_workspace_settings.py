@@ -132,6 +132,8 @@ class WorkspaceSettingsMixin:
 
         self.focus_point_zoom_percent = percent
         self.floorplan_view.set_focus_point_zoom_percent(percent)
+        if hasattr(self, "live_view"):
+            self.live_view.set_focus_marker_zoom_percent(percent)
         log_event(f"workspace focus point zoom changed percent={percent}", logger_name="ui")
         return True
 

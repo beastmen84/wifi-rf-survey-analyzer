@@ -54,8 +54,13 @@ from maps.rendering import (
     should_label_channel_point,
     should_label_dominant_point,
 )
-from qt_ui.qt_floorplan import AP_MARKER_BASE_SIZE, load_ap_position_icon
-from qt_ui.qt_tooltips import build_html_tooltip
+from qt_ui.qt_floorplan import (
+    AP_MARKER_BASE_SIZE,
+    FOCUS_POINT_DEFAULT_ZOOM_LEVEL,
+    format_ap_tooltip,
+    load_ap_position_icon,
+)
+from qt_ui.qt_tooltips import build_html_tooltip, tooltip_section
 
 
 LIVE_POINT_MARKER_BASE_SIZE = 14
@@ -120,6 +125,7 @@ class LiveMapRenderWorker(QObject):
 
 class LiveMapView(QGraphicsView):
     backgroundClicked = Signal()
+    zoomChanged = Signal(float)
 
     def __init__(self):
         super().__init__()
@@ -136,6 +142,7 @@ class LiveMapView(QGraphicsView):
         self._click_press_pos = None
         self._click_press_on_marker = False
         self.ap_position_icon = load_ap_position_icon()
+        self.focus_marker_zoom_level = FOCUS_POINT_DEFAULT_ZOOM_LEVEL
         self.gradient_legend = LiveGradientLegendWidget(self.viewport())
         self.gradient_legend.setFixedSize(122, 220)
         self.gradient_legend.hide()
@@ -160,6 +167,7 @@ class LiveMapView(QGraphicsView):
         self._click_press_on_marker = False
         self.end_pan()
         self.clear_gradient_legend()
+        self.zoomChanged.emit(self.zoom_level)
 
     def set_payload(self, payload):
         self.clear()
@@ -319,8 +327,39 @@ class LiveMapView(QGraphicsView):
             return False
 
         self.highlight_marker(marker_id)
-        self.centerOn(item.scenePos())
+        point = item.scenePos()
+        target_zoom = self.focus_target_zoom_level()
+        current_zoom = max(self.transform().m11(), self.transform().m22(), self.zoom_level)
+        if current_zoom < target_zoom:
+            self.set_zoom(target_zoom)
+
+        self.centerOn(point)
+        self.position_scene_point_in_viewport(point, 0.5, 0.5)
         return True
+
+    def set_focus_marker_zoom_percent(self, percent):
+        try:
+            zoom_level = float(percent) / 100.0
+        except (TypeError, ValueError):
+            zoom_level = FOCUS_POINT_DEFAULT_ZOOM_LEVEL
+
+        self.focus_marker_zoom_level = min(2.0, max(1.0, zoom_level))
+
+    def focus_target_zoom_level(self):
+        return self.focus_marker_zoom_level
+
+    def position_scene_point_in_viewport(self, point, x_fraction, y_fraction):
+        viewport_rect = self.viewport().rect()
+        if viewport_rect.isEmpty():
+            return
+
+        target_x = viewport_rect.left() + int(round(viewport_rect.width() * x_fraction))
+        target_y = viewport_rect.top() + int(round(viewport_rect.height() * y_fraction))
+        current_pos = self.mapFromScene(point)
+        horizontal_bar = self.horizontalScrollBar()
+        vertical_bar = self.verticalScrollBar()
+        horizontal_bar.setValue(horizontal_bar.value() + current_pos.x() - target_x)
+        vertical_bar.setValue(vertical_bar.value() + current_pos.y() - target_y)
 
     def marker_at_view_position(self, position):
         if not self.marker_items:
@@ -348,6 +387,7 @@ class LiveMapView(QGraphicsView):
         self.zoom_level = zoom_level
         self.scale(factor, factor)
         self.refresh_viewport_overlays()
+        self.zoomChanged.emit(self.zoom_level)
 
     def fit_to_view(self):
         if self.pixmap_item is None:
@@ -357,6 +397,7 @@ class LiveMapView(QGraphicsView):
         transform = self.transform()
         self.zoom_level = max(transform.m11(), transform.m22())
         self.refresh_viewport_overlays()
+        self.zoomChanged.emit(self.zoom_level)
 
     def set_gradient_legend(self, scale_payload):
         self.gradient_legend.set_scale_payload(scale_payload)
@@ -754,17 +795,7 @@ def build_ap_position_marker_infos(ap_groups, aliases, translations, selected_gr
 
 
 def build_ap_position_tooltip(group, label, x, y, translations):
-    bssids = ", ".join(str(bssid) for bssid in group.get("bssids", []) if str(bssid)) or "-"
-    return build_html_tooltip(
-        translations.get("ap_position_marker_title", "AP position"),
-        [
-            (translations.get("ap_group", "AP group"), group.get("group_id", "-")),
-            (translations.get("ap_label", "Label"), label),
-            ("x/y", f"{x}, {y}"),
-            ("BSSID", bssids),
-        ],
-        "#0d6efd",
-    )
+    return format_ap_tooltip(group, label, x, y, translations)
 
 def build_channel_payload(df, config, bg_image, translations, aliases):
     channel_df = get_channel_map_points(
@@ -924,12 +955,15 @@ def build_live_tooltip(map_type, row, raw_rows, translations, aliases=None):
     aliases = aliases or {}
     if map_type == "interference":
         rows = [
+            tooltip_section(translations.get("tooltip_section_location", "Location")),
             ("x/y", f"{format_value(row.get('x'))}, {format_value(row.get('y'))}"),
+            tooltip_section(translations.get("tooltip_section_interference", "Interference")),
             (translations.get("risk", "Risk"), f"{format_value(row.get('risk'))}%"),
             (
                 translations.get("scan_confidence", "Confidence"),
                 format_scan_confidence_percent(row.get("scan_confidence", "")),
             ),
+            tooltip_section(translations.get("tooltip_section_serving_ap", "Serving AP")),
             (
                 translations.get("serving_ap", "Serving AP"),
                 format_ap_label(row.get("serving_bssid", ""), aliases, row.get("serving_ap_group", "")),
@@ -951,6 +985,7 @@ def build_live_tooltip(map_type, row, raw_rows, translations, aliases=None):
         interferer_bssid = row.get("strongest_interferer_bssid", "")
         if format_value(interferer_bssid) != "-":
             rows.extend([
+                tooltip_section(translations.get("tooltip_section_interferer", "Interferer")),
                 (
                     translations.get("interferer", "Interferer"),
                     format_ap_label(
@@ -987,6 +1022,7 @@ def build_live_tooltip(map_type, row, raw_rows, translations, aliases=None):
             rows.append((translations.get("interference_ignored", "Ignored"), ignored))
         channel_change_notes = build_interference_channel_change_notes(row, translations, aliases)
         if channel_change_notes:
+            rows.append(tooltip_section(translations.get("tooltip_section_analysis", "Analysis")))
             rows.append((translations.get("channel_change", "Channel Change"), channel_change_notes))
         return build_html_tooltip(
             translations.get("interference_title", "AP interference"),
@@ -995,8 +1031,11 @@ def build_live_tooltip(map_type, row, raw_rows, translations, aliases=None):
         )
 
     rows = [
+        tooltip_section(translations.get("tooltip_section_identity", "Identity")),
         ("SSID", row.get("ssid", "-")),
+        tooltip_section(translations.get("tooltip_section_location", "Location")),
         ("x/y", f"{format_value(row.get('x'))}, {format_value(row.get('y'))}"),
+        tooltip_section(translations.get("tooltip_section_signal", "Signal")),
         (translations.get("signal", "Signal"), f"{format_value(row.get('signal_dbm'))} dBm"),
         (
             translations.get("coverage_aggregation", "Aggregation"),
@@ -1010,6 +1049,7 @@ def build_live_tooltip(map_type, row, raw_rows, translations, aliases=None):
     ]
     reference_bssid = row.get("coverage_reference_bssid", "")
     if format_value(reference_bssid) != "-":
+        rows.append(tooltip_section(translations.get("tooltip_section_reference", "Reference")))
         rows.append((
             translations.get("reference_ap", "AP"),
             format_ap_label(
@@ -1038,8 +1078,11 @@ def build_live_tooltip(map_type, row, raw_rows, translations, aliases=None):
 
 def build_channel_tooltip(row, config, translations, aliases):
     rows = [
+        tooltip_section(translations.get("tooltip_section_identity", "Identity")),
         ("SSID", config.ssid),
+        tooltip_section(translations.get("tooltip_section_location", "Location")),
         ("x/y", f"{format_value(row.get('x'))}, {format_value(row.get('y'))}"),
+        tooltip_section(translations.get("tooltip_section_radio", "Radio")),
         (
             translations.get("reference_ap", "AP"),
             format_ap_label(row.get("bssid", ""), aliases, row.get("ap_group", "")),
@@ -1069,6 +1112,7 @@ def build_channel_tooltip(row, config, translations, aliases):
         aliases,
     )
     if channel_change_note:
+        rows.append(tooltip_section(translations.get("tooltip_section_analysis", "Analysis")))
         rows.append((translations.get("channel_change", "Channel Change"), channel_change_note))
 
     return build_html_tooltip(
@@ -1081,8 +1125,11 @@ def build_channel_tooltip(row, config, translations, aliases):
 def build_dominant_tooltip(row, config, translations, aliases, position_analysis):
     position_rows = build_position_tooltip_rows(position_analysis, translations, aliases)
     rows = [
+        tooltip_section(translations.get("tooltip_section_identity", "Identity")),
         ("SSID", config.ssid),
+        tooltip_section(translations.get("tooltip_section_location", "Location")),
         ("x/y", f"{format_value(row.get('x'))}, {format_value(row.get('y'))}"),
+        tooltip_section(translations.get("tooltip_section_dominant_ap", "Dominant AP")),
         (
             translations.get("reference_ap", "AP"),
             format_ap_label(row.get("dominant_bssid", ""), aliases, row.get("dominant_ap_group", "")),
@@ -1108,6 +1155,7 @@ def build_dominant_tooltip(row, config, translations, aliases, position_analysis
     ]
     if row.get("second_bssid", ""):
         rows.extend([
+            tooltip_section(translations.get("tooltip_section_second_ap", "Second AP")),
             (
                 translations.get("second_ap", "Second AP"),
                 format_ap_label(row.get("second_bssid", ""), aliases, row.get("second_ap_group", "")),
@@ -1137,7 +1185,9 @@ def build_dominant_tooltip(row, config, translations, aliases, position_analysis
                 translations.get("roaming_overlap", "Roaming Overlap"),
                 translations.get("dominant_map_roaming_overlap", "Delta <= 5 dB"),
             ))
-    rows.extend(position_rows)
+    if position_rows:
+        rows.append(tooltip_section(translations.get("tooltip_section_position", "Position")))
+        rows.extend(position_rows)
     return build_html_tooltip(
         translations.get("dominant_title", "Dominant AP"),
         rows,

@@ -22,7 +22,7 @@ from app_core.units import (
     normalize_measurement_system,
 )
 from ap.groups import normalize_ap_role
-from qt_ui.qt_tooltips import build_html_tooltip
+from qt_ui.qt_tooltips import build_html_tooltip, tooltip_section
 
 
 AP_MARKER_BASE_SIZE = 20
@@ -1374,7 +1374,10 @@ def format_point_tooltip(point, translations=None):
         accent = "#111111"
 
     rows = [
+        tooltip_section(tooltip_text(translations, "tooltip_section_location", "Location")),
         ("x/y", f"{format_tooltip_scalar(point.get('x', '-'))}, {format_tooltip_scalar(point.get('y', '-'))}"),
+        (tooltip_text(translations, "tooltip_time", "Time"), point.get("timestamp", "-")),
+        tooltip_section(tooltip_text(translations, "tooltip_section_signal", "Signal")),
         (tooltip_text(translations, "signal", "Signal"), signal_text),
     ]
     quality_label = str(point.get("quality_label", "") or "").strip()
@@ -1383,7 +1386,7 @@ def format_point_tooltip(point, translations=None):
     rows.extend([
         (tooltip_text(translations, "tooltip_signal_scope", "Signal Scope"), scope_label),
         (tooltip_text(translations, "rows", "Rows"), rows_value),
-        (tooltip_text(translations, "tooltip_time", "Time"), point.get("timestamp", "-")),
+        tooltip_section(tooltip_text(translations, "tooltip_section_networks", "Networks")),
         (tooltip_text(translations, "tooltip_detected_ssids", "Detected SSIDs"), ssid_text),
     ])
     return build_html_tooltip(
@@ -1397,24 +1400,38 @@ def format_ap_tooltip(group, label, x, y, translations=None):
     bssids = format_tooltip_list(group.get("bssids", []))
     metadata = group.get("metadata") if isinstance(group.get("metadata"), dict) else {}
     rows = [
+        tooltip_section(tooltip_text(translations, "tooltip_section_identity", "Identity")),
         (tooltip_text(translations, "ap_alias_group", "AP Group"), group.get("group_id", "-")),
         (tooltip_text(translations, "ap_alias_value", "Alias"), label),
         (tooltip_text(translations, "ap_group_role", "Role"), format_ap_role_label(group, translations)),
-        ("x/y", f"{format_tooltip_scalar(x)}, {format_tooltip_scalar(y)}"),
         (tooltip_text(translations, "ap_alias_bssids", "BSSID"), bssids),
     ]
-    optional_rows = [
-        ("ap_alias_ssids", "Seen SSIDs", group.get("ssids", [])),
-        ("ap_alias_channels", "Channels", group.get("channels", [])),
-        ("ap_alias_bands", "Bands", group.get("bands", [])),
-        ("ap_group_metadata_vendor", "Vendor", metadata.get("vendor", "")),
-        ("ap_group_metadata_model", "Model", metadata.get("model", "")),
-        ("ap_group_metadata_mounting", "Mounting", metadata.get("mounting", "")),
+    rows.append(tooltip_section(tooltip_text(translations, "tooltip_section_position", "Position")))
+    rows.append(("x/y", f"{format_tooltip_scalar(x)}, {format_tooltip_scalar(y)}"))
+
+    radio_rows = [
+        (tooltip_text(translations, "ap_alias_ssids", "Seen SSIDs"), format_tooltip_list(group.get("ssids", []))),
+        (tooltip_text(translations, "ap_alias_channels", "Channels"), format_tooltip_list(group.get("channels", []))),
+        (tooltip_text(translations, "ap_alias_bands", "Bands"), format_tooltip_list(group.get("bands", []))),
     ]
-    for key, fallback, value in optional_rows:
-        formatted = format_tooltip_list(value)
-        if formatted != "-":
-            rows.append((tooltip_text(translations, key, fallback), formatted))
+    radio_rows = [row for row in radio_rows if row[1] != "-"]
+    if radio_rows:
+        rows.append(tooltip_section(tooltip_text(translations, "tooltip_section_radio", "Radio")))
+        rows.extend(radio_rows)
+
+    metadata_rows = [
+        (tooltip_text(translations, "ap_group_metadata_vendor", "Vendor"), format_tooltip_list(metadata.get("vendor", ""))),
+        (tooltip_text(translations, "ap_group_metadata_model", "Model"), format_tooltip_list(metadata.get("model", ""))),
+        (tooltip_text(translations, "ap_group_metadata_mounting", "Mounting"), format_tooltip_list(metadata.get("mounting", ""))),
+        (tooltip_text(translations, "ap_group_metadata_expected_bands", "Expected Bands"), format_tooltip_list(metadata.get("expected_bands", ""))),
+        (tooltip_text(translations, "ap_group_metadata_expected_channels", "Expected Channels"), format_tooltip_list(metadata.get("expected_channels", ""))),
+        (tooltip_text(translations, "ap_group_metadata_coverage_scope", "Coverage Scope"), format_tooltip_list(metadata.get("coverage_scope", ""))),
+        (tooltip_text(translations, "ap_group_metadata_coverage_radius", "Coverage Radius"), format_tooltip_list(metadata.get("coverage_radius_m", ""))),
+    ]
+    metadata_rows = [row for row in metadata_rows if row[1] != "-"]
+    if metadata_rows:
+        rows.append(tooltip_section(tooltip_text(translations, "tooltip_section_metadata", "Metadata")))
+        rows.extend(metadata_rows)
 
     return build_html_tooltip(
         tooltip_text(translations, "wifi_ap_tooltip_title", "Wi-Fi AP"),

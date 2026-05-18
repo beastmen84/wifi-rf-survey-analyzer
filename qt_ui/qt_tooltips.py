@@ -4,13 +4,27 @@ import html
 
 
 TOOLTIP_LONG_VALUE_LIMIT = 72
+TOOLTIP_SECTION_KEY = "_tooltip_section"
 
 
 def build_html_tooltip(title, rows, accent):
     safe_title = html.escape(str(title or "-"))
     safe_accent = html.escape(str(accent or "#444444"))
     body_rows = []
-    for label, value in rows:
+    for row in rows:
+        if is_tooltip_section(row):
+            safe_section = html.escape(str(row.get(TOOLTIP_SECTION_KEY) or "-"))
+            border = "border-top:1px solid #e5e7eb;" if body_rows else ""
+            body_rows.append(
+                "<tr>"
+                f"<td colspan='2' style='padding:7px 0 3px 0;{border}"
+                "color:#374151;font-size:8.5pt;font-weight:700;'>"
+                f"{safe_section}</td>"
+                "</tr>"
+            )
+            continue
+
+        label, value = row
         safe_label = html.escape(str(label or "-"))
         safe_value = format_tooltip_value(value)
         if should_stack_tooltip_value(value):
@@ -47,6 +61,14 @@ def build_html_tooltip(title, rows, accent):
         f"{''.join(body_rows)}"
         "</table></div>"
     )
+
+
+def tooltip_section(title):
+    return {TOOLTIP_SECTION_KEY: title}
+
+
+def is_tooltip_section(row):
+    return isinstance(row, dict) and TOOLTIP_SECTION_KEY in row
 
 
 def format_tooltip_value(value):

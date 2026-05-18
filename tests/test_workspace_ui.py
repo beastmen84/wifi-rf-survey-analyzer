@@ -169,6 +169,20 @@ class SettingsMenuTests(unittest.TestCase):
 
             window.floorplan_view.set_zoom(2.5)
             self.assertEqual(window.survey_zoom_label.text(), "Survey Zoom: 250%")
+
+            window.tabs.setCurrentIndex(1)
+            self.assertEqual(window.survey_zoom_label.text(), "Live Map Zoom: -")
+            window.live_view.set_payload({
+                "image": Image.new("RGB", (400, 300), "white"),
+                "point_infos": [],
+                "scale_payload": None,
+            })
+            self.assertRegex(window.survey_zoom_label.text(), r"^Live Map Zoom: \d+%$")
+            window.live_view.set_zoom(1.75)
+            self.assertEqual(window.survey_zoom_label.text(), "Live Map Zoom: 175%")
+
+            window.tabs.setCurrentIndex(0)
+            self.assertEqual(window.survey_zoom_label.text(), "Survey Zoom: 250%")
         finally:
             window.deleteLater()
             os.remove(floorplan_path)

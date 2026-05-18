@@ -1108,7 +1108,9 @@ class WifiHeatmapQtApp(
         live_view_layout.setContentsMargins(0, 0, 0, 0)
         live_view_layout.setSpacing(0)
         self.live_view = LiveMapView()
+        self.live_view.set_focus_marker_zoom_percent(self.focus_point_zoom_percent)
         self.live_view.backgroundClicked.connect(self.clear_live_marker_selection)
+        self.live_view.zoomChanged.connect(self.update_survey_zoom_label)
         live_view_layout.addWidget(self.live_view)
         self.build_live_options_overlay()
         self.live_splitter.addWidget(self.live_view_container)
@@ -1931,12 +1933,19 @@ class WifiHeatmapQtApp(
         if not hasattr(self, "survey_zoom_label"):
             return
 
+        if hasattr(self, "tabs") and self.tabs.currentIndex() == 1:
+            if getattr(self.live_view, "pixmap_item", None) is None:
+                self.survey_zoom_label.setText(self.tr("live_zoom_empty"))
+                return
+
+            self.survey_zoom_label.setText(self.tr("live_zoom", zoom=self.live_view.zoom_level))
+            return
+
         if not self.floorplan_view.has_floorplan():
             self.survey_zoom_label.setText(self.tr("survey_zoom_empty"))
             return
 
-        zoom_value = self.floorplan_view.zoom_level if zoom is None else float(zoom)
-        self.survey_zoom_label.setText(self.tr("survey_zoom", zoom=zoom_value))
+        self.survey_zoom_label.setText(self.tr("survey_zoom", zoom=self.floorplan_view.zoom_level))
 
     def open_quality_dashboard(self):
         if self.session is None:

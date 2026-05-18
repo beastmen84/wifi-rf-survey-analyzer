@@ -2,7 +2,7 @@ from tests._common import *
 import exporting.live_pdf as live_pdf_module
 from exporting.reports import build_dominant_problem_report_pages
 from maps.rendering import get_channel_color
-from qt_ui.qt_tooltips import build_html_tooltip
+from qt_ui.qt_tooltips import build_html_tooltip, tooltip_section
 
 class LiveMapDataLogicTests(unittest.TestCase):
     def test_map_config_normalizes_interference_without_changing_other_maps(self):
@@ -277,6 +277,8 @@ class FloorplanViewTests(unittest.TestCase):
         self.assertIn("-61 dBm", tooltip)
         self.assertIn("Quality", tooltip)
         self.assertIn("Signal Scope", tooltip)
+        self.assertIn("Location", tooltip)
+        self.assertIn("Networks", tooltip)
         self.assertIn("Relevant Networks", tooltip)
         self.assertIn("2/4 relevant", tooltip)
         self.assertIn("Guest &lt;wifi&gt;", tooltip)
@@ -299,6 +301,9 @@ class FloorplanViewTests(unittest.TestCase):
 
         self.assertIn("<table", tooltip)
         self.assertIn("Wi-Fi AP", tooltip)
+        self.assertIn("Identity", tooltip)
+        self.assertIn("Radio", tooltip)
+        self.assertIn("Metadata", tooltip)
         self.assertIn("Office AP", tooltip)
         self.assertIn("External", tooltip)
         self.assertIn("70:4f:57:aa:bb:10", tooltip)
@@ -309,7 +314,9 @@ class FloorplanViewTests(unittest.TestCase):
         tooltip = build_html_tooltip(
             "Signal coverage",
             [
+                tooltip_section("Evidence"),
                 ("Signal", "-55 dBm"),
+                tooltip_section("Diagnostics"),
                 (
                     "Channel Change",
                     "This is a deliberately long diagnostic value that should be stacked "
@@ -323,6 +330,8 @@ class FloorplanViewTests(unittest.TestCase):
         self.assertIn("<table", tooltip)
         self.assertIn("valign='top'", tooltip)
         self.assertIn("colspan='2'", tooltip)
+        self.assertIn("Evidence", tooltip)
+        self.assertIn("border-top:1px solid", tooltip)
         self.assertIn("Channel Change", tooltip)
 
     def test_ap_marker_keeps_high_resolution_source_pixmap(self):
@@ -1278,11 +1287,48 @@ class LiveMapViewTests(unittest.TestCase):
             self.assertTrue(view.highlight_marker("p2"))
             self.assertIsNotNone(view.marker_highlight_item)
             self.assertEqual(view.marker_highlight_item.pos(), view.marker_items_by_id["p2"].scenePos())
+            view.set_zoom(0.5)
             self.assertTrue(view.focus_marker("p1"))
+            self.assertGreaterEqual(view.zoom_level, view.focus_target_zoom_level())
             self.assertEqual(view.marker_highlight_item.pos(), view.marker_items_by_id["p1"].scenePos())
             self.assertFalse(view.highlight_marker("missing"))
         finally:
             view.deleteLater()
+
+    def test_live_ap_marker_tooltip_matches_survey_ap_layout(self):
+        infos = build_ap_position_marker_infos(
+            [
+                build_manual_ap_group(
+                    "office-ap",
+                    ["70:4f:57:aa:bb:10"],
+                    alias="Office AP",
+                    position={"x": 20, "y": 30},
+                    metadata={"expected_bands": "5", "expected_channels": "36"},
+                )
+            ],
+            {},
+            {
+                "wifi_ap_tooltip_title": "Wi-Fi AP",
+                "ap_alias_group": "AP Group",
+                "ap_alias_value": "Alias",
+                "ap_group_role": "Role",
+                "ap_group_role_internal": "Internal",
+                "ap_alias_bssids": "BSSID",
+                "ap_group_metadata_expected_bands": "Expected Bands",
+                "ap_group_metadata_expected_channels": "Expected Channels",
+                "tooltip_section_identity": "Identity",
+                "tooltip_section_position": "Position",
+                "tooltip_section_metadata": "Metadata",
+            },
+        )
+
+        tooltip = infos[0]["tooltip"]
+        self.assertIn("Wi-Fi AP", tooltip)
+        self.assertIn("Identity", tooltip)
+        self.assertIn("Position", tooltip)
+        self.assertIn("Metadata", tooltip)
+        self.assertIn("Office AP", tooltip)
+        self.assertIn("70:4f:57:aa:bb:10", tooltip)
 
     def test_live_background_click_emits_only_outside_point_markers(self):
         view = LiveMapView()
