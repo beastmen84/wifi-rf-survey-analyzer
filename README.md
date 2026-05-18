@@ -12,7 +12,7 @@ physical APs, review survey quality, and export explainable RF maps.
 ## Download
 
 - **Download latest release:** use the
-  [GitHub Releases page](https://github.com/beastmen84/wifi_heatmap/releases/latest).
+  [GitHub Releases page](https://github.com/beastmen84/wifi-rf-survey-analyzer/releases/latest).
 - **Windows build available:** public ZIP builds expose
   `WiFiRFSurveyAnalyzer.exe`; older beta artifacts may still contain the
   historical `WifiHeatmap.exe` name.
