@@ -20,9 +20,14 @@ from app_core.version import (
     format_versioned_title,
     get_app_icon_path,
 )
-from PySide6.QtWidgets import QLabel, QPushButton
+from PySide6.QtWidgets import QLabel, QPushButton, QTreeWidgetItem
 from survey.store import write_raw_scan_file, write_survey_file
-from qt_ui.qt_help_dialog import build_help_html, build_help_sections, help_palette
+from qt_ui.qt_help_dialog import (
+    build_help_html,
+    build_help_sections,
+    help_palette,
+    style_help_navigation_item,
+)
 from qt_ui.qt_point_workflow import MissingRelevantNetworksDialog, PointCaptureMixin
 from qt_ui.qt_settings_memory import confirm_clear_ap_memory
 from translations.i18n import SUPPORTED_LANGUAGES
@@ -452,6 +457,26 @@ class SettingsMenuTests(unittest.TestCase):
             self.assertIn('<table class="callout-table" width="100%" cellspacing="0" cellpadding="0">', survey_html)
             self.assertIn('class="callout-accent-good" width="6">&nbsp;</td>', survey_html)
             self.assertNotIn("class=\"pill\"", survey_html)
+        finally:
+            window.deleteLater()
+
+    def test_help_navigation_distinguishes_sections_from_subsections(self):
+        window = WifiHeatmapQtApp()
+        try:
+            section_item = QTreeWidgetItem(["Survey And Scans"])
+            subsection_item = QTreeWidgetItem(["Point Table Actions"])
+
+            style_help_navigation_item(section_item, window, is_section=True)
+            style_help_navigation_item(subsection_item, window, is_section=False)
+
+            self.assertTrue(section_item.font(0).bold())
+            self.assertFalse(subsection_item.font(0).bold())
+            self.assertGreater(section_item.font(0).pointSizeF(), subsection_item.font(0).pointSizeF())
+            self.assertGreater(section_item.sizeHint(0).height(), subsection_item.sizeHint(0).height())
+            self.assertEqual(
+                section_item.textAlignment(0),
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+            )
         finally:
             window.deleteLater()
 

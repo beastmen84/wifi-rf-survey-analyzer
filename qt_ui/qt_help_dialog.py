@@ -5,7 +5,8 @@ from dataclasses import dataclass
 from html import escape, unescape
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QDialog,
     QSplitter,
@@ -87,10 +88,12 @@ def open_qt_help_dialog(parent, tr):
     for index, section in enumerate(sections):
         item = QTreeWidgetItem([section.nav_title])
         item.setData(0, Qt.ItemDataRole.UserRole, (index, ""))
+        style_help_navigation_item(item, parent, is_section=True)
         navigation.addTopLevelItem(item)
         for subsection in section.subsections:
             child = QTreeWidgetItem([subsection.title])
             child.setData(0, Qt.ItemDataRole.UserRole, (index, subsection.anchor))
+            style_help_navigation_item(child, parent, is_section=False)
             item.addChild(child)
 
     def collapse_other_sections(selected_item):
@@ -212,6 +215,15 @@ def build_help_sections(parent, tr):
             tr("help_glossary_body"),
         ),
     ]
+
+
+def style_help_navigation_item(item, parent, is_section):
+    font = QFont("Segoe UI")
+    font.setPointSizeF(widget_font(parent, 10.8 if is_section else 9.5))
+    font.setBold(is_section)
+    item.setFont(0, font)
+    item.setTextAlignment(0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+    item.setSizeHint(0, QSize(0, widget_px(parent, 34 if is_section else 27)))
 
 
 def build_help_section(key, nav_title, title, subtitle, body_html):

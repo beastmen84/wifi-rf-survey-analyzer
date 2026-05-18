@@ -6,6 +6,15 @@ The project uses semantic public release tags. `V2` is the internal survey and
 architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 `v0.9.0-beta.2`, and later `v1.0.0`.
 
+## Unreleased
+
+### Added
+
+### Fixed / Changed
+
+- Help Center navigation now visually separates main pages from subsection
+  anchors, making the content list easier to scan on dense Help pages.
+
 ## v0.9.7-beta.1 - 2026-05-18
 
 ### Added
