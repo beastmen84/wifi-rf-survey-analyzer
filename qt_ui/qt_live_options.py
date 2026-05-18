@@ -344,11 +344,12 @@ class LiveOptionsMixin:
             ssids = self.session.get_ssids()
 
         current_ssid = self.live_ssid_combo.currentText().strip()
+        preferred_ssid = self.preferred_live_ssid(ssids, current_ssid=current_ssid)
         self.live_ssid_combo.blockSignals(True)
         self.live_ssid_combo.clear()
         self.live_ssid_combo.addItems(ssids)
-        if current_ssid and current_ssid in ssids:
-            self.live_ssid_combo.setCurrentText(current_ssid)
+        if preferred_ssid and preferred_ssid in ssids:
+            self.live_ssid_combo.setCurrentText(preferred_ssid)
         elif ssids:
             self.live_ssid_combo.setCurrentIndex(0)
         self.live_ssid_combo.blockSignals(False)
@@ -380,6 +381,61 @@ class LiveOptionsMixin:
         if not can_render and not self.live_rendering:
             self.live_status_label.setText(self.tr("live_preview_empty"))
             self.clear_live_legend()
+
+    def preferred_live_ssid(self, ssids, current_ssid=""):
+        if not ssids:
+            return ""
+
+        ssids_by_key = {
+            str(ssid).strip().casefold(): str(ssid).strip()
+            for ssid in ssids
+            if str(ssid).strip()
+        }
+        current_key = str(current_ssid or "").strip().casefold()
+        if current_key in ssids_by_key:
+            return ssids_by_key[current_key]
+
+        connected_ssid = self.preferred_connected_live_ssid(ssids)
+        if connected_ssid:
+            return connected_ssid
+
+        relevant = {
+            str(ssid).strip().casefold()
+            for ssid in getattr(self, "relevant_ssids", set()) or []
+            if str(ssid).strip()
+        }
+        for ssid in ssids:
+            if str(ssid).strip().casefold() in relevant:
+                return ssid
+
+        return ssids[0]
+
+    def preferred_connected_live_ssid(self, ssids):
+        if self.session is None:
+            return ""
+
+        ssid_order = {
+            str(ssid).strip().casefold(): index
+            for index, ssid in enumerate(ssids)
+            if str(ssid).strip()
+        }
+        connected_counts = {}
+        for row in self.session.rows:
+            if not is_truthy_flag(row.get("is_connected")):
+                continue
+
+            key = str(row.get("ssid", "")).strip().casefold()
+            if key in ssid_order:
+                connected_counts[key] = connected_counts.get(key, 0) + 1
+
+        if not connected_counts:
+            return ""
+
+        best_key = max(
+            connected_counts,
+            key=lambda key: (connected_counts[key], -ssid_order.get(key, len(ssids))),
+        )
+        return str(ssids[ssid_order[best_key]]).strip()
 
     def can_use_live_controls(self, ssids=None):
         has_session = self.session is not None
@@ -596,6 +652,9 @@ class LiveOptionsMixin:
 
         if hasattr(self, "live_options_overlay"):
             QTimer.singleShot(0, self.position_live_options_overlay)
+
+def is_truthy_flag(value):
+    return str(value or "").strip().casefold() in {"1", "true", "yes", "y", "connected"}
 
 
 def estimate_adaptive_live_max_distance_px(rows, px_per_meter):

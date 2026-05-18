@@ -1908,6 +1908,57 @@ class WorkspaceLiveStateTests(unittest.TestCase):
         finally:
             window.deleteLater()
 
+    def test_live_ssid_defaults_to_connected_survey_network(self):
+        window = WifiHeatmapQtApp()
+        try:
+            session = SurveySession()
+            guest_row = build_row("p1", "AAA-Guest", "90:11:22:33:44:10", -55, 6)
+            connected_row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -45, 6)
+            other_row = build_row("p1", "ZZZ-Other", "80:11:22:33:44:10", -60, 6)
+            connected_row["is_connected"] = "1"
+            session.rows = [guest_row, connected_row, other_row]
+            window.session = session
+
+            window.refresh_live_controls()
+
+            self.assertEqual(window.live_ssid_combo.currentText(), "MAIN")
+        finally:
+            window.deleteLater()
+
+    def test_live_ssid_preserves_user_selection_over_connected_default(self):
+        window = WifiHeatmapQtApp()
+        try:
+            session = SurveySession()
+            guest_row = build_row("p1", "AAA-Guest", "90:11:22:33:44:10", -55, 6)
+            connected_row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -45, 6)
+            connected_row["is_connected"] = "1"
+            session.rows = [guest_row, connected_row]
+            window.session = session
+            window.live_ssid_combo.addItems(["AAA-Guest", "MAIN"])
+            window.live_ssid_combo.setCurrentText("AAA-Guest")
+
+            window.refresh_live_controls()
+
+            self.assertEqual(window.live_ssid_combo.currentText(), "AAA-Guest")
+        finally:
+            window.deleteLater()
+
+    def test_live_ssid_uses_relevant_network_without_connected_evidence(self):
+        window = WifiHeatmapQtApp()
+        try:
+            session = SurveySession()
+            guest_row = build_row("p1", "AAA-Guest", "90:11:22:33:44:10", -55, 6)
+            main_row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -45, 6)
+            session.rows = [guest_row, main_row]
+            window.session = session
+            window.relevant_ssids = {"MAIN"}
+
+            window.refresh_live_controls()
+
+            self.assertEqual(window.live_ssid_combo.currentText(), "MAIN")
+        finally:
+            window.deleteLater()
+
     def test_live_background_click_clears_legend_selection_and_marker_highlight(self):
         window = WifiHeatmapQtApp()
         try:
