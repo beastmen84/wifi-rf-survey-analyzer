@@ -51,6 +51,7 @@ from ap.groups import (
     build_default_manual_groups,
     build_manual_ap_group,
     is_local_coverage_metadata,
+    merge_auto_ap_group_fragments,
     merge_new_bssids_into_manual_groups,
     normalize_ap_metadata,
     serialize_ap_group_channel_overrides,

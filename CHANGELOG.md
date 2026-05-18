@@ -37,6 +37,9 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 - Survey point and Wi-Fi AP floorplan tooltips are now aligned with live map
   tooltip styling and terminology, including translated labels and clearer
   signal, scope, role and observed AP evidence rows.
+- AP Group refresh now auto-heals memory-applied `#2`/`#3` fragments when the
+  survey rows show they belong to the same automatic AP group, preventing AP
+  Memory from duplicating metadata across split physical APs.
 
 ## v0.9.7-beta.1 - 2026-05-18
 

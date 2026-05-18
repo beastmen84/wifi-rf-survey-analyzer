@@ -45,6 +45,8 @@ AP_COVERAGE_SCOPE_CHOICES = (
     AP_COVERAGE_SCOPE_GLOBAL,
     AP_COVERAGE_SCOPE_LOCAL,
 )
+AP_GROUP_FRAGMENT_SUFFIX_RE = re.compile(r"#\d+$")
+INCOMPATIBLE_AP_GROUP_VALUE = object()
 
 
 def normalize_bssid(bssid):
@@ -377,6 +379,153 @@ def merge_new_bssids_into_manual_groups(manual_groups, rows):
         assigned_bssids.update(new_bssids)
 
     return merged_groups
+
+
+def merge_auto_ap_group_fragments(manual_groups, rows):
+    auto_groups = {
+        group["group_id"]: set(group.get("bssids", []))
+        for group in build_default_manual_groups(rows)
+        if group.get("group_id")
+    }
+    if not auto_groups:
+        return list(manual_groups or [])
+
+    merge_plan = {}
+    consumed_indexes = set()
+    groups = list(manual_groups or [])
+    for auto_group_id, auto_bssids in auto_groups.items():
+        candidates = []
+        for index, group in enumerate(groups):
+            if index in consumed_indexes:
+                continue
+            group_bssids = set(group.get("bssids", []))
+            if not group_bssids:
+                continue
+            if base_ap_group_id(group.get("group_id", "")) != auto_group_id:
+                continue
+            if not group_bssids <= auto_bssids:
+                continue
+            candidates.append((index, group))
+
+        if len(candidates) < 2:
+            continue
+        if not any(group.get(AP_MEMORY_APPLIED_KEY) for _index, group in candidates):
+            continue
+
+        merged_group = merge_compatible_ap_group_fragments(auto_group_id, [group for _index, group in candidates])
+        if not merged_group:
+            continue
+
+        first_index = candidates[0][0]
+        merge_plan[first_index] = merged_group
+        consumed_indexes.update(index for index, _group in candidates[1:])
+
+    if not merge_plan:
+        return groups
+
+    merged_groups = []
+    for index, group in enumerate(groups):
+        if index in consumed_indexes:
+            continue
+        merged_groups.append(merge_plan.get(index, group))
+    return merged_groups
+
+
+def base_ap_group_id(group_id):
+    return AP_GROUP_FRAGMENT_SUFFIX_RE.sub("", str(group_id or "").strip())
+
+
+def merge_compatible_ap_group_fragments(group_id, groups):
+    alias = compatible_text_value(group.get("alias", "") for group in groups)
+    if alias is INCOMPATIBLE_AP_GROUP_VALUE:
+        return None
+
+    role = compatible_role_value(group.get("role") for group in groups)
+    if role is INCOMPATIBLE_AP_GROUP_VALUE:
+        return None
+
+    position = compatible_position_value(group.get("position") for group in groups)
+    if position is INCOMPATIBLE_AP_GROUP_VALUE:
+        return None
+
+    metadata = compatible_metadata_value(group.get("metadata") for group in groups)
+    if metadata is INCOMPATIBLE_AP_GROUP_VALUE:
+        return None
+
+    bssids = sorted({
+        normalize_bssid(bssid)
+        for group in groups
+        for bssid in group.get("bssids", [])
+        if normalize_bssid(bssid)
+    })
+    memory_applied = any(group.get(AP_MEMORY_APPLIED_KEY) for group in groups)
+    memory_applied_at = max(
+        (str(group.get(AP_MEMORY_APPLIED_AT_KEY, "")).strip() for group in groups),
+        default="",
+    )
+    memory_match_bssids = sorted({
+        normalize_bssid(bssid)
+        for group in groups
+        for bssid in group.get(AP_MEMORY_MATCH_BSSIDS_KEY, group.get("bssids", []))
+        if normalize_bssid(bssid)
+    })
+
+    return build_manual_ap_group(
+        group_id,
+        bssids,
+        alias=alias or "",
+        locked=any(group.get("locked") for group in groups),
+        position=position,
+        role=role,
+        metadata=metadata,
+        memory_applied=memory_applied,
+        memory_applied_at=memory_applied_at,
+        memory_match_bssids=memory_match_bssids,
+    )
+
+
+def compatible_text_value(values):
+    clean_values = {
+        str(value or "").strip()
+        for value in values
+        if str(value or "").strip()
+    }
+    if len(clean_values) > 1:
+        return INCOMPATIBLE_AP_GROUP_VALUE
+    return next(iter(clean_values), "")
+
+
+def compatible_role_value(values):
+    roles = {normalize_ap_role(value) for value in values if str(value or "").strip()}
+    if len(roles) > 1:
+        return INCOMPATIBLE_AP_GROUP_VALUE
+    return next(iter(roles), AP_ROLE_INTERNAL)
+
+
+def compatible_position_value(values):
+    positions = []
+    for value in values:
+        position = normalize_ap_position(value)
+        if position:
+            positions.append(position)
+    unique_positions = {
+        (position["x"], position["y"])
+        for position in positions
+    }
+    if len(unique_positions) > 1:
+        return INCOMPATIBLE_AP_GROUP_VALUE
+    return positions[0] if positions else None
+
+
+def compatible_metadata_value(values):
+    merged = {}
+    for value in values:
+        metadata = normalize_ap_metadata(value)
+        for field, field_value in metadata.items():
+            if field in merged and merged[field] != field_value:
+                return INCOMPATIBLE_AP_GROUP_VALUE
+            merged[field] = field_value
+    return merged
 
 
 def build_unique_group_id(group_id, existing_group_ids):

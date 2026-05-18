@@ -99,6 +99,119 @@ class ApGroupTests(unittest.TestCase):
             [existing_group_id, f"{existing_group_id}#2"],
         )
 
+    def test_merge_auto_ap_group_fragments_combines_memory_suffixed_groups(self):
+        base_group_id = "8c:b5:ee:cc:b*"
+        first_bssids = ["78:8c:b5:ee:cc:b3", "7a:8c:b5:ee:cc:b3"]
+        second_bssids = ["78:8c:b5:ee:cc:b2", "7a:8c:b5:ee:cc:b2"]
+        rows = [
+            build_row("p1", "MAIN", first_bssids[0], -54, 6),
+            build_row("p1", "GUEST", first_bssids[1], -55, 6),
+            build_row("p2", "MAIN", second_bssids[0], -56, 44),
+            build_row("p2", "GUEST", second_bssids[1], -57, 44),
+        ]
+        fragments = [
+            build_manual_ap_group(
+                base_group_id,
+                first_bssids,
+                alias="CORR. UFF. 4",
+                locked=True,
+                position={"x": 2469, "y": 331},
+                metadata={"expected_bands": "2.4, 5", "expected_channels": "6, 44"},
+                memory_applied=True,
+                memory_match_bssids=first_bssids,
+            ),
+            build_manual_ap_group(
+                f"{base_group_id}#2",
+                second_bssids,
+                alias="CORR. UFF. 4",
+                locked=True,
+                position={"x": 2469, "y": 331},
+                metadata={"expected_bands": "2.4, 5", "expected_channels": "6, 44"},
+                memory_applied=True,
+                memory_match_bssids=second_bssids,
+            ),
+        ]
+
+        merged = merge_auto_ap_group_fragments(fragments, rows)
+
+        self.assertEqual(len(merged), 1)
+        self.assertEqual(merged[0]["group_id"], base_group_id)
+        self.assertEqual(merged[0]["alias"], "CORR. UFF. 4")
+        self.assertEqual(merged[0]["position"], {"x": 2469, "y": 331})
+        self.assertEqual(merged[0]["metadata"]["expected_channels"], "6, 44")
+        self.assertTrue(merged[0][AP_MEMORY_APPLIED_KEY])
+        self.assertEqual(merged[0]["bssids"], sorted(first_bssids + second_bssids))
+
+    def test_merge_auto_ap_group_fragments_keeps_manual_splits_without_memory(self):
+        base_group_id = "8c:b5:ee:cc:b*"
+        first_bssids = ["78:8c:b5:ee:cc:b3", "7a:8c:b5:ee:cc:b3"]
+        second_bssids = ["78:8c:b5:ee:cc:b2", "7a:8c:b5:ee:cc:b2"]
+        rows = [
+            build_row("p1", "MAIN", first_bssids[0], -54, 6),
+            build_row("p1", "GUEST", first_bssids[1], -55, 6),
+            build_row("p2", "MAIN", second_bssids[0], -56, 44),
+            build_row("p2", "GUEST", second_bssids[1], -57, 44),
+        ]
+        groups = [
+            build_manual_ap_group(base_group_id, first_bssids, alias="AP 1", locked=True),
+            build_manual_ap_group(f"{base_group_id}#2", second_bssids, alias="AP 2", locked=True),
+        ]
+
+        merged = merge_auto_ap_group_fragments(groups, rows)
+
+        self.assertEqual([group["group_id"] for group in merged], [base_group_id, f"{base_group_id}#2"])
+        self.assertEqual([group["alias"] for group in merged], ["AP 1", "AP 2"])
+
+    def test_survey_refresh_heals_memory_applied_ap_group_fragments(self):
+        temp_dir = tempfile.TemporaryDirectory()
+        previous = os.environ.get("WIFI_HEATMAP_AP_MEMORY_FILE")
+        os.environ["WIFI_HEATMAP_AP_MEMORY_FILE"] = os.path.join(temp_dir.name, "ap_memory.memory")
+        ensure_ap_memory_file()
+        try:
+            base_group_id = "8c:b5:ee:cc:b*"
+            first_bssids = ["78:8c:b5:ee:cc:b3", "7a:8c:b5:ee:cc:b3"]
+            second_bssids = ["78:8c:b5:ee:cc:b2", "7a:8c:b5:ee:cc:b2"]
+            session = SurveySession()
+            session.rows = [
+                build_row("p1", "MAIN", first_bssids[0], -54, 6),
+                build_row("p1", "GUEST", first_bssids[1], -55, 6),
+                build_row("p2", "MAIN", second_bssids[0], -56, 44),
+                build_row("p2", "GUEST", second_bssids[1], -57, 44),
+            ]
+            session.set_ap_groups(
+                [
+                    build_manual_ap_group(
+                        base_group_id,
+                        first_bssids,
+                        alias="CORR. UFF. 4",
+                        metadata={"expected_channels": "6, 44"},
+                        memory_applied=True,
+                    ),
+                    build_manual_ap_group(
+                        f"{base_group_id}#2",
+                        second_bssids,
+                        alias="CORR. UFF. 4",
+                        metadata={"expected_channels": "6, 44"},
+                        memory_applied=True,
+                    ),
+                ],
+                update_memory=False,
+            )
+
+            self.assertTrue(session.refresh_ap_groups_from_rows(update_memory=False))
+
+            groups = session.get_ap_groups()
+            self.assertEqual(len(groups), 1)
+            self.assertEqual(groups[0]["group_id"], base_group_id)
+            self.assertEqual(groups[0]["bssids"], sorted(first_bssids + second_bssids))
+            self.assertEqual(groups[0]["alias"], "CORR. UFF. 4")
+        finally:
+            if previous is None:
+                os.environ.pop("WIFI_HEATMAP_AP_MEMORY_FILE", None)
+            else:
+                os.environ["WIFI_HEATMAP_AP_MEMORY_FILE"] = previous
+            temp_dir.cleanup()
+
     def test_ap_group_channel_override_map_reads_metadata(self):
         group = build_manual_ap_group(
             "office-ap",

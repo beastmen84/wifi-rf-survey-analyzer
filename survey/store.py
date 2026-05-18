@@ -29,6 +29,7 @@ from ap.groups import (
     AP_MEMORY_APPLIED_KEY,
     AP_MEMORY_MATCH_BSSIDS_KEY,
     build_default_manual_groups,
+    merge_auto_ap_group_fragments,
     merge_new_bssids_into_manual_groups,
     normalize_bssid,
     normalize_ap_metadata,
@@ -294,6 +295,7 @@ class SurveySession:
             self.rows,
             self.metadata.get("map_file", ""),
         )
+        groups = merge_auto_ap_group_fragments(groups, self.rows)
 
         return self.set_ap_groups(groups, update_memory=update_memory)
 
