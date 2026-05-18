@@ -4,8 +4,8 @@ import time
 from pathlib import Path
 
 try:
-    from PySide6.QtCore import QObject, QPoint, Qt, QThread, QTimer, Signal, Slot
-    from PySide6.QtGui import QCursor, QPixmap
+    from PySide6.QtCore import QObject, QPoint, QRectF, Qt, QThread, QTimer, Signal, Slot
+    from PySide6.QtGui import QColor, QCursor, QPainter, QPainterPath, QPen, QPixmap
     from PySide6.QtWidgets import (
         QApplication,
         QComboBox,
@@ -65,6 +65,25 @@ class AppImportWorker(QObject):
 
         log_event("qt app module import done", logger_name="startup")
         self.finished.emit(WifiHeatmapQtApp)
+
+
+class SettingsPopupPanel(QFrame):
+    def __init__(self, palette, radius, parent=None):
+        super().__init__(parent)
+        self.panel_color = QColor(palette["panel"])
+        self.border_color = QColor(palette["border"])
+        self.radius = radius
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        rect = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
+        path = QPainterPath()
+        path.addRoundedRect(rect, self.radius, self.radius)
+        painter.fillPath(path, self.panel_color)
+        painter.setPen(QPen(self.border_color, 1.0))
+        painter.drawPath(path)
 
 
 class StartWindow(QMainWindow):
@@ -346,7 +365,7 @@ class StartWindow(QMainWindow):
                 background: transparent;
                 border: 0;
             }}
-            QDialog#settingsMenuPanel, QWidget#settingsMenuPanel, QFrame#settingsMenuPanel {{
+            QDialog#settingsMenuPanel, QWidget#settingsMenuPanel {{
                 background: {palette["panel"]};
                 color: {palette["text"]};
                 border: 1px solid {palette["border"]};
@@ -525,12 +544,12 @@ class StartWindow(QMainWindow):
         dialog.setProperty(SKIP_CENTERING_PROPERTY, True)
         dialog.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         dialog.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
+        host_margin = self.spx(2)
         host_layout = QVBoxLayout(dialog)
-        host_layout.setContentsMargins(0, 0, 0, 0)
+        host_layout.setContentsMargins(host_margin, host_margin, host_margin, host_margin)
         host_layout.setSpacing(0)
-        panel = QFrame(dialog)
+        panel = SettingsPopupPanel(QT_THEMES.get(self.theme, QT_THEMES["light"]), self.spx(8), dialog)
         panel.setObjectName("settingsMenuPanel")
-        panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         host_layout.addWidget(panel)
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(self.spx(12), self.spx(10), self.spx(12), self.spx(10))
@@ -556,11 +575,14 @@ class StartWindow(QMainWindow):
 
         menu_width = self.spx(250)
         menu_gap = self.spx(8)
-        dialog.setMinimumWidth(menu_width)
+        dialog.setMinimumWidth(menu_width + (host_margin * 2))
         panel.setMinimumWidth(menu_width)
         dialog.adjustSize()
         position = self.settings_button.mapToGlobal(
-            QPoint(self.settings_button.width() - menu_width, self.settings_button.height() + menu_gap)
+            QPoint(
+                self.settings_button.width() - menu_width - host_margin,
+                self.settings_button.height() + menu_gap - host_margin,
+            )
         )
         dialog.move(position)
         try:

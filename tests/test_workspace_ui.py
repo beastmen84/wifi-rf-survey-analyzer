@@ -114,13 +114,14 @@ class SettingsMenuTests(unittest.TestCase):
             self.assertIsNotNone(panel)
             self.assertEqual(dialog.objectName(), "settingsMenuHost")
             self.assertTrue(dialog.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground))
-            self.assertTrue(panel.testAttribute(Qt.WidgetAttribute.WA_StyledBackground))
+            self.assertTrue(panel.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground))
+            host_margin = window.spx(2)
             self.assertEqual(
                 dialog.pos(),
                 window.settings_button.mapToGlobal(
                     QPoint(
-                        window.settings_button.width() - window.spx(250),
-                        window.settings_button.height() + window.spx(8),
+                        window.settings_button.width() - window.spx(250) - host_margin,
+                        window.settings_button.height() + window.spx(8) - host_margin,
                     )
                 ),
             )
