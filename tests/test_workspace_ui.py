@@ -517,6 +517,8 @@ class SettingsMenuTests(unittest.TestCase):
             self.assertIn("Responsible Use", sections[9].body_html)
             self.assertIn("MPL-2.0", sections[9].body_html)
             self.assertIn("THIRD_PARTY_LICENSES", sections[9].body_html)
+            self.assertNotIn('workflow-gap" width=', sections[9].body_html)
+            self.assertIn('workflow-vertical-gap" colspan="2"', sections[9].body_html)
 
             html = build_help_html(window, help_palette(window), sections[0])
             self.assertIn("Recommended Survey Workflow", html)

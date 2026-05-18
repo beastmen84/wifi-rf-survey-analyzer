@@ -1314,15 +1314,13 @@ TRANSLATIONS = {
         <h2>Application</h2>
         <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
             <tr>
-                <td class="workflow-card" width="49%"><b>Product</b><br>Wi-Fi RF Survey Analyzer</td>
-                <td class="workflow-gap" width="2%"></td>
-                <td class="workflow-card" width="49%"><b>Version</b><br>{version}</td>
+                <td class="workflow-card"><b>Product</b><br>Wi-Fi RF Survey Analyzer</td>
+                <td class="workflow-card"><b>Version</b><br>{version}</td>
             </tr>
-            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr><td class="workflow-vertical-gap" colspan="2"></td></tr>
             <tr>
-                <td class="workflow-card" width="49%"><b>Copyright</b><br>{copyright}</td>
-                <td class="workflow-gap" width="2%"></td>
-                <td class="workflow-card" width="49%"><b>License</b><br>{license_name} (<code>{license_id}</code>)<br>{license_url}</td>
+                <td class="workflow-card"><b>Copyright</b><br>{copyright}</td>
+                <td class="workflow-card"><b>License</b><br>{license_name} (<code>{license_id}</code>)<br>{license_url}</td>
             </tr>
         </table>
         <h2>Responsible Use</h2>
