@@ -917,8 +917,9 @@ class LiveMapViewTests(unittest.TestCase):
                 "reference_ap": "AP",
                 "reference_channel": "Channel",
                 "ap_group_role": "Role",
-                "best": "Best",
-                "confidence": "Confidence",
+                "signal": "Signal",
+                "samples": "Samples",
+                "scan_confidence": "Confidence",
                 "channel_change": "Channel Change",
                 "channel_change_note": "{ap} changed channel during the survey ({channels} -> {current}); channel-sensitive maps use current channel {current}.",
             },
@@ -931,6 +932,13 @@ class LiveMapViewTests(unittest.TestCase):
         )
         self.assertIn("Channel Change", payload["point_infos"][0]["tooltip"])
         self.assertIn("36 -&gt; 44", payload["point_infos"][0]["tooltip"])
+        self.assertIn("Signal", payload["point_infos"][0]["tooltip"])
+        self.assertIn("-50 dBm", payload["point_infos"][0]["tooltip"])
+        self.assertIn("Samples", payload["point_infos"][0]["tooltip"])
+        self.assertIn("5/5", payload["point_infos"][0]["tooltip"])
+        self.assertIn("Confidence", payload["point_infos"][0]["tooltip"])
+        self.assertIn("100%", payload["point_infos"][0]["tooltip"])
+        self.assertIn("CH 44 / 20 MHz / 5 GHz", payload["point_infos"][0]["tooltip"])
 
     def test_live_channel_payload_reports_manual_channel_override_in_tooltip(self):
         bssid = "70:4f:57:aa:bb:10"
@@ -958,8 +966,9 @@ class LiveMapViewTests(unittest.TestCase):
                 "reference_ap": "AP",
                 "reference_channel": "Channel",
                 "ap_group_role": "Role",
-                "best": "Best",
-                "confidence": "Confidence",
+                "signal": "Signal",
+                "samples": "Samples",
+                "scan_confidence": "Confidence",
                 "channel_change": "Channel Change",
                 "channel_change_manual_note": "{ap} uses manual analysis channel {current}; observed channels: {channels}.",
             },

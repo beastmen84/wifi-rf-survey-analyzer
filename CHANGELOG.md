@@ -28,6 +28,9 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 - AP Interference point tooltips now show confidence, serving/interferer
   signal, channel band context, overlap percentage and meaningful contributor
   or ignored-AP counts when available.
+- AP Channels point tooltips now use the same readable evidence format as the
+  other live maps, including signal, samples, confidence and channel band
+  context.
 
 ## v0.9.7-beta.1 - 2026-05-18
 

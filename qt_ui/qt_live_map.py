@@ -1047,10 +1047,18 @@ def build_channel_tooltip(row, config, translations, aliases):
         (translations.get("ap_group_role", "Role"), format_ap_role(row.get("ap_role"), translations)),
         (
             translations.get("reference_channel", "Channel"),
-            format_channel_with_width(row.get("channel"), row.get("channel_width_mhz")),
+            format_channel_with_width_and_band(
+                row.get("channel"),
+                row.get("channel_width_mhz"),
+                row.get("band", ""),
+            ),
         ),
-        (translations.get("best", "Best"), f"{format_value(row.get('signal_dbm'))} dBm"),
-        (translations.get("confidence", "confidence"), format_row_confidence(row)),
+        (translations.get("signal", "Signal"), format_dbm_value(row.get("signal_dbm"))),
+        (translations.get("samples", "Samples"), format_coverage_samples(row)),
+        (
+            translations.get("scan_confidence", "Confidence"),
+            format_scan_confidence_percent(row.get("scan_confidence", "")),
+        ),
     ]
     channel_change_note = build_single_channel_change_note(
         row,
@@ -1243,16 +1251,6 @@ def format_interference_ignored_counts(row, translations):
 
 def format_ap_role(role, translations):
     return translations.get(f"ap_group_role_{normalize_ap_role(role)}", str(role or "-"))
-
-
-def format_row_confidence(row):
-    samples_seen = format_value(row.get("samples_seen", ""))
-    samples_total = format_value(row.get("samples_total", ""))
-    confidence = format_value(row.get("scan_confidence", ""))
-    if samples_seen == "-" or samples_total == "-":
-        return "-"
-    suffix = f" ({confidence})" if confidence != "-" else ""
-    return f"{samples_seen}/{samples_total}{suffix}"
 
 
 def format_named_confidence(row, prefix):
