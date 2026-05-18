@@ -107,6 +107,7 @@ class SettingsMenuTests(unittest.TestCase):
                 [window.tr("theme"), window.tr("ui_scale"), window.tr("language")],
             )
             self.assertTrue(panel.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground))
+            self.assertIsNotNone(panel.graphicsEffect())
             self.assertEqual(
                 panel.pos(),
                 window.settings_button.mapTo(
@@ -211,7 +212,7 @@ class SettingsMenuTests(unittest.TestCase):
                 if label.objectName() == "settingsMenuLabel"
             ]
             section_labels = [
-                label.text()
+                label
                 for label in panel.findChildren(QLabel)
                 if label.objectName() == "settingsMenuSectionLabel"
             ]
@@ -226,10 +227,13 @@ class SettingsMenuTests(unittest.TestCase):
                 ],
             )
             self.assertEqual(
-                section_labels,
+                [label.text() for label in section_labels],
                 [window.tr("workspace_settings_section"), window.tr("ap_memory_settings_title")],
             )
+            for label in section_labels:
+                self.assertEqual(label.alignment(), Qt.AlignmentFlag.AlignCenter)
             self.assertTrue(panel.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground))
+            self.assertIsNotNone(panel.graphicsEffect())
             self.assertEqual(
                 panel.pos(),
                 window.settings_menu_button.mapTo(

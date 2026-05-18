@@ -2,7 +2,7 @@
 
 from PySide6.QtCore import QRectF, Qt
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
-from PySide6.QtWidgets import QFrame
+from PySide6.QtWidgets import QFrame, QGraphicsDropShadowEffect
 
 
 class SettingsPopupPanel(QFrame):
@@ -12,6 +12,13 @@ class SettingsPopupPanel(QFrame):
         self.border_color = QColor(palette["border"])
         self.radius = radius
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.shadow_effect = QGraphicsDropShadowEffect(self)
+        self.shadow_effect.setBlurRadius(14)
+        self.shadow_effect.setOffset(0, 3)
+        shadow_color = QColor(15, 23, 42)
+        shadow_color.setAlpha(42)
+        self.shadow_effect.setColor(shadow_color)
+        self.setGraphicsEffect(self.shadow_effect)
 
     def paintEvent(self, event):
         painter = QPainter(self)

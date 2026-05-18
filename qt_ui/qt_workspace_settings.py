@@ -306,6 +306,7 @@ class WorkspaceSettingsMixin:
 
         title = QLabel(title_text)
         title.setObjectName("settingsMenuSectionLabel")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
 
     def ui_scale_items(self):

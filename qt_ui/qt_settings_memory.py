@@ -1,6 +1,6 @@
 """Shared AP Memory actions for Qt settings popups."""
 
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QFrame, QLabel, QMessageBox, QPushButton
 
@@ -16,6 +16,7 @@ def add_ap_memory_settings_section(owner, layout):
 
     title = QLabel(owner.tr("ap_memory_settings_title"))
     title.setObjectName("settingsMenuSectionLabel")
+    title.setAlignment(Qt.AlignmentFlag.AlignCenter)
     layout.addWidget(title)
 
     open_button = QPushButton(owner.tr("open_memory_folder"))
