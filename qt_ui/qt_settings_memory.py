@@ -15,7 +15,7 @@ def add_ap_memory_settings_section(owner, layout):
     layout.addWidget(separator)
 
     title = QLabel(owner.tr("ap_memory_settings_title"))
-    title.setObjectName("settingsMenuLabel")
+    title.setObjectName("settingsMenuSectionLabel")
     layout.addWidget(title)
 
     open_button = QPushButton(owner.tr("open_memory_folder"))

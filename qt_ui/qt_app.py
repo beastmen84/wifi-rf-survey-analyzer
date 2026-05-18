@@ -1289,6 +1289,13 @@ class WifiHeatmapQtApp(
                 color: {palette["muted"]};
                 font-weight: 700;
             }}
+            QLabel#settingsMenuSectionLabel {{
+                color: {palette["metric_info"]};
+                font-size: {font(10.0)}pt;
+                font-weight: 800;
+                text-transform: uppercase;
+                padding-top: {s(2)}px;
+            }}
             QFrame#settingsMenuSeparator {{
                 background: {palette["border"]};
                 border: 0;
