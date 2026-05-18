@@ -20,7 +20,7 @@ from app_core.version import (
     format_versioned_title,
     get_app_icon_path,
 )
-from PySide6.QtWidgets import QFrame, QLabel, QPushButton
+from PySide6.QtWidgets import QLabel, QPushButton
 from survey.store import write_raw_scan_file, write_survey_file
 from qt_ui.qt_help_dialog import build_help_html, build_help_sections, help_palette
 from qt_ui.qt_point_workflow import MissingRelevantNetworksDialog, PointCaptureMixin
@@ -87,47 +87,40 @@ class SettingsMenuTests(unittest.TestCase):
     def test_start_page_settings_are_app_appearance_only(self):
         from qt_ui.qt_startup import StartWindow
 
-        captured_labels = []
-        captured_dialogs = []
-
-        def capture_settings_labels(dialog):
-            captured_dialogs.append(dialog)
-            captured_labels.extend(
-                label.text()
-                for label in dialog.findChildren(QLabel)
-                if label.objectName() == "settingsMenuLabel"
-            )
-            return 0
-
         with patch("qt_ui.qt_startup.QTimer.singleShot"):
             window = StartWindow()
         try:
-            with patch("qt_ui.qt_startup.QDialog.exec", new=capture_settings_labels):
-                window.open_settings_menu()
+            window.show()
+            QApplication.processEvents()
+            window.open_settings_menu()
 
+            panel = window.settings_menu_panel
+            self.assertIsNotNone(panel)
+            self.assertTrue(panel.isVisible())
+            captured_labels = [
+                label.text()
+                for label in panel.findChildren(QLabel)
+                if label.objectName() == "settingsMenuLabel"
+            ]
             self.assertEqual(
                 captured_labels,
                 [window.tr("theme"), window.tr("ui_scale"), window.tr("language")],
             )
-            dialog = captured_dialogs[0]
-            panel = dialog.findChild(QFrame, "settingsMenuPanel")
-            self.assertIsNotNone(panel)
-            self.assertEqual(dialog.objectName(), "settingsMenuHost")
-            self.assertTrue(dialog.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground))
             self.assertTrue(panel.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground))
-            host_margin = window.spx(2)
             self.assertEqual(
-                dialog.pos(),
-                window.settings_button.mapToGlobal(
+                panel.pos(),
+                window.settings_button.mapTo(
+                    window.centralWidget(),
                     QPoint(
-                        window.settings_button.width() - window.spx(250) - host_margin,
-                        window.settings_button.height() + window.spx(8) - host_margin,
+                        window.settings_button.width() - window.spx(250),
+                        window.settings_button.height() + window.spx(8),
                     )
                 ),
             )
             self.assertFalse(hasattr(window, "measurement_system"))
             self.assertFalse(hasattr(window, "focus_point_zoom_percent"))
         finally:
+            window.close_settings_menu()
             window.deleteLater()
 
     def test_workspace_footer_shows_ap_memory_status(self):
