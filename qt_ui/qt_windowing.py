@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app_core.logging import log_event
 from qt_ui.qt_theme import QT_THEMES, build_scrollbar_stylesheet
 
 
@@ -130,14 +131,25 @@ def get_centered_save_file_name(parent, caption, directory, name_filter):
 
 
 def run_centered_file_dialog(parent, caption, directory, name_filter, accept_mode, file_mode):
-    dialog = QFileDialog(parent, caption, directory, name_filter)
+    initial_directory = str(directory or "").strip()
+    dialog = QFileDialog(parent, caption, initial_directory, name_filter)
     dialog.setObjectName(FILE_DIALOG_OBJECT_NAME)
     dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
+    if initial_directory:
+        dialog.setDirectory(initial_directory)
     dialog.setAcceptMode(accept_mode)
     dialog.setFileMode(file_mode)
     dialog.setModal(True)
     apply_file_dialog_tuning(dialog, parent)
     QTimer.singleShot(0, lambda current_dialog=dialog: tune_file_dialog_views(current_dialog))
+    log_event(
+        (
+            f"file dialog opened caption={caption!r} "
+            f"initial_directory={initial_directory or '<default>'} "
+            f"actual_directory={dialog.directory().absolutePath()}"
+        ),
+        logger_name="ui",
+    )
 
     if dialog.exec() != QDialog.DialogCode.Accepted:
         return "", ""
