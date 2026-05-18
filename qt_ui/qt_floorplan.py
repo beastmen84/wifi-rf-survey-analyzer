@@ -412,15 +412,15 @@ class FloorplanView(QGraphicsView):
             return False
 
         point = self.clamp_boundaries_point(QPointF(float(x), float(y)))
-        changed = self.apply_boundaries_polyline([point], cap_endpoints=True)
+        changed = self.apply_boundaries_polyline([point])
         if changed and refresh:
             self.refresh_boundaries_mask_after_change()
         return changed
 
     def apply_boundaries_segment(self, start_point, end_point):
-        return self.apply_boundaries_polyline([start_point, end_point], cap_endpoints=True)
+        return self.apply_boundaries_polyline([start_point, end_point])
 
-    def apply_boundaries_polyline(self, points, cap_endpoints=True):
+    def apply_boundaries_polyline(self, points):
         if not points:
             return False
         clamped_points = [
@@ -441,7 +441,11 @@ class FloorplanView(QGraphicsView):
                 255,
             )
 
-        draw_points = self.simplify_boundaries_polyline(clamped_points)
+        draw_points = (
+            self.filtered_boundaries_polyline(clamped_points)
+            if self.boundaries_shape == "square"
+            else clamped_points
+        )
         start_point = draw_points[0]
         dirty_rect = self.boundaries_points_dirty_rect(clamped_points)
         is_point_stroke = len(draw_points) == 1 or all(
@@ -456,24 +460,19 @@ class FloorplanView(QGraphicsView):
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QBrush(color))
             self.draw_boundaries_brush_shape(painter, start_point)
+        elif self.boundaries_shape == "square":
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QBrush(color))
+            self.draw_boundaries_square_polyline(painter, draw_points)
         else:
             path = QPainterPath(start_point)
             for point in draw_points[1:]:
                 path.lineTo(point)
             pen = QPen(color, self.boundaries_brush_size_px)
-            if self.boundaries_shape == "square":
-                pen.setCapStyle(Qt.PenCapStyle.FlatCap)
-                pen.setJoinStyle(Qt.PenJoinStyle.BevelJoin)
-            else:
-                pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-                pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+            pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+            pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
             painter.setPen(pen)
             painter.drawPath(path)
-            if self.boundaries_shape == "square" and cap_endpoints:
-                painter.setPen(Qt.PenStyle.NoPen)
-                painter.setBrush(QBrush(color))
-                self.draw_boundaries_brush_shape(painter, draw_points[0])
-                self.draw_boundaries_brush_shape(painter, draw_points[-1])
         painter.end()
         self.boundaries_mask_dirty_rect = dirty_rect
         return True
@@ -491,55 +490,76 @@ class FloorplanView(QGraphicsView):
         else:
             painter.drawEllipse(rect)
 
-    def simplify_boundaries_polyline(self, points):
-        if self.boundaries_shape != "square" or len(points) <= 2:
+    def filtered_boundaries_polyline(self, points):
+        if len(points) <= 1:
             return points
 
-        tolerance = max(1.0, self.boundaries_brush_size_px * 0.12)
-        keep_indexes = {0, len(points) - 1}
-        stack = [(0, len(points) - 1)]
-        while stack:
-            start_index, end_index = stack.pop()
-            if end_index - start_index <= 1:
-                continue
-
-            start_point = points[start_index]
-            end_point = points[end_index]
-            farthest_index = None
-            farthest_distance = 0.0
-            for index in range(start_index + 1, end_index):
-                distance = self.point_to_segment_distance(
-                    points[index],
-                    start_point,
-                    end_point,
+        filtered_points = [points[0]]
+        for point in points[1:]:
+            previous_point = filtered_points[-1]
+            if (
+                math.hypot(
+                    point.x() - previous_point.x(),
+                    point.y() - previous_point.y(),
                 )
-                if distance > farthest_distance:
-                    farthest_distance = distance
-                    farthest_index = index
-
-            if farthest_index is not None and farthest_distance > tolerance:
-                keep_indexes.add(farthest_index)
-                stack.append((start_index, farthest_index))
-                stack.append((farthest_index, end_index))
-
-        return [points[index] for index in sorted(keep_indexes)]
+                >= 0.25
+            ):
+                filtered_points.append(point)
+        return filtered_points
 
     @staticmethod
-    def point_to_segment_distance(point, start_point, end_point):
-        dx = end_point.x() - start_point.x()
-        dy = end_point.y() - start_point.y()
-        length_squared = dx * dx + dy * dy
-        if length_squared <= 0:
-            return math.hypot(point.x() - start_point.x(), point.y() - start_point.y())
+    def convex_hull(points):
+        unique_points = sorted({(float(point.x()), float(point.y())) for point in points})
+        if len(unique_points) <= 1:
+            return [QPointF(x, y) for x, y in unique_points]
 
-        t = (
-            ((point.x() - start_point.x()) * dx + (point.y() - start_point.y()) * dy)
-            / length_squared
-        )
-        t = min(1.0, max(0.0, t))
-        projection_x = start_point.x() + t * dx
-        projection_y = start_point.y() + t * dy
-        return math.hypot(point.x() - projection_x, point.y() - projection_y)
+        def cross(origin, first, second):
+            return (
+                (first[0] - origin[0]) * (second[1] - origin[1])
+                - (first[1] - origin[1]) * (second[0] - origin[0])
+            )
+
+        lower = []
+        for point in unique_points:
+            while len(lower) >= 2 and cross(lower[-2], lower[-1], point) <= 0:
+                lower.pop()
+            lower.append(point)
+
+        upper = []
+        for point in reversed(unique_points):
+            while len(upper) >= 2 and cross(upper[-2], upper[-1], point) <= 0:
+                upper.pop()
+            upper.append(point)
+
+        return [QPointF(x, y) for x, y in lower[:-1] + upper[:-1]]
+
+    def draw_boundaries_square_polyline(self, painter, points):
+        for start_point, end_point in zip(points, points[1:]):
+            self.draw_boundaries_square_sweep_segment(painter, start_point, end_point)
+
+    def draw_boundaries_square_sweep_segment(self, painter, start_point, end_point):
+        half = self.boundaries_brush_size_px / 2.0
+        corners = []
+        for point in (start_point, end_point):
+            corners.extend(
+                [
+                    QPointF(point.x() - half, point.y() - half),
+                    QPointF(point.x() + half, point.y() - half),
+                    QPointF(point.x() + half, point.y() + half),
+                    QPointF(point.x() - half, point.y() + half),
+                ]
+            )
+
+        hull = self.convex_hull(corners)
+        if len(hull) < 3:
+            self.draw_boundaries_brush_shape(painter, start_point)
+            return
+
+        path = QPainterPath(hull[0])
+        for point in hull[1:]:
+            path.lineTo(point)
+        path.closeSubpath()
+        painter.drawPath(path)
 
     def boundaries_segment_dirty_rect(self, start_point, end_point):
         return self.boundaries_points_dirty_rect([start_point, end_point])
@@ -634,7 +654,7 @@ class FloorplanView(QGraphicsView):
             ]
             changed = self.apply_boundaries_active_stroke()
         else:
-            changed = self.apply_boundaries_polyline(points, cap_endpoints=False)
+            changed = self.apply_boundaries_polyline(points)
         if changed:
             self.refresh_boundaries_mask_after_change()
         return changed
@@ -697,7 +717,7 @@ class FloorplanView(QGraphicsView):
         if not self.boundaries_stroke_dirty_rect.isNull():
             repaint_rect = repaint_rect.united(self.boundaries_stroke_dirty_rect)
         self.restore_boundaries_stroke_base_region(repaint_rect)
-        changed = self.apply_boundaries_polyline(self.boundaries_stroke_points, cap_endpoints=True)
+        changed = self.apply_boundaries_polyline(self.boundaries_stroke_points)
         self.boundaries_stroke_dirty_rect = new_dirty_rect
         self.boundaries_mask_dirty_rect = repaint_rect
         return changed

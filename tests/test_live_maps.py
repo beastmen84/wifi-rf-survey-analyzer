@@ -475,7 +475,7 @@ class FloorplanViewTests(unittest.TestCase):
             view.deleteLater()
             os.remove(floorplan_path)
 
-    def test_square_boundaries_live_stroke_does_not_stamp_internal_caps(self):
+    def test_square_boundaries_live_stroke_uses_axis_aligned_brush_sweep(self):
         view = FloorplanView()
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
             floorplan_path = temp_file.name
@@ -497,7 +497,8 @@ class FloorplanViewTests(unittest.TestCase):
             self.assertTrue(view.continue_boundaries_stroke(stroke_points[2]))
 
             self.assertGreater(view.boundaries_mask_image.pixelColor(55, 45).alpha(), 0)
-            self.assertEqual(view.boundaries_mask_image.pixelColor(66, 34).alpha(), 0)
+            self.assertGreater(view.boundaries_mask_image.pixelColor(66, 34).alpha(), 0)
+            self.assertEqual(view.boundaries_mask_image.pixelColor(100, 20).alpha(), 0)
             self.assertTrue(view.finish_boundaries_stroke(stroke_points[2]))
         finally:
             view.deleteLater()

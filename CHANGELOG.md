@@ -16,6 +16,9 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 - Help and user-facing validation messages no longer expose the old internal
   migration label; architecture notes were renamed to
   `docs/ARCHITECTURE_NOTES.md`.
+- Boundaries square brush strokes now use an axis-aligned square sweep instead
+  of a thick Qt path, improving office-style straight edges and corners while
+  avoiding warped joins during slow direction corrections.
 
 ## v0.9.7-beta.1 - 2026-05-18
 
