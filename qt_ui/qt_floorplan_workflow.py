@@ -22,7 +22,12 @@ from qt_ui.default_floorplan import (
     ensure_default_floorplan,
     write_default_floorplan,
 )
-from qt_ui.qt_floorplan import format_grid_interval
+from qt_ui.qt_floorplan import (
+    BOUNDARIES_BRUSH_SIZE_MAX_PX,
+    BOUNDARIES_BRUSH_SIZE_MIN_PX,
+    BOUNDARIES_BRUSH_SIZE_STEP_PX,
+    format_grid_interval,
+)
 from qt_ui.qt_theme import QT_THEMES
 from qt_ui.qt_windowing import get_centered_open_file_name
 from survey.store import build_boundaries_file_path
@@ -427,6 +432,11 @@ class FloorplanWorkflowMixin:
         self.floorplan_view.set_boundaries_tool_state(self.boundaries_tool, self.boundaries_shape)
         self.update_boundaries_controls_state()
 
+    def adjust_boundaries_brush_size(self, direction):
+        step = BOUNDARIES_BRUSH_SIZE_STEP_PX if direction > 0 else -BOUNDARIES_BRUSH_SIZE_STEP_PX
+        if self.floorplan_view.adjust_boundaries_brush_size_px(step):
+            self.update_boundaries_controls_state()
+
     def on_boundaries_mask_changed(self, _has_mask):
         self.update_boundaries_controls_state()
         self.refresh_live_controls()
@@ -492,11 +502,28 @@ class FloorplanWorkflowMixin:
         self.boundaries_clear_button.setEnabled(
             active and self.floorplan_view.has_boundaries_mask()
         )
+        self.boundaries_size_increase_button.setEnabled(
+            active and self.floorplan_view.boundaries_brush_size_px < BOUNDARIES_BRUSH_SIZE_MAX_PX
+        )
+        self.boundaries_size_decrease_button.setEnabled(
+            active and self.floorplan_view.boundaries_brush_size_px > BOUNDARIES_BRUSH_SIZE_MIN_PX
+        )
+        self.boundaries_size_label.setEnabled(active)
 
         self.boundaries_draw_button.setChecked(active and self.boundaries_tool == "draw")
         self.boundaries_eraser_button.setChecked(active and self.boundaries_tool == "eraser")
         self.boundaries_circle_button.setChecked(active and self.boundaries_shape == "circle")
         self.boundaries_square_button.setChecked(active and self.boundaries_shape == "square")
+        self.boundaries_size_label.setText(str(int(round(self.floorplan_view.boundaries_brush_size_px))))
+        self.boundaries_size_label.setToolTip(
+            self.tr(
+                "boundaries_brush_size_value_tooltip",
+                size=int(round(self.floorplan_view.boundaries_brush_size_px)),
+                minimum=BOUNDARIES_BRUSH_SIZE_MIN_PX,
+                maximum=BOUNDARIES_BRUSH_SIZE_MAX_PX,
+                step=BOUNDARIES_BRUSH_SIZE_STEP_PX,
+            )
+        )
 
     def position_boundaries_toolbar(self):
         toolbar = getattr(self, "boundaries_toolbar", None)

@@ -1442,6 +1442,27 @@ class SurveySessionWorkflowTests(unittest.TestCase):
             self.assertTrue(window.boundaries_draw_button.isChecked())
             self.assertTrue(window.boundaries_circle_button.isChecked())
             self.assertFalse(window.boundaries_clear_button.isEnabled())
+            self.assertEqual(window.boundaries_size_label.text(), str(BOUNDARIES_BRUSH_SIZE_DEFAULT_PX))
+            self.assertTrue(window.boundaries_size_increase_button.isEnabled())
+            self.assertTrue(window.boundaries_size_decrease_button.isEnabled())
+
+            window.boundaries_size_increase_button.click()
+            self.assertEqual(
+                window.floorplan_view.boundaries_brush_size_px,
+                BOUNDARIES_BRUSH_SIZE_DEFAULT_PX + BOUNDARIES_BRUSH_SIZE_STEP_PX,
+            )
+            self.assertEqual(
+                window.boundaries_size_label.text(),
+                str(BOUNDARIES_BRUSH_SIZE_DEFAULT_PX + BOUNDARIES_BRUSH_SIZE_STEP_PX),
+            )
+            window.floorplan_view.set_boundaries_brush_size_px(BOUNDARIES_BRUSH_SIZE_MAX_PX)
+            window.update_boundaries_controls_state()
+            self.assertFalse(window.boundaries_size_increase_button.isEnabled())
+            window.floorplan_view.set_boundaries_brush_size_px(BOUNDARIES_BRUSH_SIZE_MIN_PX)
+            window.update_boundaries_controls_state()
+            self.assertFalse(window.boundaries_size_decrease_button.isEnabled())
+            window.floorplan_view.set_boundaries_brush_size_px(BOUNDARIES_BRUSH_SIZE_DEFAULT_PX)
+            window.update_boundaries_controls_state()
 
             window.floorplan_view.apply_boundaries_brush(80, 80)
             self.assertTrue(window.boundaries_clear_button.isEnabled())

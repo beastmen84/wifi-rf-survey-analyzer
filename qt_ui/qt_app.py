@@ -260,6 +260,9 @@ class WifiHeatmapQtApp(
         self.boundaries_eraser_button = None
         self.boundaries_circle_button = None
         self.boundaries_square_button = None
+        self.boundaries_size_decrease_button = None
+        self.boundaries_size_increase_button = None
+        self.boundaries_size_label = None
         self.boundaries_clear_button = None
         self.boundaries_files_pending_delete = set()
         self.live_options_panel_expanded = False
@@ -759,6 +762,19 @@ class WifiHeatmapQtApp(
             "boundaries_square_tooltip",
             checkable=True,
         )
+        self.boundaries_size_increase_button = self.create_boundaries_text_button(
+            "+",
+            "boundaries_brush_size_increase_tooltip",
+        )
+        self.boundaries_size_label = QLabel()
+        self.boundaries_size_label.setObjectName("boundariesBrushSizeLabel")
+        self.boundaries_size_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.boundaries_size_label.setFixedSize(self.spx(38), self.spx(22))
+        self.boundaries_size_label.setToolTip(self.tr("boundaries_brush_size_tooltip"))
+        self.boundaries_size_decrease_button = self.create_boundaries_text_button(
+            "-",
+            "boundaries_brush_size_decrease_tooltip",
+        )
         self.boundaries_clear_button = self.create_boundaries_tool_button(
             "clear.png",
             "boundaries_clear_tooltip",
@@ -768,6 +784,12 @@ class WifiHeatmapQtApp(
         self.boundaries_eraser_button.clicked.connect(lambda _checked=False: self.set_boundaries_tool("eraser"))
         self.boundaries_circle_button.clicked.connect(lambda _checked=False: self.set_boundaries_shape("circle"))
         self.boundaries_square_button.clicked.connect(lambda _checked=False: self.set_boundaries_shape("square"))
+        self.boundaries_size_increase_button.clicked.connect(
+            lambda _checked=False: self.adjust_boundaries_brush_size(1)
+        )
+        self.boundaries_size_decrease_button.clicked.connect(
+            lambda _checked=False: self.adjust_boundaries_brush_size(-1)
+        )
         self.boundaries_clear_button.clicked.connect(lambda _checked=False: self.clear_boundaries_mask())
 
         for button in (
@@ -775,6 +797,9 @@ class WifiHeatmapQtApp(
             self.boundaries_eraser_button,
             self.boundaries_circle_button,
             self.boundaries_square_button,
+            self.boundaries_size_increase_button,
+            self.boundaries_size_label,
+            self.boundaries_size_decrease_button,
             self.boundaries_clear_button,
         ):
             layout.addWidget(button)
@@ -789,6 +814,13 @@ class WifiHeatmapQtApp(
         button.setCheckable(checkable)
         button.setIcon(QIcon(str(resource_path("images", "bound_toolbar", icon_name))))
         button.setIconSize(QSize(self.spx(22), self.spx(22)))
+        button.setFixedSize(self.spx(38), self.spx(38))
+        button.setToolTip(self.tr(tooltip_key))
+        return button
+
+    def create_boundaries_text_button(self, text, tooltip_key):
+        button = QPushButton(text)
+        button.setObjectName("boundariesToolButton")
         button.setFixedSize(self.spx(38), self.spx(38))
         button.setToolTip(self.tr(tooltip_key))
         return button
@@ -1280,6 +1312,18 @@ class WifiHeatmapQtApp(
             QPushButton#boundariesToolButton:disabled {{
                 background: {palette["panel_alt"]};
                 border: 1px solid {palette["border"]};
+            }}
+            QLabel#boundariesBrushSizeLabel {{
+                min-width: {s(38)}px;
+                max-width: {s(38)}px;
+                min-height: {s(22)}px;
+                max-height: {s(22)}px;
+                padding: 0;
+                border-radius: {s(5)}px;
+                background: {palette["panel_alt"]};
+                color: {palette["muted"]};
+                border: 1px solid {palette["border"]};
+                font-weight: 700;
             }}
             QWidget#settingsMenuPanel {{
                 background: transparent;
@@ -1843,7 +1887,10 @@ class WifiHeatmapQtApp(
             self.boundaries_eraser_button.setToolTip(self.tr("boundaries_eraser_tooltip"))
             self.boundaries_circle_button.setToolTip(self.tr("boundaries_circle_tooltip"))
             self.boundaries_square_button.setToolTip(self.tr("boundaries_square_tooltip"))
+            self.boundaries_size_increase_button.setToolTip(self.tr("boundaries_brush_size_increase_tooltip"))
+            self.boundaries_size_decrease_button.setToolTip(self.tr("boundaries_brush_size_decrease_tooltip"))
             self.boundaries_clear_button.setToolTip(self.tr("boundaries_clear_tooltip"))
+            self.update_boundaries_controls_state()
         self.fit_localized_button_widths()
         self.refresh_live_static_options()
         self.points_table.setHorizontalHeaderLabels([

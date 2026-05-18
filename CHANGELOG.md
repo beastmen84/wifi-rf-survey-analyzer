@@ -40,6 +40,9 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 - AP Group refresh now auto-heals memory-applied `#2`/`#3` fragments when the
   survey rows show they belong to the same automatic AP group, preventing AP
   Memory from duplicating metadata across split physical APs.
+- Boundaries toolbar now includes `+`/`-` brush-size controls with 10 px steps
+  and a 20-120 px range, making large floorplan masks faster to draw while
+  keeping fine control available.
 
 ## v0.9.7-beta.1 - 2026-05-18
 

@@ -35,6 +35,10 @@ MIN_GRID_SPACING_PX = 40.0
 GRID_MAJOR_EVERY = 5
 BOUNDARIES_MASK_ALPHA = 78
 BOUNDARIES_MASK_COLOR = QColor(37, 99, 235)
+BOUNDARIES_BRUSH_SIZE_DEFAULT_PX = 40
+BOUNDARIES_BRUSH_SIZE_MIN_PX = 20
+BOUNDARIES_BRUSH_SIZE_MAX_PX = 120
+BOUNDARIES_BRUSH_SIZE_STEP_PX = 10
 
 
 class BoundariesMaskItem(QGraphicsItem):
@@ -93,7 +97,7 @@ class FloorplanView(QGraphicsView):
         self.boundaries_edit_active = False
         self.boundaries_tool = "draw"
         self.boundaries_shape = "circle"
-        self.boundaries_brush_size_px = 36.0
+        self.boundaries_brush_size_px = float(BOUNDARIES_BRUSH_SIZE_DEFAULT_PX)
         self.boundaries_mask_image = None
         self.boundaries_mask_item = None
         self.boundaries_mask_has_content = False
@@ -193,6 +197,24 @@ class FloorplanView(QGraphicsView):
         self.boundaries_tool = "eraser" if tool == "eraser" else "draw"
         self.boundaries_shape = "square" if shape == "square" else "circle"
         self.update_boundaries_cursor()
+
+    def set_boundaries_brush_size_px(self, size_px):
+        try:
+            size = int(round(float(size_px)))
+        except (TypeError, ValueError):
+            size = BOUNDARIES_BRUSH_SIZE_DEFAULT_PX
+        size = max(BOUNDARIES_BRUSH_SIZE_MIN_PX, min(BOUNDARIES_BRUSH_SIZE_MAX_PX, size))
+        if size == int(round(self.boundaries_brush_size_px)):
+            return False
+
+        old_rect = self.boundaries_brush_preview_viewport_rect()
+        self.boundaries_brush_size_px = float(size)
+        new_rect = self.boundaries_brush_preview_viewport_rect()
+        self.update_boundaries_preview_region(old_rect, new_rect)
+        return True
+
+    def adjust_boundaries_brush_size_px(self, delta_px):
+        return self.set_boundaries_brush_size_px(self.boundaries_brush_size_px + float(delta_px))
 
     def update_boundaries_cursor(self):
         if not self.boundaries_edit_active:

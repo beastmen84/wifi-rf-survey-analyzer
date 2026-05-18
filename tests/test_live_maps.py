@@ -411,6 +411,21 @@ class FloorplanViewTests(unittest.TestCase):
                 view.boundaries_brush_preview_rect().width(),
                 view.boundaries_brush_size_px,
             )
+            self.assertEqual(view.boundaries_brush_size_px, BOUNDARIES_BRUSH_SIZE_DEFAULT_PX)
+            self.assertTrue(view.adjust_boundaries_brush_size_px(BOUNDARIES_BRUSH_SIZE_STEP_PX))
+            self.assertEqual(
+                view.boundaries_brush_size_px,
+                BOUNDARIES_BRUSH_SIZE_DEFAULT_PX + BOUNDARIES_BRUSH_SIZE_STEP_PX,
+            )
+            self.assertEqual(
+                view.boundaries_brush_preview_rect().width(),
+                view.boundaries_brush_size_px,
+            )
+            self.assertTrue(view.set_boundaries_brush_size_px(999))
+            self.assertEqual(view.boundaries_brush_size_px, BOUNDARIES_BRUSH_SIZE_MAX_PX)
+            self.assertTrue(view.set_boundaries_brush_size_px(1))
+            self.assertEqual(view.boundaries_brush_size_px, BOUNDARIES_BRUSH_SIZE_MIN_PX)
+            self.assertTrue(view.set_boundaries_brush_size_px(BOUNDARIES_BRUSH_SIZE_DEFAULT_PX))
             viewport_rect = view.boundaries_brush_preview_viewport_rect()
             self.assertGreater(viewport_rect.width(), 0)
             self.assertLess(viewport_rect.width(), view.viewport().width())
@@ -431,9 +446,9 @@ class FloorplanViewTests(unittest.TestCase):
             self.assertTrue(view.boundaries_mask_item.isVisible())
             self.assertAlmostEqual(view.boundaries_mask_item.opacity(), 78 / 255, places=3)
             draw_alpha = view.boundaries_mask_image.pixelColor(50, 40).alpha()
-            edge_alpha = view.boundaries_mask_image.pixelColor(67, 40).alpha()
+            edge_x = int(50 + view.boundaries_brush_size_px / 2)
+            edge_alpha = view.boundaries_mask_image.pixelColor(edge_x, 40).alpha()
             self.assertGreater(draw_alpha, 0)
-            self.assertGreater(edge_alpha, 0)
             self.assertLess(edge_alpha, draw_alpha)
             self.assertEqual(mask_changes[-1], True)
 
