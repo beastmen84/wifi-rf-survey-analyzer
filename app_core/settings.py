@@ -137,6 +137,14 @@ def get_last_survey_directory(default=""):
     return str(parent) if parent.exists() else default
 
 
+def get_last_survey_path(default=""):
+    path = Path(str(load_app_settings().get(LAST_SURVEY_PATH_KEY, "")).strip())
+    if not str(path):
+        return default
+
+    return str(path) if path.is_file() else default
+
+
 def save_last_survey_path(file_path):
     clean_path = str(file_path or "").strip()
     if not clean_path:

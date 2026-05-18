@@ -27,6 +27,7 @@ from app_core.logging import log_event, log_exception
 from app_core.restart import start_replacement_process
 from app_core.settings import (
     get_last_survey_directory,
+    get_last_survey_path,
     get_saved_theme,
     get_saved_ui_scale,
     save_theme,
@@ -705,7 +706,7 @@ class StartWindow(QMainWindow):
             csv_file, _selected_filter = get_centered_open_file_name(
                 self,
                 self.tr("open_existing_survey"),
-                get_last_survey_directory(),
+                get_last_survey_path(default=get_last_survey_directory()),
                 self.tr("qt_survey_file_filter"),
             )
             if not csv_file:

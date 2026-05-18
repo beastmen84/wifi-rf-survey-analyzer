@@ -1,5 +1,7 @@
 """Shared Qt window behavior helpers."""
 
+from pathlib import Path
+
 from PySide6.QtCore import QEasingCurve, QObject, QEvent, QPropertyAnimation, Qt, QTimer
 from PySide6.QtGui import QCursor, QGuiApplication
 from PySide6.QtWidgets import (
@@ -131,12 +133,15 @@ def get_centered_save_file_name(parent, caption, directory, name_filter):
 
 
 def run_centered_file_dialog(parent, caption, directory, name_filter, accept_mode, file_mode):
-    initial_directory = str(directory or "").strip()
+    initial_location = str(directory or "").strip()
+    initial_directory, initial_file = split_file_dialog_initial_location(initial_location)
     dialog = QFileDialog(parent, caption, initial_directory, name_filter)
     dialog.setObjectName(FILE_DIALOG_OBJECT_NAME)
     dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
     if initial_directory:
         dialog.setDirectory(initial_directory)
+    if initial_file:
+        dialog.selectFile(initial_file)
     dialog.setAcceptMode(accept_mode)
     dialog.setFileMode(file_mode)
     dialog.setModal(True)
@@ -145,7 +150,9 @@ def run_centered_file_dialog(parent, caption, directory, name_filter, accept_mod
     log_event(
         (
             f"file dialog opened caption={caption!r} "
+            f"initial_location={initial_location or '<default>'} "
             f"initial_directory={initial_directory or '<default>'} "
+            f"initial_file={initial_file or '<none>'} "
             f"actual_directory={dialog.directory().absolutePath()}"
         ),
         logger_name="ui",
@@ -156,6 +163,23 @@ def run_centered_file_dialog(parent, caption, directory, name_filter, accept_mod
 
     selected = dialog.selectedFiles()
     return (selected[0] if selected else ""), dialog.selectedNameFilter()
+
+
+def split_file_dialog_initial_location(location):
+    initial_location = str(location or "").strip()
+    if not initial_location:
+        return "", ""
+
+    path = Path(initial_location)
+    if path.is_dir():
+        return initial_location, ""
+    if path.is_file():
+        return str(path.parent), path.name
+
+    parent = path.parent
+    if str(parent) and parent.exists():
+        return str(parent), path.name
+    return initial_location, ""
 
 
 def apply_file_dialog_tuning(dialog, parent):

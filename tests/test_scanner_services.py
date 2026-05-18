@@ -537,6 +537,28 @@ class AppSettingsTests(unittest.TestCase):
             else:
                 os.environ["WIFI_HEATMAP_SETTINGS_FILE"] = previous
 
+    def test_last_survey_path_returns_existing_saved_file(self):
+        previous = os.environ.get("WIFI_HEATMAP_SETTINGS_FILE")
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                settings_file = os.path.join(temp_dir, "settings.json")
+                survey_file = os.path.join(temp_dir, "surveys", "test.csv")
+                os.makedirs(os.path.dirname(survey_file), exist_ok=True)
+                Path(survey_file).write_text("", encoding="utf-8")
+                os.environ["WIFI_HEATMAP_SETTINGS_FILE"] = settings_file
+
+                self.assertTrue(save_last_survey_path(survey_file))
+
+                self.assertEqual(get_last_survey_path(), survey_file)
+                os.remove(survey_file)
+                self.assertEqual(get_last_survey_path(default="fallback"), "fallback")
+                self.assertEqual(get_last_survey_directory(), os.path.dirname(survey_file))
+        finally:
+            if previous is None:
+                os.environ.pop("WIFI_HEATMAP_SETTINGS_FILE", None)
+            else:
+                os.environ["WIFI_HEATMAP_SETTINGS_FILE"] = previous
+
 
 class LoggingTests(unittest.TestCase):
     def test_info_console_filter_excludes_warnings_and_errors(self):

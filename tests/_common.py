@@ -20,6 +20,7 @@ from app_core.settings import (
     FOCUS_POINT_ZOOM_PERCENT_DEFAULT,
     FOCUS_POINT_ZOOM_PERCENT_OPTIONS,
     get_last_survey_directory,
+    get_last_survey_path,
     get_saved_focus_point_zoom_percent,
     get_saved_measurement_system,
     normalize_focus_point_zoom_percent,

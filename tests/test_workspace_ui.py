@@ -33,6 +33,34 @@ from qt_ui.qt_settings_memory import confirm_clear_ap_memory
 from translations.i18n import SUPPORTED_LANGUAGES
 
 
+_PREVIOUS_SETTINGS_FILE = None
+_TEST_SETTINGS_DIR = None
+
+
+def setUpModule():
+    global _PREVIOUS_SETTINGS_FILE, _TEST_SETTINGS_DIR
+
+    _PREVIOUS_SETTINGS_FILE = os.environ.get("WIFI_HEATMAP_SETTINGS_FILE")
+    _TEST_SETTINGS_DIR = tempfile.TemporaryDirectory()
+    os.environ["WIFI_HEATMAP_SETTINGS_FILE"] = os.path.join(
+        _TEST_SETTINGS_DIR.name,
+        "settings.json",
+    )
+
+
+def tearDownModule():
+    global _TEST_SETTINGS_DIR
+
+    if _PREVIOUS_SETTINGS_FILE is None:
+        os.environ.pop("WIFI_HEATMAP_SETTINGS_FILE", None)
+    else:
+        os.environ["WIFI_HEATMAP_SETTINGS_FILE"] = _PREVIOUS_SETTINGS_FILE
+
+    if _TEST_SETTINGS_DIR is not None:
+        _TEST_SETTINGS_DIR.cleanup()
+        _TEST_SETTINGS_DIR = None
+
+
 class SettingsMenuTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -73,6 +101,18 @@ class SettingsMenuTests(unittest.TestCase):
             self.assertIn(APP_VERSION_LABEL, window.copyright_label.text())
         finally:
             window.deleteLater()
+
+    def test_file_dialog_initial_location_can_preselect_last_survey_file(self):
+        from qt_ui.qt_windowing import split_file_dialog_initial_location
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            survey_file = os.path.join(temp_dir, "office.csv")
+            Path(survey_file).write_text("", encoding="utf-8")
+
+            directory, selected_file = split_file_dialog_initial_location(survey_file)
+
+            self.assertEqual(directory, temp_dir)
+            self.assertEqual(selected_file, "office.csv")
 
     def test_start_page_shows_app_icon_next_to_title(self):
         from qt_ui.qt_startup import StartWindow
@@ -1426,6 +1466,24 @@ class SurveySessionWorkflowTests(unittest.TestCase):
 
                 self.assertTrue(window.floorplan_view.grid_visible)
                 self.assertEqual(window.floorplan_view.grid_label, "1 square = 3 ft")
+        finally:
+            window.deleteLater()
+
+    def test_open_survey_dialog_starts_from_last_survey_file(self):
+        window = WifiHeatmapQtApp()
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                csv_file = os.path.join(temp_dir, "office.csv")
+                Path(csv_file).write_text("", encoding="utf-8")
+                self.assertTrue(save_last_survey_path(csv_file))
+
+                with patch(
+                    "qt_ui.qt_session_workflow.get_centered_open_file_name",
+                    return_value=("", ""),
+                ) as dialog_mock:
+                    self.assertFalse(window.open_survey())
+
+                self.assertEqual(dialog_mock.call_args.args[2], csv_file)
         finally:
             window.deleteLater()
 
