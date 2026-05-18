@@ -496,6 +496,29 @@ class AppSettingsTests(unittest.TestCase):
             else:
                 os.environ["WIFI_HEATMAP_SETTINGS_FILE"] = previous
 
+    def test_focus_point_zoom_preference_is_saved_and_normalized(self):
+        previous = os.environ.get("WIFI_HEATMAP_SETTINGS_FILE")
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                os.environ["WIFI_HEATMAP_SETTINGS_FILE"] = os.path.join(temp_dir, "settings.json")
+
+                self.assertEqual(get_saved_focus_point_zoom_percent(), FOCUS_POINT_ZOOM_PERCENT_DEFAULT)
+                self.assertEqual(FOCUS_POINT_ZOOM_PERCENT_OPTIONS[0], 100)
+                self.assertEqual(FOCUS_POINT_ZOOM_PERCENT_OPTIONS[-1], 200)
+                self.assertEqual(normalize_focus_point_zoom_percent(134), 130)
+                self.assertEqual(normalize_focus_point_zoom_percent(136), 140)
+                self.assertEqual(normalize_focus_point_zoom_percent(240), 200)
+                self.assertEqual(normalize_focus_point_zoom_percent("bad"), FOCUS_POINT_ZOOM_PERCENT_DEFAULT)
+
+                self.assertTrue(save_focus_point_zoom_percent(170))
+
+                self.assertEqual(get_saved_focus_point_zoom_percent(), 170)
+        finally:
+            if previous is None:
+                os.environ.pop("WIFI_HEATMAP_SETTINGS_FILE", None)
+            else:
+                os.environ["WIFI_HEATMAP_SETTINGS_FILE"] = previous
+
     def test_last_survey_directory_uses_saved_file_parent(self):
         previous = os.environ.get("WIFI_HEATMAP_SETTINGS_FILE")
         try:

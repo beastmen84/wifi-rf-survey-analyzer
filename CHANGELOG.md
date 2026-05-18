@@ -43,10 +43,10 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   avoiding overlap darkening, stale paint and full-pixmap rebuilds during drag.
 - Boundaries toolbar icons are loaded lazily on first use, keeping them out of
   the startup "Loading components" path.
-- Go to Point now zooms in when needed using a target relative to the floor
-  plan fit size, then places the selected survey point in the upper half of the
-  viewport so the highlight is easier to see while the Measurement Points panel
-  is open.
+- Go to Point now zooms in when needed using a configurable Settings value
+  from 100% to 200% in 10% steps, then places the selected survey point in the
+  upper half of the viewport so the highlight is easier to see while the
+  Measurement Points panel is open.
 - The workspace footer now shows the current Survey Zoom percentage for easier
   operational tuning.
 - Current survey files now require the full aggregate/raw headers,

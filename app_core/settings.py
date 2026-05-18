@@ -1,8 +1,8 @@
 """Small JSON-backed application preferences.
 
 These settings are intentionally separate from survey CSV files. They store
-user interface preferences such as theme and UI scale, so changing appearance
-does not dirty the active survey.
+user interface preferences such as theme, UI scale and interaction defaults, so
+changing appearance or workspace ergonomics does not dirty the active survey.
 """
 
 import json
@@ -15,6 +15,9 @@ SETTINGS_FILE_NAME = "settings.json"
 THEME_KEY = "theme"
 UI_SCALE_KEY = "ui_scale"
 MEASUREMENT_SYSTEM_KEY = "measurement_system"
+FOCUS_POINT_ZOOM_PERCENT_KEY = "focus_point_zoom_percent"
+FOCUS_POINT_ZOOM_PERCENT_DEFAULT = 140
+FOCUS_POINT_ZOOM_PERCENT_OPTIONS = tuple(range(100, 201, 10))
 LAST_SURVEY_PATH_KEY = "last_survey_path"
 
 
@@ -99,6 +102,26 @@ def get_saved_measurement_system(default="metric", valid_modes=None):
 def save_measurement_system(mode):
     settings = load_app_settings()
     settings[MEASUREMENT_SYSTEM_KEY] = str(mode)
+    return save_app_settings(settings)
+
+
+def normalize_focus_point_zoom_percent(value, default=FOCUS_POINT_ZOOM_PERCENT_DEFAULT):
+    try:
+        percent = int(round(float(value) / 10.0) * 10)
+    except (TypeError, ValueError):
+        return int(default)
+
+    return min(max(percent, FOCUS_POINT_ZOOM_PERCENT_OPTIONS[0]), FOCUS_POINT_ZOOM_PERCENT_OPTIONS[-1])
+
+
+def get_saved_focus_point_zoom_percent(default=FOCUS_POINT_ZOOM_PERCENT_DEFAULT):
+    value = load_app_settings().get(FOCUS_POINT_ZOOM_PERCENT_KEY, default)
+    return normalize_focus_point_zoom_percent(value, default)
+
+
+def save_focus_point_zoom_percent(percent):
+    settings = load_app_settings()
+    settings[FOCUS_POINT_ZOOM_PERCENT_KEY] = normalize_focus_point_zoom_percent(percent)
     return save_app_settings(settings)
 
 

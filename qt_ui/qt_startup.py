@@ -27,10 +27,14 @@ except ModuleNotFoundError as exc:
 from app_core.logging import log_event, log_exception
 from app_core.restart import start_replacement_process
 from app_core.settings import (
+    FOCUS_POINT_ZOOM_PERCENT_OPTIONS,
     get_last_survey_directory,
+    get_saved_focus_point_zoom_percent,
     get_saved_measurement_system,
     get_saved_theme,
     get_saved_ui_scale,
+    normalize_focus_point_zoom_percent,
+    save_focus_point_zoom_percent,
     save_measurement_system,
     save_theme,
     save_ui_scale,
@@ -81,6 +85,7 @@ class StartWindow(QMainWindow):
         self.measurement_system = normalize_measurement_system(
             get_saved_measurement_system(valid_modes=MEASUREMENT_SYSTEM_OPTIONS)
         )
+        self.focus_point_zoom_percent = get_saved_focus_point_zoom_percent()
         log_event(
             f"startup ui scale resolved {format_ui_scale_diagnostics(ui_scale_diagnostics(self.ui_scale_mode))}",
             logger_name="ui",
@@ -525,6 +530,18 @@ class StartWindow(QMainWindow):
         log_event(f"startup measurement system changed mode={mode}", logger_name="ui")
         return True
 
+    def change_focus_point_zoom_percent(self, percent):
+        percent = normalize_focus_point_zoom_percent(percent)
+        if percent == self.focus_point_zoom_percent:
+            return True
+        if not save_focus_point_zoom_percent(percent):
+            QMessageBox.warning(self, self.tr("warning"), self.tr("settings_save_failed"))
+            return False
+
+        self.focus_point_zoom_percent = percent
+        log_event(f"startup focus point zoom changed percent={percent}", logger_name="ui")
+        return True
+
     def open_settings_menu(self):
         if self.should_suppress_settings_menu_toggle():
             return
@@ -557,6 +574,15 @@ class StartWindow(QMainWindow):
         units_combo = self.create_settings_combo(self.measurement_system_items(), self.measurement_system)
         units_combo.currentIndexChanged.connect(lambda _index: self.apply_measurement_system_combo(units_combo))
         self.add_settings_row(layout, self.tr("measurement_system"), units_combo)
+
+        focus_zoom_combo = self.create_settings_combo(
+            self.focus_point_zoom_items(),
+            self.focus_point_zoom_percent,
+        )
+        focus_zoom_combo.currentIndexChanged.connect(
+            lambda _index: self.change_focus_point_zoom_percent(focus_zoom_combo.currentData())
+        )
+        self.add_settings_row(layout, self.tr("go_to_point_zoom"), focus_zoom_combo)
 
         language_combo = self.create_settings_combo(
             LANGUAGE_OPTIONS,
@@ -617,6 +643,12 @@ class StartWindow(QMainWindow):
         return [
             (mode, self.tr(f"measurement_system_{mode}"))
             for mode in MEASUREMENT_SYSTEM_OPTIONS
+        ]
+
+    def focus_point_zoom_items(self):
+        return [
+            (percent, f"{percent}%")
+            for percent in FOCUS_POINT_ZOOM_PERCENT_OPTIONS
         ]
 
     def apply_measurement_system_combo(self, combo):

@@ -53,6 +53,7 @@ TRANSLATIONS = {
     "measurement_system": "Sistema Di Misura",
     "measurement_system_metric": "Metrico (m)",
     "measurement_system_imperial": "Imperiale (ft)",
+    "go_to_point_zoom": "Zoom Vai al Punto",
     "measurement_unit_metric": "metri",
     "measurement_unit_imperial": "piedi",
     "measurement_system_scale_reset_title": "La Calibrazione Scala Verrà Resettata",

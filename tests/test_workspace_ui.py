@@ -128,6 +128,33 @@ class SettingsMenuTests(unittest.TestCase):
             window.deleteLater()
             os.remove(floorplan_path)
 
+    def test_workspace_settings_update_focus_point_zoom(self):
+        previous = os.environ.get("WIFI_HEATMAP_SETTINGS_FILE")
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                os.environ["WIFI_HEATMAP_SETTINGS_FILE"] = os.path.join(temp_dir, "settings.json")
+                window = WifiHeatmapQtApp()
+                try:
+                    self.assertEqual(window.focus_point_zoom_percent, 140)
+                    self.assertAlmostEqual(window.floorplan_view.focus_point_zoom_level, 1.4)
+
+                    self.assertTrue(window.change_focus_point_zoom_percent(170))
+
+                    self.assertEqual(window.focus_point_zoom_percent, 170)
+                    self.assertAlmostEqual(window.floorplan_view.focus_point_zoom_level, 1.7)
+                    self.assertEqual(get_saved_focus_point_zoom_percent(), 170)
+                    self.assertEqual(
+                        window.focus_point_zoom_items(),
+                        [(percent, f"{percent}%") for percent in FOCUS_POINT_ZOOM_PERCENT_OPTIONS],
+                    )
+                finally:
+                    window.deleteLater()
+        finally:
+            if previous is None:
+                os.environ.pop("WIFI_HEATMAP_SETTINGS_FILE", None)
+            else:
+                os.environ["WIFI_HEATMAP_SETTINGS_FILE"] = previous
+
     def test_analysis_toolbar_matches_recommended_workflow_order(self):
         window = WifiHeatmapQtApp()
         try:

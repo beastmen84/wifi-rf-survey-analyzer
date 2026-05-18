@@ -42,6 +42,7 @@ from translations.i18n import DEFAULT_LANGUAGE, LANGUAGE_OPTIONS, translate
 from app_core.logging import configure_logging, log_event, log_exception, log_unhandled_exception
 from app_core.resources import resource_path
 from app_core.settings import (
+    get_saved_focus_point_zoom_percent,
     get_saved_measurement_system,
     get_saved_theme,
     get_saved_ui_scale,
@@ -226,6 +227,7 @@ class WifiHeatmapQtApp(
         self.measurement_system = normalize_measurement_system(
             get_saved_measurement_system(valid_modes=MEASUREMENT_SYSTEM_OPTIONS)
         )
+        self.focus_point_zoom_percent = get_saved_focus_point_zoom_percent()
         log_event(
             f"workspace ui scale resolved {format_ui_scale_diagnostics(ui_scale_diagnostics(self.ui_scale_mode))}",
             logger_name="ui",
@@ -631,6 +633,7 @@ class WifiHeatmapQtApp(
         floorplan_layout.setContentsMargins(self.spx(1), self.spx(1), self.spx(1), self.spx(1))
         floorplan_layout.setSpacing(0)
         self.floorplan_view = FloorplanView()
+        self.floorplan_view.set_focus_point_zoom_percent(self.focus_point_zoom_percent)
         self.floorplan_view.ap_tooltip_formatter = self.format_ap_position_tooltip
         self.floorplan_view.surveyPointRequested.connect(self.create_point_from_floorplan)
         self.floorplan_view.apPositionPicked.connect(self.save_ap_position)

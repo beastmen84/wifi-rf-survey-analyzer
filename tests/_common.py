@@ -17,9 +17,14 @@ from PIL import Image
 from app_core.logging import MaxLogLevelFilter
 from app_core.restart import build_restart_command
 from app_core.settings import (
+    FOCUS_POINT_ZOOM_PERCENT_DEFAULT,
+    FOCUS_POINT_ZOOM_PERCENT_OPTIONS,
     get_last_survey_directory,
+    get_saved_focus_point_zoom_percent,
     get_saved_measurement_system,
+    normalize_focus_point_zoom_percent,
     save_last_survey_path,
+    save_focus_point_zoom_percent,
     save_measurement_system,
 )
 from app_core.units import (
@@ -159,8 +164,7 @@ from qt_ui.qt_quality_dashboard import (
 )
 from qt_ui.qt_floorplan import (
     AP_MARKER_BASE_SIZE,
-    FOCUS_POINT_FIT_ZOOM_MULTIPLIER,
-    FOCUS_POINT_MAX_AUTO_ZOOM,
+    FOCUS_POINT_DEFAULT_ZOOM_LEVEL,
     FOCUS_POINT_VERTICAL_VIEWPORT_FRACTION,
     FloorplanView,
     format_ap_tooltip,

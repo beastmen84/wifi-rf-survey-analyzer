@@ -26,8 +26,7 @@ from qt_ui.qt_tooltips import build_html_tooltip
 
 AP_MARKER_BASE_SIZE = 20
 SURVEY_POINT_MARKER_RADIUS = 7.0
-FOCUS_POINT_FIT_ZOOM_MULTIPLIER = 4.6
-FOCUS_POINT_MAX_AUTO_ZOOM = 2.0
+FOCUS_POINT_DEFAULT_ZOOM_LEVEL = 1.4
 FOCUS_POINT_VERTICAL_VIEWPORT_FRACTION = 0.25
 METRIC_GRID_INTERVALS_M = (0.5, 1.0, 2.0, 5.0, 10.0, 20.0)
 IMPERIAL_GRID_INTERVALS_FT = (1.0, 2.0, 3.0, 5.0, 10.0, 20.0, 50.0)
@@ -77,6 +76,7 @@ class FloorplanView(QGraphicsView):
         self.scale_calibration_points = []
         self.selected_point_key = None
         self.zoom_level = 1.0
+        self.focus_point_zoom_level = FOCUS_POINT_DEFAULT_ZOOM_LEVEL
         self.pending_ap_position_group_id = ""
         self.pending_ap_position_label = ""
         self.scale_calibration_active = False
@@ -1058,31 +1058,16 @@ class FloorplanView(QGraphicsView):
         self.update_boundaries_cursor()
         self.zoomChanged.emit(self.zoom_level)
 
-    def floorplan_fit_zoom_level(self):
-        if not self.has_floorplan():
-            return None
+    def set_focus_point_zoom_percent(self, percent):
+        try:
+            zoom_level = float(percent) / 100.0
+        except (TypeError, ValueError):
+            zoom_level = FOCUS_POINT_DEFAULT_ZOOM_LEVEL
 
-        scene_rect = self.scene.sceneRect()
-        viewport_rect = self.viewport().rect()
-        if (
-            scene_rect.width() <= 0
-            or scene_rect.height() <= 0
-            or viewport_rect.width() <= 0
-            or viewport_rect.height() <= 0
-        ):
-            return None
-
-        return min(
-            viewport_rect.width() / scene_rect.width(),
-            viewport_rect.height() / scene_rect.height(),
-        )
+        self.focus_point_zoom_level = min(2.0, max(1.0, zoom_level))
 
     def focus_target_zoom_level(self):
-        fit_zoom = self.floorplan_fit_zoom_level()
-        if fit_zoom is None:
-            return self.zoom_level
-
-        return min(FOCUS_POINT_MAX_AUTO_ZOOM, fit_zoom * FOCUS_POINT_FIT_ZOOM_MULTIPLIER)
+        return self.focus_point_zoom_level
 
     def wheelEvent(self, event):
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
