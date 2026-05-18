@@ -12,6 +12,9 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 - Added the MPL 2.0 project `LICENSE`, a `THIRD_PARTY_LICENSES` dependency
   notice file, README license/disclaimer sections, and an in-app Help legal
   section for public release preparation.
+- Added French and Spanish localization for the UI, Help Center, tooltips and
+  report wording, with automated checks for translation parity, placeholders,
+  critical technical terms, compact label length and PDF problem-page rendering.
 
 ### Fixed / Changed
 

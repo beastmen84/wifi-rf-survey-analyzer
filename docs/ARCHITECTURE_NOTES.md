@@ -114,6 +114,11 @@ Current status:
   AP Channels/Dominant AP map-page info bands expand for larger discrete
   legends. Latest zipped Windows release artifact:
   `dist\WifiHeatmap-v0.9.8-beta.2-win64.zip`;
+- post-`v0.9.8-beta.2` public-release localization preparation adds French
+  and Spanish dictionaries beside English and Italian. The localization test
+  scope now checks dictionary key parity, placeholders, critical operational
+  strings, Wi-Fi technical identifiers, compact label length budgets, Help
+  section availability and localized PDF problem-page rendering;
 - post-`v0.9.5-beta.1` EN/IT wording polish normalized the most visible UI and
   Help terminology before the 1.0 validation survey: Italian now avoids weaker
   hybrid phrases such as `Finding`, `Extra Details`, `Dominant AP` and

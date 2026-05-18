@@ -3,6 +3,7 @@ import exporting.live_pdf as live_pdf_module
 from exporting.reports import build_dominant_problem_report_pages
 from maps.rendering import get_channel_color
 from qt_ui.qt_tooltips import build_html_tooltip, tooltip_section
+from translations.i18n import SUPPORTED_LANGUAGES
 
 class LiveMapDataLogicTests(unittest.TestCase):
     def test_map_config_normalizes_interference_without_changing_other_maps(self):
@@ -1547,6 +1548,40 @@ class LivePdfExportTests(unittest.TestCase):
         finally:
             for fig in figures:
                 plt.close(fig)
+
+    def test_problem_report_pages_render_in_all_supported_languages(self):
+        for language in SUPPORTED_LANGUAGES:
+            code = language.lower()
+            rows = [
+                [
+                    "10, 20",
+                    "92.0%",
+                    "6",
+                    "6",
+                    translate(code, "interference_diagnosis_same_channel_strong"),
+                ]
+            ]
+            figures = build_problem_report_pages(
+                translate(code, "live_pdf_problem_report_title"),
+                translate(code, "export_interference_title"),
+                [
+                    translate(code, "interference_summary_point"),
+                    translate(code, "interference_top_risk"),
+                    translate(code, "interference_summary_serving_channel"),
+                    translate(code, "interference_summary_interferer_channel"),
+                    translate(code, "interference_summary_diagnosis"),
+                ],
+                rows,
+                translate(code, "live_pdf_no_interference_issues"),
+            )
+            try:
+                self.assertEqual(len(figures), 1)
+                figures[0].canvas.draw()
+                page_text = "\n".join(text.get_text() for text in figures[0].axes[0].texts)
+                self.assertIn(translate(code, "live_pdf_problem_report_title"), page_text)
+            finally:
+                for fig in figures:
+                    plt.close(fig)
 
     def test_dominant_problem_report_includes_position_context(self):
         dominant_df = rows_to_dataframe([

@@ -46,8 +46,8 @@ stable `v1.0.0` is planned after Help Center review and broader field testing.
   available.
 - PDF export from the current live map, including diagnostic report pages where
   the selected map type supports them.
-- English and Italian Help Center covering the operating workflow and detailed
-  option behavior.
+- English, Italian, French and Spanish UI, Help Center and report wording,
+  covering the operating workflow and detailed option behavior.
 
 ## Main Workflow
 
@@ -173,7 +173,7 @@ adds diagnostic pages for Interference and Dominant AP reports when applicable.
 ## Help Center
 
 The in-app Help Center is the detailed usage guide for the current Qt workflow.
-It is available in English and Italian and covers:
+It is available in English, Italian, French and Spanish and covers:
 
 - recommended survey workflow;
 - map controls;

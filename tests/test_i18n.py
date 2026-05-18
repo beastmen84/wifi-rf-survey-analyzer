@@ -106,6 +106,120 @@ CAPITALIZED_UI_KEYS = (
     "cancel_point",
 )
 
+CRITICAL_LOCALIZED_KEYS = (
+    "loading_app",
+    "start_subtitle",
+    "toolbar_project",
+    "toolbar_view",
+    "toolbar_analysis",
+    "toolbar_settings",
+    "new_survey",
+    "open_existing_survey",
+    "discard_changes",
+    "language",
+    "ui_scale",
+    "measurement_system",
+    "go_to_point_zoom",
+    "live_map_tab",
+    "live_update_now",
+    "live_export_pdf",
+    "live_pdf_problem_report_title",
+    "load_plan",
+    "save",
+    "quality_dashboard_title",
+    "quality_dashboard_metric_missing",
+    "quality_dashboard_metric_scanner_details",
+    "quality_dashboard_metric_ap_metadata_warnings",
+    "quality_dashboard_fix_missing_title",
+    "quality_dashboard_action_open_ap_metadata",
+    "calibrate_scale",
+    "grid",
+    "boundaries",
+    "boundaries_draw_tooltip",
+    "boundaries_eraser_tooltip",
+    "delete_scale",
+    "ap_groups_title",
+    "ap_group_bssid_title",
+    "ap_group_conflict_title",
+    "ap_group_metadata_title",
+    "ap_group_filter_status_all",
+    "ap_group_clear_filters",
+    "manage_relevant_networks_title",
+    "survey_point_tooltip_title",
+    "wifi_ap_tooltip_title",
+    "tooltip_section_interference",
+    "tooltip_section_dominant_ap",
+    "go_to_point",
+    "rescan_point",
+    "delete_selected",
+    "map_type_signal",
+    "map_type_interference",
+    "map_type_channel",
+    "map_type_dominant",
+    "export_signal_title",
+    "export_channel_title",
+    "export_dominant_title",
+    "export_interference_title",
+    "interference_mode",
+    "interference_summary_title",
+    "interference_summary_interferer_channel",
+    "interference_summary_diagnosis",
+    "survey_bounds",
+    "max_distance_px",
+    "aggregation",
+    "color_scale",
+    "smoothing",
+    "theme",
+    "close",
+    "cancel",
+    "select_plan_title",
+    "insufficient_data_title",
+    "save_required_title",
+    "missing_relevant_networks_title",
+    "help_title",
+    "help_overview_title",
+    "help_controls_title",
+    "help_survey_title",
+    "help_quality_title",
+    "help_ap_groups_title",
+    "help_live_maps_title",
+    "help_reports_title",
+    "help_diagnostics_title",
+    "help_legal_title",
+    "keep_scan",
+    "retry_scan",
+    "cancel_point",
+)
+
+LAYOUT_SENSITIVE_KEYS = (
+    "new_survey",
+    "open_existing_survey",
+    "discard_changes",
+    "live_update_now",
+    "live_export_pdf",
+    "load_plan",
+    "save",
+    "calibrate_scale",
+    "grid",
+    "boundaries",
+    "delete_scale",
+    "ap_groups_title",
+    "quality_dashboard_title",
+    "help",
+    "go_to_point",
+    "rescan_point",
+    "delete_selected",
+    "map_type_signal",
+    "map_type_interference",
+    "map_type_channel",
+    "map_type_dominant",
+    "interference_summary_interferer_channel",
+    "save_required_title",
+    "keep_scan",
+    "retry_scan",
+    "cancel_point",
+)
+
 
 def first_alpha(text):
     for character in text:
@@ -162,6 +276,45 @@ class I18nTests(unittest.TestCase):
         for language, translations in TRANSLATIONS.items():
             with self.subTest(language=language):
                 self.assertNotIn("V2", translations["invalid_survey_format"])
+
+    def test_french_and_spanish_localize_operational_strings(self):
+        default_translations = TRANSLATIONS[DEFAULT_LANGUAGE]
+        for language in ("fr", "es"):
+            translations = TRANSLATIONS[language]
+            for key in CRITICAL_LOCALIZED_KEYS:
+                with self.subTest(language=language, key=key):
+                    self.assertNotEqual(translations[key], default_translations[key])
+
+    def test_localized_operational_labels_keep_reasonable_length(self):
+        default_translations = TRANSLATIONS[DEFAULT_LANGUAGE]
+        for language in ("fr", "es"):
+            translations = TRANSLATIONS[language]
+            for key in LAYOUT_SENSITIVE_KEYS:
+                with self.subTest(language=language, key=key):
+                    default_length = len(default_translations[key])
+                    translated_length = len(translations[key])
+                    limit = max(default_length + 24, int(default_length * 2.2))
+                    self.assertLessEqual(translated_length, limit, translations[key])
+
+    def test_localized_terms_preserve_wifi_identifiers(self):
+        for language in ("fr", "es"):
+            translations = TRANSLATIONS[language]
+            joined = "\n".join(
+                str(translations[key])
+                for key in (
+                    "ap_groups_hint",
+                    "ap_group_bssid_title",
+                    "manage_relevant_networks_message",
+                    "export_interference_title",
+                    "interference_quality_warning_5ghz",
+                )
+            )
+            with self.subTest(language=language):
+                self.assertIn("AP", joined)
+                self.assertIn("BSSID", joined)
+                self.assertIn("SSID", joined)
+                self.assertIn("5", joined)
+                self.assertIn("6", joined)
 
     def test_titles_and_buttons_start_capitalized_in_all_languages(self):
         for language, translations in TRANSLATIONS.items():
