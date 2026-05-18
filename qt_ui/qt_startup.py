@@ -342,7 +342,11 @@ class StartWindow(QMainWindow):
                 padding: {s(8)}px {s(14)}px;
                 min-width: {s(116)}px;
             }}
-            QDialog#settingsMenuPanel, QWidget#settingsMenuPanel {{
+            QDialog#settingsMenuHost {{
+                background: transparent;
+                border: 0;
+            }}
+            QDialog#settingsMenuPanel, QWidget#settingsMenuPanel, QFrame#settingsMenuPanel {{
                 background: {palette["panel"]};
                 color: {palette["text"]};
                 border: 1px solid {palette["border"]};
@@ -517,11 +521,18 @@ class StartWindow(QMainWindow):
 
         dialog = QDialog(self)
         self.settings_menu_dialog = dialog
-        dialog.setObjectName("settingsMenuPanel")
+        dialog.setObjectName("settingsMenuHost")
         dialog.setProperty(SKIP_CENTERING_PROPERTY, True)
         dialog.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         dialog.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
-        layout = QVBoxLayout(dialog)
+        host_layout = QVBoxLayout(dialog)
+        host_layout.setContentsMargins(0, 0, 0, 0)
+        host_layout.setSpacing(0)
+        panel = QFrame(dialog)
+        panel.setObjectName("settingsMenuPanel")
+        panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        host_layout.addWidget(panel)
+        layout = QVBoxLayout(panel)
         layout.setContentsMargins(self.spx(12), self.spx(10), self.spx(12), self.spx(10))
         layout.setSpacing(self.spx(8))
 
@@ -546,6 +557,7 @@ class StartWindow(QMainWindow):
         menu_width = self.spx(250)
         menu_gap = self.spx(8)
         dialog.setMinimumWidth(menu_width)
+        panel.setMinimumWidth(menu_width)
         dialog.adjustSize()
         position = self.settings_button.mapToGlobal(
             QPoint(self.settings_button.width() - menu_width, self.settings_button.height() + menu_gap)

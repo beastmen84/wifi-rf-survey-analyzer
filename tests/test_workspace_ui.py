@@ -20,7 +20,7 @@ from app_core.version import (
     format_versioned_title,
     get_app_icon_path,
 )
-from PySide6.QtWidgets import QLabel, QPushButton
+from PySide6.QtWidgets import QFrame, QLabel, QPushButton
 from survey.store import write_raw_scan_file, write_survey_file
 from qt_ui.qt_help_dialog import build_help_html, build_help_sections, help_palette
 from qt_ui.qt_point_workflow import MissingRelevantNetworksDialog, PointCaptureMixin
@@ -110,7 +110,11 @@ class SettingsMenuTests(unittest.TestCase):
                 [window.tr("theme"), window.tr("ui_scale"), window.tr("language")],
             )
             dialog = captured_dialogs[0]
+            panel = dialog.findChild(QFrame, "settingsMenuPanel")
+            self.assertIsNotNone(panel)
+            self.assertEqual(dialog.objectName(), "settingsMenuHost")
             self.assertTrue(dialog.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground))
+            self.assertTrue(panel.testAttribute(Qt.WidgetAttribute.WA_StyledBackground))
             self.assertEqual(
                 dialog.pos(),
                 window.settings_button.mapToGlobal(
