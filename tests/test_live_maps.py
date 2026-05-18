@@ -325,12 +325,13 @@ class FloorplanViewTests(unittest.TestCase):
             view.show()
             view.load_floorplan(floorplan_path)
             QApplication.processEvents()
+            fit_zoom = view.floorplan_fit_zoom_level()
 
             view.focus_on(500, 400)
             QApplication.processEvents()
 
-            target_zoom = FOCUS_POINT_TARGET_MARKER_DIAMETER_PX / (SURVEY_POINT_MARKER_RADIUS * 2.0)
-            self.assertGreaterEqual(view.zoom_level, target_zoom - 0.01)
+            target_zoom = min(FOCUS_POINT_MAX_AUTO_ZOOM, fit_zoom * FOCUS_POINT_FIT_ZOOM_MULTIPLIER)
+            self.assertAlmostEqual(view.zoom_level, target_zoom, delta=0.01)
             focused_pos = view.mapFromScene(QPointF(500, 400))
             self.assertAlmostEqual(focused_pos.x(), view.viewport().width() * 0.5, delta=3.0)
             self.assertAlmostEqual(

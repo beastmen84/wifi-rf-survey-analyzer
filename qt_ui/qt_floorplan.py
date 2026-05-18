@@ -26,7 +26,8 @@ from qt_ui.qt_tooltips import build_html_tooltip
 
 AP_MARKER_BASE_SIZE = 20
 SURVEY_POINT_MARKER_RADIUS = 7.0
-FOCUS_POINT_TARGET_MARKER_DIAMETER_PX = 36.0
+FOCUS_POINT_FIT_ZOOM_MULTIPLIER = 4.6
+FOCUS_POINT_MAX_AUTO_ZOOM = 2.0
 FOCUS_POINT_VERTICAL_VIEWPORT_FRACTION = 0.25
 METRIC_GRID_INTERVALS_M = (0.5, 1.0, 2.0, 5.0, 10.0, 20.0)
 IMPERIAL_GRID_INTERVALS_FT = (1.0, 2.0, 3.0, 5.0, 10.0, 20.0, 50.0)
@@ -1057,6 +1058,32 @@ class FloorplanView(QGraphicsView):
         self.update_boundaries_cursor()
         self.zoomChanged.emit(self.zoom_level)
 
+    def floorplan_fit_zoom_level(self):
+        if not self.has_floorplan():
+            return None
+
+        scene_rect = self.scene.sceneRect()
+        viewport_rect = self.viewport().rect()
+        if (
+            scene_rect.width() <= 0
+            or scene_rect.height() <= 0
+            or viewport_rect.width() <= 0
+            or viewport_rect.height() <= 0
+        ):
+            return None
+
+        return min(
+            viewport_rect.width() / scene_rect.width(),
+            viewport_rect.height() / scene_rect.height(),
+        )
+
+    def focus_target_zoom_level(self):
+        fit_zoom = self.floorplan_fit_zoom_level()
+        if fit_zoom is None:
+            return self.zoom_level
+
+        return min(FOCUS_POINT_MAX_AUTO_ZOOM, fit_zoom * FOCUS_POINT_FIT_ZOOM_MULTIPLIER)
+
     def wheelEvent(self, event):
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             if event.angleDelta().y() > 0:
@@ -1184,8 +1211,7 @@ class FloorplanView(QGraphicsView):
             return
 
         point = QPointF(float(x), float(y))
-        marker_diameter = SURVEY_POINT_MARKER_RADIUS * 2.0
-        target_zoom = FOCUS_POINT_TARGET_MARKER_DIAMETER_PX / marker_diameter
+        target_zoom = self.focus_target_zoom_level()
         current_zoom = max(self.transform().m11(), self.transform().m22(), self.zoom_level)
         if current_zoom < target_zoom:
             self.set_zoom(target_zoom)

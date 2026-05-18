@@ -159,9 +159,9 @@ from qt_ui.qt_quality_dashboard import (
 )
 from qt_ui.qt_floorplan import (
     AP_MARKER_BASE_SIZE,
-    FOCUS_POINT_TARGET_MARKER_DIAMETER_PX,
+    FOCUS_POINT_FIT_ZOOM_MULTIPLIER,
+    FOCUS_POINT_MAX_AUTO_ZOOM,
     FOCUS_POINT_VERTICAL_VIEWPORT_FRACTION,
-    SURVEY_POINT_MARKER_RADIUS,
     FloorplanView,
     format_ap_tooltip,
     format_point_tooltip,
