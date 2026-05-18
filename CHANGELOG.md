@@ -51,6 +51,8 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   appearance.
 - The workspace footer now shows the current Survey Zoom percentage for easier
   operational tuning.
+- The start page Settings popup now uses transparent rounded corners and opens
+  with a small gap below the Settings button.
 - Current survey files now require the full aggregate/raw headers,
   `measurement_system`, an explicit `raw_data_file` metadata entry and a valid
   `.scan` sidecar. AP aliases are read from `ap_groups` instead of duplicate

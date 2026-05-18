@@ -88,8 +88,10 @@ class SettingsMenuTests(unittest.TestCase):
         from qt_ui.qt_startup import StartWindow
 
         captured_labels = []
+        captured_dialogs = []
 
         def capture_settings_labels(dialog):
+            captured_dialogs.append(dialog)
             captured_labels.extend(
                 label.text()
                 for label in dialog.findChildren(QLabel)
@@ -106,6 +108,17 @@ class SettingsMenuTests(unittest.TestCase):
             self.assertEqual(
                 captured_labels,
                 [window.tr("theme"), window.tr("ui_scale"), window.tr("language")],
+            )
+            dialog = captured_dialogs[0]
+            self.assertTrue(dialog.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground))
+            self.assertEqual(
+                dialog.pos(),
+                window.settings_button.mapToGlobal(
+                    QPoint(
+                        window.settings_button.width() - window.spx(250),
+                        window.settings_button.height() + window.spx(8),
+                    )
+                ),
             )
             self.assertFalse(hasattr(window, "measurement_system"))
             self.assertFalse(hasattr(window, "focus_point_zoom_percent"))

@@ -519,6 +519,7 @@ class StartWindow(QMainWindow):
         self.settings_menu_dialog = dialog
         dialog.setObjectName("settingsMenuPanel")
         dialog.setProperty(SKIP_CENTERING_PROPERTY, True)
+        dialog.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         dialog.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
         layout = QVBoxLayout(dialog)
         layout.setContentsMargins(self.spx(12), self.spx(10), self.spx(12), self.spx(10))
@@ -543,10 +544,11 @@ class StartWindow(QMainWindow):
         self.add_settings_row(layout, self.tr("language"), language_combo)
 
         menu_width = self.spx(250)
+        menu_gap = self.spx(8)
         dialog.setMinimumWidth(menu_width)
         dialog.adjustSize()
         position = self.settings_button.mapToGlobal(
-            QPoint(self.settings_button.width() - menu_width, self.settings_button.height())
+            QPoint(self.settings_button.width() - menu_width, self.settings_button.height() + menu_gap)
         )
         dialog.move(position)
         try:
