@@ -1,3 +1,5 @@
+# Direct dependencies for development from source.
+# For reproducible release validation, use requirements-lock.txt.
 pymupdf
 pillow
 pandas

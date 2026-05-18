@@ -113,14 +113,20 @@ class SettingsMenuTests(unittest.TestCase):
 
         license_text = (root / "LICENSE").read_text(encoding="utf-8")
         third_party_text = (root / "THIRD_PARTY_LICENSES").read_text(encoding="utf-8")
+        requirements_lock_text = (root / "requirements-lock.txt").read_text(encoding="utf-8")
         spec_text = (root / "WifiHeatmap.spec").read_text(encoding="utf-8")
 
         self.assertIn("Mozilla Public License Version 2.0", license_text)
         self.assertIn("MPL-2.0", third_party_text)
         self.assertIn("PyMuPDF", third_party_text)
         self.assertIn("AGPL-3.0", third_party_text)
+        self.assertIn("PySide6==", requirements_lock_text)
+        self.assertIn("pandas==", requirements_lock_text)
+        self.assertIn("WiFiRFSurveyAnalyzer", spec_text)
         self.assertIn("THIRD_PARTY_LICENSES", spec_text)
         self.assertIn("README.md", spec_text)
+        self.assertIn("readme_start.png", spec_text)
+        self.assertIn("requirements-lock.txt", spec_text)
 
     def test_file_dialog_initial_location_can_preselect_last_survey_file(self):
         from qt_ui.qt_windowing import split_file_dialog_initial_location

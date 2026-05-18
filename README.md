@@ -1,11 +1,23 @@
-# WiFi Heatmap
+# Wi-Fi RF Survey Analyzer
 
 Desktop application for Wi-Fi RF surveying, live map analysis, AP modeling,
 survey-quality review, and PDF reporting.
 
-WiFi Heatmap is built for practical field surveys: load a floor plan, collect
-real Wi-Fi measurements, preserve raw scan evidence, model physical APs, review
-survey quality, and export explainable RF maps.
+Wi-Fi RF Survey Analyzer is built for practical field surveys: load a floor
+plan, collect real Wi-Fi measurements, preserve raw scan evidence, model
+physical APs, review survey quality, and export explainable RF maps.
+
+![Wi-Fi RF Survey Analyzer start screen](docs/assets/readme_start.png)
+
+## Download
+
+- **Download latest release:** use the
+  [GitHub Releases page](https://github.com/beastmen84/wifi_heatmap/releases/latest).
+- **Windows build available:** public ZIP builds expose
+  `WiFiRFSurveyAnalyzer.exe`; older beta artifacts may still contain the
+  historical `WifiHeatmap.exe` name.
+- **Not a penetration testing tool:** this app is intended for authorized Wi-Fi
+  surveying, troubleshooting and RF analysis, not offensive assessment.
 
 ## Release Status
 
@@ -15,6 +27,8 @@ survey quality, and export explainable RF maps.
 - Main entry point: `main.py`
 - Current survey format: CSV plus linked `.scan` raw-data sidecar
 - Latest packaged Windows ZIP: `WifiHeatmap-v0.9.8-beta.2-win64.zip`
+  (historical beta artifact name; future public builds use
+  `WiFiRFSurveyAnalyzer-v<version>-win64.zip`)
 - Project license: MPL 2.0 (`MPL-2.0`)
 
 The current beta is intended for real-world validation of the Qt workflow. A
@@ -195,6 +209,8 @@ interpretation rules are documented inside the app.
 main.py                 application entry point
 LICENSE                 project license text
 THIRD_PARTY_LICENSES    third-party dependency license summary
+requirements.txt        direct development/runtime dependencies
+requirements-lock.txt   pinned environment used for reproducible release checks
 app_core/               settings, logging, restart, version, constants
 ap/                     AP grouping, metadata checks, conflicts, positioning
 exporting/              live-map PDF export and report pages
@@ -231,6 +247,12 @@ Install dependencies:
 
 ```bash
 pip install -r requirements.txt
+```
+
+For reproducible release validation, install the pinned environment instead:
+
+```bash
+pip install -r requirements-lock.txt
 ```
 
 ## Running
@@ -270,14 +292,14 @@ python -m PyInstaller -y WifiHeatmap.spec
 Output:
 
 ```text
-dist/WifiHeatmap/WifiHeatmap.exe
+dist/WiFiRFSurveyAnalyzer/WiFiRFSurveyAnalyzer.exe
 ```
 
 For distribution, publish the zipped PyInstaller `onedir` folder with the
 release version in the file name:
 
 ```text
-dist/WifiHeatmap-v<version>-win64.zip
+dist/WiFiRFSurveyAnalyzer-v<version>-win64.zip
 ```
 
 The `onedir` format is intentional for this PySide6/scientific stack. It starts
@@ -301,6 +323,10 @@ Current source beta:
 Latest packaged Windows ZIP:
 
 - `WifiHeatmap-v0.9.8-beta.2-win64.zip`
+
+Future public release ZIP name:
+
+- `WiFiRFSurveyAnalyzer-v<version>-win64.zip`
 
 ## Roadmap
 

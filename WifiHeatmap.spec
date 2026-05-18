@@ -9,6 +9,9 @@ release_docs = [
     ('THIRD_PARTY_LICENSES', str(project_root / 'THIRD_PARTY_LICENSES'), 'DATA'),
     ('README.md', str(project_root / 'README.md'), 'DATA'),
     ('CHANGELOG.md', str(project_root / 'CHANGELOG.md'), 'DATA'),
+    ('docs/assets/readme_start.png', str(project_root / 'docs' / 'assets' / 'readme_start.png'), 'DATA'),
+    ('requirements.txt', str(project_root / 'requirements.txt'), 'DATA'),
+    ('requirements-lock.txt', str(project_root / 'requirements-lock.txt'), 'DATA'),
 ]
 
 
@@ -32,7 +35,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='WifiHeatmap',
+    name='WiFiRFSurveyAnalyzer',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -53,5 +56,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='WifiHeatmap',
+    name='WiFiRFSurveyAnalyzer',
 )

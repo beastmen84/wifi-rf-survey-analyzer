@@ -1,4 +1,4 @@
-# WiFi Heatmap - Architecture Notes
+# Wi-Fi RF Survey Analyzer - Architecture Notes
 
 Last updated: 2026-05-18
 
@@ -119,6 +119,11 @@ Current status:
   scope now checks dictionary key parity, placeholders, critical operational
   strings, Wi-Fi technical identifiers, compact label length budgets, Help
   section availability and localized PDF problem-page rendering;
+- post-`v0.9.8-beta.2` public-release repository polish standardizes the
+  user-facing product name as `Wi-Fi RF Survey Analyzer`, adds a pinned
+  `requirements-lock.txt`, updates future Windows build artifact naming to
+  `WiFiRFSurveyAnalyzer`, and moves the README opening toward a public GitHub
+  release page with screenshot, download and authorized-use notes;
 - post-`v0.9.5-beta.1` EN/IT wording polish normalized the most visible UI and
   Help terminology before the 1.0 validation survey: Italian now avoids weaker
   hybrid phrases such as `Finding`, `Extra Details`, `Dominant AP` and
