@@ -33,7 +33,7 @@ from app_core.settings import (
     save_theme,
     save_ui_scale,
 )
-from app_core.version import APP_VERSION_LABEL, format_versioned_title, get_app_icon_path
+from app_core.version import format_legal_footer, format_versioned_title, get_app_icon_path
 from translations.i18n import DEFAULT_LANGUAGE, LANGUAGE_OPTIONS, normalize_language, translate
 from qt_ui.qt_settings_popup import SettingsPopupPanel
 from qt_ui.qt_theme import QT_THEME_OPTIONS, QT_THEMES, build_scrollbar_stylesheet
@@ -454,7 +454,7 @@ class StartWindow(QMainWindow):
         self.exit_button.setText(self.tr("exit"))
         self.settings_button.setText(self.tr("toolbar_settings"))
         self.ready_note.setText(self.tr("start_ready_hint"))
-        self.copyright_label.setText(f"{self.tr('copyright')} | {APP_VERSION_LABEL}")
+        self.copyright_label.setText(format_legal_footer())
         self.update_loading_text()
 
     def change_language(self, value):

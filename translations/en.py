@@ -4,7 +4,7 @@ LANGUAGE_LABEL = "English"
 
 TRANSLATIONS = {
     "app_title": "Wi-Fi RF Survey Analyzer",
-    "copyright": "© Davide Marchi",
+    "copyright": "© 2026 Davide Marchi",
     "loading_app": "Loading components...",
     "loading_app_ready": "Ready",
     "loading_app_error": "Error while loading the app.",
@@ -1306,6 +1306,32 @@ TRANSLATIONS = {
                 <td class="workflow-card"><b>Map Callout</b><br>Numbered marker on the PDF map that links a visible location to its detail card.</td>
             </tr>
         </table>
+    """,
+    "help_legal_nav": "About And Legal",
+    "help_legal_title": "About, License And Responsible Use",
+    "help_legal_subtitle": "Application identity, project license, third-party notices and intended-use boundaries.",
+    "help_legal_body": """
+        <h2>Application</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Product</b><br>Wi-Fi RF Survey Analyzer</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Version</b><br>{version}</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
+                <td class="workflow-card"><b>Copyright</b><br>{copyright}</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>License</b><br>{license_name} (<code>{license_id}</code>)<br>{license_url}</td>
+            </tr>
+        </table>
+        <h2>Responsible Use</h2>
+        <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Authorized Networks Only</span><br>This software is intended for legitimate Wi-Fi analysis, surveying and troubleshooting activities on networks you own or are authorized to assess. The author assumes no responsibility for misuse of the software.</td></tr></table>
+        <h2>Third-Party Components</h2>
+        <p>This application uses third-party libraries such as PySide6/Qt, matplotlib, numpy, scipy, pandas, Pillow, PyMuPDF and lswifi. Their license summary is provided in <code>THIRD_PARTY_LICENSES</code>, shipped with source and packaged releases.</p>
+        <h2>Source Access</h2>
+        <p>Public executable releases should point recipients to the corresponding source tag or repository state for the released build.</p>
+        <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">No Warranty</span><br>The software is provided as-is, without warranty of any kind.</td></tr></table>
     """,
     "help_commands": "Commands",
     "help_workflow": "Workflow",

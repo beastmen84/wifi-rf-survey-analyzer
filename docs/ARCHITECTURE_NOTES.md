@@ -40,6 +40,9 @@ Current status:
   leave option-by-option usage details inside the in-app Help Center; the
   README has been reduced to a GitHub-facing overview/quick-start structure
   rather than a second user manual;
+- public release legal preparation is in place: the repo includes MPL 2.0
+  license text, README license/disclaimer sections, third-party dependency
+  notices, in-app legal Help content, and PyInstaller release docs packaging;
 - `qt_ui/qt_theme.py` is the source of truth for the active Qt palette values;
   the old UI palette draft document has been removed from public docs to avoid
   stale duplicated theme data;

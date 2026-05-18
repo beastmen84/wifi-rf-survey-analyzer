@@ -8,6 +8,11 @@ APP_VERSION = "0.9.8-beta.2"
 APP_RELEASE_TAG = f"v{APP_VERSION}"
 APP_VERSION_LABEL = APP_RELEASE_TAG
 APP_RELEASE_CHANNEL = "beta"
+APP_AUTHOR = "Davide Marchi"
+APP_COPYRIGHT = "© 2026 Davide Marchi"
+APP_LICENSE_NAME = "Mozilla Public License 2.0"
+APP_LICENSE_ID = "MPL-2.0"
+APP_LICENSE_URL = "https://mozilla.org/MPL/2.0/"
 
 
 def get_app_icon_path():
@@ -18,6 +23,10 @@ def get_app_icon_path():
 
 def format_versioned_title(title=APP_DISPLAY_NAME):
     return f"{title} {APP_VERSION_LABEL}"
+
+
+def format_legal_footer():
+    return f"{APP_COPYRIGHT} | {APP_VERSION_LABEL} | {APP_LICENSE_ID}"
 
 
 def configure_qt_application_metadata(app):

@@ -1,5 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from pathlib import Path
+
+
+project_root = Path(SPECPATH)
+release_docs = [
+    ('LICENSE', str(project_root / 'LICENSE'), 'DATA'),
+    ('THIRD_PARTY_LICENSES', str(project_root / 'THIRD_PARTY_LICENSES'), 'DATA'),
+    ('README.md', str(project_root / 'README.md'), 'DATA'),
+    ('CHANGELOG.md', str(project_root / 'CHANGELOG.md'), 'DATA'),
+]
+
 
 a = Analysis(
     ['main.py'],
@@ -38,6 +49,7 @@ coll = COLLECT(
     exe,
     a.binaries,
     a.datas,
+    *release_docs,
     strip=False,
     upx=True,
     upx_exclude=[],

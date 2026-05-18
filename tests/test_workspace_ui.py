@@ -14,9 +14,12 @@ from app_core.constants import (
 )
 from app_core.units import FEET_PER_METER
 from app_core.version import (
+    APP_COPYRIGHT,
+    APP_LICENSE_ID,
     APP_VERSION,
     APP_VERSION_LABEL,
     configure_qt_application_metadata,
+    format_legal_footer,
     format_versioned_title,
     get_app_icon_path,
 )
@@ -94,13 +97,30 @@ class SettingsMenuTests(unittest.TestCase):
         try:
             self.assertEqual(window.windowTitle(), format_versioned_title(window.tr("app_title")))
             self.assertIn(APP_VERSION_LABEL, window.windowTitle())
+            self.assertEqual(window.copyright_label.text(), format_legal_footer())
+            self.assertIn(APP_COPYRIGHT, window.copyright_label.text())
             self.assertIn(APP_VERSION_LABEL, window.copyright_label.text())
+            self.assertIn(APP_LICENSE_ID, window.copyright_label.text())
 
             window.change_language("IT")
             self.assertEqual(window.windowTitle(), format_versioned_title(window.tr("app_title")))
-            self.assertIn(APP_VERSION_LABEL, window.copyright_label.text())
+            self.assertEqual(window.copyright_label.text(), format_legal_footer())
         finally:
             window.deleteLater()
+
+    def test_release_legal_files_exist_and_are_packaged(self):
+        root = Path(__file__).resolve().parents[1]
+
+        license_text = (root / "LICENSE").read_text(encoding="utf-8")
+        third_party_text = (root / "THIRD_PARTY_LICENSES").read_text(encoding="utf-8")
+        spec_text = (root / "WifiHeatmap.spec").read_text(encoding="utf-8")
+
+        self.assertIn("Mozilla Public License Version 2.0", license_text)
+        self.assertIn("MPL-2.0", third_party_text)
+        self.assertIn("PyMuPDF", third_party_text)
+        self.assertIn("AGPL-3.0", third_party_text)
+        self.assertIn("THIRD_PARTY_LICENSES", spec_text)
+        self.assertIn("README.md", spec_text)
 
     def test_file_dialog_initial_location_can_preselect_last_survey_file(self):
         from qt_ui.qt_windowing import split_file_dialog_initial_location
@@ -431,6 +451,7 @@ class SettingsMenuTests(unittest.TestCase):
                 "reports",
                 "diagnostics",
                 "glossary",
+                "legal",
             ]
             sections = build_help_sections(window, window.tr)
 
@@ -493,6 +514,9 @@ class SettingsMenuTests(unittest.TestCase):
             self.assertIn("From Memory", sections[8].body_html)
             self.assertIn("Analysis Channel Override", sections[8].body_html)
             self.assertIn("Map Option Memory", sections[8].body_html)
+            self.assertIn("Responsible Use", sections[9].body_html)
+            self.assertIn("MPL-2.0", sections[9].body_html)
+            self.assertIn("THIRD_PARTY_LICENSES", sections[9].body_html)
 
             html = build_help_html(window, help_palette(window), sections[0])
             self.assertIn("Recommended Survey Workflow", html)
@@ -541,7 +565,7 @@ class SettingsMenuTests(unittest.TestCase):
                 window.change_language(language)
                 sections = build_help_sections(window, window.tr)
 
-                self.assertEqual(len(sections), 9)
+                self.assertEqual(len(sections), 10)
                 self.assertTrue(all(section.nav_title.strip() for section in sections))
                 self.assertTrue(all(section.body_html.strip() for section in sections))
                 self.assertTrue(all(subsection.title.strip() for section in sections for subsection in section.subsections))

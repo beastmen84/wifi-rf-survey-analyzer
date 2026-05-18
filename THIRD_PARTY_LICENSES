@@ -1,0 +1,138 @@
+Third-Party Licenses
+====================
+
+This file summarizes third-party projects used by Wi-Fi RF Survey Analyzer.
+It is an attribution and compliance aid for source and packaged releases; each
+third-party project remains governed by its own upstream license terms.
+
+Snapshot date: 2026-05-18
+Project license: Mozilla Public License 2.0 (MPL-2.0)
+Project copyright: (c) 2026 Davide Marchi
+
+
+Direct Runtime Dependencies
+---------------------------
+
+PySide6 / PySide6_Addons / PySide6_Essentials / shiboken6
+Version observed: 6.11.1
+License observed: LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only, or a
+commercial Qt license.
+Project: https://pyside.org/
+Notes: Packaged Windows builds use the PyInstaller onedir layout and distribute
+Qt/PySide runtime libraries as separate files. This project does not modify
+Qt/PySide source code.
+
+matplotlib
+Version observed: 3.10.9
+License observed: Matplotlib license, based on the Python Software Foundation
+license and BSD-compatible terms.
+Project: https://matplotlib.org/
+
+numpy
+Version observed: 2.4.5
+License observed: BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0.
+Project: https://numpy.org/
+
+scipy
+Version observed: 1.17.1
+License observed: BSD-style license.
+Project: https://scipy.org/
+
+pandas
+Version observed: 3.0.3
+License observed: BSD-3-Clause.
+Project: https://pandas.pydata.org/
+
+Pillow
+Version observed: 12.2.0
+License observed: MIT-CMU.
+Project: https://python-pillow.github.io/
+
+PyMuPDF
+Version observed: 1.27.2.3
+License observed: GNU AGPL-3.0 or Artifex Commercial License.
+Project: https://pymupdf.readthedocs.io/
+Notes: Used for PDF floor-plan rendering. Public source and binary releases
+must satisfy the applicable PyMuPDF/MuPDF license terms.
+
+lswifi
+Version observed: 0.1.66
+License observed: BSD-3-Clause.
+Project: https://github.com/joshschmelzle/lswifi
+
+
+Development, Test, And Packaging Dependencies
+---------------------------------------------
+
+pytest
+License observed: MIT.
+Project: https://pytest.org/
+Notes: Used for automated tests; not required by normal application users.
+
+PyInstaller
+Version observed: 6.20.0
+License observed: GPLv2-or-later with a special exception allowing bundled
+applications to be distributed under different terms.
+Project: https://pyinstaller.org/
+Notes: Used to build the Windows onedir distribution.
+
+pyinstaller-hooks-contrib
+Version observed: 2026.5
+Project: https://github.com/pyinstaller/pyinstaller-hooks-contrib
+Notes: PyInstaller hook collection used during packaging.
+
+altgraph
+Version observed: 0.17.5
+License observed: MIT.
+Project: https://altgraph.readthedocs.io/
+
+pefile
+Version observed: 2024.8.26
+License observed: MIT.
+Project: https://github.com/erocarrera/pefile
+
+pywin32-ctypes
+Version observed: 0.2.3
+License observed: BSD-3-Clause.
+Project: https://github.com/enthought/pywin32-ctypes
+
+packaging
+Version observed: 26.2
+License observed: Apache-2.0 OR BSD-2-Clause.
+Project: https://packaging.pypa.io/
+
+setuptools
+Version observed: 82.0.1
+License observed: MIT.
+Project: https://setuptools.pypa.io/
+
+numpy-typing-compat
+Version observed: 20251206.2.4
+License observed: BSD-3-Clause.
+
+scipy-stubs
+Version observed: 1.17.1.4
+License observed: BSD-3-Clause.
+Project: https://scipy.org/
+
+
+Operating-System Tools
+----------------------
+
+Windows netsh
+License: Microsoft Windows system utility.
+Notes: Used as a fallback Wi-Fi scan backend when lswifi is unavailable.
+
+
+Compliance Notes
+----------------
+
+The packaged Windows ZIP should include:
+
+- LICENSE
+- THIRD_PARTY_LICENSES
+- README.md
+- CHANGELOG.md
+
+Before publishing a final public release, rebuild the package from a clean
+environment and re-check this file against the installed dependency metadata.

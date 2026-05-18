@@ -16,7 +16,13 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from app_core.version import APP_VERSION_LABEL
+from app_core.version import (
+    APP_COPYRIGHT,
+    APP_LICENSE_ID,
+    APP_LICENSE_NAME,
+    APP_LICENSE_URL,
+    APP_VERSION_LABEL,
+)
 from qt_ui.qt_theme import QT_THEMES, build_scrollbar_stylesheet
 from qt_ui.scaling import widget_font, widget_px
 
@@ -213,6 +219,20 @@ def build_help_sections(parent, tr):
             tr("help_glossary_title"),
             tr("help_glossary_subtitle"),
             tr("help_glossary_body"),
+        ),
+        build_help_section(
+            "legal",
+            tr("help_legal_nav"),
+            tr("help_legal_title"),
+            tr("help_legal_subtitle"),
+            tr(
+                "help_legal_body",
+                version=APP_VERSION_LABEL,
+                copyright=APP_COPYRIGHT,
+                license_name=APP_LICENSE_NAME,
+                license_id=APP_LICENSE_ID,
+                license_url=APP_LICENSE_URL,
+            ),
         ),
     ]
 

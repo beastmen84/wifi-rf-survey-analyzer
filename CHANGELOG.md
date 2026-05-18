@@ -9,7 +9,14 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ### Added
 
+- Added the MPL 2.0 project `LICENSE`, a `THIRD_PARTY_LICENSES` dependency
+  notice file, README license/disclaimer sections, and an in-app Help legal
+  section for public release preparation.
+
 ### Fixed / Changed
+
+- Packaged Windows builds are configured to include the release legal and
+  project documentation files beside the application bundle.
 
 ## v0.9.8-beta.2 - 2026-05-18
 

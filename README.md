@@ -15,6 +15,7 @@ survey quality, and export explainable RF maps.
 - Main entry point: `main.py`
 - Current survey format: CSV plus linked `.scan` raw-data sidecar
 - Latest packaged Windows ZIP: `WifiHeatmap-v0.9.8-beta.2-win64.zip`
+- Project license: MPL 2.0 (`MPL-2.0`)
 
 The current beta is intended for real-world validation of the Qt workflow. A
 stable `v1.0.0` is planned after Help Center review and broader field testing.
@@ -192,6 +193,8 @@ interpretation rules are documented inside the app.
 
 ```text
 main.py                 application entry point
+LICENSE                 project license text
+THIRD_PARTY_LICENSES    third-party dependency license summary
 app_core/               settings, logging, restart, version, constants
 ap/                     AP grouping, metadata checks, conflicts, positioning
 exporting/              live-map PDF export and report pages
@@ -283,6 +286,8 @@ run, and tends to be less fragile with Qt plugins and antivirus heuristics.
 
 Release builds use `images/app_icon.png` as the app/window icon source and
 embed the generated `images/app_icon.ico` into the Windows executable.
+Packaged Windows ZIP files also include `LICENSE`, `THIRD_PARTY_LICENSES`,
+`README.md`, and `CHANGELOG.md` beside the application files.
 
 ## Versioning And Changelog
 
@@ -333,6 +338,28 @@ debugging and UI iteration.
 
 Feature direction, real-world survey testing, RF interpretation, validation and
 release decisions were driven manually through practical field use.
+
+## License
+
+This project is licensed under the Mozilla Public License 2.0 (`MPL-2.0`).
+
+The software is provided as-is, without warranty of any kind. Third-party
+dependencies retain their own licenses; see `THIRD_PARTY_LICENSES`.
+Executable releases should point recipients to the corresponding source tag or
+repository state for the released build.
+
+## Disclaimer
+
+This software is intended for legitimate Wi-Fi analysis, surveying and
+troubleshooting activities on networks you own or are authorized to assess.
+
+The author assumes no responsibility for misuse of the software.
+
+## Third-Party Credits
+
+This project uses PySide6/Qt, matplotlib, numpy, scipy, pandas, Pillow,
+PyMuPDF, lswifi and related packaging/test dependencies. See
+`THIRD_PARTY_LICENSES` for the current dependency license summary.
 
 ## Author
 

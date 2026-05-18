@@ -49,7 +49,7 @@ from app_core.settings import (
 )
 from app_core.units import MEASUREMENT_SYSTEM_OPTIONS, normalize_measurement_system
 from app_core.constants import HEATMAP_MAX_DISTANCE_PX, HEATMAP_SMOOTHING_SIGMA
-from app_core.version import APP_VERSION_LABEL, format_versioned_title
+from app_core.version import format_legal_footer, format_versioned_title
 from ap.memory import ensure_ap_memory_file
 from qt_ui.qt_ap_workflow import ApWorkflowMixin
 from qt_ui.qt_floorplan import FloorplanView
@@ -1861,7 +1861,7 @@ class WifiHeatmapQtApp(
         self.start_subtitle.setText(self.tr("start_subtitle"))
         self.start_hint_title.setText(self.tr("qt_start_hint_title"))
         self.start_hint_text.setText(self.tr("qt_start_hint"))
-        self.copyright_label.setText(f"{self.tr('copyright')} | {APP_VERSION_LABEL}")
+        self.copyright_label.setText(format_legal_footer())
         self.new_button.setText(self.tr("new_survey"))
         self.open_button.setText(self.tr("open_existing_survey"))
         self.exit_button.setText(self.tr("exit"))
