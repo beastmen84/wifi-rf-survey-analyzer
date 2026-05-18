@@ -1146,6 +1146,90 @@ class LiveMapViewTests(unittest.TestCase):
             ["Alpha", "Middle", "Zulu"],
         )
 
+    def test_live_dominant_tooltip_uses_readable_evidence_rows(self):
+        dominant_bssid = "70:4f:57:aa:bb:10"
+        second_bssid = "80:11:22:33:44:10"
+        rows = [
+            build_row("p1", "MAIN", dominant_bssid, -51, 36, band="5"),
+            build_row("p1", "MAIN", second_bssid, -54, 44, band="5"),
+        ]
+        for row in rows:
+            row["x"] = "20"
+            row["y"] = "30"
+            row["channel_width_mhz"] = "80"
+            row["samples_seen"] = "4"
+            row["samples_total"] = "5"
+            row["scan_confidence"] = "0.8"
+        rows[1]["samples_seen"] = "3"
+        rows[1]["scan_confidence"] = "0.6"
+        groups = [
+            build_manual_ap_group("dominant-ap", [dominant_bssid], alias="Dominant AP", position={"x": 20, "y": 31}),
+            build_manual_ap_group("second-ap", [second_bssid], alias="Second AP", position={"x": 25, "y": 35}),
+        ]
+
+        payload = build_dominant_payload(
+            rows_to_dataframe(rows),
+            MapConfig(
+                ssid="MAIN",
+                band="5",
+                map_type="dominant",
+                point_label_mode="all",
+                ap_group_map=serialize_ap_group_map(build_bssid_to_manual_group_map(groups)),
+                ap_group_roles=serialize_ap_group_roles(build_ap_group_role_map(groups)),
+            ),
+            Image.new("RGB", (100, 100), "white"),
+            {
+                "dominant_title": "Dominant AP",
+                "reference_ap": "AP",
+                "reference_channel": "Channel",
+                "ap_group_role": "Role",
+                "ap_group_role_internal": "Internal",
+                "signal": "Signal",
+                "samples": "Samples",
+                "scan_confidence": "Confidence",
+                "second_ap": "Second AP",
+                "second_ap_role": "Second AP Role",
+                "second_channel": "Second Channel",
+                "second_signal": "Second Signal",
+                "second_samples": "Second Samples",
+                "second_confidence": "Second Confidence",
+                "signal_delta": "Signal Delta",
+                "roaming_overlap": "Roaming Overlap",
+                "dominant_map_roaming_overlap": "Delta <= 5 dB",
+                "ap_position_distance": "AP Distance",
+                "ap_position_analysis": "Position Analysis",
+                "ap_position_distance_m": "{distance} m",
+                "ap_position_ok": "Consistent",
+            },
+            {"dominant-ap": "Dominant AP", "second-ap": "Second AP"},
+            groups,
+            10.0,
+        )
+
+        tooltip = payload["point_infos"][0]["tooltip"]
+        self.assertIn("Signal", tooltip)
+        self.assertIn("-51 dBm", tooltip)
+        self.assertIn("Samples", tooltip)
+        self.assertIn("4/5", tooltip)
+        self.assertIn("Confidence", tooltip)
+        self.assertIn("80%", tooltip)
+        self.assertIn("CH 36 / 80 MHz / 5 GHz", tooltip)
+        self.assertIn("Second AP", tooltip)
+        self.assertIn("Second Signal", tooltip)
+        self.assertIn("-54 dBm", tooltip)
+        self.assertIn("Second Samples", tooltip)
+        self.assertIn("3/5", tooltip)
+        self.assertIn("Second Confidence", tooltip)
+        self.assertIn("60%", tooltip)
+        self.assertIn("Second Channel", tooltip)
+        self.assertIn("CH 44 / 80 MHz / 5 GHz", tooltip)
+        self.assertIn("Signal Delta", tooltip)
+        self.assertIn("3 dB", tooltip)
+        self.assertIn("Roaming Overlap", tooltip)
+        self.assertIn("Delta &lt;= 5 dB", tooltip)
+        self.assertIn("AP Distance", tooltip)
+        self.assertIn("Position Analysis", tooltip)
+
     def test_live_legend_marker_actions_highlight_and_focus_points(self):
         view = LiveMapView()
         try:

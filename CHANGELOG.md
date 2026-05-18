@@ -31,6 +31,9 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 - AP Channels point tooltips now use the same readable evidence format as the
   other live maps, including signal, samples, confidence and channel band
   context.
+- Dominant AP point tooltips now use the same readable evidence format as the
+  other live maps, including signal, samples, confidence, second-AP context,
+  roaming overlap and AP-position rows.
 
 ## v0.9.7-beta.1 - 2026-05-18
 

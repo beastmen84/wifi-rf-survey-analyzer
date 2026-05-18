@@ -1080,38 +1080,67 @@ def build_channel_tooltip(row, config, translations, aliases):
 
 def build_dominant_tooltip(row, config, translations, aliases, position_analysis):
     position_rows = build_position_tooltip_rows(position_analysis, translations, aliases)
-    return build_html_tooltip(
-        translations.get("dominant_title", "Dominant AP"),
-        [
-            ("SSID", config.ssid),
-            ("x/y", f"{format_value(row.get('x'))}, {format_value(row.get('y'))}"),
-            (
-                translations.get("reference_ap", "AP"),
-                format_ap_label(row.get("dominant_bssid", ""), aliases, row.get("dominant_ap_group", "")),
+    rows = [
+        ("SSID", config.ssid),
+        ("x/y", f"{format_value(row.get('x'))}, {format_value(row.get('y'))}"),
+        (
+            translations.get("reference_ap", "AP"),
+            format_ap_label(row.get("dominant_bssid", ""), aliases, row.get("dominant_ap_group", "")),
+        ),
+        (
+            translations.get("ap_group_role", "Role"),
+            format_ap_role(row.get("dominant_ap_role"), translations),
+        ),
+        (
+            translations.get("reference_channel", "Channel"),
+            format_channel_with_width_and_band(
+                row.get("dominant_channel"),
+                row.get("dominant_channel_width_mhz"),
+                row.get("dominant_band", ""),
             ),
-            (
-                translations.get("ap_group_role", "Role"),
-                format_ap_role(row.get("dominant_ap_role"), translations),
-            ),
-            (
-                translations.get("reference_channel", "Channel"),
-                format_channel_with_width(row.get("dominant_channel"), row.get("dominant_channel_width_mhz")),
-            ),
-            (translations.get("best", "Best"), f"{format_value(row.get('dominant_signal_dbm'))} dBm"),
-            (translations.get("confidence", "confidence"), format_named_confidence(row, "dominant")),
+        ),
+        (translations.get("signal", "Signal"), format_dbm_value(row.get("dominant_signal_dbm"))),
+        (translations.get("samples", "Samples"), format_named_samples(row, "dominant")),
+        (
+            translations.get("scan_confidence", "Confidence"),
+            format_scan_confidence_percent(row.get("dominant_scan_confidence", "")),
+        ),
+    ]
+    if row.get("second_bssid", ""):
+        rows.extend([
             (
                 translations.get("second_ap", "Second AP"),
-                format_ap_label(row.get("second_bssid", ""), aliases, row.get("second_ap_group", ""))
-                if row.get("second_bssid", "")
-                else "-",
+                format_ap_label(row.get("second_bssid", ""), aliases, row.get("second_ap_group", "")),
             ),
             (
                 translations.get("second_ap_role", "Second AP role"),
                 format_ap_role(row.get("second_ap_role"), translations) if row.get("second_ap_role") else "-",
             ),
-            (translations.get("second_confidence", "Second confidence"), format_named_confidence(row, "second")),
-            ("Delta", f"{format_value(row.get('delta_db'))} dB"),
-        ] + position_rows,
+            (
+                translations.get("second_channel", "Second Channel"),
+                format_channel_with_width_and_band(
+                    row.get("second_channel"),
+                    row.get("second_channel_width_mhz"),
+                    row.get("second_band", ""),
+                ),
+            ),
+            (translations.get("second_signal", "Second Signal"), format_dbm_value(row.get("second_signal_dbm"))),
+            (translations.get("second_samples", "Second Samples"), format_named_samples(row, "second")),
+            (
+                translations.get("second_confidence", "Second confidence"),
+                format_scan_confidence_percent(row.get("second_scan_confidence", "")),
+            ),
+            (translations.get("signal_delta", "Delta"), f"{format_value(row.get('delta_db'))} dB"),
+        ])
+        if row.get("roaming_overlap"):
+            rows.append((
+                translations.get("roaming_overlap", "Roaming Overlap"),
+                translations.get("dominant_map_roaming_overlap", "Delta <= 5 dB"),
+            ))
+    rows.extend(position_rows)
+    return build_html_tooltip(
+        translations.get("dominant_title", "Dominant AP"),
+        rows,
         "#f1c40f" if row.get("roaming_overlap") else "#34495e",
     )
 
@@ -1253,14 +1282,12 @@ def format_ap_role(role, translations):
     return translations.get(f"ap_group_role_{normalize_ap_role(role)}", str(role or "-"))
 
 
-def format_named_confidence(row, prefix):
+def format_named_samples(row, prefix):
     samples_seen = format_value(row.get(f"{prefix}_samples_seen", ""))
     samples_total = format_value(row.get(f"{prefix}_samples_total", ""))
-    confidence = format_value(row.get(f"{prefix}_scan_confidence", ""))
     if samples_seen == "-" or samples_total == "-":
         return "-"
-    suffix = f" ({confidence})" if confidence != "-" else ""
-    return f"{samples_seen}/{samples_total}{suffix}"
+    return f"{samples_seen}/{samples_total}"
 
 
 def get_ap_position_warning_color(analysis):
