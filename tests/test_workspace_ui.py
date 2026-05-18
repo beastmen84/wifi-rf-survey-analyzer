@@ -20,7 +20,7 @@ from app_core.version import (
     format_versioned_title,
     get_app_icon_path,
 )
-from PySide6.QtWidgets import QPushButton
+from PySide6.QtWidgets import QLabel, QPushButton
 from survey.store import write_raw_scan_file, write_survey_file
 from qt_ui.qt_help_dialog import build_help_html, build_help_sections, help_palette
 from qt_ui.qt_point_workflow import MissingRelevantNetworksDialog, PointCaptureMixin
@@ -81,6 +81,34 @@ class SettingsMenuTests(unittest.TestCase):
             self.assertIsNotNone(title_pixmap)
             self.assertFalse(title_pixmap.isNull())
             self.assertEqual(window.title.text(), window.tr("app_title"))
+        finally:
+            window.deleteLater()
+
+    def test_start_page_settings_are_app_appearance_only(self):
+        from qt_ui.qt_startup import StartWindow
+
+        captured_labels = []
+
+        def capture_settings_labels(dialog):
+            captured_labels.extend(
+                label.text()
+                for label in dialog.findChildren(QLabel)
+                if label.objectName() == "settingsMenuLabel"
+            )
+            return 0
+
+        with patch("qt_ui.qt_startup.QTimer.singleShot"):
+            window = StartWindow()
+        try:
+            with patch("qt_ui.qt_startup.QDialog.exec", new=capture_settings_labels):
+                window.open_settings_menu()
+
+            self.assertEqual(
+                captured_labels,
+                [window.tr("theme"), window.tr("ui_scale"), window.tr("language")],
+            )
+            self.assertFalse(hasattr(window, "measurement_system"))
+            self.assertFalse(hasattr(window, "focus_point_zoom_percent"))
         finally:
             window.deleteLater()
 

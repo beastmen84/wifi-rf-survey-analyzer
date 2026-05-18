@@ -27,22 +27,14 @@ except ModuleNotFoundError as exc:
 from app_core.logging import log_event, log_exception
 from app_core.restart import start_replacement_process
 from app_core.settings import (
-    FOCUS_POINT_ZOOM_PERCENT_OPTIONS,
     get_last_survey_directory,
-    get_saved_focus_point_zoom_percent,
-    get_saved_measurement_system,
     get_saved_theme,
     get_saved_ui_scale,
-    normalize_focus_point_zoom_percent,
-    save_focus_point_zoom_percent,
-    save_measurement_system,
     save_theme,
     save_ui_scale,
 )
-from app_core.units import MEASUREMENT_SYSTEM_OPTIONS, normalize_measurement_system
 from app_core.version import APP_VERSION_LABEL, format_versioned_title, get_app_icon_path
 from translations.i18n import DEFAULT_LANGUAGE, LANGUAGE_OPTIONS, normalize_language, translate
-from qt_ui.qt_settings_memory import add_ap_memory_settings_section
 from qt_ui.qt_theme import QT_THEME_OPTIONS, QT_THEMES, build_scrollbar_stylesheet
 from qt_ui.qt_windowing import SKIP_CENTERING_PROPERTY, get_centered_open_file_name
 from qt_ui.scaling import (
@@ -82,10 +74,6 @@ class StartWindow(QMainWindow):
         self.theme = get_saved_theme(default="light", valid_themes=QT_THEMES)
         self.ui_scale_mode = normalize_ui_scale_mode(get_saved_ui_scale())
         self.ui_scale = resolve_ui_scale(self.ui_scale_mode)
-        self.measurement_system = normalize_measurement_system(
-            get_saved_measurement_system(valid_modes=MEASUREMENT_SYSTEM_OPTIONS)
-        )
-        self.focus_point_zoom_percent = get_saved_focus_point_zoom_percent()
         log_event(
             f"startup ui scale resolved {format_ui_scale_diagnostics(ui_scale_diagnostics(self.ui_scale_mode))}",
             logger_name="ui",
@@ -518,30 +506,6 @@ class StartWindow(QMainWindow):
     def ui_scale_label_for_mode(self, mode):
         return dict(self.ui_scale_items()).get(mode, f"{mode}%")
 
-    def change_measurement_system(self, mode):
-        mode = normalize_measurement_system(mode)
-        if mode == self.measurement_system:
-            return True
-        if not save_measurement_system(mode):
-            QMessageBox.warning(self, self.tr("warning"), self.tr("settings_save_failed"))
-            return False
-
-        self.measurement_system = mode
-        log_event(f"startup measurement system changed mode={mode}", logger_name="ui")
-        return True
-
-    def change_focus_point_zoom_percent(self, percent):
-        percent = normalize_focus_point_zoom_percent(percent)
-        if percent == self.focus_point_zoom_percent:
-            return True
-        if not save_focus_point_zoom_percent(percent):
-            QMessageBox.warning(self, self.tr("warning"), self.tr("settings_save_failed"))
-            return False
-
-        self.focus_point_zoom_percent = percent
-        log_event(f"startup focus point zoom changed percent={percent}", logger_name="ui")
-        return True
-
     def open_settings_menu(self):
         if self.should_suppress_settings_menu_toggle():
             return
@@ -571,26 +535,12 @@ class StartWindow(QMainWindow):
         scale_combo.currentIndexChanged.connect(lambda _index: self.change_ui_scale(scale_combo.currentData()))
         self.add_settings_row(layout, self.tr("ui_scale"), scale_combo)
 
-        units_combo = self.create_settings_combo(self.measurement_system_items(), self.measurement_system)
-        units_combo.currentIndexChanged.connect(lambda _index: self.apply_measurement_system_combo(units_combo))
-        self.add_settings_row(layout, self.tr("measurement_system"), units_combo)
-
-        focus_zoom_combo = self.create_settings_combo(
-            self.focus_point_zoom_items(),
-            self.focus_point_zoom_percent,
-        )
-        focus_zoom_combo.currentIndexChanged.connect(
-            lambda _index: self.change_focus_point_zoom_percent(focus_zoom_combo.currentData())
-        )
-        self.add_settings_row(layout, self.tr("go_to_point_zoom"), focus_zoom_combo)
-
         language_combo = self.create_settings_combo(
             LANGUAGE_OPTIONS,
             self.language.upper(),
         )
         language_combo.currentIndexChanged.connect(lambda _index: self.change_language(language_combo.currentData()))
         self.add_settings_row(layout, self.tr("language"), language_combo)
-        add_ap_memory_settings_section(self, layout)
 
         menu_width = self.spx(250)
         dialog.setMinimumWidth(menu_width)
@@ -638,26 +588,6 @@ class StartWindow(QMainWindow):
             (mode, self.tr("ui_scale_auto", percent=auto_percent) if mode == "auto" else f"{mode}%")
             for mode in UI_SCALE_OPTIONS
         ]
-
-    def measurement_system_items(self):
-        return [
-            (mode, self.tr(f"measurement_system_{mode}"))
-            for mode in MEASUREMENT_SYSTEM_OPTIONS
-        ]
-
-    def focus_point_zoom_items(self):
-        return [
-            (percent, f"{percent}%")
-            for percent in FOCUS_POINT_ZOOM_PERCENT_OPTIONS
-        ]
-
-    def apply_measurement_system_combo(self, combo):
-        if self.change_measurement_system(combo.currentData()):
-            return
-
-        combo.blockSignals(True)
-        combo.setCurrentIndex(max(0, combo.findData(self.measurement_system)))
-        combo.blockSignals(False)
 
     def start_async_imports(self):
         self.load_thread = QThread(self)
