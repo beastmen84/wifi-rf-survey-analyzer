@@ -194,6 +194,48 @@ class SettingsMenuTests(unittest.TestCase):
             else:
                 os.environ["WIFI_HEATMAP_SETTINGS_FILE"] = previous
 
+    def test_workspace_settings_menu_is_embedded_panel(self):
+        window = WifiHeatmapQtApp()
+        try:
+            window.show()
+            window.stack.setCurrentWidget(window.workspace_page)
+            QApplication.processEvents()
+            window.open_settings_menu()
+
+            panel = window.settings_menu_panel
+            self.assertIsNotNone(panel)
+            self.assertTrue(panel.isVisible())
+            labels = [
+                label.text()
+                for label in panel.findChildren(QLabel)
+                if label.objectName() == "settingsMenuLabel"
+            ]
+            self.assertEqual(
+                labels,
+                [
+                    window.tr("theme"),
+                    window.tr("ui_scale"),
+                    window.tr("measurement_system"),
+                    window.tr("go_to_point_zoom"),
+                    window.tr("language"),
+                    window.tr("ap_memory_settings_title"),
+                ],
+            )
+            self.assertTrue(panel.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground))
+            self.assertEqual(
+                panel.pos(),
+                window.settings_menu_button.mapTo(
+                    window.workspace_page,
+                    QPoint(
+                        window.settings_menu_button.width() - window.spx(250),
+                        window.settings_menu_button.height() + window.spx(8),
+                    )
+                ),
+            )
+        finally:
+            window.close_settings_menu()
+            window.deleteLater()
+
     def test_analysis_toolbar_matches_recommended_workflow_order(self):
         window = WifiHeatmapQtApp()
         try:

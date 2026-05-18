@@ -245,7 +245,8 @@ class WifiHeatmapQtApp(
         self.live_worker = None
         self.live_rendering = False
         self.live_dirty = False
-        self.settings_menu_dialog = None
+        self.settings_menu_panel = None
+        self.settings_menu_event_filter_installed = False
         self.settings_menu_suppressed_until = 0.0
         self.points_panel_expanded = False
         self.points_overlay_height = 0
@@ -867,6 +868,9 @@ class WifiHeatmapQtApp(
         self.points_overlay.raise_()
 
     def eventFilter(self, source, event):
+        if self.handle_settings_menu_event_filter(event):
+            return True
+
         if source is getattr(self, "floorplan_container", None) and event.type() == QEvent.Type.Resize:
             QTimer.singleShot(0, self.position_boundaries_toolbar)
             QTimer.singleShot(0, self.position_points_overlay)
@@ -1276,11 +1280,10 @@ class WifiHeatmapQtApp(
                 background: {palette["panel_alt"]};
                 border: 1px solid {palette["border"]};
             }}
-            QDialog#settingsMenuPanel, QWidget#settingsMenuPanel {{
-                background: {palette["panel"]};
+            QWidget#settingsMenuPanel {{
+                background: transparent;
                 color: {palette["text"]};
-                border: 1px solid {palette["border"]};
-                border-radius: {s(8)}px;
+                border: 0;
             }}
             QLabel#settingsMenuLabel {{
                 color: {palette["muted"]};

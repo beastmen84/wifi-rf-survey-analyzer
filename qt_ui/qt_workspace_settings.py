@@ -2,9 +2,9 @@
 
 import time
 
-from PySide6.QtCore import QPoint, Qt
+from PySide6.QtCore import QEvent, QPoint, Qt
 from PySide6.QtGui import QCursor
-from PySide6.QtWidgets import QApplication, QComboBox, QDialog, QLabel, QMessageBox, QVBoxLayout
+from PySide6.QtWidgets import QApplication, QComboBox, QLabel, QMessageBox, QVBoxLayout
 
 from app_core.logging import log_event, log_exception
 from app_core.restart import start_replacement_process
@@ -19,8 +19,8 @@ from app_core.settings import (
 from app_core.units import MEASUREMENT_SYSTEM_OPTIONS, normalize_measurement_system
 from translations.i18n import LANGUAGE_OPTIONS, normalize_language
 from qt_ui.qt_settings_memory import add_ap_memory_settings_section
+from qt_ui.qt_settings_popup import SettingsPopupPanel
 from qt_ui.qt_theme import QT_THEME_OPTIONS, QT_THEMES
-from qt_ui.qt_windowing import SKIP_CENTERING_PROPERTY
 from qt_ui.scaling import (
     UI_SCALE_OPTIONS,
     detect_auto_ui_scale_percent,
@@ -172,17 +172,16 @@ class WorkspaceSettingsMixin:
         if self.should_suppress_settings_menu_toggle():
             return
 
-        active_dialog = self.settings_menu_dialog
-        if active_dialog is not None and active_dialog.isVisible():
-            active_dialog.close()
+        active_panel = self.settings_menu_panel
+        if active_panel is not None and active_panel.isVisible():
+            self.close_settings_menu(suppress_if_on_button=True)
             return
 
-        dialog = QDialog(self)
-        self.settings_menu_dialog = dialog
-        dialog.setObjectName("settingsMenuPanel")
-        dialog.setProperty(SKIP_CENTERING_PROPERTY, True)
-        dialog.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
-        layout = QVBoxLayout(dialog)
+        parent = self.workspace_page
+        panel = SettingsPopupPanel(QT_THEMES.get(self.theme, QT_THEMES["light"]), self.spx(8), parent)
+        self.settings_menu_panel = panel
+        panel.setObjectName("settingsMenuPanel")
+        layout = QVBoxLayout(panel)
         layout.setContentsMargins(self.spx(12), self.spx(10), self.spx(12), self.spx(10))
         layout.setSpacing(self.spx(8))
 
@@ -219,19 +218,57 @@ class WorkspaceSettingsMixin:
         add_ap_memory_settings_section(self, layout)
 
         menu_width = self.spx(250)
-        dialog.setMinimumWidth(menu_width)
-        dialog.adjustSize()
-        position = self.settings_menu_button.mapToGlobal(
-            QPoint(self.settings_menu_button.width() - menu_width, self.settings_menu_button.height())
+        menu_gap = self.spx(8)
+        panel.setMinimumWidth(menu_width)
+        panel.adjustSize()
+        position = self.settings_menu_button.mapTo(
+            parent,
+            QPoint(self.settings_menu_button.width() - menu_width, self.settings_menu_button.height() + menu_gap)
         )
-        dialog.move(position)
-        try:
-            dialog.exec()
-        finally:
-            if self.settings_menu_dialog is dialog:
-                self.settings_menu_dialog = None
-            if self.is_settings_button_global_pos(QCursor.pos()):
-                self.settings_menu_suppressed_until = time.monotonic() + 0.35
+        panel.move(position)
+        panel.raise_()
+        panel.show()
+        self.install_settings_menu_event_filter()
+
+    def close_settings_menu(self, suppress_if_on_button=False):
+        panel = self.settings_menu_panel
+        if panel is not None:
+            panel.hide()
+            panel.deleteLater()
+            self.settings_menu_panel = None
+        self.remove_settings_menu_event_filter()
+        if suppress_if_on_button and self.is_settings_button_global_pos(QCursor.pos()):
+            self.settings_menu_suppressed_until = time.monotonic() + 0.35
+
+    def install_settings_menu_event_filter(self):
+        if self.settings_menu_event_filter_installed:
+            return
+        QApplication.instance().installEventFilter(self)
+        self.settings_menu_event_filter_installed = True
+
+    def remove_settings_menu_event_filter(self):
+        if not self.settings_menu_event_filter_installed:
+            return
+        QApplication.instance().removeEventFilter(self)
+        self.settings_menu_event_filter_installed = False
+
+    def handle_settings_menu_event_filter(self, event):
+        if (
+            self.settings_menu_panel is None
+            or event.type() != QEvent.Type.MouseButtonPress
+            or QApplication.activePopupWidget() is not None
+        ):
+            return False
+
+        global_pos = event.globalPosition().toPoint()
+        if self.is_settings_button_global_pos(global_pos):
+            self.close_settings_menu(suppress_if_on_button=True)
+            return False
+
+        panel_pos = self.settings_menu_panel.mapFromGlobal(global_pos)
+        if not self.settings_menu_panel.rect().contains(panel_pos):
+            self.close_settings_menu()
+        return False
 
     def should_suppress_settings_menu_toggle(self):
         if time.monotonic() < self.settings_menu_suppressed_until:

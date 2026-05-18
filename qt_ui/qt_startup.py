@@ -4,8 +4,8 @@ import time
 from pathlib import Path
 
 try:
-    from PySide6.QtCore import QEvent, QObject, QPoint, QRectF, Qt, QThread, QTimer, Signal, Slot
-    from PySide6.QtGui import QColor, QCursor, QPainter, QPainterPath, QPen, QPixmap
+    from PySide6.QtCore import QEvent, QObject, QPoint, Qt, QThread, QTimer, Signal, Slot
+    from PySide6.QtGui import QCursor, QPixmap
     from PySide6.QtWidgets import (
         QApplication,
         QComboBox,
@@ -34,6 +34,7 @@ from app_core.settings import (
 )
 from app_core.version import APP_VERSION_LABEL, format_versioned_title, get_app_icon_path
 from translations.i18n import DEFAULT_LANGUAGE, LANGUAGE_OPTIONS, normalize_language, translate
+from qt_ui.qt_settings_popup import SettingsPopupPanel
 from qt_ui.qt_theme import QT_THEME_OPTIONS, QT_THEMES, build_scrollbar_stylesheet
 from qt_ui.qt_windowing import get_centered_open_file_name
 from qt_ui.scaling import (
@@ -64,25 +65,6 @@ class AppImportWorker(QObject):
 
         log_event("qt app module import done", logger_name="startup")
         self.finished.emit(WifiHeatmapQtApp)
-
-
-class SettingsPopupPanel(QFrame):
-    def __init__(self, palette, radius, parent=None):
-        super().__init__(parent)
-        self.panel_color = QColor(palette["panel"])
-        self.border_color = QColor(palette["border"])
-        self.radius = radius
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        rect = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
-        path = QPainterPath()
-        path.addRoundedRect(rect, self.radius, self.radius)
-        painter.fillPath(path, self.panel_color)
-        painter.setPen(QPen(self.border_color, 1.0))
-        painter.drawPath(path)
 
 
 class StartWindow(QMainWindow):
@@ -362,8 +344,9 @@ class StartWindow(QMainWindow):
                 min-width: {s(116)}px;
             }}
             QWidget#settingsMenuPanel {{
-                background: {palette["panel"]};
+                background: transparent;
                 color: {palette["text"]};
+                border: 0;
             }}
             QLabel#settingsMenuLabel {{
                 color: {palette["muted"]};
