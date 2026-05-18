@@ -69,8 +69,9 @@ LIVE_PDF_AP_ICON_SIZE_PX = 22
 LIVE_PDF_INFO_HEIGHT_PX = 360
 LIVE_PDF_INFO_MAX_HEIGHT_PX = 760
 LIVE_PDF_BOTTOM_WHITESPACE_MAX_PX = 180
-LIVE_PDF_MAP_CONTENT_DELTA_THRESHOLD = 10
-LIVE_PDF_MAP_CONTENT_VARIATION_THRESHOLD = 2.0
+LIVE_PDF_BOTTOM_BACKGROUND_SAMPLE_ROWS = 32
+LIVE_PDF_BOTTOM_BACKGROUND_COLOR_DELTA = 12
+LIVE_PDF_BOTTOM_BACKGROUND_VARIATION = 6.0
 LIVE_PDF_MAP_DATA_MARGIN_PX = 80
 LIVE_PDF_SWATCH_COLUMNS = 4
 LIVE_PDF_SWATCH_BASE_ROWS = 4
@@ -666,32 +667,47 @@ def detect_live_pdf_image_content_bottom(bg_image):
     if pixels.size == 0:
         return height
 
-    corner_size = max(1, min(24, width, height))
-    corners = np.concatenate(
-        [
-            pixels[:corner_size, :corner_size].reshape(-1, 3),
-            pixels[:corner_size, -corner_size:].reshape(-1, 3),
-            pixels[-corner_size:, :corner_size].reshape(-1, 3),
-            pixels[-corner_size:, -corner_size:].reshape(-1, 3),
-        ],
-        axis=0,
-    )
-    background = np.median(corners, axis=0)
-    delta = np.max(np.abs(pixels.astype(np.int16) - background.astype(np.int16)), axis=2)
-    changed_pixels = delta > LIVE_PDF_MAP_CONTENT_DELTA_THRESHOLD
-    minimum_changed_pixels = max(8, int(width * 0.003))
-    row_changed = changed_pixels.sum(axis=1) >= minimum_changed_pixels
-    row_variation = pixels.std(axis=1).mean(axis=1) > LIVE_PDF_MAP_CONTENT_VARIATION_THRESHOLD
-    content_rows = np.flatnonzero(row_changed | row_variation)
-    if len(content_rows) == 0:
+    blank_tail_top = detect_live_pdf_uniform_bottom_tail_top(pixels)
+    if blank_tail_top is None:
         return height
 
-    last_content_row = int(content_rows[-1])
-    blank_tail = height - (last_content_row + 1)
+    blank_tail = height - blank_tail_top
     if blank_tail <= LIVE_PDF_BOTTOM_WHITESPACE_MAX_PX:
         return height
 
-    return last_content_row + 1 + LIVE_PDF_BOTTOM_WHITESPACE_MAX_PX
+    return blank_tail_top + LIVE_PDF_BOTTOM_WHITESPACE_MAX_PX
+
+
+def detect_live_pdf_uniform_bottom_tail_top(pixels):
+    height = pixels.shape[0]
+    if height <= 0:
+        return None
+
+    sample_rows = min(LIVE_PDF_BOTTOM_BACKGROUND_SAMPLE_ROWS, height)
+    bottom_sample = pixels[-sample_rows:]
+    background = np.median(bottom_sample.reshape(-1, 3), axis=0)
+
+    row_medians = np.median(pixels, axis=1)
+    row_color_delta = np.max(
+        np.abs(row_medians.astype(np.float32) - background.astype(np.float32)),
+        axis=1,
+    )
+    row_variation = pixels.astype(np.float32).std(axis=1).mean(axis=1)
+    bottom_variation = float(np.percentile(row_variation[-sample_rows:], 95))
+    variation_limit = max(
+        LIVE_PDF_BOTTOM_BACKGROUND_VARIATION,
+        bottom_variation + 2.5,
+    )
+    background_rows = (
+        (row_color_delta <= LIVE_PDF_BOTTOM_BACKGROUND_COLOR_DELTA)
+        & (row_variation <= variation_limit)
+    )
+
+    row_index = height - 1
+    while row_index >= 0 and background_rows[row_index]:
+        row_index -= 1
+
+    return row_index + 1 if row_index < height - 1 else None
 
 
 def detect_live_pdf_data_bottom(y_values=None, ap_groups=None):

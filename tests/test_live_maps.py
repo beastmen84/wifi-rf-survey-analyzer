@@ -1469,11 +1469,22 @@ class LivePdfExportTests(unittest.TestCase):
         finally:
             plt.close(fig)
 
-    def test_live_pdf_map_figure_keeps_small_blank_floorplan_bottom(self):
+    def test_live_pdf_map_crop_uses_uniform_bottom_color_not_white(self):
         image = Image.new("RGB", (200, 500), "white")
+        for y in range(130, 500):
+            for x in range(0, 200):
+                image.putpixel((x, y), (230, 218, 196))
+        for y in range(20, 120):
+            for x in range(20, 180):
+                image.putpixel((x, y), (80, 80, 80))
+
+        self.assertEqual(live_pdf_module.calculate_live_pdf_map_bottom(image), 310)
+
+    def test_live_pdf_map_figure_keeps_small_blank_floorplan_bottom(self):
+        image = Image.new("RGB", (200, 500), (226, 232, 240))
         for y in range(20, 340):
             for x in range(20, 180):
-                image.putpixel((x, y), (220, 220, 220))
+                image.putpixel((x, y), (80, 80, 80))
 
         self.assertEqual(live_pdf_module.calculate_live_pdf_map_bottom(image), 500)
 

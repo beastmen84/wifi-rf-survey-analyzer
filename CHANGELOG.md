@@ -11,6 +11,20 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ### Fixed / Changed
 
+## v0.9.8-beta.2 - 2026-05-18
+
+### Added
+
+### Fixed / Changed
+
+- Live PDF map pages now trim excessive uniform floorplan background below the
+  last visible content while preserving a small bottom margin and any points/AP
+  markers that fall in that area. The crop is based on the repeated background
+  color at the bottom of the floorplan, not on assuming a white page.
+- AP Channels and Dominant AP PDF map-page info bands now grow when the
+  discrete legend has many entries, reducing the chance that useful legend
+  items are collapsed into a `+N` overflow marker.
+
 ## v0.9.8-beta.1 - 2026-05-18
 
 ### Added
@@ -51,12 +65,6 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
   signal, scope, role and observed AP evidence rows.
 - The live-map footer now reports `Live Map Zoom` while the Live tab is active,
   keeping it distinct from Survey Zoom.
-- Live PDF map pages now trim excessive blank floorplan space below the last
-  visible content while preserving a small bottom margin and any points/AP
-  markers that fall in that area.
-- AP Channels and Dominant AP PDF map-page info bands now grow when the
-  discrete legend has many entries, reducing the chance that useful legend
-  items are collapsed into a `+N` overflow marker.
 - AP Group refresh now auto-heals memory-applied `#2`/`#3` fragments when the
   survey rows show they belong to the same automatic AP group, preventing AP
   Memory from duplicating metadata across split physical APs.

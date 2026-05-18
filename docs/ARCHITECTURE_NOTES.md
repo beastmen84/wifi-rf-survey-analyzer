@@ -23,7 +23,7 @@ interpolated colors.
 Current status:
 
 - public release versioning is separate from the survey schema generation:
-  `v0.9.8-beta.1` is the current source-tagged beta, while `v1.0.0`
+  `v0.9.8-beta.2` is the current source-tagged beta, while `v1.0.0`
   should wait for the remaining real-survey validation pass;
 - future beta release candidates should use the current minor beta line for
   validation/polish or a new minor beta for feature-level additions; do not
@@ -105,6 +105,12 @@ Current status:
   Survey now preserves the full last CSV path. Latest zipped Windows release
   artifact:
   `dist\WifiHeatmap-v0.9.8-beta.1-win64.zip`;
+- `v0.9.8-beta.2` closes the live PDF map-layout follow-up: PDF map pages trim
+  excessive uniform floor-plan background below the last visible content while
+  preserving a small bottom margin and any survey/AP markers in that area, and
+  AP Channels/Dominant AP map-page info bands expand for larger discrete
+  legends. Latest zipped Windows release artifact:
+  `dist\WifiHeatmap-v0.9.8-beta.2-win64.zip`;
 - post-`v0.9.5-beta.1` EN/IT wording polish normalized the most visible UI and
   Help terminology before the 1.0 validation survey: Italian now avoids weaker
   hybrid phrases such as `Finding`, `Extra Details`, `Dominant AP` and
@@ -567,8 +573,8 @@ Implemented:
 - export asks the user where to save the PDF;
 - export uses the current live-map type and options;
 - map rendering is independent of viewport zoom/pan and can trim excessive
-  blank floor-plan space below the visible content while preserving a bottom
-  margin and any survey/AP markers in that area;
+  uniform floor-plan background below the visible content while preserving a
+  bottom margin and any survey/AP markers in that area;
 - page 1 is arranged as map first, then summary/scale/legend below the map;
 - continuous Coverage and Interference exports honor color scale, smoothing and
   max-distance settings;
@@ -1008,7 +1014,7 @@ Implemented:
 
 Remaining closeout:
 
-- review wording and visual density in the real UI after the `v0.9.8-beta.1`
+- review wording and visual density in the real UI after the `v0.9.8-beta.2`
   documentation pass;
 - refine section ordering and formatting only if visual inspection shows a real
   readability problem;
@@ -1018,7 +1024,7 @@ Remaining closeout:
 
 1.0 closeout:
 
-1. Run the `v0.9.8-beta.1` operational smoke test in the packaged app,
+1. Run the `v0.9.8-beta.2` operational smoke test in the packaged app,
    covering new survey units, blank-plan/grid behavior, Boundaries drawing and
    brush size, manual-mask Live/PDF application, Go to Point focus zoom,
    discrete-map legend focus, tooltip readability and settings panels.

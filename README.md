@@ -9,12 +9,12 @@ survey quality, and export explainable RF maps.
 
 ## Release Status
 
-- Current source version: `v0.9.8-beta.1`
+- Current source version: `v0.9.8-beta.2`
 - Release type: beta / pre-release
 - Active UI: PySide6
 - Main entry point: `main.py`
 - Current survey format: CSV plus linked `.scan` raw-data sidecar
-- Latest packaged Windows ZIP: `WifiHeatmap-v0.9.8-beta.1-win64.zip`
+- Latest packaged Windows ZIP: `WifiHeatmap-v0.9.8-beta.2-win64.zip`
 
 The current beta is intended for real-world validation of the Qt workflow. A
 stable `v1.0.0` is planned after Help Center review and broader field testing.
@@ -165,9 +165,9 @@ exists, that mask defines the valid map area and Survey Bounds is enabled and
 locked for live maps and PDF export.
 
 PDF export uses the current live map type and options, renders the floor-plan
-area independently from the current viewport zoom/pan, trims excessive blank
-space below the plan when safe, includes scale or legend information, and adds
-diagnostic pages for Interference and Dominant AP reports when applicable.
+area independently from the current viewport zoom/pan, trims excessive uniform
+background below the plan when safe, includes scale or legend information, and
+adds diagnostic pages for Interference and Dominant AP reports when applicable.
 
 ## Help Center
 
@@ -291,11 +291,11 @@ between official release builds.
 
 Current source beta:
 
-- `v0.9.8-beta.1`
+- `v0.9.8-beta.2`
 
 Latest packaged Windows ZIP:
 
-- `WifiHeatmap-v0.9.8-beta.1-win64.zip`
+- `WifiHeatmap-v0.9.8-beta.2-win64.zip`
 
 ## Roadmap
 

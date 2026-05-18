@@ -1133,7 +1133,7 @@ TRANSLATIONS = {
             </tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
-                <td class="workflow-card"><b>Estensione Mappa</b><br>Il PDF è indipendente da zoom/pan live correnti e conserva l'area misurata della pianta. Lo spazio bianco eccessivo sotto la pianta può essere tagliato quando non contiene punti o marker AP.</td>
+                <td class="workflow-card"><b>Estensione Mappa</b><br>Il PDF è indipendente da zoom/pan live correnti e conserva l'area misurata della pianta. Lo sfondo uniforme eccessivo sotto la pianta può essere tagliato quando non contiene punti o marker AP.</td>
                 <td class="workflow-gap"></td>
                 <td class="workflow-card"><b>Opzioni Attive</b><br>SSID, banda, tipo mappa, scala colori, etichette, filtro Gruppo AP, Limite Rilievo e opzioni specifiche arrivano dallo stato Mappa Live. Se esiste una maschera Confini manuale, viene applicata agli export continui supportati.</td>
             </tr>
