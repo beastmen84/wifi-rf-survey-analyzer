@@ -798,10 +798,19 @@ class LiveMapViewTests(unittest.TestCase):
         translations = {
             "interference_title": "AP interference",
             "risk": "Risk",
+            "scan_confidence": "Confidence",
             "serving_ap": "Serving AP",
+            "serving_signal": "Serving Signal",
             "serving_channel": "Serving channel",
             "interferer": "Main interferer",
+            "interferer_ssid": "Interfering SSID",
+            "interferer_signal": "Interfering Signal",
             "interferer_channel": "Interferer channel",
+            "interference_overlap": "Overlap",
+            "interference_contributors": "Interferers",
+            "interference_ignored": "Ignored",
+            "interference_ignored_same_ap": "same AP",
+            "interference_ignored_test_ap": "test AP",
         }
         tooltip = build_live_tooltip(
             "interference",
@@ -809,17 +818,45 @@ class LiveMapViewTests(unittest.TestCase):
                 "x": 10,
                 "y": 20,
                 "risk": 45,
+                "scan_confidence": 0.8,
                 "serving_bssid": "70:4f:57:aa:bb:10",
+                "serving_signal_dbm": -50,
                 "serving_channel": 1,
+                "serving_channel_width_mhz": 20,
+                "serving_band": "2.4",
                 "strongest_interferer_bssid": "80:11:22:33:44:10",
+                "strongest_interferer_ssid": "NEIGHBOR",
+                "strongest_interferer_dbm": -55,
                 "strongest_interferer_channel": 6,
+                "strongest_interferer_channel_width_mhz": 20,
+                "strongest_interferer_band": "2.4",
+                "strongest_interferer_overlap": 0.6,
+                "interferer_count": 2,
+                "same_physical_ap_ignored_count": 1,
+                "test_ap_ignored_count": 1,
             },
             None,
             translations,
         )
 
+        self.assertIn("Confidence", tooltip)
+        self.assertIn("80%", tooltip)
+        self.assertIn("Serving Signal", tooltip)
+        self.assertIn("-50 dBm", tooltip)
+        self.assertIn("CH 1 / 20 MHz / 2.4 GHz", tooltip)
         self.assertIn("Main interferer", tooltip)
+        self.assertIn("Interfering SSID", tooltip)
+        self.assertIn("NEIGHBOR", tooltip)
+        self.assertIn("Interfering Signal", tooltip)
+        self.assertIn("-55 dBm", tooltip)
         self.assertIn("Interferer channel", tooltip)
+        self.assertIn("CH 6 / 20 MHz / 2.4 GHz", tooltip)
+        self.assertIn("Overlap", tooltip)
+        self.assertIn("60%", tooltip)
+        self.assertIn("Interferers", tooltip)
+        self.assertIn(">2<", tooltip)
+        self.assertIn("Ignored", tooltip)
+        self.assertIn("same AP: 1, test AP: 1", tooltip)
         self.assertIn("33:44:10", tooltip)
 
     def test_live_interference_tooltip_mentions_clean_channel_change(self):

@@ -25,6 +25,9 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 - Shared map tooltip styling was refined for faster scanning, with clearer
   title spacing, aligned label/value rows and stacked formatting for long
   diagnostic values.
+- AP Interference point tooltips now show confidence, serving/interferer
+  signal, channel band context, overlap percentage and meaningful contributor
+  or ignored-AP counts when available.
 
 ## v0.9.7-beta.1 - 2026-05-18
 

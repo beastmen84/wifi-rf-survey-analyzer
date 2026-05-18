@@ -927,14 +927,27 @@ def build_live_tooltip(map_type, row, raw_rows, translations, aliases=None):
             ("x/y", f"{format_value(row.get('x'))}, {format_value(row.get('y'))}"),
             (translations.get("risk", "Risk"), f"{format_value(row.get('risk'))}%"),
             (
+                translations.get("scan_confidence", "Confidence"),
+                format_scan_confidence_percent(row.get("scan_confidence", "")),
+            ),
+            (
                 translations.get("serving_ap", "Serving AP"),
                 format_ap_label(row.get("serving_bssid", ""), aliases, row.get("serving_ap_group", "")),
             ),
+        ]
+        serving_signal = format_dbm_value(row.get("serving_signal_dbm", ""))
+        if serving_signal != "-":
+            rows.append((translations.get("serving_signal", "Serving Signal"), serving_signal))
+        rows.append(
             (
                 translations.get("serving_channel", "Serving channel"),
-                format_channel_with_width(row.get("serving_channel"), row.get("serving_channel_width_mhz")),
-            ),
-        ]
+                format_channel_with_width_and_band(
+                    row.get("serving_channel"),
+                    row.get("serving_channel_width_mhz"),
+                    row.get("serving_band", ""),
+                ),
+            )
+        )
         interferer_bssid = row.get("strongest_interferer_bssid", "")
         if format_value(interferer_bssid) != "-":
             rows.extend([
@@ -947,13 +960,31 @@ def build_live_tooltip(map_type, row, raw_rows, translations, aliases=None):
                     ),
                 ),
                 (
+                    translations.get("interferer_ssid", "Interfering SSID"),
+                    row.get("strongest_interferer_ssid", ""),
+                ),
+                (
+                    translations.get("interferer_signal", "Interfering Signal"),
+                    format_dbm_value(row.get("strongest_interferer_dbm", "")),
+                ),
+                (
                     translations.get("interferer_channel", "Interferer channel"),
-                    format_channel_with_width(
+                    format_channel_with_width_and_band(
                         row.get("strongest_interferer_channel"),
                         row.get("strongest_interferer_channel_width_mhz"),
+                        row.get("strongest_interferer_band", ""),
                     ),
                 ),
             ])
+            overlap = format_interference_overlap(row.get("strongest_interferer_overlap", ""))
+            if overlap != "-":
+                rows.append((translations.get("interference_overlap", "Overlap"), overlap))
+        interferer_count = format_positive_int(row.get("interferer_count", ""))
+        if interferer_count and int(interferer_count) > 1:
+            rows.append((translations.get("interference_contributors", "Interferers"), interferer_count))
+        ignored = format_interference_ignored_counts(row, translations)
+        if ignored:
+            rows.append((translations.get("interference_ignored", "Ignored"), ignored))
         channel_change_notes = build_interference_channel_change_notes(row, translations, aliases)
         if channel_change_notes:
             rows.append((translations.get("channel_change", "Channel Change"), channel_change_notes))
@@ -1155,6 +1186,13 @@ def format_coverage_samples(row):
     return f"{samples_seen}/{samples_total}"
 
 
+def format_dbm_value(value):
+    formatted = format_value(value)
+    if formatted == "-":
+        return "-"
+    return f"{formatted} dBm"
+
+
 def format_scan_confidence_percent(value):
     try:
         confidence = float(value)
@@ -1166,6 +1204,41 @@ def format_scan_confidence_percent(value):
 
     confidence = max(0.0, min(1.0, confidence)) * 100.0
     return f"{format_value(confidence)}%"
+
+
+def format_interference_overlap(value):
+    try:
+        overlap = float(value)
+    except (TypeError, ValueError):
+        return "-"
+
+    if pd.isna(overlap):
+        return "-"
+
+    return f"{format_value(max(0.0, min(1.0, overlap)) * 100.0)}%"
+
+
+def format_positive_int(value):
+    try:
+        number = int(float(value))
+    except (TypeError, ValueError):
+        return ""
+    return str(number) if number > 0 else ""
+
+
+def format_interference_ignored_counts(row, translations):
+    parts = []
+    same_ap_count = format_positive_int(row.get("same_physical_ap_ignored_count", ""))
+    if same_ap_count:
+        parts.append(
+            f"{translations.get('interference_ignored_same_ap', 'same AP')}: {same_ap_count}"
+        )
+    test_ap_count = format_positive_int(row.get("test_ap_ignored_count", ""))
+    if test_ap_count:
+        parts.append(
+            f"{translations.get('interference_ignored_test_ap', 'test AP')}: {test_ap_count}"
+        )
+    return ", ".join(parts)
 
 
 def format_ap_role(role, translations):
