@@ -117,5 +117,5 @@ The packaged Windows ZIP should include:
 - README.md
 - CHANGELOG.md
 
-Before publishing a final public release, rebuild the package from a clean
-environment and re-check this file against the installed dependency metadata.
+For each public packaged release, rebuild the package from a clean environment
+and re-check this file against the installed dependency metadata.

@@ -21,18 +21,17 @@ physical APs, review survey quality, and export explainable RF maps.
 
 ## Release Status
 
-- Current source version: `v0.9.8-beta.2`
-- Release type: beta / pre-release
+- Current source version: `v1.0.0`
+- Release type: stable public source release
 - Active UI: PySide6
 - Main entry point: `main.py`
 - Current survey format: CSV plus linked `.scan` raw-data sidecar
-- Latest packaged Windows ZIP: `WifiHeatmap-v0.9.8-beta.2-win64.zip`
-  (historical beta artifact name; future public builds use
-  `WiFiRFSurveyAnalyzer-v<version>-win64.zip`)
+- Windows package: generated in a separate release step from the same source
+  tag. Public builds use `WiFiRFSurveyAnalyzer-v<version>-win64.zip`.
 - Project license: MPL 2.0 (`MPL-2.0`)
 
-The current beta is intended for real-world validation of the Qt workflow. A
-stable `v1.0.0` is planned after Help Center review and broader field testing.
+`v1.0.0` is the first stable public source release of the current Qt workflow.
+Executable and ZIP artifacts are built separately from the tagged source state.
 
 ## Core Features
 
@@ -323,25 +322,19 @@ Packaged Windows ZIP files also include `LICENSE`, `THIRD_PARTY_LICENSES`,
 Public releases use semantic version tags. `CHANGELOG.md` tracks changes
 between official release builds.
 
-Current source beta:
+Current source release:
 
-- `v0.9.8-beta.2`
+- `v1.0.0`
 
-Latest packaged Windows ZIP:
+Expected Windows ZIP name:
 
-- `WifiHeatmap-v0.9.8-beta.2-win64.zip`
+- `WiFiRFSurveyAnalyzer-v1.0.0-win64.zip`
 
-Future public release ZIP name:
+Historical beta ZIPs may still use the older artifact stem:
 
-- `WiFiRFSurveyAnalyzer-v<version>-win64.zip`
+- `WifiHeatmap-v<version>-win64.zip`
 
 ## Roadmap
-
-Before `v1.0.0`:
-
-- run broader real-world validation on operational survey data;
-- review tooltip/report metadata wording as more real survey evidence arrives;
-- fix concrete issues found during that review/test cycle.
 
 Possible future product areas:
 

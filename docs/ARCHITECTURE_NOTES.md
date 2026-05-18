@@ -23,12 +23,11 @@ interpolated colors.
 Current status:
 
 - public release versioning is separate from the survey schema generation:
-  `v0.9.8-beta.2` is the current source-tagged beta, while `v1.0.0`
-  should wait for the remaining real-survey validation pass;
-- future beta release candidates should use the current minor beta line for
-  validation/polish or a new minor beta for feature-level additions; do not
-  regenerate exe/ZIP for every commit, only when cutting an intentional release
-  candidate;
+  `v1.0.0` is the current stable public source release, and Windows exe/ZIP
+  artifacts are generated separately from the tagged source state;
+- future release candidates should use beta tags for validation/polish or a new
+  minor line for feature-level additions; do not regenerate exe/ZIP for every
+  commit, only when cutting an intentional release candidate;
 - `README.md` is public-facing repo documentation and should not expose internal
   release cadence details; keep internal planning here and in the local ignored
   `.private/AI_CHAT_HISTORY.md` handoff, with public release notes in
@@ -129,6 +128,10 @@ Current status:
   PySide6 QtPdf. Survey floor-plan display, Live Map floor-plan loading and
   PDF export background preparation now share the same QtPdf-backed helper,
   removing PyMuPDF from runtime and release requirements;
+- `v1.0.0` closes the public source release preparation line: version metadata
+  is stable, the README points to the renamed GitHub repository and public
+  release page, legal/dependency docs are included, and the Windows package is
+  left for a separate build step from the same source state;
 - post-`v0.9.5-beta.1` EN/IT wording polish normalized the most visible UI and
   Help terminology before the 1.0 validation survey: Italian now avoids weaker
   hybrid phrases such as `Finding`, `Extra Details`, `Dominant AP` and
@@ -1030,28 +1033,28 @@ Implemented:
   above its limit, then verify full-card boundaries, overflow behavior and no
   extra scrollable blank space after the last card.
 
-Remaining closeout:
+Post-1.0 monitoring:
 
-- review wording and visual density in the real UI after the `v0.9.8-beta.2`
-  documentation pass;
+- keep wording and visual density under review after public release feedback;
 - refine section ordering and formatting only if visual inspection shows a real
   readability problem;
 - keep text concise and visual where possible.
 
 ## Suggested Next Priorities
 
-1.0 closeout:
+1.0 release follow-up:
 
-1. Run the `v0.9.8-beta.2` operational smoke test in the packaged app,
-   covering new survey units, blank-plan/grid behavior, Boundaries drawing and
-   brush size, manual-mask Live/PDF application, Go to Point focus zoom,
-   discrete-map legend focus, tooltip readability and settings panels.
-2. Run the next real office survey and review Local Area scope, Client Roaming,
-   continuous map bounds, manual Boundaries usefulness, tooltip evidence and
-   PDF output against real data. Tune only if evidence shows false positives,
-   false negatives or confusing output.
+1. Build the `v1.0.0` Windows exe/ZIP package from the tagged source state and
+   run the operational smoke test in the packaged app, covering new survey
+   units, blank-plan/grid behavior, Boundaries drawing and brush size,
+   manual-mask Live/PDF application, Go to Point focus zoom, discrete-map
+   legend focus, tooltip readability, settings panels and localized Help.
+2. Continue real office survey validation and review Local Area scope, Client
+   Roaming, continuous map bounds, manual Boundaries usefulness, tooltip
+   evidence and PDF output against real data. Tune only if evidence shows false
+   positives, false negatives or confusing output.
 3. Keep the Help Center, tooltips and report wording under visual review in the
-   running UI, but treat this as 1.0 validation polish unless a blocker appears.
+   running UI, but treat this as post-1.0 polish unless a blocker appears.
 
 Monitoring:
 

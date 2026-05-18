@@ -3,9 +3,13 @@
 This file tracks user-facing changes between official release builds.
 
 The project uses semantic public release tags such as `v0.9.0-beta.1`,
-`v0.9.0-beta.2`, and later `v1.0.0`.
+`v0.9.0-beta.2`, and `v1.0.0`.
 
-## Unreleased
+## v1.0.0 - 2026-05-18
+
+Stable public source release for the current Qt workflow. Windows executable
+and ZIP artifacts are generated in a separate packaging step from this source
+state.
 
 ### Added
 
@@ -29,7 +33,7 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
   removing the AGPL/commercial PyMuPDF dependency from runtime, test and
   packaged release requirements.
 - Public-facing project naming now consistently uses
-  "Wi-Fi RF Survey Analyzer"; future Windows build outputs use the
+  "Wi-Fi RF Survey Analyzer"; Windows build outputs use the
   `WiFiRFSurveyAnalyzer` artifact name while historical beta ZIP names remain
   documented as historical artifacts.
 

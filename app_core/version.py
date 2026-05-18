@@ -4,10 +4,10 @@ This is the public application version, not the survey CSV schema version.
 """
 
 APP_DISPLAY_NAME = "Wi-Fi RF Survey Analyzer"
-APP_VERSION = "0.9.8-beta.2"
+APP_VERSION = "1.0.0"
 APP_RELEASE_TAG = f"v{APP_VERSION}"
 APP_VERSION_LABEL = APP_RELEASE_TAG
-APP_RELEASE_CHANNEL = "beta"
+APP_RELEASE_CHANNEL = "stable"
 APP_AUTHOR = "Davide Marchi"
 APP_COPYRIGHT = "© 2026 Davide Marchi"
 APP_LICENSE_NAME = "Mozilla Public License 2.0"
