@@ -4,7 +4,7 @@ import time
 
 from PySide6.QtCore import QEvent, QPoint, Qt
 from PySide6.QtGui import QCursor
-from PySide6.QtWidgets import QApplication, QComboBox, QLabel, QMessageBox, QVBoxLayout
+from PySide6.QtWidgets import QApplication, QComboBox, QFrame, QLabel, QMessageBox, QVBoxLayout
 
 from app_core.logging import log_event, log_exception
 from app_core.restart import start_replacement_process
@@ -196,6 +196,15 @@ class WorkspaceSettingsMixin:
         scale_combo.currentIndexChanged.connect(lambda _index: self.change_ui_scale(scale_combo.currentData()))
         self.add_settings_row(layout, self.tr("ui_scale"), scale_combo)
 
+        language_combo = self.create_settings_combo(
+            LANGUAGE_OPTIONS,
+            self.language.upper(),
+        )
+        language_combo.currentIndexChanged.connect(lambda _index: self.change_language(language_combo.currentData()))
+        self.add_settings_row(layout, self.tr("language"), language_combo)
+
+        self.add_settings_section(layout, self.tr("workspace_settings_section"))
+
         units_combo = self.create_settings_combo(self.measurement_system_items(), self.measurement_system)
         units_combo.currentIndexChanged.connect(lambda _index: self.apply_measurement_system_combo(units_combo))
         self.add_settings_row(layout, self.tr("measurement_system"), units_combo)
@@ -209,12 +218,6 @@ class WorkspaceSettingsMixin:
         )
         self.add_settings_row(layout, self.tr("go_to_point_zoom"), focus_zoom_combo)
 
-        language_combo = self.create_settings_combo(
-            LANGUAGE_OPTIONS,
-            self.language.upper(),
-        )
-        language_combo.currentIndexChanged.connect(lambda _index: self.change_language(language_combo.currentData()))
-        self.add_settings_row(layout, self.tr("language"), language_combo)
         add_ap_memory_settings_section(self, layout)
 
         menu_width = self.spx(250)
@@ -294,6 +297,16 @@ class WorkspaceSettingsMixin:
         label.setObjectName("settingsMenuLabel")
         layout.addWidget(label)
         layout.addWidget(widget)
+
+    def add_settings_section(self, layout, title_text):
+        separator = QFrame()
+        separator.setObjectName("settingsMenuSeparator")
+        separator.setFrameShape(QFrame.Shape.HLine)
+        layout.addWidget(separator)
+
+        title = QLabel(title_text)
+        title.setObjectName("settingsMenuLabel")
+        layout.addWidget(title)
 
     def ui_scale_items(self):
         auto_percent = detect_auto_ui_scale_percent()

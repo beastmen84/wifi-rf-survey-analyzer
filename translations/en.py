@@ -53,6 +53,7 @@ TRANSLATIONS = {
     "measurement_system": "Measurement System",
     "measurement_system_metric": "Metric (m)",
     "measurement_system_imperial": "Imperial (ft)",
+    "workspace_settings_section": "Workspace",
     "go_to_point_zoom": "Go to Point Zoom",
     "measurement_unit_metric": "meters",
     "measurement_unit_imperial": "feet",

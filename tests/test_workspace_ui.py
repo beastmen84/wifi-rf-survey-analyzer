@@ -215,9 +215,10 @@ class SettingsMenuTests(unittest.TestCase):
                 [
                     window.tr("theme"),
                     window.tr("ui_scale"),
+                    window.tr("language"),
+                    window.tr("workspace_settings_section"),
                     window.tr("measurement_system"),
                     window.tr("go_to_point_zoom"),
-                    window.tr("language"),
                     window.tr("ap_memory_settings_title"),
                 ],
             )

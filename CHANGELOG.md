@@ -53,7 +53,8 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   operational tuning.
 - The start page and workspace Settings popups now use embedded rounded panels
   with a small gap below the Settings button, avoiding native popup corner
-  artifacts.
+  artifacts. Workspace Settings groups general app choices first, then
+  workspace-specific options and AP Memory.
 - Current survey files now require the full aggregate/raw headers,
   `measurement_system`, an explicit `raw_data_file` metadata entry and a valid
   `.scan` sidecar. AP aliases are read from `ap_groups` instead of duplicate
