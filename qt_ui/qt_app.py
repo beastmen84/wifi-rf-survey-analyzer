@@ -1311,7 +1311,7 @@ class WifiHeatmapQtApp(
                 max-width: {s(34)}px;
                 min-height: {s(34)}px;
                 max-height: {s(34)}px;
-                padding: {s(4)}px;
+                padding: 0;
                 border-radius: {s(5)}px;
                 background: {palette["button_bg"]};
                 color: {palette["text"]};
