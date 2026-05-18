@@ -43,6 +43,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   avoiding overlap darkening, stale paint and full-pixmap rebuilds during drag.
 - Boundaries toolbar icons are loaded lazily on first use, keeping them out of
   the startup "Loading components" path.
+- Go to Point now zooms in when needed and places the selected survey point in
+  the upper half of the floor plan viewport, making the highlight easier to see
+  while the Measurement Points panel is open.
 - Current survey files now require the full aggregate/raw headers,
   `measurement_system`, an explicit `raw_data_file` metadata entry and a valid
   `.scan` sidecar. AP aliases are read from `ap_groups` instead of duplicate

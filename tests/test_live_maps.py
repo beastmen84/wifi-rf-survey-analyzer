@@ -314,6 +314,38 @@ class FloorplanViewTests(unittest.TestCase):
             view.deleteLater()
             os.remove(floorplan_path)
 
+    def test_focus_on_zooms_and_places_point_in_upper_viewport(self):
+        view = FloorplanView()
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
+            floorplan_path = temp_file.name
+        Image.new("RGB", (1000, 800), "white").save(floorplan_path)
+
+        try:
+            view.resize(420, 320)
+            view.show()
+            view.load_floorplan(floorplan_path)
+            QApplication.processEvents()
+
+            view.focus_on(500, 400)
+            QApplication.processEvents()
+
+            target_zoom = FOCUS_POINT_TARGET_MARKER_DIAMETER_PX / (SURVEY_POINT_MARKER_RADIUS * 2.0)
+            self.assertGreaterEqual(view.zoom_level, target_zoom - 0.01)
+            focused_pos = view.mapFromScene(QPointF(500, 400))
+            self.assertAlmostEqual(focused_pos.x(), view.viewport().width() * 0.5, delta=3.0)
+            self.assertAlmostEqual(
+                focused_pos.y(),
+                view.viewport().height() * FOCUS_POINT_VERTICAL_VIEWPORT_FRACTION,
+                delta=3.0,
+            )
+
+            view.set_zoom(4.5)
+            view.focus_on(500, 400)
+            self.assertAlmostEqual(view.zoom_level, 4.5)
+        finally:
+            view.deleteLater()
+            os.remove(floorplan_path)
+
     def test_boundaries_mask_draw_erase_and_clear_are_in_memory(self):
         view = FloorplanView()
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:

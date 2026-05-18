@@ -25,6 +25,9 @@ from qt_ui.qt_tooltips import build_html_tooltip
 
 
 AP_MARKER_BASE_SIZE = 20
+SURVEY_POINT_MARKER_RADIUS = 7.0
+FOCUS_POINT_TARGET_MARKER_DIAMETER_PX = 42.0
+FOCUS_POINT_VERTICAL_VIEWPORT_FRACTION = 0.25
 METRIC_GRID_INTERVALS_M = (0.5, 1.0, 2.0, 5.0, 10.0, 20.0)
 IMPERIAL_GRID_INTERVALS_FT = (1.0, 2.0, 3.0, 5.0, 10.0, 20.0, 50.0)
 MIN_GRID_SPACING_PX = 40.0
@@ -849,7 +852,7 @@ class FloorplanView(QGraphicsView):
             except (TypeError, ValueError):
                 continue
 
-            radius = 7
+            radius = SURVEY_POINT_MARKER_RADIUS
             item = QGraphicsEllipseItem(x - radius, y - radius, radius * 2, radius * 2)
             self.style_point_marker(item, point_color(signal), self.point_key(point) == self.selected_point_key)
             item.setToolTip(format_point_tooltip(point))
@@ -1177,7 +1180,32 @@ class FloorplanView(QGraphicsView):
         if not self.has_floorplan():
             return
 
-        self.centerOn(float(x), float(y))
+        point = QPointF(float(x), float(y))
+        marker_diameter = SURVEY_POINT_MARKER_RADIUS * 2.0
+        target_zoom = FOCUS_POINT_TARGET_MARKER_DIAMETER_PX / marker_diameter
+        current_zoom = max(self.transform().m11(), self.transform().m22(), self.zoom_level)
+        if current_zoom < target_zoom:
+            self.set_zoom(target_zoom)
+
+        self.centerOn(point)
+        self.position_scene_point_in_viewport(
+            point,
+            0.5,
+            FOCUS_POINT_VERTICAL_VIEWPORT_FRACTION,
+        )
+
+    def position_scene_point_in_viewport(self, point, x_fraction, y_fraction):
+        viewport_rect = self.viewport().rect()
+        if viewport_rect.isEmpty():
+            return
+
+        target_x = viewport_rect.left() + int(round(viewport_rect.width() * x_fraction))
+        target_y = viewport_rect.top() + int(round(viewport_rect.height() * y_fraction))
+        current_pos = self.mapFromScene(point)
+        horizontal_bar = self.horizontalScrollBar()
+        vertical_bar = self.verticalScrollBar()
+        horizontal_bar.setValue(horizontal_bar.value() + current_pos.x() - target_x)
+        vertical_bar.setValue(vertical_bar.value() + current_pos.y() - target_y)
 
 
 def load_floorplan_pixmap(file_path):

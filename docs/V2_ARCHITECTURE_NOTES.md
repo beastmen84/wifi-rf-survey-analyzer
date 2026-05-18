@@ -762,6 +762,9 @@ Current implemented expansion:
   the main dashboard;
 - detail rows include shortcuts into the live map, AP metadata, AP Group
   Manager and point-focus workflows.
+- point-focus workflows now auto-zoom the survey floor plan when needed and
+  place the focused point in the upper viewport so the highlight remains visible
+  with the Measurement Points overlay open.
 - local/zone-only AP coverage scope is applied before point-quality evaluation,
   so SSIDs marked Local Area are not treated as whole-building expectations.
   A manual radius uses scale and AP position. Auto Area first estimates a local

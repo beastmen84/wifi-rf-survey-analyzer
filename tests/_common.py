@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
-from PySide6.QtCore import QPoint, Qt
+from PySide6.QtCore import QPoint, QPointF, Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QGraphicsItem, QGraphicsView, QListWidgetItem, QMessageBox, QWidget
@@ -157,7 +157,15 @@ from qt_ui.qt_quality_dashboard import (
     resolve_metric_severity,
     split_recommendation_actions,
 )
-from qt_ui.qt_floorplan import AP_MARKER_BASE_SIZE, FloorplanView, format_ap_tooltip, format_point_tooltip
+from qt_ui.qt_floorplan import (
+    AP_MARKER_BASE_SIZE,
+    FOCUS_POINT_TARGET_MARKER_DIAMETER_PX,
+    FOCUS_POINT_VERTICAL_VIEWPORT_FRACTION,
+    SURVEY_POINT_MARKER_RADIUS,
+    FloorplanView,
+    format_ap_tooltip,
+    format_point_tooltip,
+)
 from qt_ui.qt_ap_groups import (
     APGroupManagerDialog,
     BssidSelectionDialog,
