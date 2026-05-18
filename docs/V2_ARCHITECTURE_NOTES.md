@@ -1,6 +1,6 @@
 # WiFi Heatmap - V2 Architecture Notes
 
-Last updated: 2026-05-17
+Last updated: 2026-05-18
 
 This document is the forward-looking V2 roadmap. Completed items are kept only
 as context; the actionable backlog is in the "Remaining Work" section.
@@ -23,8 +23,8 @@ interpolated colors.
 Current status:
 
 - public release versioning is separate from the internal V2 generation:
-  `v0.9.6-beta.1` is closed as the current source-tagged beta, while `v1.0.0`
-  should wait for the remaining real-survey validation fixes;
+  `v0.9.7-beta.1` is the current source-tagged beta, while `v1.0.0`
+  should wait for the remaining real-survey validation pass;
 - future beta release candidates should use the current minor beta line for
   validation/polish or a new minor beta for feature-level additions; do not
   regenerate exe/ZIP for every commit, only when cutting an intentional release
@@ -88,6 +88,13 @@ Current status:
   Windows PyInstaller `onedir` executable and ZIP package were regenerated on
   request. Latest zipped Windows release artifact:
   `dist\WifiHeatmap-v0.9.6-beta.1-win64.zip`;
+- `v0.9.7-beta.1` closes the post-`v0.9.6-beta.1` Boundaries and survey-focus
+  polish line: manual Boundaries masks can be drawn on the Survey tab, saved
+  as `<survey>.boundaries.png`, reopened with the survey, and applied to
+  supported continuous Live Maps/PDF exports; point focus now auto-zooms using
+  a configurable workspace setting; startup/workspace settings and Help text
+  were aligned to the current workflow. Latest zipped Windows release artifact:
+  `dist\WifiHeatmap-v0.9.7-beta.1-win64.zip`;
 - post-`v0.9.5-beta.1` EN/IT wording polish normalized the most visible UI and
   Help terminology before the 1.0 validation survey: Italian now avoids weaker
   hybrid phrases such as `Finding`, `Extra Details`, `Dominant AP` and
@@ -105,11 +112,11 @@ Current status:
   real plan is loaded later and the survey is saved, the obsolete generated PNG
   is deleted. Grid now draws a compact in-map scale label such as
   `1 square = 1 m` or `1 square = 3 ft`;
-- post-`v0.9.6-beta.1` manual Boundaries mask work has started. Step 1 adds the
-  Survey-tab View toggle, floating vertical toolbar, tool/shape state and Grid
-  mutual exclusion, with Grid also acting as the switch back from Boundaries
-  when scale is available. Follow-up steps still need raster mask drawing/erasing,
-  sidecar persistence and Live/PDF mask application;
+- post-`v0.9.6-beta.1` manual Boundaries mask work is complete for the current
+  beta scope. The Survey tab has a View toggle, floating vertical toolbar,
+  draw/erase tools, circle/square brush state, Grid mutual exclusion, raster
+  sidecar persistence, empty-mask cleanup, and Live/PDF application through the
+  existing Survey Bounds path;
 - `v0.9.4-beta.1` is closed as a source-tagged beta with the AP metadata
   foundation for
   local/zone-only coverage scope: AP group metadata now normalizes and
@@ -609,9 +616,10 @@ Implemented:
   Quality Dashboard, scale calibration, generated map dialogs, live maps,
   settings/theme/language handling and start-screen behavior are available in
   Qt;
-- Help is available with expanded workflow-aligned content; the Controls page
-  still deserves its own final review pass, and the broader Help Center needs a
-  running-app EN/IT smoke review before V2 closeout.
+- Help is available with expanded workflow-aligned content, including current
+  Boundaries, blank-plan/grid, settings, Go to Point focus and Live/PDF mask
+  behavior. The broader Help Center still deserves a running-app EN/IT smoke
+  review before V2 closeout.
 
 ### UI/Workflow Foundation
 
@@ -978,25 +986,27 @@ Implemented:
 
 Remaining closeout:
 
-- review wording and visual density in the real UI;
+- review wording and visual density in the real UI after the `v0.9.7-beta.1`
+  documentation pass;
 - refine section ordering and formatting only if visual inspection shows a real
   readability problem;
 - keep text concise and visual where possible.
-- complete the manual Boundaries mask workflow one step at a time: raster draw
-  and erase, save/load sidecar, Live/PDF application and Help text.
 
 ## Suggested Next Priorities
 
 V2 closeout:
 
-1. Review `v0.9.6-beta.1` Help navigation, Local Area scope, Client Roaming,
-   blank-plan workflow and continuous map bounds diagnostics in the running UI
-   against real survey data, especially intentionally local office-router SSIDs, and
-   tune Auto Area or connected-client thresholds only if the evidence shows
-   false positives or false negatives.
-2. Review the new Help Center in the running UI and polish wording/formatting
-   where real screenshots show a problem.
-3. Do a short EN/IT Help and UI smoke pass after the Help review.
+1. Run the `v0.9.7-beta.1` operational smoke test in the packaged app,
+   covering new survey units, blank-plan/grid behavior, Boundaries drawing,
+   manual-mask Live/PDF application, Go to Point focus zoom and settings
+   panels.
+2. Run the next real office survey and review Local Area scope, Client Roaming,
+   continuous map bounds, manual Boundaries usefulness and PDF output against
+   real data. Tune only if evidence shows false positives, false negatives or
+   confusing output.
+3. Keep the Help Center under visual review in the running UI, but treat
+   tooltip/report metadata enrichment as the next `v0.9.8` polish track unless
+   a blocker appears.
 
 Monitoring:
 

@@ -6,7 +6,7 @@ The project uses semantic public release tags. `V2` is the internal survey and
 architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 `v0.9.0-beta.2`, and later `v1.0.0`.
 
-## Unreleased
+## v0.9.7-beta.1 - 2026-05-18
 
 ### Added
 
@@ -56,6 +56,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   artifacts. Workspace Settings groups general app choices first, then
   workspace-specific options and AP Memory, with centered section headings and
   a subtle panel shadow.
+- Help Center, README and V2 notes now document the `v0.9.7-beta.1` workflow,
+  including manual Boundaries masks, survey-specific units and configurable
+  Go to Point zoom behavior.
 - Current survey files now require the full aggregate/raw headers,
   `measurement_system`, an explicit `raw_data_file` metadata entry and a valid
   `.scan` sidecar. AP aliases are read from `ap_groups` instead of duplicate

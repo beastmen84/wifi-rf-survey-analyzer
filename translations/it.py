@@ -656,7 +656,7 @@ TRANSLATIONS = {
         </table>
         <h2>Punti Di Controllo</h2>
         <div class="gate-list">
-            <div class="gate-row"><b>Distanze:</b> scegli metrico o imperiale nelle impostazioni prima della calibrazione. Cambiare sistema di misura dopo cancella la scala attuale, quindi va rifatta prima di interpretare avvisi sulle posizioni AP.</div>
+            <div class="gate-row"><b>Distanze:</b> i nuovi rilievi chiedono unità metriche o imperiali prima di generare la pianta bianca. Cambiare sistema di misura dopo cancella la scala attuale, quindi va rifatta prima di interpretare avvisi sulle posizioni AP.</div>
             <div class="gate-row"><b>Copertura:</b> verifica SSID rilevanti e qualità punti prima di fidarti di zone buone o problematiche.</div>
             <div class="gate-row"><b>Interferenza:</b> verifica gruppi AP, ruoli, gestione cambi canale e override canale prima di fidarti delle mappe sensibili al canale.</div>
             <div class="gate-row"><b>Esportazione:</b> apri la mappa live collegata e leggi tooltip di avviso o righe dettaglio prima di generare il PDF.</div>
@@ -677,6 +677,12 @@ TRANSLATIONS = {
             </tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
+                <td class="workflow-card"><b>Modalità Confini</b><br>Vista &gt; Confini trasforma la mappa rilievo in editor della maschera. Trascina col tasto destro per disegnare o cancellare con il pennello scelto; clic sinistro, zoom e pan mantengono il comportamento normale della mappa.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Griglia E Confini</b><br>Griglia e Confini sono overlay alternativi del rilievo. Attivarne uno spegne l'altro, mentre la calibrazione scala resta condivisa.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
                 <td class="workflow-card"><b>Trascinare Non È Cliccare</b><br>Il clic sinistro seleziona; clic sinistro e movimento trascinano quando la vista mappa supporta il pan.</td>
                 <td class="workflow-gap"></td>
                 <td class="workflow-card"><b>Zoom/Pan Sono Visuali</b><br>Zoom, scroll e pan cambiano solo la vista. Non modificano i dati raccolti.</td>
@@ -684,7 +690,7 @@ TRANSLATIONS = {
         </table>
     """,
     "help_control_right_click_title": "Tasto Destro",
-    "help_control_right_click_text": "Crea un punto di misura sulla mappa del rilievo.",
+    "help_control_right_click_text": "Crea un punto di misura sulla mappa del rilievo. In modalità Confini, trascinare col tasto destro disegna o cancella la maschera.",
     "help_control_left_click_title": "Tasto Sinistro",
     "help_control_left_click_text": "Seleziona un punto di misura o usa la modalità temporanea attiva, per esempio calibrazione scala o posizionamento AP.",
     "help_control_left_drag_title": "Tasto Sinistro + Trascina",
@@ -742,7 +748,7 @@ TRANSLATIONS = {
         <h2>Azioni Tabella Punti</h2>
         <table>
             <tr><th>Azione</th><th>Uso</th></tr>
-            <tr><td>Vai Al Punto</td><td>Centra il punto selezionato sulla pianta.</td></tr>
+            <tr><td>Vai Al Punto</td><td>Seleziona il punto, aumenta lo zoom fino al valore configurato nelle Impostazioni quando serve, e posiziona il marker nella parte alta della viewport rilievo.</td></tr>
             <tr><td>Riscansiona Punto</td><td>Ripete la scansione del punto selezionato quando i riscontri qualità suggeriscono evidenza debole o sporca.</td></tr>
             <tr><td>Elimina Selezionato / Elimina Ultimo</td><td>Rimuove evidenza di misura quando il punto è stato posizionato o acquisito male.</td></tr>
         </table>
@@ -757,6 +763,9 @@ TRANSLATIONS = {
         </td></tr></table>
         <h2>Pianta Bianca E Griglia</h2>
         <p>I nuovi rilievi possono essere usati senza una pianta esterna. Scegli metrico o imperiale quando crei il rilievo; la pianta A4 bianca generata viene pre-scalata per test pratici d'ufficio e si apre con la Griglia attiva. La label sulla mappa mostra la dimensione del quadrato, per esempio <code>1 quadrato = 1 m</code> o <code>1 quadrato = 3 ft</code>. Sulle piante reali, la Griglia diventa disponibile dopo la calibrazione della scala.</p>
+        <h2>Maschere Confini</h2>
+        <p>Usa <b>Vista &gt; Confini</b> quando l'area misurata richiede una maschera manuale. La toolbar verticale sceglie disegno o gomma e pennello circolare o quadrato. Trascina col tasto destro per modificare la maschera; selezione col sinistro, zoom e pan restano disponibili. La maschera viene salvata accanto al CSV come <code>&lt;survey&gt;.boundaries.png</code>. Una maschera pulita o vuota equivale a non avere confini manuali.</p>
+        <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Miglior Risultato</span><br>I confini manuali funzionano meglio quando anche i punti di misura seguono il bordo reale dell'area da mostrare. Così interpolazione della mappa live e maschera visibile restano coerenti.</td></tr></table>
     """,
     "help_quality_nav": "Qualità Rilievo",
     "help_quality_title": "Dashboard Qualità Rilievo",
@@ -1073,7 +1082,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card"><b>Intera Estensione Mappa</b><br>Il PDF usa tutta l'estensione della pianta, non zoom/pan live correnti.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Opzioni Attive</b><br>SSID, banda, tipo mappa, scala colori, etichette, filtro Gruppo AP e opzioni specifiche arrivano dallo stato Mappa Live.</td>
+                <td class="workflow-card"><b>Opzioni Attive</b><br>SSID, banda, tipo mappa, scala colori, etichette, filtro Gruppo AP, Limite Rilievo e opzioni specifiche arrivano dallo stato Mappa Live. Se esiste una maschera Confini manuale, viene applicata agli export continui supportati.</td>
             </tr>
         </table>
         <h2>Pagina Mappa</h2>
@@ -1233,6 +1242,12 @@ TRANSLATIONS = {
             </tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
+                <td class="workflow-card"><b>Limite Rilievo</b><br>Opzione mappa live che sfuma il rendering continuo fuori dall'area misurata del rilievo.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Maschera Confini</b><br>Sidecar PNG disegnato dall'utente che definisce l'area valida della pianta per mappe live continue e PDF supportati.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
                 <td class="workflow-card"><b>Scheda Diagnostica</b><br>Scheda del report PDF che spiega punto, gruppo AP, canale o avviso coinvolto.</td>
                 <td class="workflow-gap"></td>
                 <td class="workflow-card"><b>Callout Mappa</b><br>Marker numerato sulla mappa PDF che collega una posizione visibile alla relativa scheda dettaglio.</td>
@@ -1286,7 +1301,7 @@ TRANSLATIONS = {
         "Se usi Ricorda scelta, il programma salva automaticamente lo stesso SSID finché viene rilevato."
     ),
     "help_commands_text": (
-        "Tasto destro sulla mappa: crea un punto di rilievo.\n"
+        "Tasto destro sulla mappa: crea un punto di rilievo; in modalità Confini, trascinare col destro disegna o cancella la maschera.\n"
         "Tasto sinistro premuto: trascina la mappa.\n"
         "Clic sinistro su un marker: seleziona il punto.\n"
         "Rotella: scorrimento verticale.\n"

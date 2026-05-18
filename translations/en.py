@@ -656,7 +656,7 @@ TRANSLATIONS = {
         </table>
         <h2>Decision Gates</h2>
         <div class="gate-list">
-            <div class="gate-row"><b>Distances:</b> choose metric or imperial in settings before calibration. Changing measurement system later clears the current scale, so calibrate again before interpreting AP-position warnings.</div>
+            <div class="gate-row"><b>Distances:</b> new surveys ask for metric or imperial units before the blank plan is generated. Changing measurement system later clears the current scale, so calibrate again before interpreting AP-position warnings.</div>
             <div class="gate-row"><b>Coverage:</b> verify relevant SSIDs and point quality before trusting good or bad coverage areas.</div>
             <div class="gate-row"><b>Interference:</b> verify AP groups, roles, channel-change handling and analysis-channel overrides before trusting channel-sensitive maps.</div>
             <div class="gate-row"><b>Export:</b> open the related live map and read the warning tooltips or detail rows before generating the PDF.</div>
@@ -677,6 +677,12 @@ TRANSLATIONS = {
             </tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
+                <td class="workflow-card"><b>Boundaries Mode</b><br>View &gt; Boundaries switches the survey map into mask editing. Right-drag draws or erases with the selected brush; left click, zoom and pan keep their normal map behavior.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Grid And Boundaries</b><br>Grid and Boundaries are alternate survey overlays. Turning one on turns the other off, while the scale calibration stays shared.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
                 <td class="workflow-card"><b>Drag Is Not Click</b><br>Left click selects; left-click drag pans when the current map view supports panning.</td>
                 <td class="workflow-gap"></td>
                 <td class="workflow-card"><b>Zoom/Pan Are Visual</b><br>Zooming, scrolling and panning change the view only. They do not change collected survey data.</td>
@@ -684,7 +690,7 @@ TRANSLATIONS = {
         </table>
     """,
     "help_control_right_click_title": "Right Click",
-    "help_control_right_click_text": "Create a measurement point on the Survey map.",
+    "help_control_right_click_text": "Create a measurement point on the Survey map. In Boundaries mode, right-drag draws or erases the mask instead.",
     "help_control_left_click_title": "Left Click",
     "help_control_left_click_text": "Select a measurement point or use the active temporary mode, such as scale calibration or AP positioning.",
     "help_control_left_drag_title": "Left Click + Drag",
@@ -742,7 +748,7 @@ TRANSLATIONS = {
         <h2>Point Table Actions</h2>
         <table>
             <tr><th>Action</th><th>Use</th></tr>
-            <tr><td>Go To Point</td><td>Focuses the selected measurement point on the floor plan.</td></tr>
+            <tr><td>Go To Point</td><td>Selects the point, auto-zooms up to the configured Settings target when needed, and places the marker in the upper part of the survey viewport.</td></tr>
             <tr><td>Rescan Point</td><td>Repeats scanning for the selected point when quality findings suggest bad evidence.</td></tr>
             <tr><td>Delete Selected / Delete Last</td><td>Removes measurement evidence when the point was placed or captured incorrectly.</td></tr>
         </table>
@@ -757,6 +763,9 @@ TRANSLATIONS = {
         </td></tr></table>
         <h2>Blank Plan And Grid</h2>
         <p>New surveys can be used without an external floor plan. Choose metric or imperial units when creating the survey; the generated A4 blank plan is then pre-scaled for practical office tests and opens with Grid enabled. The map label shows the current square size, such as <code>1 square = 1 m</code> or <code>1 square = 3 ft</code>. On real floor plans, Grid becomes available after scale calibration.</p>
+        <h2>Boundary Masks</h2>
+        <p>Use <b>View &gt; Boundaries</b> when the measured area needs a manual mask. The vertical toolbar chooses draw or erase plus circle or square brush. Right-drag edits the mask; left-click selection, zoom and pan remain available. The mask is saved beside the CSV as <code>&lt;survey&gt;.boundaries.png</code>. Clearing an empty mask is equivalent to having no manual boundaries.</p>
+        <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Best Result</span><br>Manual boundaries work best when measurement points also follow the real edge of the area you want to show. That keeps the live-map interpolation and the visible mask aligned.</td></tr></table>
     """,
     "help_quality_nav": "Survey Quality",
     "help_quality_title": "Survey Quality Dashboard",
@@ -1073,7 +1082,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card"><b>Full Map Extent</b><br>The PDF uses the full floor-plan extent, not the current live zoom/pan.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Active Options</b><br>SSID, band, map type, color scale, labels, AP Group filter and map-specific options come from the Live Map state.</td>
+                <td class="workflow-card"><b>Active Options</b><br>SSID, band, map type, color scale, labels, AP Group filter, Survey Bounds and map-specific options come from the Live Map state. If a manual Boundaries mask exists, it is applied to supported continuous exports.</td>
             </tr>
         </table>
         <h2>Map Page</h2>
@@ -1233,6 +1242,12 @@ TRANSLATIONS = {
             </tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
+                <td class="workflow-card"><b>Survey Bounds</b><br>A live-map option that fades continuous rendering outside the measured survey area.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Boundaries Mask</b><br>A user-drawn PNG sidecar that defines the valid floor-plan area for supported continuous live maps and PDF exports.</td>
+            </tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr>
                 <td class="workflow-card"><b>Diagnostic Card</b><br>PDF report card that explains the affected point, AP group, channel or warning context.</td>
                 <td class="workflow-gap"></td>
                 <td class="workflow-card"><b>Map Callout</b><br>Numbered marker on the PDF map that links a visible location to its detail card.</td>
@@ -1286,7 +1301,7 @@ TRANSLATIONS = {
         "If you use Remember choice, the program automatically saves the same SSID while it is detected."
     ),
     "help_commands_text": (
-        "Right click on the map: create a survey point.\n"
+        "Right click on the map: create a survey point; in Boundaries mode, right-drag draws or erases the mask.\n"
         "Hold left button: pan the map.\n"
         "Left click on a marker: select the point.\n"
         "Mouse wheel: vertical scroll.\n"
