@@ -386,6 +386,7 @@ class SurveySessionWorkflowMixin:
         if hasattr(self, "memory_status_label"):
             self.memory_status_label.setText(self.format_ap_memory_status())
             self.memory_status_label.setToolTip(get_ap_memory_summary().get("path", ""))
+        self.update_survey_zoom_label()
         self.new_workspace_button.setEnabled(not self.scan_in_progress)
         self.open_workspace_button.setEnabled(not self.scan_in_progress)
         can_use_session = self.session is not None and not self.scan_in_progress

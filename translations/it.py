@@ -600,6 +600,8 @@ TRANSLATIONS = {
     "last_point_deleted": "Ultimo punto eliminato: x={x}, y={y}, righe rimosse={rows}",
     "point_deleted": "Punto eliminato: x={x}, y={y}, righe rimosse={rows}",
     "zoom": "Zoom: {zoom:.0%}",
+    "survey_zoom": "Zoom rilievo: {zoom:.0%}",
+    "survey_zoom_empty": "Zoom rilievo: -",
     "all_bands_label": "tutte le bande",
     "help_title": "Centro Guida",
     "help_overview_nav": "Flusso Consigliato",

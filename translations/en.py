@@ -600,6 +600,8 @@ TRANSLATIONS = {
     "last_point_deleted": "Last point deleted: x={x}, y={y}, removed rows={rows}",
     "point_deleted": "Point deleted: x={x}, y={y}, removed rows={rows}",
     "zoom": "Zoom: {zoom:.0%}",
+    "survey_zoom": "Survey Zoom: {zoom:.0%}",
+    "survey_zoom_empty": "Survey Zoom: -",
     "all_bands_label": "all bands",
     "help_title": "Help Center",
     "help_overview_nav": "Recommended Workflow",

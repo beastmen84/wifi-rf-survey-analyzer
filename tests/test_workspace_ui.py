@@ -110,6 +110,24 @@ class SettingsMenuTests(unittest.TestCase):
             else:
                 os.environ["WIFI_HEATMAP_AP_MEMORY_FILE"] = previous
 
+    def test_workspace_footer_shows_survey_zoom_status(self):
+        window = WifiHeatmapQtApp()
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
+            floorplan_path = temp_file.name
+        Image.new("RGB", (800, 600), "white").save(floorplan_path)
+
+        try:
+            self.assertEqual(window.survey_zoom_label.text(), "Survey Zoom: -")
+
+            window.floorplan_view.load_floorplan(floorplan_path)
+            self.assertRegex(window.survey_zoom_label.text(), r"^Survey Zoom: \d+%$")
+
+            window.floorplan_view.set_zoom(2.5)
+            self.assertEqual(window.survey_zoom_label.text(), "Survey Zoom: 250%")
+        finally:
+            window.deleteLater()
+            os.remove(floorplan_path)
+
     def test_analysis_toolbar_matches_recommended_workflow_order(self):
         window = WifiHeatmapQtApp()
         try:

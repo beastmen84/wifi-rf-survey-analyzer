@@ -415,10 +415,15 @@ class WifiHeatmapQtApp(
         self.footer_label = QLabel()
         self.footer_label.setObjectName("mutedText")
         footer_layout.addWidget(self.footer_label, 1)
+        self.survey_zoom_label = QLabel()
+        self.survey_zoom_label.setObjectName("footerStatusLabel")
+        self.survey_zoom_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        footer_layout.addWidget(self.survey_zoom_label)
         self.memory_status_label = QLabel()
         self.memory_status_label.setObjectName("memoryStatusLabel")
         self.memory_status_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         footer_layout.addWidget(self.memory_status_label)
+        self.floorplan_view.zoomChanged.connect(self.update_survey_zoom_label)
         layout.addWidget(footer)
 
         return page
@@ -1412,6 +1417,14 @@ class WifiHeatmapQtApp(
                 padding: {s(3)}px {s(8)}px;
                 font-weight: 700;
             }}
+            QLabel#footerStatusLabel {{
+                color: {palette["muted"]};
+                background: {palette["panel_alt"]};
+                border: 1px solid {palette["border"]};
+                border-radius: {s(5)}px;
+                padding: {s(3)}px {s(8)}px;
+                font-weight: 700;
+            }}
             QLabel#badge {{
                 color: {palette["badge_text"]};
                 background: {palette["badge_bg"]};
@@ -1831,6 +1844,17 @@ class WifiHeatmapQtApp(
         ])
         self.resize_points_table_columns()
         self.refresh_session_labels()
+
+    def update_survey_zoom_label(self, zoom=None):
+        if not hasattr(self, "survey_zoom_label"):
+            return
+
+        if not self.floorplan_view.has_floorplan():
+            self.survey_zoom_label.setText(self.tr("survey_zoom_empty"))
+            return
+
+        zoom_value = self.floorplan_view.zoom_level if zoom is None else float(zoom)
+        self.survey_zoom_label.setText(self.tr("survey_zoom", zoom=zoom_value))
 
     def open_quality_dashboard(self):
         if self.session is None:

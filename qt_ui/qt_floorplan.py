@@ -62,6 +62,7 @@ class FloorplanView(QGraphicsView):
     pointSelectionCleared = Signal()
     boundariesMaskChanged = Signal(bool)
     boundariesMaskEdited = Signal()
+    zoomChanged = Signal(float)
 
     def __init__(self):
         super().__init__()
@@ -1044,6 +1045,7 @@ class FloorplanView(QGraphicsView):
         self.zoom_level = zoom_level
         self.scale(factor, factor)
         self.update_boundaries_cursor()
+        self.zoomChanged.emit(self.zoom_level)
 
     def fit_to_view(self):
         if not self.has_floorplan():
@@ -1053,6 +1055,7 @@ class FloorplanView(QGraphicsView):
         transform = self.transform()
         self.zoom_level = max(transform.m11(), transform.m22())
         self.update_boundaries_cursor()
+        self.zoomChanged.emit(self.zoom_level)
 
     def wheelEvent(self, event):
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
