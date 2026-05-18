@@ -1389,3 +1389,10 @@ TRANSLATIONS = {
     "retry_scan": "Riprova",
     "cancel_point": "Annulla Punto",
 }
+
+TRANSLATIONS.update({
+    "qt_table_timestamp": "Data/ora",
+    "workspace_settings_section": "Area di lavoro",
+    "ap_groups_title": "Gestione gruppi AP",
+    "help": "Aiuto",
+})

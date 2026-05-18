@@ -685,3 +685,345 @@ TRANSLATIONS.update({
     "retry_scan": "Réessayer",
     "cancel_point": "Annuler point",
 })
+
+TRANSLATIONS.update({
+    "start_workflow_title": "Processus",
+    "workspace_settings_section": "Espace de travail",
+    "quality_dashboard_metric_scan_ok": "Scans OK",
+    "quality_dashboard_metric_ap_diagnostic_points": "Constats AP dominant",
+    "quality_dashboard_ap_position_finding": "Constat : {finding}",
+    "quality_dashboard_scanner_details_fallback_suffix": " (repli)",
+    "boundaries": "Limites",
+    "boundaries_enabled": "Mode Limites activé.",
+    "boundaries_disabled": "Mode Limites désactivé.",
+    "boundaries_draw_tooltip": "Glisser-clic droit pour dessiner le masque",
+    "boundaries_eraser_tooltip": "Glisser-clic droit pour gommer le masque",
+    "boundaries_brush_size_tooltip": "Taille de brosse Limites",
+    "boundaries_brush_size_value_tooltip": "Taille brosse : {size} px ({minimum}-{maximum} px, pas {step} px)",
+    "boundaries_clear_tooltip": "Effacer le masque Limites",
+    "boundaries_clear_title": "Effacer les limites ?",
+    "boundaries_clear_confirm": "Effacer le masque de limites actuel ?",
+    "boundaries_cleared": "Masque de limites effacé.",
+    "boundaries_save_failed": "Impossible d'enregistrer le masque de limites : {path}",
+    "boundaries_cleanup_failed": "Impossible de supprimer le masque de limites remplacé : {path}",
+    "max_distance_unit": "Distance max ({unit})",
+    "max_distance_m": "Distance max (m)",
+    "ap_group_bssid_other_group": "Autre groupe",
+    "ap_group_bssid_scope_all": "Tous",
+    "ap_group_empty_selection": "Le groupe doit contenir au moins un BSSID.",
+    "ap_group_split_source_empty": "Laissez au moins un BSSID dans le groupe actuel avant de créer un nouveau groupe.",
+    "ap_group_move_no_target": "Aucun autre groupe AP n'est disponible pour déplacer les BSSID sélectionnés.",
+    "ap_group_move_target_title": "Déplacer des BSSID",
+    "ap_group_move_target_prompt": "Groupe AP cible :",
+    "ap_group_move_target_with_alias": "{alias} ({group}, {count} BSSID)",
+    "ap_group_move_target_without_alias": "{group} ({count} BSSID)",
+    "ap_group_fix_from_warning": "Corriger groupe AP",
+    "ap_group_conflict_count": "Conflits possibles : {count}",
+    "ap_group_conflict_details": "Détails de l'avertissement",
+    "ap_group_conflict_none": "Aucun avertissement sur le groupe sélectionné.",
+    "ap_group_conflict_group": "Groupe AP : {group}",
+    "ap_group_conflict_details_title": "Canaux observés",
+    "ap_group_conflict_band_summary": "{band} : {channel_count} canaux, {bssid_count} BSSID ({channels})",
+    "ap_group_conflict_band_row": "Bande {band} : canaux {channels}",
+    "ap_group_memory_menu": "Mémoire",
+    "ap_group_confirm_memory": "Confirmer mémoire",
+    "ap_group_confirm_memory_selected": "Confirmer sélection",
+    "ap_group_confirm_memory_all": "Confirmer tout depuis la mémoire...",
+    "ap_group_confirm_memory_all_title": "Confirmer mémoire AP",
+    "ap_group_confirm_memory_all_confirm": "Confirmer {count} groupes AP appliqués depuis la Mémoire AP ?",
+    "ap_group_update_from_memory": "Mettre à jour depuis la mémoire",
+    "ap_group_update_memory_selected": "Mettre à jour la sélection depuis la mémoire",
+    "ap_group_status_warning_tooltip": "Ce groupe AP contient des diagnostics d'avertissement.",
+    "ap_group_status_memory_tooltip": "Des métadonnées ont été appliquées depuis la Mémoire AP. Vérifiez-les puis confirmez-les, ou modifiez les données AP.",
+    "ap_group_status_memory_update_tooltip": "La Mémoire AP contient des données différentes pour : {fields}. Utilisez Mettre à jour depuis la mémoire pour aligner ce groupe AP.",
+    "ap_group_delete_alias": "Supprimer alias...",
+    "ap_group_role": "Rôle",
+    "ap_group_role_title": "Rôle du groupe AP",
+    "ap_group_role_prompt": "Rôle à attribuer à ce groupe AP :",
+    "ap_group_role_internal": "Interne",
+    "ap_group_role_external": "Externe",
+    "ap_group_role_interferer": "Interférent",
+    "ap_group_role_test": "Test/masqué",
+    "ap_group_metadata": "Métadonnées",
+    "ap_group_metadata_hint": "Ajoutez les informations descriptives de l'AP physique. Les bandes et canaux attendus sont guidés car les contrôles qualité les utilisent.",
+    "ap_group_metadata_vendor": "Fabricant",
+    "ap_group_metadata_model": "Modèle",
+    "ap_group_metadata_mounting": "Montage",
+    "ap_group_metadata_expected_bands": "Bandes attendues",
+    "ap_group_metadata_expected_channels": "Canaux attendus",
+    "ap_group_metadata_band": "Bande",
+    "ap_group_metadata_channels": "Canaux",
+    "ap_group_metadata_selected_channels": "Sélection active",
+    "ap_group_metadata_edit_channels": "Canaux...",
+    "ap_group_metadata_channel_picker_title": "Canaux {band}",
+    "ap_group_metadata_no_channels": "Aucun canal sélectionné",
+    "ap_group_metadata_band_disabled": "Bande non sélectionnée",
+    "ap_group_metadata_channels_unavailable": "Canaux indisponibles",
+    "ap_group_metadata_channel_group_5_low": "5 GHz bas",
+    "ap_group_metadata_channel_group_5_high": "5 GHz haut",
+    "ap_group_metadata_select_all": "Tous",
+    "ap_group_metadata_clear": "Aucun",
+    "ap_group_metadata_analysis_channels": "Canal d'analyse forcé",
+    "ap_group_metadata_analysis_channel_hint": "Utilisé par les cartes sensibles au canal quand cet AP a changé de canal pendant le relevé. Laissez Auto pour utiliser le dernier canal propre.",
+    "ap_group_metadata_analysis_channel": "Canal d'analyse",
+    "ap_group_metadata_analysis_channel_not_observed": "Non observé",
+    "ap_group_metadata_coverage_scope": "Périmètre de couverture",
+    "ap_group_metadata_coverage_expected_area": "Zone attendue",
+    "ap_group_metadata_coverage_site_wide": "Site complet",
+    "ap_group_metadata_coverage_local": "Zone locale",
+    "ap_group_metadata_coverage_radius": "Rayon local",
+    "ap_group_metadata_coverage_auto_area": "Zone auto",
+    "ap_group_metadata_coverage_hint": "Choisissez si cet AP est attendu sur tout le relevé ou seulement près de sa zone locale.",
+    "ap_group_metadata_coverage_site_wide_hint": "Les contrôles qualité traitent cet AP/réseau comme présent dans toute la zone relevée.",
+    "ap_group_metadata_coverage_local_hint": "Les contrôles qualité peuvent limiter cet AP/réseau à sa zone locale. Zone auto fonctionne mieux avec position AP et échelle calibrée ; sinon elle se base sur l'évidence de signal.",
+    "ap_group_metadata_notes": "Notes",
+    "ap_group_position": "Position",
+    "ap_group_position_tooltip_title": "Position AP",
+    "ap_position_pick": "Clic gauche sur le plan pour placer la position physique de {group}. Échap annule.",
+    "ap_position_saved": "Position AP enregistrée : {group} x={x}, y={y}.",
+    "ap_position_cancelled": "Placement AP annulé.",
+    "ap_position_distance": "Distance AP",
+    "ap_position_nearest": "AP physique le plus proche",
+    "ap_position_analysis": "Analyse de position",
+    "ap_position_detail": "Détail position",
+    "ap_position_ok": "Cohérent",
+    "ap_position_no_scale": "Échelle non calibrée",
+    "ap_position_strong_far": "Signal fort loin de l'AP",
+    "ap_position_weak_close": "Signal faible près de l'AP",
+    "ap_position_unexpected_dominant": "L'AP dominant n'est pas physiquement proche",
+    "ap_position_warning_legend": "Triangle = position AP suspecte",
+    "ap_position_unknown_warning": "Avertissement position",
+    "ap_group_not_found": "Groupe AP introuvable.",
+    "ap_group_alias_title": "Alias du groupe AP",
+    "ap_group_alias_prompt": "Alias à utiliser pour cet AP :",
+    "help_workflow": "Processus",
+    "help_heatmap": "Carte de chaleur",
+    "help_workflow_steps": (
+        "1-a. Créez un nouveau relevé et chargez le plan.\n"
+        "1-b. Ou ouvrez un relevé enregistré : le plan sera rechargé automatiquement.\n"
+        "2. Déplacez-vous physiquement dans la zone et utilisez le clic droit sur la carte pour enregistrer les points de mesure.\n"
+        "3. Utilisez Groupes AP pour attribuer les alias, corriger les groupes et placer les positions physiques des AP quand elles sont connues.\n"
+        "4. Enregistrez le relevé après avoir collecté assez de points.\n"
+        "5. Ouvrez la Carte Live et choisissez SSID, bande Wi-Fi et type d'analyse.\n"
+        "6. Utilisez Couverture signal pour le niveau dBm, Interférence AP pour les recouvrements, Canaux AP pour les canaux et AP dominant pour le roaming."
+    ),
+    "help_live_steps": (
+        "La Carte Live affiche un aperçu du relevé et exporte la vue courante en PDF.\n"
+        "Choisissez SSID, bande et type de carte directement dans l'onglet Carte Live.\n"
+        "Couverture signal et Interférence AP sont calculées en arrière-plan pour garder l'interface utilisable.\n"
+        "Canaux AP et AP dominant montrent les points réels avec leur légende.\n"
+        "Dans AP dominant, un triangle jaune marque un possible avertissement de position AP : le tooltip indique la distance à l'AP dominant et à l'AP physique le plus proche.\n"
+        "Le zoom Live ne régénère pas la carte : il redimensionne l'aperçu puis affine la qualité après une courte pause."
+    ),
+    "help_heatmap_steps": (
+        "Couverture signal génère une carte de chaleur dBm continue par SSID et bande.\n"
+        "RBF lissé donne une visualisation plus continue ; Linéaire est plus conservateur.\n"
+        "Distance max limite le rendu aux zones proches des points réels et réduit les formes inventées.\n"
+        "Seulement >= -70 dBm met en évidence les zones normalement utilisables.\n"
+        "Interférence AP calcule un risque en pourcentage et ajoute les principaux problèmes au PDF.\n"
+        "Canaux AP n'interpole pas : il colore les points réels par canal, avec CH 36 / 80 quand la largeur est disponible.\n"
+        "AP dominant montre l'AP le plus fort par point et marque en jaune les points où le second AP est à 5 dB ou moins."
+    ),
+    "help_scan_steps": (
+        "Le backend Auto essaie lswifi puis bascule sur netsh.\n"
+        "lswifi est préféré car il détecte souvent plus de BSSID et plus de détails radio.\n"
+        "Quand lswifi le fournit, la largeur de canal est enregistrée dans channel_width_mhz.\n"
+        "netsh reste le fallback Windows intégré.\n"
+        "Si un scan voit beaucoup moins de réseaux que le précédent, il est marqué suspect.\n"
+        "Quand un scan est suspect, relancez-le avant d'enregistrer le point.\n"
+        "Avec Mémoriser le choix, le programme garde automatiquement le même SSID tant qu'il est détecté."
+    ),
+    "help_commands_text": (
+        "Clic droit sur la carte : crée un point de relevé ; en mode Limites, glisser-clic droit dessine ou gomme le masque.\n"
+        "Maintenir clic gauche : déplace la carte.\n"
+        "Clic gauche sur un marqueur : sélectionne le point.\n"
+        "Molette : défilement vertical.\n"
+        "Shift + molette : défilement horizontal.\n"
+        "Ctrl + molette : zoom."
+    ),
+    "help_overview_body": """
+        <table class="callout-table"><tr><td class="callout-accent-good"></td><td class="callout-content"><span class="callout-label">Règle principale</span><br>La carte est la sortie finale du relevé, pas la première preuve. Avant de l'utiliser pour décider, vérifiez que les points, les scans bruts et le modèle AP décrivent correctement le site.</td></tr></table>
+        <h2>Séquence opérationnelle</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr><td class="workflow-card"><div class="step-label">1. Préparer</div><div class="step-title">Définir le cadre du relevé</div><p>Créez ou ouvrez le relevé, choisissez métrique ou impérial, chargez le plan si disponible, calibrez l'échelle et sélectionnez les SSID pertinents.</p><div class="step-gate"><b>Passer à la suite quand :</b> plan, échelle et réseaux à juger sont corrects.</div></td><td class="workflow-gap"></td><td class="workflow-card"><div class="step-label">2. Mesurer</div><div class="step-title">Collecter l'évidence RF</div><p>Placez les points dans les pièces, couloirs, zones de transition, portes et emplacements où les utilisateurs signalent des problèmes.</p><div class="step-gate"><b>Passer à la suite quand :</b> les zones importantes ont assez de points et les scans suspects ont été répétés.</div></td></tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr><td class="workflow-card"><div class="step-label">3. Valider</div><div class="step-title">Lire Qualité relevé</div><p>Séparez les problèmes de point à rescanner des diagnostics de configuration AP. Un avertissement est une hypothèse à vérifier, pas une erreur automatique.</p><div class="step-gate"><b>Passer à la suite quand :</b> la qualité des points est acceptable et les constats restants sont compris.</div></td><td class="workflow-gap"></td><td class="workflow-card"><div class="step-label">4. Modéliser les AP</div><div class="step-title">Rendre le modèle crédible</div><p>Vérifiez groupes AP, alias, rôles, BSSID, métadonnées, positions physiques, canaux d'analyse forcés et états Mémoire AP.</p><div class="step-gate"><b>Passer à la suite quand :</b> le modèle AP correspond au déploiement ou que les inconnues sont assumées.</div></td></tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr><td class="workflow-card" colspan="3"><div class="step-label">5. Analyser</div><div class="step-title">Utiliser les cartes comme résultat contrôlé</div><p>Ouvrez les cartes Live et les exports PDF pour lire couverture, canaux, roaming et interférences après la revue des données.</p><div class="step-gate"><b>Passer à la suite quand :</b> les avertissements ont été relus et peuvent être expliqués.</div></td></tr>
+        </table>
+        <h2>Portes de décision</h2>
+        <div class="gate-list">
+            <div class="gate-row"><b>Distances :</b> le système de mesure est lié au relevé. Changer d'unités après calibration supprime l'échelle ; recalibrez avant de lire distances, grille ou positions AP.</div>
+            <div class="gate-row"><b>Couverture :</b> contrôlez SSID pertinents et qualité des points avant d'interpréter une zone rouge ou verte.</div>
+            <div class="gate-row"><b>Interférences :</b> vérifiez groupes AP, rôles, canaux changés et overrides d'analyse avant de croire une carte sensible au canal.</div>
+            <div class="gate-row"><b>Export :</b> ouvrez la carte Live correspondante, lisez les tooltips et les détails avant de générer le PDF.</div>
+        </div>
+        <table class="section-card callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Logique de l'application</span><br>Points, scans bruts, métadonnées, Mémoire AP et positions physiques sont traités comme des éléments d'évidence. Le programme signale l'hypothèse à vérifier : qualité de point, groupement AP, modèle canal, position physique ou comportement RF réel.</td></tr></table>
+    """,
+    "help_controls_body": """
+        <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Règle des gestes</span><br>Clic gauche, glisser-clic gauche et molette avec modificateurs sont des commandes distinctes. Ctrl et Shift comptent quand ils sont combinés à la molette.</td></tr></table>
+        <h2>Le contexte compte</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr><td class="workflow-card"><b>Carte relevé normale</b><br>Le clic droit crée un point de mesure. Le clic gauche sélectionne un marqueur existant ou efface la sélection si vous cliquez le fond.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Modes temporaires</b><br>Calibration d'échelle et placement AP capturent le clic gauche jusqu'à la fin de l'action ou annulation.</td></tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr><td class="workflow-card"><b>Mode Limites</b><br>Vue &gt; Limites transforme la carte Relevé en éditeur de masque. Le glisser-clic droit dessine ou gomme avec la brosse choisie ; sélection, zoom et pan restent disponibles.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Grille et Limites</b><br>Ce sont deux overlays alternatifs : activer l'un désactive l'autre. L'échelle calibrée reste commune aux deux.</td></tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr><td class="workflow-card"><b>Glisser n'est pas cliquer</b><br>Un clic sélectionne ; un glisser déplace le plan ou la carte Live quand la vue dépasse la fenêtre.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Zoom/pan sont visuels</b><br>Zoomer, défiler ou déplacer la vue ne modifie ni les points ni les scans enregistrés.</td></tr>
+        </table>
+        <h2>Molette et navigation</h2>
+        <table class="gate-list">
+            <tr><td class="gate-row"><b>Molette :</b> défilement vertical dans listes, panneaux et cartes.</td></tr>
+            <tr><td class="gate-row"><b>Shift + molette :</b> déplacement horizontal quand le contenu dépasse la largeur visible.</td></tr>
+            <tr><td class="gate-row"><b>Ctrl + molette :</b> zoom du plan ou de l'aperçu Live. Le zoom Live redimensionne l'image et affine la qualité après une courte pause, sans recalculer les données.</td></tr>
+        </table>
+    """,
+    "help_survey_body": """
+        <h2>Blocs de l'écran Relevé</h2>
+        <table class="survey-grid">
+            <tr><td class="survey-card"><span class="survey-card-title">CSV</span><br>Fichier principal du relevé avec lignes agrégées et commentaires de métadonnées.<br><span class="survey-card-use">À enregistrer avant export PDF ou transfert de machine.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Plan</span><br>Fichier PDF/image lié au relevé. Un nouveau relevé peut commencer avec un plan A4 blanc déjà à l'échelle.<br><span class="survey-card-use">Si aucun plan réel n'est chargé, une image PNG du même nom est écrite près du CSV.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Points</span><br>Positions de mesure placées sur le plan.<br><span class="survey-card-use">Ajoutez-les là où les clients travaillent, roament ou signalent un problème.</span></td></tr>
+            <tr><td class="survey-vertical-gap" colspan="5"></td></tr>
+            <tr><td class="survey-card"><span class="survey-card-title">Scans bruts</span><br>Échantillons répétés conservés dans le sidecar <code>.scan</code>.<br><span class="survey-card-use">Plus d'évidence brute améliore confiance et diagnostics.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Groupes AP</span><br>Modèle d'AP physiques utilisé par cartes et qualité.<br><span class="survey-card-use">À revoir avant AP dominant, Interférence ou Canaux AP.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">SSID pertinents</span><br>Réseaux jugés importants par les contrôles qualité.<br><span class="survey-card-use">Gérer ajoute ou retire des SSID ; Effacer supprime la sélection.</span></td></tr>
+        </table>
+        <h2>Ce qui est enregistré</h2>
+        <p>Chaque point peut contenir plusieurs réseaux observés. Le CSV principal stocke les lignes agrégées utilisées par les cartes. Le fichier <code>.scan</code> lié conserve les échantillons répétés, le backend scanner et les détails radio disponibles.</p>
+        <h2>SSID pertinents</h2>
+        <p>Les SSID pertinents indiquent au moteur qualité quels réseaux doivent être présents. L'absence d'un réseau pertinent devient un constat de qualité ; l'absence d'un voisin non pertinent ne l'est pas forcément. Définissez-les tôt pour éviter de découvrir trop tard que des points doivent être revus.</p>
+        <h2>Sidecar de scans bruts</h2>
+        <table><tr><th>Valeur stockée</th><th>Pourquoi c'est utile</th></tr><tr><td>Médiane dBm</td><td>Réduit l'effet d'un pic temporaire de signal.</td></tr><tr><td>Min/max dBm</td><td>Montre l'amplitude de variation pendant les scans répétés.</td></tr><tr><td>Échantillons vus/total</td><td>Alimente confiance et détection de données rares.</td></tr><tr><td>Bande, fréquence, largeur canal</td><td>Améliore Canaux AP, Interférence et lecture 6 GHz.</td></tr></table>
+        <h2>Backend scanner</h2>
+        <table><tr><th>Backend</th><th>Usage</th><th>Notes</th></tr><tr><td>Auto</td><td>Défaut conseillé</td><td>Essaie <code>lswifi</code>, puis revient à <code>netsh</code>.</td></tr><tr><td>lswifi</td><td>Scanner préféré</td><td>Capture souvent plus de BSSID, bande, fréquence, sécurité et largeur canal.</td></tr><tr><td>netsh</td><td>Fallback Windows</td><td>Utile sans lswifi, mais expose moins de détails RF.</td></tr></table>
+        <h2>Placement des points</h2>
+        <table class="callout-table"><tr><td class="callout-accent-good"></td><td class="callout-content"><span class="callout-label">Règle terrain</span><br><ul><li>Placez les points aux postes, salles, couloirs, portes et zones problématiques.</li><li>Pour un relevé précis, visez environ 2-3 m entre points quand l'espace le permet, et resserrez autour des transitions AP.</li><li>Ne scannez pas en marchant : arrêtez-vous, laissez finir le scan, puis avancez.</li></ul></td></tr></table>
+        <h2>Plan blanc, grille et limites</h2>
+        <p>Un relevé peut commencer sans plan externe. Le choix métrique/impérial crée un A4 blanc pré-échelonné, avec grille activée. Sur plan réel, la grille devient disponible après calibration. Vue &gt; Limites permet de dessiner un masque PNG <code>&lt;survey&gt;.boundaries.png</code> avec brosse ronde ou carrée de 20 à 120 px. Un masque vide équivaut à aucun masque.</p>
+    """,
+    "help_quality_body": """
+        <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Règle principale</span><br>Lisez Qualité relevé avant les cartes Live ou les PDF. Le tableau de bord indique si l'évidence de point doit être rescannée, si le modèle AP doit être revu ou si les cartes peuvent être générées avec une confiance raisonnable.</td></tr></table>
+        <h2>Deux couches de lecture</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr><td class="workflow-card"><div class="step-label">Couche 1</div><div class="step-title">Qualité des points</div><p>Réseaux pertinents manquants, données rares, détails scanner limités, faible confiance et signal instable concernent l'évidence du point.</p><div class="step-gate"><b>Action habituelle :</b> focaliser le point, inspecter les lignes, rescanner ou collecter des points proches.</div></td><td class="workflow-gap"></td><td class="workflow-card"><div class="step-label">Couche 2</div><div class="step-title">Modèle AP</div><p>Groupes AP, rôles, métadonnées, état mémoire, changements de canal et positions physiques expliquent comment interpréter les mesures.</p><div class="step-gate"><b>Action habituelle :</b> ouvrir la carte, les métadonnées ou le gestionnaire AP concerné et corriger le modèle.</div></td></tr>
+        </table>
+        <h2>Statut et périmètre</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0"><tr><td class="workflow-card"><b>Statut haut</b><br>Cohérent signifie que les contrôles principaux sont propres. Révision recommandée indique un ou plusieurs points à vérifier. Setup AP à vérifier signifie que les points peuvent être utilisables mais que métadonnées, mémoire, canaux ou positions AP demandent revue.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Périmètre du relevé</b><br>Le bloc de contexte rappelle les SSID pertinents, les positions AP connues et les AP de test exclus. Les AP en Zone locale ne sont attendus que dans leur périmètre local.</td></tr></table>
+        <h2>Cartes KPI et détails</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr><td class="workflow-card"><b>Listes de points</b><br>Points à revoir, réseaux manquants, données rares, faible confiance, signal instable et roaming client ouvrent des listes compactes avec numéro, X/Y et problème spécifique.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Détails extra</b><br>Détails scanner, constats AP dominant, avertissements config AP, changements canal, Mémoire AP et AP sans position ouvrent des cartes plus détaillées.</td></tr>
+            <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
+            <tr><td class="workflow-card"><b>Actions carte</b><br>Canaux AP, Interférence et AP dominant ouvrent la carte Live avec bande, groupe AP ou point pertinent quand le constat possède un contexte visuel.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Actions modèle AP</b><br>Ouvrir groupe AP ou Métadonnées AP amène directement à l'éditeur capable de corriger le modèle.</td></tr>
+        </table>
+        <h2>Signification des KPI</h2>
+        <table class="survey-grid"><tr><td class="survey-card"><b>Points du relevé</b><br>Total points mesure l'évidence spatiale. Scan OK indique les points utilisables. Points à revoir ne veut pas dire tout rescanner : certains demandent seulement une revue AP ou position.</td><td class="survey-gap"></td><td class="survey-card"><b>Qualité scan</b><br>Réseau pertinent manquant, données rares, détails scanner limités, faible confiance et signal instable peuvent affaiblir toutes les cartes.</td><td class="survey-gap"></td><td class="survey-card"><b>Modèle AP</b><br>Mémoire AP, positions manquantes, métadonnées incohérentes, canaux changés et constats AP dominant influencent surtout AP dominant, Canaux AP, Interférence et PDF.</td></tr></table>
+        <h2>Ordre de correction</h2>
+        <table class="gate-list"><tr><td class="gate-row"><b>1. Corriger l'évidence de point</b><br>Rescannez ou ajoutez des points si les données brutes ne sont pas fiables.</td></tr><tr><td class="gate-row"><b>2. Corriger identité et position AP</b><br>Alias, rôles, groupes BSSID et coordonnées AP doivent représenter le déploiement réel.</td></tr><tr><td class="gate-row"><b>3. Corriger métadonnées et canaux</b><br>Bandes/canaux attendus et override d'analyse décident si un warning est une erreur ou un comportement prévu.</td></tr><tr><td class="gate-row"><b>4. Lire les cartes</b><br>Interprétez couverture, roaming et interférences seulement après ces contrôles.</td></tr></table>
+    """,
+    "help_ap_groups_body": """
+        <table class="callout-table"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Règle du modèle AP</span><br>Le regroupement automatique est une hypothèse. Le modèle final doit représenter les AP physiques réels, avec leurs BSSID, rôles, positions et métadonnées.</td></tr></table>
+        <h2>Deux types d'information</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0"><tr><td class="workflow-card"><b>Évidence observée</b><br>BSSID, SSID vus, bandes, canaux, largeur canal et historique de signal proviennent des scans.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Modèle utilisateur</b><br>Alias, rôle, position, métadonnées, périmètre de couverture et canal d'analyse décrivent ce que vous savez du déploiement.</td></tr></table>
+        <h2>Gestionnaire BSSID</h2>
+        <p>Utilisez les filtres de périmètre, bande, canal, état et recherche pour isoler les BSSID à corriger. Déplacer des lignes retire automatiquement les BSSID d'un autre groupe. Créer un nouveau groupe est utile quand deux radios ont été fusionnées à tort.</p>
+        <h2>Rôles AP</h2>
+        <table class="survey-grid"><tr><td class="survey-card"><b>Interne</b><br>AP normal du réseau analysé. Utilisé pour couverture, AP dominant et interférence.</td><td class="survey-gap"></td><td class="survey-card"><b>Externe</b><br>AP voisin ou tiers. Peut contribuer à l'interférence, mais n'est pas attendu comme couverture interne.</td><td class="survey-gap"></td><td class="survey-card"><b>Test/masqué</b><br>AP à ignorer dans les cartes et diagnostics principaux, par exemple laboratoire ou SSID temporaire.</td></tr></table>
+        <h2>Métadonnées AP</h2>
+        <p>Fabricant, modèle, montage, notes, bandes attendues et canaux attendus enrichissent les diagnostics. Si un AP change de canal pendant le relevé, le canal d'analyse forcé permet de choisir quel canal utiliser dans les cartes sensibles au canal. Laissez Auto quand la dernière transition propre est fiable.</p>
+        <h2>Périmètre de couverture</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0"><tr><td class="workflow-card"><b>Site complet</b><br>Le réseau/AP est attendu dans toute la zone relevée. Une absence peut devenir warning de qualité.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Zone locale</b><br>Le réseau/AP est attendu seulement près de sa zone. La Zone auto fonctionne mieux avec position AP et échelle calibrée ; sinon elle utilise l'évidence de signal.</td></tr></table>
+        <h2>Positions AP</h2>
+        <p>Placer physiquement les AP active les contrôles de distance de la carte AP dominant. Un signal fort très loin, un signal faible très près ou un AP dominant qui n'est pas le plus proche deviennent des constats à vérifier. Ces constats peuvent révéler une mauvaise position, un mauvais groupe AP, un comportement de roaming ou une propagation RF réelle.</p>
+        <h2>Mémoire AP</h2>
+        <p>La Mémoire AP réutilise alias, rôles, métadonnées, canaux d'analyse et positions compatibles dans les nouveaux relevés. L'état Depuis mémoire demande confirmation : il indique que les données ont été appliquées mais doivent être validées dans le contexte du relevé courant. Mise à jour mémoire signale que le groupe actuel diffère de la mémoire sauvegardée.</p>
+        <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Contrôle conseillé</span><br>Avant d'exporter Interférence ou AP dominant, relisez les groupes avec avertissement, les changements canal et les AP sans position.</td></tr></table>
+    """,
+    "help_live_maps_body": """
+        <h2>Types de carte</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0"><tr><td class="workflow-card"><b>Couverture signal</b><br>Carte continue du signal dBm par SSID et bande. Elle dépend fortement de la qualité des points et de la distance max.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Interférence AP</b><br>Carte de risque construite à partir du canal serveur, des interférents, largeur canal, rôles AP et mode Intra-SSID/Tous SSID.</td></tr><tr><td class="workflow-vertical-gap" colspan="3"></td></tr><tr><td class="workflow-card"><b>Canaux AP</b><br>Vue discrète des points réels colorés par canal. Elle n'invente pas de surface entre les mesures.</td><td class="workflow-gap"></td><td class="workflow-card"><b>AP dominant</b><br>Montre le groupe AP le plus fort par point, les zones de roaming potentiel et les warnings de position si les AP sont placés.</td></tr></table>
+        <h2>Options par carte</h2>
+        <p>SSID, bande, type de carte, labels, interpolation, lissage, distance max, groupe AP et limite relevé sont mémorisés par type de carte pendant la session. Changer de type peut donc restaurer les options utilisées lors de la dernière lecture de cette carte.</p>
+        <h2>Interpolation, lissage et distance max</h2>
+        <table class="gate-list"><tr><td class="gate-row"><b>RBF lissé :</b> donne une surface continue, utile pour lecture visuelle, mais peut paraître trop optimiste loin des points.</td></tr><tr><td class="gate-row"><b>Linéaire :</b> plus conservateur et plus proche des triangles entre points, mais parfois moins agréable visuellement.</td></tr><tr><td class="gate-row"><b>Distance max :</b> limite le rendu autour de l'évidence mesurée. La valeur automatique se base sur la densité des points quand il y en a assez ; elle évite les grandes zones inventées.</td></tr></table>
+        <h2>Limites et masque manuel</h2>
+        <p>La limite automatique réduit le rendu hors de l'enveloppe des points. Si un masque Limites existe, il devient prioritaire pour les cartes continues et les exports PDF supportés. Le meilleur résultat arrive quand les points suivent aussi le bord réel des pièces : la carte et le masque racontent alors la même géométrie.</p>
+        <h2>Tooltips et légendes</h2>
+        <p>Les tooltips Live sont structurés par sections pour lecture rapide : signal, radio, position, interférence, AP serveur, interférent, AP dominant ou second AP selon la carte. Les cartes discrètes utilisent la légende pour se concentrer sur un AP ou un canal ; double-cliquer un élément de légende centre le point ou le groupe sur la carte.</p>
+        <h2>Performance</h2>
+        <p>Couverture et interférence peuvent prendre plusieurs secondes à la première ouverture car les surfaces sont calculées en arrière-plan. Les mises à jour suivantes réutilisent davantage d'état. Le zoom Live ne recalcule pas les données : il redimensionne l'aperçu et affine le rendu après une courte pause.</p>
+        <table class="callout-table"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Lire avec prudence</span><br>Une carte continue entre des points espacés reste une estimation. Si une zone est importante pour une décision, ajoutez des mesures plutôt que de vous fier uniquement à l'interpolation.</td></tr></table>
+    """,
+    "help_reports_body": """
+        <h2>Export PDF</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0"><tr><td class="workflow-card"><b>Précondition</b><br>Le relevé doit être enregistré avant export afin que CSV, plan, scans bruts et sidecars soient cohérents.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Options actives</b><br>Le PDF utilise l'état courant de la carte Live : SSID, bande, type, échelle couleur, labels, limites, masque et modèle AP.</td></tr></table>
+        <h2>Page carte</h2>
+        <p>La première page rend la carte sur le plan indépendamment du zoom ou pan courant. Les fonds uniformes inutilisés au bas d'un plan peuvent être recoupés pour éviter d'exporter une grande zone vide, quelle que soit la couleur de fond. Les points et marqueurs AP restent protégés du recadrage.</p>
+        <h2>Cartes continues et discrètes</h2>
+        <table class="survey-grid"><tr><td class="survey-card"><b>Couverture</b><br>Carte avec barre dBm. Pas de page problème dédiée : les problèmes de qualité se lisent dans Qualité relevé.</td><td class="survey-gap"></td><td class="survey-card"><b>Interférence</b><br>Carte avec risque et pages de diagnostic si des problèmes pertinents existent.</td><td class="survey-gap"></td><td class="survey-card"><b>Canaux/AP dominant</b><br>Cartes discrètes avec légendes. AP dominant peut ajouter des pages pour roaming et position AP.</td></tr></table>
+        <h2>Pages diagnostic</h2>
+        <p>Interférence et AP dominant peuvent ajouter des cartes de détail paginées. Les callouts numérotés relient les points visibles sur la carte à des fiches qui expliquent AP serveur, interférent, canal, largeur, risque, AP dominant, AP secondaire ou AP physique le plus proche.</p>
+        <h2>Avant d'envoyer un rapport</h2>
+        <table class="gate-list"><tr><td class="gate-row"><b>1. Confirmer le périmètre</b><br>SSID, bande et type de carte doivent être ceux que vous voulez documenter.</td></tr><tr><td class="gate-row"><b>2. Confirmer le modèle AP</b><br>Relisez groupes, rôles, alias et positions avant Interférence ou AP dominant.</td></tr><tr><td class="gate-row"><b>3. Confirmer les canaux</b><br>Relisez changements propres, changements ambigus et overrides d'analyse.</td></tr><tr><td class="gate-row"><b>4. Lire les cartes comme diagnostic</b><br>Une fiche d'avertissement peut décrire un vrai problème de déploiement, pas une erreur du logiciel.</td></tr></table>
+    """,
+    "help_diagnostics_body": """
+        <table class="callout-table"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Règle des avertissements</span><br>Un avertissement dit quelle hypothèse mérite revue. Décidez d'abord si le problème vient de l'évidence du point, de l'identité AP, de la position, des métadonnées, du canal ou du comportement RF réel.</td></tr></table>
+        <h2>Catégories fréquentes</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0"><tr><td class="workflow-card"><b>Points à rescanner</b><br>SSID pertinent absent, données rares, faible confiance ou signal instable indiquent que le point peut être faible.<br><span class="survey-card-use">Vérifier :</span> focaliser le point, lire l'évidence brute et rescanner si nécessaire.</td><td class="workflow-gap"></td><td class="workflow-card"><b>AP dominant inattendu</b><br>L'AP le plus fort n'est pas cohérent avec la position physique ou l'AP le plus proche.<br><span class="survey-card-use">Vérifier :</span> positions, alias, échelle et comportement de roaming.</td></tr><tr><td class="workflow-vertical-gap" colspan="3"></td></tr><tr><td class="workflow-card"><b>Ambiguïté de roaming</b><br>Le premier et le second AP sont proches en dB.<br><span class="survey-card-use">Vérifier :</span> les clients peuvent choisir l'un ou l'autre ; ce n'est pas forcément une mauvaise mesure.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Canal ou bande inattendu</b><br>L'observation ne correspond pas aux métadonnées AP.<br><span class="survey-card-use">Vérifier :</span> configuration contrôleur, canaux/bandes attendus, fréquence scanner et override.</td></tr><tr><td class="workflow-vertical-gap" colspan="3"></td></tr><tr><td class="workflow-card"><b>Changement de canal</b><br>Le même AP a bougé de canal pendant le relevé. Les changements propres utilisent le dernier canal ; les ambigus gardent les mesures sauf override.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Position AP manquante</b><br>Un groupe AP pertinent n'a pas de marqueur physique. Les diagnostics de distance AP dominant sont alors plus faibles.</td></tr></table>
+        <h2>Patterns de dépannage</h2>
+        <table class="gate-list"><tr><td class="gate-row"><b>Couverture trop optimiste loin des points</b><br>Cause probable : l'interpolation remplit un espace non mesuré. Action : réduire distance max ou collecter plus de points.</td></tr><tr><td class="gate-row"><b>Interférence sur un ancien canal</b><br>Cause probable : changement canal, séquence ambiguë ou override manquant. Action : lire le détail de changement et les métadonnées AP.</td></tr><tr><td class="gate-row"><b>AP dominant loin de son marqueur</b><br>Cause probable : mauvaise position, mauvais groupe, roaming client ou fuite RF réelle. Action : ouvrir le détail AP dominant et vérifier l'AP le plus proche.</td></tr><tr><td class="gate-row"><b>Beaucoup de points à revoir</b><br>Cause probable : SSID pertinents absents, signal instable ou scans rares. Action : focaliser et rescanner avant d'interpréter.</td></tr><tr><td class="gate-row"><b>Canaux inattendus sur un AP</b><br>Cause probable : métadonnées obsolètes, configuration changée ou preuve bande/canal ambiguë. Action : comparer avec le contrôleur réel.</td></tr></table>
+        <h2>Ordre de revue</h2>
+        <table class="gate-list"><tr><td class="gate-row"><b>1. Évidence de point</b><br>Corrigez réseaux manquants, scans rares, faible confiance et instabilité avant les cartes.</td></tr><tr><td class="gate-row"><b>2. Identité et position AP</b><br>Corrigez groupe, alias, rôle et coordonnées car ils affectent AP dominant, Interférence, Canaux AP et PDF.</td></tr><tr><td class="gate-row"><b>3. Métadonnées et canaux</b><br>Les attentes de bande/canal et l'override d'analyse déterminent si un warning est réel.</td></tr><tr><td class="gate-row"><b>4. Cartes en dernier</b><br>Lisez couverture, canaux, roaming et interférences quand les hypothèses sont assez cohérentes.</td></tr></table>
+    """,
+    "help_glossary_body": """
+        <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Utilisation</span><br>Ce glossaire stabilise les mots employés dans l'interface et les rapports. Les pages de workflow expliquent les actions ; cette page explique le vocabulaire.</td></tr></table>
+        <h2>Évidence Wi-Fi</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0"><tr><td class="workflow-card"><b>SSID</b><br>Nom du réseau Wi-Fi. Un SSID peut être diffusé par plusieurs BSSID.</td><td class="workflow-gap"></td><td class="workflow-card"><b>BSSID</b><br>Adresse MAC radio observée dans les scans Wi-Fi.</td></tr><tr><td class="workflow-vertical-gap" colspan="3"></td></tr><tr><td class="workflow-card"><b>SSID pertinent</b><br>Réseau choisi comme important pour qualité, cartes Live et rapports.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Sidecar brut</b><br>Fichier <code>.scan</code> lié qui contient les échantillons répétés.</td></tr><tr><td class="workflow-vertical-gap" colspan="3"></td></tr><tr><td class="workflow-card"><b>Confiance</b><br>Fiabilité d'une ligne agrégée, calculée à partir des scans répétés.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Constat de rescan</b><br>Problème qualité qui suggère que le point de mesure peut nécessiter un autre scan.</td></tr></table>
+        <h2>Modèle AP</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0"><tr><td class="workflow-card"><b>Groupe AP</b><br>Modèle d'un AP physique, contenant souvent plusieurs BSSID.</td><td class="workflow-gap"></td><td class="workflow-card"><b>AP dominant</b><br>Groupe AP avec le signal observé le plus fort au point.</td></tr><tr><td class="workflow-vertical-gap" colspan="3"></td></tr><tr><td class="workflow-card"><b>Ambiguïté de roaming</b><br>Point où le premier et le second AP sont assez proches pour que les clients choisissent l'un ou l'autre.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Canal d'analyse forcé</b><br>Canal observé choisi par l'utilisateur pour les cartes sensibles au canal d'un groupe AP et d'une bande.</td></tr><tr><td class="workflow-vertical-gap" colspan="3"></td></tr><tr><td class="workflow-card"><b>Changement canal propre</b><br>AP qui change de canal sans preuve de conflit BSSID mélangé.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Changement canal ambigu</b><br>Séquence où le programme ne peut pas traiter le changement comme transition propre.</td></tr></table>
+        <h2>Qualité et avertissements</h2>
+        <table class="survey-grid" width="100%" cellspacing="0" cellpadding="0"><tr><td class="survey-card"><b>Warning setup</b><br>Problème de modèle ou déploiement qui ne demande pas forcément de rescanner le point.</td><td class="survey-gap"></td><td class="survey-card"><b>Canal/bande inattendu</b><br>Évidence Wi-Fi qui ne correspond pas aux métadonnées AP attendues.</td><td class="survey-gap"></td><td class="survey-card"><b>Position AP manquante</b><br>Un groupe AP pertinent n'a pas de coordonnée physique ; les contrôles de distance sont plus faibles.</td></tr></table>
+        <h2>Mémoire et persistance</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0"><tr><td class="workflow-card"><b>Mémoire AP</b><br>Fichier persistant avec alias, rôles, métadonnées, canaux forcés et positions compatibles pour futurs relevés.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Depuis mémoire</b><br>État indiquant que les données ont été appliquées depuis la Mémoire AP et attendent confirmation.</td></tr><tr><td class="workflow-vertical-gap" colspan="3"></td></tr><tr><td class="workflow-card"><b>Mise à jour mémoire</b><br>État signalant que la mémoire contient des données différentes de celles du groupe actuel.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Mémoire options carte</b><br>La Carte Live mémorise les options séparément par type de carte pendant la session.</td></tr></table>
+        <h2>Cartes et rapports</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0"><tr><td class="workflow-card"><b>Interpolation</b><br>Estimation visuelle entre mesures réelles. Utile pour lire, pas pour remplacer des points.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Distance max</b><br>Limite de rendu qui évite aux cartes continues de s'étendre trop loin de l'évidence.</td></tr><tr><td class="workflow-vertical-gap" colspan="3"></td></tr><tr><td class="workflow-card"><b>Limite relevé</b><br>Option Live qui atténue le rendu continu hors de la zone mesurée.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Masque Limites</b><br>PNG dessiné par l'utilisateur qui définit la zone valide pour les cartes continues et PDF supportés.</td></tr></table>
+    """,
+    "help_legal_body": """
+        <h2>Application</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0"><tr><td class="workflow-card"><b>Produit</b><br>Wi-Fi RF Survey Analyzer</td><td class="workflow-card"><b>Version</b><br>{version}</td></tr><tr><td class="workflow-vertical-gap" colspan="2"></td></tr><tr><td class="workflow-card"><b>Copyright</b><br>{copyright}</td><td class="workflow-card"><b>Licence</b><br>{license_name} (<code>{license_id}</code>)<br>{license_url}</td></tr></table>
+        <h2>Usage responsable</h2>
+        <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Réseaux autorisés uniquement</span><br>Ce logiciel est destiné aux activités légitimes d'analyse, de relevé et de dépannage Wi-Fi sur des réseaux que vous possédez ou êtes autorisé à évaluer. L'auteur n'assume aucune responsabilité en cas de mauvaise utilisation.</td></tr></table>
+        <h2>Composants tiers</h2>
+        <p>L'application utilise des bibliothèques tierces telles que PySide6/Qt, matplotlib, numpy, scipy, pandas, Pillow et lswifi. Le résumé des licences se trouve dans <code>THIRD_PARTY_LICENSES</code>, inclus avec le code source et les releases packagées.</p>
+        <h2>Accès au code source</h2>
+        <p>Les releases exécutables publiques doivent pointer vers le tag source ou l'état du dépôt correspondant au build publié.</p>
+        <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Aucune garantie</span><br>Le logiciel est fourni tel quel, sans garantie d'aucune sorte.</td></tr></table>
+    """,
+})
+
+TRANSLATIONS.update({
+    "help_survey_body": TRANSLATIONS["help_survey_body"] + """
+        <h2>Actions sur les points</h2>
+        <table><tr><th>Action</th><th>Usage</th></tr><tr><td>Aller au point</td><td>Sélectionne le point, ajuste le zoom jusqu'à la cible configurée et place le marqueur dans la partie haute de la vue pour rester visible avec le panneau des points ouvert.</td></tr><tr><td>Rescanner point</td><td>Relance la mesure au même endroit quand Qualité relevé indique réseau manquant, signal instable, confiance faible ou données rares.</td></tr><tr><td>Supprimer sélection / dernier</td><td>Retire l'évidence quand le point a été placé au mauvais endroit ou capturé dans de mauvaises conditions.</td></tr></table>
+        <h2>Quand ajouter des points</h2>
+        <table class="gate-list"><tr><td class="gate-row"><b>Transition AP :</b> ajoutez des points de part et d'autre des portes, couloirs et changements de pièce. AP dominant et roaming ont besoin d'évidence autour de ces limites.</td></tr><tr><td class="gate-row"><b>Zone vide :</b> si une carte semble extrapoler trop loin, collectez un point au centre de la zone avant de conclure.</td></tr><tr><td class="gate-row"><b>Plan blanc :</b> utilisez la grille comme repère spatial. En métrique le carré représente 1 m ; en impérial le carré représente 3 ft.</td></tr></table>
+    """,
+    "help_quality_body": TRANSLATIONS["help_quality_body"] + """
+        <h2>Détails des constats</h2>
+        <table class="survey-grid"><tr><td class="survey-card"><b>Réseaux pertinents manquants</b><br>Indique qu'un SSID attendu n'a pas été vu au point. Vérifiez si le réseau est réellement attendu dans cette zone, surtout pour les AP en Zone locale.</td><td class="survey-gap"></td><td class="survey-card"><b>Détails scanner limités</b><br>Le backend n'a pas fourni assez d'information pour certains raisonnements de canal : largeur canal, fréquence 6 GHz ou données scanner de fallback.</td><td class="survey-gap"></td><td class="survey-card"><b>Roaming client</b><br>Le laptop de relevé est resté associé à un AP plus faible alors qu'un autre AP du même SSID était nettement plus fort. C'est une preuve utile de sticky client.</td></tr></table>
+        <h2>Lire les détails AP</h2>
+        <p>Les constats AP dominant combinent signal, AP dominant, AP physique le plus proche et distance. Ils ne signifient pas toujours que le point est faux : ils peuvent révéler un placement AP incorrect, un alias ambigu, une propagation RF réelle ou un comportement de roaming acceptable.</p>
+        <table class="gate-list"><tr><td class="gate-row"><b>Mémoire AP :</b> confirmez les données appliquées depuis la mémoire quand elles sont correctes pour ce site. Si le relevé courant a des informations meilleures, gardez-les et mettez la mémoire à jour.</td></tr><tr><td class="gate-row"><b>Changements canal :</b> un changement propre peut être traité automatiquement ; un changement ambigu mérite un canal d'analyse forcé si vous connaissez le canal à documenter.</td></tr><tr><td class="gate-row"><b>AP sans position :</b> placez les AP pertinents avant de tirer des conclusions de distance AP dominant.</td></tr></table>
+    """,
+    "help_ap_groups_body": TRANSLATIONS["help_ap_groups_body"] + """
+        <h2>Conflits de groupe AP</h2>
+        <p>Un conflit apparaît quand un groupe semble contenir des BSSID incompatibles pour un seul AP physique, par exemple plusieurs canaux dans la même bande. Cela peut être un vrai changement de canal, un AP spécial multi-radio ou un regroupement incorrect. Utilisez Corriger groupe AP pour séparer les lignes seulement quand l'évidence montre des AP différents.</p>
+        <h2>Bonnes pratiques de nommage</h2>
+        <table class="gate-list"><tr><td class="gate-row"><b>Alias lisibles :</b> utilisez des noms opérationnels stables, par exemple étage, zone ou numéro AP. Les alias apparaissent dans tooltips, légendes et PDF.</td></tr><tr><td class="gate-row"><b>Rôles cohérents :</b> marquez comme Externe les voisins et comme Test/masqué les AP à ignorer. Ne laissez pas un AP de test polluer Couverture, Interférence ou AP dominant.</td></tr><tr><td class="gate-row"><b>Métadonnées utiles :</b> les canaux attendus et bandes attendues doivent refléter le contrôleur réel, pas seulement ce que le scanner a vu pendant le relevé.</td></tr></table>
+        <h2>Quand utiliser un override</h2>
+        <p>Un override de canal d'analyse est utile quand un AP a changé de canal pendant le relevé et que vous savez quel canal doit représenter l'analyse. Il évite qu'une carte Interférence ou Canaux AP mélange une transition temporaire avec l'état que vous voulez documenter.</p>
+    """,
+    "help_live_maps_body": TRANSLATIONS["help_live_maps_body"] + """
+        <h2>Lecture par carte</h2>
+        <table class="survey-grid"><tr><td class="survey-card"><b>Couverture</b><br>Contrôlez d'abord la couleur et le dBm estimé, puis vérifiez les points réels autour de la zone. Une surface lisse n'est pas une mesure supplémentaire.</td><td class="survey-gap"></td><td class="survey-card"><b>Interférence</b><br>Lisez le risque avec le contexte : AP serveur, canal, largeur, rôle de l'interférent et mode Intra-SSID ou Tous SSID.</td><td class="survey-gap"></td><td class="survey-card"><b>Cartes discrètes</b><br>Canaux AP et AP dominant montrent les mesures, pas une interpolation. Les couleurs doivent être lues comme catégories par point.</td></tr></table>
+        <h2>Zoom et centrage</h2>
+        <p>Les actions depuis Qualité relevé, les listes de points et certaines légendes peuvent centrer automatiquement un point ou un groupe. Si le plan est très large ou très haut, le programme tente le meilleur repositionnement possible sans forcer la carte hors de ses limites de pan.</p>
+        <h2>Quand régénérer</h2>
+        <table class="gate-list"><tr><td class="gate-row"><b>Après rescans :</b> mettez à jour la carte Live pour relire la surface avec les nouveaux points.</td></tr><tr><td class="gate-row"><b>Après correction AP :</b> Interférence, Canaux AP et AP dominant doivent être recalculées car groupes, rôles ou canaux peuvent changer le résultat.</td></tr><tr><td class="gate-row"><b>Après masque Limites :</b> vérifiez les cartes continues et le PDF, car le masque modifie la zone visible du rendu.</td></tr></table>
+    """,
+})

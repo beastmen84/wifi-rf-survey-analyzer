@@ -1,4 +1,5 @@
 import ast
+import re
 import string
 import unittest
 from pathlib import Path
@@ -220,12 +221,66 @@ LAYOUT_SENSITIVE_KEYS = (
     "cancel_point",
 )
 
+ALLOWED_IDENTICAL_TRANSLATION_KEYS = frozenset({
+    "app_title",
+    "copyright",
+    "qt_csv",
+    "qt_points",
+    "ui_scale_auto",
+    "live_options_show",
+    "live_options_hide",
+    "quality_dashboard_point_detail_label",
+    "ap_group_alias_menu",
+    "ap_group_metadata_channel_group_24",
+    "ap_group_metadata_channel_group_5_dfs",
+    "ap_group_metadata_analysis_channel_auto",
+    "ap_group_metadata_notes",
+    "ap_group_position",
+    "ap_label",
+    "ap_alias_bssids",
+    "ap_alias_value",
+    "ap_group_state_manual",
+    "ap_group_state_auto",
+    "ap_group_filter_status_warning",
+    "tooltip_section_signal",
+    "tooltip_section_radio",
+    "tooltip_section_position",
+    "tooltip_section_second_ap",
+    "signal",
+    "second_ap",
+    "export_points",
+    "interference_mode_intra_ssid",
+    "interference_summary_point",
+    "interference_overlap",
+    "interpolation",
+    "images",
+    "help_scan",
+    "error",
+    "zoom",
+})
+
+HELP_BODY_KEYS = tuple(
+    key for key in TRANSLATIONS[DEFAULT_LANGUAGE]
+    if key.startswith("help_") and key.endswith("_body")
+)
+
 
 def first_alpha(text):
     for character in text:
         if character.isalpha():
             return character
     return ""
+
+
+def visible_text_length(text):
+    text_without_tags = re.sub(r"<[^>]+>", " ", text)
+    compact = re.sub(r"\s+", " ", text_without_tags).strip()
+    return len(compact)
+
+
+def has_meaningful_words(text):
+    text_without_placeholders = re.sub(r"\{[^}]+\}", " ", text)
+    return bool(re.search(r"[A-Za-zÀ-ÿ]{3,}", text_without_placeholders))
 
 
 class I18nTests(unittest.TestCase):
@@ -284,6 +339,44 @@ class I18nTests(unittest.TestCase):
             for key in CRITICAL_LOCALIZED_KEYS:
                 with self.subTest(language=language, key=key):
                     self.assertNotEqual(translations[key], default_translations[key])
+
+    def test_french_and_spanish_avoid_meaningful_english_fallbacks(self):
+        default_translations = TRANSLATIONS[DEFAULT_LANGUAGE]
+        for language in ("fr", "es"):
+            translations = TRANSLATIONS[language]
+            untranslated = [
+                key
+                for key, default_text in default_translations.items()
+                if key not in ALLOWED_IDENTICAL_TRANSLATION_KEYS
+                and isinstance(default_text, str)
+                and translations[key] == default_text
+                and has_meaningful_words(default_text)
+            ]
+            with self.subTest(language=language):
+                self.assertEqual([], untranslated)
+
+    def test_help_body_lengths_stay_balanced_across_languages(self):
+        default_translations = TRANSLATIONS[DEFAULT_LANGUAGE]
+        for key in HELP_BODY_KEYS:
+            default_length = visible_text_length(default_translations[key])
+            localized_lengths = {
+                language: visible_text_length(TRANSLATIONS[language][key])
+                for language in ("fr", "es")
+            }
+            with self.subTest(key=key):
+                for language, length in localized_lengths.items():
+                    self.assertGreaterEqual(
+                        length,
+                        int(default_length * 0.55),
+                        f"{language} {key} is too short compared with English",
+                    )
+                longest = max(localized_lengths.values())
+                shortest = min(localized_lengths.values())
+                self.assertLessEqual(
+                    longest,
+                    int(shortest * 1.2),
+                    f"French and Spanish {key} lengths drifted apart",
+                )
 
     def test_localized_operational_labels_keep_reasonable_length(self):
         default_translations = TRANSLATIONS[DEFAULT_LANGUAGE]
