@@ -21,6 +21,7 @@ from app_core.units import (
     meters_to_display_units,
     normalize_measurement_system,
 )
+from ap.groups import normalize_ap_role
 from qt_ui.qt_tooltips import build_html_tooltip
 
 
@@ -81,6 +82,7 @@ class FloorplanView(QGraphicsView):
         self.pending_ap_position_label = ""
         self.scale_calibration_active = False
         self.ap_position_icon = load_ap_position_icon()
+        self.point_tooltip_formatter = None
         self.ap_tooltip_formatter = None
         self.grid_visible = False
         self.grid_px_per_meter = None
@@ -877,7 +879,12 @@ class FloorplanView(QGraphicsView):
             radius = SURVEY_POINT_MARKER_RADIUS
             item = QGraphicsEllipseItem(x - radius, y - radius, radius * 2, radius * 2)
             self.style_point_marker(item, point_color(signal), self.point_key(point) == self.selected_point_key)
-            item.setToolTip(format_point_tooltip(point))
+            tooltip = (
+                self.point_tooltip_formatter(point)
+                if callable(self.point_tooltip_formatter)
+                else format_point_tooltip(point)
+            )
+            item.setToolTip(tooltip)
             item.setData(0, dict(point))
             self.scene.addItem(item)
             self.marker_items.append(item)
@@ -1315,43 +1322,137 @@ def point_color(signal_dbm):
     return QColor("#C65A5A")
 
 
-def format_point_tooltip(point):
+def format_point_tooltip(point, translations=None):
     ssids = [str(ssid) for ssid in point.get("ssids", []) if str(ssid)]
     ssid_text = ssids or "-"
     signal_scope = str(point.get("signal_scope", "all"))
-    scope_label = "relevant networks" if signal_scope == "relevant" else "all networks"
-    row_count = point.get("row_count", "-")
-    relevant_count = point.get("relevant_row_count", 0)
-    rows_label = "Relevant rows" if relevant_count else "Rows"
-    rows_value = f"{relevant_count}/{row_count}" if relevant_count else row_count
+    scope_label = (
+        tooltip_text(translations, "tooltip_scope_relevant", "Relevant Networks")
+        if signal_scope == "relevant"
+        else tooltip_text(translations, "tooltip_scope_all", "All Networks")
+    )
+    row_count = format_tooltip_scalar(point.get("row_count", "-"))
+    relevant_count = numeric_count(point.get("relevant_row_count", 0))
+    rows_value = (
+        tooltip_template(
+            translations,
+            "tooltip_rows_relevant",
+            "{relevant}/{total} relevant",
+            relevant=relevant_count,
+            total=row_count,
+        )
+        if relevant_count
+        else row_count
+    )
     signal_value = point.get("best_signal_dbm", "-")
+    signal_text = format_signal_dbm(signal_value)
     try:
         accent = point_color(float(signal_value)).name()
     except (TypeError, ValueError):
         accent = "#111111"
 
+    rows = [
+        ("x/y", f"{format_tooltip_scalar(point.get('x', '-'))}, {format_tooltip_scalar(point.get('y', '-'))}"),
+        (tooltip_text(translations, "signal", "Signal"), signal_text),
+    ]
+    quality_label = str(point.get("quality_label", "") or "").strip()
+    if quality_label and quality_label != "-":
+        rows.append((tooltip_text(translations, "quality", "Quality"), quality_label))
+    rows.extend([
+        (tooltip_text(translations, "tooltip_signal_scope", "Signal Scope"), scope_label),
+        (tooltip_text(translations, "rows", "Rows"), rows_value),
+        (tooltip_text(translations, "tooltip_time", "Time"), point.get("timestamp", "-")),
+        (tooltip_text(translations, "tooltip_detected_ssids", "Detected SSIDs"), ssid_text),
+    ])
     return build_html_tooltip(
-        "Survey point",
-        [
-            ("x/y", f"{point.get('x', '-')}, {point.get('y', '-')}"),
-            ("Best signal", f"{signal_value} dBm ({scope_label})"),
-            (rows_label, rows_value),
-            ("Time", point.get("timestamp", "-")),
-            ("Detected SSID", ssid_text),
-        ],
+        tooltip_text(translations, "survey_point_tooltip_title", "Survey Point"),
+        rows,
         accent,
     )
 
 
-def format_ap_tooltip(group, label, x, y):
-    bssids = ", ".join(group.get("bssids", [])) or "-"
+def format_ap_tooltip(group, label, x, y, translations=None):
+    bssids = format_tooltip_list(group.get("bssids", []))
+    metadata = group.get("metadata") if isinstance(group.get("metadata"), dict) else {}
+    rows = [
+        (tooltip_text(translations, "ap_alias_group", "AP Group"), group.get("group_id", "-")),
+        (tooltip_text(translations, "ap_alias_value", "Alias"), label),
+        (tooltip_text(translations, "ap_group_role", "Role"), format_ap_role_label(group, translations)),
+        ("x/y", f"{format_tooltip_scalar(x)}, {format_tooltip_scalar(y)}"),
+        (tooltip_text(translations, "ap_alias_bssids", "BSSID"), bssids),
+    ]
+    optional_rows = [
+        ("ap_alias_ssids", "Seen SSIDs", group.get("ssids", [])),
+        ("ap_alias_channels", "Channels", group.get("channels", [])),
+        ("ap_alias_bands", "Bands", group.get("bands", [])),
+        ("ap_group_metadata_vendor", "Vendor", metadata.get("vendor", "")),
+        ("ap_group_metadata_model", "Model", metadata.get("model", "")),
+        ("ap_group_metadata_mounting", "Mounting", metadata.get("mounting", "")),
+    ]
+    for key, fallback, value in optional_rows:
+        formatted = format_tooltip_list(value)
+        if formatted != "-":
+            rows.append((tooltip_text(translations, key, fallback), formatted))
+
     return build_html_tooltip(
-        "AP position",
-        [
-            ("AP group", group.get("group_id", "-")),
-            ("Label", label),
-            ("x/y", f"{x}, {y}"),
-            ("BSSID", bssids),
-        ],
+        tooltip_text(translations, "wifi_ap_tooltip_title", "Wi-Fi AP"),
+        rows,
         "#0d6efd",
     )
+
+
+def tooltip_text(translations, key, fallback):
+    if callable(translations):
+        value = translations(key)
+        return fallback if value == key else value
+    if isinstance(translations, dict):
+        return translations.get(key, fallback)
+    return fallback
+
+
+def tooltip_template(translations, key, fallback, **values):
+    template = tooltip_text(translations, key, fallback)
+    try:
+        return template.format(**values)
+    except (KeyError, ValueError):
+        return fallback.format(**values)
+
+
+def numeric_count(value):
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return 0
+
+
+def format_tooltip_scalar(value):
+    if value in (None, ""):
+        return "-"
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    if math.isnan(number):
+        return "-"
+    if number.is_integer():
+        return str(int(number))
+    return f"{number:.1f}"
+
+
+def format_signal_dbm(value):
+    formatted = format_tooltip_scalar(value)
+    return "-" if formatted == "-" else f"{formatted} dBm"
+
+
+def format_tooltip_list(values):
+    if values in (None, ""):
+        return "-"
+    if isinstance(values, (list, tuple, set)):
+        clean_values = [str(value).strip() for value in values if str(value).strip()]
+        return clean_values or "-"
+    return str(values).strip() or "-"
+
+
+def format_ap_role_label(group, translations):
+    role = normalize_ap_role(group.get("role"))
+    return tooltip_text(translations, f"ap_group_role_{role}", role.replace("_", " ").title())

@@ -266,27 +266,44 @@ class FloorplanViewTests(unittest.TestCase):
                 "relevant_row_count": 2,
                 "timestamp": "2026-05-11T12:00:00",
                 "ssids": ["MAIN", "Guest <wifi>"],
+                "quality_label": "OK",
             }
         )
 
         self.assertIn("<table", tooltip)
         self.assertIn("border-left:4px solid", tooltip)
-        self.assertIn("Survey point", tooltip)
-        self.assertIn("Best signal", tooltip)
+        self.assertIn("Survey Point", tooltip)
+        self.assertIn("Signal", tooltip)
+        self.assertIn("-61 dBm", tooltip)
+        self.assertIn("Quality", tooltip)
+        self.assertIn("Signal Scope", tooltip)
+        self.assertIn("Relevant Networks", tooltip)
+        self.assertIn("2/4 relevant", tooltip)
         self.assertIn("Guest &lt;wifi&gt;", tooltip)
 
     def test_survey_ap_tooltip_uses_live_style_html_layout(self):
         tooltip = format_ap_tooltip(
-            {"group_id": "office", "bssids": ["70:4f:57:aa:bb:10"]},
+            {
+                "group_id": "office",
+                "role": "external",
+                "bssids": ["70:4f:57:aa:bb:10"],
+                "ssids": ["MAIN"],
+                "channels": ["36"],
+                "bands": ["5"],
+                "metadata": {"vendor": "Cisco", "model": "C9130"},
+            },
             "Office AP",
             30,
             40,
         )
 
         self.assertIn("<table", tooltip)
-        self.assertIn("AP position", tooltip)
+        self.assertIn("Wi-Fi AP", tooltip)
         self.assertIn("Office AP", tooltip)
+        self.assertIn("External", tooltip)
         self.assertIn("70:4f:57:aa:bb:10", tooltip)
+        self.assertIn("MAIN", tooltip)
+        self.assertIn("Cisco", tooltip)
 
     def test_shared_tooltip_layout_stacks_long_values(self):
         tooltip = build_html_tooltip(

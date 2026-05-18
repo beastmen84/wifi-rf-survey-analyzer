@@ -635,6 +635,7 @@ class WifiHeatmapQtApp(
         floorplan_layout.setSpacing(0)
         self.floorplan_view = FloorplanView()
         self.floorplan_view.set_focus_point_zoom_percent(self.focus_point_zoom_percent)
+        self.floorplan_view.point_tooltip_formatter = self.format_survey_point_tooltip
         self.floorplan_view.ap_tooltip_formatter = self.format_ap_position_tooltip
         self.floorplan_view.surveyPointRequested.connect(self.create_point_from_floorplan)
         self.floorplan_view.apPositionPicked.connect(self.save_ap_position)

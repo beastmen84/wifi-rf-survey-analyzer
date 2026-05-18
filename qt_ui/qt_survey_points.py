@@ -15,6 +15,7 @@ from maps.quality import (
     QUALITY_UNSTABLE_SIGNAL,
     evaluate_point_quality,
 )
+from qt_ui.qt_floorplan import format_point_tooltip
 
 
 class SurveyPointTableMixin:
@@ -147,6 +148,9 @@ class SurveyPointTableMixin:
             self.session.raw_scan_rows,
             relevant_ssids=self.relevant_ssids,
         )
+        for point in summaries:
+            quality = quality_by_point_id.get(point.get("point_id", ""), {})
+            point["quality_label"] = self.format_point_quality(quality.get("status"))
         self.floorplan_view.set_points(summaries)
         self.floorplan_view.set_ap_groups(self.session.get_ap_groups())
         self.points_table.setRowCount(len(summaries))
@@ -184,6 +188,9 @@ class SurveyPointTableMixin:
             QUALITY_UNSTABLE_SIGNAL: self.tr("quality_unstable_signal"),
             QUALITY_SPARSE_DATA: self.tr("quality_sparse_data"),
         }.get(status, "-")
+
+    def format_survey_point_tooltip(self, point):
+        return format_point_tooltip(point, self.tr)
 
     def should_show_quality_tooltip(self, quality):
         breakdown = quality.get("breakdown", []) if quality else []

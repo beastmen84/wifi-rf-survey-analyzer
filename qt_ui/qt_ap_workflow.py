@@ -7,7 +7,7 @@ except ModuleNotFoundError as exc:
     raise SystemExit(1) from exc
 
 from qt_ui.qt_ap_groups import open_qt_ap_group_manager
-from qt_ui.qt_tooltips import build_html_tooltip
+from qt_ui.qt_floorplan import format_ap_tooltip
 from ap.memory import clear_group_memory_flag
 
 
@@ -80,16 +80,7 @@ class ApWorkflowMixin:
         return group_id
 
     def format_ap_position_tooltip(self, group, label, x, y):
-        return build_html_tooltip(
-            self.tr("ap_group_position_tooltip_title"),
-            [
-                (self.tr("ap_alias_group"), group.get("group_id", "-")),
-                (self.tr("ap_alias_value"), label),
-                ("x/y", f"{x}, {y}"),
-                (self.tr("ap_alias_bssids"), ", ".join(group.get("bssids", [])) or "-"),
-            ],
-            "#0d6efd",
-        )
+        return format_ap_tooltip(group, label, x, y, self.tr)
 
     def channel_sort_key(self, channel):
         try:

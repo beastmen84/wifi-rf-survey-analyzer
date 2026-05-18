@@ -34,6 +34,9 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 - Dominant AP point tooltips now use the same readable evidence format as the
   other live maps, including signal, samples, confidence, second-AP context,
   roaming overlap and AP-position rows.
+- Survey point and Wi-Fi AP floorplan tooltips are now aligned with live map
+  tooltip styling and terminology, including translated labels and clearer
+  signal, scope, role and observed AP evidence rows.
 
 ## v0.9.7-beta.1 - 2026-05-18
 
