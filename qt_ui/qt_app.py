@@ -739,8 +739,8 @@ class WifiHeatmapQtApp(
         toolbar.setObjectName("boundariesToolbar")
         toolbar.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         layout = QVBoxLayout(toolbar)
-        layout.setContentsMargins(self.spx(6), self.spx(6), self.spx(6), self.spx(6))
-        layout.setSpacing(self.spx(6))
+        layout.setContentsMargins(self.spx(5), self.spx(5), self.spx(5), self.spx(5))
+        layout.setSpacing(self.spx(5))
 
         self.boundaries_draw_button = self.create_boundaries_tool_button(
             "brush.png",
@@ -769,7 +769,7 @@ class WifiHeatmapQtApp(
         self.boundaries_size_label = QLabel()
         self.boundaries_size_label.setObjectName("boundariesBrushSizeLabel")
         self.boundaries_size_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.boundaries_size_label.setFixedSize(self.spx(38), self.spx(22))
+        self.boundaries_size_label.setFixedSize(self.boundaries_toolbar_button_size(), self.spx(20))
         self.boundaries_size_label.setToolTip(self.tr("boundaries_brush_size_tooltip"))
         self.boundaries_size_decrease_button = self.create_boundaries_text_button(
             "-",
@@ -779,6 +779,7 @@ class WifiHeatmapQtApp(
             "clear.png",
             "boundaries_clear_tooltip",
         )
+        self.boundaries_clear_button.setProperty("danger", True)
 
         self.boundaries_draw_button.clicked.connect(lambda _checked=False: self.set_boundaries_tool("draw"))
         self.boundaries_eraser_button.clicked.connect(lambda _checked=False: self.set_boundaries_tool("eraser"))
@@ -792,19 +793,30 @@ class WifiHeatmapQtApp(
         )
         self.boundaries_clear_button.clicked.connect(lambda _checked=False: self.clear_boundaries_mask())
 
-        for button in (
-            self.boundaries_draw_button,
-            self.boundaries_eraser_button,
-            self.boundaries_circle_button,
-            self.boundaries_square_button,
-            self.boundaries_size_increase_button,
-            self.boundaries_size_label,
-            self.boundaries_size_decrease_button,
-            self.boundaries_clear_button,
-        ):
-            layout.addWidget(button)
+        layout.addWidget(self.boundaries_draw_button)
+        layout.addWidget(self.boundaries_eraser_button)
+        layout.addWidget(self.create_boundaries_separator())
+        layout.addWidget(self.boundaries_circle_button)
+        layout.addWidget(self.boundaries_square_button)
+        layout.addWidget(self.create_boundaries_separator())
+        layout.addWidget(self.boundaries_size_increase_button)
+        layout.addWidget(self.boundaries_size_label)
+        layout.addWidget(self.boundaries_size_decrease_button)
+        layout.addWidget(self.create_boundaries_separator())
+        layout.addWidget(self.boundaries_clear_button)
 
         return toolbar
+
+    def boundaries_toolbar_button_size(self):
+        return self.spx(34)
+
+    def create_boundaries_separator(self):
+        separator = QFrame()
+        separator.setObjectName("boundariesToolbarSeparator")
+        separator.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        separator.setFrameShape(QFrame.Shape.NoFrame)
+        separator.setFixedSize(self.boundaries_toolbar_button_size(), self.spx(1))
+        return separator
 
     def create_boundaries_tool_button(self, icon_name, tooltip_key, checkable=False):
         from PySide6.QtGui import QIcon
@@ -813,15 +825,15 @@ class WifiHeatmapQtApp(
         button.setObjectName("boundariesToolButton")
         button.setCheckable(checkable)
         button.setIcon(QIcon(str(resource_path("images", "bound_toolbar", icon_name))))
-        button.setIconSize(QSize(self.spx(22), self.spx(22)))
-        button.setFixedSize(self.spx(38), self.spx(38))
+        button.setIconSize(QSize(self.spx(20), self.spx(20)))
+        button.setFixedSize(self.boundaries_toolbar_button_size(), self.boundaries_toolbar_button_size())
         button.setToolTip(self.tr(tooltip_key))
         return button
 
     def create_boundaries_text_button(self, text, tooltip_key):
         button = QPushButton(text)
         button.setObjectName("boundariesToolButton")
-        button.setFixedSize(self.spx(38), self.spx(38))
+        button.setFixedSize(self.boundaries_toolbar_button_size(), self.boundaries_toolbar_button_size())
         button.setToolTip(self.tr(tooltip_key))
         return button
 
@@ -1288,20 +1300,24 @@ class WifiHeatmapQtApp(
             QFrame#boundariesToolbar {{
                 background: {palette["panel"]};
                 border: 1px solid {palette["border"]};
-                border-radius: {s(9)}px;
+                border-radius: {s(8)}px;
+            }}
+            QFrame#boundariesToolbarSeparator {{
+                background: {palette["border"]};
+                border: 0;
             }}
             QPushButton#boundariesToolButton {{
-                min-width: {s(38)}px;
-                max-width: {s(38)}px;
-                min-height: {s(38)}px;
-                max-height: {s(38)}px;
-                padding: {s(5)}px;
+                min-width: {s(34)}px;
+                max-width: {s(34)}px;
+                min-height: {s(34)}px;
+                max-height: {s(34)}px;
+                padding: {s(4)}px;
                 border-radius: {s(5)}px;
                 background: {palette["button_bg"]};
                 color: {palette["text"]};
                 border: 1px solid {palette["border"]};
             }}
-            QPushButton#boundariesToolButton:hover {{
+            QPushButton#boundariesToolButton:enabled:hover {{
                 background: {palette["button_hover"]};
                 border: 1px solid {palette["metric_info"]};
             }}
@@ -1309,15 +1325,20 @@ class WifiHeatmapQtApp(
                 background: {palette["metric_info"]};
                 border: 1px solid {palette["metric_info"]};
             }}
+            QPushButton#boundariesToolButton[danger="true"]:enabled:hover {{
+                background: {palette["metric_danger"]};
+                border: 1px solid {palette["metric_danger"]};
+                color: #FFFFFF;
+            }}
             QPushButton#boundariesToolButton:disabled {{
                 background: {palette["panel_alt"]};
                 border: 1px solid {palette["border"]};
             }}
             QLabel#boundariesBrushSizeLabel {{
-                min-width: {s(38)}px;
-                max-width: {s(38)}px;
-                min-height: {s(22)}px;
-                max-height: {s(22)}px;
+                min-width: {s(34)}px;
+                max-width: {s(34)}px;
+                min-height: {s(20)}px;
+                max-height: {s(20)}px;
                 padding: 0;
                 border-radius: {s(5)}px;
                 background: {palette["panel_alt"]};
