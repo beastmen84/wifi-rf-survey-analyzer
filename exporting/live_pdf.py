@@ -67,6 +67,14 @@ LIVE_PDF_POINT_SIZE = 105
 LIVE_PDF_POINT_WARNING_SIZE = 132
 LIVE_PDF_AP_ICON_SIZE_PX = 22
 LIVE_PDF_INFO_HEIGHT_PX = 360
+LIVE_PDF_INFO_MAX_HEIGHT_PX = 760
+LIVE_PDF_BOTTOM_WHITESPACE_MAX_PX = 180
+LIVE_PDF_MAP_CONTENT_DELTA_THRESHOLD = 10
+LIVE_PDF_MAP_CONTENT_VARIATION_THRESHOLD = 2.0
+LIVE_PDF_MAP_DATA_MARGIN_PX = 80
+LIVE_PDF_SWATCH_COLUMNS = 4
+LIVE_PDF_SWATCH_BASE_ROWS = 4
+LIVE_PDF_SWATCH_MAX_ROWS = 8
 _PDF_AP_ICON_CACHE = None
 
 
@@ -234,7 +242,8 @@ def build_live_pdf_signal_figure(
     heatmap_alpha = np.where(np.isfinite(grid_z), distance_alpha * bounds_alpha * 0.55, 0)
     vmin, vmax = get_live_signal_color_scale_limits(grid_z, config)
     title = f"{tr('export_signal_title')} - {config.ssid}"
-    fig, ax, side_ax = create_live_pdf_map_figure(bg_image, title)
+    map_bottom = calculate_live_pdf_map_bottom(bg_image, y, ap_groups=ap_groups)
+    fig, ax, side_ax = create_live_pdf_map_figure(bg_image, title, map_bottom=map_bottom)
     layer = ax.imshow(
         grid_z.T,
         extent=(0, bg_image.size[0], bg_image.size[1], 0),
@@ -334,7 +343,8 @@ def build_live_pdf_interference_figure(
     heatmap_alpha = np.where(np.isfinite(grid_z), distance_alpha * bounds_alpha * 0.58, 0)
     vmin, vmax = get_risk_color_scale_limits(grid_z, config)
     title = f"{tr('export_interference_title')} - {config.ssid}"
-    fig, ax, side_ax = create_live_pdf_map_figure(bg_image, title)
+    map_bottom = calculate_live_pdf_map_bottom(bg_image, y, ap_groups=ap_groups)
+    fig, ax, side_ax = create_live_pdf_map_figure(bg_image, title, map_bottom=map_bottom)
     layer = ax.imshow(
         grid_z.T,
         extent=(0, bg_image.size[0], bg_image.size[1], 0),
@@ -389,12 +399,23 @@ def build_live_pdf_channel_figure(df, bg_image, config, tr, language, aliases, a
     if channel_df.empty:
         raise_insufficient_data(tr, config.band, language)
 
-    title = f"{tr('export_channel_title')} - {config.ssid}"
-    fig, ax, side_ax = create_live_pdf_map_figure(bg_image, title)
     colors = [
         get_channel_color(row["channel"], get_channel_display_band(row, config.band))
         for _index, row in channel_df.iterrows()
     ]
+    legend_items = build_channel_point_legend_items(channel_df, config, aliases)
+    title = f"{tr('export_channel_title')} - {config.ssid}"
+    map_bottom = calculate_live_pdf_map_bottom(
+        bg_image,
+        channel_df["y"].values,
+        ap_groups=ap_groups,
+    )
+    fig, ax, side_ax = create_live_pdf_map_figure(
+        bg_image,
+        title,
+        map_bottom=map_bottom,
+        legend_item_count=len(legend_items),
+    )
     ax.scatter(
         channel_df["x"].values,
         channel_df["y"].values,
@@ -405,7 +426,6 @@ def build_live_pdf_channel_figure(df, bg_image, config, tr, language, aliases, a
         zorder=4,
     )
     draw_ap_position_markers(ax, ap_groups, aliases, config.ap_group_filter)
-    legend_items = build_channel_point_legend_items(channel_df, config, aliases)
     add_live_pdf_side_header(
         side_ax,
         title,
@@ -432,7 +452,6 @@ def build_live_pdf_dominant_figure(df, bg_image, config, tr, language, aliases, 
     dominant_df = add_ap_position_report_columns(dominant_df, ap_groups, aliases, px_per_meter)
     dominant_df["ap_position_has_warning"] = dominant_df["ap_position_warnings"].astype(str).str.len() > 0
     title = f"{tr('export_dominant_title')} - {config.ssid}"
-    fig, ax, side_ax = create_live_pdf_map_figure(bg_image, title)
     color_map, _visible_ap_groups, _hidden_ap_count = get_limited_bssid_color_map(dominant_df)
     colors = [
         color_map.get(row["dominant_ap_group"], "#7f8c8d")
@@ -447,6 +466,20 @@ def build_live_pdf_dominant_figure(df, bg_image, config, tr, language, aliases, 
         for _index, row in dominant_df.iterrows()
     ]
     warning_mask = dominant_df["ap_position_has_warning"]
+    legend_items = build_dominant_point_legend_items(dominant_df, config, aliases, color_map)
+    if config.point_label_mode != "none":
+        legend_items.extend(build_dominant_marker_legend_items(dominant_df, tr))
+    map_bottom = calculate_live_pdf_map_bottom(
+        bg_image,
+        dominant_df["y"].values,
+        ap_groups=ap_groups,
+    )
+    fig, ax, side_ax = create_live_pdf_map_figure(
+        bg_image,
+        title,
+        map_bottom=map_bottom,
+        legend_item_count=len(legend_items),
+    )
     if (~warning_mask).any():
         ax.scatter(
             dominant_df.loc[~warning_mask, "x"].values,
@@ -468,12 +501,9 @@ def build_live_pdf_dominant_figure(df, bg_image, config, tr, language, aliases, 
             linewidths=[width for width, is_warning in zip(line_widths, warning_mask) if is_warning],
             marker="^",
             zorder=4,
-        )
+    )
     draw_ap_position_markers(ax, ap_groups, aliases, "")
     annotate_dominant_problem_numbers(ax, get_dominant_problem_df(dominant_df))
-    legend_items = build_dominant_point_legend_items(dominant_df, config, aliases, color_map)
-    if config.point_label_mode != "none":
-        legend_items.extend(build_dominant_marker_legend_items(dominant_df, tr))
     add_live_pdf_side_header(
         side_ax,
         title,
@@ -584,18 +614,20 @@ def get_risk_color_scale_limits(grid_z, config):
     return vmin, vmax
 
 
-def create_live_pdf_map_figure(bg_image, title):
+def create_live_pdf_map_figure(bg_image, title, map_bottom=None, legend_item_count=0):
     width, height = bg_image.size
-    info_height = max(LIVE_PDF_INFO_HEIGHT_PX, min(520, int(height * 0.18)))
-    total_height = height + info_height
+    map_height = normalize_live_pdf_map_bottom(map_bottom, height)
+    info_height = calculate_live_pdf_info_height(map_height, legend_item_count)
+    total_height = map_height + info_height
     dpi = 100
     fig = plt.figure(figsize=(width / dpi, total_height / dpi), dpi=dpi)
     info_fraction = info_height / total_height
-    map_fraction = height / total_height
+    map_fraction = map_height / total_height
     ax = fig.add_axes([0, info_fraction, 1, map_fraction])
-    ax.imshow(np.array(bg_image), zorder=1)
+    display_image = bg_image.crop((0, 0, width, map_height)) if map_height < height else bg_image
+    ax.imshow(np.array(display_image), zorder=1)
     ax.set_xlim(0, width)
-    ax.set_ylim(height, 0)
+    ax.set_ylim(map_height, 0)
     ax.set_title("")
     ax.axis("off")
 
@@ -606,6 +638,90 @@ def create_live_pdf_map_figure(bg_image, title):
     info_ax.add_patch(plt.Rectangle((0, 0), 1, 1, transform=info_ax.transAxes, color="#ffffff", zorder=0))
     info_ax.plot([0.02, 0.98], [0.94, 0.94], color="#d0d5dd", linewidth=1.0, transform=info_ax.transAxes)
     return fig, ax, info_ax
+
+
+def calculate_live_pdf_info_height(map_height, legend_item_count=0):
+    base_height = max(LIVE_PDF_INFO_HEIGHT_PX, min(520, int(map_height * 0.18)))
+    rows_per_column = calculate_live_pdf_swatch_rows_per_column(legend_item_count)
+    extra_rows = max(0, rows_per_column - LIVE_PDF_SWATCH_BASE_ROWS)
+    if extra_rows:
+        base_height = max(base_height, LIVE_PDF_INFO_HEIGHT_PX + extra_rows * 48)
+    return min(LIVE_PDF_INFO_MAX_HEIGHT_PX, base_height)
+
+
+def calculate_live_pdf_map_bottom(bg_image, y_values=None, ap_groups=None):
+    width, height = bg_image.size
+    image_bottom = detect_live_pdf_image_content_bottom(bg_image)
+    data_bottom = detect_live_pdf_data_bottom(y_values, ap_groups)
+    target_bottom = max(image_bottom, data_bottom)
+    return normalize_live_pdf_map_bottom(target_bottom, height)
+
+
+def detect_live_pdf_image_content_bottom(bg_image):
+    width, height = bg_image.size
+    if width <= 0 or height <= 0:
+        return height
+
+    pixels = np.asarray(bg_image.convert("RGB"))
+    if pixels.size == 0:
+        return height
+
+    corner_size = max(1, min(24, width, height))
+    corners = np.concatenate(
+        [
+            pixels[:corner_size, :corner_size].reshape(-1, 3),
+            pixels[:corner_size, -corner_size:].reshape(-1, 3),
+            pixels[-corner_size:, :corner_size].reshape(-1, 3),
+            pixels[-corner_size:, -corner_size:].reshape(-1, 3),
+        ],
+        axis=0,
+    )
+    background = np.median(corners, axis=0)
+    delta = np.max(np.abs(pixels.astype(np.int16) - background.astype(np.int16)), axis=2)
+    changed_pixels = delta > LIVE_PDF_MAP_CONTENT_DELTA_THRESHOLD
+    minimum_changed_pixels = max(8, int(width * 0.003))
+    row_changed = changed_pixels.sum(axis=1) >= minimum_changed_pixels
+    row_variation = pixels.std(axis=1).mean(axis=1) > LIVE_PDF_MAP_CONTENT_VARIATION_THRESHOLD
+    content_rows = np.flatnonzero(row_changed | row_variation)
+    if len(content_rows) == 0:
+        return height
+
+    last_content_row = int(content_rows[-1])
+    blank_tail = height - (last_content_row + 1)
+    if blank_tail <= LIVE_PDF_BOTTOM_WHITESPACE_MAX_PX:
+        return height
+
+    return last_content_row + 1 + LIVE_PDF_BOTTOM_WHITESPACE_MAX_PX
+
+
+def detect_live_pdf_data_bottom(y_values=None, ap_groups=None):
+    values = []
+    if y_values is not None:
+        for value in y_values:
+            try:
+                values.append(float(value))
+            except (TypeError, ValueError):
+                continue
+
+    for group in build_visible_ap_position_groups(ap_groups):
+        position = group.get("position") or {}
+        try:
+            values.append(float(position.get("y")))
+        except (TypeError, ValueError):
+            continue
+
+    if not values:
+        return 0
+
+    return int(np.ceil(max(values) + LIVE_PDF_MAP_DATA_MARGIN_PX))
+
+
+def normalize_live_pdf_map_bottom(map_bottom, image_height):
+    try:
+        bottom = int(np.ceil(float(map_bottom)))
+    except (TypeError, ValueError):
+        bottom = int(image_height)
+    return min(max(1, bottom), int(image_height))
 
 
 def add_live_pdf_side_header(side_ax, title, config, tr, language, extra_rows=None):
@@ -650,15 +766,16 @@ def add_live_pdf_swatch_list(side_ax, legend_items, title, y=0.66):
     side_ax.text(x_start, y, title, fontsize=9.5, fontweight="bold", va="top")
     y -= 0.12
 
-    rows_per_column = 4
-    max_columns = 4
+    rows_per_column = calculate_live_pdf_swatch_rows_per_column(len(legend_items))
+    max_columns = LIVE_PDF_SWATCH_COLUMNS
     max_items = rows_per_column * max_columns
     column_width = 0.12
+    row_spacing = min(0.11, max(0.055, (y - 0.08) / max(1, rows_per_column - 1)))
     for index, item in enumerate(legend_items[:max_items]):
         column = index // rows_per_column
         row = index % rows_per_column
         item_x = x_start + (column * column_width)
-        item_y = y - (row * 0.11)
+        item_y = y - (row * row_spacing)
         marker = "^" if item.get("shape") == "triangle" else "o"
         side_ax.scatter(
             [item_x],
@@ -674,6 +791,18 @@ def add_live_pdf_swatch_list(side_ax, legend_items, title, y=0.66):
         side_ax.text(item_x + 0.02, item_y, str(item.get("label", "")), fontsize=7.4, va="top", wrap=True)
     if len(legend_items) > max_items:
         side_ax.text(x_start, 0.08, f"+{len(legend_items) - max_items}", fontsize=7.4, va="top")
+
+
+def calculate_live_pdf_swatch_rows_per_column(item_count):
+    try:
+        count = int(item_count)
+    except (TypeError, ValueError):
+        count = 0
+    if count <= 0:
+        return LIVE_PDF_SWATCH_BASE_ROWS
+
+    required_rows = int(np.ceil(count / LIVE_PDF_SWATCH_COLUMNS))
+    return min(max(LIVE_PDF_SWATCH_BASE_ROWS, required_rows), LIVE_PDF_SWATCH_MAX_ROWS)
 
 
 def draw_ap_position_markers(ax, ap_groups, aliases, selected_group=""):

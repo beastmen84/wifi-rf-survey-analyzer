@@ -164,9 +164,10 @@ visual extrapolation outside the measured area. When a manual Boundaries mask
 exists, that mask defines the valid map area and Survey Bounds is enabled and
 locked for live maps and PDF export.
 
-PDF export uses the current live map type and options, renders the full
-floor-plan extent, includes scale or legend information, and adds diagnostic
-pages for Interference and Dominant AP reports when applicable.
+PDF export uses the current live map type and options, renders the floor-plan
+area independently from the current viewport zoom/pan, trims excessive blank
+space below the plan when safe, includes scale or legend information, and adds
+diagnostic pages for Interference and Dominant AP reports when applicable.
 
 ## Help Center
 

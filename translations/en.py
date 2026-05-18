@@ -1133,7 +1133,7 @@ TRANSLATIONS = {
             </tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
-                <td class="workflow-card"><b>Full Map Extent</b><br>The PDF uses the full floor-plan extent, not the current live zoom/pan.</td>
+                <td class="workflow-card"><b>Map Extent</b><br>The PDF is independent from current live zoom/pan and keeps the measured floor-plan area. Excess blank space below the plan may be trimmed when no points or AP markers need it.</td>
                 <td class="workflow-gap"></td>
                 <td class="workflow-card"><b>Active Options</b><br>SSID, band, map type, color scale, labels, AP Group filter, Survey Bounds and map-specific options come from the Live Map state. If a manual Boundaries mask exists, it is applied to supported continuous exports.</td>
             </tr>

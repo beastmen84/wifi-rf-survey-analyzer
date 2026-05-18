@@ -1451,6 +1451,50 @@ class LivePdfExportTests(unittest.TestCase):
                 self.assertEqual(doc[0].get_images(full=True), [])
                 self.assertGreater(doc[0].get_pixmap(alpha=False).width, 0)
 
+    def test_live_pdf_map_figure_crops_large_blank_floorplan_bottom(self):
+        image = Image.new("RGB", (200, 500), "white")
+        for y in range(20, 120):
+            for x in range(20, 180):
+                image.putpixel((x, y), (220, 220, 220))
+
+        map_bottom = live_pdf_module.calculate_live_pdf_map_bottom(image)
+        fig, ax, _side_ax = live_pdf_module.create_live_pdf_map_figure(
+            image,
+            "Coverage",
+            map_bottom=map_bottom,
+        )
+        try:
+            self.assertEqual(map_bottom, 300)
+            self.assertEqual(round(ax.get_ylim()[0]), 300)
+        finally:
+            plt.close(fig)
+
+    def test_live_pdf_map_figure_keeps_small_blank_floorplan_bottom(self):
+        image = Image.new("RGB", (200, 500), "white")
+        for y in range(20, 340):
+            for x in range(20, 180):
+                image.putpixel((x, y), (220, 220, 220))
+
+        self.assertEqual(live_pdf_module.calculate_live_pdf_map_bottom(image), 500)
+
+    def test_live_pdf_map_crop_preserves_points_in_blank_floorplan_area(self):
+        image = Image.new("RGB", (200, 500), "white")
+        for y in range(20, 120):
+            for x in range(20, 180):
+                image.putpixel((x, y), (220, 220, 220))
+
+        self.assertEqual(
+            live_pdf_module.calculate_live_pdf_map_bottom(image, y_values=[380]),
+            460,
+        )
+
+    def test_discrete_pdf_info_band_expands_for_large_legend(self):
+        small_height = live_pdf_module.calculate_live_pdf_info_height(400, legend_item_count=4)
+        large_height = live_pdf_module.calculate_live_pdf_info_height(400, legend_item_count=24)
+
+        self.assertGreater(large_height, small_height)
+        self.assertEqual(live_pdf_module.calculate_live_pdf_swatch_rows_per_column(24), 6)
+
     def test_problem_report_pages_use_wrapped_card_layout(self):
         rows = [
             [

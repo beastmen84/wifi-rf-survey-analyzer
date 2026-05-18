@@ -566,8 +566,9 @@ Implemented:
 - live export starts from the Live Map toolbar through `Export PDF`;
 - export asks the user where to save the PDF;
 - export uses the current live-map type and options;
-- map rendering uses the full floor-plan extent, independent of viewport
-  zoom/pan;
+- map rendering is independent of viewport zoom/pan and can trim excessive
+  blank floor-plan space below the visible content while preserving a bottom
+  margin and any survey/AP markers in that area;
 - page 1 is arranged as map first, then summary/scale/legend below the map;
 - continuous Coverage and Interference exports honor color scale, smoothing and
   max-distance settings;
@@ -601,6 +602,8 @@ Implemented:
   equal/ambiguous channel numbers across 2.4/5/6 GHz;
 - AP Channels PDF uses the same automatic/manual channel-change handling as the
   live AP Channels map;
+- AP Channels and Dominant AP PDF map-page info bands expand for larger
+  discrete legends before falling back to `+N` overflow notation;
 - Dominant AP problem reports include AP position status/warnings, distance to
   the dominant AP and nearest physical AP context only for AP-position warning
   rows;
