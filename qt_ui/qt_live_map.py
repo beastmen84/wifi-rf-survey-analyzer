@@ -60,6 +60,7 @@ from qt_ui.qt_floorplan import (
     format_ap_tooltip,
     load_ap_position_icon,
 )
+from qt_ui.pdf_floorplan import render_pdf_page_to_pil_image
 from qt_ui.qt_tooltips import build_html_tooltip, tooltip_section
 
 
@@ -540,16 +541,7 @@ class LiveMapView(QGraphicsView):
 
 def load_floorplan_image(file_path):
     if str(file_path).lower().endswith(".pdf"):
-        import fitz
-
-        document = fitz.open(file_path)
-        try:
-            page = document[0]
-            pixmap = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
-            image = Image.frombytes("RGB", (pixmap.width, pixmap.height), pixmap.samples)
-        finally:
-            document.close()
-        return image
+        return render_pdf_page_to_pil_image(file_path)
 
     return Image.open(file_path).convert("RGB")
 

@@ -1326,7 +1326,7 @@ TRANSLATIONS = {
         <h2>Uso Responsabile</h2>
         <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Solo Reti Autorizzate</span><br>Questo software è pensato per attività legittime di analisi, rilievo e troubleshooting Wi-Fi su reti di proprietà o per le quali si dispone di autorizzazione. L'autore non si assume responsabilità per usi impropri del software.</td></tr></table>
         <h2>Componenti Di Terze Parti</h2>
-        <p>Questa applicazione usa librerie di terze parti come PySide6/Qt, matplotlib, numpy, scipy, pandas, Pillow, PyMuPDF e lswifi. Il riepilogo delle licenze è disponibile in <code>THIRD_PARTY_LICENSES</code>, distribuito con sorgenti e pacchetti applicativi.</p>
+        <p>Questa applicazione usa librerie di terze parti come PySide6/Qt, matplotlib, numpy, scipy, pandas, Pillow e lswifi. Il riepilogo delle licenze è disponibile in <code>THIRD_PARTY_LICENSES</code>, distribuito con sorgenti e pacchetti applicativi.</p>
         <h2>Accesso Al Sorgente</h2>
         <p>Le release eseguibili pubbliche dovrebbero indicare il tag sorgente o lo stato repository corrispondente alla build distribuita.</p>
         <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Nessuna Garanzia</span><br>Il software è fornito così com'è, senza garanzie di alcun tipo.</td></tr></table>

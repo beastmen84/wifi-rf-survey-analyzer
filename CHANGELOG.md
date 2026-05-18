@@ -25,6 +25,9 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 - Packaged Windows builds are configured to include the release legal and
   project documentation files beside the application bundle.
+- PDF floor-plan rasterization now uses PySide6 QtPdf instead of PyMuPDF,
+  removing the AGPL/commercial PyMuPDF dependency from runtime, test and
+  packaged release requirements.
 - Public-facing project naming now consistently uses
   "Wi-Fi RF Survey Analyzer"; future Windows build outputs use the
   `WiFiRFSurveyAnalyzer` artifact name while historical beta ZIP names remain

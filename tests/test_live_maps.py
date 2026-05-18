@@ -1,7 +1,12 @@
 from tests._common import *
+import gc
 import exporting.live_pdf as live_pdf_module
+from PySide6.QtCore import QSize
+from PySide6.QtPdf import QPdfDocument
 from exporting.reports import build_dominant_problem_report_pages
 from maps.rendering import get_channel_color
+from qt_ui.qt_floorplan import load_floorplan_pixmap
+from qt_ui.qt_live_map import load_floorplan_image
 from qt_ui.qt_tooltips import build_html_tooltip, tooltip_section
 from translations.i18n import SUPPORTED_LANGUAGES
 
@@ -1393,6 +1398,10 @@ class LiveMapViewTests(unittest.TestCase):
 
 
 class LivePdfExportTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.qt_app = QApplication.instance() or QApplication([])
+
     def build_live_pdf_rows(self):
         rows = []
         for point_id, x, y, signal in (
@@ -1446,11 +1455,30 @@ class LivePdfExportTests(unittest.TestCase):
             self.assertTrue(os.path.exists(result.output_file))
             with open(result.output_file, "rb") as pdf_file:
                 self.assertEqual(pdf_file.read(4), b"%PDF")
-            import fitz
+            document = QPdfDocument(None)
+            try:
+                self.assertEqual(document.load(result.output_file), QPdfDocument.Error.None_)
+                self.assertGreater(document.pageCount(), 0)
+                page_image = document.render(0, QSize(200, 200))
+                self.assertFalse(page_image.isNull())
+            finally:
+                document.close()
+                del document
+                gc.collect()
+                QApplication.processEvents()
 
-            with fitz.open(result.output_file) as doc:
-                self.assertEqual(doc[0].get_images(full=True), [])
-                self.assertGreater(doc[0].get_pixmap(alpha=False).width, 0)
+    def test_pdf_floorplan_loaders_use_qtpdf_renderer(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            pdf_file = os.path.join(temp_dir, "floorplan.pdf")
+            Image.new("RGB", (120, 80), "white").save(pdf_file, "PDF")
+
+            pixmap = load_floorplan_pixmap(pdf_file)
+            image = load_floorplan_image(pdf_file)
+
+            self.assertFalse(pixmap.isNull())
+            self.assertGreaterEqual(pixmap.width(), 200)
+            self.assertGreaterEqual(image.width, 200)
+            self.assertEqual(image.mode, "RGB")
 
     def test_live_pdf_map_figure_crops_large_blank_floorplan_bottom(self):
         image = Image.new("RGB", (200, 500), "white")

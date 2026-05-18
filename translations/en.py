@@ -1326,7 +1326,7 @@ TRANSLATIONS = {
         <h2>Responsible Use</h2>
         <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Authorized Networks Only</span><br>This software is intended for legitimate Wi-Fi analysis, surveying and troubleshooting activities on networks you own or are authorized to assess. The author assumes no responsibility for misuse of the software.</td></tr></table>
         <h2>Third-Party Components</h2>
-        <p>This application uses third-party libraries such as PySide6/Qt, matplotlib, numpy, scipy, pandas, Pillow, PyMuPDF and lswifi. Their license summary is provided in <code>THIRD_PARTY_LICENSES</code>, shipped with source and packaged releases.</p>
+        <p>This application uses third-party libraries such as PySide6/Qt, matplotlib, numpy, scipy, pandas, Pillow and lswifi. Their license summary is provided in <code>THIRD_PARTY_LICENSES</code>, shipped with source and packaged releases.</p>
         <h2>Source Access</h2>
         <p>Public executable releases should point recipients to the corresponding source tag or repository state for the released build.</p>
         <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">No Warranty</span><br>The software is provided as-is, without warranty of any kind.</td></tr></table>

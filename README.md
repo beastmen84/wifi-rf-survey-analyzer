@@ -390,8 +390,8 @@ The author assumes no responsibility for misuse of the software.
 
 ## Third-Party Credits
 
-This project uses PySide6/Qt, matplotlib, numpy, scipy, pandas, Pillow,
-PyMuPDF, lswifi and related packaging/test dependencies. See
+This project uses PySide6/Qt, matplotlib, numpy, scipy, pandas, Pillow, lswifi
+and related packaging/test dependencies. See
 `THIRD_PARTY_LICENSES` for the current dependency license summary.
 
 ## Author

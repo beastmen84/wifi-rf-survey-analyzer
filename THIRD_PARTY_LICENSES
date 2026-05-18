@@ -20,7 +20,7 @@ commercial Qt license.
 Project: https://pyside.org/
 Notes: Packaged Windows builds use the PyInstaller onedir layout and distribute
 Qt/PySide runtime libraries as separate files. This project does not modify
-Qt/PySide source code.
+Qt/PySide source code. QtPdf is used to rasterize PDF floor plans.
 
 matplotlib
 Version observed: 3.10.9
@@ -47,13 +47,6 @@ Pillow
 Version observed: 12.2.0
 License observed: MIT-CMU.
 Project: https://python-pillow.github.io/
-
-PyMuPDF
-Version observed: 1.27.2.3
-License observed: GNU AGPL-3.0 or Artifex Commercial License.
-Project: https://pymupdf.readthedocs.io/
-Notes: Used for PDF floor-plan rendering. Public source and binary releases
-must satisfy the applicable PyMuPDF/MuPDF license terms.
 
 lswifi
 Version observed: 0.1.66
@@ -105,16 +98,6 @@ setuptools
 Version observed: 82.0.1
 License observed: MIT.
 Project: https://setuptools.pypa.io/
-
-numpy-typing-compat
-Version observed: 20251206.2.4
-License observed: BSD-3-Clause.
-
-scipy-stubs
-Version observed: 1.17.1.4
-License observed: BSD-3-Clause.
-Project: https://scipy.org/
-
 
 Operating-System Tools
 ----------------------

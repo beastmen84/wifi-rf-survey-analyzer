@@ -1,7 +1,6 @@
 # Direct runtime dependencies.
 # Use requirements-dev.txt for test/build tooling and requirements-lock.txt for
 # the fully pinned release-validation environment.
-PyMuPDF==1.27.2.3
 Pillow==12.2.0
 pandas==3.0.3
 numpy==2.4.5

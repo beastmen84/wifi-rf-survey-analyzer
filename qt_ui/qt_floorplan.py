@@ -22,6 +22,7 @@ from app_core.units import (
     normalize_measurement_system,
 )
 from ap.groups import normalize_ap_role
+from qt_ui.pdf_floorplan import render_pdf_page_to_qimage
 from qt_ui.qt_tooltips import build_html_tooltip, tooltip_section
 
 
@@ -1273,22 +1274,7 @@ class FloorplanView(QGraphicsView):
 
 def load_floorplan_pixmap(file_path):
     if file_path.lower().endswith(".pdf"):
-        import fitz
-
-        document = fitz.open(file_path)
-        try:
-            page = document[0]
-            pixmap = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
-            image = QImage(
-                pixmap.samples,
-                pixmap.width,
-                pixmap.height,
-                pixmap.stride,
-                QImage.Format.Format_RGB888,
-            ).copy()
-        finally:
-            document.close()
-        return QPixmap.fromImage(image)
+        return QPixmap.fromImage(render_pdf_page_to_qimage(file_path))
 
     return QPixmap(file_path)
 

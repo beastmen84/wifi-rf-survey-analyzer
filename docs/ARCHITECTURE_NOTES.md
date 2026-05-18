@@ -125,6 +125,10 @@ Current status:
   `requirements-lock.txt`, updates future Windows build artifact naming to
   `WiFiRFSurveyAnalyzer`, and moves the README opening toward a public GitHub
   release page with screenshot, download and authorized-use notes;
+- post-`v0.9.8-beta.2` PDF floor-plan rasterization moved from PyMuPDF to
+  PySide6 QtPdf. Survey floor-plan display, Live Map floor-plan loading and
+  PDF export background preparation now share the same QtPdf-backed helper,
+  removing PyMuPDF from runtime and release requirements;
 - post-`v0.9.5-beta.1` EN/IT wording polish normalized the most visible UI and
   Help terminology before the 1.0 validation survey: Italian now avoids weaker
   hybrid phrases such as `Finding`, `Extra Details`, `Dominant AP` and
