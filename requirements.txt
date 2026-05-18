@@ -1,11 +1,11 @@
-# Direct dependencies for development from source.
-# For reproducible release validation, use requirements-lock.txt.
-pymupdf
-pillow
-pandas
-numpy
-matplotlib
-scipy
-lswifi
-PySide6
-pytest
+# Direct runtime dependencies.
+# Use requirements-dev.txt for test/build tooling and requirements-lock.txt for
+# the fully pinned release-validation environment.
+PyMuPDF==1.27.2.3
+Pillow==12.2.0
+pandas==3.0.3
+numpy==2.4.5
+matplotlib==3.10.9
+scipy==1.17.1
+lswifi==0.1.66
+PySide6==6.11.1

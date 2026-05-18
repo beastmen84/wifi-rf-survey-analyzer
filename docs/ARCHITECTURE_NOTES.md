@@ -121,6 +121,7 @@ Current status:
   section availability and localized PDF problem-page rendering;
 - post-`v0.9.8-beta.2` public-release repository polish standardizes the
   user-facing product name as `Wi-Fi RF Survey Analyzer`, adds a pinned
+  runtime requirements file, `requirements-dev.txt` and
   `requirements-lock.txt`, updates future Windows build artifact naming to
   `WiFiRFSurveyAnalyzer`, and moves the README opening toward a public GitHub
   release page with screenshot, download and authorized-use notes;

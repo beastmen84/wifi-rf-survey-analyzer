@@ -11,6 +11,7 @@ release_docs = [
     ('CHANGELOG.md', str(project_root / 'CHANGELOG.md'), 'DATA'),
     ('docs/assets/readme_start.png', str(project_root / 'docs' / 'assets' / 'readme_start.png'), 'DATA'),
     ('requirements.txt', str(project_root / 'requirements.txt'), 'DATA'),
+    ('requirements-dev.txt', str(project_root / 'requirements-dev.txt'), 'DATA'),
     ('requirements-lock.txt', str(project_root / 'requirements-lock.txt'), 'DATA'),
 ]
 

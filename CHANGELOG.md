@@ -15,7 +15,9 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 - Added French and Spanish localization for the UI, Help Center, tooltips and
   report wording, with automated checks for translation parity, placeholders,
   critical technical terms, compact label length and PDF problem-page rendering.
-- Added a pinned `requirements-lock.txt` for reproducible release validation.
+- Added pinned runtime dependencies, a `requirements-dev.txt` test/build
+  environment file, and a `requirements-lock.txt` for reproducible release
+  validation.
 - Added a README screenshot plus public-download, Windows-build and
   authorized-use notes near the top of the project page.
 

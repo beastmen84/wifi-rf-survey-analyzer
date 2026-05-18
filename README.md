@@ -210,6 +210,7 @@ main.py                 application entry point
 LICENSE                 project license text
 THIRD_PARTY_LICENSES    third-party dependency license summary
 requirements.txt        direct development/runtime dependencies
+requirements-dev.txt    runtime dependencies plus test/build tooling
 requirements-lock.txt   pinned environment used for reproducible release checks
 app_core/               settings, logging, restart, version, constants
 ap/                     AP grouping, metadata checks, conflicts, positioning
@@ -243,13 +244,19 @@ Linux / macOS:
 source .venv/bin/activate
 ```
 
-Install dependencies:
+Install runtime dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-For reproducible release validation, install the pinned environment instead:
+For development, tests and Windows packaging, install:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+For reproducible release validation, install the pinned environment:
 
 ```bash
 pip install -r requirements-lock.txt

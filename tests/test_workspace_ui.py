@@ -126,6 +126,7 @@ class SettingsMenuTests(unittest.TestCase):
         self.assertIn("THIRD_PARTY_LICENSES", spec_text)
         self.assertIn("README.md", spec_text)
         self.assertIn("readme_start.png", spec_text)
+        self.assertIn("requirements-dev.txt", spec_text)
         self.assertIn("requirements-lock.txt", spec_text)
 
     def test_file_dialog_initial_location_can_preselect_last_survey_file(self):
