@@ -2,8 +2,7 @@
 
 This file tracks user-facing changes between official release builds.
 
-The project uses semantic public release tags. `V2` is the internal survey and
-architecture generation, while releases use tags such as `v0.9.0-beta.1`,
+The project uses semantic public release tags such as `v0.9.0-beta.1`,
 `v0.9.0-beta.2`, and later `v1.0.0`.
 
 ## Unreleased
@@ -14,6 +13,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 
 - Help Center navigation now visually separates main pages from subsection
   anchors, making the content list easier to scan on dense Help pages.
+- Help and user-facing validation messages no longer expose the old internal
+  migration label; architecture notes were renamed to
+  `docs/ARCHITECTURE_NOTES.md`.
 
 ## v0.9.7-beta.1 - 2026-05-18
 
@@ -65,9 +67,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   artifacts. Workspace Settings groups general app choices first, then
   workspace-specific options and AP Memory, with centered section headings and
   a subtle panel shadow.
-- Help Center, README and V2 notes now document the `v0.9.7-beta.1` workflow,
-  including manual Boundaries masks, survey-specific units and configurable
-  Go to Point zoom behavior.
+- Help Center, README and architecture notes now document the
+  `v0.9.7-beta.1` workflow, including manual Boundaries masks,
+  survey-specific units and configurable Go to Point zoom behavior.
 - Current survey files now require the full aggregate/raw headers,
   `measurement_system`, an explicit `raw_data_file` metadata entry and a valid
   `.scan` sidecar. AP aliases are read from `ap_groups` instead of duplicate
@@ -124,7 +126,7 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 - Scanner code now normalizes current connection details from both `lswifi` and
   `netsh`, and `netsh` scans can mark the currently connected BSSID just like
   `lswifi` scans.
-- Connected-BSSID fields remain optional for older V2 survey files.
+- Connected-BSSID fields remain optional for older schema-2 survey files.
 
 ## v0.9.4-beta.2 - 2026-05-16
 
@@ -171,8 +173,8 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 - Expanded Survey Quality Help in English and Italian, including dashboard
   status, Survey Scope, KPI point lists, Extra Details, AP-model findings and
   review order.
-- Help Center, README and V2 notes now describe KPI-driven point lists as the
-  scalable way to inspect large surveys.
+- Help Center, README and architecture notes now describe KPI-driven point
+  lists as the scalable way to inspect large surveys.
 
 ### Fixed / Changed
 
@@ -203,9 +205,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 
 ### Fixed / Changed
 
-- Help Center, README and V2 notes now document limited scanner details as a
-  rescan reason before relying on Interference, 5 GHz width-overlap or 6 GHz
-  interpretation.
+- Help Center, README and architecture notes now document limited scanner
+  details as a rescan reason before relying on Interference, 5 GHz
+  width-overlap or 6 GHz interpretation.
 
 ## v0.9.2-beta.1 - 2026-05-14
 
@@ -263,9 +265,9 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
 
 ### Added
 
-- Initial public beta for the completed V2 workflow.
+- Initial public beta for the completed Qt workflow.
 - PySide6 desktop UI with startup window and main workspace.
-- V2 survey CSV format with linked `.scan` raw-data sidecar.
+- Current survey CSV format with linked `.scan` raw-data sidecar.
 - Repeated Wi-Fi scan capture with `lswifi` primary support and `netsh`
   fallback.
 - Relevant SSID workflow.
@@ -278,7 +280,7 @@ architecture generation, while releases use tags such as `v0.9.0-beta.1`,
   Dominant AP issue-report pages where applicable.
 - Shared Qt theme styling, scrollbar styling, stronger table selection and
   polished Survey/Live Map navigation tabs.
-- Expanded EN/IT Help Center for the V2 workflow.
+- Expanded EN/IT Help Center for the current workflow.
 - Public product version metadata exposed through Qt and release assets.
 
 ### Fixed / Changed

@@ -492,6 +492,9 @@ class SettingsMenuTests(unittest.TestCase):
                 self.assertTrue(all(section.body_html.strip() for section in sections))
                 self.assertTrue(all(subsection.title.strip() for section in sections for subsection in section.subsections))
                 self.assertIn("control-grid", sections[1].body_html)
+                for section in sections:
+                    help_text = " ".join((section.nav_title, section.title, section.subtitle, section.body_html))
+                    self.assertNotIn("V2", help_text)
                 self.assertGreater(sum(section.body_html.count("<h2>") for section in sections), 15)
         finally:
             window.deleteLater()

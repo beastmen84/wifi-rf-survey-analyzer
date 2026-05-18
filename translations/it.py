@@ -43,7 +43,7 @@ TRANSLATIONS = {
     "discard_changes": "Scarta Modifiche",
     "open_existing_survey": "Apri Rilievo",
     "invalid_survey_title": "Rilievo Non Compatibile",
-    "invalid_survey_format": "Il file selezionato non è un CSV rilievo V2 valido. Crea un nuovo rilievo o apri il CSV principale generato dal programma.",
+    "invalid_survey_format": "Il file selezionato non è un CSV rilievo Wi-Fi valido. Crea un nuovo rilievo o apri il CSV principale generato dal programma.",
     "raw_scan_file_selected": "Hai selezionato il file dei dati grezzi. Apri il CSV principale del rilievo, non il file _raw_data.scan.",
     "invalid_raw_scan_format": "Il file di scansioni grezze associato al rilievo non ha un formato valido. Ricrea il rilievo o rimuovi il sidecar non valido.",
     "exit": "Esci",
@@ -665,7 +665,7 @@ TRANSLATIONS = {
     """,
     "help_controls_nav": "Controlli",
     "help_controls_title": "Comandi Rapidi",
-    "help_controls_subtitle": "Il flusso V2 usa ancora gesti diretti sulla mappa. Questi sono i controlli più frequenti durante rilievo e revisione.",
+    "help_controls_subtitle": "Il flusso di rilievo usa gesti diretti sulla mappa. Questi sono i controlli più frequenti durante rilievo e revisione.",
     "help_controls_body": """
         <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Regola Dei Gesti</span><br>Clic sinistro, trascinamento con sinistro e modificatori della rotella sono controlli separati. Ctrl e Shift sono tasti modificatori: servono in combinazione con la rotella, non come azioni mappa autonome.</td></tr></table>
         <h2>Il Contesto Conta</h2>
@@ -703,7 +703,7 @@ TRANSLATIONS = {
     "help_control_ctrl_text": "Esegue lo zoom sulla pianta o sull'anteprima della mappa live.",
     "help_survey_nav": "Rilievo E Scansioni",
     "help_survey_title": "Punti, Scansioni Grezze E Confidenza",
-    "help_survey_subtitle": "Un punto non è solo un valore di segnale: V2 salva campioni grezzi, li aggrega e misura la confidenza.",
+    "help_survey_subtitle": "Un punto non è solo un valore di segnale: l'app salva campioni grezzi, li aggrega e misura la confidenza.",
     "help_survey_body": """
         <h2>Box Schermata Rilievo</h2>
         <table class="survey-grid">
@@ -729,7 +729,7 @@ TRANSLATIONS = {
         <p>Gli SSID rilevanti indicano al motore qualità quali reti contano. Una rete rilevante mancante è un riscontro di qualità. Una rete vicina non importante, di solito, no.</p>
         <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Regola Pratica</span><br>Imposta presto gli SSID rilevanti. Se li aggiungi solo dopo aver raccolto punti, la dashboard può rivelare punti da rivedere perché le reti previste non erano state viste.</td></tr></table>
         <h2>Sidecar Delle Scansioni Grezze</h2>
-        <p>Il file <code>.scan</code> è un sidecar, non qualcosa che l'utente normalmente apre direttamente. Conserva campioni ripetuti, dettagli backend e campi specifici dello scanner quando disponibili. Per questo V2 può spiegare confidenza, segnale instabile e dati scarsi invece di disegnare solo colori.</p>
+        <p>Il file <code>.scan</code> è un sidecar, non qualcosa che l'utente normalmente apre direttamente. Conserva campioni ripetuti, dettagli backend e campi specifici dello scanner quando disponibili. Per questo l'app può spiegare confidenza, segnale instabile e dati scarsi invece di disegnare solo colori.</p>
         <table>
             <tr><th>Valore Salvato</th><th>Perché Conta</th></tr>
             <tr><td>Mediana dBm</td><td>Riduce l'effetto di uno spike temporaneo.</td></tr>
@@ -1166,7 +1166,7 @@ TRANSLATIONS = {
     """,
     "help_glossary_nav": "Glossario",
     "help_glossary_title": "Glossario",
-    "help_glossary_subtitle": "Termini usati dal flusso V2 e dai report.",
+    "help_glossary_subtitle": "Termini usati dal flusso di rilievo e dai report.",
     "help_glossary_body": """
         <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Come Usare Questa Pagina</span><br>È un riferimento rapido per termini che nel programma hanno un significato specifico. Le pagine operative spiegano le azioni; questa pagina stabilizza il vocabolario.</td></tr></table>
         <h2>Evidenza Wi-Fi</h2>

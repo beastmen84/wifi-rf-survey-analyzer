@@ -158,6 +158,11 @@ class I18nTests(unittest.TestCase):
     def test_static_app_translation_keys_exist(self):
         self.assertFalse(collect_static_translation_keys() - set(TRANSLATIONS[DEFAULT_LANGUAGE]))
 
+    def test_user_facing_validation_text_avoids_internal_generation_labels(self):
+        for language, translations in TRANSLATIONS.items():
+            with self.subTest(language=language):
+                self.assertNotIn("V2", translations["invalid_survey_format"])
+
     def test_titles_and_buttons_start_capitalized_in_all_languages(self):
         for language, translations in TRANSLATIONS.items():
             for key in CAPITALIZED_UI_KEYS:

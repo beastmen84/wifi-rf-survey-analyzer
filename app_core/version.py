@@ -1,6 +1,6 @@
 """Product version metadata.
 
-This is the public application version, not the V2 survey CSV schema version.
+This is the public application version, not the survey CSV schema version.
 """
 
 APP_DISPLAY_NAME = "Wi-Fi RF Survey Analyzer"

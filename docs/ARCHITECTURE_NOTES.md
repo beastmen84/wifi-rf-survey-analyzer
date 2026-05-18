@@ -1,14 +1,14 @@
-# WiFi Heatmap - V2 Architecture Notes
+# WiFi Heatmap - Architecture Notes
 
 Last updated: 2026-05-18
 
-This document is the forward-looking V2 roadmap. Completed items are kept only
-as context; the actionable backlog is in the "Remaining Work" section.
+This document is the forward-looking product roadmap. Completed items are kept
+only as context; the actionable backlog is in the "Remaining Work" section.
 
-## V2 Direction
+## Product Direction
 
-V2 is not just a better heatmap renderer. The target is a Wi-Fi survey and RF
-analysis platform that:
+The current architecture is not just a better heatmap renderer. The target is a
+Wi-Fi survey and RF analysis platform that:
 
 - stores reliable raw measurements;
 - evaluates survey quality before trusting maps;
@@ -22,7 +22,7 @@ interpolated colors.
 
 Current status:
 
-- public release versioning is separate from the internal V2 generation:
+- public release versioning is separate from the survey schema generation:
   `v0.9.7-beta.1` is the current source-tagged beta, while `v1.0.0`
   should wait for the remaining real-survey validation pass;
 - future beta release candidates should use the current minor beta line for
@@ -44,7 +44,7 @@ Current status:
   the old UI palette draft document has been removed from public docs to avoid
   stale duplicated theme data;
 - the Tk to Qt migration is substantially complete;
-- the V2 functional scope is effectively closed for the current release: no
+- the current functional scope is effectively closed for the release: no
   known AP Group, live-map, PDF, quality-dashboard or core survey blocker is
   open;
 - `v0.9.3-beta.1` adds scanner-data validation surfaced in Survey Quality:
@@ -139,7 +139,7 @@ Current status:
   the current content into separate fragile pages. Parent-section selection was
   stabilized after visual review so expanding a page no longer jumps to a child
   subsection;
-- Help content and structure have an expanded V2 Help Center implementation;
+- Help content and structure have an expanded Help Center implementation;
   the Recommended Workflow page has received the first visual-density polish
   pass with step cards, decision-gate rows and Qt-compatible accent-column
   callouts; spacing, vertical card gaps and page margins are tuned for the
@@ -191,17 +191,17 @@ Current status:
   diagnostics, defaults to showing only points with findings when findings
   exist, and includes a prioritized "what to fix next" panel with expandable
   per-problem detail rows.
-- the main workspace navigation and dashboard KPI area have been polished for
+  the main workspace navigation and dashboard KPI area have been polished for
   the current Qt surface; remaining UI changes should be treated as targeted
-  polish rather than V2 architecture work.
+  polish rather than architecture work.
 - `images/app_icon.png` is now the application/window icon source and
   `images/app_icon.ico` is generated from it for the Windows PyInstaller EXE;
   both assets preserve transparent rounded corners. The start screen also
   places the icon next to the product name.
 
-## Implemented V2 Foundation
+## Implemented Foundation
 
-These areas were part of the original V2 plan and are now substantially
+These areas were part of the original modernization plan and are now substantially
 implemented.
 
 ### Raw Scan Storage
@@ -619,7 +619,7 @@ Implemented:
 - Help is available with expanded workflow-aligned content, including current
   Boundaries, blank-plan/grid, settings, Go to Point focus and Live/PDF mask
   behavior. The broader Help Center still deserves a running-app EN/IT smoke
-  review before V2 closeout.
+  review before 1.0 closeout.
 
 ### UI/Workflow Foundation
 
@@ -673,18 +673,18 @@ Implemented:
 
 Closeout assessment:
 
-- no known V2 blocker remains in the survey core, AP Group workflow, live maps,
+- no known blocker remains in the survey core, AP Group workflow, live maps,
   live PDF reports, channel-change handling or Survey Quality Dashboard;
 - the Help System rework has an expanded Help Center implementation and needs
-  final review/polish before V2 closeout;
-- the other items below are monitoring or post-V2 expansion candidates and
-  should not block calling the current V2 workflow complete.
+  final review/polish before 1.0 closeout;
+- the other items below are monitoring or future expansion candidates and
+  should not block calling the current workflow complete.
 
 ### 1. AP Group Manager UX Monitoring
 
 Current status:
 
-- the planned AP Group Manager usability pass is complete for the current V2
+- the planned AP Group Manager usability pass is complete for the current
   scope;
 - AP group table filters by warning state, role, band, manual/auto state and
   search text;
@@ -735,7 +735,7 @@ Conservative next step:
 Currently metadata is partly descriptive and partly used for expected
 band/channel checks.
 
-Post-V2 candidate checks:
+Future candidate checks:
 
 - mounting type influencing AP position warnings;
 - expected radio count;
@@ -787,7 +787,7 @@ Current implemented expansion:
   warning; a Local Area SSID outside scope is ignored; a Local Area SSID inside
   scope but absent is a warning.
 
-Post-V2 possible additions:
+Future possible additions:
 
 - point spacing quality;
 - coverage completeness by area;
@@ -799,7 +799,7 @@ Post-V2 possible additions:
 ### 5. Live Map Validation And Final Polish
 
 The live-map Qt implementation is now the main working surface. Remaining work
-is monitoring and targeted polish rather than migration or release-blocking V2
+is monitoring and targeted polish rather than migration or release-blocking
 work.
 
 Completed validation:
@@ -811,7 +811,7 @@ Completed validation:
   enough for the current real warnings;
 - current real warnings are considered valid until new data proves otherwise.
 
-Post-V2 monitoring checks:
+Future monitoring checks:
 
 - verify legends/scales on additional floor-plan sizes and aspect ratios;
 - verify AP group filters and positioned AP markers on larger surveys;
@@ -821,8 +821,8 @@ Post-V2 monitoring checks:
 
 ### 6. Generated Report Improvements
 
-Live-map PDF export now exists and covers the V2 closeout needs. Reporting can
-become more complete as a post-V2 reporting track.
+Live-map PDF export now exists and covers the current closeout needs. Reporting
+can become more complete as a future reporting track.
 
 Possible additions:
 
@@ -853,7 +853,7 @@ Current coverage includes:
 - quality engine states;
 - old invalid CSV rejection;
 - strict raw `.scan` sidecar handling;
-- survey save/load round-trip for V2 metadata, raw sidecar, relevant SSIDs, AP
+- survey save/load round-trip for current metadata, raw sidecar, relevant SSIDs, AP
   groups, AP positions and AP metadata;
 - Qt point-save workflow from scanned networks into aggregate rows/raw rows;
 - live PDF problem reports and numbered Dominant/Interference attribution.
@@ -866,13 +866,13 @@ Remaining validation:
 
 ### 8. Help System Rework
 
-Expanded V2 Help Center content is implemented.
+Expanded Help Center content is implemented.
 
 Implemented:
 
 - two-column Help Center with vertical navigation and formatted HTML content;
 - workflow-first overview instead of a feature-list-only help page;
-- controls cheat sheet using the existing image assets and current V2 gestures,
+- controls cheat sheet using the existing image assets and current map gestures,
   including separate left-click, left-drag and wheel-modifier combinations;
 - global measurement-system preference with metric default and imperial display
   option; survey CSV metadata stores both `px_per_meter` and
@@ -994,7 +994,7 @@ Remaining closeout:
 
 ## Suggested Next Priorities
 
-V2 closeout:
+1.0 closeout:
 
 1. Run the `v0.9.7-beta.1` operational smoke test in the packaged app,
    covering new survey units, blank-plan/grid behavior, Boundaries drawing,
@@ -1017,7 +1017,7 @@ Monitoring:
 7. Validate 6 GHz behavior with real 6E/7 hardware data when available.
 8. Tune performance only after larger real surveys show measurable lag.
 
-Post-V2 expansion:
+Future expansion:
 
 10. Improve combined/generated reporting beyond individual live-map exports.
 11. Add a dedicated AP Memory management view only if real use needs explicit
