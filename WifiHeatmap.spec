@@ -1,6 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 from pathlib import Path
+from shutil import copy2
 
 
 project_root = Path(SPECPATH)
@@ -53,9 +54,15 @@ coll = COLLECT(
     exe,
     a.binaries,
     a.datas,
-    *release_docs,
+    release_docs,
     strip=False,
     upx=True,
     upx_exclude=[],
     name='WiFiRFSurveyAnalyzer',
 )
+
+dist_root = Path(DISTPATH) / 'WiFiRFSurveyAnalyzer'
+for dest_name, src_name, _typecode in release_docs:
+    target_path = dist_root / dest_name
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    copy2(src_name, target_path)
