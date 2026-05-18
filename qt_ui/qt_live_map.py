@@ -963,14 +963,44 @@ def build_live_tooltip(map_type, row, raw_rows, translations, aliases=None):
             "#d73027",
         )
 
+    rows = [
+        ("SSID", row.get("ssid", "-")),
+        ("x/y", f"{format_value(row.get('x'))}, {format_value(row.get('y'))}"),
+        (translations.get("signal", "Signal"), f"{format_value(row.get('signal_dbm'))} dBm"),
+        (
+            translations.get("coverage_aggregation", "Aggregation"),
+            format_coverage_aggregation(row, translations),
+        ),
+        (translations.get("samples", "Samples"), format_coverage_samples(row)),
+        (
+            translations.get("scan_confidence", "Confidence"),
+            format_scan_confidence_percent(row.get("scan_confidence", "")),
+        ),
+    ]
+    reference_bssid = row.get("coverage_reference_bssid", "")
+    if format_value(reference_bssid) != "-":
+        rows.append((
+            translations.get("reference_ap", "AP"),
+            format_ap_label(
+                reference_bssid,
+                aliases,
+                row.get("coverage_reference_ap_group", ""),
+            ),
+        ))
+    reference_channel = row.get("coverage_reference_channel", "")
+    if format_value(reference_channel) != "-":
+        rows.append((
+            translations.get("reference_channel", "Channel"),
+            format_channel_with_width_and_band(
+                reference_channel,
+                row.get("coverage_reference_channel_width_mhz", ""),
+                row.get("coverage_reference_band", ""),
+            ),
+        ))
+
     return build_html_tooltip(
         translations.get("signal_title", "Signal coverage"),
-        [
-            ("SSID", row.get("ssid", "-")),
-            ("x/y", f"{format_value(row.get('x'))}, {format_value(row.get('y'))}"),
-            ("dBm", format_value(row.get("signal_dbm"))),
-            (translations.get("source_rows", "Source rows"), raw_rows if raw_rows is not None else "-"),
-        ],
+        rows,
         "#111111",
     )
 
@@ -1093,6 +1123,49 @@ def format_channel_with_width(channel, width):
     if width_label == "-":
         return f"CH {channel_label}"
     return f"CH {channel_label} / {width_label} MHz"
+
+
+def format_channel_with_width_and_band(channel, width, band):
+    channel_label = format_channel_with_width(channel, width)
+    band_label = format_band_value(band)
+    if band_label == "-":
+        return channel_label
+    return f"{channel_label} / {band_label}"
+
+
+def format_band_value(band):
+    value = format_value(band)
+    if value in {"2.4", "5", "6"}:
+        return f"{value} GHz"
+    return value
+
+
+def format_coverage_aggregation(row, translations):
+    aggregation = str(row.get("coverage_aggregation", "") or "").strip().lower()
+    if not aggregation:
+        return "-"
+    return translations.get(f"aggregation_{aggregation}", aggregation)
+
+
+def format_coverage_samples(row):
+    samples_seen = format_value(row.get("samples_seen", ""))
+    samples_total = format_value(row.get("samples_total", ""))
+    if samples_seen == "-" or samples_total == "-":
+        return "-"
+    return f"{samples_seen}/{samples_total}"
+
+
+def format_scan_confidence_percent(value):
+    try:
+        confidence = float(value)
+    except (TypeError, ValueError):
+        return "-"
+
+    if pd.isna(confidence):
+        return "-"
+
+    confidence = max(0.0, min(1.0, confidence)) * 100.0
+    return f"{format_value(confidence)}%"
 
 
 def format_ap_role(role, translations):

@@ -19,6 +19,12 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 - Boundaries square brush strokes now use an axis-aligned square sweep instead
   of a thick Qt path, improving office-style straight edges and corners while
   avoiding warped joins during slow direction corrections.
+- Signal Coverage point tooltips now expose point-local evidence: selected
+  aggregation, samples, scan confidence, strongest reference AP and channel
+  context, replacing the previous global source-row count.
+- Shared map tooltip styling was refined for faster scanning, with clearer
+  title spacing, aligned label/value rows and stacked formatting for long
+  diagnostic values.
 
 ## v0.9.7-beta.1 - 2026-05-18
 

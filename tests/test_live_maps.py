@@ -2,6 +2,7 @@ from tests._common import *
 import exporting.live_pdf as live_pdf_module
 from exporting.reports import build_dominant_problem_report_pages
 from maps.rendering import get_channel_color
+from qt_ui.qt_tooltips import build_html_tooltip
 
 class LiveMapDataLogicTests(unittest.TestCase):
     def test_map_config_normalizes_interference_without_changing_other_maps(self):
@@ -286,6 +287,26 @@ class FloorplanViewTests(unittest.TestCase):
         self.assertIn("AP position", tooltip)
         self.assertIn("Office AP", tooltip)
         self.assertIn("70:4f:57:aa:bb:10", tooltip)
+
+    def test_shared_tooltip_layout_stacks_long_values(self):
+        tooltip = build_html_tooltip(
+            "Signal coverage",
+            [
+                ("Signal", "-55 dBm"),
+                (
+                    "Channel Change",
+                    "This is a deliberately long diagnostic value that should be stacked "
+                    "below its label so live map tooltips remain readable.",
+                ),
+            ],
+            "#111111",
+        )
+
+        self.assertIn("border-left:4px solid", tooltip)
+        self.assertIn("<table", tooltip)
+        self.assertIn("valign='top'", tooltip)
+        self.assertIn("colspan='2'", tooltip)
+        self.assertIn("Channel Change", tooltip)
 
     def test_ap_marker_keeps_high_resolution_source_pixmap(self):
         view = FloorplanView()
@@ -668,6 +689,82 @@ class LiveMapViewTests(unittest.TestCase):
         payload["fig"].clf()
 
         self.assertEqual(tooltip_ssids, ["MAIN", "MAIN", "MAIN"])
+
+    def test_live_signal_tooltip_includes_point_context(self):
+        strongest_bssid = "70:4f:57:aa:bb:10"
+        weaker_bssid = "70:4f:57:aa:bb:11"
+        groups = [build_manual_ap_group("office-ap", [strongest_bssid])]
+        rows = [
+            build_row("p1", "MAIN", strongest_bssid, -52, 36, band="5"),
+            build_row("p1", "MAIN", weaker_bssid, -61, 44, band="5"),
+            build_row("p2", "MAIN", strongest_bssid, -58, 36, band="5"),
+            build_row("p3", "MAIN", strongest_bssid, -64, 36, band="5"),
+        ]
+        for row in rows:
+            row["channel_width_mhz"] = "80"
+            row["samples_seen"] = "4"
+            row["samples_total"] = "5"
+            row["scan_confidence"] = "0.8"
+        rows[0]["x"] = rows[1]["x"] = "20"
+        rows[0]["y"] = rows[1]["y"] = "30"
+        rows[2]["x"] = "60"
+        rows[2]["y"] = "30"
+        rows[3]["x"] = "90"
+        rows[3]["y"] = "65"
+
+        payload = build_signal_payload(
+            rows_to_dataframe(rows),
+            MapConfig(
+                ssid="MAIN",
+                band="5",
+                map_type="signal",
+                aggregation="median",
+                interpolation="linear",
+                ap_group_map=serialize_ap_group_map(build_bssid_to_manual_group_map(groups)),
+            ),
+            Image.new("RGB", (120, 90), "white"),
+            {
+                "signal_title": "Signal coverage",
+                "signal": "Signal",
+                "coverage_aggregation": "Aggregation",
+                "aggregation_median": "Median",
+                "samples": "Samples",
+                "scan_confidence": "Confidence",
+                "reference_ap": "AP",
+                "reference_channel": "Channel",
+            },
+            lambda map_type, row, raw_rows: build_live_tooltip(
+                map_type,
+                row,
+                raw_rows,
+                {
+                    "signal_title": "Signal coverage",
+                    "signal": "Signal",
+                    "coverage_aggregation": "Aggregation",
+                    "aggregation_median": "Median",
+                    "samples": "Samples",
+                    "scan_confidence": "Confidence",
+                    "reference_ap": "AP",
+                    "reference_channel": "Channel",
+                },
+                {"office-ap": "Office AP"},
+            ),
+            lambda _grid_z, _config: (-90, -40),
+        )
+        payload["fig"].clf()
+
+        tooltip = payload["point_infos"][0]["tooltip"]
+        self.assertIn("Signal", tooltip)
+        self.assertIn("-56.5 dBm", tooltip)
+        self.assertIn("Aggregation", tooltip)
+        self.assertIn("Median", tooltip)
+        self.assertIn("Samples", tooltip)
+        self.assertIn("4/5", tooltip)
+        self.assertIn("Confidence", tooltip)
+        self.assertIn("80%", tooltip)
+        self.assertIn("Office AP", tooltip)
+        self.assertIn("CH 36 / 80 MHz / 5 GHz", tooltip)
+        self.assertNotIn("Source rows", tooltip)
 
     def test_live_interference_tooltip_hides_empty_interferer_rows(self):
         translations = {

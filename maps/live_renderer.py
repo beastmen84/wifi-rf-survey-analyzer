@@ -28,6 +28,7 @@ from maps.heatmap import (
     interpolate_signal_grid,
     smooth_heatmap_grid,
 )
+from wifi.band import get_row_band
 
 
 _grid_cache = {}
@@ -99,7 +100,10 @@ def build_signal_payload(
     if config.ap_group_filter:
         rows = rows[rows["ap_group"] == config.ap_group_filter]
     raw_rows = len(rows)
+    point_context = build_signal_point_context(rows, config.aggregation)
     rows = collapse_heatmap_points(rows, aggregation=config.aggregation)
+    if not point_context.empty:
+        rows = rows.merge(point_context, on=["timestamp", "x", "y"], how="left")
     rows["ssid"] = config.ssid
 
     if len(rows) < 3:
@@ -174,6 +178,52 @@ def build_signal_payload(
         for _index, row in rows.iterrows()
     ]
     return {"fig": fig, "point_infos": point_infos, "scale_payload": scale_payload}
+
+
+def build_signal_point_context(rows, aggregation):
+    aggregation = aggregation if aggregation in {"max", "mean", "median"} else "max"
+    columns = [
+        "timestamp",
+        "x",
+        "y",
+        "coverage_aggregation",
+        "coverage_reference_bssid",
+        "coverage_reference_ap_group",
+        "coverage_reference_channel",
+        "coverage_reference_channel_width_mhz",
+        "coverage_reference_band",
+        "coverage_reference_radio",
+        "coverage_reference_is_connected",
+    ]
+    if rows.empty:
+        return pd.DataFrame(columns=columns)
+
+    context_rows = rows.copy()
+    context_rows["x"] = pd.to_numeric(context_rows["x"], errors="coerce")
+    context_rows["y"] = pd.to_numeric(context_rows["y"], errors="coerce")
+    context_rows["signal_dbm_numeric"] = pd.to_numeric(context_rows["signal_dbm"], errors="coerce")
+    context_rows = context_rows.dropna(subset=["timestamp", "x", "y", "signal_dbm_numeric"])
+    if context_rows.empty:
+        return pd.DataFrame(columns=columns)
+
+    records = []
+    for (timestamp, x, y), point_rows in context_rows.groupby(["timestamp", "x", "y"]):
+        reference = point_rows.loc[point_rows["signal_dbm_numeric"].idxmax()]
+        records.append({
+            "timestamp": timestamp,
+            "x": x,
+            "y": y,
+            "coverage_aggregation": str(aggregation or "max"),
+            "coverage_reference_bssid": reference.get("bssid", ""),
+            "coverage_reference_ap_group": reference.get("ap_group", ""),
+            "coverage_reference_channel": reference.get("channel", ""),
+            "coverage_reference_channel_width_mhz": reference.get("channel_width_mhz", ""),
+            "coverage_reference_band": get_row_band(reference),
+            "coverage_reference_radio": reference.get("radio", ""),
+            "coverage_reference_is_connected": reference.get("is_connected", ""),
+        })
+
+    return pd.DataFrame(records, columns=columns)
 
 
 def build_interference_payload(
