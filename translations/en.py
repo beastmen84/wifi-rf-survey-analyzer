@@ -809,7 +809,7 @@ TRANSLATIONS = {
         <h2>Blank Plan And Grid</h2>
         <p>New surveys can be used without an external floor plan. Choose metric or imperial units when creating the survey; the generated A4 blank plan is then pre-scaled for practical office tests and opens with Grid enabled. The map label shows the current square size, such as <code>1 square = 1 m</code> or <code>1 square = 3 ft</code>. On real floor plans, Grid becomes available after scale calibration.</p>
         <h2>Boundary Masks</h2>
-        <p>Use <b>View &gt; Boundaries</b> when the measured area needs a manual mask. The vertical toolbar chooses draw or erase plus circle or square brush. Right-drag edits the mask; left-click selection, zoom and pan remain available. The mask is saved beside the CSV as <code>&lt;survey&gt;.boundaries.png</code>. Clearing an empty mask is equivalent to having no manual boundaries.</p>
+        <p>Use <b>View &gt; Boundaries</b> when the measured area needs a manual mask. The vertical toolbar chooses draw or erase, circle or square brush, and brush size from 20 to 120 px in 10 px steps. Right-drag edits the mask; left-click selection, zoom and pan remain available. The mask is saved beside the CSV as <code>&lt;survey&gt;.boundaries.png</code>. Clearing an empty mask is equivalent to having no manual boundaries.</p>
         <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Best Result</span><br>Manual boundaries work best when measurement points also follow the real edge of the area you want to show. That keeps the live-map interpolation and the visible mask aligned.</td></tr></table>
     """,
     "help_quality_nav": "Survey Quality",
@@ -1069,6 +1069,14 @@ TRANSLATIONS = {
                 <td class="workflow-card"><b>AP Channels</b><br><span class="survey-card-use">Visible Options:</span> Band, Point Labels, AP Group Filter.<br>Discrete point map; no interpolation or smoothing.</td>
                 <td class="workflow-gap"></td>
                 <td class="workflow-card"><b>Dominant AP</b><br><span class="survey-card-use">Visible Options:</span> Band, Point Labels.<br>Discrete point map; AP position warnings use the physical AP model.</td>
+            </tr>
+        </table>
+        <h2>Legend And Tooltips</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Point Focus</b><br>On AP Channels and Dominant AP, click a legend point to highlight it. Double-click to zoom to the configured focus level and center the point in the live map.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Tooltip Evidence</b><br>Point tooltips are split into readable sections and show only evidence available for that map, such as signal, samples, confidence, AP attribution, channel context and warning detail.</td>
             </tr>
         </table>
         <h2>Option Meaning</h2>

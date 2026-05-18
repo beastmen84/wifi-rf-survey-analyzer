@@ -11,20 +11,16 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ### Fixed / Changed
 
-- Help Center navigation now visually separates main pages from subsection
-  anchors, making the content list easier to scan on dense Help pages.
-- Help and user-facing validation messages no longer expose the old internal
-  migration label; architecture notes were renamed to
-  `docs/ARCHITECTURE_NOTES.md`.
-- Boundaries square brush strokes now use an axis-aligned square sweep instead
-  of a thick Qt path, improving office-style straight edges and corners while
-  avoiding warped joins during slow direction corrections.
+## v0.9.8-beta.1 - 2026-05-18
+
+### Added
+
+- Boundaries toolbar now includes `+`/`-` brush-size controls with 10 px steps
+  and a 20-120 px range, making large floorplan masks faster to draw while
+  keeping fine control available.
 - Signal Coverage point tooltips now expose point-local evidence: selected
   aggregation, samples, scan confidence, strongest reference AP and channel
   context, replacing the previous global source-row count.
-- Shared map tooltip styling was refined for faster scanning, with clearer
-  title spacing, aligned label/value rows and stacked formatting for long
-  diagnostic values.
 - AP Interference point tooltips now show confidence, serving/interferer
   signal, channel band context, overlap percentage and meaningful contributor
   or ignored-AP counts when available.
@@ -34,15 +30,34 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 - Dominant AP point tooltips now use the same readable evidence format as the
   other live maps, including signal, samples, confidence, second-AP context,
   roaming overlap and AP-position rows.
+- AP Channels and Dominant AP legend point double-click now uses the configured
+  focus zoom and centers the selected live-map point in the viewport.
+
+### Fixed / Changed
+
+- Help Center navigation now visually separates main pages from subsection
+  anchors, making the content list easier to scan on dense Help pages.
+- Help and user-facing validation messages no longer expose the old internal
+  migration label; architecture notes were renamed to
+  `docs/ARCHITECTURE_NOTES.md`.
+- Boundaries square brush strokes now use an axis-aligned square sweep instead
+  of a thick Qt path, improving office-style straight edges and corners while
+  avoiding warped joins during slow direction corrections.
+- Shared map tooltip styling was refined for faster scanning, with clearer
+  title spacing, aligned label/value rows and stacked formatting for long
+  diagnostic values.
 - Survey point and Wi-Fi AP floorplan tooltips are now aligned with live map
   tooltip styling and terminology, including translated labels and clearer
   signal, scope, role and observed AP evidence rows.
+- The live-map footer now reports `Live Map Zoom` while the Live tab is active,
+  keeping it distinct from Survey Zoom.
 - AP Group refresh now auto-heals memory-applied `#2`/`#3` fragments when the
   survey rows show they belong to the same automatic AP group, preventing AP
   Memory from duplicating metadata across split physical APs.
-- Boundaries toolbar now includes `+`/`-` brush-size controls with 10 px steps
-  and a 20-120 px range, making large floorplan masks faster to draw while
-  keeping fine control available.
+- Open Survey now starts from the saved full CSV path when it still exists, so
+  the last survey is preselected instead of only opening the parent directory.
+- Automated UI tests now isolate application settings, preventing test runs
+  from overwriting the real last-survey preference.
 
 ## v0.9.7-beta.1 - 2026-05-18
 

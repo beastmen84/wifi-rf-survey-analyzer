@@ -9,12 +9,12 @@ survey quality, and export explainable RF maps.
 
 ## Release Status
 
-- Current source version: `v0.9.7-beta.1`
+- Current source version: `v0.9.8-beta.1`
 - Release type: beta / pre-release
 - Active UI: PySide6
 - Main entry point: `main.py`
 - Current survey format: CSV plus linked `.scan` raw-data sidecar
-- Latest packaged Windows ZIP: `WifiHeatmap-v0.9.7-beta.1-win64.zip`
+- Latest packaged Windows ZIP: `WifiHeatmap-v0.9.8-beta.1-win64.zip`
 
 The current beta is intended for real-world validation of the Qt workflow. A
 stable `v1.0.0` is planned after Help Center review and broader field testing.
@@ -40,6 +40,9 @@ stable `v1.0.0` is planned after Help Center review and broader field testing.
 - Optional manual Boundaries masks for limiting continuous live maps and PDF
   exports to the useful survey area when the floor-plan shape or measured
   perimeter needs explicit control.
+- Shared, sectioned tooltips for survey points, Wi-Fi AP markers and live-map
+  points, with point-local signal, confidence, channel and AP evidence where
+  available.
 - PDF export from the current live map, including diagnostic report pages where
   the selected map type supports them.
 - English and Italian Help Center covering the operating workflow and detailed
@@ -151,6 +154,10 @@ Available live maps:
 Coverage and Interference use continuous color scales. AP Channels and Dominant
 AP use discrete legends with highlight/focus behavior. Map options are scoped
 to the selected map type so only relevant controls are shown.
+
+For AP Channels and Dominant AP maps, legend point lists can highlight and
+focus a specific measurement point. Focus uses the configured Go to Point zoom
+and centers the selected point in the live-map viewport.
 
 Continuous Coverage and Interference maps can use Survey Bounds to reduce
 visual extrapolation outside the measured area. When a manual Boundaries mask
@@ -283,18 +290,18 @@ between official release builds.
 
 Current source beta:
 
-- `v0.9.7-beta.1`
+- `v0.9.8-beta.1`
 
 Latest packaged Windows ZIP:
 
-- `WifiHeatmap-v0.9.7-beta.1-win64.zip`
+- `WifiHeatmap-v0.9.8-beta.1-win64.zip`
 
 ## Roadmap
 
 Before `v1.0.0`:
 
-- finish Help Center review in the running UI;
 - run broader real-world validation on operational survey data;
+- review tooltip/report metadata wording as more real survey evidence arrives;
 - fix concrete issues found during that review/test cycle.
 
 Possible future product areas:

@@ -23,7 +23,7 @@ interpolated colors.
 Current status:
 
 - public release versioning is separate from the survey schema generation:
-  `v0.9.7-beta.1` is the current source-tagged beta, while `v1.0.0`
+  `v0.9.8-beta.1` is the current source-tagged beta, while `v1.0.0`
   should wait for the remaining real-survey validation pass;
 - future beta release candidates should use the current minor beta line for
   validation/polish or a new minor beta for feature-level additions; do not
@@ -95,6 +95,16 @@ Current status:
   a configurable workspace setting; startup/workspace settings and Help text
   were aligned to the current workflow. Latest zipped Windows release artifact:
   `dist\WifiHeatmap-v0.9.7-beta.1-win64.zip`;
+- `v0.9.8-beta.1` closes the tooltip, Help, Boundaries-brush and last-survey
+  polish line: Help navigation distinguishes main pages from subsection
+  anchors, user-facing text no longer mentions the old migration label, live
+  and survey tooltips share sectioned evidence layout, AP Channels/Dominant AP
+  legend focus centers live points with the configured focus zoom, Boundaries
+  square drawing and brush sizing were refined for office-shaped masks, AP
+  Memory-applied auto-group fragments are healed during refresh, and Open
+  Survey now preserves the full last CSV path. Latest zipped Windows release
+  artifact:
+  `dist\WifiHeatmap-v0.9.8-beta.1-win64.zip`;
 - post-`v0.9.5-beta.1` EN/IT wording polish normalized the most visible UI and
   Help terminology before the 1.0 validation survey: Italian now avoids weaker
   hybrid phrases such as `Finding`, `Extra Details`, `Dominant AP` and
@@ -536,7 +546,16 @@ Implemented:
   sequences as measured unless a manual analysis-channel override is configured;
 - discrete-map legends support click-to-highlight, double-click-to-focus and
   empty-map-click deselection;
-- tooltips use the newer compact Qt layout;
+- double-click focus from AP Channels and Dominant AP legends uses the shared
+  Go to Point zoom target and centers the selected point in the live viewport;
+- the footer reports Live Map Zoom while the Live tab is active;
+- tooltips use the newer compact Qt layout with translated section headers and
+  visual separators for longer evidence sets;
+- Coverage, Interference, AP Channels and Dominant AP tooltips expose
+  point-local evidence such as signal aggregation, scan samples, confidence,
+  channel/band context, AP attribution and warning context where available;
+- Survey point and Wi-Fi AP floorplan tooltips share the same visual style as
+  live-map point tooltips;
 - Coverage tooltips preserve the selected SSID;
 - Interference tooltips omit empty main-interferer rows.
 
@@ -986,7 +1005,7 @@ Implemented:
 
 Remaining closeout:
 
-- review wording and visual density in the real UI after the `v0.9.7-beta.1`
+- review wording and visual density in the real UI after the `v0.9.8-beta.1`
   documentation pass;
 - refine section ordering and formatting only if visual inspection shows a real
   readability problem;
@@ -996,17 +1015,16 @@ Remaining closeout:
 
 1.0 closeout:
 
-1. Run the `v0.9.7-beta.1` operational smoke test in the packaged app,
-   covering new survey units, blank-plan/grid behavior, Boundaries drawing,
-   manual-mask Live/PDF application, Go to Point focus zoom and settings
-   panels.
+1. Run the `v0.9.8-beta.1` operational smoke test in the packaged app,
+   covering new survey units, blank-plan/grid behavior, Boundaries drawing and
+   brush size, manual-mask Live/PDF application, Go to Point focus zoom,
+   discrete-map legend focus, tooltip readability and settings panels.
 2. Run the next real office survey and review Local Area scope, Client Roaming,
-   continuous map bounds, manual Boundaries usefulness and PDF output against
-   real data. Tune only if evidence shows false positives, false negatives or
-   confusing output.
-3. Keep the Help Center under visual review in the running UI, but treat
-   tooltip/report metadata enrichment as the next `v0.9.8` polish track unless
-   a blocker appears.
+   continuous map bounds, manual Boundaries usefulness, tooltip evidence and
+   PDF output against real data. Tune only if evidence shows false positives,
+   false negatives or confusing output.
+3. Keep the Help Center, tooltips and report wording under visual review in the
+   running UI, but treat this as 1.0 validation polish unless a blocker appears.
 
 Monitoring:
 

@@ -809,7 +809,7 @@ TRANSLATIONS = {
         <h2>Pianta Bianca E Griglia</h2>
         <p>I nuovi rilievi possono essere usati senza una pianta esterna. Scegli metrico o imperiale quando crei il rilievo; la pianta A4 bianca generata viene pre-scalata per test pratici d'ufficio e si apre con la Griglia attiva. La label sulla mappa mostra la dimensione del quadrato, per esempio <code>1 quadrato = 1 m</code> o <code>1 quadrato = 3 ft</code>. Sulle piante reali, la Griglia diventa disponibile dopo la calibrazione della scala.</p>
         <h2>Maschere Confini</h2>
-        <p>Usa <b>Vista &gt; Confini</b> quando l'area misurata richiede una maschera manuale. La toolbar verticale sceglie disegno o gomma e pennello circolare o quadrato. Trascina col tasto destro per modificare la maschera; selezione col sinistro, zoom e pan restano disponibili. La maschera viene salvata accanto al CSV come <code>&lt;survey&gt;.boundaries.png</code>. Una maschera pulita o vuota equivale a non avere confini manuali.</p>
+        <p>Usa <b>Vista &gt; Confini</b> quando l'area misurata richiede una maschera manuale. La toolbar verticale sceglie disegno o gomma, pennello circolare o quadrato, e dimensione da 20 a 120 px con passo 10 px. Trascina col tasto destro per modificare la maschera; selezione col sinistro, zoom e pan restano disponibili. La maschera viene salvata accanto al CSV come <code>&lt;survey&gt;.boundaries.png</code>. Una maschera pulita o vuota equivale a non avere confini manuali.</p>
         <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Miglior Risultato</span><br>I confini manuali funzionano meglio quando anche i punti di misura seguono il bordo reale dell'area da mostrare. Così interpolazione della mappa live e maschera visibile restano coerenti.</td></tr></table>
     """,
     "help_quality_nav": "Qualità Rilievo",
@@ -1069,6 +1069,14 @@ TRANSLATIONS = {
                 <td class="workflow-card"><b>Canali AP</b><br><span class="survey-card-use">Opzioni Visibili:</span> Banda, Etichette Punti, Filtro Gruppo AP.<br>Mappa discreta a punti; niente interpolazione o smoothing.</td>
                 <td class="workflow-gap"></td>
                 <td class="workflow-card"><b>AP Dominante</b><br><span class="survey-card-use">Opzioni Visibili:</span> Banda, Etichette Punti.<br>Mappa discreta a punti; gli avvisi posizione AP usano il modello fisico AP.</td>
+            </tr>
+        </table>
+        <h2>Legenda E Tooltip</h2>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="workflow-card"><b>Focus Punto</b><br>In Canali AP e AP Dominante, clicca un punto in legenda per evidenziarlo. Fai doppio clic per andare allo zoom focus configurato e centrare il punto nella mappa live.</td>
+                <td class="workflow-gap"></td>
+                <td class="workflow-card"><b>Evidenza Nei Tooltip</b><br>I tooltip dei punti sono divisi in sezioni leggibili e mostrano solo l'evidenza disponibile per quella mappa, per esempio segnale, campioni, confidenza, attribuzione AP, contesto canale e dettaglio avviso.</td>
             </tr>
         </table>
         <h2>Significato Opzioni</h2>
