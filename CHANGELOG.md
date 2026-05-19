@@ -5,6 +5,22 @@ This file tracks user-facing changes between official release builds.
 The project uses semantic public release tags such as `v0.9.0-beta.1`,
 `v0.9.0-beta.2`, and `v1.0.0`.
 
+## Work In Progress - v1.1.0
+
+### Added
+
+- Added the initial AI Advisor design document for the next feature release,
+  defining local-only analysis scope, structured findings, confidence/severity
+  rules, map-specific advisor modes and implementation phases.
+
+### Fixed / Changed
+
+## Unreleased Bugfixes - v1.0.x
+
+### Added
+
+### Fixed / Changed
+
 ## v1.0.0 - 2026-05-18
 
 Stable public source release for the current Qt workflow. Windows executable

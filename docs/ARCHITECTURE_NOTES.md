@@ -28,6 +28,14 @@ Current status:
 - future release candidates should use beta tags for validation/polish or a new
   minor line for feature-level additions; do not regenerate exe/ZIP for every
   commit, only when cutting an intentional release candidate;
+- release tags should mark only source states that are actually published. Do
+  not tag every `v1.1.0` work-in-progress commit. If a `v1.0.x` bugfix release
+  is needed after `v1.1.0` work has started, create a `release/1.0.x` branch
+  from the last stable tag, cherry-pick only the bugfix commits, update
+  version/changelog, build the package, then tag the patch release;
+- `CHANGELOG.md` keeps feature-release work and patch-release candidates
+  separate: `Work In Progress - v1.1.0` for the next feature release and
+  `Unreleased Bugfixes - v1.0.x` for fixes that may ship before `v1.1.0`;
 - `README.md` is public-facing repo documentation and should not expose internal
   release cadence details; keep internal planning here and in the local ignored
   `.private/AI_CHAT_HISTORY.md` handoff, with public release notes in
@@ -1073,11 +1081,13 @@ Future expansion:
    apply/confirm flow.
 12. Use AP metadata more deeply in diagnostics where the rule is clear.
 13. Refine the AP physical/radio/BSSID model only if real deployments require it.
-14. Add an AI Advisor next to each live map. It should analyze the measured
-    survey evidence and propose actionable RF changes, such as channel-width or
-    channel adjustments to reduce interference. Recommendations must remain
-    grounded in visible survey data, explain assumptions/confidence, and stay
-    advisory rather than silently mutating AP metadata or map settings.
+14. Build the `v1.1.0` AI Advisor feature line using
+    `docs/AI_ADVISOR_DESIGN.md` as the source design. It should analyze the
+    measured survey evidence and propose actionable RF changes, such as
+    channel-width or channel adjustments to reduce interference.
+    Recommendations must remain grounded in visible survey data, explain
+    assumptions/confidence, and stay advisory rather than silently mutating AP
+    metadata or map settings.
 15. Add a lightweight Floorplan Creator for technical RF floor maps. Scope
     should be scaled geometry, snap, wall thickness, simple shapes, doors and
     measurements; it should not become an interior-design tool.
