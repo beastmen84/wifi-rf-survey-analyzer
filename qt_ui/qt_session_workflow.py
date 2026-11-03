@@ -315,6 +315,9 @@ class SurveySessionWorkflowMixin:
         return False
 
     def closeEvent(self, event):
+        if hasattr(self, "analysis_view") and self.analysis_view.busy:
+            event.ignore()
+            return
         if self.restart_requested:
             event.accept()
             return
@@ -442,6 +445,12 @@ class SurveySessionWorkflowMixin:
         self.update_save_action_state()
         self.refresh_live_controls()
         self.update_point_action_state()
+        if hasattr(self, "analysis_view"):
+            self.analysis_view.sync_state()
+        if self.tabs.currentIndex() == 2:
+            for button in (self.zoom_in_button, self.zoom_out_button, self.fit_view_button,
+                           self.calibrate_button, self.delete_scale_button):
+                button.setEnabled(False)
 
     def format_ap_memory_status(self):
         summary = get_ap_memory_summary()

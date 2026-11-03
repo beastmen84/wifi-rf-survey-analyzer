@@ -1,269 +1,124 @@
-# AI Advisor Design
-
-Status: planning draft for `v1.1.0`
-
-Last updated: 2026-05-19
-
-## Goal
-
-AI Advisor is a local RF analysis layer for the current survey. It should read
-the measured Wi-Fi evidence, explain the most relevant findings, and propose
-practical actions without changing AP metadata, map settings or survey data.
-
-The first implementation should behave like a deterministic RF advisor engine,
-not a general chatbot. Recommendations must be traceable to survey evidence and
-must expose assumptions, confidence and data-quality limitations.
-
-## Core Principles
-
-- All analysis is local. Survey data, BSSIDs, SSIDs, floor plans and scan
-  evidence are not sent outside the application.
-- The advisor analyzes the full survey dataset, not only the current Live Map
-  filter. The selected Live Map controls the advisor mode and priority, not the
-  data boundary.
-- Every recommendation must cite measured evidence or clearly state why the
-  evidence is incomplete.
-- The advisor is advisory only. It must not silently modify AP groups, AP
-  metadata, expected channels, channel overrides, floor-plan settings or map
-  options.
-- The advisor must prefer conservative RF guidance over aggressive
-  auto-tuning-style advice.
-- Low-confidence analysis is still useful when it tells the user what evidence
-  is missing or which extra measurements would improve the conclusion.
-
-## Non-Goals
-
-- No remote LLM/API integration in the baseline `v1.1.0` scope.
-- No automatic AP controller changes.
-- No hidden mutation of survey data or AP metadata.
-- No replacement for the Survey Quality Dashboard. The advisor should consume
-  quality evidence and make it easier to act on, not duplicate the whole view.
-- No multi-floor data-model changes in the initial AI Advisor scope.
-
-## Scope Definitions
-
-### Analysis Scope
-
-Always the complete current survey:
-
-- all measurement points;
-- all relevant scan evidence available through the CSV and `.scan` sidecar;
-- selected relevant SSIDs;
-- AP groups, aliases, roles and metadata;
-- AP positions;
-- expected channels and analysis-channel overrides;
-- scanner limitations and Survey Quality findings;
-- measurement system, scale, floor-plan and boundaries metadata.
-
-### Advisor Mode
-
-Selected from the active Live Map:
-
-- Signal Coverage;
-- AP Interference;
-- AP Channels;
-- Dominant AP.
-
-Advisor mode changes prioritization and wording. It does not hide relevant
-evidence from other bands, SSIDs or interference categories.
-
-### Current View Context
-
-The current Live Map state can be used as context:
-
-- selected SSID;
-- selected band;
-- selected aggregation;
-- visible map type;
-- current map options.
-
-The UI should clearly distinguish findings related to the current view from
-other relevant survey-wide findings.
-
-## Output Model
-
-The advisor engine should return structured data, not preformatted free text.
-The UI, translations and future PDF export can then render the same report.
-
-Suggested objects:
-
-- `AdvisorReport`
-- `AdvisorSection`
-- `Finding`
-- `Recommendation`
-- `EvidenceRef`
-- `Assumption`
-- `DataQualityLimit`
-
-Each finding should include:
-
-- stable identifier;
-- category;
-- severity;
-- confidence;
-- title key;
-- summary key;
-- affected SSIDs, AP groups, bands, channels and measurement points where
-  available;
-- evidence references;
-- recommendations;
-- assumptions;
-- data-quality limitations.
-
-Suggested severity levels:
-
-- `info`: useful observation or context;
-- `notice`: worth reviewing, no clear operational issue;
-- `warning`: likely RF or data-quality issue;
-- `critical`: strong evidence of a major issue affecting interpretation or
-  coverage.
-
-Suggested confidence levels:
-
-- `low`: evidence is sparse, scanner details are incomplete or AP modeling is
-  uncertain;
-- `medium`: evidence is usable but not complete enough for strong advice;
-- `high`: multiple consistent data points support the conclusion.
-
-## Evidence Rules
-
-The advisor should only make operational recommendations when at least one of
-these is true:
-
-- multiple measurement points support the same conclusion;
-- the finding matches explicit AP metadata or expected-channel configuration;
-- the finding is already backed by Survey Quality diagnostics;
-- a single point is severe enough to be useful, and the report labels it as
-  localized evidence.
-
-When evidence is weak, the advisor should prefer actions such as:
-
-- collect more measurement points in the affected area;
-- repeat scans at low-confidence points;
-- confirm AP group metadata;
-- place missing AP positions;
-- verify channel/frequency details with a richer scanner source.
-
-## Map-Specific Analysis
-
-### AP Interference
-
-Primary `v1.1.0` implementation candidate.
-
-Useful findings:
-
-- 2.4 GHz APs on channels outside the usual non-overlapping plan;
-- co-channel and adjacent-channel overlap involving relevant SSIDs;
-- internal APs contributing to interference with each other;
-- external or interferer AP groups with strong observed signal;
-- channel-width choices that increase overlap risk;
-- points where scanner limitations weaken channel-sensitive conclusions;
-- AP roles that change interpretation, such as `external`, `interferer` or
-  `test/hidden`.
-
-Example recommendations:
-
-- review 2.4 GHz channel assignment;
-- reduce channel width where overlap evidence is strong;
-- verify expected channels or analysis-channel overrides;
-- classify unmanaged APs correctly;
-- collect more evidence where scan confidence is low.
-
-### AP Channels
-
-Useful findings:
-
-- observed channels differ from expected channels;
-- AP groups change channel during the survey;
-- multiple internal APs cluster on the same crowded channel;
-- 2.4 GHz channel plan uses overlapping channels;
-- 5 GHz or 6 GHz channel evidence is incomplete.
-
-Example recommendations:
-
-- stabilize the channel plan;
-- correct AP metadata or expected-channel configuration;
-- review channel-width policy;
-- re-scan points where scanner data is incomplete.
-
-### Dominant AP
-
-Useful findings:
-
-- dominant AP does not match the nearest modeled AP;
-- second AP is close enough in signal to suggest roaming ambiguity;
-- connected-client evidence suggests sticky-client behavior;
-- AP positions are missing or inconsistent with observed dominance;
-- local-area AP scope affects interpretation.
-
-Example recommendations:
-
-- place missing AP positions;
-- verify AP physical grouping;
-- review transmit-power balance;
-- add points near suspected roaming boundaries;
-- inspect sticky-client points before changing RF design.
-
-### Signal Coverage
-
-Coverage advice should be more conservative than Interference or Channels.
-
-Useful findings:
-
-- weak coverage clusters;
-- isolated weak points;
-- weak areas with low scan confidence;
-- possible AP placement or local-area scope influence;
-- missing relevant SSID evidence.
-
-Example recommendations:
-
-- collect additional points around weak areas;
-- verify whether the weak area is operationally relevant;
-- review AP placement only when AP position and dominance evidence support it;
-- avoid blind transmit-power increases unless supported by broader evidence.
-
-## UI Concept
-
-- Add an `AI Advisor` button in the Live Map toolbar, immediately left of
-  `Export PDF`.
-- Open a right-side overlay panel, visually aligned with existing settings and
-  analysis panels.
-- Keep the Live Map interactive while the panel is open when practical.
-- Recommended sections:
-  - Overview;
-  - Key Findings;
-  - Recommended Actions;
-  - Evidence;
-  - Assumptions And Limits.
-- Findings should be expandable and, where evidence includes points, should
-  allow focusing the related measurement point or map area.
-- The panel should show that the analysis uses the full survey, while marking
-  which findings are related to the current view.
-
-## Testing Strategy
-
-- Unit tests with synthetic surveys for each rule.
-- Regression tests with private real-survey samples where available.
-- Translation and placeholder parity tests once UI text is added.
-- UI smoke tests for opening/closing the advisor panel and rendering empty,
-  warning and high-density reports.
-- No recommendation should be emitted without evidence or an explicit
-  low-confidence/data-limit explanation.
-
-## Implementation Phases
-
-1. Define structured advisor models and an `AdvisorContext` builder.
-2. Implement AP Interference advisor rules without UI.
-3. Add focused tests for Interference findings and recommendation evidence.
-4. Add the Live Map `AI Advisor` button and right-side overlay panel.
-5. Implement AP Channels, Dominant AP and Signal Coverage modes.
-6. Add translations and visual-density checks.
-7. Consider optional PDF Advisor Summary only after the UI advisor proves useful.
-
-## Future LLM Option
-
-A future LLM layer, if ever added, should only summarize or rephrase the
-structured local advisor output. It must not be the source of RF decisions, and
-it must be opt-in with explicit privacy disclosure if any external service is
-used.
+# Local RF Analysis And Recommendations
+
+Status: initial implementation for the `v1.1.0` feature line
+
+Last updated: 2026-11-03
+
+The historical filename is retained for existing links. This feature uses
+deterministic local rules, with no AI model, external API or remote data transfer.
+This document supersedes the original Live Map overlay proposal.
+
+## User Workflow
+
+The third workspace tab, Analysis and recommendations, is the final survey step
+after Survey Quality, AP modeling and Live Map inspection. Its findings cover
+the whole current survey, independently of Live Map SSID/band/map filters.
+Operational targets are internal APs carrying explicitly relevant SSIDs.
+External/interferer APs contribute fixed neighbor evidence; test APs are excluded.
+
+The user can adjust coverage target, scan confidence, supporting point count and
+candidate channel lists. Defaults are -70 dBm, 60%, three points and 1/6/11 for
+2.4 GHz. 5/6 GHz lists start empty, so those bands produce review findings until
+the user supplies channels supported by the APs/site configuration. Lists are
+syntactically validated; the app has no country/DFS/AP-capability database.
+Objectives belong to this app session and are recorded in reports, not saved to
+survey CSV metadata. The category filter affects browsing, not report scope.
+
+Findings show confidence, an action, measured points/readings, limitations and
+post-change checks. Point links return to the survey canvas/table. The existing
+Live Map PDF remains separate. The new full report exports to PDF or standalone
+HTML, including an optional numbered floor-plan overview.
+
+## Architecture
+
+- `advisor/models.py`: profile, findings, evidence and report snapshot; stable
+  input fingerprint includes rows, raw evidence, groups, relevant SSIDs, scale,
+  objectives, session metadata, survey name and engine version.
+- `advisor/engine.py`: Qt-free rule engine, with copied inputs and no mutation
+  of survey data, AP groups, overrides or AP Memory.
+- `survey/scope.py`: shared Local Area relevance rules extracted from Survey
+  Quality, retaining its manual/automatic radius behavior.
+- `advisor/presentation.py`: escaped, localized presentation shared by interactive
+  findings and both report formats. Names/SSID values cannot inject HTML.
+- `qt_ui/qt_analysis.py`: coalesced background QThread work and snapshot checks.
+  Old results are rejected after relevant edits/session changes. Export checks
+  freshness again after the modal file dialog; scans/running work block export.
+  Closing/restarting waits for active work to finish using the workspace guard.
+- `exporting/analysis_report.py`: embedded floor-plan evidence, atomic HTML/PDF
+  replacement and generated-PDF validation. QPdfWriter renders selectable text
+  with fitting table chunks and repeated headers, keeping normal rows together.
+- `translations/advisor.py`: EN/IT/FR/ES labels, actions, assumptions and Help.
+
+## Evidence And Rules
+
+All inputs are advisory observations of a survey snapshot, not a controller
+configuration. Confidence labels are rule tiers, not calibrated probabilities.
+Raw samples feed the existing Survey Quality variability/completeness checks.
+Usable rows require finite coordinates and RSSI in -120..0 dBm. Invalid rows are
+reported; an identifiable affected point is excluded from precise proposals.
+Scan confidence also requires at least three observed samples, valid totals,
+and the lower of explicit confidence and the observed/attempted ratio.
+
+Data findings precede operational recommendations. They cover missing relevance,
+sparse surveys, poor scan quality, invalid measurements, missing scale,
+incomplete radio evidence and expected-channel/band metadata disagreements.
+
+### Channel Plan
+
+One node represents one physical AP group/band, preventing several SSIDs on the
+same radio from being treated as independent APs. Nodes are connected by usable
+co-observations at signals of at least -85 dBm. Edge weights sum a bounded
+signal-strength factor across shared points. Spectral overlap uses the existing
+map engine's channel/width model; this is not a channel-utilization measurement.
+
+Precise changes require the configured number of overlapping points, stable
+valid channels/widths for the target and its observed neighbors, adequate scan
+confidence, no conflicting target metadata/override, and user candidate policy.
+Unknown neighbor bands or unreliable neighbor evidence block precise changes.
+2.4 GHz precise changes require 20 MHz evidence; wider widths receive review
+guidance. 5/6 GHz candidates require representable width/frequency ranges, and
+6 GHz nodes/neighbors additionally require explicit frequency evidence.
+
+A deterministic coordinate-descent pass evaluates the APs together, accepts
+only changes reducing node overlap by more than 10% (also lowering the total), and stops
+after convergence or three passes. External AP assignments stay fixed. Final
+assignments are presented once per node as a single joint plan, with the total
+before/after overlap index. This is a bounded heuristic, not a globally optimal
+channel planner, an airtime score or a predicted performance improvement.
+
+Unstable channels, manual analysis overrides and wide widths have explicit
+review findings. Map overrides do not replace measured channel evidence here.
+
+### Coverage, Position And Roaming
+
+- Weak coverage is evaluated per relevant SSID/band at trusted measured points
+  against the profile target. Counts describe points, not floor-area coverage.
+- Missing relevant networks follow the shared Local Area scope and trigger
+  repeat-scan guidance; absence alone never proves a coverage hole.
+- Dominance uses the existing AP-position checks and requires valid positions
+  and scale. Advice first checks grouping, mounting, obstacles and nearby data.
+- A controlled power-balance trial is suggested only for repeated strong/distant
+  dominance with another AP meeting the same coverage target, no observed weak
+  coverage for that SSID/band, no poor/invalid points and no target metadata
+  conflict. It does not infer a dB reduction or an exact new AP position.
+- Roaming observations require explicit connected-client evidence and another
+  AP of the same SSID/band stronger by at least 8 dB. Client behavior remains
+  an observation to verify, not proof of an AP fault.
+
+## Validation And Limits
+
+Regression tests use synthetic surveys for joint channel decisions, physical
+grouping, scope, quality gates, metadata, scanner limitations, coverage, power,
+roaming, input purity and stale workers/exports. Exports are generated in all four
+languages, loaded/rasterized with Qt PDF, checked for text/evidence preservation,
+normal row pagination and safe replacement failures. UI/PDF examples are visually
+inspected during development. These checks do not replace field RF validation.
+
+The scanner does not measure airtime utilization, retry rates, non-Wi-Fi
+interference or throughput. There is no propagation/obstacle simulation, exact
+relocation solver, automatic controller action, per-AP regulatory/capability
+model or validated new-design coverage prediction. Cross-band steering is not
+inferred from the same-band connected-client check. Large reports may be long
+because point evidence is retained. Real 6 GHz hardware behavior remains to be
+validated. Next rule expansion should follow real-survey evidence and false
+positive review; keep every recommendation traceable to measurements.

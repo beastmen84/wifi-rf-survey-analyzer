@@ -26,6 +26,7 @@ def format_fields(text):
 def iter_app_source_paths():
     root = Path(__file__).resolve().parents[1]
     source_roots = (
+        root / "advisor",
         root / "ap",
         root / "app_core",
         root / "exporting",

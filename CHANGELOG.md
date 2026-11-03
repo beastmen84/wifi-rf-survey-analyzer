@@ -9,11 +9,26 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ### Added
 
-- Added the initial AI Advisor design document for the next feature release,
-  defining local-only analysis scope, structured findings, confidence/severity
-  rules, map-specific advisor modes and implementation phases.
+- Added a final Analysis and recommendations tab, with background local analysis
+  of the whole survey and configurable coverage/evidence/channel objectives.
+- Added coordinated channel-plan proposals, observed overlap and width reviews,
+  weak/missing network findings, AP-position/dominance checks, controlled power
+  trial guidance and connected-client roaming observations. Precise proposals
+  require sufficient stable evidence and explicit 5/6 GHz candidate channels.
+- Findings show measured evidence, confidence, assumptions and point links.
+  Data-quality and metadata inconsistencies are presented before RF actions.
+- Added complete PDF/HTML analysis reports with a numbered floor-plan overview,
+  joint-plan summary and measured evidence. Reports use the same analysis
+  snapshot and reject stale data. Existing Live Map PDF export remains available.
+- Added English, Italian, French and Spanish UI/report/Help wording and automated
+  rule, worker, export, pagination and translation regression checks.
 
 ### Fixed / Changed
+
+- Extracted Local Area relevance rules so Survey Quality and recommendation
+  analysis apply the same coverage scope.
+- Replaced the original advisor-overlay draft with the implemented final-tab
+  workflow in `docs/AI_ADVISOR_DESIGN.md`. No AI or remote service is involved.
 
 ## Unreleased Bugfixes - v1.0.x
 

@@ -204,7 +204,9 @@ def build_help_sections(parent, tr):
             tr("help_reports_nav"),
             tr("help_reports_title"),
             tr("help_reports_subtitle"),
-            tr("help_reports_body"),
+            tr("help_reports_body") + "<h2>" + escape(tr("advisor_title")) + "</h2><p>"
+            + escape(tr("advisor_hint")) + "</p><p>" + escape(tr("advisor_help")) + "</p><p>"
+            + escape(tr("advisor_policy_hint")) + "</p><p>" + escape(tr("advisor_general_limit")) + "</p>",
         ),
         build_help_section(
             "diagnostics",

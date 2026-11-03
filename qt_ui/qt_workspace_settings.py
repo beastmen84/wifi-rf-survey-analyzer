@@ -56,6 +56,8 @@ class WorkspaceSettingsMixin:
         save_theme(theme)
         log_event(f"workspace theme changed theme={theme}", logger_name="ui")
         self.apply_styles()
+        if hasattr(self, "analysis_view"):
+            self.analysis_view.retranslate()
         if getattr(self.floorplan_view, "grid_visible", False):
             self.set_floorplan_grid_enabled(True, show_status=False)
 
@@ -64,7 +66,7 @@ class WorkspaceSettingsMixin:
         if mode == self.ui_scale_mode:
             return
 
-        if self.scan_in_progress or self.live_rendering or any(
+        if self.scan_in_progress or self.live_rendering or (hasattr(self, "analysis_view") and self.analysis_view.busy) or any(
             thread is not None and thread.isRunning()
             for thread in (self.scan_thread, self.live_thread)
         ):

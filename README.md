@@ -1,7 +1,7 @@
 # Wi-Fi RF Survey Analyzer
 
 Desktop application for Wi-Fi RF surveying, live map analysis, AP modeling,
-survey-quality review, and PDF reporting.
+survey-quality review, RF recommendations, and PDF/HTML reporting.
 
 Wi-Fi RF Survey Analyzer is built for practical field surveys: load a floor
 plan, collect real Wi-Fi measurements, preserve raw scan evidence, model
@@ -32,6 +32,8 @@ physical APs, review survey quality, and export explainable RF maps.
 
 `v1.0.0` is the first stable public source release of the current Qt workflow.
 Executable and ZIP artifacts are built separately from the tagged source state.
+The development source also includes the upcoming Analysis and recommendations
+workflow described below; see the changelog for changes since the stable release.
 
 ## Core Features
 
@@ -51,6 +53,9 @@ Executable and ZIP artifacts are built separately from the tagged source state.
 - Survey Quality Dashboard with point-rescan findings, AP model diagnostics,
   clickable KPI point lists, and prioritized "what to fix next" guidance.
 - Live Coverage, Interference, AP Channels, and Dominant AP maps.
+- A final Analysis and recommendations tab with local rules for channel plans,
+  coverage, AP dominance, client roaming and missing survey evidence. Findings
+  explain their confidence and link back to measured points.
 - Optional manual Boundaries masks for limiting continuous live maps and PDF
   exports to the useful survey area when the floor-plan shape or measured
   perimeter needs explicit control.
@@ -59,6 +64,8 @@ Executable and ZIP artifacts are built separately from the tagged source state.
   available.
 - PDF export from the current live map, including diagnostic report pages where
   the selected map type supports them.
+- Complete analysis-report export as selectable-text PDF or self-contained HTML,
+  including objectives, measured evidence and a numbered floor-plan overview.
 - English, Italian, French and Spanish UI, Help Center and report wording,
   covering the operating workflow and detailed option behavior.
 
@@ -75,7 +82,9 @@ Executable and ZIP artifacts are built separately from the tagged source state.
 7. Review survey quality and fix point-level issues first.
 8. Review AP groups, metadata, channel overrides, and AP positions.
 9. Use Live Map views to inspect coverage, interference, channels, and roaming.
-10. Export the selected live map as a PDF report.
+10. Open Analysis and recommendations, set the coverage target and evidence
+    requirements, and review the suggested actions and their supporting points.
+11. Export the analysis report as PDF/HTML, or export an individual Live Map as PDF.
 
 ## Data Model
 
@@ -193,6 +202,35 @@ area independently from the current viewport zoom/pan, trims excessive uniform
 background below the plan when safe, includes scale or legend information, and
 adds diagnostic pages for Interference and Dominant AP reports when applicable.
 
+## Survey Analysis And Recommendations
+
+The final tab analyzes the whole current survey using deterministic local rules.
+Select the relevant SSIDs and confirm AP grouping, roles and positions first.
+Live Map filters do not restrict the analysis. The category filter helps browse
+findings; exports include the complete report.
+
+Set the coverage target, minimum scan confidence, minimum supporting points,
+and candidate channels usable by your APs. The default 2.4 GHz candidates are
+1, 6 and 11. For 5/6 GHz, enter candidates explicitly to enable precise channel
+proposals; an empty list keeps that band in review mode. Objectives apply to
+the current app session and are included in exports.
+
+Channel suggestions form one coordinated plan for the observed physical APs.
+Unmanaged APs remain fixed neighbors. Incomplete width/frequency evidence,
+changing channels, low confidence or conflicting metadata trigger verification
+guidance instead of an unsupported precise change. Dominance and roaming
+findings recommend controlled checks, with a power-balance trial only when
+repeated measurements and alternative coverage support it.
+
+Every finding includes an action, evidence and its limits. These are advisory
+results: the app applies no AP configuration changes and uses no AI or remote
+service. Signal overlap is a modeled risk rather than a throughput/airtime
+measurement. Placement checks do not predict an exact new location or power
+level. Verify changes on site and repeat the referenced measurements.
+
+PDF and HTML share the same report snapshot. Export is blocked while scanning,
+analyzing or after relevant data/objectives change until the report is current.
+
 ## Help Center
 
 The in-app Help Center is the detailed usage guide for the current Qt workflow.
@@ -204,7 +242,7 @@ It is available in English, Italian, French and Spanish and covers:
 - Survey Quality Dashboard;
 - AP Groups, AP metadata, and AP Memory;
 - Live Maps;
-- PDF reports;
+- analysis recommendations and PDF/HTML reports;
 - diagnostics/warnings;
 - glossary.
 
@@ -223,10 +261,11 @@ requirements-dev.txt    runtime dependencies plus test/build tooling
 requirements-lock.txt   pinned environment used for reproducible release checks
 app_core/               settings, logging, restart, version, constants
 ap/                     AP grouping, metadata checks, conflicts, positioning
-exporting/              live-map PDF export and report pages
+advisor/                local recommendation rules, evidence models, presentation
+exporting/              live-map PDF and analysis PDF/HTML reports
 maps/                   map config, heatmap math, rendering, quality engine
 qt_ui/                  PySide6 UI, workspace, dialogs, live-map view
-survey/                 survey CSV and raw sidecar persistence
+survey/                 CSV/raw persistence and shared local-area scope rules
 translations/           language dictionaries and i18n helpers
 wifi/                   scanner backends, band helpers, signal conversion
 tests/                  unit and UI-level regression tests
@@ -348,7 +387,7 @@ Historical beta ZIPs may still use the older artifact stem:
 
 Possible future product areas:
 
-- AI Advisor for measured-data-based RF recommendations.
+- Broader recommendation rules validated against additional real surveys.
 - Built-in floorplan creator for lightweight technical survey drawings.
 - Combined survey report across multiple live-map views.
 - Deeper AP metadata diagnostics where rules are clear.

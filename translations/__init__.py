@@ -17,6 +17,10 @@ TRANSLATIONS = {
     "es": ES_TRANSLATIONS,
 }
 
+from translations.advisor import dictionary as advisor_dictionary
+for _language, _dictionary in TRANSLATIONS.items():
+    _dictionary.update(advisor_dictionary(_language))
+
 LANGUAGE_LABELS = {
     "it": IT_LANGUAGE_LABEL,
     "en": EN_LANGUAGE_LABEL,

@@ -22,6 +22,14 @@ interpolated colors.
 
 Current status:
 
+- the first local recommendation/report workflow is implemented for the 1.1.0
+  feature line: a third workspace tab, pure `advisor/` rules, background snapshot
+  workers, evidence links and shared PDF/HTML presentation. See
+  `docs/AI_ADVISOR_DESIGN.md` for rule thresholds, guards and remaining limits;
+- analysis uses all survey rows and raw evidence independently of Live Map
+  filters. Objectives belong to the current app session and each exported
+  snapshot; they do not change the CSV/schema or AP Memory. The advisor never
+  applies AP changes and makes no network/AI calls;
 - the November maintenance pass addresses the audit findings without cutting a
   new release: Pillow 13.0.0 and setuptools 84.2.1 are the only dependency
   upgrades; broad scientific/Qt/tooling upgrades remain a separate task;
@@ -1106,13 +1114,12 @@ Future expansion:
    apply/confirm flow.
 12. Use AP metadata more deeply in diagnostics where the rule is clear.
 13. Refine the AP physical/radio/BSSID model only if real deployments require it.
-14. Build the `v1.1.0` AI Advisor feature line using
-    `docs/AI_ADVISOR_DESIGN.md` as the source design. It should analyze the
-    measured survey evidence and propose actionable RF changes, such as
-    channel-width or channel adjustments to reduce interference.
-    Recommendations must remain grounded in visible survey data, explain
-    assumptions/confidence, and stay advisory rather than silently mutating AP
-    metadata or map settings.
+14. Validate the implemented local Analysis and recommendations workflow on real
+    surveys. Review false positives, channel policies, evidence density and
+    report length before broadening rules. Placement/power advice remains
+    conservative; 6 GHz still requires real hardware validation. Optional future
+    work includes per-survey objective persistence, per-AP channel capabilities,
+    richer RF measurements and multi-map report composition.
 15. Add a lightweight Floorplan Creator for technical RF floor maps. Scope
     should be scaled geometry, snap, wall thickness, simple shapes, doors and
     measurements; it should not become an interior-design tool.

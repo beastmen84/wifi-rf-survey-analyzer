@@ -569,6 +569,8 @@ class FloorplanWorkflowMixin:
         self.status.showMessage(self.tr("zoom", zoom=view.zoom_level))
 
     def current_zoom_view(self):
+        if self.tabs.currentIndex() == 2:
+            return None
         if self.tabs.currentIndex() == 1:
             return self.live_view if self.live_view.pixmap_item is not None else None
 

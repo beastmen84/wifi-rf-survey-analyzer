@@ -52,6 +52,7 @@ from app_core.constants import HEATMAP_MAX_DISTANCE_PX, HEATMAP_SMOOTHING_SIGMA
 from app_core.version import format_legal_footer, format_versioned_title
 from ap.memory import ensure_ap_memory_file
 from qt_ui.qt_ap_workflow import ApWorkflowMixin
+from qt_ui.qt_analysis import AnalysisView
 from qt_ui.qt_floorplan import FloorplanView
 from qt_ui.qt_floorplan_workflow import FloorplanWorkflowMixin
 from qt_ui.qt_help_dialog import open_qt_help_dialog
@@ -412,6 +413,8 @@ class WifiHeatmapQtApp(
         self.tabs.tabBar().setExpanding(True)
         self.tabs.addTab(self.build_survey_tab(), "")
         self.tabs.addTab(self.build_live_tab(), "")
+        self.analysis_view = AnalysisView(self)
+        self.tabs.addTab(self.analysis_view, "")
         self.tabs.currentChanged.connect(self.on_workspace_tab_changed)
         layout.addWidget(self.tabs)
 
@@ -1890,6 +1893,8 @@ class WifiHeatmapQtApp(
         self.clear_relevant_button.setText(self.tr("forget_saved_network"))
         self.tabs.setTabText(0, format_workspace_tab_text(self.tr("survey_tab")))
         self.tabs.setTabText(1, format_workspace_tab_text(self.tr("live_map_tab")))
+        self.tabs.setTabText(2, format_workspace_tab_text(self.tr("advisor_title")))
+        self.analysis_view.retranslate()
         self.live_ssid_label.setText("SSID")
         self.live_band_label.setText(self.tr("band"))
         self.live_map_type_label.setText(self.tr("map_type"))
@@ -1934,6 +1939,11 @@ class WifiHeatmapQtApp(
         if not hasattr(self, "survey_zoom_label"):
             return
 
+        if hasattr(self, "tabs") and self.tabs.currentIndex() == 2:
+            self.survey_zoom_label.hide()
+            return
+
+        self.survey_zoom_label.show()
         if hasattr(self, "tabs") and self.tabs.currentIndex() == 1:
             if getattr(self.live_view, "pixmap_item", None) is None:
                 self.survey_zoom_label.setText(self.tr("live_zoom_empty"))
