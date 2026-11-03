@@ -22,6 +22,13 @@ interpolated colors.
 
 Current status:
 
+- the pre-1.1.0 precision audit is complete on source `8941b0d`. The existing
+  suite passes, but 14 adversarial scenarios reproduce data/model limitations.
+  A live freshness probe saw 24 reused BSS observations out of 54 reads. Stable
+  1.1.0 is blocked on the RF evidence issues documented in `docs/AUDIT_1_1_0.md`:
+  scan lifecycle/provenance, SSID identity/hidden BSS, partial-raw quality,
+  channel representation/consistency and confidence in physical AP grouping.
+  No runtime correction or release is implied by the audit documentation;
 - the user-authorized interpreter migration targets CPython 3.15.2 in a new
   `.venv315`; `.venv` remains the original Python 3.14.5 fallback. Runtime/dev
   pins and the Windows x64 lock now reflect the compatible Qt/scientific/scanner

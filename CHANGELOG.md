@@ -34,6 +34,13 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 - Replaced the original advisor-overlay draft with the implemented final-tab
   workflow in `docs/AI_ADVISOR_DESIGN.md`. No AI or remote service is involved.
 
+### Known Issues Before Release
+
+- The data-accuracy audit found reproducible gaps in scan freshness/confidence,
+  hidden/whitespace SSID preservation, partial-raw quality checks, channel-width
+  and band consistency, and unconfirmed automatic AP grouping. These remain
+  open release blockers; see `docs/AUDIT_1_1_0.md` for evidence and release gates.
+
 ## Unreleased Bugfixes - v1.0.x
 
 ### Added

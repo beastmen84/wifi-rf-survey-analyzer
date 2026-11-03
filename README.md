@@ -34,6 +34,9 @@ physical APs, review survey quality, and export explainable RF maps.
 Executable and ZIP artifacts are built separately from the tagged source state.
 The development source also includes the upcoming Analysis and recommendations
 workflow described below; see the changelog for changes since the stable release.
+The pre-release [data-accuracy audit](docs/AUDIT_1_1_0.md) identifies open issues
+with scan freshness, hidden SSIDs, partial raw evidence and channel modeling.
+Review those limits before using development reports for operational RF changes.
 
 ## Core Features
 
