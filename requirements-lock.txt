@@ -1,5 +1,5 @@
-# Pinned environment used for v1.0 release validation.
-# Regenerated from a cleaned project virtualenv on 2026-05-18 with Python 3.14.5.
+# Pinned validation environment, Python 3.14.5.
+# Security pins updated on 2026-11-03; other versions retain the v1.0 baseline.
 altgraph==0.17.5
 colorama==0.4.6
 contourpy==1.3.3
@@ -13,7 +13,7 @@ numpy==2.4.5
 packaging==26.2
 pandas==3.0.3
 pefile==2024.8.26
-pillow==12.2.0
+pillow==13.0.0
 pluggy==1.6.0
 Pygments==2.20.0
 pyinstaller==6.20.0
@@ -26,7 +26,7 @@ pytest==9.0.3
 python-dateutil==2.9.0.post0
 pywin32-ctypes==0.2.3
 scipy==1.17.1
-setuptools==82.0.1
+setuptools==84.2.1
 shiboken6==6.11.1
 six==1.17.0
 tzdata==2026.2

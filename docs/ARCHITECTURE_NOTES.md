@@ -1,6 +1,6 @@
 # Wi-Fi RF Survey Analyzer - Architecture Notes
 
-Last updated: 2026-05-18
+Last updated: 2026-11-03
 
 This document is the forward-looking product roadmap. Completed items are kept
 only as context; the actionable backlog is in the "Remaining Work" section.
@@ -21,6 +21,31 @@ The heatmap should be the result of a validated RF dataset, not just
 interpolated colors.
 
 Current status:
+
+- the November maintenance pass addresses the audit findings without cutting a
+  new release: Pillow 13.0.0 and setuptools 84.2.1 are the only dependency
+  upgrades; broad scientific/Qt/tooling upgrades remain a separate task;
+- survey persistence uses `app_core/file_io.py` to stage related files, retain
+  backups and record a prepared/committed journal beside the CSV. Failed
+  commits roll back; interrupted prepared commits roll back before reading a
+  survey. A committed journal only needs cleanup. Recovery failure retains
+  the journal/backups for retry. The retained `.save.lock` serializes saves
+  and recovery; this is recoverable multi-file persistence, not a globally
+  atomic filesystem transaction. Normal CSV/schema-2 sidecars remain readable;
+- recovery verifies SHA-256 hashes of the backup and current destination before
+  changing any file. A damaged backup or independently edited destination
+  stops automatic recovery and retains all evidence instead of overwriting it;
+- SSID identity now preserves case through analysis and UI relevance. Existing
+  tests that expected lowercased names were updated to the actual SSID case;
+- live workers emit a session/generation token with both success and failure,
+  snapshot inputs and remain busy until QThread.finished. Startup readiness
+  likewise waits for import-thread completion;
+- netsh label localization covers EN/IT/FR/ES and preserves explicit bands.
+  Timeouts/nonzero exits surface translated scanner errors. RF validation at
+  6 GHz and on localized Windows installations still requires field checks;
+- a Qt/COM diagnostic observed in native tests during the audit is not assumed
+  fixed by the persistence/thread changes. Keep its verification outcome in
+  the maintenance handoff; do not suppress Windows exception diagnostics.
 
 - public release versioning is separate from the survey schema generation:
   `v1.0.0` is the current stable public source release, and Windows exe/ZIP

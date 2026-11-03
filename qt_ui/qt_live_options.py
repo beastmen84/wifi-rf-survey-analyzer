@@ -295,7 +295,7 @@ class LiveOptionsMixin:
 
         for row in self.session.rows:
             row_ssid = str(row.get("ssid", "")).strip()
-            if ssid and row_ssid.casefold() != ssid.casefold():
+            if ssid and row_ssid != ssid:
                 continue
             if not self.row_matches_live_band(row, band):
                 continue
@@ -387,11 +387,11 @@ class LiveOptionsMixin:
             return ""
 
         ssids_by_key = {
-            str(ssid).strip().casefold(): str(ssid).strip()
+            str(ssid).strip(): str(ssid).strip()
             for ssid in ssids
             if str(ssid).strip()
         }
-        current_key = str(current_ssid or "").strip().casefold()
+        current_key = str(current_ssid or "").strip()
         if current_key in ssids_by_key:
             return ssids_by_key[current_key]
 
@@ -400,12 +400,12 @@ class LiveOptionsMixin:
             return connected_ssid
 
         relevant = {
-            str(ssid).strip().casefold()
+            str(ssid).strip()
             for ssid in getattr(self, "relevant_ssids", set()) or []
             if str(ssid).strip()
         }
         for ssid in ssids:
-            if str(ssid).strip().casefold() in relevant:
+            if str(ssid).strip() in relevant:
                 return ssid
 
         return ssids[0]
@@ -415,7 +415,7 @@ class LiveOptionsMixin:
             return ""
 
         ssid_order = {
-            str(ssid).strip().casefold(): index
+            str(ssid).strip(): index
             for index, ssid in enumerate(ssids)
             if str(ssid).strip()
         }
@@ -424,7 +424,7 @@ class LiveOptionsMixin:
             if not is_truthy_flag(row.get("is_connected")):
                 continue
 
-            key = str(row.get("ssid", "")).strip().casefold()
+            key = str(row.get("ssid", "")).strip()
             if key in ssid_order:
                 connected_counts[key] = connected_counts.get(key, 0) + 1
 

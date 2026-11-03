@@ -653,21 +653,22 @@ class StartWindow(QMainWindow):
         log_event("qt app module ready", logger_name="startup")
         self.app_class = app_class
         self.load_error = None
-        self.set_ready(True)
-        if self.close_after_load:
-            QApplication.instance().quit()
+        # Enable launch/exit only once QThread.finished has been delivered.
 
     def fail_app_import(self, message):
         self.load_error = message
         self.set_ready(False)
         self.update_loading_text()
-        QMessageBox.critical(self, self.tr("loading_app_error"), message)
-        if self.close_after_load:
-            QApplication.instance().quit()
 
     def cleanup_load_thread(self):
         self.load_thread = None
         self.load_worker = None
+        if self.close_after_load:
+            QApplication.instance().quit()
+        elif self.load_error:
+            QMessageBox.critical(self, self.tr("loading_app_error"), self.load_error)
+        else:
+            self.set_ready(True)
 
     def set_ready(self, is_ready):
         self.new_button.setEnabled(is_ready)

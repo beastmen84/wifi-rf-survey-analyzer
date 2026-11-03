@@ -229,7 +229,7 @@ AP BSSID               : 70:4f:57:aa:bb:10
 
         def fake_run(args, *_positional, **_kwargs):
             calls.append(args)
-            if args == ["netsh", "wlan", "show", "interfaces"]:
+            if args == scanner_module.netsh_command("interfaces"):
                 return Result(interfaces_output)
             return Result(networks_output)
 
@@ -242,7 +242,7 @@ AP BSSID               : 70:4f:57:aa:bb:10
         self.assertEqual(len(networks), 2)
         self.assertTrue(networks[0]["is_connected"])
         self.assertFalse(networks[1]["is_connected"])
-        self.assertIn(["netsh", "wlan", "show", "interfaces"], calls)
+        self.assertIn(scanner_module.netsh_command("interfaces"), calls)
 
     def test_frequency_band_inference_accepts_mhz_khz_hz_and_ghz_values(self):
         self.assertEqual(infer_band_from_frequency_mhz(5975), "6")

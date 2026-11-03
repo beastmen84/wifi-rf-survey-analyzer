@@ -1,6 +1,7 @@
 """Qt live map scene, tooltips, marker rendering, and render worker."""
 
 from io import BytesIO
+from copy import deepcopy
 
 import pandas as pd
 from PIL import Image
@@ -68,8 +69,8 @@ LIVE_POINT_MARKER_BASE_SIZE = 14
 
 
 class LiveMapRenderWorker(QObject):
-    finished = Signal(object)
-    failed = Signal(str)
+    finished = Signal(object, object)
+    failed = Signal(str, object)
 
     def __init__(
         self,
@@ -83,12 +84,13 @@ class LiveMapRenderWorker(QObject):
         boundary_mask_image=None,
     ):
         super().__init__()
-        self.rows = list(rows or [])
+        self.rows = deepcopy(list(rows or []))
         self.map_file = map_file
         self.config = config
         self.translations = translations
-        self.aliases = aliases or {}
-        self.ap_groups = list(ap_groups or [])
+        self.aliases = deepcopy(aliases or {})
+        self.ap_groups = deepcopy(list(ap_groups or []))
+        self.request = None
         self.px_per_meter = px_per_meter
         self.boundary_mask_image = boundary_mask_image
 
@@ -113,7 +115,7 @@ class LiveMapRenderWorker(QObject):
             )
         except Exception as exc:
             log_exception("qt live render worker failed", exc, logger_name="live_map")
-            self.failed.emit(str(exc))
+            self.failed.emit(str(exc), self.request)
             return
 
         point_count = len(payload.get("point_infos", [])) if payload else 0
@@ -121,7 +123,7 @@ class LiveMapRenderWorker(QObject):
             f"qt live render worker done payload={bool(payload)} points={point_count}",
             logger_name="live_map",
         )
-        self.finished.emit(payload)
+        self.finished.emit(payload, self.request)
 
 
 class LiveMapView(QGraphicsView):

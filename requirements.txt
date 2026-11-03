@@ -1,7 +1,7 @@
 # Direct runtime dependencies.
 # Use requirements-dev.txt for test/build tooling and requirements-lock.txt for
 # the fully pinned release-validation environment.
-Pillow==12.2.0
+Pillow==13.0.0
 pandas==3.0.3
 numpy==2.4.5
 matplotlib==3.10.9

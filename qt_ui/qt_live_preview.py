@@ -23,6 +23,13 @@ from qt_ui.qt_live_map import LiveMapRenderWorker, create_marker_icon, qimage_to
 
 
 class LivePreviewMixin:
+    def invalidate_live_preview(self):
+        self.live_generation += 1
+        self.live_dirty = bool(self.live_rendering)
+
+    def is_current_live_result(self, request):
+        return request is None or request == (self.session, self.live_generation)
+
     def on_workspace_tab_changed(self, index):
         if index != 0:
             self.set_boundaries_mode_enabled(False, show_status=False)
@@ -31,6 +38,7 @@ class LivePreviewMixin:
             self.maybe_update_live_preview()
 
     def on_live_option_changed(self):
+        self.invalidate_live_preview()
         self.refresh_session_labels()
         self.maybe_update_live_preview()
 
@@ -43,6 +51,7 @@ class LivePreviewMixin:
 
     def update_live_preview(self):
         if not self.can_render_live_preview():
+            self.invalidate_live_preview()
             self.live_view.clear()
             self.live_status_label.setText(self.tr("live_preview_empty"))
             self.clear_live_legend()
@@ -72,6 +81,7 @@ class LivePreviewMixin:
             px_per_meter=self.get_px_per_meter(),
             boundary_mask_image=self.current_boundary_mask_image(),
         )
+        worker.request = (self.session, self.live_generation)
         worker.moveToThread(thread)
         thread.started.connect(worker.run)
         worker.finished.connect(self.finish_live_preview)
@@ -290,8 +300,12 @@ class LivePreviewMixin:
             "tooltip_section_second_ap": self.tr("tooltip_section_second_ap"),
         }
 
-    def finish_live_preview(self, payload):
-        self.live_rendering = False
+    def finish_live_preview(self, payload, request=None):
+        if not self.is_current_live_result(request):
+            log_event("qt stale live render discarded", logger_name="main")
+            return
+        if self.live_thread is None:
+            self.live_rendering = False
         log_event("qt live render finished", logger_name="main")
         if payload:
             self.live_view.set_payload(payload)
@@ -303,11 +317,11 @@ class LivePreviewMixin:
             self.live_status_label.setText(self.tr("live_preview_insufficient"))
         self.refresh_session_labels()
 
-        if self.live_dirty and self.live_auto_check.isChecked():
-            QTimer.singleShot(0, self.update_live_preview)
-
-    def fail_live_preview(self, message):
-        self.live_rendering = False
+    def fail_live_preview(self, message, request=None):
+        if not self.is_current_live_result(request):
+            return
+        if self.live_thread is None:
+            self.live_rendering = False
         log_event(f"qt live render failed message={message}", logger_name="main")
         self.live_status_label.setText(f"{self.tr('error')}: {message}")
         self.clear_live_legend()
@@ -318,6 +332,11 @@ class LivePreviewMixin:
         if finished_thread is self.live_thread:
             self.live_thread = None
             self.live_worker = None
+            self.live_rendering = False
+            self.refresh_session_labels()
+            if self.live_dirty and self.live_auto_check.isChecked():
+                self.live_dirty = False
+                QTimer.singleShot(0, self.maybe_update_live_preview)
         log_event("qt live render thread cleaned up", logger_name="main")
 
     def format_live_status(self, payload):

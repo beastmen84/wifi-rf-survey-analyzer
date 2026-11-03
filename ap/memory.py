@@ -17,6 +17,7 @@ from ap.groups import (
     normalize_bssid,
 )
 from app_core.settings import APP_SETTINGS_DIR
+from app_core.file_io import atomic_write_text
 from wifi.band import get_row_band
 
 
@@ -51,9 +52,8 @@ def ensure_ap_memory_file(path=None):
 
     try:
         memory_path.parent.mkdir(parents=True, exist_ok=True)
-        memory_path.write_text(
+        atomic_write_text(memory_path,
             json.dumps(empty_ap_memory(), indent=2, ensure_ascii=False, sort_keys=True),
-            encoding="utf-8",
         )
     except OSError:
         pass
@@ -116,9 +116,8 @@ def save_ap_memory(data, path=None):
 
     try:
         memory_path.parent.mkdir(parents=True, exist_ok=True)
-        memory_path.write_text(
+        atomic_write_text(memory_path,
             json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True),
-            encoding="utf-8",
         )
     except OSError:
         return False

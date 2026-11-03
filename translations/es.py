@@ -7,6 +7,8 @@ LANGUAGE_LABEL = "Español"
 
 TRANSLATIONS = dict(EN_TRANSLATIONS)
 TRANSLATIONS.update({
+    "wifi_scan_timeout": "El análisis Wi-Fi agotó el tiempo de espera. Comprueba el adaptador e inténtalo de nuevo.",
+    "wifi_scan_failed": "El análisis Wi-Fi falló. Comprueba el adaptador, los permisos de Windows y el registro de la aplicación.",
     "loading_app": "Cargando componentes...",
     "loading_app_ready": "Listo",
     "loading_app_error": "Error al cargar la aplicación.",

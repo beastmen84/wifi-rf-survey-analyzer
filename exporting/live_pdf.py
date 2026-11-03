@@ -191,7 +191,7 @@ def build_live_pdf_signal_figure(
     ap_groups,
     boundary_mask_image=None,
 ):
-    rows = df[df["ssid"].str.lower() == config.ssid.lower()]
+    rows = df[df["ssid"] == config.ssid]
     rows = filter_by_band(rows, config.band)
     rows = add_ap_group_metadata(rows, config.ap_group_map, config.ap_group_roles)
     rows = rows[rows["ap_role"] != AP_ROLE_TEST]

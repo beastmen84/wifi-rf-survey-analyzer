@@ -3,6 +3,8 @@
 LANGUAGE_LABEL = "Italiano"
 
 TRANSLATIONS = {
+    "wifi_scan_timeout": "La scansione Wi-Fi ha superato il tempo massimo. Controlla l'adattatore e riprova.",
+    "wifi_scan_failed": "La scansione Wi-Fi non è riuscita. Controlla l'adattatore, i permessi di Windows e il registro dell'app.",
     "app_title": "Wi-Fi RF Survey Analyzer",
     "copyright": "© 2026 Davide Marchi",
     "loading_app": "Caricamento componenti...",

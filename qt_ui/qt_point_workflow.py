@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 
 from app_core.logging import log_event, log_exception
 from qt_ui.scaling import widget_px
-from wifi.scanner import scan_wifi
+from wifi.scanner import scan_wifi, WifiScanError
 
 
 class PointCaptureMixin:
@@ -114,7 +114,7 @@ class PointCaptureMixin:
         self.set_scan_busy(False)
         self.pending_scan_point = None
         self.pending_rescan_point = None
-        QMessageBox.critical(self, self.tr("error"), message)
+        QMessageBox.critical(self, self.tr("error"), self.tr(message))
 
     def cleanup_wifi_scan_thread(self):
         finished_thread = self.sender()
@@ -235,6 +235,9 @@ class WifiScanWorker(QObject):
     def run(self):
         try:
             networks, backend_used = scan_wifi(self.backend, show_errors=False)
+        except WifiScanError as exc:
+            self.failed.emit(exc.message_key)
+            return
         except Exception as exc:
             self.failed.emit(str(exc))
             return
@@ -249,7 +252,7 @@ class RelevantNetworksDialog(QDialog):
         self.ssids = sorted({str(ssid).strip() for ssid in ssids if str(ssid).strip()}, key=str.casefold)
         self.connected_ssid = str(connected_ssid or "").strip()
         self.initial_selected_ssids = {
-            str(ssid).strip().lower()
+            str(ssid).strip()
             for ssid in (selected_ssids or [])
             if str(ssid).strip()
         } if selected_ssids is not None else None
@@ -283,17 +286,17 @@ class RelevantNetworksDialog(QDialog):
         ordered_ssids = sorted(
             self.ssids,
             key=lambda value: (
-                not bool(self.connected_ssid and value.lower() == self.connected_ssid.lower()),
+                not bool(self.connected_ssid and value == self.connected_ssid),
                 value.casefold(),
             ),
         )
         for ssid in ordered_ssids:
-            is_connected = bool(self.connected_ssid and ssid.lower() == self.connected_ssid.lower())
+            is_connected = bool(self.connected_ssid and ssid == self.connected_ssid)
             label = self.app.tr("connected_ssid_option", ssid=ssid) if is_connected else ssid
             checkbox = QCheckBox(label)
             checkbox.setObjectName("relevantNetworkCheckbox")
             checkbox.setChecked(
-                ssid.lower() in self.initial_selected_ssids
+                ssid in self.initial_selected_ssids
                 if self.initial_selected_ssids is not None
                 else is_connected
             )

@@ -5,7 +5,7 @@ This file summarizes third-party projects used by Wi-Fi RF Survey Analyzer.
 It is an attribution and compliance aid for source and packaged releases; each
 third-party project remains governed by its own upstream license terms.
 
-Snapshot date: 2026-05-18
+Snapshot date: 2026-11-03 (security pin update; other dependencies unchanged)
 Project license: Mozilla Public License 2.0 (MPL-2.0)
 Project copyright: (c) 2026 Davide Marchi
 
@@ -44,7 +44,7 @@ License observed: BSD-3-Clause.
 Project: https://pandas.pydata.org/
 
 Pillow
-Version observed: 12.2.0
+Version observed: 13.0.0
 License observed: MIT-CMU.
 Project: https://python-pillow.github.io/
 
@@ -95,7 +95,7 @@ License observed: Apache-2.0 OR BSD-2-Clause.
 Project: https://packaging.pypa.io/
 
 setuptools
-Version observed: 82.0.1
+Version observed: 84.2.1
 License observed: MIT.
 Project: https://setuptools.pypa.io/
 

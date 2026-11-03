@@ -21,6 +21,22 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ### Fixed / Changed
 
+- Updated Pillow to 13.0.0 and setuptools to 84.2.1 for security fixes; the
+  remaining dependency versions retain the validated 1.0 baseline.
+- Survey saves now stage CSV, raw scan data and generated images, restore the
+  previous file set on write errors, and recover interrupted saves on reopening.
+  Preferences and AP Memory also use atomic single-file replacement.
+- Preserved case-sensitive SSID identity across relevance, quality, live maps
+  and PDF reports, including live-preview cache keys.
+- Fixed `netsh` fallback parsing for English, Italian, French and Spanish,
+  explicit 6 GHz bands and multiple adapter connection states. Added bounded
+  command waits and distinct translated failure/timeout messages.
+- Clear the previous floor plan when the newly opened survey's plan is missing.
+- Discard live-render results from previous sessions/options, snapshot render
+  inputs and wait for thread completion before enabling another render or exit.
+- Preserve multiline CSV fields whose continuation lines begin with `#`.
+- Size AP coverage controls using polished widget/font metrics.
+
 ## v1.0.0 - 2026-05-18
 
 Stable public source release for the current Qt workflow. Windows executable

@@ -64,7 +64,10 @@ class WorkspaceSettingsMixin:
         if mode == self.ui_scale_mode:
             return
 
-        if self.scan_in_progress or self.live_rendering:
+        if self.scan_in_progress or self.live_rendering or any(
+            thread is not None and thread.isRunning()
+            for thread in (self.scan_thread, self.live_thread)
+        ):
             QMessageBox.warning(self, self.tr("warning"), self.tr("restart_blocked_busy"))
             return
         if not self.confirm_ui_scale_restart(mode):

@@ -8,6 +8,7 @@ changing appearance or workspace ergonomics does not dirty the active survey.
 import json
 import os
 from pathlib import Path
+from app_core.file_io import atomic_write_text
 
 
 APP_SETTINGS_DIR = "WifiHeatmap"
@@ -50,9 +51,8 @@ def save_app_settings(settings):
     path = get_settings_path()
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(
+        atomic_write_text(path,
             json.dumps(settings, indent=2, ensure_ascii=False, sort_keys=True),
-            encoding="utf-8",
         )
     except OSError:
         return False

@@ -3,6 +3,8 @@
 LANGUAGE_LABEL = "English"
 
 TRANSLATIONS = {
+    "wifi_scan_timeout": "The Wi-Fi scan timed out. Check your adapter and try again.",
+    "wifi_scan_failed": "The Wi-Fi scanner failed. Check the adapter, Windows permissions and the application log.",
     "app_title": "Wi-Fi RF Survey Analyzer",
     "copyright": "© 2026 Davide Marchi",
     "loading_app": "Loading components...",

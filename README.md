@@ -91,6 +91,12 @@ The CSV stores aggregated measurement-point data. The linked `.scan` sidecar is
 part of the current survey format and preserves the raw scan samples used to
 build those measurements.
 
+Saving prepares the CSV, raw data and any generated images before replacing
+the existing files. Failed saves restore the previous file set. If the app is
+interrupted during replacement, reopening the CSV recovers the pending save.
+Files named `.<survey.csv>.save.*` support locking/recovery; keep pending
+recovery files beside the survey until it has reopened successfully.
+
 If a new survey is saved without replacing the generated blank plan, the app
 also writes a same-name PNG beside the CSV, for example `survey.csv` and
 `survey.png`. If that generated PNG is later replaced by a real floor plan and
@@ -110,6 +116,10 @@ fields.
 The scanner uses `lswifi` when available and falls back to Windows `netsh`.
 Each point can run multiple scan attempts to reduce partial scan results and
 beacon timing artifacts.
+
+The `netsh` fallback reads English, Italian, French and Spanish field labels,
+preserves explicit band information, and reports command failures or timeouts.
+SSID matching is case-sensitive: `Office` and `office` remain separate networks.
 
 The data model supports 2.4 GHz, 5 GHz, and 6 GHz observations. When explicit
 band/frequency data is unavailable, the app uses conservative channel-based

@@ -1861,7 +1861,7 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(window.relevant_ssids, {"MAIN", "guest"})
             self.assertEqual(window.known_ssids, {"Old", "MAIN", "guest"})
             self.assertEqual(json.loads(session.metadata[qt_app_module.RELEVANT_SSIDS_METADATA_KEY]), ["MAIN", "guest"])
-            self.assertEqual([row["is_relevant"] for row in session.rows], ["1", "1", "0"])
+            self.assertEqual([row["is_relevant"] for row in session.rows], ["1", "0", "0"])
             self.assertTrue(session.dirty)
         finally:
             window.deleteLater()

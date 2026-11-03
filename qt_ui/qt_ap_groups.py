@@ -1318,6 +1318,11 @@ class MetadataDialog(QDialog):
         self.setStyleSheet(manager.styleSheet())
         self.build_ui()
 
+        self.ensurePolished()
+        for control in (self.coverage_scope_combo, self.coverage_auto_check, self.coverage_radius_spin):
+            control.ensurePolished()
+            control.setMinimumWidth(max(control.minimumWidth(), control.sizeHint().width()))
+
     def initial_selected_channels_by_band(self):
         selected = {band: set() for band, _label in EXPECTED_BAND_OPTIONS}
         expected_bands = parse_expected_bands(self.metadata.get("expected_bands", ""))

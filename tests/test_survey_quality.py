@@ -11,7 +11,7 @@ class QualityTests(unittest.TestCase):
         quality = evaluate_point_quality([row], relevant_ssids={"MAIN", "GUEST"})
 
         self.assertEqual(quality["p1"]["status"], QUALITY_MISSING_RELEVANT)
-        self.assertEqual(quality["p1"]["missing_relevant"], ["guest", "main"])
+        self.assertEqual(quality["p1"]["missing_relevant"], ["GUEST", "MAIN"])
 
     def test_quality_marks_missing_peer_relevant_network(self):
         rows = [build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -55, 1)]
@@ -19,10 +19,10 @@ class QualityTests(unittest.TestCase):
         quality = evaluate_point_quality(rows, relevant_ssids={"MAIN", "GUEST"})
 
         self.assertEqual(quality["p1"]["status"], QUALITY_MISSING_RELEVANT)
-        self.assertEqual(quality["p1"]["missing_relevant"], ["guest"])
+        self.assertEqual(quality["p1"]["missing_relevant"], ["GUEST"])
         self.assertEqual(
             [(item["ssid"], item["status"]) for item in quality["p1"]["breakdown"]],
-            [("guest", QUALITY_MISSING_RELEVANT), ("main", QUALITY_GOOD)],
+            [("GUEST", QUALITY_MISSING_RELEVANT), ("MAIN", QUALITY_GOOD)],
         )
 
     def test_quality_treats_explicit_empty_point_scope_as_no_relevant_expected(self):
@@ -117,9 +117,9 @@ class QualityTests(unittest.TestCase):
         quality = evaluate_point_quality([row], relevant_ssids={"MAIN", "GUEST"})
 
         self.assertEqual(quality["p1"]["status"], QUALITY_MISSING_RELEVANT)
-        self.assertEqual(quality["p1"]["missing_relevant"], ["guest"])
-        self.assertEqual(quality["p1"]["breakdown"][0]["ssid"], "guest")
-        self.assertEqual(quality["p1"]["breakdown"][1]["ssid"], "main")
+        self.assertEqual(quality["p1"]["missing_relevant"], ["GUEST"])
+        self.assertEqual(quality["p1"]["breakdown"][0]["ssid"], "GUEST")
+        self.assertEqual(quality["p1"]["breakdown"][1]["ssid"], "MAIN")
         self.assertEqual(quality["p1"]["breakdown"][1]["status"], QUALITY_LOW_CONFIDENCE)
 
     def test_dashboard_confidence_uses_dominant_candidates(self):
@@ -157,13 +157,13 @@ class QualityTests(unittest.TestCase):
 
         self.assertEqual(
             get_effective_relevant_ssids(FakeQualityApp([flagged_row, unflagged_row])),
-            {"main"},
+            {"MAIN"},
         )
         self.assertEqual(
             get_effective_relevant_ssids(
                 FakeQualityApp([flagged_row, unflagged_row], relevant_ssids={"GUEST"})
             ),
-            {"guest"},
+            {"GUEST"},
         )
 
     def test_quality_relevant_ssids_by_point_limits_auto_local_scope_to_usable_evidence(self):
@@ -191,8 +191,8 @@ class QualityTests(unittest.TestCase):
             relevant_ssids_by_point=relevant_by_point,
         )
 
-        self.assertEqual(relevant_by_point["p1"], {"main", "local"})
-        self.assertEqual(relevant_by_point["p2"], {"main"})
+        self.assertEqual(relevant_by_point["p1"], {"MAIN", "LOCAL"})
+        self.assertEqual(relevant_by_point["p2"], {"MAIN"})
         self.assertEqual(quality["p2"]["status"], QUALITY_GOOD)
         self.assertEqual(
             format_relevant_ssids(
@@ -236,7 +236,7 @@ class QualityTests(unittest.TestCase):
 
         relevant_by_point = build_quality_relevant_ssids_by_point(app, groups, get_effective_relevant_ssids(app))
 
-        self.assertEqual(relevant_by_point["p1"], {"local"})
+        self.assertEqual(relevant_by_point["p1"], {"LOCAL"})
         self.assertEqual(relevant_by_point["p2"], set())
 
     def test_quality_relevant_ssids_by_point_estimates_auto_local_radius_from_good_evidence(self):
@@ -270,8 +270,8 @@ class QualityTests(unittest.TestCase):
             relevant_ssids_by_point=relevant_by_point,
         )
 
-        self.assertEqual(relevant_by_point["p1"], {"local"})
-        self.assertEqual(relevant_by_point["p2"], {"local"})
+        self.assertEqual(relevant_by_point["p1"], {"LOCAL"})
+        self.assertEqual(relevant_by_point["p2"], {"LOCAL"})
         self.assertEqual(relevant_by_point["p3"], set())
         self.assertEqual(quality["p2"]["status"], QUALITY_LOW_CONFIDENCE)
         self.assertEqual(quality["p3"]["status"], QUALITY_GOOD)
@@ -311,10 +311,10 @@ class QualityTests(unittest.TestCase):
             relevant_ssids_by_point=relevant_by_point,
         )
 
-        self.assertEqual(relevant_by_point["p2"], {"main", "local"})
-        self.assertEqual(relevant_by_point["p3"], {"main"})
+        self.assertEqual(relevant_by_point["p2"], {"MAIN", "LOCAL"})
+        self.assertEqual(relevant_by_point["p3"], {"MAIN"})
         self.assertEqual(quality["p2"]["status"], QUALITY_MISSING_RELEVANT)
-        self.assertEqual(quality["p2"]["missing_relevant"], ["local"])
+        self.assertEqual(quality["p2"]["missing_relevant"], ["LOCAL"])
         self.assertEqual(quality["p3"]["status"], QUALITY_GOOD)
 
     def test_ap_position_quality_uses_point_scoped_relevant_ssids(self):
@@ -356,7 +356,7 @@ class QualityTests(unittest.TestCase):
             relevant_ssids_by_point=relevant_by_point,
         )
 
-        self.assertEqual(relevant_by_point["p2"], {"main"})
+        self.assertEqual(relevant_by_point["p2"], {"MAIN"})
         self.assertNotIn("p2", position_warnings)
 
     def test_ap_position_quality_excludes_local_ap_positions_outside_point_scope(self):
@@ -391,7 +391,7 @@ class QualityTests(unittest.TestCase):
             relevant_ssids_by_point=relevant_by_point,
         )
 
-        self.assertEqual(relevant_by_point["p1"], {"main"})
+        self.assertEqual(relevant_by_point["p1"], {"MAIN"})
         self.assertNotIn("p1", position_warnings)
 
     def test_quality_summary_counts_auto_ap_groups_without_position(self):
@@ -492,7 +492,7 @@ class QualityTests(unittest.TestCase):
                 "status": QUALITY_LOW_CONFIDENCE,
                 "breakdown": [
                     {
-                        "ssid": "main",
+                        "ssid": "MAIN",
                         "status": QUALITY_LOW_CONFIDENCE,
                         "message": "low_confidence",
                         "min_confidence": 0.4,
@@ -523,7 +523,7 @@ class QualityTests(unittest.TestCase):
         quality_by_point_id = {
             "p1": {
                 "status": QUALITY_GOOD,
-                "breakdown": [{"ssid": "main", "status": QUALITY_GOOD, "message": "good"}],
+                "breakdown": [{"ssid": "MAIN", "status": QUALITY_GOOD, "message": "good"}],
                 "scanner_details": {
                     "has_issue": True,
                     "issue_types": [SCANNER_DETAIL_FALLBACK_BACKEND, SCANNER_DETAIL_MISSING_CHANNEL_WIDTH],
@@ -577,7 +577,7 @@ class QualityTests(unittest.TestCase):
         quality_by_point_id = {
             "p1": {
                 "status": QUALITY_GOOD,
-                "breakdown": [{"ssid": "main", "status": QUALITY_GOOD, "message": "good"}],
+                "breakdown": [{"ssid": "MAIN", "status": QUALITY_GOOD, "message": "good"}],
             }
         }
 
@@ -614,7 +614,7 @@ class QualityTests(unittest.TestCase):
         quality_by_point_id = {
             "p1": {
                 "status": QUALITY_GOOD,
-                "breakdown": [{"ssid": "main", "status": QUALITY_GOOD, "message": "good"}],
+                "breakdown": [{"ssid": "MAIN", "status": QUALITY_GOOD, "message": "good"}],
             }
         }
 
@@ -1264,8 +1264,8 @@ class QualityTests(unittest.TestCase):
             {
                 "status": QUALITY_LOW_CONFIDENCE,
                 "quality_breakdown": [
-                    {"ssid": "main", "status": QUALITY_LOW_CONFIDENCE},
-                    {"ssid": "guest", "status": QUALITY_UNSTABLE_SIGNAL},
+                    {"ssid": "MAIN", "status": QUALITY_LOW_CONFIDENCE},
+                    {"ssid": "GUEST", "status": QUALITY_UNSTABLE_SIGNAL},
                 ],
                 "scanner_detail_issue": False,
                 "ap_position_warning_count": 0,
@@ -1396,13 +1396,13 @@ class QualityTests(unittest.TestCase):
             "quality_issue": "quality issue",
             "quality_breakdown": [
                 {
-                    "ssid": "main",
+                    "ssid": "MAIN",
                     "status": QUALITY_LOW_CONFIDENCE,
                     "message": "low_confidence",
                     "min_confidence": 0.4,
                 },
                 {
-                    "ssid": "main",
+                    "ssid": "MAIN",
                     "status": QUALITY_UNSTABLE_SIGNAL,
                     "message": "unstable_signal",
                     "range_db": 14.0,
@@ -1463,7 +1463,7 @@ class QualityTests(unittest.TestCase):
         missing_row = {
             "status": QUALITY_MISSING_RELEVANT,
             "quality_breakdown": [
-                {"ssid": "guest", "status": QUALITY_MISSING_RELEVANT, "message": "missing"},
+                {"ssid": "GUEST", "status": QUALITY_MISSING_RELEVANT, "message": "missing"},
             ],
         }
         sparse_row = {

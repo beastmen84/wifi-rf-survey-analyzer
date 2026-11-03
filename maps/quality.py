@@ -403,7 +403,7 @@ def normalize_ssids(values):
 
 
 def normalize_ssid(value):
-    return str(value or "").strip().lower()
+    return str(value or "").strip()
 
 
 def is_truthy(value):

@@ -93,7 +93,7 @@ def build_signal_payload(
     color_scale_limits,
     boundary_mask_image=None,
 ):
-    rows = df[df["ssid"].str.lower() == config.ssid.lower()]
+    rows = df[df["ssid"] == config.ssid]
     rows = filter_by_band(rows, config.band)
     rows = add_ap_group_metadata(rows, config.ap_group_map, config.ap_group_roles)
     rows = rows[rows["ap_role"] != AP_ROLE_TEST]
@@ -387,7 +387,7 @@ def build_result_cache_key(df, config, bg_image, translations, boundary_mask_ima
         len(df),
         tuple(df.columns),
         stable_dataframe_fingerprint(df),
-        config.ssid.lower(),
+        config.ssid,
         config.band,
         config.map_type,
         config.interference_mode,
@@ -431,6 +431,7 @@ def stable_dataframe_fingerprint(df):
             "samples_seen",
             "samples_total",
             "scan_confidence",
+            "is_connected",
             "is_relevant",
         )
         if column in df.columns

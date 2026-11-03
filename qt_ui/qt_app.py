@@ -245,6 +245,7 @@ class WifiHeatmapQtApp(
         self.live_worker = None
         self.live_rendering = False
         self.live_dirty = False
+        self.live_generation = 0
         self.settings_menu_panel = None
         self.settings_menu_event_filter_installed = False
         self.settings_menu_suppressed_until = 0.0

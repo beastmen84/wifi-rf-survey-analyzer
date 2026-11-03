@@ -94,7 +94,7 @@ def get_channel_map_points(
     rows = rows[rows["ap_role"] != AP_ROLE_TEST]
     rows, _channel_changes = apply_ap_channel_analysis_overrides(rows, ap_group_channel_overrides)
     rows = filter_by_band(rows, band)
-    rows = rows[rows["ssid"].astype(str).str.lower() == ssid.lower()]
+    rows = rows[rows["ssid"].astype(str) == ssid]
     if ap_group_filter:
         rows = rows[rows["ap_group"] == str(ap_group_filter)]
     if rows.empty:
@@ -105,7 +105,7 @@ def get_channel_map_points(
 
 
 def get_dominant_ap_points(df, ssid, band, ap_group_map=None, ap_group_roles=None):
-    rows = df[df["ssid"].str.lower() == ssid.lower()].copy()
+    rows = df[df["ssid"] == ssid].copy()
     rows = filter_by_band(rows, band)
     rows["x"] = pd.to_numeric(rows["x"], errors="coerce")
     rows["y"] = pd.to_numeric(rows["y"], errors="coerce")
@@ -341,11 +341,11 @@ def calculate_interference_points(
 
     for (timestamp, x, y), point_rows in rows.groupby(["timestamp", "x", "y"]):
         selected_test_rows = point_rows[
-            (point_rows["ssid"].str.lower() == ssid.lower())
+            (point_rows["ssid"] == ssid)
             & (point_rows["ap_role"] == AP_ROLE_TEST)
         ]
         selected_rows = point_rows[
-            (point_rows["ssid"].str.lower() == ssid.lower())
+            (point_rows["ssid"] == ssid)
             & (point_rows["ap_role"] != AP_ROLE_TEST)
         ]
 

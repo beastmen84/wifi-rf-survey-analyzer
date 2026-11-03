@@ -1,7 +1,9 @@
 """Survey session lifecycle and workspace state updates for the Qt app."""
 
 import os
+from copy import deepcopy
 from pathlib import Path
+from app_core.file_io import SurveyFileTransaction
 
 try:
     from PySide6.QtWidgets import QMessageBox
@@ -53,6 +55,7 @@ class SurveySessionWorkflowMixin:
             log_event("qt new survey cancelled by measurement-system selection", logger_name="main")
             return False
 
+        self.invalidate_live_preview()
         self.session = SurveySession()
         self.set_session_measurement_system_metadata(self.measurement_system, mark_dirty=False)
         self.generated_floorplans_pending_delete = set()
@@ -205,15 +208,19 @@ class SurveySessionWorkflowMixin:
 
         try:
             log_event(f"qt open survey load start path={csv_file}", logger_name="main")
-            self.session = SurveySession(csv_file)
+            session = SurveySession(csv_file)
         except SurveyFormatError as exc:
             log_exception("qt open survey invalid format", exc, logger_name="main")
             self.show_survey_format_error(str(exc))
             return False
         except Exception as exc:
             log_exception("qt open survey load failed", exc, logger_name="main")
-            raise
+            QMessageBox.critical(self, self.tr("error"), str(exc))
+            return False
 
+        self.invalidate_live_preview()
+        self.session = session
+        self.floorplan_view.clear_floorplan()
         self.generated_floorplans_pending_delete = set()
         self.boundaries_files_pending_delete = set()
         self.apply_session_measurement_system(mark_dirty=False)
@@ -221,8 +228,8 @@ class SurveySessionWorkflowMixin:
         self.reset_live_option_memory()
         save_last_survey_path(csv_file)
         self.live_view.clear()
-        self.show_workspace_page()
         self.load_saved_plan()
+        self.show_workspace_page()
         self.status.showMessage(self.tr("active_survey", name=self.session_display_name()))
         log_event(
             (
@@ -251,17 +258,27 @@ class SurveySessionWorkflowMixin:
             if Path(csv_file).suffix.lower() != ".csv":
                 csv_file = f"{csv_file}.csv"
 
+        previous_metadata = deepcopy(self.session.metadata)
+        previous_csv = self.session.csv_file
+        previous_dirty = self.session.dirty
+        previous_deletes = (set(self.generated_floorplans_pending_delete),
+                            set(self.boundaries_files_pending_delete))
         try:
-            if not self.materialize_default_floorplan(csv_file):
-                return False
-            self.persist_boundaries_mask(csv_file)
+            with SurveyFileTransaction(csv_file) as transaction:
+                if not self.materialize_default_floorplan(csv_file, transaction=transaction):
+                    return False
+                self.persist_boundaries_mask(csv_file, transaction=transaction)
+                self.set_session_measurement_system_metadata(self.measurement_system, mark_dirty=False)
+                self.session.save(csv_file, transaction=transaction)
         except Exception as exc:
+            self.session.metadata = previous_metadata
+            self.session.csv_file = previous_csv
+            self.session.dirty = previous_dirty
+            self.generated_floorplans_pending_delete, self.boundaries_files_pending_delete = previous_deletes
             QMessageBox.warning(self, self.tr("warning"), str(exc))
-            log_exception("qt save survey sidecar materialization failed", exc, logger_name="main")
+            log_exception("qt save survey failed", exc, logger_name="main")
             return False
 
-        self.set_session_measurement_system_metadata(self.measurement_system, mark_dirty=False)
-        self.session.save(csv_file)
         self.cleanup_replaced_generated_floorplans()
         self.cleanup_removed_boundaries_files()
         save_last_survey_path(csv_file)
@@ -300,6 +317,11 @@ class SurveySessionWorkflowMixin:
     def closeEvent(self, event):
         if self.restart_requested:
             event.accept()
+            return
+
+        if any(thread is not None and thread.isRunning()
+               for thread in (self.scan_thread, self.live_thread)):
+            event.ignore()
             return
 
         if self.scan_in_progress:

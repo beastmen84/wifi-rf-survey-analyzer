@@ -20,6 +20,8 @@ class RelevantNetworksMixin:
     def load_session_ssid_state(self):
         self.relevant_ssids = self.load_relevant_ssids()
         self.known_ssids = self.load_known_ssids()
+        if self.session is not None and RELEVANT_SSIDS_METADATA_KEY in self.session.metadata:
+            self.update_relevant_row_flags()
 
     def load_relevant_ssids(self):
         if self.session is None:
@@ -60,10 +62,10 @@ class RelevantNetworksMixin:
         if self.session is None:
             return
 
-        relevant = {ssid.casefold() for ssid in self.relevant_ssids}
+        relevant = set(self.relevant_ssids)
         changed = False
         for row in self.session.rows:
-            is_relevant = "1" if str(row.get("ssid", "")).strip().casefold() in relevant else "0"
+            is_relevant = "1" if str(row.get("ssid", "")).strip() in relevant else "0"
             if row.get("is_relevant") != is_relevant:
                 row["is_relevant"] = is_relevant
                 changed = True

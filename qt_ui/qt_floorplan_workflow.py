@@ -78,7 +78,7 @@ class FloorplanWorkflowMixin:
         QTimer.singleShot(0, self.floorplan_view.fit_to_view)
         return True
 
-    def materialize_default_floorplan(self, csv_file):
+    def materialize_default_floorplan(self, csv_file, transaction=None):
         if self.session is None:
             return True
 
@@ -97,7 +97,7 @@ class FloorplanWorkflowMixin:
             if response != QMessageBox.StandardButton.Yes:
                 return False
 
-        write_default_floorplan(image_file)
+        write_default_floorplan(transaction.stage_file(image_file) if transaction else image_file)
         self.session.metadata["map_file"] = os.path.abspath(image_file)
         self.session.metadata.pop(DEFAULT_FLOORPLAN_METADATA_KEY, None)
         self.session.metadata[GENERATED_FLOORPLAN_METADATA_KEY] = "1"
@@ -107,10 +107,10 @@ class FloorplanWorkflowMixin:
         if self.session is None:
             return
 
+        self.floorplan_view.clear_floorplan()
+        self.live_view.clear()
         map_file = self.session.metadata.get("map_file", "")
         if not map_file:
-            self.floorplan_view.clear_floorplan()
-            self.live_view.clear()
             return
 
         if os.path.exists(map_file):
@@ -207,14 +207,15 @@ class FloorplanWorkflowMixin:
             and self.floorplan_view.has_boundaries_mask()
         )
 
-    def persist_boundaries_mask(self, csv_file):
+    def persist_boundaries_mask(self, csv_file, transaction=None):
         if self.session is None:
             return True
 
         previous_file = self.current_boundaries_file()
         if self.floorplan_view.has_boundaries_mask():
             boundaries_file = build_boundaries_file_path(csv_file)
-            if not self.floorplan_view.save_boundaries_mask(boundaries_file):
+            output_file = transaction.stage_file(boundaries_file) if transaction else boundaries_file
+            if not self.floorplan_view.save_boundaries_mask(str(output_file)):
                 raise ValueError(self.tr("boundaries_save_failed", path=boundaries_file))
             self.session.metadata[BOUNDARIES_FILE_METADATA_KEY] = os.path.basename(boundaries_file)
             if previous_file and os.path.abspath(previous_file) != os.path.abspath(boundaries_file):

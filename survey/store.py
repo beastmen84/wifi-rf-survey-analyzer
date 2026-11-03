@@ -6,6 +6,9 @@ import os
 from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
+from itertools import chain
+
+from app_core.file_io import SurveyFileTransaction, recover_survey_save
 
 from app_core.constants import (
     APP_ID,
@@ -52,7 +55,8 @@ class SurveySession:
         self.raw_scan_rows = []
         self.dirty = False
 
-        if csv_file and os.path.exists(csv_file):
+        if csv_file:
+            recover_survey_save(csv_file)
             validate_survey_file(csv_file)
             loaded_metadata = read_survey_metadata(csv_file)
             self.metadata.update(loaded_metadata)
@@ -90,7 +94,7 @@ class SurveySession:
         timestamp = datetime.now().isoformat(timespec="seconds")
         point_id = build_new_point_id()
         relevant_ssids = {
-            str(ssid).lower()
+            str(ssid)
             for ssid in (relevant_ssids or [])
             if str(ssid).strip()
         }
@@ -117,7 +121,7 @@ class SurveySession:
                 "band": get_row_band(net),
                 "radio": net["radio"],
                 "is_connected": bool_flag(net.get("is_connected")),
-                "is_relevant": "1" if str(net.get("ssid", "")).lower() in relevant_ssids else "0"
+                "is_relevant": "1" if str(net.get("ssid", "")) in relevant_ssids else "0"
             }
             row.update(copy_scan_detail_fields(net))
             self.rows.append(row)
@@ -304,26 +308,42 @@ class SurveySession:
 
         return pd.DataFrame(self.rows, columns=SURVEY_FIELDNAMES)
 
-    def save(self, csv_file=None):
-        if csv_file:
-            self.csv_file = csv_file
-
-        if not self.csv_file:
+    def save(self, csv_file=None, transaction=None):
+        destination = csv_file or self.csv_file
+        if not destination:
             raise ValueError("Percorso CSV non impostato")
 
-        self.metadata.update({
+        metadata = dict(self.metadata)
+        metadata.update({
             "app": APP_ID,
             "schema_version": SURVEY_SCHEMA_VERSION,
         })
-        self.metadata[MEASUREMENT_SYSTEM_METADATA_KEY] = normalize_survey_measurement_system(self.metadata)
-        self.metadata[RAW_DATA_FILE_METADATA_KEY] = os.path.basename(
-            str(self.metadata.get(RAW_DATA_FILE_METADATA_KEY, "")).strip()
-            or build_default_raw_data_filename(self.csv_file)
+        metadata[MEASUREMENT_SYSTEM_METADATA_KEY] = normalize_survey_measurement_system(metadata)
+        if self.csv_file and Path(destination).absolute() != Path(self.csv_file).absolute():
+            metadata[RAW_DATA_FILE_METADATA_KEY] = build_default_raw_data_filename(destination)
+        metadata[RAW_DATA_FILE_METADATA_KEY] = os.path.basename(
+            str(metadata.get(RAW_DATA_FILE_METADATA_KEY, "")).strip()
+            or build_default_raw_data_filename(destination)
         )
-        write_survey_file(self.csv_file, self.metadata, self.rows)
-        write_raw_scan_file(self.csv_file, self.raw_scan_rows, self.metadata)
+        if transaction is None:
+            with SurveyFileTransaction(destination) as owned_transaction:
+                self._stage_save(destination, metadata, owned_transaction)
+                owned_transaction.commit()
+        else:
+            self._stage_save(destination, metadata, transaction)
+            transaction.commit()
+        self.csv_file = destination
+        self.metadata = metadata
         self.dirty = False
         return self.csv_file
+
+    def _stage_save(self, destination, metadata, transaction):
+        if Path(destination).absolute() != transaction.csv_file:
+            raise ValueError("Survey transaction belongs to a different CSV")
+        csv_stage = transaction.stage_file(destination)
+        raw_stage = transaction.stage_file(build_raw_scan_file_path(destination, metadata))
+        write_survey_file(csv_stage, metadata, self.rows)
+        write_raw_scan_rows(raw_stage, self.raw_scan_rows)
 
 
 def build_default_metadata(csv_file=None):
@@ -431,13 +451,8 @@ def read_csv_header(csv_file):
         raise SurveyFormatError("missing_survey_file")
 
     with open(csv_file, "r", newline="", encoding="utf-8") as f:
-        data_lines = [line for line in f if not line.lstrip().startswith("#")]
-
-    if not data_lines:
-        raise SurveyFormatError("invalid_survey_format")
-
-    reader = csv.DictReader(data_lines)
-    return reader.fieldnames or []
+        reader = csv.DictReader(iter_csv_data_lines(f))
+        return reader.fieldnames or []
 
 
 def read_survey_metadata(csv_file):
@@ -469,13 +484,15 @@ def read_survey_rows(csv_file):
         return []
 
     with open(csv_file, "r", newline="", encoding="utf-8") as f:
-        data_lines = [line for line in f if not line.lstrip().startswith("#")]
+        return list(csv.DictReader(iter_csv_data_lines(f)))
 
-    if not data_lines:
-        return []
 
-    reader = csv.DictReader(data_lines)
-    return list(reader)
+def iter_csv_data_lines(stream):
+    """Skip only the metadata prefix; quoted CSV fields may contain '#'."""
+    for line in stream:
+        if line.strip() and not line.lstrip().startswith("#"):
+            return chain((line,), stream)
+    return iter(())
 
 
 def read_raw_scan_rows(csv_file):
@@ -501,6 +518,10 @@ def write_survey_file(csv_file, metadata, rows):
 
 def write_raw_scan_file(csv_file, rows, metadata=None):
     raw_scan_file = build_raw_scan_file_path(csv_file, metadata)
+    write_raw_scan_rows(raw_scan_file, rows)
+
+
+def write_raw_scan_rows(raw_scan_file, rows):
     with open(raw_scan_file, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=RAW_SCAN_FIELDNAMES, extrasaction="ignore")
         writer.writeheader()

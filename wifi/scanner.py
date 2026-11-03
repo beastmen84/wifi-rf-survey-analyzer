@@ -1,6 +1,8 @@
 """Wi-Fi scan backends and normalization of observed networks."""
 
 import re
+import os
+import unicodedata
 import subprocess
 import sys
 import time
@@ -11,6 +13,57 @@ from app_core.logging import log_event, log_exception
 from app_core.constants import SCAN_DETAIL_FIELDNAMES, WIFI_SCAN_ATTEMPTS, WIFI_SCAN_DELAY_SECONDS
 from wifi.signal import dbm_to_percent, percent_to_dbm
 from wifi.band import get_row_band, infer_band_from_channel, infer_band_from_frequency_mhz, normalize_band, normalize_frequency_mhz
+
+NETSH_SCAN_TIMEOUT_SECONDS = 15
+
+
+class WifiScanError(RuntimeError):
+    def __init__(self, message_key):
+        self.message_key = message_key
+        super().__init__(message_key)
+
+
+def netsh_command(*arguments):
+    root = os.environ.get("SystemRoot", r"C:\Windows")
+    executable = os.path.join(root, "System32", "netsh.exe") if sys.platform.startswith("win") else "netsh"
+    return [executable, "wlan", "show", *arguments]
+
+
+def netsh_field(line):
+    """Normalize field labels, never the SSID value (EN/IT/FR/ES)."""
+    match = re.match(r"^([^:]+?)\s*:\s*(.*)$", line.strip())
+    if not match:
+        return "", ""
+    key = "".join(c for c in unicodedata.normalize("NFKD", match[1].lower())
+                  if not unicodedata.combining(c))
+    key = re.sub(r"\s+", " ", key).strip()
+    labels = {
+        "nome": "name", "nom": "name", "nombre": "name",
+        "stato": "state", "etat": "state", "estado": "state",
+        "segnale": "signal", "senal": "signal",
+        "canale": "channel", "canal": "channel",
+        "banda": "band", "bande": "band",
+        "frequenza": "frequency", "frequence": "frequency", "frecuencia": "frequency",
+        "tipo frequenza radio": "radio type", "tipo di radio": "radio type",
+        "type de radio": "radio type", "tipo de radio": "radio type",
+        "autenticazione": "authentication", "authentification": "authentication",
+        "autenticacion": "authentication",
+        "crittografia": "encryption", "chiffrement": "encryption", "cifrado": "encryption",
+    }
+    return labels.get(key, key), match[2].strip()
+
+
+def decode_netsh_output(output):
+    if isinstance(output, str):
+        return output
+    output = output or b""
+    if output.startswith((b"\xff\xfe", b"\xfe\xff")):
+        return output.decode("utf-16", errors="replace")
+    try:
+        return output.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        # Console applications on Windows commonly return the OEM code page.
+        return output.decode("oem" if sys.platform.startswith("win") else "cp850", errors="replace")
 
 
 def scan_wifi(backend="auto", show_errors=True):
@@ -70,16 +123,13 @@ def get_connected_ssid_netsh():
 def get_connected_network_netsh():
     try:
         result = subprocess.run(
-            ["netsh", "wlan", "show", "interfaces"],
+            netsh_command("interfaces"),
             capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="ignore",
             timeout=5,
             **hidden_subprocess_kwargs(),
         )
 
-        return parse_netsh_interfaces_output(result.stdout)
+        return parse_netsh_interfaces_output(result.stdout) if getattr(result, "returncode", 0) == 0 else {}
 
     except Exception:
         return None
@@ -88,17 +138,27 @@ def get_connected_network_netsh():
 
 
 def parse_netsh_interfaces_output(output):
+    interfaces = []
     fields = {}
 
-    for line in str(output or "").splitlines():
-        match = re.match(r"^([^:]+?)\s+:\s+(.*)$", line.strip())
-        if not match:
-            continue
-        key = re.sub(r"\s+", " ", match.group(1).strip()).lower()
-        fields[key] = match.group(2).strip()
+    for line in decode_netsh_output(output).splitlines():
+        key, value = netsh_field(line)
+        if key == "name" and fields:
+            interfaces.append(fields)
+            fields = {}
+        if key:
+            fields[key] = value
+    interfaces.append(fields)
+    for fields in interfaces:
+        connected = parse_netsh_interface_fields(fields)
+        if connected:
+            return connected
+    return {}
 
+
+def parse_netsh_interface_fields(fields):
     state = fields.get("state", "")
-    if state and state.lower() != "connected":
+    if state and state.casefold() not in {"connected", "connesso", "connessa", "connecté", "connecte", "conectado"}:
         return {}
 
     ssid = clean_scan_text(fields.get("ssid", ""))
@@ -138,13 +198,13 @@ def scan_wifi_netsh(show_errors=True):
 
         for attempt in range(WIFI_SCAN_ATTEMPTS):
             result = subprocess.run(
-                ["netsh", "wlan", "show", "networks", "mode=bssid"],
+                netsh_command("networks", "mode=bssid"),
                 capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="ignore",
+                timeout=NETSH_SCAN_TIMEOUT_SECONDS,
                 **hidden_subprocess_kwargs(),
             )
+            if getattr(result, "returncode", 0) != 0:
+                raise WifiScanError("wifi_scan_failed")
             connected = get_connected_network_netsh()
             networks = mark_connected_networks(parse_netsh_output(result.stdout), connected)
             scans.extend(annotate_raw_scan_samples(networks, attempt + 1, "netsh"))
@@ -159,10 +219,15 @@ def scan_wifi_netsh(show_errors=True):
         )
         return networks
 
+    except subprocess.TimeoutExpired as exc:
+        log_exception("scan_wifi_netsh timed out", exc, logger_name="wifi_scanner")
+        raise WifiScanError("wifi_scan_timeout") from exc
     except Exception as e:
         log_exception("scan_wifi_netsh failed", e, logger_name="wifi_scanner")
         report_scan_error(show_errors, "Errore scan Wi-Fi", e)
-        return []
+        if isinstance(e, WifiScanError):
+            raise
+        raise WifiScanError("wifi_scan_failed") from e
 
 
 def scan_wifi_lswifi(show_errors=True):
@@ -652,6 +717,8 @@ def parse_netsh_output(output):
     current_radio = None
     current_auth = None
     current_encryption = None
+    current_band = ""
+    current_frequency = ""
 
     def append_current_network():
         if current_ssid and current_bssid and current_signal is not None:
@@ -663,14 +730,15 @@ def parse_netsh_output(output):
                 "signal_dbm": percent_to_dbm(current_signal),
                 "channel": current_channel,
                 "channel_width_mhz": "",
-                "band": infer_band_from_channel(current_channel),
+                "band": current_band or infer_band_from_frequency_mhz(current_frequency) or infer_band_from_channel(current_channel),
+                "frequency_mhz": current_frequency,
                 "radio": current_radio,
                 "security": security,
                 "auth": current_auth or "",
                 "encryption": current_encryption or "",
             })
 
-    for line in output.splitlines():
+    for line in decode_netsh_output(output).splitlines():
         line = line.strip()
 
         ssid_match = re.match(r"SSID\s+\d+\s+:\s+(.*)", line)
@@ -683,6 +751,8 @@ def parse_netsh_output(output):
             current_radio = None
             current_auth = None
             current_encryption = None
+            current_band = ""
+            current_frequency = ""
             continue
 
         bssid_match = re.match(r"BSSID\s+\d+\s+:\s+(.*)", line)
@@ -692,32 +762,26 @@ def parse_netsh_output(output):
             current_signal = None
             current_channel = None
             current_radio = None
+            current_band = ""
+            current_frequency = ""
             continue
 
-        auth_match = re.match(r"Authentication\s+:\s+(.*)", line)
-        if auth_match:
-            current_auth = auth_match.group(1).strip()
-            continue
-
-        encryption_match = re.match(r"Encryption\s+:\s+(.*)", line)
-        if encryption_match:
-            current_encryption = encryption_match.group(1).strip()
-            continue
-
-        signal_match = re.match(r"Signal\s+:\s+(\d+)%", line)
-        if signal_match:
-            current_signal = int(signal_match.group(1))
-            continue
-
-        channel_match = re.match(r"Channel\s+:\s+(\d+)", line)
-        if channel_match:
-            current_channel = channel_match.group(1)
-            continue
-
-        radio_match = re.match(r"Radio type\s+:\s+(.*)", line)
-        if radio_match:
-            current_radio = radio_match.group(1).strip()
-            continue
+        key, value = netsh_field(line)
+        if key == "authentication":
+            current_auth = value
+        elif key == "encryption":
+            current_encryption = value
+        elif key == "signal":
+            signal = parse_percent(value)
+            current_signal = signal if signal != "" else None
+        elif key == "channel":
+            current_channel = value
+        elif key == "radio type":
+            current_radio = value
+        elif key == "band":
+            current_band = normalize_band(value)
+        elif key in {"frequency", "frequency mhz"}:
+            current_frequency = format_frequency_mhz(value)
 
     append_current_network()
 
