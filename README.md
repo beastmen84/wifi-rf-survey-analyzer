@@ -274,23 +274,28 @@ docs/                   architecture notes
 
 ## Installation
 
-Create and activate a virtual environment:
+The development environment is validated with **CPython 3.15.2 on Windows x64**.
+Create and activate a fresh Python 3.15 virtual environment.
 
-```bash
-python -m venv .venv
-```
+Windows (PowerShell):
 
-Windows:
-
-```bash
-.venv\Scripts\activate
+```powershell
+py -3.15 -m venv .venv
+.\.venv\Scripts\Activate.ps1
 ```
 
 Linux / macOS:
 
 ```bash
+python3.15 -m venv .venv
 source .venv/bin/activate
 ```
+
+When upgrading an existing installation, use a separate environment folder
+(for example `.venv315`) and select its interpreter in your IDE. Reinstall the
+dependencies there; retain the previous environment if you need a fallback.
+Open a new terminal after changing the IDE interpreter so it activates the
+selected environment.
 
 Install runtime dependencies:
 

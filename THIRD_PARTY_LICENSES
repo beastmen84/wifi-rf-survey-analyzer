@@ -5,7 +5,7 @@ This file summarizes third-party projects used by Wi-Fi RF Survey Analyzer.
 It is an attribution and compliance aid for source and packaged releases; each
 third-party project remains governed by its own upstream license terms.
 
-Snapshot date: 2026-11-03 (security pin update; other dependencies unchanged)
+Snapshot date: 2026-11-03 (CPython 3.15 environment migration)
 Project license: Mozilla Public License 2.0 (MPL-2.0)
 Project copyright: (c) 2026 Davide Marchi
 
@@ -13,8 +13,9 @@ Project copyright: (c) 2026 Davide Marchi
 Direct Runtime Dependencies
 ---------------------------
 
-PySide6 / PySide6_Addons / PySide6_Essentials / shiboken6
-Version observed: 6.11.1
+PySide6 / PySide6_Addons / PySide6_Essentials / PySide6_Pdf /
+PySide6_WebEngine / shiboken6
+Version observed: 6.12.0 (Pdf/WebEngine distribution builds: 6.12.0.140)
 License observed: LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only, or a
 commercial Qt license.
 Project: https://pyside.org/
@@ -23,23 +24,23 @@ Qt/PySide runtime libraries as separate files. This project does not modify
 Qt/PySide source code. QtPdf is used to rasterize PDF floor plans.
 
 matplotlib
-Version observed: 3.10.9
+Version observed: 3.11.2
 License observed: Matplotlib license, based on the Python Software Foundation
 license and BSD-compatible terms.
 Project: https://matplotlib.org/
 
 numpy
-Version observed: 2.4.5
+Version observed: 2.5.4
 License observed: BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0.
 Project: https://numpy.org/
 
 scipy
-Version observed: 1.17.1
+Version observed: 1.18.1
 License observed: BSD-style license.
 Project: https://scipy.org/
 
 pandas
-Version observed: 3.0.3
+Version observed: 3.1.0
 License observed: BSD-3-Clause.
 Project: https://pandas.pydata.org/
 
@@ -49,7 +50,7 @@ License observed: MIT-CMU.
 Project: https://python-pillow.github.io/
 
 lswifi
-Version observed: 0.1.66
+Version observed: 0.5.0
 License observed: BSD-3-Clause.
 Project: https://github.com/joshschmelzle/lswifi
 
@@ -58,19 +59,20 @@ Development, Test, And Packaging Dependencies
 ---------------------------------------------
 
 pytest
+Version observed: 9.2.0
 License observed: MIT.
 Project: https://pytest.org/
 Notes: Used for automated tests; not required by normal application users.
 
 PyInstaller
-Version observed: 6.20.0
+Version observed: 6.22.3
 License observed: GPLv2-or-later with a special exception allowing bundled
 applications to be distributed under different terms.
 Project: https://pyinstaller.org/
 Notes: Used to build the Windows onedir distribution.
 
 pyinstaller-hooks-contrib
-Version observed: 2026.5
+Version observed: 2026.9
 Project: https://github.com/pyinstaller/pyinstaller-hooks-contrib
 Notes: PyInstaller hook collection used during packaging.
 
@@ -90,7 +92,7 @@ License observed: BSD-3-Clause.
 Project: https://github.com/enthought/pywin32-ctypes
 
 packaging
-Version observed: 26.2
+Version observed: 26.3
 License observed: Apache-2.0 OR BSD-2-Clause.
 Project: https://packaging.pypa.io/
 

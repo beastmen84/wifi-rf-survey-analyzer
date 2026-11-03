@@ -25,6 +25,10 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ### Fixed / Changed
 
+- Migrated the development environment to CPython 3.15.2 with PySide6 6.12.0,
+  NumPy 2.5.4, SciPy 1.18.1, pandas 3.1.0, Matplotlib 3.11.2 and lswifi 0.5.0.
+  Updated pytest/PyInstaller and the complete pinned dependency snapshot;
+  refreshed installation instructions and third-party version notices.
 - Extracted Local Area relevance rules so Survey Quality and recommendation
   analysis apply the same coverage scope.
 - Replaced the original advisor-overlay draft with the implemented final-tab

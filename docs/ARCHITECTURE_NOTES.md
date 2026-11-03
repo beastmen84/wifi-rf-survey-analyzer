@@ -22,6 +22,15 @@ interpolated colors.
 
 Current status:
 
+- the user-authorized interpreter migration targets CPython 3.15.2 in a new
+  `.venv315`; `.venv` remains the original Python 3.14.5 fallback. Runtime/dev
+  pins and the Windows x64 lock now reflect the compatible Qt/scientific/scanner
+  stack. No survey schema or application logic change was needed;
+- Python 3.15 validation covers the complete native/offscreen suite, actual
+  launcher startup/workspace construction, four-language PDF/HTML exports and
+  live lswifi/netsh scans. The known native Qt/COM 0x8001010d test diagnostic
+  remains an open investigation; native tests complete successfully. No new
+  packaged executable is produced by this migration;
 - the first local recommendation/report workflow is implemented for the 1.1.0
   feature line: a third workspace tab, pure `advisor/` rules, background snapshot
   workers, evidence links and shared PDF/HTML presentation. See
@@ -30,9 +39,10 @@ Current status:
   filters. Objectives belong to the current app session and each exported
   snapshot; they do not change the CSV/schema or AP Memory. The advisor never
   applies AP changes and makes no network/AI calls;
-- the November maintenance pass addresses the audit findings without cutting a
-  new release: Pillow 13.0.0 and setuptools 84.2.1 are the only dependency
-  upgrades; broad scientific/Qt/tooling upgrades remain a separate task;
+- the initial November audit maintenance pass updated Pillow/setuptools only.
+  The subsequent Python 3.15 migration is a separate feature-line environment
+  change; do not include its broad dependency updates when preparing an older
+  1.0.x patch from the stable branch;
 - survey persistence uses `app_core/file_io.py` to stage related files, retain
   backups and record a prepared/committed journal beside the CSV. Failed
   commits roll back; interrupted prepared commits roll back before reading a
