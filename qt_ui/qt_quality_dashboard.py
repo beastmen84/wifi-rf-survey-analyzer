@@ -68,6 +68,7 @@ from maps.quality import (
     normalize_ssid,
     parse_float,
 )
+from wifi.evidence import scan_confidence
 from qt_ui.scaling import widget_px
 from qt_ui.qt_theme import QT_THEMES
 from qt_ui.qt_windowing import SKIP_CENTERING_PROPERTY
@@ -1478,6 +1479,8 @@ def build_dashboard_rows(
         point_relevant_ssids = relevant_ssids_by_point.get(point_id, relevant_ssids)
         infer_relevant_labels = point_id not in relevant_ssids_by_point
         quality = quality_by_point_id.get(point.get("point_id", ""), {})
+        if point.get("status") == "empty":
+            quality = {"status": "EMPTY_SCAN"}
         status = quality.get("status", QUALITY_SPARSE_DATA)
         ap_position = ap_position_by_point.get(point_key(point))
         ap_position_issue = format_ap_position_issue(app, ap_position)
@@ -1539,7 +1542,7 @@ def build_dashboard_rows(
                 infer_when_empty=infer_relevant_labels,
                 allow_row_flags=infer_relevant_labels,
             ),
-            "best": f"{point['best_signal_dbm']:.1f}",
+            "best": f"{point['best_signal_dbm']:.1f}" if point.get("best_signal_dbm") is not None else "—",
             "row_count": point["row_count"],
             "ssids": format_relevant_ssids(
                 app.session.rows,
@@ -1644,7 +1647,7 @@ def build_connected_client_candidates(
 
         candidates.append({
             "row": row,
-            "ssid": str(row.get("ssid", "") or "").strip() or ssid_key,
+            "ssid": str(row.get("ssid", "") or "") or ssid_key,
             "ssid_key": ssid_key,
             "bssid": bssid,
             "group_id": group_id,
@@ -2794,9 +2797,7 @@ def format_point_confidence(rows, point_id, relevant_ssids, infer_when_empty=Tru
         confidence_rows = get_dominant_candidate_rows(point_rows)
 
     for row in confidence_rows:
-        confidence = parse_float(row.get("scan_confidence"))
-        if confidence is not None:
-            values.append(confidence)
+        values.append(scan_confidence(row))
 
     if not values:
         return "-"
@@ -2818,7 +2819,7 @@ def format_relevant_ssids(rows, point_id, relevant_ssids, infer_when_empty=True,
         if row.get("point_id") != point_id:
             continue
 
-        ssid = str(row.get("ssid") or "").strip()
+        ssid = str(row.get("ssid") or "")
         ssid_key = normalize_ssid(ssid)
         if not ssid_key:
             continue

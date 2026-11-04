@@ -1,5 +1,7 @@
 """Shared constants for survey files, scan attempts, and map rendering."""
 
+from wifi.evidence import PROVENANCE_FIELDS
+
 APP_ID = "wifi_heatmap"
 SURVEY_SCHEMA_VERSION = "2"
 RAW_DATA_FILE_METADATA_KEY = "raw_data_file"
@@ -62,6 +64,8 @@ SURVEY_FIELDNAMES = [
     "is_relevant",
 ]
 REQUIRED_SURVEY_FIELDNAMES = list(SURVEY_FIELDNAMES)
+# Optional extension: old schema-2 surveys remain readable with unknown provenance.
+SURVEY_FIELDNAMES += [field for field in PROVENANCE_FIELDS if field not in SURVEY_FIELDNAMES]
 
 RAW_SCAN_FIELDNAMES = [
     "point_id",
@@ -82,3 +86,4 @@ RAW_SCAN_FIELDNAMES = [
     "backend"
 ]
 REQUIRED_RAW_SCAN_FIELDNAMES = list(RAW_SCAN_FIELDNAMES)
+RAW_SCAN_FIELDNAMES += [field for field in PROVENANCE_FIELDS if field not in RAW_SCAN_FIELDNAMES]

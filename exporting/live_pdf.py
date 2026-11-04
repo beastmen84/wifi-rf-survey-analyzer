@@ -379,7 +379,8 @@ def build_live_pdf_interference_figure(
         language,
         [
             (tr("interference_mode"), get_interference_mode_label(config, tr)),
-            (tr("interference_top_risk"), f"{float(risk_df['risk'].max()):.1f}%"),
+            (tr("interference_top_risk"), f"{float(risk_df['risk'].max()):.1f}%"
+                if risk_df["risk"].notna().any() else tr("advisor_rf_unknown")),
             (tr("interpolation"), tr(f"interpolation_{config.interpolation}")),
         ],
     )

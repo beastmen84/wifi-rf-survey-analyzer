@@ -828,7 +828,7 @@ class InterferenceTests(unittest.TestCase):
 
         quality = get_interference_data_quality(risk_df)
 
-        self.assertEqual(quality, {"available": 2, "total": 3, "percent": 67})
+        self.assertEqual(quality, {"available": 0, "total": 3, "percent": 0})
 
 
 
@@ -1021,11 +1021,11 @@ class ApMetadataTests(unittest.TestCase):
         self.assertEqual(sort_channels({"11", "1", "6"}, channel_sort_key=lambda value: -int(value)), ["11", "6", "1"])
         self.assertEqual(sort_bands({"6", "2.4", "5", "unknown"}), ["2.4", "5", "6", "unknown"])
 
-    def test_band_inference_currently_handles_24_and_5ghz_only(self):
-        self.assertEqual(infer_band_from_channel("1"), "2.4")
+    def test_channel_only_band_inference_leaves_ambiguous_6ghz_channels_unknown(self):
+        self.assertEqual(infer_band_from_channel("1"), "")
         self.assertEqual(infer_band_from_channel("36"), "5")
-        self.assertEqual(infer_band_from_channel("5"), "2.4")
-        self.assertEqual(infer_band_from_channel("233"), "")
+        self.assertEqual(infer_band_from_channel("5"), "")
+        self.assertEqual(infer_band_from_channel("233"), "6")
 
     def test_metadata_warning_detects_unexpected_channel(self):
         bssid = "70:4f:57:aa:bb:10"

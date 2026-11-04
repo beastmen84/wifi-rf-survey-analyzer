@@ -17,6 +17,7 @@ from ap.groups import (
 )
 from translations.i18n import translate
 from wifi.band import channel_center_frequency_mhz, get_row_band, normalize_band
+from wifi.evidence import finite_number, scan_confidence, integer
 
 
 def filter_by_band(df, band):
@@ -35,7 +36,8 @@ def collapse_heatmap_points(df, aggregation="max"):
     heatmap_df["x"] = pd.to_numeric(heatmap_df["x"], errors="coerce")
     heatmap_df["y"] = pd.to_numeric(heatmap_df["y"], errors="coerce")
     heatmap_df["signal_dbm"] = pd.to_numeric(heatmap_df["signal_dbm"], errors="coerce")
-    heatmap_df = heatmap_df.dropna(subset=["x", "y", "signal_dbm"])
+    heatmap_df = heatmap_df.replace([np.inf, -np.inf], np.nan).dropna(subset=["x", "y", "signal_dbm"])
+    heatmap_df["scan_confidence"] = get_scan_confidence_values(heatmap_df)
 
     if heatmap_df.empty:
         return heatmap_df
@@ -53,6 +55,10 @@ def collapse_heatmap_points(df, aggregation="max"):
         "samples_seen": "max",
         "samples_total": "max",
     }
+    for field in ("adapter_id", "freshness", "backend", "signal_kind", "capture_quality",
+                  "host_timestamp", "scan_started_at", "scan_completed_at", "observed_at"):
+        if field in heatmap_df.columns:
+            aggregation_spec[field] = "first"
 
     for column, function in optional_aggregations.items():
         if column in heatmap_df.columns:
@@ -81,11 +87,12 @@ def get_channel_map_points(
     rows["channel"] = pd.to_numeric(rows["channel"], errors="coerce")
     rows["band"] = rows.apply(get_row_band, axis=1)
     rows["signal_dbm"] = pd.to_numeric(rows["signal_dbm"], errors="coerce")
+    rows["scan_confidence"] = get_scan_confidence_values(rows)
     if "channel_width_mhz" in rows.columns:
         rows["channel_width_mhz"] = pd.to_numeric(rows["channel_width_mhz"], errors="coerce")
     else:
         rows["channel_width_mhz"] = np.nan
-    rows = rows.dropna(subset=["timestamp", "x", "y", "channel", "signal_dbm", "ssid", "bssid"])
+    rows = rows.replace([np.inf, -np.inf], np.nan).dropna(subset=["timestamp", "x", "y", "channel", "signal_dbm", "bssid"])
 
     if rows.empty:
         return rows
@@ -112,11 +119,12 @@ def get_dominant_ap_points(df, ssid, band, ap_group_map=None, ap_group_roles=Non
     rows["channel"] = pd.to_numeric(rows["channel"], errors="coerce")
     rows["band"] = rows.apply(get_row_band, axis=1)
     rows["signal_dbm"] = pd.to_numeric(rows["signal_dbm"], errors="coerce")
+    rows["scan_confidence"] = get_scan_confidence_values(rows)
     if "channel_width_mhz" in rows.columns:
         rows["channel_width_mhz"] = pd.to_numeric(rows["channel_width_mhz"], errors="coerce")
     else:
         rows["channel_width_mhz"] = np.nan
-    rows = rows.dropna(subset=["timestamp", "x", "y", "signal_dbm", "bssid"])
+    rows = rows.replace([np.inf, -np.inf], np.nan).dropna(subset=["timestamp", "x", "y", "signal_dbm", "bssid"])
     rows = add_ap_group_metadata(rows, ap_group_map, ap_group_roles)
     rows = rows[rows["ap_role"] != AP_ROLE_TEST]
     if rows.empty:
@@ -325,14 +333,15 @@ def calculate_interference_points(
     else:
         rows["channel_width_mhz"] = np.nan
     rows["signal_dbm"] = pd.to_numeric(rows["signal_dbm"], errors="coerce")
-    rows = rows.dropna(subset=["timestamp", "x", "y", "channel", "signal_dbm", "ssid", "bssid"])
+    rows["scan_confidence"] = get_scan_confidence_values(rows)
+    rows = rows.replace([np.inf, -np.inf], np.nan).dropna(subset=["timestamp", "x", "y", "signal_dbm", "bssid"])
     rows = add_ap_group_metadata(rows, ap_group_map, ap_group_roles)
     rows, channel_changes = apply_ap_channel_analysis_overrides(rows, ap_group_channel_overrides)
 
     if band not in {"2.4", "5", "6"}:
         return pd.DataFrame(columns=["timestamp", "x", "y", "risk"])
 
-    rows = filter_by_band(rows, band)
+    rows = rows[rows["band"].isin([band, ""])]
 
     if rows.empty:
         return pd.DataFrame(columns=["timestamp", "x", "y", "risk"])
@@ -347,6 +356,7 @@ def calculate_interference_points(
         selected_rows = point_rows[
             (point_rows["ssid"] == ssid)
             & (point_rows["ap_role"] != AP_ROLE_TEST)
+            & (point_rows["band"] == band)
         ]
 
         if selected_rows.empty:
@@ -367,6 +377,8 @@ def calculate_interference_points(
         interferers = []
         same_physical_ap_ignored_count = 0
         test_ap_ignored_count = len(selected_test_rows) if mode == "intra_ssid" else 0
+        geometry_complete = radio_geometry_supported(serving_channel, serving_channel_width, band,
+            serving_ap.get("secondary_channel_offset"))
 
         for _index, candidate in candidate_rows.iterrows():
             if candidate["bssid"] == serving_ap["bssid"]:
@@ -385,7 +397,17 @@ def calculate_interference_points(
                 band,
                 serving_channel_width,
                 candidate.get("channel_width_mhz", np.nan)
+                , serving_ap.get("secondary_channel_offset"), candidate.get("secondary_channel_offset")
             )
+            if candidate.get("band") != band or not np.isfinite(overlap):
+                geometry_complete = False
+                risk = np.nan
+                continue
+            if serving_ap.get("adapter_id") != candidate.get("adapter_id"):
+                geometry_complete = False
+            if not radio_geometry_supported(candidate["channel"], candidate.get("channel_width_mhz"), band,
+                    candidate.get("secondary_channel_offset")):
+                geometry_complete = False
             signal_weight = signal_interference_weight(candidate["signal_dbm"])
             contribution = overlap * signal_weight
             risk += contribution
@@ -410,12 +432,15 @@ def calculate_interference_points(
                     "samples_seen": candidate.get("samples_seen", np.nan),
                     "samples_total": candidate.get("samples_total", np.nan),
                     "scan_confidence": candidate.get("scan_confidence", np.nan),
+                    "adapter_id": candidate.get("adapter_id", ""),
+                    "freshness": candidate.get("freshness", "unknown"),
+                    **{field: candidate.get(field, "") for field in ("scan_started_at", "scan_completed_at", "observed_at", "host_timestamp", "capture_quality")},
                     "overlap_weight": overlap,
                     "signal_weight": signal_weight,
                     "contribution": contribution
                 })
 
-        risk_score = min(100.0, risk * 100)
+        risk_score = min(100.0, risk * 100) if geometry_complete and np.isfinite(risk) else np.nan
         strongest_interferer = get_strongest_interferer(interferers)
         risk_row = {
             "timestamp": timestamp,
@@ -423,6 +448,12 @@ def calculate_interference_points(
             "y": y,
             "risk": risk_score,
             "scan_confidence": get_interference_confidence(serving_ap, strongest_interferer),
+            "geometry_complete": geometry_complete,
+            "adapter_id": serving_ap.get("adapter_id", ""),
+            "freshness": serving_ap.get("freshness", "unknown"),
+            "samples_seen": serving_ap.get("samples_seen", ""),
+            "samples_total": serving_ap.get("samples_total", ""),
+            **{field: serving_ap.get(field, "") for field in ("scan_started_at", "scan_completed_at", "observed_at", "host_timestamp", "capture_quality")},
         }
 
         if include_details:
@@ -496,6 +527,10 @@ def calculate_interference_points(
 
 
 def get_interference_data_quality(risk_df):
+    if "geometry_complete" in risk_df:
+        available = int(risk_df["geometry_complete"].sum())
+        total = len(risk_df)
+        return {"available": available, "total": total, "percent": round(100 * available / total) if total else 0}
     columns = [
         column
         for column in ("serving_channel_width_mhz", "strongest_interferer_channel_width_mhz")
@@ -506,7 +541,7 @@ def get_interference_data_quality(risk_df):
         return {"available": 0, "total": len(risk_df), "percent": 0}
 
     width_data = risk_df[columns].replace("", np.nan)
-    rows_with_width = width_data.notna().any(axis=1).sum()
+    rows_with_width = width_data.notna().all(axis=1).sum()
     total = len(risk_df)
     percent = round((rows_with_width / total) * 100) if total else 0
 
@@ -549,27 +584,28 @@ def parse_signal_dbm(value):
 
 
 def get_interference_confidence(serving_ap, strongest_interferer):
-    confidence_values = [parse_scan_confidence(serving_ap.get("scan_confidence", 1.0))]
+    confidence_values = [scan_confidence(serving_ap)]
 
     if strongest_interferer:
-        confidence_values.append(parse_scan_confidence(strongest_interferer.get("scan_confidence", 1.0)))
+        confidence_values.append(scan_confidence(strongest_interferer))
 
     return round(min(confidence_values), 3)
 
 
-def parse_scan_confidence(value, default=1.0):
+def parse_scan_confidence(value, default=0.0):
     try:
         confidence = float(value)
     except (TypeError, ValueError):
         return default
 
-    if np.isnan(confidence):
+    if not np.isfinite(confidence):
         return default
 
-    return float(np.clip(confidence, 0.05, 1.0))
+    return float(np.clip(confidence, 0.0, 1.0))
 
 
-def channel_overlap_weight(base_channel, other_channel, band, base_width_mhz=None, other_width_mhz=None):
+def channel_overlap_weight(base_channel, other_channel, band, base_width_mhz=None, other_width_mhz=None,
+                           base_offset=None, other_offset=None):
     band = normalize_band(band)
     try:
         channel_distance = abs(float(base_channel) - float(other_channel))
@@ -577,6 +613,13 @@ def channel_overlap_weight(base_channel, other_channel, band, base_width_mhz=Non
         return 0
 
     if band == "2.4":
+        widths = [normalize_width_mhz(w) for w in (base_width_mhz, other_width_mhz)]
+        if any(w is not None and w != 20 for w in widths):
+            first = get_24ghz_channel_frequency_range(base_channel, widths[0], base_offset)
+            second = get_24ghz_channel_frequency_range(other_channel, widths[1], other_offset)
+            if not first or not second:
+                return float("nan")
+            return max(0.0, min(first[1], second[1]) - max(first[0], second[0])) / min(widths)
         if channel_distance == 0:
             return 1.0
         if channel_distance == 1:
@@ -600,9 +643,31 @@ def channel_overlap_weight(base_channel, other_channel, band, base_width_mhz=Non
         if width_overlap is not None:
             return width_overlap
 
-        return 1.0 if channel_distance == 0 else 0
+        return float("nan")
 
-    return 0
+    return float("nan")
+
+
+def get_24ghz_channel_frequency_range(channel, width, offset=None):
+    center = channel_center_frequency_mhz(channel, "2.4")
+    if center is None:
+        return None
+    if width == 20:
+        return center - 10, center + 10
+    if width == 40 and integer(offset) in (-1, 1):
+        secondary = channel_center_frequency_mhz(integer(channel) + 4 * integer(offset), "2.4")
+        if secondary is not None and integer(channel) != 14:
+            return min(center, secondary) - 10, max(center, secondary) + 10
+    return None
+
+
+def radio_geometry_supported(channel, width, band, offset=None):
+    width = normalize_width_mhz(width)
+    if width is None:
+        return False
+    if band == "2.4":
+        return get_24ghz_channel_frequency_range(channel, width, offset) is not None
+    return get_channel_frequency_range(channel, width, band) is not None
 
 
 def channel_width_overlap_weight(base_channel, other_channel, base_width_mhz, other_width_mhz, band="5"):
@@ -626,10 +691,12 @@ def channel_width_overlap_weight(base_channel, other_channel, base_width_mhz, ot
 
 
 def get_channel_frequency_range(channel, width_mhz, band="5"):
+    if normalize_width_mhz(width_mhz) is None:
+        return None
     if band == "6":
         return get_6ghz_channel_frequency_range(channel, width_mhz)
 
-    return get_5ghz_channel_frequency_range(channel, width_mhz)
+    return get_5ghz_channel_frequency_range(channel, width_mhz) if band == "5" else None
 
 
 def get_5ghz_channel_frequency_range(channel, width_mhz):
@@ -638,7 +705,9 @@ def get_5ghz_channel_frequency_range(channel, width_mhz):
     except (TypeError, ValueError):
         return None
 
-    width = int(round(width_mhz))
+    if width_mhz not in {20, 40, 80, 160} or channel_center_frequency_mhz(primary_channel, "5") is None:
+        return None
+    width = int(width_mhz)
     if width <= 20:
         return channel_group_frequency_range([primary_channel])
 
@@ -655,7 +724,12 @@ def get_6ghz_channel_frequency_range(channel, width_mhz):
     except (TypeError, ValueError):
         return None
 
-    width = int(round(width_mhz))
+    # 320 MHz has multiple alignments; primary alone cannot establish its block.
+    if width_mhz not in {20, 40, 80, 160} or channel_center_frequency_mhz(primary_channel, "6") is None:
+        return None
+    width = int(width_mhz)
+    if primary_channel == 2 and width != 20:
+        return None
     if width <= 20:
         center = channel_center_frequency_mhz(primary_channel, "6")
         if center is None:
@@ -732,7 +806,7 @@ def normalize_width_mhz(value):
     except (TypeError, ValueError):
         return None
 
-    if np.isnan(width) or width <= 0:
+    if not np.isfinite(width) or width not in {20, 40, 80, 160, 320}:
         return None
 
     return width
@@ -784,15 +858,14 @@ def smooth_heatmap_grid(grid_z, sigma):
     return smoothed_grid
 
 
-def get_scan_confidence_values(rows, default=1.0):
+def get_scan_confidence_values(rows, default=0.0):
     if rows is None or len(rows) == 0:
         return np.array([], dtype=float)
 
     if not hasattr(rows, "columns") or "scan_confidence" not in rows.columns:
         return np.full(len(rows), default, dtype=float)
 
-    values = pd.to_numeric(rows["scan_confidence"], errors="coerce").fillna(default).to_numpy(dtype=float)
-    return np.clip(values, 0.05, 1.0)
+    return rows.apply(scan_confidence, axis=1).to_numpy(dtype=float)
 
 
 def normalize_confidence_array(confidence, expected_length):
@@ -803,8 +876,8 @@ def normalize_confidence_array(confidence, expected_length):
     if values.size != expected_length:
         return None
 
-    values = np.where(np.isfinite(values), values, 1.0)
-    return np.clip(values, 0.05, 1.0)
+    values = np.where(np.isfinite(values), values, 0.0)
+    return np.clip(values, 0.0, 1.0)
 
 
 def get_confidence_rbf_smoothing(confidence, point_count, base_smoothing=4.0):

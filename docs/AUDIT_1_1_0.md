@@ -1,14 +1,66 @@
 # Audit di precisione e idoneità al rilascio 1.1.0
 
-Data: 2026-11-03. Sorgente esaminato: `8941b0d`.
+Audit iniziale: 2026-11-03, sorgente `8941b0d`.
+Correzioni e verifica conclusiva: 2026-11-04, successive a `53262ef`.
 Ambiente: CPython 3.15.2 x64, Windows, dipendenze di `requirements-lock.txt`.
 
-**Esito: la 1.1.0 stabile non è ancora pronta per il livello di precisione
-richiesto.** Ci sono errori riproducibili che possono alterare il dataset o
-consentire raccomandazioni su evidenze insufficienti. L'audit documenta le
-correzioni necessarie; non costituisce la loro implementazione.
+**Esito aggiornato: implementate e verificate le correzioni R1-R11.** I rilievi
+iniziali sono conservati sotto come evidenza del comportamento precedente.
+La verifica software e quella di freschezza reale sono positive; resta distinta
+la decisione sulla release, che richiede le prove sul campo e sul pacchetto
+indicate in fondo. Non viene dichiarata una precisione assoluta dell'RSSI.
 
-## Verifiche eseguite
+## Correzioni e prove dopo l'intervento
+
+| ID | Risultato implementato | Verifica di regressione |
+| --- | --- | --- |
+| R1 | Notifiche native complete/fail e timeout, lettura BSS con errori espliciti, timestamp originali e deduplica per adapter/BSS/timestamp. Cache esclusa; RSSI uguali con timestamp nuovi restano validi. | Richieste fallite, timeout, notifica di altra scheda, duplicati e cache non danno campioni freschi. Prova hardware sotto. |
+| R2 | Identità SSID esatta, spazi/parole preservati, BSS nascosti mantenuti, lunghezza nativa esplicita e byte originali in esadecimale. | Parser lswifi/netsh, SSID vuoti, NUL interno e byte non UTF-8; selezione/relevance non normalizza gli spazi. |
+| R3 | Range massimo fra aggregati e raw associati; raw parziale non sostituisce l'evidenza già nota. Advisor richiede raw fresco completo e coerente. | L'intervallo -90..-40 resta instabile; raw assente/parziale non autorizza proposte precise. |
+| R4 | HT40 usa la direzione secondaria; 80+80 non diventa 160. Geometria sconosciuta o 320 senza allineamento comprovato resta non calcolabile. | Overlap HT40 noto, direzione mancante e larghezze non rappresentabili; rischio sconosciuto grigio/«non determinabile» anche nei report. |
+| R5 | Banda solo se univoca e coerente con frequenza e canale primario. | Canale 5 senza banda, frequenze/bande contraddittorie e canali non validi bloccano le prescrizioni. |
+| R6 | `physical_confirmed` separato dal nome/lock; azione esplicita per confermare il gruppo fisico. Euristica MAC non elimina vicini; ruoli e metadati restano associati. | Gruppi automatici versus confermati, rinomina senza conferma, salvataggio, conferma UI, filtri/configurazioni Live/export e metadati dei BSSID separati. |
+| R7 | Valori finiti e intervalli controllati prima delle mutazioni; BSS invalido isolato e cattura marcata incompleta. | NaN/inf, coordinate/RSSI/contatori incoerenti, import e aggiunta falliti senza alterare il rilievo. |
+| R8 | Un ricevitore per cattura, preferendo quello connesso; provenienza salvata e denominatore cinque. Confronti multi-ricevitore bloccati nell'advisor. | Selezione deterministica, conteggi 5/5, round-trip adapter/raw e dataset con ricevitori misti. |
+| R9 | Politica di confidenza condivisa: provenienza/freschezza sconosciuta vale zero, senza promozione implicita al 100%. | File precedenti leggibili, confidenza assente/NaN/incoerente, mappe e analisi conservative. |
+| R10 | Prova potenza solo con luoghi separati almeno 2 m, scala valida e copertura alternativa in tutti i punti misurati serviti dall'AP. | ID ripetuti nella stessa posizione e piccoli spostamenti non bastano; caso positivo con punti realmente separati. |
+| R11 | Ledger dei punti nei metadati CSV: esito vuoto verificato distinto da errore e assenza di misura, senza RSSI inventato. Rescan sostituisce per ID dopo validazione. | Salvataggio/apertura/cancellazione, tabella e marker grigio, dashboard e report; errore/unverified non crea falso vuoto, rescan nello stesso secondo preserva il nuovo punto. |
+
+Verifica conclusiva del 2026-11-04:
+
+- **453 test e 475 sottotest passati**, sia offscreen (14.65 s) sia Windows
+  nativo (15.47 s), exit 0. Inclusi 59 nuovi casi parametrizzati rispetto ai 394
+  test iniziali e aggiornamento dei fixture al contratto di provenienza reale.
+- Avvio tramite `main.main()`, completamento del worker iniziale e costruzione
+  del workspace con tre tab verificati su Windows nativo, exit 0.
+- Report HTML/PDF generati in IT/EN/FR/ES; nove pagine per il dataset sintetico,
+  testo e impaginazione verificati, con ispezione visiva delle pagine italiane
+  e del tab analisi. Provenienza del segnale visibile nelle tabelle.
+- `pip check`, Ruff essenziale (`E9,F63,F7,F82`) e controllo del diff superati.
+  Nessuna modifica alle dipendenze runtime rispetto alla migrazione precedente.
+- Prova reale con **lo scanner di produzione corretto**: cinque completamenti,
+  una scheda, nove reti, **37 campioni freschi unici accettati**, **sei letture
+  da cache escluse**, zero duplicati accettati, zero campioni antecedenti alla
+  propria richiesta, zero record invalidi. Età mediana 2.276 s, massima 2.779 s;
+  durata 22.26 s. Questi tempi descrivono la prova, non una garanzia temporale.
+  Una prima prova corretta aveva accettato 48 osservazioni uniche, senza cache.
+  Prima della correzione erano state riusate 24 delle 54 letture. Sono conteggi
+  di prove separate, con reti osservate variabili; non un confronto di sensibilità
+  radio né un incremento di precisione in dB. Conservati solo conteggi anonimi.
+- Fallback netsh eseguito sul sistema reale: una osservazione nello snapshot,
+  esito `unverified`, dBm `estimated`, freschezza `unknown` e confidenza zero.
+  La prova verifica il contratto conservativo del fallback, senza confrontare
+  la sensibilità o la copertura con una cattura nativa svolta in un altro momento.
+- Nessun diagnostico Qt/COM nel passaggio nativo conclusivo; il precedente
+  `0x8001010d` intermittente resta aperto perché non è stata dimostrata la causa.
+
+Compatibilità: CSV e raw schema 2 precedenti rimangono leggibili. Le colonne
+opzionali e il ledger aggiungono provenienza senza fabbricarla per i vecchi dati;
+i punti senza timestamp/raw adeguati richiedono una nuova misura prima di
+ottenere suggerimenti operativi precisi. I gruppi manuali precedenti conservano
+la semantica esplicita; i nuovi gruppi automatici richiedono conferma fisica.
+
+## Verifiche dell'audit iniziale, prima delle correzioni
 
 - Revisione del percorso acquisizione -> normalizzazione -> aggregazione ->
   CSV/raw -> qualità -> mappe -> raccomandazioni -> report.
@@ -177,19 +229,19 @@ Le condizioni di laboratorio per RSSI assoluto, il traffico/airtime, le retry,
 le interferenze non Wi-Fi e la propagazione dopo uno spostamento non sono
 coperti. La validazione 6 GHz/6E/7 e 320 MHz rimane incompleta.
 
-## Condizioni per decidere la release
+## Condizioni per decidere la release, stato aggiornato
 
-1. Correggere R1-R5 e impedire che R6 produca conclusioni certe senza conferma.
-2. Promuovere gli esempi riproducibili a regression test, compresi errori scan,
+1. **Completato:** correggere R1-R5 e impedire che R6 produca conclusioni certe senza conferma.
+2. **Completato:** promuovere gli esempi riproducibili a regression test, compresi errori scan,
    cache/duplicati, SSID nascosti/spazi, raw parziale, larghezze e bande incoerenti.
-3. Uniformare validazione numerica, provenienza e incertezza, risolvendo R7-R9;
+3. **Completato:** uniformare validazione numerica, provenienza e incertezza, risolvendo R7-R9;
    rivedere la guardia spaziale R10 e dichiarare il perimetro di R11.
-4. Ripetere le verifiche reali di freschezza e cambio posizione, usando un AP
+4. **Freschezza verificata; prove controllate ancora pendenti:** ripetere il cambio posizione, usando un AP
    controllato e confronti fra backend. Calibrare/confrontare il ricevitore se si
    vuole dichiarare una precisione assoluta dell'RSSI.
-5. Validare i casi 6 GHz/larghi con hardware adeguato oppure limitarne le
+5. **Prescrizioni limitate; hardware da validare:** validare i casi 6 GHz/larghi con hardware adeguato oppure limitarne le
    prescrizioni e indicarli chiaramente come sperimentali/incompleti.
-6. Eseguire la suite completa e, quando si prepara intenzionalmente una build,
+6. **Suite completa superata; pacchetto da verificare quando richiesto:** eseguire, quando si prepara intenzionalmente una build,
    lo smoke test del pacchetto Windows. Il diagnostico Qt/COM `0x8001010d` già
    osservato nei test nativi resta aperto e non deve essere soppresso o dichiarato
    risolto senza una spiegazione verificata.

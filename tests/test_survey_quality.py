@@ -77,7 +77,7 @@ class QualityTests(unittest.TestCase):
 
         quality = evaluate_point_quality([row], relevant_ssids={"MAIN"})
 
-        self.assertEqual(quality["p1"]["status"], QUALITY_SPARSE_DATA)
+        self.assertEqual(quality["p1"]["status"], QUALITY_LOW_CONFIDENCE)
 
     def test_scanner_details_flag_netsh_and_missing_width_without_changing_signal_status(self):
         row = build_row("p1", "MAIN", "70:4f:57:aa:bb:10", -52, 36, band="5")
@@ -96,7 +96,7 @@ class QualityTests(unittest.TestCase):
         scanner_details = quality["p1"]["scanner_details"]
         self.assertTrue(scanner_details["has_issue"])
         self.assertEqual(scanner_details["fallback_rows"], 5)
-        self.assertEqual(scanner_details["missing_channel_width_rows"], 5)
+        self.assertEqual(scanner_details["missing_channel_width_rows"], 6)
         self.assertIn(SCANNER_DETAIL_FALLBACK_BACKEND, scanner_details["issue_types"])
         self.assertIn(SCANNER_DETAIL_MISSING_CHANNEL_WIDTH, scanner_details["issue_types"])
 
@@ -1947,7 +1947,7 @@ class HeatmapMathTests(unittest.TestCase):
 
         values = get_scan_confidence_values(df, default=0.75)
 
-        self.assertEqual(values.tolist(), [1.0, 0.05, 0.75])
+        self.assertEqual(values.tolist(), [0.0, 0.0, 0.0])
         self.assertEqual(get_scan_confidence_values([{}, {}], default=0.8).tolist(), [0.8, 0.8])
 
     def test_normalize_confidence_array_validates_length_and_finite_values(self):
@@ -1956,7 +1956,7 @@ class HeatmapMathTests(unittest.TestCase):
 
         values = normalize_confidence_array([float("nan"), 0.01, 2.0], 3)
 
-        self.assertEqual(values.tolist(), [1.0, 0.05, 1.0])
+        self.assertEqual(values.tolist(), [0.0, 0.01, 1.0])
 
     def test_confidence_rbf_smoothing_increases_for_low_confidence_points(self):
         smoothing = get_confidence_rbf_smoothing([1.0, 0.5, 0.05], 3, base_smoothing=4.0)

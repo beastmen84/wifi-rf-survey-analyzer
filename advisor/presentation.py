@@ -55,7 +55,8 @@ def finding_html(finding, report, language, interactive=False):
             p = by_id[r.point_id]
             body.append(f"<tr><td>{index[r.point_id]}<br>({p.x:g}, {p.y:g})</td>"
                 f"<td>{safe(report.ap_labels.get(r.group_id, r.group_id))}<br>{safe(r.ssid)} · {safe(r.band or '?')} GHz</td>"
-                f"<td>{r.signal_dbm:g}</td><td>{r.channel if r.channel is not None else '-'} / "
+                f"<td>{r.signal_dbm:g}<br>{safe(tr('signal_' + r.signal_kind))}<br>"
+                f"{safe(r.backend or '?')}<br>{safe(r.adapter_id or '?')}<br>{safe(tr('freshness_' + r.freshness))}</td><td>{r.channel if r.channel is not None else '-'} / "
                 f"{r.width if r.width is not None else '-'}</td><td>{r.confidence:.0%}</td></tr>")
         body.append("</tbody></table>")
     if finding.limitations:

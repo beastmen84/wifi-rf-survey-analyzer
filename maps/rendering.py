@@ -1,6 +1,7 @@
 """Matplotlib drawing helpers shared by static map exports."""
 
 from matplotlib.lines import Line2D
+from math import isfinite
 
 from wifi.band import get_row_band, normalize_band
 
@@ -467,7 +468,7 @@ def annotate_interference_references(ax, risk_df, format_value, mode="critical",
 
     for _index, row in top_points.iterrows():
         risk_value = float(row.get("risk", 0) or 0)
-        if risk_value < 30:
+        if not isfinite(risk_value) or risk_value < 30:
             continue
 
         risk_word = labels.get("risk", "Risk")

@@ -41,8 +41,8 @@ BSSID                  : 70:4f:57:aa:bb:10
         self.assertEqual(ssid, "MAIN")
         run_mock.assert_not_called()
 
-    def test_decode_lswifi_ssid_strips_null_padding(self):
-        self.assertEqual(scanner_module.decode_lswifi_ssid(b"MAIN\x00\x00\x00"), "MAIN")
+    def test_decode_lswifi_ssid_preserves_length_delimited_nul_bytes(self):
+        self.assertEqual(scanner_module.decode_lswifi_ssid(b"MAIN\x00\x00\x00"), "MAIN\x00\x00\x00")
 
     def test_parse_netsh_interfaces_output_reads_connected_bssid(self):
         output = """
@@ -142,11 +142,12 @@ SSID 2 : GUEST
             FakeLswifiBss(ssid="", bssid="80:11:22:33:44:10", rssi="-70", channel_number=1),
         ])
 
-        self.assertEqual(len(networks), 1)
+        self.assertEqual(len(networks), 2)
+        self.assertEqual(networks[1]["ssid"], "")
         self.assertEqual(networks[0]["signal_dbm"], -61.0)
         self.assertEqual(networks[0]["signal_percent"], 78)
         self.assertEqual(networks[0]["channel"], "36")
-        self.assertEqual(networks[0]["channel_width_mhz"], 160)
+        self.assertEqual(networks[0]["channel_width_mhz"], "80+80")
         self.assertEqual(networks[0]["band"], "5")
         self.assertEqual(networks[0]["radio"], "802.11ax")
         self.assertEqual(networks[0]["frequency_mhz"], "5180")
@@ -300,6 +301,8 @@ AP BSSID               : 70:4f:57:aa:bb:10
             {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -55, "channel": "6", "channel_width_mhz": "40", "radio": "802.11ax"},
         ]
 
+        for attempt, sample in enumerate(samples, 1):
+            sample.update(adapter_id="test-receiver", freshness="fresh", scan_attempt=attempt, host_timestamp=100 + attempt, scan_started_at=90, scan_completed_at=120, observed_at=130)
         networks = merge_wifi_scans(samples, samples_total=5)
 
         self.assertEqual(len(networks), 1)
@@ -311,7 +314,7 @@ AP BSSID               : 70:4f:57:aa:bb:10
         self.assertEqual(networks[0]["samples_seen"], 3)
         self.assertEqual(networks[0]["samples_total"], 5)
         self.assertEqual(networks[0]["scan_confidence"], 0.6)
-        self.assertEqual(networks[0]["channel_width_mhz"], "20")
+        self.assertEqual(networks[0]["channel_width_mhz"], "")
         self.assertEqual(networks[0]["band"], "2.4")
         self.assertEqual(networks[0]["frequency_mhz"], "2437")
         self.assertEqual(networks[0]["pmf"], "Disabled")
@@ -329,6 +332,8 @@ AP BSSID               : 70:4f:57:aa:bb:10
             {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -48, "channel": "5", "band": "6"},
         ]
 
+        for attempt, sample in enumerate(samples, 1):
+            sample.update(adapter_id="test-receiver", freshness="fresh", scan_attempt=attempt, host_timestamp=100 + attempt, scan_started_at=90, scan_completed_at=120, observed_at=130)
         networks = merge_wifi_scans(samples, samples_total=1)
 
         self.assertEqual(len(networks), 2)
@@ -340,10 +345,12 @@ AP BSSID               : 70:4f:57:aa:bb:10
             {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -48, "channel": "5", "frequency_mhz": "5975"},
         ]
 
+        for attempt, sample in enumerate(samples, 1):
+            sample.update(adapter_id="test-receiver", freshness="fresh", scan_attempt=attempt, host_timestamp=100 + attempt, scan_started_at=90, scan_completed_at=120, observed_at=130)
         networks = merge_wifi_scans(samples, samples_total=1)
 
         self.assertEqual(len(networks), 2)
-        self.assertEqual({network["band"] for network in networks}, {"2.4", "6"})
+        self.assertEqual({network["band"] for network in networks}, {"", "6"})
 
     def test_merge_wifi_scans_ignores_invalid_signal_samples_but_keeps_raw_samples(self):
         samples = [
@@ -352,6 +359,8 @@ AP BSSID               : 70:4f:57:aa:bb:10
             {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": "bad", "channel": "6", "channel_width_mhz": "80"},
         ]
 
+        for attempt, sample in enumerate(samples, 1):
+            sample.update(adapter_id="test-receiver", freshness="fresh", scan_attempt=attempt, host_timestamp=100 + attempt, scan_started_at=90, scan_completed_at=120, observed_at=130)
         networks = merge_wifi_scans(samples, samples_total=3)
 
         self.assertEqual(len(networks), 1)
@@ -360,17 +369,19 @@ AP BSSID               : 70:4f:57:aa:bb:10
         self.assertEqual(networks[0]["scan_confidence"], 0.333)
         self.assertEqual(networks[0]["raw_samples"], samples)
 
-    def test_merge_wifi_scans_clamps_confidence_to_one(self):
+    def test_merge_wifi_scans_rejects_confidence_when_counts_exceed_total(self):
         samples = [
             {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -52, "channel": "6"},
             {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -48, "channel": "6"},
             {"ssid": "MAIN", "bssid": "70:4f:57:aa:bb:10", "signal_dbm": -50, "channel": "6"},
         ]
 
+        for attempt, sample in enumerate(samples, 1):
+            sample.update(adapter_id="test-receiver", freshness="fresh", scan_attempt=attempt, host_timestamp=100 + attempt, scan_started_at=90, scan_completed_at=120, observed_at=130)
         networks = merge_wifi_scans(samples, samples_total=2)
 
         self.assertEqual(networks[0]["samples_seen"], 3)
-        self.assertEqual(networks[0]["scan_confidence"], 1.0)
+        self.assertEqual(networks[0]["scan_confidence"], 0.0)
 
     def test_merge_wifi_scans_groups_bssid_case_insensitively(self):
         networks = merge_wifi_scans(
@@ -383,7 +394,8 @@ AP BSSID               : 70:4f:57:aa:bb:10
 
         self.assertEqual(len(networks), 1)
         self.assertEqual(networks[0]["signal_median_dbm"], -55.0)
-        self.assertEqual(networks[0]["samples_seen"], 2)
+        self.assertEqual(networks[0]["samples_seen"], 0)
+        self.assertEqual(networks[0]["scan_confidence"], 0.0)
 
     def test_annotate_raw_scan_samples_updates_samples_in_place(self):
         samples = [{"ssid": "MAIN"}, {"ssid": "GUEST"}]
@@ -396,7 +408,7 @@ AP BSSID               : 70:4f:57:aa:bb:10
 
     def test_normalize_channel_width_mhz_handles_common_text_values(self):
         self.assertEqual(normalize_channel_width_mhz("20 MHz"), 20)
-        self.assertEqual(normalize_channel_width_mhz("80+80 MHz"), 160)
+        self.assertEqual(normalize_channel_width_mhz("80+80 MHz"), "80+80")
         self.assertEqual(normalize_channel_width_mhz("--"), "")
         self.assertEqual(normalize_channel_width_mhz("unknown"), "")
 

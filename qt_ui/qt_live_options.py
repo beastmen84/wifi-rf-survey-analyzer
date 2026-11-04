@@ -285,16 +285,16 @@ class LiveOptionsMixin:
         if self.session is None:
             return []
 
-        ssid = self.live_ssid_combo.currentText().strip()
+        ssid = self.live_ssid_combo.currentText()
         band = self.current_combo_value(self.live_band_combo, "all")
         groups = self.session.get_ap_groups()
-        group_map = build_bssid_to_manual_group_map(groups)
+        group_map = build_bssid_to_manual_group_map(groups, confirmed_only=True)
         role_map = build_ap_group_role_map(groups)
         aliases = self.session.get_ap_aliases()
         seen_groups = {}
 
         for row in self.session.rows:
-            row_ssid = str(row.get("ssid", "")).strip()
+            row_ssid = str(row.get("ssid", ""))
             if ssid and row_ssid != ssid:
                 continue
             if not self.row_matches_live_band(row, band):
@@ -343,7 +343,7 @@ class LiveOptionsMixin:
         if self.session is not None:
             ssids = self.session.get_ssids()
 
-        current_ssid = self.live_ssid_combo.currentText().strip()
+        current_ssid = self.live_ssid_combo.currentText()
         preferred_ssid = self.preferred_live_ssid(ssids, current_ssid=current_ssid)
         self.live_ssid_combo.blockSignals(True)
         self.live_ssid_combo.clear()
@@ -387,11 +387,11 @@ class LiveOptionsMixin:
             return ""
 
         ssids_by_key = {
-            str(ssid).strip(): str(ssid).strip()
+            str(ssid): str(ssid)
             for ssid in ssids
-            if str(ssid).strip()
+            if str(ssid)
         }
-        current_key = str(current_ssid or "").strip()
+        current_key = str(current_ssid or "")
         if current_key in ssids_by_key:
             return ssids_by_key[current_key]
 
@@ -400,12 +400,12 @@ class LiveOptionsMixin:
             return connected_ssid
 
         relevant = {
-            str(ssid).strip()
+            str(ssid)
             for ssid in getattr(self, "relevant_ssids", set()) or []
-            if str(ssid).strip()
+            if str(ssid)
         }
         for ssid in ssids:
-            if str(ssid).strip() in relevant:
+            if str(ssid) in relevant:
                 return ssid
 
         return ssids[0]
@@ -415,16 +415,16 @@ class LiveOptionsMixin:
             return ""
 
         ssid_order = {
-            str(ssid).strip(): index
+            str(ssid): index
             for index, ssid in enumerate(ssids)
-            if str(ssid).strip()
+            if str(ssid)
         }
         connected_counts = {}
         for row in self.session.rows:
             if not is_truthy_flag(row.get("is_connected")):
                 continue
 
-            key = str(row.get("ssid", "")).strip()
+            key = str(row.get("ssid", ""))
             if key in ssid_order:
                 connected_counts[key] = connected_counts.get(key, 0) + 1
 
@@ -435,7 +435,7 @@ class LiveOptionsMixin:
             connected_counts,
             key=lambda key: (connected_counts[key], -ssid_order.get(key, len(ssids))),
         )
-        return str(ssids[ssid_order[best_key]]).strip()
+        return str(ssids[ssid_order[best_key]])
 
     def can_use_live_controls(self, ssids=None):
         has_session = self.session is not None

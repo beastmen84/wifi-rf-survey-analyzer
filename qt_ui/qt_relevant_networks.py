@@ -48,9 +48,9 @@ class RelevantNetworksMixin:
             return
 
         self.relevant_ssids = {
-            str(ssid).strip()
+            str(ssid)
             for ssid in ssids
-            if str(ssid).strip()
+            if str(ssid)
         }
         serialized = json.dumps(sorted(self.relevant_ssids), ensure_ascii=False)
         self.session.update_metadata({RELEVANT_SSIDS_METADATA_KEY: serialized})
@@ -65,7 +65,7 @@ class RelevantNetworksMixin:
         relevant = set(self.relevant_ssids)
         changed = False
         for row in self.session.rows:
-            is_relevant = "1" if str(row.get("ssid", "")).strip() in relevant else "0"
+            is_relevant = "1" if str(row.get("ssid", "")) in relevant else "0"
             if row.get("is_relevant") != is_relevant:
                 row["is_relevant"] = is_relevant
                 changed = True
@@ -78,9 +78,9 @@ class RelevantNetworksMixin:
             return set()
 
         return {
-            str(ssid).strip()
+            str(ssid)
             for ssid in (self.known_ssids | self.relevant_ssids | set(self.session.get_ssids()))
-            if str(ssid).strip()
+            if str(ssid)
         }
 
     def manage_relevant_ssids(self):
@@ -145,7 +145,7 @@ def load_json_string_set(value):
         return set()
 
     return {
-        str(item).strip()
+        str(item)
         for item in values
-        if str(item).strip()
+        if str(item)
     }

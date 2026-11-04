@@ -335,13 +335,16 @@ def build_row(point_id, ssid, bssid, signal_dbm, channel, band=None):
         "samples_seen": "5",
         "samples_total": "5",
         "scan_confidence": "1.0",
+        "freshness": "fresh",
+        "adapter_id": "synthetic-receiver",
+        "signal_kind": "direct",
+        "host_timestamp": 110, "scan_started_at": 100, "scan_completed_at": 120, "observed_at": 130,
         "channel": channel,
         "channel_width_mhz": "20",
         "radio": "802.11ax",
         "is_relevant": "1",
     }
-    if band is not None:
-        row["band"] = band
+    row["band"] = band if band is not None else ("2.4" if float(channel) <= 14 else "5")
     return row
 
 
@@ -360,9 +363,9 @@ def build_raw_row(point_id, ssid, bssid, signal_dbm, channel, band=None):
         "channel_width_mhz": "20",
         "radio": "802.11ax",
         "backend": "test",
+        "adapter_id": "synthetic-receiver",
     }
-    if band is not None:
-        row["band"] = band
+    row["band"] = band if band is not None else ("2.4" if float(channel) <= 14 else "5")
     return row
 
 

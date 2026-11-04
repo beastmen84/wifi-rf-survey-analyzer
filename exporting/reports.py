@@ -33,7 +33,7 @@ def get_interference_problem_df(risk_df):
         return risk_df.head(0).copy()
 
     problem_df = (
-        risk_df[risk_df["risk"] >= INTERFERENCE_PROBLEM_RISK_THRESHOLD]
+        risk_df[(risk_df["risk"] >= INTERFERENCE_PROBLEM_RISK_THRESHOLD) | risk_df["risk"].isna()]
         .sort_values("risk", ascending=False)
         .head(INTERFERENCE_PROBLEM_REPORT_LIMIT)
         .copy()
@@ -214,7 +214,7 @@ def build_interference_problem_report_page(
         ax.text(
             risk_x + 0.0725,
             card_top - 0.042,
-            f"{tr('reference_risk')}: {risk:.1f}%",
+            f"{tr('reference_risk')}: {risk:.1f}%" if np.isfinite(risk) else f"{tr('reference_risk')}: —",
             fontsize=8.6,
             fontweight="bold",
             ha="center",
@@ -721,6 +721,8 @@ def get_interference_mode_label(config, tr):
 
 def get_interference_diagnosis(row, tr):
     risk = float(row.get("risk", 0) or 0)
+    if not np.isfinite(risk):
+        return tr("advisor_rf_unknown")
     serving_channel = row.get("serving_channel", "")
     interferer_channel = row.get("strongest_interferer_channel", "")
     interferer_dbm = row.get("strongest_interferer_dbm", "")
@@ -800,12 +802,13 @@ def format_ap_role(role, tr):
 
 
 def build_interference_summary(risk_df, output_file, report_file, band, tr, language):
-    worst_row = risk_df.loc[risk_df["risk"].idxmax()]
+    known = risk_df.dropna(subset=["risk"])
+    worst_row = known.loc[known["risk"].idxmax()] if not known.empty else risk_df.iloc[0]
     quality = get_interference_data_quality(risk_df)
     band_label = format_band_label(band, language)
     return {
         "band": band_label,
-        "max_risk": f"{float(worst_row.get('risk', 0) or 0):.1f}%",
+        "max_risk": f"{float(worst_row['risk']):.1f}%" if not known.empty else "—",
         "point": (
             f"{format_report_value(worst_row.get('x', ''))}, "
             f"{format_report_value(worst_row.get('y', ''))}"

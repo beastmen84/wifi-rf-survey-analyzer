@@ -38,9 +38,13 @@ from ap.groups import (
     normalize_ap_metadata,
     normalize_ap_position,
     normalize_ap_role,
+    is_ap_group_confirmed,
 )
 from ap.memory import apply_ap_memory_to_groups, update_ap_memory_from_groups
 from wifi.band import get_row_band
+from wifi.evidence import PROVENANCE_FIELDS, finite_number, integer, valid_signal
+
+MEASUREMENT_POINTS_KEY = "measurement_points"
 
 
 class SurveyFormatError(ValueError):
@@ -91,12 +95,17 @@ class SurveySession:
         return measurement_system
 
     def add_points(self, x, y, networks, raw_networks=None, relevant_ssids=None):
+        validate_coordinates(x, y)
+        capture = getattr(networks, "capture", {})
+        if not networks and not (capture.get("status") == "complete" and capture.get("freshness") == "fresh"):
+            raise ValueError("An empty point requires a completed, verified scan")
         timestamp = datetime.now().isoformat(timespec="seconds")
         point_id = build_new_point_id()
+        new_rows, new_raw = [], []
         relevant_ssids = {
             str(ssid)
             for ssid in (relevant_ssids or [])
-            if str(ssid).strip()
+            if str(ssid)
         }
 
         for net in networks:
@@ -124,16 +133,27 @@ class SurveySession:
                 "is_relevant": "1" if str(net.get("ssid", "")) in relevant_ssids else "0"
             }
             row.update(copy_scan_detail_fields(net))
-            self.rows.append(row)
+            row.update({field: net.get(field, "") for field in PROVENANCE_FIELDS})
+            validate_measurement_row(row)
+            new_rows.append(row)
 
         for net in raw_networks or networks:
-            self.add_raw_scan_rows(point_id, timestamp, x, y, net)
+            new_raw.extend(self.add_raw_scan_rows(point_id, timestamp, x, y, net, append=False))
+
+        points = self.measurement_points()
+        points.append(dict(point_id=point_id, timestamp=timestamp, x=x, y=y,
+            status="empty" if not networks else "observed", capture=capture))
+        ledger = json.dumps(points, ensure_ascii=True, allow_nan=False)
+        self.rows.extend(new_rows)
+        self.raw_scan_rows.extend(new_raw)
+        self.metadata[MEASUREMENT_POINTS_KEY] = ledger
 
         self.refresh_ap_groups_from_rows(update_memory=True)
         self.dirty = True
         return timestamp
 
-    def add_raw_scan_rows(self, point_id, timestamp, x, y, network):
+    def add_raw_scan_rows(self, point_id, timestamp, x, y, network, append=True):
+        rows = []
         raw_samples = network.get("raw_samples") or []
         for sample in raw_samples:
             row = {
@@ -154,9 +174,33 @@ class SurveySession:
                 "backend": sample.get("backend", "")
             }
             row.update(copy_scan_detail_fields(sample))
-            self.raw_scan_rows.append(row)
+            row.update({field: sample.get(field, "") for field in PROVENANCE_FIELDS})
+            validate_measurement_row(row, raw=True)
+            rows.append(row)
+        if append:
+            self.raw_scan_rows.extend(rows)
+        return rows
 
-    def delete_point(self, timestamp, x, y):
+    def measurement_points(self):
+        try:
+            points = json.loads(self.metadata.get(MEASUREMENT_POINTS_KEY, "[]"))
+            if not isinstance(points, list):
+                raise ValueError("Expected point list")
+            for point in points:
+                validate_coordinates(point["x"], point["y"])
+                if not point.get("point_id") or not point.get("timestamp") or point.get("status") not in {"empty", "observed"}:
+                    raise ValueError("Invalid measurement point")
+                if point["status"] == "empty":
+                    capture = point.get("capture", {})
+                    if capture.get("status") != "complete" or capture.get("freshness") != "fresh":
+                        raise ValueError("Unverified empty measurement")
+            if len({p["point_id"] for p in points}) != len(points):
+                raise ValueError("Duplicate measurement point ID")
+            return points
+        except (ValueError, TypeError, KeyError) as exc:
+            raise SurveyFormatError("invalid_survey_format") from exc
+
+    def delete_point(self, timestamp, x, y, point_id=None):
         kept_rows = []
         removed_rows = 0
         removed_point_ids = set()
@@ -165,14 +209,13 @@ class SurveySession:
             try:
                 row_x = int(float(row.get("x", "")))
                 row_y = int(float(row.get("y", "")))
-            except ValueError:
+            except (ValueError, TypeError, OverflowError):
                 row_x = None
                 row_y = None
 
             is_same_point = (
-                row.get("timestamp") == timestamp
-                and row_x == x
-                and row_y == y
+                row.get("point_id") == point_id if point_id else
+                row.get("timestamp") == timestamp and row_x == x and row_y == y
             )
 
             if is_same_point:
@@ -182,7 +225,12 @@ class SurveySession:
             else:
                 kept_rows.append(row)
 
-        if removed_rows:
+        ledger = self.measurement_points()
+        kept_points = [p for p in ledger if not (p["point_id"] == point_id if point_id else
+            p["timestamp"] == timestamp and p["x"] == x and p["y"] == y)]
+        removed_points = len(ledger) - len(kept_points)
+        if removed_rows or removed_points:
+            self.metadata[MEASUREMENT_POINTS_KEY] = json.dumps(kept_points, ensure_ascii=True)
             self.rows = kept_rows
             self.raw_scan_rows = [
                 row
@@ -191,13 +239,19 @@ class SurveySession:
             ]
             self.dirty = True
 
-        return removed_rows
+        return removed_rows or removed_points
 
     def get_points(self):
-        return get_survey_points_from_rows(self.rows)
+        points = get_survey_points_from_rows(self.rows)
+        points.extend({**p, "signal_dbm": None} for p in self.measurement_points() if p["status"] == "empty")
+        return points
 
     def get_point_summaries(self):
-        return get_survey_point_summaries_from_rows(self.rows)
+        points = get_survey_point_summaries_from_rows(self.rows)
+        points.extend({**p, "best_signal_dbm": None, "best_relevant_signal_dbm": None,
+            "signal_scope": "all", "ssids": [], "row_count": 0, "relevant_row_count": 0}
+            for p in self.measurement_points() if p["status"] == "empty")
+        return sorted(points, key=lambda p: p["timestamp"])
 
     def find_point_summary(self, x, y):
         for point in self.get_point_summaries():
@@ -252,6 +306,7 @@ class SurveySession:
                 "alias": str(group.get("alias", "")).strip(),
                 "bssids": sorted(set(bssids)),
                 "locked": bool(group.get("locked", False)),
+                "physical_confirmed": is_ap_group_confirmed(group),
                 "role": normalize_ap_role(group.get("role")),
             }
             position = normalize_ap_position(group.get("position"))
@@ -444,6 +499,52 @@ def validate_survey_file(csv_file):
     missing_raw_fields = [field for field in REQUIRED_RAW_SCAN_FIELDNAMES if field not in raw_header]
     if missing_raw_fields:
         raise SurveyFormatError("invalid_raw_scan_format")
+    try:
+        for row in read_survey_rows(csv_file):
+            validate_measurement_row(row)
+        for row in read_raw_scan_rows(csv_file):
+            validate_measurement_row(row, raw=True)
+        ledger = SurveySession()
+        ledger.metadata = metadata
+        ledger.measurement_points()
+    except (ValueError, TypeError, OverflowError) as exc:
+        raise SurveyFormatError("invalid_survey_format") from exc
+
+
+def validate_coordinates(x, y):
+    if any(finite_number(v) is None or not 0 <= float(v) <= 1_000_000_000 for v in (x, y)):
+        raise ValueError("Invalid measurement coordinates")
+
+
+def validate_measurement_row(row, raw=False):
+    validate_coordinates(row.get("x"), row.get("y"))
+    if not valid_signal(row.get("signal_dbm")):
+        raise ValueError("Invalid RSSI")
+    ranges = {"signal_percent": (0, 100), "scan_confidence": (0, 1),
+              "samples_seen": (0, 1_000_000), "samples_total": (0, 1_000_000),
+              "channel": (1, 233), "scan_attempt": (1, 1_000_000)}
+    for field, (low, high) in ranges.items():
+        value = row.get(field)
+        if value is None or value == "":
+            continue
+        parsed = finite_number(value)
+        if parsed is None or not low <= parsed <= high or (field in {"channel", "samples_seen", "samples_total", "scan_attempt"} and not parsed.is_integer()):
+            raise ValueError(f"Invalid {field}")
+    for field in ("signal_min_dbm", "signal_max_dbm", "signal_median_dbm"):
+        if row.get(field) not in (None, "") and not valid_signal(row[field]):
+            raise ValueError(f"Invalid {field}")
+    width = row.get("channel_width_mhz")
+    if width not in (None, "", "80+80") and finite_number(width) not in {20, 40, 80, 160, 320}:
+        raise ValueError("Invalid channel width")
+    seen, total = integer(row.get("samples_seen")), integer(row.get("samples_total"))
+    if seen is not None and total is not None and seen > total:
+        raise ValueError("Invalid sample counts")
+    low, high = finite_number(row.get("signal_min_dbm")), finite_number(row.get("signal_max_dbm"))
+    if low is not None and high is not None and not low <= float(row["signal_dbm"]) <= high:
+        raise ValueError("Inconsistent RSSI range")
+    samples = row.get("signal_samples_dbm")
+    if samples and any(not valid_signal(v) for v in str(samples).split(";")):
+        raise ValueError("Invalid RSSI sample")
 
 
 def read_csv_header(csv_file):
@@ -538,13 +639,15 @@ def get_survey_points_from_rows(rows):
             x = int(float(row.get("x", "")))
             y = int(float(row.get("y", "")))
             signal_dbm = float(row.get("signal_dbm", ""))
-        except ValueError:
+        except (ValueError, TypeError, OverflowError):
             continue
 
         if not timestamp:
             continue
+        if not valid_signal(signal_dbm):
+            continue
 
-        key = (timestamp, x, y)
+        key = row.get("point_id") or (timestamp, x, y)
         if key not in points or signal_dbm > points[key]["signal_dbm"]:
             points[key] = {
                 "point_id": row.get("point_id", ""),
@@ -566,13 +669,15 @@ def get_survey_point_summaries_from_rows(rows):
             x = int(float(row.get("x", "")))
             y = int(float(row.get("y", "")))
             signal_dbm = float(row.get("signal_dbm", ""))
-        except ValueError:
+        except (ValueError, TypeError, OverflowError):
             continue
 
         if not timestamp:
             continue
+        if not valid_signal(signal_dbm):
+            continue
 
-        key = (timestamp, x, y)
+        key = row.get("point_id") or (timestamp, x, y)
         point = points.setdefault(
             key,
             {

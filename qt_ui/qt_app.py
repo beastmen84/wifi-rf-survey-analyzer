@@ -320,7 +320,8 @@ class WifiHeatmapQtApp(
         except (TypeError, ValueError):
             return None
 
-        return value if value > 0 else None
+        from math import isfinite
+        return value if isfinite(value) and value > 0 else None
 
     def has_calibrated_scale(self):
         return self.get_px_per_meter() is not None

@@ -895,7 +895,8 @@ class FloorplanView(QGraphicsView):
             try:
                 x = float(point.get("x", 0))
                 y = float(point.get("y", 0))
-                signal = float(point.get("best_signal_dbm", point.get("signal_dbm", -90)))
+                raw_signal = point.get("best_signal_dbm", point.get("signal_dbm"))
+                signal = float(raw_signal) if raw_signal is not None else None
             except (TypeError, ValueError):
                 continue
 
@@ -947,7 +948,8 @@ class FloorplanView(QGraphicsView):
             if not isinstance(point, dict):
                 continue
             try:
-                signal = float(point.get("best_signal_dbm", point.get("signal_dbm", -90)))
+                raw_signal = point.get("best_signal_dbm", point.get("signal_dbm"))
+                signal = float(raw_signal) if raw_signal is not None else None
             except (TypeError, ValueError):
                 signal = -90
             self.style_point_marker(
@@ -1321,6 +1323,8 @@ def scaled_grid_value(value, ui_scale):
 
 
 def point_color(signal_dbm):
+    if signal_dbm is None:
+        return QColor("#6b7280")
     if signal_dbm >= -60:
         return QColor("#4E8F5A")
     if signal_dbm >= -70:

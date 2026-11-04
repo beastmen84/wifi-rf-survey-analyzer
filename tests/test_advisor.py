@@ -38,9 +38,12 @@ def fixture_survey(point_count=4, band="2.4", channel=1, width=20):
                 x=80 + index * 60, y=100, ssid="Office" if ap_index < 2 else "Neighbor",
                 bssid=group["bssids"][0], band=band, channel=channel, channel_width_mhz=width,
                 signal_dbm=-55 + ap_index * 3, samples_seen=5, samples_total=5,
-                scan_confidence=1.0, backend="lswifi", frequency_mhz=2412 if band == "2.4" else 5180)
+                scan_confidence=1.0, backend="lswifi", frequency_mhz=2412 if band == "2.4" else 5180,
+                adapter_id="receiver-one", freshness="fresh", signal_kind="direct",
+                scan_started_at=100000 + index * 100, scan_completed_at=100010 + index * 100,
+                observed_at=100020 + index * 100, host_timestamp=100001 + index * 100)
             rows.append(row)
-            raw.extend({**row, "scan_attempt": attempt} for attempt in range(1, 6))
+            raw.extend({**row, "scan_attempt": attempt, "host_timestamp": 100000 + index * 100 + attempt} for attempt in range(1, 6))
     return dict(rows=rows, raw_rows=raw, groups=groups, relevant_ssids={"Office"}, px_per_meter=10,
                 survey_name="Test survey")
 
@@ -190,9 +193,10 @@ def test_local_scope_is_shared_with_quality_and_does_not_expect_whole_site_cover
 def test_power_trial_requires_repetition_alternative_coverage_and_positions():
     context = fixture_survey()
     for row in context["rows"]:
-        row["x"] = 600
+        row["x"] = 600 + int(row["point_id"][1:]) * 30
         row["signal_dbm"] = -40 if row["bssid"].endswith(":10") else -65
     for row in context["raw_rows"]:
+        row["x"] = 600 + int(row["point_id"][1:]) * 30
         row["signal_dbm"] = -40 if row["bssid"].endswith(":10") else -65
     context["groups"][1]["position"] = {"x": 600, "y": 100}
     report = analyze_survey(**context)

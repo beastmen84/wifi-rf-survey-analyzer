@@ -952,7 +952,8 @@ def build_live_tooltip(map_type, row, raw_rows, translations, aliases=None):
             tooltip_section(translations.get("tooltip_section_location", "Location")),
             ("x/y", f"{format_value(row.get('x'))}, {format_value(row.get('y'))}"),
             tooltip_section(translations.get("tooltip_section_interference", "Interference")),
-            (translations.get("risk", "Risk"), f"{format_value(row.get('risk'))}%"),
+            (translations.get("risk", "Risk"), f"{format_value(row.get('risk'))}%"
+                if pd.notna(row.get("risk")) else translations.get("rf_unknown", "RF overlap undetermined")),
             (
                 translations.get("scan_confidence", "Confidence"),
                 format_scan_confidence_percent(row.get("scan_confidence", "")),

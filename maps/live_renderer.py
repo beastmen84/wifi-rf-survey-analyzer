@@ -458,6 +458,8 @@ def clone_cached_result(result):
 
 
 def get_interference_marker_color(risk):
+    if not np.isfinite(risk):
+        return "#6b7280"
     if risk >= 60:
         return "#d73027"
     if risk >= 30:

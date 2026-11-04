@@ -1,6 +1,7 @@
 """Wi-Fi band normalization and channel/frequency helpers."""
 
 import re
+from wifi.evidence import finite_number, integer
 
 
 WIFI_BANDS = ("2.4", "5", "6")
@@ -30,12 +31,12 @@ def normalize_frequency_mhz(value):
     if not text:
         return None
 
-    match = re.search(r"[-+]?\d+(?:\.\d+)?", text)
+    match = re.fullmatch(r"([-+]?\d+(?:\.\d+)?)\s*(ghz|mhz|khz|hz)?", text)
     if not match:
         return None
 
     try:
-        frequency = float(match.group(0))
+        frequency = float(match.group(1))
     except (TypeError, ValueError):
         return None
 
@@ -52,7 +53,7 @@ def normalize_frequency_mhz(value):
     elif 2 <= frequency <= 8:
         frequency *= 1000.0
 
-    return frequency
+    return frequency if finite_number(frequency) is not None and frequency > 0 else None
 
 
 def infer_band_from_frequency_mhz(value):
@@ -76,33 +77,55 @@ def infer_band_from_frequency_mhz(value):
 
 
 def infer_band_from_channel(channel):
-    try:
-        channel_number = int(float(channel))
-    except (TypeError, ValueError):
-        return ""
+    channel_number = integer(channel)
+    bands = [band for band in WIFI_BANDS if valid_primary_channel(channel_number, band)]
+    return bands[0] if len(bands) == 1 else ""
 
-    if 1 <= channel_number <= 14:
-        return "2.4"
-    if 32 <= channel_number <= 196:
-        return "5"
 
-    return ""
+def valid_primary_channel(channel, band):
+    channel = integer(channel)
+    if channel is None:
+        return False
+    if band == "2.4":
+        return 1 <= channel <= 14
+    if band == "5":
+        return channel in (*range(36, 65, 4), *range(100, 145, 4), *range(149, 178, 4))
+    if band == "6":
+        return channel == 2 or channel in range(1, 234, 4)
+    return False
 
 
 def get_row_band(row):
+    """Resolve consistent evidence; ambiguous channels and contradictions stay unknown."""
+    if row.get("radio_status") == "invalid":
+        return ""
+    evidence = set()
     for key in ("band", "wifi_band"):
         if key in row:
             band = normalize_band(row.get(key))
             if band:
-                return band
+                evidence.add(band)
 
     for key in ("frequency_mhz", "frequency", "freq"):
         if key in row:
             band = infer_band_from_frequency_mhz(row.get(key))
             if band:
-                return band
-
-    return infer_band_from_channel(row.get("channel"))
+                evidence.add(band)
+            elif str(row.get(key) or "").strip():
+                return ""
+    if len(evidence) > 1:
+        return ""
+    band = next(iter(evidence), "") or infer_band_from_channel(row.get("channel"))
+    channel = integer(row.get("channel"))
+    if str(row.get("channel") or "").strip() and not valid_primary_channel(channel, band):
+        return ""
+    for key in ("frequency_mhz", "frequency", "freq"):
+        frequency = normalize_frequency_mhz(row.get(key))
+        if frequency is not None and channel is not None:
+            center = channel_center_frequency_mhz(channel, band)
+            if center is None or abs(center - frequency) > 0.5:
+                return ""
+    return band
 
 
 def row_matches_band(row, band):
@@ -114,12 +137,10 @@ def row_matches_band(row, band):
 
 
 def channel_center_frequency_mhz(channel, band):
-    try:
-        channel_number = int(float(channel))
-    except (TypeError, ValueError):
-        return None
-
+    channel_number = integer(channel)
     band = normalize_band(band)
+    if not valid_primary_channel(channel_number, band):
+        return None
     if band == "2.4":
         if channel_number == 14:
             return 2484

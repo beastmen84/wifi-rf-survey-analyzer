@@ -5,7 +5,7 @@ from hashlib import sha256
 import json
 import math
 
-ENGINE_VERSION = "1"
+ENGINE_VERSION = "2"
 
 
 @dataclass(frozen=True)
@@ -59,6 +59,10 @@ class EvidenceReading:
     channel: int | None
     width: int | None
     confidence: float
+    backend: str = ""
+    adapter_id: str = ""
+    signal_kind: str = "unknown"
+    freshness: str = "unknown"
 
 
 @dataclass(frozen=True)

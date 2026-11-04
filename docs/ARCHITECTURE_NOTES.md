@@ -1,6 +1,6 @@
 # Wi-Fi RF Survey Analyzer - Architecture Notes
 
-Last updated: 2026-11-03
+Last updated: 2026-11-04
 
 This document is the forward-looking product roadmap. Completed items are kept
 only as context; the actionable backlog is in the "Remaining Work" section.
@@ -22,13 +22,33 @@ interpolated colors.
 
 Current status:
 
-- the pre-1.1.0 precision audit is complete on source `8941b0d`. The existing
-  suite passes, but 14 adversarial scenarios reproduce data/model limitations.
-  A live freshness probe saw 24 reused BSS observations out of 54 reads. Stable
-  1.1.0 is blocked on the RF evidence issues documented in `docs/AUDIT_1_1_0.md`:
-  scan lifecycle/provenance, SSID identity/hidden BSS, partial-raw quality,
-  channel representation/consistency and confidence in physical AP grouping.
-  No runtime correction or release is implied by the audit documentation;
+- the pre-1.1.0 precision audit on `8941b0d` is followed by implemented R1-R11
+  corrections, documented in `docs/AUDIT_1_1_0.md`. Final offscreen/native suites
+  each pass 453 tests and 475 subtests. The final live production capture accepts
+  37 unique fresh observations and excludes six cached reads, with no reused or
+  pre-request observations accepted. These are software/freshness checks, not
+  receiver calibration or controlled moving-position/6 GHz field validation;
+- `wifi/native_scan.py` owns Windows notification/handle lifetime and strict BSS
+  reads; `wifi/evidence.py` shares provenance, timestamp, raw-completeness and
+  confidence guards. One adapter is selected per capture. Netsh is an unverified
+  estimated-dBm snapshot. RF geometry and band contradictions stay unknown;
+- optional schema-2 CSV/raw columns retain backend, adapter, signal type,
+  freshness, exact FILETIME timestamps and radio geometry. A measurement-point
+  ledger in CSV metadata retains observed/verified-empty capture outcomes in
+  the existing recoverable save transaction. Older files remain readable with
+  unknown provenance. No synthetic BSS or RSSI is written for empty points;
+- AP groups have a separate `physical_confirmed` flag. Automatic proposals do
+  not suppress neighbors; alias edits/locking do not establish physical identity.
+  The AP Group Manager provides explicit confirmation after equipment checks.
+  Legacy manually locked groups retain their prior explicit model semantics;
+- UI/metadata membership remains distinct from RF identity: the group map's
+  `confirmed_only=True` mode is used by live/export analysis and its filters.
+  Roles and channel overrides follow separated BSSIDs as well as confirmed
+  group IDs, so preserving neighbors does not lose explicit user metadata;
+- advisor engine 2 requires matching fresh raw evidence and rejects uncertain
+  groups, mixed receivers and unsupported geometry for precise proposals.
+  Controlled power trials require separated locations and alternate coverage
+  at every observed location dependent on the target AP;
 - the user-authorized interpreter migration targets CPython 3.15.2 in a new
   `.venv315`; `.venv` remains the original Python 3.14.5 fallback. Runtime/dev
   pins and the Windows x64 lock now reflect the compatible Qt/scientific/scanner
@@ -778,14 +798,13 @@ Implemented:
 
 ## Remaining Work
 
-Closeout assessment:
-
-- no known blocker remains in the survey core, AP Group workflow, live maps,
-  live PDF reports, channel-change handling or Survey Quality Dashboard;
-- the Help System rework has an expanded Help Center implementation and needs
-  final review/polish before 1.0 closeout;
-- the other items below are monitoring or future expansion candidates and
-  should not block calling the current workflow complete.
+The historical feature closeout below describes the 1.0 workflow. For the
+current 1.1.0 decision, the precision audit takes precedence: R1-R11 software
+corrections are implemented and regression-tested, while controlled field
+validation, receiver calibration and suitable 6 GHz hardware remain pending.
+Keep the intermittent native Qt/COM diagnostic open until explained. Package
+validation belongs to an explicitly requested release build; no version bump,
+tag or new executable is implied by the corrections.
 
 ### 1. AP Group Manager UX Monitoring
 

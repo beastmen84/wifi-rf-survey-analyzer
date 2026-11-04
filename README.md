@@ -34,9 +34,10 @@ physical APs, review survey quality, and export explainable RF maps.
 Executable and ZIP artifacts are built separately from the tagged source state.
 The development source also includes the upcoming Analysis and recommendations
 workflow described below; see the changelog for changes since the stable release.
-The pre-release [data-accuracy audit](docs/AUDIT_1_1_0.md) identifies open issues
-with scan freshness, hidden SSIDs, partial raw evidence and channel modeling.
-Review those limits before using development reports for operational RF changes.
+The pre-release [data-accuracy audit](docs/AUDIT_1_1_0.md) records the precision
+fixes and their verification, including live scan-freshness checks. Controlled
+field validation, receiver calibration and 6 GHz hardware checks remain separate
+from these software checks.
 
 ## Core Features
 
@@ -123,19 +124,32 @@ calibration, measurement system, relevant SSIDs, AP groups, AP roles, AP
 metadata, AP positions, analysis-channel overrides, and product/schema version
 fields.
 
+New captures preserve the receiver, backend, scan lifecycle and BSS observation
+timestamps in CSV/raw evidence. Measurement-point metadata also retains a
+successfully completed scan with zero BSS, without inventing an RSSI value.
+Older surveys remain readable; missing provenance stays unknown and cannot
+authorize precise operational recommendations. Rescan those points when needed.
+
 ## Wi-Fi Scanning
 
 The scanner uses `lswifi` when available and falls back to Windows `netsh`.
-Each point can run multiple scan attempts to reduce partial scan results and
-beacon timing artifacts.
+Native captures use one receiver per point, prefer the connected adapter, wait
+for scan completion and count only fresh, unique BSS observations across five
+attempts. Failed requests and cached observations do not become new samples.
 
 The `netsh` fallback reads English, Italian, French and Spanish field labels,
 preserves explicit band information, and reports command failures or timeouts.
-SSID matching is case-sensitive: `Office` and `office` remain separate networks.
+It is an unverified snapshot with estimated dBm, so it cannot establish fresh
+independent samples or authorize precise RF changes. Reports distinguish these
+estimates from driver RSSI. SSID identity preserves case, spaces and original
+bytes, and hidden BSS remain available as RF evidence.
 
 The data model supports 2.4 GHz, 5 GHz, and 6 GHz observations. When explicit
 band/frequency data is unavailable, the app uses conservative channel-based
-inference.
+inference only when the primary channel identifies a unique band. Contradictory
+band/frequency evidence and unsupported channel geometry remain unknown. HT40
+needs its secondary-channel direction; 80+80 and ambiguous 320 MHz layouts do
+not produce a numerical overlap claim.
 
 Survey Quality also flags points where fallback scanner data or missing
 channel-width/frequency details may weaken channel-sensitive conclusions such
@@ -148,6 +162,11 @@ roaming and sticky-client diagnostics.
 AP groups represent physical access points rather than isolated BSSIDs. This
 prevents guest/main SSIDs from the same AP being treated as mutual interference
 when the AP is modeled correctly.
+
+Automatic MAC-based groups are proposals. Verify their BSSIDs against the real
+equipment, then use **Confirm physical AP group** in the group's alias menu.
+Renaming an automatic group does not confirm physical identity. Unconfirmed
+groups do not hide RF neighbors or authorize physical AP changes.
 
 Supported AP roles:
 

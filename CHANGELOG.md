@@ -33,13 +33,37 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
   analysis apply the same coverage scope.
 - Replaced the original advisor-overlay draft with the implemented final-tab
   workflow in `docs/AI_ADVISOR_DESIGN.md`. No AI or remote service is involved.
+- Native acquisition now waits for scan-complete/failure notifications and
+  rejects cached/repeated BSS observations. Receiver identity, exact timestamps
+  and scan outcomes survive saving; each capture uses one receiver and a fixed
+  five-attempt denominator. Mixed-receiver surveys block precise advice.
+- Preserved hidden SSIDs, whitespace, placeholder-like names and original SSID
+  bytes, including embedded NUL. Partial raw evidence no longer hides known
+  aggregate signal instability, and incomplete evidence blocks precise advice.
+- Validated finite measurement inputs and radio consistency. Ambiguous bands,
+  missing HT40 direction, discontiguous 80+80 and unsupported 320 MHz geometry
+  remain unknown instead of producing false zero-overlap conclusions.
+- Shared conservative scan-confidence rules across maps, quality and reports.
+  Old surveys with unknown freshness remain readable without receiving implicit
+  full confidence. Reports identify direct driver RSSI versus estimated dBm.
+- Separated automatic AP-group proposals from confirmed physical identity.
+  Added an explicit physical-group confirmation action; renaming alone does not
+  suppress neighbors. Power trials require distinct locations at least 2 m
+  apart and alternative coverage at every measured location served by the AP.
+- Retained verified zero-BSS scans as measurement points, with an empty outcome
+  and no fabricated signal. Failed/unverified captures cannot claim absence;
+  rescans preserve the original point until the replacement validates.
+- Added regression coverage for all eleven precision-audit findings and updated
+  the audit with before/after hardware evidence and remaining validation limits.
 
 ### Known Issues Before Release
 
-- The data-accuracy audit found reproducible gaps in scan freshness/confidence,
-  hidden/whitespace SSID preservation, partial-raw quality checks, channel-width
-  and band consistency, and unconfirmed automatic AP grouping. These remain
-  open release blockers; see `docs/AUDIT_1_1_0.md` for evidence and release gates.
+- Controlled moving-position/AP-change field tests, absolute-RSSI reference
+  calibration and 6 GHz/6E/7 hardware validation remain outstanding. Unsupported
+  RF geometry is gated conservatively; see `docs/AUDIT_1_1_0.md` for evidence.
+- The previously observed intermittent native Qt/COM `0x8001010d` diagnostic
+  remains unexplained. It did not appear in the final native correction run;
+  that result does not establish a fix. A new Windows package is not yet built.
 
 ## Unreleased Bugfixes - v1.0.x
 

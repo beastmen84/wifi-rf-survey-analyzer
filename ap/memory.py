@@ -354,7 +354,7 @@ def normalize_memory_record(record):
         "alias": str(record.get("alias", "")).strip(),
         "role": normalize_ap_role(record.get("role")),
         "bssids": bssids,
-        "ssids": sorted({str(value).strip() for value in record.get("ssids", []) if str(value).strip()}),
+        "ssids": sorted({str(value) for value in record.get("ssids", []) if str(value)}),
         "channels": sorted({str(value).strip() for value in record.get("channels", []) if str(value).strip()}, key=numeric_text_key),
         "bands": sorted({str(value).strip() for value in record.get("bands", []) if str(value).strip()}, key=band_sort_key),
         "metadata": normalize_ap_metadata(record.get("metadata")),
@@ -405,7 +405,7 @@ def summarize_observed_group_rows(rows, bssids):
     for row in rows or []:
         if normalize_bssid(row.get("bssid", "")) not in bssid_set:
             continue
-        ssid = str(row.get("ssid", "")).strip()
+        ssid = str(row.get("ssid", ""))
         channel = str(row.get("channel", "")).strip()
         band = get_row_band(row)
         if ssid:

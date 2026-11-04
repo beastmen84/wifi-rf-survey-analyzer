@@ -303,6 +303,9 @@ class APGroupManagerDialog(QDialog):
         self.bssid_management_button = QPushButton(self.tr("ap_group_bssid_management"))
         self.alias_button = QPushButton(self.tr("ap_group_alias_menu"))
         self.alias_menu = QMenu(self.alias_button)
+        self.confirm_physical_action = self.alias_menu.addAction(self.tr("advisor_confirm_group"))
+        self.confirm_physical_action.setToolTip(self.tr("advisor_confirm_group_hint"))
+        self.confirm_physical_action.triggered.connect(lambda _checked=False: self.confirm_physical_group())
         self.set_alias_action = self.alias_menu.addAction(self.tr("ap_group_set_alias"))
         self.delete_alias_action = self.alias_menu.addAction(self.tr("ap_group_delete_alias"))
         self.alias_button.setMenu(self.alias_menu)
@@ -880,6 +883,7 @@ class APGroupManagerDialog(QDialog):
         self.bssid_management_button.setEnabled(has_group)
         self.alias_button.setEnabled(has_group)
         self.set_alias_action.setEnabled(has_group)
+        self.confirm_physical_action.setEnabled(bool(group and not group.get("physical_confirmed", group.get("locked", True))))
         self.role_button.setEnabled(has_group)
         self.metadata_button.setEnabled(has_group)
         self.position_button.setEnabled(has_group)
@@ -891,6 +895,15 @@ class APGroupManagerDialog(QDialog):
         group["locked"] = True
         clear_group_memory_flag(group)
         self.render_rows()
+
+    def confirm_physical_group(self):
+        group = self.require_selected_group()
+        if group is not None:
+            group["physical_confirmed"] = True
+            group["locked"] = True
+            clear_group_memory_flag(group)
+            self.refresh_all_group_details()
+            self.render_rows()
 
     def prompt_alias_for_selected_group(self):
         group = self.require_selected_group()

@@ -13,6 +13,7 @@ from maps.quality import (
     QUALITY_MISSING_RELEVANT,
     QUALITY_SPARSE_DATA,
     QUALITY_UNSTABLE_SIGNAL,
+    QUALITY_EMPTY_SCAN,
     evaluate_point_quality,
 )
 from qt_ui.qt_floorplan import format_point_tooltip
@@ -126,7 +127,7 @@ class SurveyPointTableMixin:
         if self.session is None:
             return 0
 
-        removed_rows = self.session.delete_point(point["timestamp"], int(point["x"]), int(point["y"]))
+        removed_rows = self.session.delete_point(point["timestamp"], int(point["x"]), int(point["y"]), point.get("point_id"))
         if refresh:
             self.refresh_session_labels()
             self.refresh_points_table()
@@ -150,6 +151,9 @@ class SurveyPointTableMixin:
         )
         for point in summaries:
             quality = quality_by_point_id.get(point.get("point_id", ""), {})
+            if point.get("status") == "empty":
+                quality = {"status": QUALITY_EMPTY_SCAN}
+                quality_by_point_id[point["point_id"]] = quality
             point["quality_label"] = self.format_point_quality(quality.get("status"))
         self.floorplan_view.set_points(summaries)
         self.floorplan_view.set_ap_groups(self.session.get_ap_groups())
@@ -160,7 +164,7 @@ class SurveyPointTableMixin:
                 str(len(summaries) - row_index),
                 str(point.get("x", "")),
                 str(point.get("y", "")),
-                f"{point.get('best_signal_dbm', '')}",
+                "—" if point.get("best_signal_dbm") is None else str(point["best_signal_dbm"]),
                 self.format_point_quality(quality.get("status")),
                 ", ".join(point.get("ssids", [])),
                 str(point.get("row_count", "")),
@@ -187,6 +191,7 @@ class SurveyPointTableMixin:
             QUALITY_LOW_CONFIDENCE: self.tr("quality_low_confidence"),
             QUALITY_UNSTABLE_SIGNAL: self.tr("quality_unstable_signal"),
             QUALITY_SPARSE_DATA: self.tr("quality_sparse_data"),
+            QUALITY_EMPTY_SCAN: self.tr("advisor_empty_scan_label"),
         }.get(status, "-")
 
     def format_survey_point_tooltip(self, point):

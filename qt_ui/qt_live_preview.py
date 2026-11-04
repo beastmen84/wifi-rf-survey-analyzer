@@ -110,11 +110,11 @@ class LivePreviewMixin:
         if point_count < required_points:
             return False
 
-        return bool(self.live_ssid_combo.currentText().strip())
+        return bool(self.live_ssid_combo.currentText())
 
     def build_live_map_config(self):
         groups = self.session.get_ap_groups() if self.session is not None else []
-        ap_group_map = serialize_ap_group_map(build_bssid_to_manual_group_map(groups))
+        ap_group_map = serialize_ap_group_map(build_bssid_to_manual_group_map(groups, confirmed_only=True))
         ap_group_roles = serialize_ap_group_roles(build_ap_group_role_map(groups))
         ap_group_channel_overrides = serialize_ap_group_channel_overrides(
             build_ap_group_channel_override_map(groups)
@@ -126,7 +126,7 @@ class LivePreviewMixin:
             else ""
         )
         return MapConfig(
-            ssid=self.live_ssid_combo.currentText().strip(),
+            ssid=self.live_ssid_combo.currentText(),
             band=self.current_combo_value(self.live_band_combo, "all"),
             map_type=map_type,
             interference_mode=self.current_combo_value(self.live_interference_mode_combo, "intra_ssid"),
@@ -148,7 +148,7 @@ class LivePreviewMixin:
         if self.session is None:
             return {}
 
-        return build_bssid_to_manual_group_map(self.session.get_ap_groups())
+        return build_bssid_to_manual_group_map(self.session.get_ap_groups(), confirmed_only=True)
 
     def get_current_ap_group_roles(self):
         if self.session is None:
@@ -167,7 +167,7 @@ class LivePreviewMixin:
             return MapConfig()
 
         ssids = self.session.get_ssids()
-        current_ssid = self.live_ssid_combo.currentText().strip()
+        current_ssid = self.live_ssid_combo.currentText()
         if current_ssid not in ssids:
             current_ssid = ssids[0] if ssids else ""
 
@@ -192,7 +192,7 @@ class LivePreviewMixin:
             smoothing_sigma=float(self.live_smoothing_spin.value()),
             max_distance_px=self.current_live_max_distance_px(),
             ap_group_filter=ap_group_filter,
-            ap_group_map=serialize_ap_group_map(build_bssid_to_manual_group_map(groups)),
+            ap_group_map=serialize_ap_group_map(build_bssid_to_manual_group_map(groups, confirmed_only=True)),
             ap_group_roles=serialize_ap_group_roles(build_ap_group_role_map(groups)),
             ap_group_channel_overrides=serialize_ap_group_channel_overrides(
                 build_ap_group_channel_override_map(groups)
@@ -213,6 +213,7 @@ class LivePreviewMixin:
             "channel_title": self.tr("map_type_channel"),
             "dominant_title": self.tr("map_type_dominant"),
             "risk": self.tr("interference_top_risk"),
+            "rf_unknown": self.tr("advisor_rf_unknown"),
             "serving_ap": self.tr("interference_summary_serving_ap"),
             "serving_signal": self.tr("interference_summary_serving_dbm"),
             "serving_channel": self.tr("interference_summary_serving_channel"),

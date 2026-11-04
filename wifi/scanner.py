@@ -13,6 +13,8 @@ from app_core.logging import log_event, log_exception
 from app_core.constants import SCAN_DETAIL_FIELDNAMES, WIFI_SCAN_ATTEMPTS, WIFI_SCAN_DELAY_SECONDS
 from wifi.signal import dbm_to_percent, percent_to_dbm
 from wifi.band import get_row_band, infer_band_from_channel, infer_band_from_frequency_mhz, normalize_band, normalize_frequency_mhz
+from wifi.evidence import PROVENANCE_FIELDS, integer, observation_key, ssid_text, valid_signal, fresh_observation
+from wifi.native_scan import scan_and_wait, read_bss_list, filetime_now
 
 NETSH_SCAN_TIMEOUT_SECONDS = 15
 
@@ -21,6 +23,13 @@ class WifiScanError(RuntimeError):
     def __init__(self, message_key):
         self.message_key = message_key
         super().__init__(message_key)
+
+
+class ScanBatch(list):
+    """List-compatible result, carrying the outcome independently of BSS rows."""
+    def __init__(self, rows=(), capture=None):
+        super().__init__(rows)
+        self.capture = capture or {}
 
 
 def netsh_command(*arguments):
@@ -50,7 +59,12 @@ def netsh_field(line):
         "autenticacion": "authentication",
         "crittografia": "encryption", "chiffrement": "encryption", "cifrado": "encryption",
     }
-    return labels.get(key, key), match[2].strip()
+    key = labels.get(key, key)
+    if key == "ssid":
+        # Netsh uses one separating space after ':'; further spaces are identity.
+        value = line.lstrip().split(":", 1)[1]
+        return key, value[1:] if value.startswith(" ") else value
+    return key, match[2].strip()
 
 
 def decode_netsh_output(output):
@@ -73,11 +87,11 @@ def scan_wifi(backend="auto", show_errors=True):
     if backend == "netsh":
         return scan_wifi_netsh(show_errors=show_errors), "netsh"
 
-    networks = scan_wifi_lswifi(show_errors=False)
-    if networks:
+    try:
+        networks = scan_wifi_lswifi(show_errors=False)
         return networks, "lswifi"
-
-    return scan_wifi_netsh(show_errors=show_errors), "netsh fallback"
+    except WifiScanError:
+        return scan_wifi_netsh(show_errors=show_errors), "netsh fallback"
 
 
 def get_connected_ssid():
@@ -109,10 +123,15 @@ def get_connected_network_lswifi():
 
 
 def decode_lswifi_ssid(value):
+    value = lswifi_value(value, "")
     if isinstance(value, bytes):
-        value = value.split(b"\x00", 1)[0].decode("utf-8", errors="ignore")
-
-    return clean_scan_text(value)
+        try:
+            value = value.decode("utf-8")
+        except UnicodeDecodeError:
+            # This label is longer than the 32-byte SSID limit and cannot collide
+            # with a real network name. The original bytes are stored separately.
+            value = "<Non-UTF8 SSID; original bytes (hex): " + value.hex() + ">"
+    return ssid_text(value)
 
 
 def get_connected_ssid_netsh():
@@ -161,7 +180,7 @@ def parse_netsh_interface_fields(fields):
     if state and state.casefold() not in {"connected", "connesso", "connessa", "connecté", "connecte", "conectado"}:
         return {}
 
-    ssid = clean_scan_text(fields.get("ssid", ""))
+    ssid = ssid_text(fields.get("ssid", ""))
     bssid = clean_bssid_text(fields.get("ap bssid") or fields.get("bssid"))
     if not ssid and not bssid:
         return {}
@@ -196,7 +215,9 @@ def scan_wifi_netsh(show_errors=True):
         log_event("scan_wifi_netsh start", logger_name="wifi_scanner")
         scans = []
 
-        for attempt in range(WIFI_SCAN_ATTEMPTS):
+        # netsh exposes a snapshot without BSS host timestamps. Repeated polling
+        # cannot establish independent measurements, so acquire one honest snapshot.
+        for attempt in range(1):
             result = subprocess.run(
                 netsh_command("networks", "mode=bssid"),
                 capture_output=True,
@@ -209,15 +230,18 @@ def scan_wifi_netsh(show_errors=True):
             networks = mark_connected_networks(parse_netsh_output(result.stdout), connected)
             scans.extend(annotate_raw_scan_samples(networks, attempt + 1, "netsh"))
 
-            if attempt < WIFI_SCAN_ATTEMPTS - 1:
-                time.sleep(WIFI_SCAN_DELAY_SECONDS)
 
-        networks = merge_wifi_scans(scans, WIFI_SCAN_ATTEMPTS)
+        for sample in scans:
+            sample.update(freshness="unknown", signal_kind="estimated", adapter_id="")
+        networks = merge_wifi_scans(scans, 1)
+        if not networks:
+            raise WifiScanError("wifi_scan_failed")  # A cached empty snapshot proves no absence.
         log_event(
             f"scan_wifi_netsh done networks={len(networks)} raw_samples={len(scans)}",
             logger_name="wifi_scanner",
         )
-        return networks
+        return ScanBatch(networks, {"status": "unverified", "backend": "netsh",
+                                   "freshness": "unknown", "attempts": 1})
 
     except subprocess.TimeoutExpired as exc:
         log_exception("scan_wifi_netsh timed out", exc, logger_name="wifi_scanner")
@@ -237,40 +261,63 @@ def scan_wifi_lswifi(show_errors=True):
 
         scans = []
         interfaces = lswifi_wlanapi.WLAN.get_wireless_interfaces()
-        interface_count = max(1, len(interfaces))
-
-        for _interface_index, interface in interfaces.items():
-            for attempt in range(WIFI_SCAN_ATTEMPTS):
+        if not interfaces:
+            raise WifiScanError("wifi_scan_failed")
+        # One receiver per capture: prefer the connected adapter, then stable GUID order.
+        ranked = sorted(interfaces.values(), key=lambda interface: (
+            not bool(get_lswifi_connected_network(lswifi_wlanapi, interface)), str(interface.guid)))
+        interface = ranked[0]
+        adapter_id = str(interface.guid)
+        outcomes, successful_reads, cached_rows, invalid_rows = [], 0, 0, 0
+        for attempt in range(WIFI_SCAN_ATTEMPTS):
+            outcome = scan_and_wait(lswifi_wlanapi, interface)
+            outcome["attempt"] = attempt + 1
+            outcomes.append(outcome)
+            if outcome["status"] == "complete":
                 try:
-                    lswifi_wlanapi.WLAN.scan(interface.guid)
+                    bss_list = read_bss_list(lswifi_wlanapi, interface)
                 except Exception:
-                    pass
-
-                time.sleep(WIFI_SCAN_DELAY_SECONDS)
-
-                bss_list = lswifi_wlanapi.WLAN.get_wireless_network_bss_list(
-                    interface,
-                    False
-                )
+                    outcome["status"] = "read_failed"
+                    continue
+                successful_reads += 1
                 connected = get_lswifi_connected_network(lswifi_wlanapi, interface)
                 connected_bssids = {connected.get("bssid", "")} if connected.get("bssid") else set()
-                scans.extend(annotate_raw_scan_samples(
-                    parse_lswifi_bss_list(bss_list, connected_bssids=connected_bssids),
-                    attempt + 1,
-                    "lswifi",
-                ))
-
-        networks = merge_wifi_scans(scans, WIFI_SCAN_ATTEMPTS * interface_count)
+                observed_at = filetime_now()
+                parsed = parse_lswifi_bss_list(bss_list, connected_bssids=connected_bssids)
+                invalid_rows += len(bss_list) - len(parsed)
+                for sample in parsed:
+                    stamp = integer(sample.get("host_timestamp"))
+                    fresh = stamp is not None and outcome["started"] <= stamp <= observed_at
+                    sample.update(adapter_id=adapter_id, freshness="fresh" if fresh else "cached",
+                        signal_kind="direct", observed_at=observed_at, scan_started_at=outcome["started"],
+                        scan_completed_at=outcome["completed"], scan_attempt=attempt + 1, backend="lswifi")
+                    if fresh:
+                        scans.append(sample)
+                    else:
+                        cached_rows += 1
+            if attempt < WIFI_SCAN_ATTEMPTS - 1:
+                time.sleep(WIFI_SCAN_DELAY_SECONDS)
+        if not successful_reads or (not scans and (cached_rows or invalid_rows)):
+            raise WifiScanError("wifi_scan_failed")
+        if invalid_rows:
+            for sample in scans:
+                sample["capture_quality"] = "incomplete"
+        networks = merge_wifi_scans(scans, WIFI_SCAN_ATTEMPTS)
         log_event(
-            f"scan_wifi_lswifi done interfaces={interface_count} networks={len(networks)} raw_samples={len(scans)}",
+            f"scan_wifi_lswifi done networks={len(networks)} fresh_samples={len(scans)} cached_excluded={cached_rows}",
             logger_name="wifi_scanner",
         )
-        return networks
+        return ScanBatch(networks, {"status": "complete" if successful_reads == WIFI_SCAN_ATTEMPTS else "partial",
+            "backend": "lswifi", "adapter_id": adapter_id, "freshness": "fresh",
+            "attempts": outcomes, "successful_reads": successful_reads, "cached_excluded": cached_rows,
+            "invalid_records": invalid_rows})
 
     except Exception as e:
         log_exception("scan_wifi_lswifi failed", e, logger_name="wifi_scanner")
         report_scan_error(show_errors, "Errore scan Wi-Fi lswifi", e)
-        return []
+        if isinstance(e, WifiScanError):
+            raise
+        raise WifiScanError("wifi_scan_failed") from e
 
 
 def report_scan_error(show_errors, title, error):
@@ -374,26 +421,32 @@ def parse_lswifi_bss_list(bss_list, connected_bssids=None):
     }
 
     for item in bss_list:
-        ssid = clean_scan_text(getattr(item, "ssid", ""))
+        raw_ssid = getattr(item, "ssid_bytes", None)
+        ssid = decode_lswifi_ssid(raw_ssid if raw_ssid is not None else getattr(item, "ssid", ""))
         bssid = clean_scan_text(getattr(item, "bssid", ""))
 
-        if not ssid or not bssid:
+        if not bssid:
             continue
 
         try:
             signal_dbm = float(lswifi_value(getattr(item, "rssi", None)))
         except (TypeError, ValueError):
             continue
+        if not valid_signal(signal_dbm):
+            log_event("Rejected BSS with invalid RSSI", logger_name="wifi_scanner")
+            continue
 
         channel = clean_scan_text(getattr(item, "channel_number", ""))
         frequency_mhz = get_lswifi_frequency_mhz(item)
         channel_width_mhz = get_lswifi_channel_width_mhz(item)
         band = get_lswifi_band(item, channel, frequency_mhz)
+        radio_status = "valid" if get_row_band(dict(band=band, channel=channel, frequency_mhz=frequency_mhz)) else "invalid"
         radio = format_lswifi_radio(getattr(item, "phy_type", None))
         extra_details = get_lswifi_extra_details(item, frequency_mhz)
 
         networks.append({
             "ssid": ssid,
+            "ssid_hex": raw_ssid.hex() if isinstance(raw_ssid, bytes) else "",
             "bssid": bssid,
             "signal_percent": dbm_to_percent(signal_dbm),
             "signal_dbm": signal_dbm,
@@ -401,11 +454,20 @@ def parse_lswifi_bss_list(bss_list, connected_bssids=None):
             "channel_width_mhz": channel_width_mhz,
             "band": band,
             "radio": radio,
+            "radio_status": radio_status,
+            "host_timestamp": integer(lswifi_value(getattr(item, "host_timestamp", None))) or "",
+            "channel_geometry": "discontiguous" if channel_width_mhz == "80+80" else "",
+            "secondary_channel_offset": get_lswifi_secondary_offset(item),
             "is_connected": normalize_bssid(bssid) in connected_bssids,
             **extra_details,
         })
 
     return networks
+
+
+def get_lswifi_secondary_offset(item):
+    marking = str(lswifi_value(getattr(item, "channel_marking", "")))
+    return 1 if marking == "+" else -1 if marking == "-" else ""
 
 
 def mark_connected_networks(networks, connected):
@@ -589,7 +651,7 @@ def normalize_channel_width_mhz(value):
         return ""
 
     if "80+80" in text:
-        return 160
+        return "80+80"
 
     match = re.search(r"(20|40|80|160|320)", text)
     if not match:
@@ -618,10 +680,11 @@ def merge_wifi_scans(networks, samples_total=1):
 
     for network in networks:
         key = (
-            normalize_merge_text(network.get("ssid")),
+            ssid_text(network.get("ssid")),
             normalize_merge_text(network.get("bssid")).lower(),
             normalize_merge_text(network.get("channel")),
             get_row_band(network),
+            network.get("ssid_hex", ""), network.get("adapter_id", ""),
         )
         merged_networks.setdefault(key, []).append(network)
 
@@ -630,12 +693,22 @@ def merge_wifi_scans(networks, samples_total=1):
     for samples in merged_networks.values():
         valid_samples = []
         signal_values = []
+        observations, attempts = set(), set()
         for sample in samples:
             try:
                 signal_dbm = float(sample.get("signal_dbm", ""))
             except (TypeError, ValueError):
                 continue
-
+            if not valid_signal(signal_dbm):
+                continue
+            key = observation_key(sample)
+            attempt = integer(sample.get("scan_attempt"))
+            if key is not None and key in observations or attempt is not None and attempt in attempts:
+                continue
+            if key is not None:
+                observations.add(key)
+            if attempt is not None:
+                attempts.add(attempt)
             valid_samples.append((sample, signal_dbm))
             signal_values.append(signal_dbm)
 
@@ -646,9 +719,11 @@ def merge_wifi_scans(networks, samples_total=1):
         signal_max = max(signal_values)
         signal_min = min(signal_values)
         representative = max(valid_samples, key=lambda item: item[1])[0]
-        samples_seen = len(signal_values)
-        scan_confidence = min(1.0, samples_seen / max(1, samples_total))
+        fresh = [s for s, _ in valid_samples if fresh_observation(s) and observation_key(s)]
+        samples_seen = len(fresh)
+        scan_confidence = samples_seen / max(1, samples_total) if 0 <= samples_seen <= samples_total else 0.0
 
+        widths = {str(s.get("channel_width_mhz", "")) for s, _ in valid_samples}
         aggregated_networks.append({
             "ssid": representative.get("ssid", ""),
             "bssid": representative.get("bssid", ""),
@@ -662,11 +737,14 @@ def merge_wifi_scans(networks, samples_total=1):
             "samples_total": samples_total,
             "scan_confidence": round(scan_confidence, 3),
             "channel": representative.get("channel", ""),
-            "channel_width_mhz": most_common_non_empty(samples, "channel_width_mhz"),
-            "band": most_common_non_empty(samples, "band") or most_common_row_band(samples) or infer_band_from_channel(representative.get("channel")),
+            "channel_width_mhz": most_common_non_empty(samples, "channel_width_mhz") if len(widths) == 1 else "",
+            "band": get_row_band(representative),
             "radio": most_common_non_empty(samples, "radio"),
             "is_connected": any(bool(sample.get("is_connected")) for sample in samples),
             **{field: most_common_non_empty(samples, field) for field in SCAN_DETAIL_FIELDNAMES},
+            **{field: representative.get(field, "") for field in PROVENANCE_FIELDS},
+            "radio_status": "valid" if get_row_band(representative) else "invalid",
+            "freshness": "fresh" if samples_seen == len(signal_values) and samples_seen else "unknown",
             "raw_samples": samples
         })
 
@@ -721,7 +799,7 @@ def parse_netsh_output(output):
     current_frequency = ""
 
     def append_current_network():
-        if current_ssid and current_bssid and current_signal is not None:
+        if current_ssid is not None and current_bssid and current_signal is not None and 0 <= current_signal <= 100:
             security = " / ".join(value for value in (current_auth, current_encryption) if value)
             networks.append({
                 "ssid": current_ssid,
@@ -730,7 +808,7 @@ def parse_netsh_output(output):
                 "signal_dbm": percent_to_dbm(current_signal),
                 "channel": current_channel,
                 "channel_width_mhz": "",
-                "band": current_band or infer_band_from_frequency_mhz(current_frequency) or infer_band_from_channel(current_channel),
+                "band": get_row_band(dict(band=current_band, frequency_mhz=current_frequency, channel=current_channel)),
                 "frequency_mhz": current_frequency,
                 "radio": current_radio,
                 "security": security,
@@ -739,12 +817,11 @@ def parse_netsh_output(output):
             })
 
     for line in decode_netsh_output(output).splitlines():
-        line = line.strip()
-
-        ssid_match = re.match(r"SSID\s+\d+\s+:\s+(.*)", line)
+        line = line.lstrip()
+        ssid_match = re.match(r"SSID\s+\d+\s*:(?: )?(.*)$", line)
         if ssid_match:
             append_current_network()
-            current_ssid = ssid_match.group(1).strip()
+            current_ssid = ssid_match.group(1)
             current_bssid = None
             current_signal = None
             current_channel = None

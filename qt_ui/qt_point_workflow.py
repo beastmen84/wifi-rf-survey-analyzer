@@ -67,7 +67,7 @@ class PointCaptureMixin:
             if x is None or y is None:
                 return
 
-            if not networks:
+            if not networks and getattr(networks, "capture", {}).get("status") != "complete":
                 self.pending_scan_point = None
                 self.pending_rescan_point = None
                 QMessageBox.critical(self, self.tr("error"), self.tr("no_networks_found"))
@@ -88,8 +88,7 @@ class PointCaptureMixin:
             self.pending_scan_point = None
             self.pending_rescan_point = None
             removed_rows = 0
-            if rescan_point:
-                removed_rows = self.delete_point(rescan_point, refresh=False)
+            # Validate/save the replacement before removing the old measurement.
             self.save_survey_point(
                 x,
                 y,
@@ -102,6 +101,11 @@ class PointCaptureMixin:
                     rows=removed_rows,
                 ),
             )
+            if rescan_point:
+                removed_rows = self.delete_point(rescan_point, refresh=False)
+                self.status.showMessage(self.tr("point_rescanned", x=x, y=y, count=len(networks), rows=removed_rows))
+                self.refresh_points_table()
+                self.maybe_update_live_preview()
         except Exception as exc:
             log_exception("finish_wifi_scan failed", exc, logger_name="main")
             self.pending_scan_point = None
@@ -186,16 +190,16 @@ class PointCaptureMixin:
 
     def get_detected_ssids(self, networks):
         return {
-            str(network.get("ssid", "")).strip()
+            str(network.get("ssid", ""))
             for network in networks or []
-            if str(network.get("ssid", "")).strip()
+            if str(network.get("ssid", ""))
         }
 
     def get_connected_ssid_from_scan(self, networks):
         connected_ssids = sorted({
-            str(network.get("ssid", "")).strip()
+            str(network.get("ssid", ""))
             for network in networks or []
-            if network.get("is_connected") and str(network.get("ssid", "")).strip()
+            if network.get("is_connected") and str(network.get("ssid", ""))
         }, key=str.casefold)
         return connected_ssids[0] if connected_ssids else ""
 
@@ -203,7 +207,7 @@ class PointCaptureMixin:
         if self.session is None:
             return
 
-        if not networks:
+        if not networks and getattr(networks, "capture", {}).get("status") != "complete":
             QMessageBox.critical(self, self.tr("error"), self.tr("no_networks_found"))
             return
 
@@ -224,7 +228,7 @@ class PointCaptureMixin:
 
 
 class WifiScanWorker(QObject):
-    finished = Signal(list, str)
+    finished = Signal(object, str)
     failed = Signal(str)
 
     def __init__(self, backend="auto"):
@@ -249,12 +253,12 @@ class RelevantNetworksDialog(QDialog):
     def __init__(self, app, ssids, title, message, connected_ssid=None, selected_ssids=None):
         super().__init__(app)
         self.app = app
-        self.ssids = sorted({str(ssid).strip() for ssid in ssids if str(ssid).strip()}, key=str.casefold)
-        self.connected_ssid = str(connected_ssid or "").strip()
+        self.ssids = sorted({str(ssid) for ssid in ssids if str(ssid)}, key=str.casefold)
+        self.connected_ssid = str(connected_ssid or "")
         self.initial_selected_ssids = {
-            str(ssid).strip()
+            str(ssid)
             for ssid in (selected_ssids or [])
-            if str(ssid).strip()
+            if str(ssid)
         } if selected_ssids is not None else None
         self.checkboxes = {}
 

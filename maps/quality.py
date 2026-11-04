@@ -3,6 +3,7 @@
 from collections import defaultdict
 
 from wifi.band import get_row_band
+from wifi.evidence import finite_number, scan_confidence, ssid_text, integer
 
 
 QUALITY_GOOD = "GOOD"
@@ -10,6 +11,7 @@ QUALITY_MISSING_RELEVANT = "MISSING_RELEVANT"
 QUALITY_LOW_CONFIDENCE = "LOW_CONFIDENCE"
 QUALITY_UNSTABLE_SIGNAL = "UNSTABLE_SIGNAL"
 QUALITY_SPARSE_DATA = "SPARSE_DATA"
+QUALITY_EMPTY_SCAN = "EMPTY_SCAN"
 SCANNER_DETAIL_FALLBACK_BACKEND = "FALLBACK_BACKEND"
 SCANNER_DETAIL_MISSING_CHANNEL_WIDTH = "MISSING_CHANNEL_WIDTH"
 SCANNER_DETAIL_MISSING_6GHZ_FREQUENCY = "MISSING_6GHZ_FREQUENCY"
@@ -114,7 +116,7 @@ def build_quality_result(status, **details):
 
 def evaluate_scanner_details(rows, raw_rows=None, relevant_ssids=None, infer_relevant=True):
     """Return point-level scanner evidence issues that affect channel-sensitive maps."""
-    scan_rows = list(raw_rows or []) or list(rows or [])
+    scan_rows = list(rows or []) + list(raw_rows or [])
     if not scan_rows:
         return build_scanner_detail_result()
 
@@ -222,7 +224,7 @@ def build_quality_breakdown(rows, raw_rows, relevant_ssids):
         ssid_rows = rows_by_ssid.get(ssid, [])
 
         confidence_rows = get_dominant_candidate_rows(ssid_rows)
-        confidence_values = parse_float_values(row.get("scan_confidence") for row in confidence_rows)
+        confidence_values = [scan_confidence(row) for row in confidence_rows]
         min_confidence = min(confidence_values) if confidence_values else None
         avg_confidence = sum(confidence_values) / len(confidence_values) if confidence_values else None
         if min_confidence is not None and (min_confidence < 0.25 or avg_confidence < 0.45):
@@ -330,15 +332,12 @@ def group_rows_by_ssid(rows):
 
 def get_signal_ranges_by_key(rows, raw_rows, relevant_ssids=None):
     ranges = get_raw_signal_ranges_by_key(raw_rows, relevant_ssids)
-    if ranges:
-        return ranges
-
-    ranges = {}
     for row in rows:
         min_dbm = parse_float(row.get("signal_min_dbm"))
         max_dbm = parse_float(row.get("signal_max_dbm"))
         if min_dbm is not None and max_dbm is not None:
-            ranges[network_key(row)] = max_dbm - min_dbm
+            key = network_key(row)
+            ranges[key] = max(ranges.get(key, 0), max_dbm - min_dbm)
 
     return ranges
 
@@ -388,9 +387,10 @@ def get_raw_signal_ranges(raw_rows, relevant_ssids=None, allowed_keys=None):
 
 def network_key(row):
     return (
+        str(row.get("point_id", "")),
         normalize_ssid(row.get("ssid")),
         str(row.get("bssid", "")).strip().lower(),
-        str(row.get("channel", "")).strip()
+        integer(row.get("channel")), get_row_band(row), str(row.get("adapter_id", ""))
     )
 
 
@@ -403,7 +403,7 @@ def normalize_ssids(values):
 
 
 def normalize_ssid(value):
-    return str(value or "").strip()
+    return ssid_text(value)
 
 
 def is_truthy(value):
@@ -427,14 +427,11 @@ def parse_float_values(values):
 
 
 def parse_float(value):
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
+    return finite_number(value)
 
 
 def parse_int(value, default=0):
     try:
         return int(float(value))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return default

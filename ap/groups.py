@@ -5,6 +5,7 @@ import re
 import pandas as pd
 
 from wifi.band import get_row_band, normalize_band
+from wifi.evidence import finite_number
 
 AP_GROUPS_METADATA_KEY = "ap_groups"
 AP_MEMORY_APPLIED_KEY = "memory_applied"
@@ -86,7 +87,7 @@ def format_short_bssid(bssid):
 
 def resolve_ap_alias(bssid, aliases, ap_group=None):
     group_key = ap_group or get_ap_group_key(bssid)
-    return aliases.get(group_key) or aliases.get(get_ap_group_display_key(bssid)) or ""
+    return aliases.get(group_key) or aliases.get(get_ap_group_display_key(bssid)) or aliases.get(get_ap_group_key(bssid)) or ""
 
 
 def format_ap_label(bssid, aliases, ap_group=None):
@@ -156,7 +157,7 @@ def normalize_ap_position(value):
     try:
         x = int(round(float(value.get("x"))))
         y = int(round(float(value.get("y"))))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return None
 
     return {"x": x, "y": y}
@@ -207,7 +208,7 @@ def normalize_coverage_radius_m(value):
     except ValueError:
         return ""
 
-    if radius <= 0:
+    if finite_number(radius) is None or radius <= 0:
         return ""
 
     rounded = round(radius, 2)
@@ -251,6 +252,7 @@ def build_manual_ap_group(
     memory_applied=False,
     memory_applied_at="",
     memory_match_bssids=None,
+    physical_confirmed=None,
 ):
     clean_bssids = sorted({
         normalize_bssid(bssid)
@@ -265,6 +267,7 @@ def build_manual_ap_group(
         "alias": str(alias or "").strip(),
         "bssids": clean_bssids,
         "locked": bool(locked),
+        "physical_confirmed": bool(locked) if physical_confirmed is None else bool(physical_confirmed),
         "role": normalize_ap_role(role),
     }
 
@@ -350,6 +353,7 @@ def merge_new_bssids_into_manual_groups(manual_groups, rows):
             memory_applied=group.get(AP_MEMORY_APPLIED_KEY),
             memory_applied_at=group.get(AP_MEMORY_APPLIED_AT_KEY, ""),
             memory_match_bssids=group.get(AP_MEMORY_MATCH_BSSIDS_KEY, []),
+            physical_confirmed=is_ap_group_confirmed(group),
         )
         for group in manual_groups
     ]
@@ -481,6 +485,7 @@ def merge_compatible_ap_group_fragments(group_id, groups):
         memory_applied=memory_applied,
         memory_applied_at=memory_applied_at,
         memory_match_bssids=memory_match_bssids,
+        physical_confirmed=False,  # Automatic healing does not confirm physical identity.
     )
 
 
@@ -540,7 +545,8 @@ def build_unique_group_id(group_id, existing_group_ids):
     return f"{clean_group_id}#{suffix}"
 
 
-def build_bssid_to_manual_group_map(manual_groups):
+def build_bssid_to_manual_group_map(manual_groups, *, confirmed_only=False):
+    """Keep UI/metadata membership; RF comparisons require confirmed identity."""
     mapping = {}
     for group in manual_groups:
         group_id = str(group.get("group_id", ""))
@@ -550,9 +556,15 @@ def build_bssid_to_manual_group_map(manual_groups):
         for bssid in group.get("bssids", []):
             clean_bssid = normalize_bssid(bssid)
             if clean_bssid:
-                mapping[clean_bssid] = group_id
+                mapping[clean_bssid] = (clean_bssid if confirmed_only and not is_ap_group_confirmed(group)
+                    and len(group.get("bssids", [])) > 1 else group_id)
 
     return mapping
+
+
+def is_ap_group_confirmed(group):
+    """Legacy explicit manual groups stay valid; new auto groups need confirmation."""
+    return bool(group.get("physical_confirmed", group.get("locked", True)))
 
 
 def resolve_ap_group_key(bssid, bssid_group_map=None):
@@ -560,7 +572,7 @@ def resolve_ap_group_key(bssid, bssid_group_map=None):
     if bssid_group_map and clean_bssid in bssid_group_map:
         return bssid_group_map[clean_bssid]
 
-    return get_ap_group_key(clean_bssid)
+    return clean_bssid
 
 
 def normalize_ap_group_map(ap_group_map):
@@ -585,10 +597,19 @@ def serialize_ap_group_map(ap_group_map):
 
 def build_ap_group_role_map(manual_groups):
     return {
-        str(group.get("group_id", "")): normalize_ap_role(group.get("role"))
+        group_id: normalize_ap_role(group.get("role"))
         for group in manual_groups
-        if str(group.get("group_id", ""))
+        for group_id in _group_analysis_ids(group)
     }
+
+
+def _group_analysis_ids(group):
+    """User metadata also applies to BSSIDs kept separate for RF analysis."""
+    group_id = str(group.get("group_id", ""))
+    ids = {group_id} if group_id else set()
+    if not is_ap_group_confirmed(group) and len(group.get("bssids", [])) > 1:
+        ids.update(normalize_bssid(bssid) for bssid in group["bssids"] if normalize_bssid(bssid))
+    return ids
 
 
 def normalize_ap_role_map(ap_group_roles):
@@ -620,7 +641,8 @@ def build_ap_group_channel_override_map(manual_groups):
         for band, field in AP_ANALYSIS_CHANNEL_OVERRIDE_FIELDS:
             channel = normalize_ap_analysis_channel_override(metadata.get(field, ""))
             if channel:
-                overrides[(group_id, band)] = channel
+                for analysis_id in _group_analysis_ids(group):
+                    overrides[(analysis_id, band)] = channel
 
     return overrides
 
