@@ -22,6 +22,20 @@ interpolated colors.
 
 Current status:
 
+- guided-capture UI polish sizes preparation/scanning at 420 logical pixels and
+  review at 560 (scaled/clamped to the screen), keeping the dialog centered.
+  Each review card uses a 2:3 column ratio with a main status and a smaller
+  wrapped description. Inactive stacked pages no longer dictate dialog height;
+- Survey hover now uses bounded compact HTML (four SSID names plus a count),
+  preserving complete data in the point table. FloorplanView handles tooltip
+  events with a small viewport-pixel margin, nearest-point/selected-tie ordering
+  and exact AP-hover priority. Tooltips hide on pointer/context/gesture changes,
+  viewport exit/resize, scrolling, zoom and point refresh. RF rules, measurement
+  data, marker appearance and point-click behavior are unchanged;
+- layout/hover polish passes 556 tests and 475 subtests on native Windows
+  (47.90 s). Native snapshots check 420/560 phase heights, column geometry,
+  wrapped details and tooltips in four themes/languages. A long-list hover
+  reproduced an oversized popup; the compact form is bounded to four names;
 - post-1.1.0 points use `qt_capture_dialog.py` for preparation, fixed-five-scan
   progress and provisional review. `WifiScanWorker` reports metadata-only
   progress and uses a threading Event for cooperative cancellation between

@@ -8,6 +8,7 @@ TEXT = {
 "review": ("Review", "Verifica", "Vérification", "Revisión"),
 "position": ("Point x={x}, y={y}", "Punto x={x}, y={y}", "Position : x={x}, y={y}", "Punto x={x}, y={y}"),
 "unknown_receiver": ("Receiver not documented", "Ricevitore non documentato", "Carte non documentée", "Receptor no documentado"),
+"hover_more": ("+{count} other networks", "+{count} altre reti", "+{count} autres réseaux", "+{count} redes más"),
 "hold": ("Stay still at this point", "Fermati in questo punto", "Restez immobile à ce point", "Quédate quieto en este punto"),
 "hold_hint": ("Keep the device in the same position and orientation until all scans finish.", "Mantieni il dispositivo nella stessa posizione e orientamento fino alla fine delle scansioni.", "Gardez l'appareil dans la même position et orientation jusqu'à la fin des scans.", "Mantén el dispositivo en la misma posición y orientación hasta terminar los escaneos."),
 "countdown": ("Starting in {seconds} s", "Avvio tra {seconds} s", "Début dans {seconds} s", "Inicio en {seconds} s"),

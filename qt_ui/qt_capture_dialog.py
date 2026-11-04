@@ -28,7 +28,7 @@ class GuidedCaptureDialog(QDialog):
         self.setObjectName("guidedCapture")
         self.setWindowTitle(self.text("details" if read_only else "title"))
         self.setWindowModality(Qt.WindowModality.WindowModal)
-        self.resize(widget_px(app, 680), widget_px(app, 650))
+        self.resize(widget_px(app, 680), widget_px(app, 420))
         self.setMinimumWidth(widget_px(app, 520))
         screen = self.screen()
         if screen:
@@ -91,9 +91,11 @@ class GuidedCaptureDialog(QDialog):
         for _ in range(3):
             card = QFrame()
             card.setObjectName("measurementCard")
-            card_layout = QVBoxLayout(card)
+            card_layout = QHBoxLayout(card)
             card_layout.setContentsMargins(*(widget_px(app, 13) for _ in range(4)))
-            card_layout.setSpacing(widget_px(app, 5))
+            card_layout.setSpacing(widget_px(app, 18))
+            main = QVBoxLayout()
+            main.setSpacing(widget_px(app, 5))
             title = QLabel()
             title.setObjectName("captureMuted")
             title.setWordWrap(True)
@@ -101,10 +103,21 @@ class GuidedCaptureDialog(QDialog):
             value.setObjectName("measurementValue")
             value.setWordWrap(True)
             detail = QLabel()
+            detail.setObjectName("measurementDetail")
             detail.setWordWrap(True)
+            detail.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
             for label in (title, value, detail):
                 label.setTextFormat(Qt.TextFormat.PlainText)
-                card_layout.addWidget(label)
+            main.addStretch(1)
+            main.addWidget(title)
+            main.addWidget(value)
+            main.addStretch(1)
+            card_layout.addLayout(main, 2)
+            separator = QFrame()
+            separator.setObjectName("measurementDivider")
+            separator.setFixedWidth(widget_px(app, 1))
+            card_layout.addWidget(separator)
+            card_layout.addWidget(detail, 3)
             self.cards.append((card, title, value, detail))
             review_layout.addWidget(card)
         self.review_hint = QLabel(self.text("review_hint"))
@@ -165,6 +178,8 @@ class GuidedCaptureDialog(QDialog):
             QLabel#captureSteps, QLabel#captureMuted {{ color: {p['muted']}; }}
             QFrame#measurementCard {{ background: {p['panel']}; border: 1px solid {p['border']}; border-radius: {s(9)}px; }}
             QLabel#measurementValue {{ font-size: {s(17)}px; font-weight: 700; }}
+            QLabel#measurementDetail {{ font-size: {s(12)}px; color: {p['muted']}; }}
+            QFrame#measurementDivider {{ background: {p['border']}; border: 0; }}
             QLabel#measurementValue[tone="good"] {{ color: {p['metric_good']}; }}
             QLabel#measurementValue[tone="warning"] {{ color: {p['metric_warning']}; }}
             QLabel#measurementValue[tone="danger"] {{ color: {p['metric_danger']}; }}
@@ -195,6 +210,22 @@ class GuidedCaptureDialog(QDialog):
             self.hold_hint.show()
             self.progress.hide()
             self.progress_detail.clear()
+        QTimer.singleShot(0, self.fit_phase_size)
+
+    def fit_phase_size(self):
+        """Size for the current phase rather than the tallest stacked page."""
+        screen = self.screen()
+        available = screen.availableGeometry() if screen else None
+        target = widget_px(self.app, 560 if self.phase == "review" else 420)
+        if available:
+            target = min(target, int(available.height() * .88))
+        center = self.frameGeometry().center()
+        self.resize(self.width(), target)
+        if self.isVisible() and available:
+            frame = self.frameGeometry()
+            frame.moveCenter(center)
+            self.move(max(available.left(), min(frame.left(), available.right() - frame.width() + 1)),
+                      max(available.top(), min(frame.top(), available.bottom() - frame.height() + 1)))
 
     def begin_preparation(self):
         self.set_phase("prepare")

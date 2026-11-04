@@ -3,7 +3,7 @@
 from pathlib import Path
 import math
 
-from PySide6.QtCore import QPointF, QRect, QRectF, Qt, Signal
+from PySide6.QtCore import QEvent, QPointF, QRect, QRectF, Qt, Signal
 from PySide6.QtGui import QBrush, QColor, QImage, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import (
     QGraphicsEllipseItem,
@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QGraphicsPixmapItem,
     QGraphicsScene,
     QGraphicsView,
+    QToolTip,
 )
 
 from app_core.units import (
@@ -76,6 +77,7 @@ class FloorplanView(QGraphicsView):
         self.setScene(self.scene)
         self.pixmap_item = None
         self.marker_items = []
+        self.hover_point_key = None
         self.ap_marker_items = []
         self.grid_items = []
         self.scale_calibration_items = []
@@ -115,12 +117,15 @@ class FloorplanView(QGraphicsView):
         self.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform)
         self.setMouseTracking(True)
         self.viewport().setMouseTracking(True)
+        self.horizontalScrollBar().valueChanged.connect(self.hide_point_tooltip)
+        self.verticalScrollBar().valueChanged.connect(self.hide_point_tooltip)
         self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorViewCenter)
         self.setBackgroundBrush(QBrush(Qt.GlobalColor.darkGray))
 
     def load_floorplan(self, file_path):
+        self.hide_point_tooltip()
         pixmap = load_floorplan_pixmap(file_path)
         if pixmap.isNull():
             raise ValueError(f"Cannot load floor plan: {file_path}")
@@ -147,6 +152,7 @@ class FloorplanView(QGraphicsView):
         self.fit_to_view()
 
     def clear_floorplan(self):
+        self.hide_point_tooltip()
         self.reset_boundaries_mask(emit_signal=False)
         self.scene.clear()
         self.pixmap_item = None
@@ -884,6 +890,7 @@ class FloorplanView(QGraphicsView):
         painter.restore()
 
     def set_points(self, points):
+        self.hide_point_tooltip()
         for item in self.marker_items:
             self.scene.removeItem(item)
         self.marker_items = []
@@ -910,6 +917,7 @@ class FloorplanView(QGraphicsView):
             )
             item.setToolTip(tooltip)
             item.setData(0, dict(point))
+            item.setData(1, "survey_point")
             self.scene.addItem(item)
             self.marker_items.append(item)
 
@@ -1090,6 +1098,7 @@ class FloorplanView(QGraphicsView):
         self.set_zoom(self.zoom_level / 1.25)
 
     def set_zoom(self, zoom_level):
+        self.hide_point_tooltip()
         if not self.has_floorplan():
             return
 
@@ -1101,6 +1110,7 @@ class FloorplanView(QGraphicsView):
         self.zoomChanged.emit(self.zoom_level)
 
     def fit_to_view(self):
+        self.hide_point_tooltip()
         if not self.has_floorplan():
             return
 
@@ -1121,7 +1131,54 @@ class FloorplanView(QGraphicsView):
     def focus_target_zoom_level(self):
         return self.focus_point_zoom_level
 
+    def hide_point_tooltip(self):
+        if getattr(self, "hover_point_key", None) is not None:
+            QToolTip.hideText()
+            self.hover_point_key = None
+
+    def point_hover_rect(self, item):
+        rect = self.mapFromScene(item.sceneBoundingRect()).boundingRect()
+        half = max(7, (max(rect.width(), rect.height()) + 1) // 2 + 2)
+        center = rect.center()
+        return QRect(center.x() - half, center.y() - half, half * 2 + 1, half * 2 + 1)
+
+    def point_for_hover(self, position):
+        # Exact AP tooltips keep priority over the small Survey hover margin.
+        first = next((item for item in self.items(position) if item.toolTip()), None)
+        if first is not None and first.data(1) != "survey_point":
+            return None
+        candidates = []
+        for item in self.marker_items:
+            rect = self.point_hover_rect(item)
+            if rect.contains(position):
+                center = self.viewportTransform().map(item.sceneBoundingRect().center())
+                distance = (position.x() - center.x()) ** 2 + (position.y() - center.y()) ** 2
+                key = self.point_key(item.data(0))
+                candidates.append((distance, key != self.selected_point_key, str(key), item))
+        return min(candidates, key=lambda candidate: candidate[:3])[3] if candidates else None
+
+    def viewportEvent(self, event):
+        if event.type() == QEvent.Type.ToolTip:
+            if self.boundaries_edit_active or self.scale_calibration_active or self.pending_ap_position_group_id:
+                self.hide_point_tooltip()
+                event.accept()
+                return True
+            item = self.point_for_hover(event.pos())
+            if item is not None:
+                key = self.point_key(item.data(0))
+                if key != self.hover_point_key:
+                    self.hide_point_tooltip()
+                self.hover_point_key = key
+                QToolTip.showText(event.globalPos(), item.toolTip(), self.viewport(), self.point_hover_rect(item), 12000)
+                event.accept()
+                return True
+            self.hide_point_tooltip()
+        elif event.type() in {QEvent.Type.Leave, QEvent.Type.Hide, QEvent.Type.Resize}:
+            self.hide_point_tooltip()
+        return super().viewportEvent(event)
+
     def wheelEvent(self, event):
+        self.hide_point_tooltip()
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             if event.angleDelta().y() > 0:
                 self.zoom_in()
@@ -1140,6 +1197,7 @@ class FloorplanView(QGraphicsView):
         super().wheelEvent(event)
 
     def mousePressEvent(self, event):
+        self.hide_point_tooltip()
         if self.boundaries_edit_active and event.button() == Qt.MouseButton.RightButton:
             point = self.mapToScene(event.position().toPoint())
             point = self.clamp_boundaries_point(point)
@@ -1190,6 +1248,10 @@ class FloorplanView(QGraphicsView):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
+        if self.hover_point_key is not None:
+            hovered = self.point_for_hover(event.position().toPoint())
+            if event.buttons() or hovered is None or self.point_key(hovered.data(0)) != self.hover_point_key:
+                self.hide_point_tooltip()
         scene_point = self.mapToScene(event.position().toPoint())
         if (
             self.boundaries_edit_active
@@ -1229,6 +1291,7 @@ class FloorplanView(QGraphicsView):
                 self.viewport().setCursor(Qt.CursorShape.ArrowCursor)
 
     def leaveEvent(self, event):
+        self.hide_point_tooltip()
         self.hide_boundaries_brush_preview()
         super().leaveEvent(event)
 
@@ -1334,7 +1397,7 @@ def point_color(signal_dbm):
     return QColor("#C65A5A")
 
 
-def format_point_tooltip(point, translations=None):
+def format_point_tooltip(point, translations=None, compact=False):
     ssids = [str(ssid) for ssid in point.get("ssids", []) if str(ssid)]
     ssid_text = ssids or "-"
     signal_scope = str(point.get("signal_scope", "all"))
@@ -1362,6 +1425,26 @@ def format_point_tooltip(point, translations=None):
         accent = point_color(float(signal_value)).name()
     except (TypeError, ValueError):
         accent = "#111111"
+
+    if compact:
+        names = list(dict.fromkeys(ssids))
+        visible = [name if len(name) <= 48 else name[:45] + "…" for name in names[:4]]
+        if len(names) > 4:
+            visible.append(tooltip_template(translations, "measurement_hover_more", "+{count} other networks", count=len(names) - 4))
+        rows = [("x/y", f"{format_tooltip_scalar(point.get('x', '-'))}, {format_tooltip_scalar(point.get('y', '-'))}"),
+                (tooltip_text(translations, "signal", "Signal"), signal_text),
+                (tooltip_text(translations, "tooltip_signal_scope", "Signal Scope"), scope_label),
+                tooltip_section(tooltip_text(translations, "measurement_details", "Measurement details"))]
+        summary = point.get("measurement_summary", "")
+        if summary:
+            rows.extend(tuple(line.partition(": ")[::2]) for line in summary.splitlines())
+        elif point.get("quality_label"):
+            rows.append((tooltip_text(translations, "quality", "Quality"), point["quality_label"]))
+        rows.extend([(tooltip_text(translations, "rows", "Rows"), rows_value),
+                     tooltip_section(tooltip_text(translations, "tooltip_section_networks", "Networks")),
+                     (tooltip_text(translations, "tooltip_detected_ssids", "Detected SSIDs"), visible or "-"),
+                     (tooltip_text(translations, "tooltip_time", "Time"), point.get("timestamp", "-"))])
+        return build_html_tooltip(tooltip_text(translations, "survey_point_tooltip_title", "Survey Point"), rows, accent, width=360)
 
     rows = [
         tooltip_section(tooltip_text(translations, "tooltip_section_location", "Location")),

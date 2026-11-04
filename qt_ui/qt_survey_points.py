@@ -233,7 +233,7 @@ class SurveyPointTableMixin:
         }.get(status, "-")
 
     def format_survey_point_tooltip(self, point):
-        return format_point_tooltip(point, self.tr)
+        return format_point_tooltip(point, self.tr, compact=True)
 
     def should_show_quality_tooltip(self, quality):
         breakdown = quality.get("breakdown", []) if quality else []

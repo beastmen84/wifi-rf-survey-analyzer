@@ -183,6 +183,13 @@ same distinctions in expandable point details. The Analysis report uses its
 configured coverage target; point details and Live Map use the -70 dBm reference.
 These presentation checks do not replace the RF engine's recommendation guards.
 
+Preparation and scanning use a compact dialog; review expands only when needed.
+Review cards place the main result on the left and smaller, wrapped details on
+the right. Survey hover summaries show up to four SSID names and a remaining
+count; the point table retains the full list. A small screen-pixel hover margin
+helps with points at low zoom. Tooltips close when moving to another point,
+panning, zooming, refreshing the map or starting a map gesture.
+
 The `netsh` compatibility/diagnostic scanner reads English, Italian, French and Spanish field labels,
 preserves explicit band information, and reports command failures or timeouts.
 It is an unverified snapshot with estimated dBm, so it cannot establish fresh

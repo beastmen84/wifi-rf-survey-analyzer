@@ -7,7 +7,7 @@ TOOLTIP_LONG_VALUE_LIMIT = 72
 TOOLTIP_SECTION_KEY = "_tooltip_section"
 
 
-def build_html_tooltip(title, rows, accent):
+def build_html_tooltip(title, rows, accent, width=None):
     safe_title = html.escape(str(title or "-"))
     safe_accent = html.escape(str(accent or "#444444"))
     body_rows = []
@@ -57,8 +57,9 @@ def build_html_tooltip(title, rows, accent):
         f"<div style='border-left:4px solid {safe_accent};padding:3px 0 4px 8px;"
         "font-size:10.5pt;font-weight:700;margin-bottom:6px;'>"
         f"{safe_title}</div>"
-        "<table cellspacing='0' cellpadding='0' style='min-width:210px;'>"
-        f"{''.join(body_rows)}"
+        + (f"<table width='{int(width)}' cellspacing='0' cellpadding='0'>" if width
+           else "<table cellspacing='0' cellpadding='0' style='min-width:210px;'>")
+        + f"{''.join(body_rows)}"
         "</table></div>"
     )
 
