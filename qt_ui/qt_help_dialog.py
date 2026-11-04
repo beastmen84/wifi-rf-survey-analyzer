@@ -176,7 +176,8 @@ def build_help_sections(parent, tr):
             tr("help_survey_nav"),
             tr("help_survey_title"),
             tr("help_survey_subtitle"),
-            tr("help_survey_body"),
+            "<h2>" + escape(tr("capture_adapter_help_title")) + "</h2><p>"
+            + escape(tr("capture_adapter_help")) + "</p>" + tr("help_survey_body"),
         ),
         build_help_section(
             "quality",

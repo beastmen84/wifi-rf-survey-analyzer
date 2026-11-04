@@ -79,7 +79,8 @@ from these software checks.
 ## Main Workflow
 
 1. Start a new survey or open an existing survey CSV.
-2. Choose metric or imperial units, then load a floor plan image/PDF or keep the
+2. Choose metric or imperial units and a Wi-Fi adapter in the New Survey dialog,
+   then load a floor plan image/PDF or keep the
    generated scaled A4 plan for tests.
 3. Calibrate scale when real-world distances matter.
 4. Select relevant SSIDs.
@@ -125,7 +126,7 @@ same-name `.boundaries.png` file and is reopened with the CSV. An empty or
 cleared mask behaves as if no manual boundaries were present.
 
 Stored survey metadata includes floor-plan path, raw sidecar path, scale
-calibration, measurement system, relevant SSIDs, AP groups, AP roles, AP
+calibration, measurement system, selected receiver ID/name, relevant SSIDs, AP groups, AP roles, AP
 metadata, AP positions, analysis-channel overrides, and product/schema version
 fields.
 
@@ -137,12 +138,25 @@ authorize precise operational recommendations. Rescan those points when needed.
 
 ## Wi-Fi Scanning
 
-The scanner uses `lswifi` when available and falls back to Windows `netsh`.
-Native captures use one receiver per point, prefer the connected adapter, wait
-for scan completion and count only fresh, unique BSS observations across five
-attempts. Failed requests and cached observations do not become new samples.
+New Survey asks for a fixed Wi-Fi receiver alongside units. A single adapter is
+preselected; with multiple adapters a connected, ready receiver is suggested.
+The saved adapter ID/name is restored on reopening, and the name appears in the
+workspace footer. Adapter discovery runs in the background and can be refreshed.
+An adapter can scan without joining a network. If no usable receiver is found,
+connect or enable one and refresh; existing surveys remain readable.
 
-The `netsh` fallback reads English, Italian, French and Spanish field labels,
+All point captures and rescans use `lswifi` with that exact receiver ID. An
+absent receiver or a failed native scan never silently switches hardware or
+falls back to Windows `netsh`. A different receiver requires a separate survey.
+Older surveys ask for an explicit receiver before their first new capture;
+their existing rows retain their original provenance.
+
+Native captures wait for scan completion and count only fresh, unique BSS
+observations across five attempts. Failed requests and cached observations do
+not become new samples. Saving a point also checks its receiver against the
+survey selection, including raw samples and verified empty captures.
+
+The `netsh` compatibility/diagnostic scanner reads English, Italian, French and Spanish field labels,
 preserves explicit band information, and reports command failures or timeouts.
 It is an unverified snapshot with estimated dBm, so it cannot establish fresh
 independent samples or authorize precise RF changes. Reports distinguish these

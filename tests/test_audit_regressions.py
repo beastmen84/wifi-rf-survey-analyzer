@@ -272,7 +272,7 @@ def test_atomic_json_write_preserves_previous_file_on_error(tmp_path):
 
 
 def test_ui_save_failure_rolls_back_generated_png_and_metadata(window, tmp_path):
-    window.choose_new_survey_measurement_system = lambda: "metric"
+    window.choose_new_survey_options = lambda: {"measurement_system": "metric", "adapter": {}}
     assert window.new_survey(from_start_page=True)
     previous_metadata = window.session.metadata.copy()
     csv = tmp_path / "survey.csv"
@@ -288,7 +288,7 @@ def test_ui_save_failure_rolls_back_generated_png_and_metadata(window, tmp_path)
 
 
 def test_ui_failed_save_keeps_existing_boundaries_unchanged(window, tmp_path):
-    window.choose_new_survey_measurement_system = lambda: "metric"
+    window.choose_new_survey_options = lambda: {"measurement_system": "metric", "adapter": {}}
     window.new_survey(from_start_page=True)
     csv = tmp_path / "survey.csv"
     window.session.csv_file = str(csv)

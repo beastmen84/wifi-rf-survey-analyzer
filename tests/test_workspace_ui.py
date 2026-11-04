@@ -1147,7 +1147,7 @@ class SurveySessionWorkflowTests(unittest.TestCase):
 
     def start_new_survey(self, window, measurement_system=MEASUREMENT_SYSTEM_METRIC):
         with (
-            patch.object(window, "choose_new_survey_measurement_system", return_value=measurement_system),
+            patch.object(window, "choose_new_survey_options", return_value={"measurement_system": measurement_system, "adapter": {}}),
             patch("qt_ui.qt_session_workflow.save_measurement_system", return_value=True),
         ):
             return window.new_survey(from_start_page=True)
@@ -1187,8 +1187,8 @@ class SurveySessionWorkflowTests(unittest.TestCase):
             with (
                 patch.object(
                     window,
-                    "choose_new_survey_measurement_system",
-                    return_value=MEASUREMENT_SYSTEM_IMPERIAL,
+                    "choose_new_survey_options",
+                    return_value={"measurement_system": MEASUREMENT_SYSTEM_IMPERIAL, "adapter": {}},
                 ),
                 patch("qt_ui.qt_session_workflow.save_measurement_system", return_value=True) as save_mock,
             ):
@@ -1212,8 +1212,8 @@ class SurveySessionWorkflowTests(unittest.TestCase):
             with (
                 patch.object(
                     window,
-                    "choose_new_survey_measurement_system",
-                    return_value=MEASUREMENT_SYSTEM_METRIC,
+                    "choose_new_survey_options",
+                    return_value={"measurement_system": MEASUREMENT_SYSTEM_METRIC, "adapter": {}},
                 ),
                 patch.object(window, "confirm_new_survey_replaces_current") as confirm_mock,
                 patch("qt_ui.qt_session_workflow.save_measurement_system", return_value=True),
@@ -1252,8 +1252,8 @@ class SurveySessionWorkflowTests(unittest.TestCase):
                 patch.object(window, "choose_current_survey_close_action") as action_mock,
                 patch.object(
                     window,
-                    "choose_new_survey_measurement_system",
-                    return_value=MEASUREMENT_SYSTEM_METRIC,
+                    "choose_new_survey_options",
+                    return_value={"measurement_system": MEASUREMENT_SYSTEM_METRIC, "adapter": {}},
                 ),
                 patch("qt_ui.qt_session_workflow.save_measurement_system", return_value=True),
             ):
@@ -1282,8 +1282,8 @@ class SurveySessionWorkflowTests(unittest.TestCase):
                 patch.object(window, "save_survey") as save_mock,
                 patch.object(
                     window,
-                    "choose_new_survey_measurement_system",
-                    return_value=MEASUREMENT_SYSTEM_METRIC,
+                    "choose_new_survey_options",
+                    return_value={"measurement_system": MEASUREMENT_SYSTEM_METRIC, "adapter": {}},
                 ),
                 patch("qt_ui.qt_session_workflow.save_measurement_system", return_value=True),
             ):
@@ -1314,8 +1314,8 @@ class SurveySessionWorkflowTests(unittest.TestCase):
                     patch.object(window, "choose_current_survey_close_action", return_value="save"),
                     patch.object(
                         window,
-                        "choose_new_survey_measurement_system",
-                        return_value=MEASUREMENT_SYSTEM_IMPERIAL,
+                        "choose_new_survey_options",
+                        return_value={"measurement_system": MEASUREMENT_SYSTEM_IMPERIAL, "adapter": {}},
                     ) as units_mock,
                     patch("qt_ui.qt_session_workflow.save_measurement_system", return_value=True),
                 ):

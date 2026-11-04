@@ -787,9 +787,9 @@ TRANSLATIONS = {
         <h2>Backend Scanner</h2>
         <table>
             <tr><th>Backend</th><th>Uso</th><th>Note</th></tr>
-            <tr><td>Auto</td><td>Scelta consigliata</td><td>Prova prima <code>lswifi</code>, poi usa <code>netsh</code> come fallback.</td></tr>
+            <tr><td>Acquisizione rilievo</td><td>Ricevitore fisso</td><td>Usa <code>lswifi</code> con l'ID della scheda salvata. Se manca, l'acquisizione si ferma.</td></tr>
             <tr><td>lswifi</td><td>Scanner preferito</td><td>Di solito cattura più dettagli su BSSID, banda, frequenza, sicurezza e larghezza canale.</td></tr>
-            <tr><td>netsh</td><td>Fallback Windows</td><td>Utile quando lswifi non è disponibile, ma in genere espone meno dettagli RF.</td></tr>
+            <tr><td>netsh</td><td>Dati precedenti / diagnostici</td><td>Snapshot non verificato con dBm stimati. Non viene usato come fallback nei rilievi con ricevitore fisso.</td></tr>
         </table>
         <table class="callout-table"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Scansioni Sospette</span><br>Se una scansione vede molte meno reti rilevanti, riprova prima di salvare il punto. È quasi sempre più rapido che correggere un punto sporco dopo.</td></tr></table>
         <h2>Azioni Tabella Punti</h2>
@@ -1371,10 +1371,10 @@ TRANSLATIONS = {
     "help_scan": "Scansione",
     "help_scan_title": "Come Gestire la Scansione Wi-Fi",
     "help_scan_steps": (
-        "Backend Auto prova lswifi e usa netsh come fallback.\n"
+        "Nuovo rilievo salva la scheda scelta; ogni acquisizione la usa tramite lswifi.\n"
         "lswifi è preferibile quando disponibile perché di solito rileva più BSSID.\n"
         "Con lswifi, quando disponibile, viene salvata anche la larghezza canale in channel_width_mhz.\n"
-        "netsh resta utile come alternativa integrata in Windows.\n"
+        "Se il ricevitore manca, l'acquisizione si ferma senza cambiare scheda o passare a netsh.\n"
         "Se una scansione trova molte meno reti della precedente, viene segnalata come sospetta.\n"
         "Quando una scansione è sospetta, conviene riprovare prima di salvare il punto.\n"
         "Se usi Ricorda scelta, il programma salva automaticamente lo stesso SSID finché viene rilevato."

@@ -6,7 +6,8 @@ from pathlib import Path
 from app_core.file_io import SurveyFileTransaction
 
 try:
-    from PySide6.QtWidgets import QMessageBox
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QDialog, QMessageBox
 except ModuleNotFoundError as exc:
     print("PySide6 is required for main.py. Run: pip install -r requirements.txt")
     raise SystemExit(1) from exc
@@ -23,13 +24,11 @@ from app_core.settings import (
     save_last_survey_path,
     save_measurement_system,
 )
-from app_core.units import (
-    MEASUREMENT_SYSTEM_IMPERIAL,
-    MEASUREMENT_SYSTEM_METRIC,
-    normalize_measurement_system,
-)
+from app_core.units import normalize_measurement_system
 from ap.memory import count_memory_applied_groups, get_ap_memory_summary
 from qt_ui.qt_windowing import get_centered_open_file_name, get_centered_save_file_name
+from qt_ui.qt_survey_setup import SurveySetupDialog
+from wifi.adapters import adapter_name
 from survey.store import SurveyFormatError, SurveySession, normalize_survey_measurement_system
 
 
@@ -50,14 +49,18 @@ class SurveySessionWorkflowMixin:
             log_event("qt new survey cancelled by current-survey prompt", logger_name="main")
             return False
 
-        measurement_system = self.choose_new_survey_measurement_system()
-        if not self.set_new_survey_measurement_system(measurement_system):
+        options = self.choose_new_survey_options()
+        if options is None:
+            return False
+        if not self.set_new_survey_measurement_system(options["measurement_system"]):
             log_event("qt new survey cancelled by measurement-system selection", logger_name="main")
             return False
 
         self.invalidate_live_preview()
         self.session = SurveySession()
         self.set_session_measurement_system_metadata(self.measurement_system, mark_dirty=False)
+        if options.get("adapter"):
+            self.session.set_capture_adapter(options["adapter"], mark_dirty=False)
         self.generated_floorplans_pending_delete = set()
         self.boundaries_files_pending_delete = set()
         self.load_session_ssid_state()
@@ -120,33 +123,12 @@ class SurveySessionWorkflowMixin:
         has_generated_floorplan = self.session.metadata.get(GENERATED_FLOORPLAN_METADATA_KEY) == "1"
         return not has_rows and not has_csv and (has_default_floorplan or has_generated_floorplan)
 
-    def choose_new_survey_measurement_system(self):
-        message_box = QMessageBox(self)
-        message_box.setIcon(QMessageBox.Icon.Question)
-        message_box.setWindowTitle(self.tr("new_survey_measurement_system_title"))
-        message_box.setText(self.tr("new_survey_measurement_system_message"))
-        metric_button = message_box.addButton(
-            self.tr("measurement_system_metric"),
-            QMessageBox.ButtonRole.AcceptRole,
-        )
-        imperial_button = message_box.addButton(
-            self.tr("measurement_system_imperial"),
-            QMessageBox.ButtonRole.AcceptRole,
-        )
-        default_button = (
-            imperial_button
-            if self.measurement_system == MEASUREMENT_SYSTEM_IMPERIAL
-            else metric_button
-        )
-        message_box.setDefaultButton(default_button)
-        message_box.exec()
-
-        clicked_button = message_box.clickedButton()
-        if clicked_button == metric_button:
-            return MEASUREMENT_SYSTEM_METRIC
-        if clicked_button == imperial_button:
-            return MEASUREMENT_SYSTEM_IMPERIAL
-        return self.measurement_system
+    def choose_new_survey_options(self):
+        dialog = SurveySetupDialog(self)
+        try:
+            return dialog.options() if dialog.exec() == QDialog.DialogCode.Accepted else None
+        finally:
+            dialog.deleteLater()
 
     def set_new_survey_measurement_system(self, measurement_system):
         measurement_system = normalize_measurement_system(measurement_system)
@@ -399,6 +381,13 @@ class SurveySessionWorkflowMixin:
             dirty_suffix = " *" if self.session.dirty else ""
 
         self.csv_label.setText(f"{csv_name}{dirty_suffix}")
+        adapter = self.session.capture_adapter() if self.session else {}
+        receiver_name = adapter_name(adapter)
+        short_name = self.capture_adapter_label.fontMetrics().elidedText(receiver_name, Qt.TextElideMode.ElideMiddle, self.spx(270))
+        self.capture_adapter_label.setText(self.tr("capture_adapter_workspace", name=short_name)
+                                          if adapter else self.tr("capture_adapter_unset"))
+        self.capture_adapter_label.setToolTip(receiver_name + "\n" + self.tr("capture_adapter_identity", id=adapter["id"])
+                                             if adapter else self.tr("capture_adapter_legacy_hint"))
         self.map_label.setText(map_name)
         self.points_label.setText(str(point_count))
         self.raw_rows_label.setText(str(raw_count))

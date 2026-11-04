@@ -19,9 +19,11 @@ TRANSLATIONS = {
 
 from translations.advisor import dictionary as advisor_dictionary
 from translations.reports import dictionary as report_dictionary
+from translations.capture import dictionary as capture_dictionary
 for _language, _dictionary in TRANSLATIONS.items():
     _dictionary.update(advisor_dictionary(_language))
     _dictionary.update(report_dictionary(_language))
+    _dictionary.update(capture_dictionary(_language))
 
 LANGUAGE_LABELS = {
     "it": IT_LANGUAGE_LABEL,

@@ -827,10 +827,10 @@ TRANSLATIONS.update({
         "AP dominant montre l'AP le plus fort par point et marque en jaune les points où le second AP est à 5 dB ou moins."
     ),
     "help_scan_steps": (
-        "Le backend Auto essaie lswifi puis bascule sur netsh.\n"
+        "Nouveau relevé enregistre la carte choisie ; chaque mesure l'utilise via lswifi.\n"
         "lswifi est préféré car il détecte souvent plus de BSSID et plus de détails radio.\n"
         "Quand lswifi le fournit, la largeur de canal est enregistrée dans channel_width_mhz.\n"
-        "netsh reste le fallback Windows intégré.\n"
+        "Si la carte manque, la mesure s'arrête sans changer de carte ni passer à netsh.\n"
         "Si un scan voit beaucoup moins de réseaux que le précédent, il est marqué suspect.\n"
         "Quand un scan est suspect, relancez-le avant d'enregistrer le point.\n"
         "Avec Mémoriser le choix, le programme garde automatiquement le même SSID tant qu'il est détecté."
@@ -893,7 +893,7 @@ TRANSLATIONS.update({
         <h2>Sidecar de scans bruts</h2>
         <table><tr><th>Valeur stockée</th><th>Pourquoi c'est utile</th></tr><tr><td>Médiane dBm</td><td>Réduit l'effet d'un pic temporaire de signal.</td></tr><tr><td>Min/max dBm</td><td>Montre l'amplitude de variation pendant les scans répétés.</td></tr><tr><td>Échantillons vus/total</td><td>Alimente confiance et détection de données rares.</td></tr><tr><td>Bande, fréquence, largeur canal</td><td>Améliore Canaux AP, Interférence et lecture 6 GHz.</td></tr></table>
         <h2>Backend scanner</h2>
-        <table><tr><th>Backend</th><th>Usage</th><th>Notes</th></tr><tr><td>Auto</td><td>Défaut conseillé</td><td>Essaie <code>lswifi</code>, puis revient à <code>netsh</code>.</td></tr><tr><td>lswifi</td><td>Scanner préféré</td><td>Capture souvent plus de BSSID, bande, fréquence, sécurité et largeur canal.</td></tr><tr><td>netsh</td><td>Fallback Windows</td><td>Utile sans lswifi, mais expose moins de détails RF.</td></tr></table>
+        <table><tr><th>Backend</th><th>Usage</th><th>Notes</th></tr><tr><td>Mesure du relevé</td><td>Carte fixe</td><td>Utilise <code>lswifi</code> avec l'identifiant de la carte enregistrée. Si elle manque, la mesure s'arrête.</td></tr><tr><td>lswifi</td><td>Scanner préféré</td><td>Capture souvent plus de BSSID, bande, fréquence, sécurité et largeur canal.</td></tr><tr><td>netsh</td><td>Données anciennes / diagnostic</td><td>Instantané non vérifié avec dBm estimés. Aucun repli vers netsh pour les relevés à carte fixe.</td></tr></table>
         <h2>Placement des points</h2>
         <table class="callout-table"><tr><td class="callout-accent-good"></td><td class="callout-content"><span class="callout-label">Règle terrain</span><br><ul><li>Placez les points aux postes, salles, couloirs, portes et zones problématiques.</li><li>Pour un relevé précis, visez environ 2-3 m entre points quand l'espace le permet, et resserrez autour des transitions AP.</li><li>Ne scannez pas en marchant : arrêtez-vous, laissez finir le scan, puis avancez.</li></ul></td></tr></table>
         <h2>Plan blanc, grille et limites</h2>

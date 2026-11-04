@@ -815,10 +815,10 @@ TRANSLATIONS.update({
         "AP dominante muestra qué AP es más fuerte en cada punto y marca en amarillo donde el segundo AP está a 5 dB o menos."
     ),
     "help_scan_steps": (
-        "El backend Auto prueba lswifi y vuelve a netsh si hace falta.\n"
+        "Nuevo estudio guarda el receptor elegido; cada captura lo usa mediante lswifi.\n"
         "lswifi es preferible porque suele detectar más BSSID y más detalle radio.\n"
         "Cuando lswifi lo proporciona, el ancho de canal se guarda en channel_width_mhz.\n"
-        "netsh sigue siendo el fallback integrado de Windows.\n"
+        "Si falta el receptor, la captura se detiene sin cambiar de adaptador ni recurrir a netsh.\n"
         "Si un escaneo ve muchos menos redes que el anterior, se marca como sospechoso.\n"
         "Cuando un escaneo es sospechoso, repítalo antes de guardar el punto.\n"
         "Con Recordar elección, el programa guarda automáticamente el mismo SSID mientras se detecte."
@@ -881,7 +881,7 @@ TRANSLATIONS.update({
         <h2>Sidecar de escaneos brutos</h2>
         <table><tr><th>Valor guardado</th><th>Por qué importa</th></tr><tr><td>Mediana dBm</td><td>Reduce el efecto de un pico temporal de señal.</td></tr><tr><td>Min/max dBm</td><td>Muestra cuánto varió la señal durante escaneos repetidos.</td></tr><tr><td>Muestras vistas/total</td><td>Alimenta confianza y detección de datos escasos.</td></tr><tr><td>Banda, frecuencia, ancho canal</td><td>Mejora Canales AP, Interferencia y lectura 6 GHz.</td></tr></table>
         <h2>Backend scanner</h2>
-        <table><tr><th>Backend</th><th>Uso</th><th>Notas</th></tr><tr><td>Auto</td><td>Valor recomendado</td><td>Prueba <code>lswifi</code> y luego vuelve a <code>netsh</code>.</td></tr><tr><td>lswifi</td><td>Scanner preferido</td><td>Suele capturar más BSSID, banda, frecuencia, seguridad y ancho de canal.</td></tr><tr><td>netsh</td><td>Fallback Windows</td><td>Útil sin lswifi, pero expone menos detalle RF.</td></tr></table>
+        <table><tr><th>Backend</th><th>Uso</th><th>Notas</th></tr><tr><td>Captura del estudio</td><td>Receptor fijo</td><td>Usa <code>lswifi</code> con el ID del adaptador guardado. Si falta, la captura se detiene.</td></tr><tr><td>lswifi</td><td>Scanner preferido</td><td>Suele capturar más BSSID, banda, frecuencia, seguridad y ancho de canal.</td></tr><tr><td>netsh</td><td>Datos anteriores / diagnóstico</td><td>Instantánea no verificada con dBm estimados. No se usa como alternativa para capturas con receptor fijo.</td></tr></table>
         <h2>Colocación de puntos</h2>
         <table class="callout-table"><tr><td class="callout-accent-good"></td><td class="callout-content"><span class="callout-label">Regla de campo</span><br><ul><li>Coloque puntos en puestos, salas, pasillos, puertas y zonas problemáticas.</li><li>Para un estudio preciso, apunte a unos 2-3 m entre puntos cuando el espacio lo permita, y cierre la distancia en transiciones AP.</li><li>No escanee caminando: deténgase, espere a que termine el escaneo y avance.</li></ul></td></tr></table>
         <h2>Plano blanco, cuadrícula y límites</h2>

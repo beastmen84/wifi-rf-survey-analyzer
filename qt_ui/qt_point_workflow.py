@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 
 from app_core.logging import log_event, log_exception
 from qt_ui.scaling import widget_px
+from qt_ui.qt_survey_setup import SurveySetupDialog
 from wifi.scanner import scan_wifi, WifiScanError
 
 
@@ -37,12 +38,28 @@ class PointCaptureMixin:
         self.start_wifi_scan(x, y)
 
     def start_wifi_scan(self, x, y):
+        if self.scan_in_progress or self.session is None:
+            return
+        adapter = self.session.capture_adapter()
+        if not adapter:
+            # Legacy files retain unknown provenance. Choosing a receiver only
+            # binds future points, without relabelling any existing evidence.
+            ids = {str(row.get("adapter_id")) for row in self.session.rows if row.get("adapter_id")}
+            dialog = SurveySetupDialog(self, adapter_only=True, preferred_id=next(iter(ids)) if len(ids) == 1 else "")
+            try:
+                if dialog.exec() != QDialog.DialogCode.Accepted:
+                    self.pending_rescan_point = None
+                    return
+                adapter = dialog.options()["adapter"]
+                self.session.set_capture_adapter(adapter)
+            finally:
+                dialog.deleteLater()
         self.pending_scan_point = (int(x), int(y))
         self.set_scan_busy(True, self.tr("scanning", x=int(x), y=int(y)))
         log_event(f"qt point scan start x={int(x)} y={int(y)}", logger_name="main")
 
         thread = QThread(self)
-        worker = WifiScanWorker("auto")
+        worker = WifiScanWorker("auto", adapter_id=adapter["id"])
         worker.moveToThread(thread)
         thread.started.connect(worker.run)
         worker.finished.connect(self.finish_wifi_scan)
@@ -111,7 +128,7 @@ class PointCaptureMixin:
             self.pending_scan_point = None
             self.pending_rescan_point = None
             self.set_scan_busy(False)
-            QMessageBox.critical(self, self.tr("error"), str(exc))
+            QMessageBox.critical(self, self.tr("error"), self.tr(str(exc)))
 
     def fail_wifi_scan(self, message):
         log_event(f"qt point scan failed message={message}", logger_name="main")
@@ -231,14 +248,15 @@ class WifiScanWorker(QObject):
     finished = Signal(object, str)
     failed = Signal(str)
 
-    def __init__(self, backend="auto"):
+    def __init__(self, backend="auto", adapter_id=None):
         super().__init__()
         self.backend = backend
+        self.adapter_id = adapter_id
 
     @Slot()
     def run(self):
         try:
-            networks, backend_used = scan_wifi(self.backend, show_errors=False)
+            networks, backend_used = scan_wifi(self.backend, show_errors=False, adapter_id=self.adapter_id)
         except WifiScanError as exc:
             self.failed.emit(exc.message_key)
             return

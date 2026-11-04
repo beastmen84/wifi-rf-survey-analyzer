@@ -22,6 +22,24 @@ interpolated colors.
 
 Current status:
 
+- post-1.1.0 acquisition fixes a receiver per survey: `wifi/adapters.py` provides
+  read-only GUID/name discovery, `qt_survey_setup.py` combines units and adapter
+  selection in New Survey with a finite QThread discovery task and refresh.
+  `capture_adapter` JSON metadata persists ID/name/description, and the footer
+  displays the choice. Legacy files require explicit binding before new points;
+  existing rows are not relabelled. Every workspace capture/rescan passes the
+  saved GUID to lswifi. Missing hardware/native failures cannot select another
+  receiver or fall back to netsh. Store-level checks reject capture/aggregate/raw
+  identity mismatches before any point mutation. Unassociated receivers can scan;
+  another receiver requires a separate survey. No schema bump or dependency is
+  needed; unpinned scanner service callers retain diagnostic netsh compatibility;
+- receiver validation passes 512 tests and 475 subtests on native Windows;
+  offscreen full suite passes 511 tests/475 subtests before one final legacy-flow
+  regression was added, with the final 127 capture/scanner regressions passing
+  offscreen. Native QA covers all four themes/languages, legacy selection and
+  30 consecutive cancels during discovery. A real pinned capture accepts 54
+  fresh observations, excludes two cached reads and persists matching receiver
+  evidence in memory. These checks do not establish RF receiver calibration;
 - post-1.1.0 source polish squares both upper corners of the central Live Map
   tab. Rounded corners belong only to the outer edge of the first/last tabs;
   the uniform central highlight remains. Existing release artifacts retain
@@ -60,7 +78,7 @@ Current status:
   receiver calibration or controlled moving-position/6 GHz field validation;
 - `wifi/native_scan.py` owns Windows notification/handle lifetime and strict BSS
   reads; `wifi/evidence.py` shares provenance, timestamp, raw-completeness and
-  confidence guards. One adapter is selected per capture. Netsh is an unverified
+  confidence guards. Workspace captures pin the survey's receiver. Netsh is an unverified
   estimated-dBm snapshot. RF geometry and band contradictions stay unknown;
 - optional schema-2 CSV/raw columns retain backend, adapter, signal type,
   freshness, exact FILETIME timestamps and radio geometry. A measurement-point

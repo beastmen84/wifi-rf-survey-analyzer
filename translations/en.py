@@ -787,9 +787,9 @@ TRANSLATIONS = {
         <h2>Scanner Backend</h2>
         <table>
             <tr><th>Backend</th><th>Use</th><th>Notes</th></tr>
-            <tr><td>Auto</td><td>Recommended default</td><td>Tries <code>lswifi</code> first, then falls back to <code>netsh</code>.</td></tr>
+            <tr><td>Survey capture</td><td>Fixed receiver</td><td>Uses <code>lswifi</code> with the saved adapter ID. If unavailable, capture stops.</td></tr>
             <tr><td>lswifi</td><td>Preferred scanner</td><td>Usually captures richer BSSID, band, frequency, security and channel-width data.</td></tr>
-            <tr><td>netsh</td><td>Windows fallback</td><td>Useful when lswifi is unavailable, but generally exposes less RF detail.</td></tr>
+            <tr><td>netsh</td><td>Legacy / diagnostic data</td><td>Unverified snapshot with estimated dBm. Never a fallback for fixed-receiver survey captures.</td></tr>
         </table>
         <table class="callout-table"><tr><td class="callout-accent-warning"></td><td class="callout-content"><span class="callout-label">Suspicious Scans</span><br>If a scan suddenly sees far fewer relevant networks, retry before saving the point. This is usually faster than fixing a bad point later.</td></tr></table>
         <h2>Point Table Actions</h2>
@@ -1371,10 +1371,10 @@ TRANSLATIONS = {
     "help_scan": "Scan",
     "help_scan_title": "How to Handle Wi-Fi Scans",
     "help_scan_steps": (
-        "Auto backend tries lswifi and falls back to netsh.\n"
+        "New Survey saves your chosen receiver; every capture uses it through lswifi.\n"
         "lswifi is preferred when available because it usually detects more BSSIDs.\n"
         "With lswifi, channel width is also saved in channel_width_mhz when available.\n"
-        "netsh remains useful as the built-in Windows alternative.\n"
+        "If the receiver is unavailable, capture stops without switching adapters or falling back to netsh.\n"
         "If a scan finds far fewer networks than the previous one, it is marked suspicious.\n"
         "When a scan is suspicious, retry before saving the point.\n"
         "If you use Remember choice, the program automatically saves the same SSID while it is detected."

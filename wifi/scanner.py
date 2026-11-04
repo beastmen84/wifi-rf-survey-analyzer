@@ -15,6 +15,7 @@ from wifi.signal import dbm_to_percent, percent_to_dbm
 from wifi.band import get_row_band, infer_band_from_channel, infer_band_from_frequency_mhz, normalize_band, normalize_frequency_mhz
 from wifi.evidence import PROVENANCE_FIELDS, integer, observation_key, ssid_text, valid_signal, fresh_observation
 from wifi.native_scan import scan_and_wait, read_bss_list, filetime_now
+from wifi.adapters import adapter_identity
 
 NETSH_SCAN_TIMEOUT_SECONDS = 15
 
@@ -80,7 +81,13 @@ def decode_netsh_output(output):
         return output.decode("oem" if sys.platform.startswith("win") else "cp850", errors="replace")
 
 
-def scan_wifi(backend="auto", show_errors=True):
+def scan_wifi(backend="auto", show_errors=True, adapter_id=None):
+    # A pinned receiver requires a native scan. Netsh cannot prove that the
+    # snapshot came from the requested GUID, so it must never be a fallback.
+    if adapter_id:
+        if backend == "netsh":
+            raise WifiScanError("capture_adapter_native_required")
+        return scan_wifi_lswifi(show_errors=show_errors, adapter_id=adapter_id), "lswifi"
     if backend == "lswifi":
         return scan_wifi_lswifi(show_errors=show_errors), "lswifi"
 
@@ -254,19 +261,29 @@ def scan_wifi_netsh(show_errors=True):
         raise WifiScanError("wifi_scan_failed") from e
 
 
-def scan_wifi_lswifi(show_errors=True):
+def scan_wifi_lswifi(show_errors=True, adapter_id=None):
+    pinned_receiver = bool(adapter_id)
     try:
         log_event("scan_wifi_lswifi start", logger_name="wifi_scanner")
         from lswifi import wlanapi as lswifi_wlanapi
 
         scans = []
         interfaces = lswifi_wlanapi.WLAN.get_wireless_interfaces()
-        if not interfaces:
-            raise WifiScanError("wifi_scan_failed")
-        # One receiver per capture: prefer the connected adapter, then stable GUID order.
-        ranked = sorted(interfaces.values(), key=lambda interface: (
-            not bool(get_lswifi_connected_network(lswifi_wlanapi, interface)), str(interface.guid)))
-        interface = ranked[0]
+        if adapter_id:
+            interface = next((item for item in interfaces.values()
+                              if adapter_identity(item.guid) == adapter_identity(adapter_id)), None)
+            if interface is None:
+                raise WifiScanError("capture_adapter_unavailable")
+            if getattr(interface, "state_string", "") == "not_ready":
+                raise WifiScanError("capture_adapter_unavailable")
+        else:
+            if not interfaces:
+                raise WifiScanError("wifi_scan_failed")
+            # Compatibility for unpinned service callers; the workspace pins
+            # a receiver before starting every point capture.
+            ranked = sorted(interfaces.values(), key=lambda interface: (
+                not bool(get_lswifi_connected_network(lswifi_wlanapi, interface)), str(interface.guid)))
+            interface = ranked[0]
         adapter_id = str(interface.guid)
         outcomes, successful_reads, cached_rows, invalid_rows = [], 0, 0, 0
         for attempt in range(WIFI_SCAN_ATTEMPTS):
@@ -298,7 +315,7 @@ def scan_wifi_lswifi(show_errors=True):
             if attempt < WIFI_SCAN_ATTEMPTS - 1:
                 time.sleep(WIFI_SCAN_DELAY_SECONDS)
         if not successful_reads or (not scans and (cached_rows or invalid_rows)):
-            raise WifiScanError("wifi_scan_failed")
+            raise WifiScanError("capture_adapter_scan_failed" if pinned_receiver else "wifi_scan_failed")
         if invalid_rows:
             for sample in scans:
                 sample["capture_quality"] = "incomplete"
@@ -317,7 +334,7 @@ def scan_wifi_lswifi(show_errors=True):
         report_scan_error(show_errors, "Errore scan Wi-Fi lswifi", e)
         if isinstance(e, WifiScanError):
             raise
-        raise WifiScanError("wifi_scan_failed") from e
+        raise WifiScanError("capture_adapter_scan_failed" if pinned_receiver else "wifi_scan_failed") from e
 
 
 def report_scan_error(show_errors, title, error):

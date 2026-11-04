@@ -43,6 +43,7 @@ from ap.groups import (
 from ap.memory import apply_ap_memory_to_groups, update_ap_memory_from_groups
 from wifi.band import get_row_band
 from wifi.evidence import PROVENANCE_FIELDS, finite_number, integer, valid_signal
+from wifi.adapters import CAPTURE_ADAPTER_KEY, adapter_identity
 
 MEASUREMENT_POINTS_KEY = "measurement_points"
 
@@ -97,6 +98,17 @@ class SurveySession:
     def add_points(self, x, y, networks, raw_networks=None, relevant_ssids=None):
         validate_coordinates(x, y)
         capture = getattr(networks, "capture", {})
+        selected_id = adapter_identity(self.capture_adapter().get("id"))
+        if selected_id:
+            observed_ids = [capture.get("adapter_id")]
+            for net in networks:
+                observed_ids.append(net.get("adapter_id"))
+                observed_ids.extend(sample.get("adapter_id") for sample in net.get("raw_samples", []))
+            for net in raw_networks or []:
+                observed_ids.append(net.get("adapter_id"))
+                observed_ids.extend(sample.get("adapter_id") for sample in net.get("raw_samples", []))
+            if any(adapter_identity(value) != selected_id for value in observed_ids):
+                raise ValueError("capture_adapter_mismatch")
         if not networks and not (capture.get("status") == "complete" and capture.get("freshness") == "fresh"):
             raise ValueError("An empty point requires a completed, verified scan")
         timestamp = datetime.now().isoformat(timespec="seconds")
@@ -151,6 +163,27 @@ class SurveySession:
         self.refresh_ap_groups_from_rows(update_memory=True)
         self.dirty = True
         return timestamp
+
+    def capture_adapter(self):
+        try:
+            adapter = json.loads(self.metadata.get(CAPTURE_ADAPTER_KEY, "{}"))
+        except (TypeError, ValueError):
+            return {}
+        if not isinstance(adapter, dict) or not isinstance(adapter.get("id"), str) or not adapter_identity(adapter["id"]):
+            return {}
+        return {key: str(adapter.get(key, "")) for key in ("id", "name", "description")}
+
+    def set_capture_adapter(self, adapter, mark_dirty=True):
+        if not adapter_identity(adapter.get("id")):
+            raise ValueError("capture_adapter_unavailable")
+        current = self.capture_adapter()
+        if current and adapter_identity(current["id"]) != adapter_identity(adapter["id"]):
+            raise ValueError("capture_adapter_mismatch")
+        value = json.dumps({key: str(adapter.get(key, "")) for key in ("id", "name", "description")}, ensure_ascii=True)
+        changed = self.metadata.get(CAPTURE_ADAPTER_KEY) != value
+        self.metadata[CAPTURE_ADAPTER_KEY] = value
+        if changed and mark_dirty:
+            self.dirty = True
 
     def add_raw_scan_rows(self, point_id, timestamp, x, y, network, append=True):
         rows = []

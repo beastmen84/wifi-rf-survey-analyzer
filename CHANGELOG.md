@@ -7,6 +7,14 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- New Survey now selects a fixed Wi-Fi adapter alongside measurement units,
+  showing its name/status with asynchronous discovery and a refresh action.
+  The receiver ID/name is saved in survey metadata, restored on reopening and
+  shown in the workspace footer. New points and rescans use only that receiver;
+  missing hardware or native scan failures never switch receivers or fall back
+  to netsh. Point persistence also rejects mismatched raw/capture identities.
+  Older surveys ask for a receiver before their first new measurement, without
+  relabelling previous data. Help and all four UI languages describe this flow.
 - Squared both upper corners of the central Live Map tab, keeping its uniform
   selected highlight and the rounded outer corners of the workspace tab bar.
 
