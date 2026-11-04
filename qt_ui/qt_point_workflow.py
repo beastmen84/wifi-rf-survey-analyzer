@@ -1,8 +1,9 @@
 """Qt dialogs and worker used while adding a measured survey point."""
 
+from threading import Event
+
 from PySide6.QtCore import QObject, QThread, Qt, Signal, Slot
 from PySide6.QtWidgets import (
-    QApplication,
     QCheckBox,
     QDialog,
     QMessageBox,
@@ -17,7 +18,10 @@ from PySide6.QtWidgets import (
 from app_core.logging import log_event, log_exception
 from qt_ui.scaling import widget_px
 from qt_ui.qt_survey_setup import SurveySetupDialog
-from wifi.scanner import scan_wifi, WifiScanError
+from qt_ui.qt_capture_dialog import GuidedCaptureDialog
+from survey.measurement_quality import assess_measurement
+from survey.measurement_presentation import measurement_cards
+from wifi.scanner import scan_wifi, WifiScanError, WifiScanCancelled
 
 
 class PointCaptureMixin:
@@ -56,6 +60,24 @@ class PointCaptureMixin:
                 dialog.deleteLater()
         self.pending_scan_point = (int(x), int(y))
         self.set_scan_busy(True, self.tr("scanning", x=int(x), y=int(y)))
+        self.capture_result = None
+        self.capture_error = None
+        self.capture_cancel_requested = False
+        self.capture_dialog = GuidedCaptureDialog(self, int(x), int(y), adapter)
+        self.capture_dialog.start_requested.connect(self.start_prepared_wifi_scan)
+        self.capture_dialog.save_requested.connect(self.accept_wifi_capture)
+        self.capture_dialog.retry_requested.connect(self.retry_wifi_capture)
+        self.capture_dialog.discard_requested.connect(self.discard_wifi_capture)
+        self.capture_dialog.show()
+        self.capture_dialog.begin_preparation()
+
+    def start_prepared_wifi_scan(self):
+        if self.scan_thread is not None or self.capture_cancel_requested or not self.pending_scan_point:
+            return
+        x, y = self.pending_scan_point
+        adapter = self.session.capture_adapter()
+        self.capture_result = None
+        self.capture_error = None
         log_event(f"qt point scan start x={int(x)} y={int(y)}", logger_name="main")
 
         thread = QThread(self)
@@ -65,9 +87,13 @@ class PointCaptureMixin:
         worker.finished.connect(self.finish_wifi_scan)
         worker.finished.connect(thread.quit)
         worker.finished.connect(worker.deleteLater)
+        worker.progress.connect(self.capture_dialog.update_progress)
         worker.failed.connect(self.fail_wifi_scan)
         worker.failed.connect(thread.quit)
         worker.failed.connect(worker.deleteLater)
+        worker.cancelled.connect(thread.quit)
+        worker.cancelled.connect(worker.deleteLater)
+        worker.cancelled.connect(self.finish_cancelled_wifi_scan)
         thread.finished.connect(self.cleanup_wifi_scan_thread)
         thread.finished.connect(thread.deleteLater)
         self.scan_thread = thread
@@ -75,83 +101,110 @@ class PointCaptureMixin:
         thread.start()
 
     def finish_wifi_scan(self, networks, backend_used):
+        self.capture_result = (networks, backend_used)
+        if self.scan_thread is None:
+            self.present_wifi_capture()
+
+    def present_wifi_capture(self):
+        if self.capture_cancel_requested or not self.capture_result or self.capture_dialog is None:
+            return
+        networks, backend_used = self.capture_result
+        self.last_scan_backend_used = backend_used
+        if not networks and getattr(networks, "capture", {}).get("status") != "complete":
+            self.capture_error = "no_networks_found"
+            self.capture_dialog.show_error(self.tr(self.capture_error))
+            return
+        assessment = self.assess_pending_capture()
+        self.capture_dialog.show_review(assessment, self.relevant_ssids)
+
+    def assess_pending_capture(self):
+        networks = self.capture_result[0]
+        return assess_measurement(networks, capture=getattr(networks, "capture", {}),
+            relevant_ssids=self.relevant_ssids, expected_adapter_id=self.session.capture_adapter().get("id", ""))
+
+    def accept_wifi_capture(self):
+        if self.scan_thread is not None or not self.capture_result or self.capture_cancel_requested:
+            return
         try:
-            x, y = self.pending_scan_point or (None, None)
-            self.set_scan_busy(False)
-            self.last_scan_backend_used = backend_used
-            log_event(f"qt point scan finished backend={backend_used} networks={len(networks or [])}", logger_name="main")
-
-            if x is None or y is None:
+            networks, _backend = self.capture_result
+            x, y = self.pending_scan_point
+            if not self.assess_pending_capture().can_save:
                 return
-
-            if not networks and getattr(networks, "capture", {}).get("status") != "complete":
-                self.pending_scan_point = None
-                self.pending_rescan_point = None
-                QMessageBox.critical(self, self.tr("error"), self.tr("no_networks_found"))
-                return
-
+            previous_scope = set(self.relevant_ssids)
             action = self.validate_relevant_networks(networks)
-            log_event(f"qt point relevant validation action={action}", logger_name="main")
             if action == "retry":
-                self.start_wifi_scan(x, y)
+                self.retry_wifi_capture()
                 return
             if action == "cancel":
-                self.pending_scan_point = None
-                self.pending_rescan_point = None
-                self.status.showMessage(self.tr("cancelled"))
+                self.discard_wifi_capture()
                 return
-
+            if previous_scope != set(self.relevant_ssids):
+                self.present_wifi_capture()
+                return
             rescan_point = self.pending_rescan_point
-            self.pending_scan_point = None
-            self.pending_rescan_point = None
-            removed_rows = 0
-            # Validate/save the replacement before removing the old measurement.
-            self.save_survey_point(
-                x,
-                y,
-                networks,
-                status_message=self.tr(
-                    "point_rescanned" if rescan_point else "point_saved",
-                    x=x,
-                    y=y,
-                    count=len(networks),
-                    rows=removed_rows,
-                ),
-            )
+            assessment = self.assess_pending_capture()
+            self.save_survey_point(x, y, networks)
             if rescan_point:
-                removed_rows = self.delete_point(rescan_point, refresh=False)
-                self.status.showMessage(self.tr("point_rescanned", x=x, y=y, count=len(networks), rows=removed_rows))
+                self.delete_point(rescan_point, refresh=False)
                 self.refresh_points_table()
                 self.maybe_update_live_preview()
+            cards = measurement_cards(assessment, self.tr)
+            self.close_wifi_capture(saved=True)
+            self.status.showMessage(self.tr("measurement_saved", **{card["key"]: card["value"] for card in cards}))
         except Exception as exc:
-            log_exception("finish_wifi_scan failed", exc, logger_name="main")
-            self.pending_scan_point = None
-            self.pending_rescan_point = None
-            self.set_scan_busy(False)
-            QMessageBox.critical(self, self.tr("error"), self.tr(str(exc)))
+            log_exception("accept_wifi_capture failed", exc, logger_name="main")
+            self.capture_dialog.show_error(self.tr(str(exc)))
 
     def fail_wifi_scan(self, message):
         log_event(f"qt point scan failed message={message}", logger_name="main")
-        self.set_scan_busy(False)
-        self.pending_scan_point = None
-        self.pending_rescan_point = None
-        QMessageBox.critical(self, self.tr("error"), self.tr(message))
+        self.capture_error = message
+
+    def finish_cancelled_wifi_scan(self):
+        self.capture_cancel_requested = True
 
     def cleanup_wifi_scan_thread(self):
         finished_thread = self.sender()
         if finished_thread is self.scan_thread:
             self.scan_thread = None
             self.scan_worker = None
+            if self.capture_cancel_requested:
+                self.close_wifi_capture()
+            elif self.capture_error:
+                self.capture_dialog.show_error(self.tr(self.capture_error))
+            else:
+                self.present_wifi_capture()
         log_event("qt point scan thread cleaned up", logger_name="main")
+
+    def retry_wifi_capture(self):
+        if self.scan_thread is not None:
+            return
+        self.capture_result = None
+        self.capture_error = None
+        self.capture_dialog.begin_preparation()
+
+    def discard_wifi_capture(self):
+        self.capture_cancel_requested = True
+        self.capture_dialog.timer.stop()
+        if self.scan_worker is not None:
+            self.scan_worker.cancel()
+            self.capture_dialog.show_cancelling()
+        else:
+            self.close_wifi_capture()
+        self.status.showMessage(self.tr("cancelled"))
+
+    def close_wifi_capture(self, saved=False):
+        dialog, self.capture_dialog = self.capture_dialog, None
+        if dialog is not None:
+            dialog.finish(saved=saved)
+            dialog.deleteLater()
+        self.pending_scan_point = None
+        self.pending_rescan_point = None
+        self.capture_result = None
+        self.capture_error = None
+        self.set_scan_busy(False)
 
     def set_scan_busy(self, is_busy, message=None):
         self.scan_in_progress = is_busy
-        if is_busy:
-            QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
-        else:
-            if QApplication.overrideCursor() is not None:
-                QApplication.restoreOverrideCursor()
-
         if message:
             self.status.showMessage(message)
         self.refresh_session_labels()
@@ -247,16 +300,28 @@ class PointCaptureMixin:
 class WifiScanWorker(QObject):
     finished = Signal(object, str)
     failed = Signal(str)
+    progress = Signal(object)
+    cancelled = Signal()
 
     def __init__(self, backend="auto", adapter_id=None):
         super().__init__()
         self.backend = backend
         self.adapter_id = adapter_id
+        self.cancel_event = Event()
+
+    def cancel(self):
+        self.cancel_event.set()
 
     @Slot()
     def run(self):
         try:
-            networks, backend_used = scan_wifi(self.backend, show_errors=False, adapter_id=self.adapter_id)
+            networks, backend_used = scan_wifi(self.backend, show_errors=False, adapter_id=self.adapter_id,
+                progress=self.progress.emit, cancel_event=self.cancel_event)
+            if self.cancel_event.is_set():
+                raise WifiScanCancelled()
+        except WifiScanCancelled:
+            self.cancelled.emit()
+            return
         except WifiScanError as exc:
             self.failed.emit(exc.message_key)
             return

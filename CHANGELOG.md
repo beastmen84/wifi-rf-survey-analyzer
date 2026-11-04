@@ -7,6 +7,14 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Added guided point capture: a short preparation, real five-attempt progress,
+  cooperative discard, and an explicit Save / Repeat / Discard review. Results
+  remain provisional; failed/discarded rescans preserve previous measurements.
+- Separated acquisition reliability, per-BSSID signal stability and observed
+  coverage in the review, saved-point details/tooltips and offline HTML reports.
+  The point table now labels acquisition reliability explicitly. Missing history
+  and insufficient samples stay uncertain; weak Wi-Fi can be measured reliably.
+  Expanded Help and UI wording in English, Italian, French and Spanish.
 - New Survey now selects a fixed Wi-Fi adapter alongside measurement units,
   showing its name/status with asynchronous discovery and a refresh action.
   The receiver ID/name is saved in survey metadata, restored on reopening and

@@ -96,6 +96,7 @@ class AnalysisReport:
     survey_name: str
     readings: tuple[EvidenceReading, ...] = ()
     engine_version: str = ENGINE_VERSION
+    measurements: dict = field(default_factory=dict)
 
     def to_dict(self):
         return asdict(self)

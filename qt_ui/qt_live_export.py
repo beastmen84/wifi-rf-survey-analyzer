@@ -78,6 +78,8 @@ class LiveReportExportMixin:
                 measurement_system=self.measurement_system,
                 output_file=output_file,
                 boundary_mask_image=self.current_boundary_mask_image(),
+                raw_rows=self.session.raw_scan_rows,
+                context_metadata=self.session.metadata,
             )
         except MapExportError as exc:
             map_error = exc

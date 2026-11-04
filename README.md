@@ -86,8 +86,11 @@ from these software checks.
 4. Select relevant SSIDs.
 5. Place measurement points on the floor plan, roughly every 2-3 m for
    precise surveys when the space allows.
-6. Collect repeated Wi-Fi scans for each point.
-7. Review survey quality and fix point-level issues first.
+6. Hold the device still during the short preparation and five guided scan
+   attempts. Review the result, then save, repeat or discard the measurement.
+7. Review acquisition reliability, signal stability and observed coverage
+   separately. Reopen **Measurement details** from a selected saved point, then
+   use Survey Quality to fix point-level issues first.
 8. Review AP groups, metadata, channel overrides, and AP positions.
 9. Use Live Map views to inspect coverage, interference, channels, and roaming.
 10. Open Analysis and recommendations, set the coverage target and evidence
@@ -155,6 +158,30 @@ Native captures wait for scan completion and count only fresh, unique BSS
 observations across five attempts. Failed requests and cached observations do
 not become new samples. Saving a point also checks its receiver against the
 survey selection, including raw samples and verified empty captures.
+
+The guided capture displays actual scan progress and keeps results provisional
+until **Save point**. Discard is available during collection; the current native
+request completes before the worker releases its resources. Repeating uses a
+new, fixed set of five attempts. An existing point is preserved until its
+replacement is saved; the app does not automatically repeat until RSSI improves.
+
+The review and saved-point details separate three questions:
+
+- **Acquisition reliability:** completed attempts, unique fresh observations,
+  matching receiver and raw evidence. Missing history stays unverified or
+  limited; completed scans do not imply that every AP was seen five times.
+- **Signal stability:** variation within each strong BSSID/SSID/band candidate,
+  requiring at least three verified fresh samples. A range of 12 dB or more is
+  flagged. This does not detect device movement or certify receiver calibration.
+- **Observed coverage:** the strongest median RSSI per relevant SSID against an
+  explicit -70 dBm reference across detected bands. A missing SSID does not
+  prove absent coverage. Channel and roaming recommendations remain in Analysis.
+
+The point table labels acquisition reliability explicitly and shows the three
+axes for the selected point and in its tooltip. Offline HTML exports retain the
+same distinctions in expandable point details. The Analysis report uses its
+configured coverage target; point details and Live Map use the -70 dBm reference.
+These presentation checks do not replace the RF engine's recommendation guards.
 
 The `netsh` compatibility/diagnostic scanner reads English, Italian, French and Spanish field labels,
 preserves explicit band information, and reports command failures or timeouts.

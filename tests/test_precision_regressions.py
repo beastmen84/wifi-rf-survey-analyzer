@@ -388,12 +388,16 @@ def test_empty_capture_is_visible_in_point_table_floorplan_and_dashboard(qt_runt
         window.session.metadata["map_file"] = str(plan)
         window.load_saved_plan()
         window.pending_scan_point = (30, 40)
+        from qt_ui.qt_capture_dialog import GuidedCaptureDialog
+        window.capture_dialog = GuidedCaptureDialog(window, 30, 40)
         batch = scanner.ScanBatch([], dict(status="complete", freshness="fresh", backend="lswifi"))
         window.finish_wifi_scan(batch, "lswifi")
+        assert not window.session.measurement_points()
+        window.accept_wifi_capture()
         qt_runtime.processEvents()
         assert window.points_table.rowCount() == len(window.floorplan_view.marker_items) == 1
         assert window.points_table.item(0, 3).text() == "—"
-        assert window.points_table.item(0, 4).text() == window.tr("advisor_empty_scan_label")
+        assert window.points_table.item(0, 4).text() == window.tr("measurement_collection_unverified")
         dashboard = build_dashboard_rows(window, window.session.get_point_summaries(), {})
         assert dashboard[0]["best"] == "—" and dashboard[0]["needs_review"]
         assert not window.session.rows and not window.session.raw_scan_rows

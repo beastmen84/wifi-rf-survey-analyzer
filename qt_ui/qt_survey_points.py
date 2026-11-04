@@ -17,6 +17,10 @@ from maps.quality import (
     evaluate_point_quality,
 )
 from qt_ui.qt_floorplan import format_point_tooltip
+from qt_ui.qt_capture_dialog import GuidedCaptureDialog
+from survey.measurement_quality import assess_survey_measurements
+from survey.measurement_presentation import measurement_text
+from wifi.adapters import adapter_identity
 
 
 class SurveyPointTableMixin:
@@ -74,6 +78,33 @@ class SurveyPointTableMixin:
         self.rescan_point_button.setEnabled(has_point and not self.scan_in_progress)
         self.delete_selected_button.setEnabled(has_point)
         self.delete_last_button.setEnabled(has_any_point)
+        self.measurement_detail_button.setEnabled(has_point and not self.scan_in_progress)
+        point = self.current_selected_point()
+        assessment = getattr(self, "measurements_by_point", {}).get(str(point.get("point_id", ""))) if point else None
+        self.point_measurement_summary.setText(measurement_text(assessment, self.tr).replace("\n", "  ·  ") if assessment else "")
+        self.point_measurement_summary.setVisible(assessment is not None)
+
+    def show_selected_measurement_details(self):
+        point = self.current_selected_point()
+        if point is None or self.scan_in_progress:
+            return
+        assessment = self.measurements_by_point.get(str(point.get("point_id", "")))
+        if assessment is None:
+            return
+        capture = next((entry.get("capture", {}) for entry in self.session.measurement_points()
+                        if entry["point_id"] == point["point_id"]), {})
+        adapter = self.session.capture_adapter()
+        observed_ids = {str(row["adapter_id"]) for row in self.session.rows + self.session.raw_scan_rows
+                        if str(row.get("point_id", "")) == str(point["point_id"]) and row.get("adapter_id")}
+        actual_id = capture.get("adapter_id") or (next(iter(observed_ids)) if len(observed_ids) == 1 else "")
+        if not actual_id:
+            adapter = {"description": self.tr("measurement_unknown_receiver")}
+        elif adapter_identity(actual_id) != adapter_identity(adapter.get("id")):
+            adapter = {"id": actual_id}
+        dialog = GuidedCaptureDialog(self, point["x"], point["y"], adapter, read_only=True)
+        dialog.show_review(assessment, self.relevant_ssids)
+        dialog.exec()
+        dialog.deleteLater()
 
     def focus_selected_point(self):
         point = self.current_selected_point()
@@ -144,6 +175,8 @@ class SurveyPointTableMixin:
             return
 
         summaries = list(reversed(self.session.get_point_summaries()))
+        self.measurements_by_point = assess_survey_measurements(self.session.rows, self.session.raw_scan_rows,
+            self.session.metadata, self.relevant_ssids)
         quality_by_point_id = evaluate_point_quality(
             self.session.rows,
             self.session.raw_scan_rows,
@@ -155,17 +188,20 @@ class SurveyPointTableMixin:
                 quality = {"status": QUALITY_EMPTY_SCAN}
                 quality_by_point_id[point["point_id"]] = quality
             point["quality_label"] = self.format_point_quality(quality.get("status"))
+            assessment = self.measurements_by_point.get(str(point.get("point_id", "")))
+            point["measurement_summary"] = measurement_text(assessment, self.tr) if assessment else ""
         self.floorplan_view.set_points(summaries)
         self.floorplan_view.set_ap_groups(self.session.get_ap_groups())
         self.points_table.setRowCount(len(summaries))
         for row_index, point in enumerate(summaries):
             quality = quality_by_point_id.get(point.get("point_id", ""), {})
+            assessment = self.measurements_by_point.get(str(point.get("point_id", "")))
             values = [
                 str(len(summaries) - row_index),
                 str(point.get("x", "")),
                 str(point.get("y", "")),
                 "—" if point.get("best_signal_dbm") is None else str(point["best_signal_dbm"]),
-                self.format_point_quality(quality.get("status")),
+                self.tr("measurement_collection_" + assessment.collection) if assessment else "—",
                 ", ".join(point.get("ssids", [])),
                 str(point.get("row_count", "")),
                 str(point.get("timestamp", "")),
@@ -180,6 +216,8 @@ class SurveyPointTableMixin:
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 if column_index == 0:
                     item.setData(Qt.ItemDataRole.UserRole, point)
+                if column_index == 4:
+                    item.setToolTip(point.get("measurement_summary", ""))
                 self.points_table.setItem(row_index, column_index, item)
         self.resize_points_table_columns()
         self.update_point_action_state()

@@ -242,12 +242,14 @@ def analyze_survey(rows, raw_rows=(), groups=(), relevant_ssids=(), profile=None
     findings.sort(key=lambda f: (order[f.category], 0 if f.rule == "channel_change" else 1,
                                   {"warning": 0, "notice": 1}.get(f.severity, 2),
                                   f.metrics.get("step", 0), f.finding_id))
+    from survey.measurement_quality import assess_survey_measurements
+    measurements = assess_survey_measurements(rows, raw_rows, context_metadata, relevant, profile.coverage_dbm)
     return AnalysisReport(fingerprint, profile, tuple(findings), tuple(points[k] for k in sorted(points)),
         labels, tuple(sorted(relevant)), len(rows), len(raw_rows), invalid,
         datetime.now(timezone.utc).isoformat(timespec="seconds"), survey_name,
         tuple(EvidenceReading(r["point_id"], r["group_id"], r["ssid"], r["band"], r["signal_dbm"],
             r["channel"], r["width"], r["confidence"], str(r.get("backend", "")), str(r.get("adapter_id", "")),
-            str(r.get("signal_kind") or "unknown"), str(r.get("freshness") or "unknown")) for r in clean))
+            str(r.get("signal_kind") or "unknown"), str(r.get("freshness") or "unknown")) for r in clean), measurements=measurements)
 
 
 def _channel_analysis(clean, selected, groups, profile, trusted, add, model_conflicts):

@@ -26,6 +26,15 @@ class WifiScanError(RuntimeError):
         super().__init__(message_key)
 
 
+class WifiScanCancelled(RuntimeError):
+    """A discarded acquisition; never trigger a backend fallback."""
+
+
+def check_scan_cancelled(cancel_event):
+    if cancel_event is not None and cancel_event.is_set():
+        raise WifiScanCancelled()
+
+
 class ScanBatch(list):
     """List-compatible result, carrying the outcome independently of BSS rows."""
     def __init__(self, rows=(), capture=None):
@@ -81,23 +90,25 @@ def decode_netsh_output(output):
         return output.decode("oem" if sys.platform.startswith("win") else "cp850", errors="replace")
 
 
-def scan_wifi(backend="auto", show_errors=True, adapter_id=None):
+def scan_wifi(backend="auto", show_errors=True, adapter_id=None, progress=None, cancel_event=None):
+    check_scan_cancelled(cancel_event)
     # A pinned receiver requires a native scan. Netsh cannot prove that the
     # snapshot came from the requested GUID, so it must never be a fallback.
     if adapter_id:
         if backend == "netsh":
             raise WifiScanError("capture_adapter_native_required")
-        return scan_wifi_lswifi(show_errors=show_errors, adapter_id=adapter_id), "lswifi"
+        return scan_wifi_lswifi(show_errors=show_errors, adapter_id=adapter_id, progress=progress, cancel_event=cancel_event), "lswifi"
     if backend == "lswifi":
-        return scan_wifi_lswifi(show_errors=show_errors), "lswifi"
+        return scan_wifi_lswifi(show_errors=show_errors, progress=progress, cancel_event=cancel_event), "lswifi"
 
     if backend == "netsh":
         return scan_wifi_netsh(show_errors=show_errors), "netsh"
 
     try:
-        networks = scan_wifi_lswifi(show_errors=False)
+        networks = scan_wifi_lswifi(show_errors=False, progress=progress, cancel_event=cancel_event)
         return networks, "lswifi"
     except WifiScanError:
+        check_scan_cancelled(cancel_event)
         return scan_wifi_netsh(show_errors=show_errors), "netsh fallback"
 
 
@@ -261,7 +272,7 @@ def scan_wifi_netsh(show_errors=True):
         raise WifiScanError("wifi_scan_failed") from e
 
 
-def scan_wifi_lswifi(show_errors=True, adapter_id=None):
+def scan_wifi_lswifi(show_errors=True, adapter_id=None, progress=None, cancel_event=None):
     pinned_receiver = bool(adapter_id)
     try:
         log_event("scan_wifi_lswifi start", logger_name="wifi_scanner")
@@ -287,7 +298,13 @@ def scan_wifi_lswifi(show_errors=True, adapter_id=None):
         adapter_id = str(interface.guid)
         outcomes, successful_reads, cached_rows, invalid_rows = [], 0, 0, 0
         for attempt in range(WIFI_SCAN_ATTEMPTS):
+            check_scan_cancelled(cancel_event)
+            if progress:
+                progress(dict(stage="scanning", attempt=attempt + 1, total=WIFI_SCAN_ATTEMPTS,
+                              completed=attempt, successful_reads=successful_reads,
+                              fresh_samples=len({observation_key(row) for row in scans}), cached_excluded=cached_rows))
             outcome = scan_and_wait(lswifi_wlanapi, interface)
+            check_scan_cancelled(cancel_event)
             outcome["attempt"] = attempt + 1
             outcomes.append(outcome)
             if outcome["status"] == "complete":
@@ -295,13 +312,14 @@ def scan_wifi_lswifi(show_errors=True, adapter_id=None):
                     bss_list = read_bss_list(lswifi_wlanapi, interface)
                 except Exception:
                     outcome["status"] = "read_failed"
-                    continue
-                successful_reads += 1
+                    bss_list = None
+                if bss_list is not None:
+                    successful_reads += 1
                 connected = get_lswifi_connected_network(lswifi_wlanapi, interface)
                 connected_bssids = {connected.get("bssid", "")} if connected.get("bssid") else set()
                 observed_at = filetime_now()
-                parsed = parse_lswifi_bss_list(bss_list, connected_bssids=connected_bssids)
-                invalid_rows += len(bss_list) - len(parsed)
+                parsed = parse_lswifi_bss_list(bss_list or [], connected_bssids=connected_bssids)
+                invalid_rows += len(bss_list or []) - len(parsed)
                 for sample in parsed:
                     stamp = integer(sample.get("host_timestamp"))
                     fresh = stamp is not None and outcome["started"] <= stamp <= observed_at
@@ -312,8 +330,16 @@ def scan_wifi_lswifi(show_errors=True, adapter_id=None):
                         scans.append(sample)
                     else:
                         cached_rows += 1
+            if progress:
+                progress(dict(stage="scanning", attempt=attempt + 1, total=WIFI_SCAN_ATTEMPTS,
+                              completed=attempt + 1, successful_reads=successful_reads,
+                              fresh_samples=len({observation_key(row) for row in scans}), cached_excluded=cached_rows))
             if attempt < WIFI_SCAN_ATTEMPTS - 1:
-                time.sleep(WIFI_SCAN_DELAY_SECONDS)
+                if cancel_event is not None:
+                    cancel_event.wait(WIFI_SCAN_DELAY_SECONDS)
+                else:
+                    time.sleep(WIFI_SCAN_DELAY_SECONDS)
+        check_scan_cancelled(cancel_event)
         if not successful_reads or (not scans and (cached_rows or invalid_rows)):
             raise WifiScanError("capture_adapter_scan_failed" if pinned_receiver else "wifi_scan_failed")
         if invalid_rows:
@@ -326,9 +352,11 @@ def scan_wifi_lswifi(show_errors=True, adapter_id=None):
         )
         return ScanBatch(networks, {"status": "complete" if successful_reads == WIFI_SCAN_ATTEMPTS else "partial",
             "backend": "lswifi", "adapter_id": adapter_id, "freshness": "fresh",
-            "attempts": outcomes, "successful_reads": successful_reads, "cached_excluded": cached_rows,
+            "expected_attempts": WIFI_SCAN_ATTEMPTS, "attempts": outcomes, "successful_reads": successful_reads, "cached_excluded": cached_rows,
             "invalid_records": invalid_rows})
 
+    except WifiScanCancelled:
+        raise
     except Exception as e:
         log_exception("scan_wifi_lswifi failed", e, logger_name="wifi_scanner")
         report_scan_error(show_errors, "Errore scan Wi-Fi lswifi", e)

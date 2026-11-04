@@ -18,6 +18,8 @@ from maps.heatmap import (add_ap_group_metadata, filter_by_band, collapse_heatma
 from qt_ui.qt_live_map import render_live_map_payload
 from translations.i18n import translate
 from wifi.evidence import scan_confidence
+from survey.measurement_quality import assess_survey_measurements
+from survey.measurement_presentation import measurement_html
 
 
 def build_live_html_output_path(csv_file, config):
@@ -28,7 +30,7 @@ def build_live_html_output_path(csv_file, config):
 
 def generate_live_html_export(df, bg_image, csv_file, config, tr, translations, language="en",
         aliases=None, ap_groups=None, px_per_meter=None, measurement_system="metric",
-        output_file=None, boundary_mask_image=None):
+        output_file=None, boundary_mask_image=None, raw_rows=None, context_metadata=None):
     config = config.normalized()
     if not config.ssid:
         raise MapExportError(tr("warning"), tr("select_ssid_heatmap"))
@@ -71,10 +73,14 @@ def generate_live_html_export(df, bg_image, csv_file, config, tr, translations, 
         body.append(f'<p class="panel">{safe(label("no_issues"))}</p>')
     body.append('</section>')
     point_details = []
+    assessments = assess_survey_measurements(rows.to_dict("records"), raw_rows or [], context_metadata, {config.ssid})
     for index, point in enumerate(points, 1):
+        point_rows = rows[(rows["x"] == point["x"]) & (rows["y"] == point["y"])]
+        assessment_details = "".join(measurement_html(assessments[pid], tr)
+            for pid in dict.fromkeys(str(value) for value in point_rows.get("point_id", [])) if pid in assessments)
         # Tooltip HTML comes from the app's escaping formatter, never source HTML.
         point_details.append(disclosure(f'{tr("advisor_point")} {index} · ({point["x"]:g}, {point["y"]:g}) px',
-            point.get("tooltip", ""), f"point-{index}"))
+            assessment_details + point.get("tooltip", ""), f"point-{index}"))
     body.append(disclosure(label("measurements"), "".join(point_details), "measurements"))
     body.append(disclosure(label("provenance"), provenance_table(rows, tr, label)))
     params = [f'<p><b>SSID:</b> {safe(config.ssid)} · <b>{safe(tr("export_band"))}:</b> {safe(format_band_label(config.band, language))}</p>']

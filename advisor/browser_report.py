@@ -3,6 +3,7 @@
 from advisor.presentation import finding_html, wording
 from exporting.html_report import document, disclosure, kpi, safe
 from translations.i18n import translate
+from survey.measurement_presentation import measurement_html
 
 
 def browser_report(report, language, overview_data=""):
@@ -44,6 +45,15 @@ def browser_report(report, language, overview_data=""):
         body.append(card(finding, report, language, "data" if finding.category == "data" else "review"))
     body.append('</section>')
     channels = lambda band: ", ".join(map(str, report.profile.channels(band))) or tr("review_only")
+    if report.measurements:
+        full_tr = lambda key, **kw: translate(language, key, **kw)
+        details = []
+        for index, point in enumerate(report.points, 1):
+            result = report.measurements.get(point.point_id)
+            if result:
+                details.append(disclosure(f"{tr('point')} {index} · ({point.x:g}, {point.y:g}) px",
+                    measurement_html(result, full_tr), "measurement-" + str(index)))
+        body.append(disclosure(full_tr("measurement_details"), "".join(details), "measurement-quality"))
     parameters = (f'<p><b>{safe(tr("target"))}:</b> {report.profile.coverage_dbm:g} dBm</p>'
         f'<p>{safe(tr("min_confidence"))}: {report.profile.minimum_confidence:.0%} · '
         f'{safe(tr("minimum"))}: {report.profile.minimum_points}</p>'

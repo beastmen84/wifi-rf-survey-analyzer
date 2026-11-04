@@ -4,7 +4,7 @@ from copy import deepcopy
 from html import unescape
 from threading import Event
 from types import SimpleNamespace as NS
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 import pytest
 from PySide6.QtTest import QTest
@@ -234,7 +234,7 @@ def test_scan_worker_passes_receiver_and_preserves_capture_metadata(qt_app):
     result = batch()
     with patch("qt_ui.qt_point_workflow.scan_wifi", return_value=(result, "lswifi")) as scan:
         worker.run()
-    scan.assert_called_once_with("auto", show_errors=False, adapter_id=RECEIVER["id"])
+    scan.assert_called_once_with("auto", show_errors=False, adapter_id=RECEIVER["id"], progress=ANY, cancel_event=ANY)
     assert captured == [result] and captured[0] is result
 
 
@@ -244,17 +244,23 @@ def test_workspace_captures_with_pinned_receiver_and_keeps_points_on_failure(win
     with (patch("qt_ui.qt_point_workflow.scan_wifi", return_value=(batch(), "lswifi")) as scan,
           patch.object(window, "validate_relevant_networks", return_value="keep")):
         window.start_wifi_scan(10, 20)
+        window.capture_dialog.primary_action()
         wait_until(qt_app, lambda: window.scan_thread is None)
-    scan.assert_called_once_with("auto", show_errors=False, adapter_id=RECEIVER["id"])
+        window.capture_dialog.primary_action()
+    scan.assert_called_once_with("auto", show_errors=False, adapter_id=RECEIVER["id"], progress=ANY, cancel_event=ANY)
     before = deepcopy((window.session.rows, window.session.raw_scan_rows, window.session.metadata))
     with (patch("qt_ui.qt_point_workflow.scan_wifi", side_effect=scanner.WifiScanError("capture_adapter_unavailable")),
           patch.object(QMessageBox, "critical") as error):
         window.pending_rescan_point = window.session.get_points()[0]
         window.start_wifi_scan(10, 20)
+        window.capture_dialog.primary_action()
         wait_until(qt_app, lambda: window.scan_thread is None)
+    assert window.capture_dialog.phase == "error"
+    assert window.capture_dialog.progress_detail.text() == window.tr("capture_adapter_unavailable")
+    window.capture_dialog.reject()
     assert (window.session.rows, window.session.raw_scan_rows, window.session.metadata) == before
     assert not window.scan_in_progress and window.pending_rescan_point is None
-    assert error.call_args.args[2] == window.tr("capture_adapter_unavailable")
+    error.assert_not_called()
 
 
 def test_legacy_capture_requires_explicit_selection_and_cancel_does_not_start_scan(window):
@@ -277,11 +283,13 @@ def test_legacy_capture_choice_pins_future_points_without_relabelling_old_data(w
         dialog.return_value.exec.return_value = QDialog.DialogCode.Accepted
         dialog.return_value.options.return_value = {"adapter": RECEIVER}
         window.start_wifi_scan(10, 20)
+        window.capture_dialog.primary_action()
         wait_until(qt_app, lambda: window.scan_thread is None)
+        window.capture_dialog.primary_action()
     assert window.session.capture_adapter() == RECEIVER
     assert window.session.rows[:len(previous)] == previous
     assert window.session.rows[-1]["adapter_id"] == RECEIVER["id"]
-    scan.assert_called_once_with("auto", show_errors=False, adapter_id=RECEIVER["id"])
+    scan.assert_called_once_with("auto", show_errors=False, adapter_id=RECEIVER["id"], progress=ANY, cancel_event=ANY)
 
 
 @pytest.mark.parametrize("language", ["en", "it", "fr", "es"])

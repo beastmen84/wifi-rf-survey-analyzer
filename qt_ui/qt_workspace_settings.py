@@ -42,8 +42,12 @@ class WorkspaceSettingsMixin:
         if language_index >= 0:
             self.start_language_combo.setCurrentIndex(language_index)
         self.start_language_combo.blockSignals(False)
+        selected_point = self.current_selected_point()
         self.retranslate()
         if self.session is not None:
+            self.refresh_points_table()
+            if selected_point:
+                self.select_point_in_table(selected_point)
             self.floorplan_view.set_ap_groups(self.session.get_ap_groups())
             self.refresh_live_controls()
             self.maybe_update_live_preview()

@@ -22,6 +22,36 @@ interpolated colors.
 
 Current status:
 
+- post-1.1.0 points use `qt_capture_dialog.py` for preparation, fixed-five-scan
+  progress and provisional review. `WifiScanWorker` reports metadata-only
+  progress and uses a threading Event for cooperative cancellation between
+  requests/during the pause; current native requests finish within the existing
+  timeout. Cancellation never enters netsh fallback. Save explicitly commits
+  evidence; failed/discarded rescans retain old points. Retry is a fresh fixed
+  acquisition, never an automatic RSSI-driven stopping rule;
+- `survey/measurement_quality.py` derives three independent axes from existing
+  raw evidence and the capture ledger, without replacing advisor rules. Verified
+  collection requires consistent completion and matching raw provenance; strong
+  candidates need at least three fresh observations. Signal range is computed
+  within BSSID/channel/frequency, with 12 dB marking variation. Coverage compares
+  the best median RSSI per relevant SSID to a stated reference (-70 dBm for point
+  details/Live Map, profile target in Analysis export). Old/estimated data remains
+  uncertain. Persisted point details use actual historical receiver evidence;
+  they do not borrow a receiver chosen later for a legacy file;
+- shared `measurement_presentation.py` and four-language wording feed guided
+  review, saved-point summary/tooltips/read-only details and expandable HTML
+  reports. The point table column now means acquisition reliability. Analysis
+  report snapshots contain derived assessments, retaining report fingerprint
+  scope and existing RF findings. No schema bump, dependency or release rebuild;
+- guided-capture validation passes 544 tests + 475 subtests both offscreen
+  (36.44 s) and native Windows (46.38 s), plus 65 final receiver/guided-UI tests
+  after keyboard/default-button and dialog-result polish. Native snapshots cover
+  prepare/scan/weak/partial/variable/error states across four themes and languages;
+  all three assessment cards fit in the reference viewport. One real guided
+  fixed-receiver run completes five scans, emits 10 progress events, accepts 51
+  fresh observations and excludes four cached reads. The point stays provisional
+  until Save, then source UI and both HTML reports retain its evidence. This is
+  workflow/freshness validation, not controlled RF calibration or a packaged run;
 - post-1.1.0 acquisition fixes a receiver per survey: `wifi/adapters.py` provides
   read-only GUID/name discovery, `qt_survey_setup.py` combines units and adapter
   selection in New Survey with a finite QThread discovery task and refresh.

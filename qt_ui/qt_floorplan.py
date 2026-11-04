@@ -1371,6 +1371,11 @@ def format_point_tooltip(point, translations=None):
         (tooltip_text(translations, "signal", "Signal"), signal_text),
     ]
     quality_label = str(point.get("quality_label", "") or "").strip()
+    if point.get("measurement_summary"):
+        rows.append(tooltip_section(tooltip_text(translations, "measurement_details", "Measurement details")))
+        for line in point["measurement_summary"].splitlines():
+            label, _, value = line.partition(": ")
+            rows.append((label, value))
     if quality_label and quality_label != "-":
         rows.append((tooltip_text(translations, "quality", "Quality"), quality_label))
     rows.extend([

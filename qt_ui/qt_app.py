@@ -243,6 +243,10 @@ class WifiHeatmapQtApp(
         self.scan_thread = None
         self.scan_worker = None
         self.scan_in_progress = False
+        self.capture_dialog = None
+        self.capture_result = None
+        self.capture_error = None
+        self.capture_cancel_requested = False
         self.pending_scan_point = None
         self.pending_rescan_point = None
         self.last_scan_backend_used = "-"
@@ -710,23 +714,34 @@ class WifiHeatmapQtApp(
         self.points_table.itemDoubleClicked.connect(lambda _item: self.focus_selected_point())
         table_layout.addWidget(self.points_table)
 
+        self.point_measurement_summary = QLabel()
+        self.point_measurement_summary.setObjectName("mutedText")
+        self.point_measurement_summary.setWordWrap(True)
+        self.point_measurement_summary.setTextFormat(Qt.TextFormat.PlainText)
+        self.point_measurement_summary.hide()
+        table_layout.addWidget(self.point_measurement_summary)
+
         point_buttons = QHBoxLayout()
         self.focus_point_button = QPushButton()
+        self.measurement_detail_button = QPushButton()
         self.rescan_point_button = QPushButton()
         self.delete_selected_button = QPushButton()
         self.delete_last_button = QPushButton()
         for button in (
             self.focus_point_button,
+            self.measurement_detail_button,
             self.rescan_point_button,
             self.delete_selected_button,
             self.delete_last_button,
         ):
             button.setObjectName("pointsActionButton")
         self.focus_point_button.clicked.connect(self.focus_selected_point)
+        self.measurement_detail_button.clicked.connect(self.show_selected_measurement_details)
         self.rescan_point_button.clicked.connect(self.rescan_selected_point)
         self.delete_selected_button.clicked.connect(self.delete_selected_point)
         self.delete_last_button.clicked.connect(self.delete_last_point)
         point_buttons.addWidget(self.focus_point_button)
+        point_buttons.addWidget(self.measurement_detail_button)
         point_buttons.addWidget(self.rescan_point_button)
         point_buttons.addWidget(self.delete_selected_button)
         point_buttons.addWidget(self.delete_last_button)
@@ -1897,6 +1912,7 @@ class WifiHeatmapQtApp(
         self.quality_button.setText(self.tr("quality_dashboard_title"))
         self.help_button.setText(self.tr("help"))
         self.focus_point_button.setText(self.tr("go_to_point"))
+        self.measurement_detail_button.setText(self.tr("measurement_details"))
         self.rescan_point_button.setText(self.tr("rescan_point"))
         self.delete_selected_button.setText(self.tr("delete_selected"))
         self.delete_last_button.setText(self.tr("delete_last"))
@@ -1940,7 +1956,7 @@ class WifiHeatmapQtApp(
             "X",
             "Y",
             self.tr("qt_table_best_dbm"),
-            self.tr("quality"),
+            self.tr("measurement_collect"),
             self.tr("qt_table_networks"),
             self.tr("rows"),
             self.tr("qt_table_timestamp"),
