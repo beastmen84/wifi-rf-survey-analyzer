@@ -22,6 +22,20 @@ interpolated colors.
 
 Current status:
 
+- workspace report exports now use standalone HTML for Live Map and Analysis.
+  Shared responsive styling puts summaries/actions first and complete evidence
+  in disclosures, retaining visible uncertainty. Native browser printing opens
+  all evidence and restores the previous disclosure state. Live reports use the
+  actual screen renderer and embedded PNG/vector point markers, with matching
+  filters/legends/boundaries and local point links. No PDF intermediate is used;
+- Analysis settings are collapsed by default; coverage target and update/export
+  actions stay visible, alongside active evidence/candidate settings and missing
+  5/6 GHz candidate notices for observed bands. RF rules/engine remain unchanged;
+- HTML closeout validation passes 480 tests and 475 subtests offscreen and on
+  native Windows, plus 20 localized reports (analysis and all four live map
+  types). Native Chromium checks disclosures, point links, an actual 390 px
+  viewport and complete printing with state restoration. QtWebEngine is used
+  for private QA only; exporting HTML adds no embedded browser or dependencies;
 - the pre-1.1.0 precision audit on `8941b0d` is followed by implemented R1-R11
   corrections, documented in `docs/AUDIT_1_1_0.md`. Final offscreen/native suites
   each pass 453 tests and 475 subtests. The final live production capture accepts
@@ -665,6 +679,11 @@ Implemented:
 - Interference tooltips omit empty main-interferer rows.
 
 ### Live PDF Export
+
+Historical implementation, retained internally for compatibility. The current
+workspace uses **Export report** and `exporting/live_html.py`; see current
+status above and `docs/AI_ADVISOR_DESIGN.md`. The PDF workflow below documents
+the earlier release behavior, not the active workspace export command.
 
 Implemented:
 

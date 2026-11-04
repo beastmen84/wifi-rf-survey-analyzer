@@ -696,7 +696,7 @@ TRANSLATIONS = {
                 <td class="workflow-card" colspan="3">
                     <div class="step-label">5. Analisi</div>
                     <div class="step-title">Usa le mappe come output validato</div>
-                    <p>Usa Mappe Live e PDF per controllare copertura, canali, roaming e interferenza.</p>
+                    <p>Usa Mappe Live e HTML per controllare copertura, canali, roaming e interferenza.</p>
                     <div class="step-gate"><b>Vai avanti quando:</b> gli avvisi sono stati rivisti e sai spiegarli.</div>
                 </td>
             </tr>
@@ -706,7 +706,7 @@ TRANSLATIONS = {
             <div class="gate-row"><b>Distanze:</b> i nuovi rilievi chiedono unità metriche o imperiali prima di generare la pianta bianca. Cambiare sistema di misura dopo cancella la scala attuale, quindi va rifatta prima di interpretare avvisi sulle posizioni AP.</div>
             <div class="gate-row"><b>Copertura:</b> verifica SSID rilevanti e qualità punti prima di fidarti di zone buone o problematiche.</div>
             <div class="gate-row"><b>Interferenza:</b> verifica gruppi AP, ruoli, gestione cambi canale e override canale prima di fidarti delle mappe sensibili al canale.</div>
-            <div class="gate-row"><b>Esportazione:</b> apri la mappa live collegata e leggi tooltip di avviso o righe dettaglio prima di generare il PDF.</div>
+            <div class="gate-row"><b>Esportazione:</b> apri la mappa live collegata e leggi tooltip di avviso o righe dettaglio prima di generare il report HTML.</div>
         </div>
         <table class="section-card callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Come Ragiona Il Programma</span><br>Punti, scansioni grezze, metadati AP, stato Memoria AP e posizioni fisiche sono trattati come evidenze. Gli avvisi non sono automaticamente errori. Indicano quale ipotesi va controllata: qualità punto, gruppo AP, modello canale, posizione fisica o comportamento RF reale.</td></tr></table>
     """,
@@ -755,7 +755,7 @@ TRANSLATIONS = {
         <h2>Box Schermata Rilievo</h2>
         <table class="survey-grid">
             <tr>
-                <td class="survey-card"><span class="survey-card-title">CSV</span><br>Il file rilievo salvato, con commenti metadati e righe aggregate.<br><span class="survey-card-use">Salva prima di esportare PDF o spostare il rilievo su un altro PC.</span></td>
+                <td class="survey-card"><span class="survey-card-title">CSV</span><br>Il file rilievo salvato, con commenti metadati e righe aggregate.<br><span class="survey-card-use">Salva prima di esportare HTML o spostare il rilievo su un altro PC.</span></td>
                 <td class="survey-gap"></td>
                 <td class="survey-card"><span class="survey-card-title">Mappa</span><br>Il file pianta collegato al rilievo. I nuovi rilievi partono con una pianta A4 bianca già scalata e griglia attiva.<br><span class="survey-card-use">Se salvi senza sostituirla, viene scritto un PNG con lo stesso nome del CSV.</span></td>
                 <td class="survey-gap"></td>
@@ -818,7 +818,7 @@ TRANSLATIONS = {
     "help_quality_title": "Dashboard Qualità Rilievo",
     "help_quality_subtitle": "La dashboard separa evidenza di scansione, diagnostica del modello AP e punti da controllare prima di fidarsi delle mappe.",
     "help_quality_body": """
-        <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Regola Principale</span><br>Leggi Qualità Rilievo prima di interpretare mappe live o PDF esportati. La dashboard indica se l'evidenza richiede una nuova scansione, se il modello AP va rivisto, oppure se le mappe possono essere generate con ragionevole confidenza.</td></tr></table>
+        <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Regola Principale</span><br>Leggi Qualità Rilievo prima di interpretare mappe live o report HTML esportati. La dashboard indica se l'evidenza richiede una nuova scansione, se il modello AP va rivisto, oppure se le mappe possono essere generate con ragionevole confidenza.</td></tr></table>
         <h2>Leggi La Dashboard Su Due Livelli</h2>
         <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
             <tr>
@@ -930,7 +930,7 @@ TRANSLATIONS = {
                 <td class="survey-gap"></td>
                 <td class="survey-card"><b>Modello Utente</b><br>Alias, ruolo, posizione, metadati e override canale descrivono cosa dovrebbe essere il deployment.</td>
                 <td class="survey-gap"></td>
-                <td class="survey-card"><b>Output</b><br>Controlli qualità, mappe live e report PDF usano questo modello per decidere cosa mostrare, ignorare o segnalare.</td>
+                <td class="survey-card"><b>Output</b><br>Controlli qualità, mappe live e report HTML usano questo modello per decidere cosa mostrare, ignorare o segnalare.</td>
             </tr>
         </table>
         <h2>Livelli Del Manager</h2>
@@ -956,7 +956,7 @@ TRANSLATIONS = {
         <h2>Cosa Controllare</h2>
         <table class="gate-list">
             <tr><td class="gate-row"><b>1. Appartenenza Gruppo</b><br>SSID guest/main e radio multiple dello stesso AP fisico dovrebbero stare nello stesso gruppo AP. Separa o sposta BSSID quando il suggerimento automatico è sbagliato.</td></tr>
-            <tr><td class="gate-row"><b>2. Alias E Ruolo</b><br>Usa nomi fisici leggibili per legende, tooltip e schede PDF. Marca AP temporanei come Test/nascosto, vicini come Esterno e dispositivi solo interferenti come Interferente.</td></tr>
+            <tr><td class="gate-row"><b>2. Alias E Ruolo</b><br>Usa nomi fisici leggibili per legende, tooltip e schede report. Marca AP temporanei come Test/nascosto, vicini come Esterno e dispositivi solo interferenti come Interferente.</td></tr>
             <tr><td class="gate-row"><b>3. Posizione</b><br>La diagnostica AP Dominante richiede coordinate fisiche degli AP. Usa Imposta Posizione e clicca sulla pianta per gli AP importanti per il rilievo.</td></tr>
             <tr><td class="gate-row"><b>4. Metadati, Ambito Copertura E Modello Canale</b><br>Bande/canali attesi rendono significativi gli avvisi di setup. Ambito Copertura indica se AP/rete sono attesi in tutto il rilievo o solo in area locale. Gli override canale sono scelte di modellazione per mappe sensibili al canale, non etichette estetiche.</td></tr>
             <tr><td class="gate-row"><b>5. Stato Memoria</b><br>Le righe Da Memoria o Aggiornamento Memoria vanno riviste, così i dati AP riusati non diventano ipotesi silenziose.</td></tr>
@@ -1034,7 +1034,7 @@ TRANSLATIONS = {
                 <td class="survey-gap"></td>
                 <td class="survey-card"><b>SSID</b><br>Sceglie la rete da analizzare fra gli SSID presenti nel rilievo.</td>
                 <td class="survey-gap"></td>
-                <td class="survey-card"><b>Esporta PDF</b><br>Esporta il tipo mappa live e le opzioni correnti. Il rilievo viene salvato prima se necessario.</td>
+                <td class="survey-card"><b>Esporta report</b><br>Esporta il tipo mappa live e le opzioni correnti. Il rilievo viene salvato prima se necessario.</td>
             </tr>
         </table>
         <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
@@ -1213,7 +1213,7 @@ TRANSLATIONS = {
         <h2>Ordine Di Revisione</h2>
         <table class="gate-list">
             <tr><td class="gate-row"><b>1. Sistema Prima L'Evidenza Dei Punti</b><br>Reti mancanti, scansioni rade, bassa confidenza e segnale instabile possono influenzare ogni mappa. Rifai scansioni o aggiungi punti vicini prima di interpretare il comportamento RF.</td></tr>
-            <tr><td class="gate-row"><b>2. Sistema Identità E Posizione AP</b><br>Gruppi AP, alias, ruolo e posizione influenzano AP Dominante, Interferenza, Canali AP e diagnostica PDF.</td></tr>
+            <tr><td class="gate-row"><b>2. Sistema Identità E Posizione AP</b><br>Gruppi AP, alias, ruolo e posizione influenzano AP Dominante, Interferenza, Canali AP e diagnostica HTML.</td></tr>
             <tr><td class="gate-row"><b>3. Sistema Metadati E Modello Canale</b><br>Canali/bande attesi e override canale analisi decidono se gli avvisi di setup sono problemi reali o comportamento previsto.</td></tr>
             <tr><td class="gate-row"><b>4. Interpreta Le Mappe Per Ultime</b><br>Leggi copertura, canali, roaming e interferenza solo dopo che evidenza e modello AP sono abbastanza coerenti.</td></tr>
         </table>
@@ -1299,13 +1299,13 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card"><b>Limite Rilievo</b><br>Opzione mappa live che sfuma il rendering continuo fuori dall'area misurata del rilievo.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Maschera Confini</b><br>Sidecar PNG disegnato dall'utente che definisce l'area valida della pianta per mappe live continue e PDF supportati.</td>
+                <td class="workflow-card"><b>Maschera Confini</b><br>Sidecar PNG disegnato dall'utente che definisce l'area valida della pianta per mappe live continue e HTML supportati.</td>
             </tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
-                <td class="workflow-card"><b>Scheda Diagnostica</b><br>Scheda del report PDF che spiega punto, gruppo AP, canale o avviso coinvolto.</td>
+                <td class="workflow-card"><b>Scheda Diagnostica</b><br>Scheda del report HTML che spiega punto, gruppo AP, canale o avviso coinvolto.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Callout Mappa</b><br>Marker numerato sulla mappa PDF che collega una posizione visibile alla relativa scheda dettaglio.</td>
+                <td class="workflow-card"><b>Callout Mappa</b><br>Marker numerato sulla mappa del report HTML che collega una posizione visibile alla relativa scheda dettaglio.</td>
             </tr>
         </table>
     """,
@@ -1348,7 +1348,7 @@ TRANSLATIONS = {
     "help_live": "Mappa live",
     "help_live_title": "Come Usare la Mappa Live",
     "help_live_steps": (
-        "La Mappa live mostra un'anteprima del rilievo e può esportare il PDF della vista corrente.\n"
+        "La Mappa live mostra un'anteprima del rilievo e può esportare il report HTML della vista corrente.\n"
         "Scegli SSID, banda e tipo mappa direttamente nel tab Mappa live.\n"
         "Copertura segnale e Interferenza AP vengono calcolate in background, quindi la GUI resta utilizzabile durante l'aggiornamento.\n"
         "Canali AP e AP dominante mostrano i punti reali con legenda dedicata.\n"
@@ -1363,10 +1363,10 @@ TRANSLATIONS = {
         "RBF morbida crea una visualizzazione più continua; Lineare è più conservativa.\n"
         "Distanza max limita la heatmap alle aree vicine ai punti reali e riduce forme inventate.\n"
         "Solo >= -70 dBm evidenzia le zone normalmente utilizzabili.\n"
-        "Interferenza AP calcola il rischio in percentuale e aggiunge al PDF un report dei problemi principali.\n"
+        "Interferenza AP calcola il rischio in percentuale e aggiunge al HTML un report dei problemi principali.\n"
         "Canali AP non interpola: mostra i punti reali colorati per canale, con etichette tipo CH 36 / 80 quando la larghezza canale è disponibile.\n"
         "AP dominante mostra quale AP è più forte in ogni punto e marca in giallo le zone dove il secondo AP è entro 5 dB.\n"
-        "Se hai posizionato fisicamente gli AP, AP dominante aggiunge triangoli di avviso quando il segnale non è coerente con la posizione attesa e aggiunge i problemi al PDF."
+        "Se hai posizionato fisicamente gli AP, AP dominante aggiunge triangoli di avviso quando il segnale non è coerente con la posizione attesa e aggiunge i problemi al HTML."
     ),
     "help_scan": "Scansione",
     "help_scan_title": "Come Gestire la Scansione Wi-Fi",

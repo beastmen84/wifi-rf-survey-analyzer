@@ -10,7 +10,7 @@ def wording(finding, report, language):
     return translate(language, "advisor_rule_" + finding.rule, **values)
 
 
-def finding_html(finding, report, language, interactive=False):
+def finding_html(finding, report, language, interactive=False, browser=False):
     tr = lambda key, **kwargs: translate(language, "advisor_" + key, **kwargs)
     safe = lambda text: escape(str(text))
     title = wording(finding, report, language)
@@ -19,6 +19,9 @@ def finding_html(finding, report, language, interactive=False):
         f"{' · ' + safe(finding.band) + ' GHz' if finding.band else ''}</p>",
         f"<h3>{safe(tr('action'))}</h3><p>{safe(tr('action_' + finding.action))}</p>",
         f"<h3>{safe(tr('evidence'))}</h3><table width='100%' cellspacing='0' cellpadding='5'>"]
+    if browser:
+        body[1:3] = [f'<p class="muted">{safe(tr(finding.severity))}'
+            f'{" · " + safe(finding.band) + " GHz" if finding.band else ""}</p>']
     for metric, value in finding.metrics.items():
         if metric == "neighbor_ids":
             continue
@@ -27,6 +30,7 @@ def finding_html(finding, report, language, interactive=False):
         body.append(f"<tr><td>{safe(tr('metric_' + metric))}</td><td><b>{safe(value)}</b></td></tr>")
     body.append("</table>")
     if finding.point_ids:
+        evidence_start = len(body)
         body.append("<p>")
         index = {p.point_id: i + 1 for i, p in enumerate(report.points)}
         for point_id in finding.point_ids:
@@ -59,6 +63,10 @@ def finding_html(finding, report, language, interactive=False):
                 f"{safe(r.backend or '?')}<br>{safe(r.adapter_id or '?')}<br>{safe(tr('freshness_' + r.freshness))}</td><td>{r.channel if r.channel is not None else '-'} / "
                 f"{r.width if r.width is not None else '-'}</td><td>{r.confidence:.0%}</td></tr>")
         body.append("</tbody></table>")
+        if browser:
+            from exporting.html_report import disclosure
+            label = translate(language, "report_measurements") + f" · {len(finding.point_ids)} " + tr("metric_points")
+            body[evidence_start:] = [disclosure(label, "".join(body[evidence_start:]), "evidence-" + finding.finding_id)]
     if finding.limitations:
         body.append(f"<h3>{safe(tr('limits'))}</h3><ul>" + "".join(
             f"<li>{safe(tr(limit))}</li>" for limit in finding.limitations) + "</ul>")
@@ -68,7 +76,10 @@ def finding_html(finding, report, language, interactive=False):
     return html.replace("width='100%'", "width='98%'") if interactive else html
 
 
-def report_html(report, language="en", overview_data="", palette=None):
+def report_html(report, language="en", overview_data="", palette=None, browser=True):
+    if browser:
+        from advisor.browser_report import browser_report
+        return browser_report(report, language, overview_data)
     tr = lambda key, **kwargs: translate(language, "advisor_" + key, **kwargs)
     safe = lambda text: escape(str(text))
     palette = palette or dict(text="#25313D", panel="#FFFFFF", border="#D5DEE8", title="#1F2A36")

@@ -511,9 +511,9 @@ class SettingsMenuTests(unittest.TestCase):
             self.assertIn("Auto labels channel/AP changes", sections[5].body_html)
             self.assertIn("workflow-grid", sections[5].body_html)
             self.assertIn("Export Workflow", sections[6].body_html)
-            self.assertIn("What The First Page Represents", sections[6].body_html)
-            self.assertIn("Confirm Channel Model", sections[6].body_html)
-            self.assertIn("Current AP Channels Behavior", sections[6].body_html)
+            self.assertIn("Details And Printing", sections[6].body_html)
+            self.assertIn("Check the selected network", sections[6].body_html)
+            self.assertIn("AP Channels shows observed channels", sections[6].body_html)
             self.assertIn("Troubleshooting Patterns", sections[7].body_html)
             self.assertIn("Warning Review Rule", sections[7].body_html)
             self.assertIn("Point Rescan Findings", sections[7].body_html)
@@ -599,7 +599,7 @@ class SettingsMenuTests(unittest.TestCase):
                     window.delete_scale_button,
                     window.manage_relevant_button,
                     window.clear_relevant_button,
-                    window.live_pdf_export_button,
+                    window.live_report_export_button,
                     window.live_update_button,
                 )
                 for button in buttons:
@@ -1995,9 +1995,9 @@ class WorkspaceLiveStateTests(unittest.TestCase):
             self.assertEqual(app_bar_layout.stretch(1), 0)
             self.assertEqual(app_bar_layout.stretch(2), 1)
             toolbar_layout = window.live_toolbar_frame.layout()
-            self.assertIsNone(window.live_pdf_export_button.menu())
+            self.assertIsNone(window.live_report_export_button.menu())
             self.assertLess(
-                toolbar_layout.indexOf(window.live_pdf_export_button),
+                toolbar_layout.indexOf(window.live_report_export_button),
                 toolbar_layout.indexOf(window.live_export_separator),
             )
             self.assertLess(
@@ -2095,12 +2095,12 @@ class WorkspaceLiveStateTests(unittest.TestCase):
                 qt_live_export_module.get_centered_save_file_name = fake_save_file_name
                 window.session = FakeSession()
 
-                output_file = window.choose_live_pdf_output_file(MapConfig(ssid="MAIN", map_type="signal"))
+                output_file = window.choose_live_report_output_file(MapConfig(ssid="MAIN", map_type="signal"))
 
-                self.assertEqual(output_file, f"{chosen_path}.pdf")
-                self.assertEqual(captured["title"], window.tr("save_live_pdf_title"))
-                self.assertEqual(captured["file_filter"], window.tr("live_pdf_file_filter"))
-                self.assertIn("MAIN_coverage", captured["default_path"])
+                self.assertEqual(output_file, f"{chosen_path}.html")
+                self.assertEqual(captured["title"], window.tr("report_save_live"))
+                self.assertEqual(captured["file_filter"], window.tr("report_html_filter"))
+                self.assertIn("MAIN.signal.all-bands.html", captured["default_path"])
         finally:
             qt_live_export_module.get_centered_save_file_name = original_save_file_name
             window.deleteLater()

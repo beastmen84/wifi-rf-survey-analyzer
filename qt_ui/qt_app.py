@@ -56,7 +56,7 @@ from qt_ui.qt_analysis import AnalysisView
 from qt_ui.qt_floorplan import FloorplanView
 from qt_ui.qt_floorplan_workflow import FloorplanWorkflowMixin
 from qt_ui.qt_help_dialog import open_qt_help_dialog
-from qt_ui.qt_live_export import LivePdfExportMixin
+from qt_ui.qt_live_export import LiveReportExportMixin
 from qt_ui.qt_live_options import LiveOptionsMixin
 from qt_ui.qt_live_preview import LivePreviewMixin
 from qt_ui.qt_live_map import LiveMapView
@@ -212,7 +212,7 @@ class WifiHeatmapQtApp(
     ApWorkflowMixin,
     LivePreviewMixin,
     LiveOptionsMixin,
-    LivePdfExportMixin,
+    LiveReportExportMixin,
     FloorplanWorkflowMixin,
     SurveySessionWorkflowMixin,
     WorkspaceSettingsMixin,
@@ -546,7 +546,7 @@ class WifiHeatmapQtApp(
             (self.delete_scale_button, 0),
             (self.manage_relevant_button, 0),
             (self.clear_relevant_button, 0),
-            (self.live_pdf_export_button, 118),
+            (self.live_report_export_button, 118),
             (self.live_update_button, 132),
         ):
             self.fit_text_button_width(button, min_width)
@@ -1023,11 +1023,11 @@ class WifiHeatmapQtApp(
         self.live_survey_bounds_check.setContentsMargins(0, 0, 0, 0)
         self.live_auto_check = QCheckBox()
         self.live_auto_check.setChecked(True)
-        self.live_pdf_export_button = QPushButton()
-        self.live_pdf_export_button.setObjectName("compactButton")
-        self.live_pdf_export_button.setMinimumWidth(self.spx(118))
-        self.live_pdf_export_button.setEnabled(False)
-        self.live_pdf_export_button.clicked.connect(self.export_live_pdf)
+        self.live_report_export_button = QPushButton()
+        self.live_report_export_button.setObjectName("compactButton")
+        self.live_report_export_button.setMinimumWidth(self.spx(118))
+        self.live_report_export_button.setEnabled(False)
+        self.live_report_export_button.clicked.connect(self.export_live_report)
         self.live_update_button = QPushButton()
         self.live_update_button.setObjectName("compactButton")
         self.live_update_button.setMinimumWidth(self.spx(132))
@@ -1097,7 +1097,7 @@ class WifiHeatmapQtApp(
         toolbar_layout.addWidget(self.live_ssid_label)
         toolbar_layout.addWidget(self.live_ssid_combo)
         toolbar_layout.addStretch(1)
-        toolbar_layout.addWidget(self.live_pdf_export_button)
+        toolbar_layout.addWidget(self.live_report_export_button)
         toolbar_layout.addWidget(self.live_export_separator)
         toolbar_layout.addWidget(self.live_update_button)
         toolbar_layout.addWidget(self.live_auto_check)
@@ -1910,7 +1910,7 @@ class WifiHeatmapQtApp(
         self.live_usable_check.setText(self.tr("usable_only"))
         self.live_survey_bounds_check.setText(self.tr("survey_bounds"))
         self.live_auto_check.setText(self.tr("live_auto_update"))
-        self.live_pdf_export_button.setText(self.tr("live_export_pdf"))
+        self.live_report_export_button.setText(self.tr("report_export"))
         self.live_update_button.setText(self.tr("live_update_now"))
         if self.boundaries_toolbar is not None:
             self.boundaries_draw_button.setToolTip(self.tr("boundaries_draw_tooltip"))

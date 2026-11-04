@@ -26,8 +26,16 @@ survey CSV metadata. The category filter affects browsing, not report scope.
 
 Findings show confidence, an action, measured points/readings, limitations and
 post-change checks. Point links return to the survey canvas/table. The existing
-Live Map PDF remains separate. The new full report exports to PDF or standalone
-HTML, including an optional numbered floor-plan overview.
+Live Map report remains a separate view of the current map filters. Both
+workspace exporters now create standalone HTML. Analysis reports include an
+optional numbered floor-plan overview, a summary and action cards; complete
+measurements/parameters are expandable while important limits remain visible.
+Browser printing expands all evidence temporarily and restores the reading state.
+
+The coverage target and update/export actions stay visible in the app. Evidence
+confidence, supporting point count and channel candidates live in expandable
+Analysis settings. A persistent summary shows active settings; observed 5/6 GHz
+bands without candidates have a visible review-only warning.
 
 ## Architecture
 
@@ -39,15 +47,25 @@ HTML, including an optional numbered floor-plan overview.
 - `survey/scope.py`: shared Local Area relevance rules extracted from Survey
   Quality, retaining its manual/automatic radius behavior.
 - `advisor/presentation.py`: escaped, localized presentation shared by interactive
-  findings and both report formats. Names/SSID values cannot inject HTML.
+  findings and exports. `advisor/browser_report.py` arranges browser summaries,
+  operational proposals and other findings without changing engine results.
+  Names/SSID values cannot inject HTML.
 - `qt_ui/qt_analysis.py`: coalesced background QThread work and snapshot checks.
   Old results are rejected after relevant edits/session changes. Export checks
   freshness again after the modal file dialog; scans/running work block export.
   Closing/restarting waits for active work to finish using the workspace guard.
-- `exporting/analysis_report.py`: embedded floor-plan evidence, atomic HTML/PDF
-  replacement and generated-PDF validation. QPdfWriter renders selectable text
-  with fitting table chunks and repeated headers, keeping normal rows together.
-- `translations/advisor.py`: EN/IT/FR/ES labels, actions, assumptions and Help.
+- `exporting/analysis_report.py`: embedded floor-plan evidence and atomic HTML
+  replacement; the workspace defaults to `.analysis.html`. The legacy PDF API
+  and pagination checks remain for compatibility, outside the workspace flow.
+- `exporting/html_report.py`: shared responsive offline document, disclosure
+  controls, internal navigation, browser print styling and print-state restoration.
+- `exporting/live_html.py`: uses `render_live_map_payload` directly, embeds its
+  map image and vector point/AP markers, retains scale/legend and links points
+  to escaped detail sections. It preserves active filters and boundary masks.
+  No PDF is generated as an intermediate file. Both exporters reject inputs
+  changed during the modal save dialog.
+- `translations/advisor.py` and `translations/reports.py`: EN/IT/FR/ES labels,
+  actions, assumptions, report controls and Help.
 
 ## Evidence And Rules
 
@@ -128,9 +146,11 @@ review findings. Map overrides do not replace measured channel evidence here.
 Regression tests use synthetic surveys for joint channel decisions, physical
 grouping, scope, quality gates, metadata, scanner limitations, coverage, power,
 roaming, input purity and stale workers/exports. Exports are generated in all four
-languages, loaded/rasterized with Qt PDF, checked for text/evidence preservation,
-normal row pagination and safe replacement failures. UI/PDF examples are visually
-inspected during development. These checks do not replace field RF validation.
+languages, with all Live Map types and checked links, escaped identifiers,
+embedded-only resources, retained evidence and safe replacement failures. Native
+Chromium checks cover disclosure controls, point links, mobile width and printing
+of initially closed evidence; UI/browser examples are visually inspected.
+Legacy PDF pagination remains covered. These checks do not replace field RF validation.
 
 The scanner does not measure airtime utilization, retry rates, non-Wi-Fi
 interference or throughput. There is no propagation/obstacle simulation, exact

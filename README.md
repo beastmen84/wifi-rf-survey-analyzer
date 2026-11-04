@@ -1,7 +1,7 @@
 # Wi-Fi RF Survey Analyzer
 
 Desktop application for Wi-Fi RF surveying, live map analysis, AP modeling,
-survey-quality review, RF recommendations, and PDF/HTML reporting.
+survey-quality review, RF recommendations, and offline HTML reporting.
 
 Wi-Fi RF Survey Analyzer is built for practical field surveys: load a floor
 plan, collect real Wi-Fi measurements, preserve raw scan evidence, model
@@ -60,16 +60,20 @@ from these software checks.
 - A final Analysis and recommendations tab with local rules for channel plans,
   coverage, AP dominance, client roaming and missing survey evidence. Findings
   explain their confidence and link back to measured points.
-- Optional manual Boundaries masks for limiting continuous live maps and PDF
+- Optional manual Boundaries masks for limiting continuous live maps and HTML
   exports to the useful survey area when the floor-plan shape or measured
   perimeter needs explicit control.
 - Shared, sectioned tooltips for survey points, Wi-Fi AP markers and live-map
   points, with point-local signal, confidence, channel and AP evidence where
   available.
-- PDF export from the current live map, including diagnostic report pages where
-  the selected map type supports them.
-- Complete analysis-report export as selectable-text PDF or self-contained HTML,
-  including objectives, measured evidence and a numbered floor-plan overview.
+- Standalone HTML export from Live Map, with the same renderer and active
+  filters, a numbered map, linked point evidence and visible diagnostic warnings.
+- Complete HTML analysis reports with a concise summary, prioritized actions,
+  visible evidence limits and expandable measurement/parameter sections.
+  Both report types work offline as one file and support printing from the browser.
+- Compact Analysis controls: coverage target and report actions remain visible;
+  evidence thresholds and channel candidates sit in expandable Analysis settings,
+  with active values and applicable missing-channel warnings always visible.
 - English, Italian, French and Spanish UI, Help Center and report wording,
   covering the operating workflow and detailed option behavior.
 
@@ -88,7 +92,8 @@ from these software checks.
 9. Use Live Map views to inspect coverage, interference, channels, and roaming.
 10. Open Analysis and recommendations, set the coverage target and evidence
     requirements, and review the suggested actions and their supporting points.
-11. Export the analysis report as PDF/HTML, or export an individual Live Map as PDF.
+11. Export the analysis report or current Live Map as standalone HTML. Open the
+    report in a browser to inspect details, follow point links or print it.
 
 ## Data Model
 
@@ -184,7 +189,7 @@ for review until confirmed or edited.
 
 The Survey Quality Dashboard is designed to be reviewed before trusting maps.
 It separates measurement-point problems from AP model/setup diagnostics, so
-users can fix scan evidence before interpreting live maps or PDF reports.
+users can fix scan evidence before interpreting live maps or HTML reports.
 
 Current checks cover scan confidence, missing relevant networks, sparse or
 unstable data, limited scanner details, connected-client roaming evidence, AP
@@ -197,7 +202,7 @@ The dashboard uses KPI cards, filtered point lists, and detail dialogs to keep
 large surveys readable. Full behavior and review guidance are documented in the
 in-app Help Center.
 
-## Live Maps And PDF Reports
+## Live Maps And HTML Reports
 
 Available live maps:
 
@@ -217,12 +222,12 @@ and centers the selected point in the live-map viewport.
 Continuous Coverage and Interference maps can use Survey Bounds to reduce
 visual extrapolation outside the measured area. When a manual Boundaries mask
 exists, that mask defines the valid map area and Survey Bounds is enabled and
-locked for live maps and PDF export.
+locked for live maps and report export.
 
-PDF export uses the current live map type and options, renders the floor-plan
-area independently from the current viewport zoom/pan, trims excessive uniform
-background below the plan when safe, includes scale or legend information, and
-adds diagnostic pages for Interference and Dominant AP reports when applicable.
+HTML export uses the current live map renderer and options, includes the full
+floor plan independently of viewport zoom/pan, and embeds the image and legend.
+Numbered points open their evidence. A summary highlights weak measured signals,
+interference risk or dominant-AP warnings; unknown RF geometry stays explicit.
 
 ## Survey Analysis And Recommendations
 
@@ -250,7 +255,7 @@ service. Signal overlap is a modeled risk rather than a throughput/airtime
 measurement. Placement checks do not predict an exact new location or power
 level. Verify changes on site and repeat the referenced measurements.
 
-PDF and HTML share the same report snapshot. Export is blocked while scanning,
+HTML reports preserve the current analysis snapshot. Export is blocked while scanning,
 analyzing or after relevant data/objectives change until the report is current.
 
 ## Help Center
@@ -264,7 +269,7 @@ It is available in English, Italian, French and Spanish and covers:
 - Survey Quality Dashboard;
 - AP Groups, AP metadata, and AP Memory;
 - Live Maps;
-- analysis recommendations and PDF/HTML reports;
+- analysis recommendations and offline HTML reports;
 - diagnostics/warnings;
 - glossary.
 
@@ -284,7 +289,7 @@ requirements-lock.txt   pinned environment used for reproducible release checks
 app_core/               settings, logging, restart, version, constants
 ap/                     AP grouping, metadata checks, conflicts, positioning
 advisor/                local recommendation rules, evidence models, presentation
-exporting/              live-map PDF and analysis PDF/HTML reports
+exporting/              live-map and analysis HTML reports, legacy PDF helpers
 maps/                   map config, heatmap math, rendering, quality engine
 qt_ui/                  PySide6 UI, workspace, dialogs, live-map view
 survey/                 CSV/raw persistence and shared local-area scope rules

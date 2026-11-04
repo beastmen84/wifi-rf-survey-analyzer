@@ -375,7 +375,7 @@ class LiveOptionsMixin:
         ):
             widget.setEnabled(can_render)
         self.live_update_button.setEnabled(can_render and not self.live_rendering)
-        self.live_pdf_export_button.setEnabled(can_render and not self.live_rendering)
+        self.live_report_export_button.setEnabled(can_render and not self.live_rendering)
         self.update_live_option_state()
 
         if not can_render and not self.live_rendering:

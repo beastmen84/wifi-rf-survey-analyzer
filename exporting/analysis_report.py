@@ -157,7 +157,7 @@ def overview_data(image, report):
 
 def export_analysis_report(report, output_file, language="en", floorplan_image=None):
     path = Path(output_file)
-    html = report_html(report, language, overview_data(floorplan_image, report))
+    html = report_html(report, language, overview_data(floorplan_image, report), browser=path.suffix.lower() == ".html")
     if path.suffix.lower() == ".html":
         atomic_write_text(path, html)
         return str(path)

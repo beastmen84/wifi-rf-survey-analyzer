@@ -6,7 +6,7 @@ from pathlib import Path
 from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot, Qt
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel,
     QPushButton, QDoubleSpinBox, QSpinBox, QLineEdit, QComboBox, QSplitter,
-    QListWidget, QListWidgetItem, QTextBrowser, QMessageBox)
+    QListWidget, QListWidgetItem, QTextBrowser, QMessageBox, QToolButton, QFrame)
 
 from advisor.engine import analyze_survey
 from advisor.models import AnalysisProfile, analysis_fingerprint
@@ -16,6 +16,7 @@ from qt_ui.qt_live_map import load_floorplan_image
 from qt_ui.qt_theme import QT_THEMES
 from qt_ui.qt_windowing import get_centered_save_file_name
 from app_core.logging import log_exception
+from wifi.band import get_row_band
 
 
 class AnalysisWorker(QObject):
@@ -50,12 +51,19 @@ class AnalysisView(QWidget):
         layout.setContentsMargins(app.spx(18), app.spx(14), app.spx(18), app.spx(12))
         self.heading = QLabel()
         self.heading.setObjectName("sectionTitle")
-        layout.addWidget(self.heading)
+        heading_row = QHBoxLayout()
+        heading_row.addWidget(self.heading, 1)
+        self.run_button, self.export_button = QPushButton(), QPushButton()
+        self.run_button.clicked.connect(self.update_analysis)
+        self.export_button.clicked.connect(self.export_report)
+        heading_row.addWidget(self.run_button)
+        heading_row.addWidget(self.export_button)
+        layout.addLayout(heading_row)
         self.hint = QLabel()
         self.hint.setWordWrap(True)
         self.hint.setObjectName("mutedText")
         layout.addWidget(self.hint)
-        controls = QGridLayout()
+        target_row = QHBoxLayout()
         self.target_label, self.confidence_label, self.minimum_label = QLabel(), QLabel(), QLabel()
         self.target = QDoubleSpinBox()
         self.target.setRange(-95, -45)
@@ -71,20 +79,38 @@ class AnalysisView(QWidget):
         self.minimum = QSpinBox()
         self.minimum.setRange(2, 20)
         self.minimum.setValue(3)
-        for index, (label, control) in enumerate(((self.target_label, self.target),
-                (self.confidence_label, self.confidence), (self.minimum_label, self.minimum))):
+        target_row.addWidget(self.target_label)
+        target_row.addWidget(self.target)
+        self.target_hint = QLabel()
+        self.target_hint.setObjectName("mutedText")
+        target_row.addWidget(self.target_hint, 1)
+        self.settings_button = QToolButton()
+        self.settings_button.setCheckable(True)
+        self.settings_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.settings_button.setArrowType(Qt.ArrowType.RightArrow)
+        self.settings_button.toggled.connect(self.toggle_settings)
+        target_row.addWidget(self.settings_button)
+        layout.addLayout(target_row)
+        self.settings_summary = QLabel()
+        self.settings_summary.setWordWrap(True)
+        self.settings_summary.setObjectName("mutedText")
+        layout.addWidget(self.settings_summary)
+        self.policy_notice = QLabel()
+        self.policy_notice.setWordWrap(True)
+        layout.addWidget(self.policy_notice)
+        self.settings_panel = QFrame()
+        self.settings_panel.setObjectName("analysisSettings")
+        advanced = QVBoxLayout(self.settings_panel)
+        controls = QGridLayout()
+        for index, (label, control) in enumerate(((self.confidence_label, self.confidence), (self.minimum_label, self.minimum))):
             controls.addWidget(label, 0, index * 2)
             controls.addWidget(control, 0, index * 2 + 1)
             control.valueChanged.connect(self.inputs_changed)
-        self.run_button, self.export_button = QPushButton(), QPushButton()
-        self.run_button.clicked.connect(self.update_analysis)
-        self.export_button.clicked.connect(self.export_report)
-        controls.addWidget(self.run_button, 0, 6)
-        controls.addWidget(self.export_button, 0, 7)
-        layout.addLayout(controls)
+        self.target.valueChanged.connect(self.inputs_changed)
+        advanced.addLayout(controls)
         self.policy_label = QLabel()
         self.policy_label.setWordWrap(True)
-        layout.addWidget(self.policy_label)
+        advanced.addWidget(self.policy_label)
         policy = QHBoxLayout()
         self.channel_edits = {}
         for band, text in (("2.4", "1, 6, 11"), ("5", ""), ("6", "")):
@@ -94,11 +120,13 @@ class AnalysisView(QWidget):
             edit.textChanged.connect(self.inputs_changed)
             self.channel_edits[band] = edit
             policy.addWidget(edit)
-        layout.addLayout(policy)
+        advanced.addLayout(policy)
         self.policy_hint = QLabel()
         self.policy_hint.setWordWrap(True)
         self.policy_hint.setObjectName("mutedText")
-        layout.addWidget(self.policy_hint)
+        advanced.addWidget(self.policy_hint)
+        layout.addWidget(self.settings_panel)
+        self.settings_panel.hide()
         self.summary = QLabel()
         self.summary.setWordWrap(True)
         layout.addWidget(self.summary)
@@ -109,6 +137,7 @@ class AnalysisView(QWidget):
         splitter.setChildrenCollapsible(False)
         self.findings = QListWidget()
         self.findings.setWordWrap(True)
+        self.findings.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.findings.setMinimumWidth(app.spx(260))
         self.findings.currentRowChanged.connect(self.render_selected)
         splitter.addWidget(self.findings)
@@ -128,6 +157,20 @@ class AnalysisView(QWidget):
 
     def text(self, key, **kwargs):
         return self.app.tr("advisor_" + key, **kwargs)
+
+    def toggle_settings(self, expanded):
+        self.settings_panel.setVisible(expanded)
+        self.settings_button.setArrowType(Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow)
+
+    def refresh_settings_summary(self):
+        channels = " · ".join(band + " GHz: " + (edit.text().strip() or self.text("review_only"))
+            for band, edit in self.channel_edits.items())
+        self.settings_summary.setText(self.app.tr("report_settings_summary",
+            confidence=f"{self.confidence.value():g}", points=self.minimum.value()) + " · " + channels)
+        observed = {get_row_band(row) for row in self.app.session.rows} if self.app.session else set()
+        missing = [band for band in ("5", "6") if band in observed and not self.channel_edits[band].text().strip()]
+        self.policy_notice.setText(self.app.tr("report_channel_missing", bands=" / ".join(missing)) if missing else "")
+        self.policy_notice.setVisible(bool(missing))
 
     def profile(self):
         def channels(band):
@@ -159,6 +202,7 @@ class AnalysisView(QWidget):
             context["context_metadata"])
 
     def inputs_changed(self, *_args):
+        self.refresh_settings_summary()
         self.export_button.setEnabled(False)
         self.summary.setText(self.text("stale"))
         self.pending = True
@@ -166,6 +210,7 @@ class AnalysisView(QWidget):
             self.timer.start()
 
     def sync_state(self):
+        self.refresh_settings_summary()
         enabled = self.app.session is not None and not self.app.scan_in_progress
         self.run_button.setEnabled(enabled and not self.busy)
         if not enabled:
@@ -303,13 +348,13 @@ class AnalysisView(QWidget):
             if self.busy or self.report is None or context is None or self.report.fingerprint != self.fingerprint(context):
                 self.update_analysis()
                 return False
-            path = Path(self.app.session.csv_file or "survey.csv").with_suffix(".analysis.pdf")
-            output, selected_filter = get_centered_save_file_name(self.app, self.text("export"), str(path),
-                "PDF (*.pdf);;HTML (*.html)")
+            path = Path(self.app.session.csv_file or "survey.csv").with_suffix(".analysis.html")
+            output, _selected_filter = get_centered_save_file_name(self.app, self.text("export"), str(path),
+                self.app.tr("report_html_filter"))
             if not output:
                 return False
-            if Path(output).suffix.lower() not in {".pdf", ".html"}:
-                output += ".html" if "html" in selected_filter else ".pdf"
+            if Path(output).suffix.lower() != ".html":
+                output += ".html"
             image = None
             plan = self.app.session.metadata.get("map_file", "")
             if plan and Path(plan).is_file():
@@ -327,6 +372,9 @@ class AnalysisView(QWidget):
             return False
 
     def retranslate(self):
+        self.settings_button.setText(self.app.tr("report_settings"))
+        self.target_hint.setText(self.app.tr("report_target_hint"))
+        self.refresh_settings_summary()
         for label, key in ((self.heading, "title"), (self.hint, "hint"), (self.target_label, "target"),
                 (self.confidence_label, "min_confidence"), (self.minimum_label, "minimum"),
                 (self.policy_label, "policy"), (self.policy_hint, "policy_hint"),

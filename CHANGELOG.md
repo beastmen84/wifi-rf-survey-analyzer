@@ -9,6 +9,12 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ### Added
 
+- Added shared offline HTML report styling with summary cards, prioritized
+  findings, expandable evidence, linked Live Map points and browser printing
+  that includes collapsed measurements and restores the reading state afterward.
+- Added HTML exports for all four Live Map types using the screen renderer,
+  current filters, legends and boundary masks. Important quality/unknown-risk
+  warnings remain visible without opening the technical details.
 - Added a final Analysis and recommendations tab, with background local analysis
   of the whole survey and configurable coverage/evidence/channel objectives.
 - Added coordinated channel-plan proposals, observed overlap and width reviews,
@@ -25,6 +31,14 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ### Fixed / Changed
 
+- Live Map and Analysis now use **Export report** with HTML as their workspace
+  export format. Images/styles/controls are embedded in one portable file;
+  no server or network access is required. Existing PDF generation helpers are
+  retained internally for compatibility; workspace printing uses the browser.
+- Simplified the Analysis page: coverage target and update/export actions stay
+  visible, while confidence, minimum points and channel candidates move into
+  expandable settings. Active values and missing candidate warnings remain
+  visible. Updated report Help and EN/IT/FR/ES wording.
 - Migrated the development environment to CPython 3.15.2 with PySide6 6.12.0,
   NumPy 2.5.4, SciPy 1.18.1, pandas 3.1.0, Matplotlib 3.11.2 and lswifi 0.5.0.
   Updated pytest/PyInstaller and the complete pinned dependency snapshot;

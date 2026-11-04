@@ -696,7 +696,7 @@ TRANSLATIONS = {
                 <td class="workflow-card" colspan="3">
                     <div class="step-label">5. Analyze</div>
                     <div class="step-title">Use maps as the checked output</div>
-                    <p>Use Live Maps and PDF export to review coverage, channels, roaming and interference.</p>
+                    <p>Use Live Maps and HTML export to review coverage, channels, roaming and interference.</p>
                     <div class="step-gate"><b>Move forward when:</b> warnings have been reviewed and can be explained.</div>
                 </td>
             </tr>
@@ -706,7 +706,7 @@ TRANSLATIONS = {
             <div class="gate-row"><b>Distances:</b> new surveys ask for metric or imperial units before the blank plan is generated. Changing measurement system later clears the current scale, so calibrate again before interpreting AP-position warnings.</div>
             <div class="gate-row"><b>Coverage:</b> verify relevant SSIDs and point quality before trusting good or bad coverage areas.</div>
             <div class="gate-row"><b>Interference:</b> verify AP groups, roles, channel-change handling and analysis-channel overrides before trusting channel-sensitive maps.</div>
-            <div class="gate-row"><b>Export:</b> open the related live map and read the warning tooltips or detail rows before generating the PDF.</div>
+            <div class="gate-row"><b>Export:</b> open the related live map and read the warning tooltips or detail rows before generating the HTML report.</div>
         </div>
         <table class="section-card callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">How The Program Thinks</span><br>Survey points, raw scans, AP metadata, AP Memory state and AP positions are treated as evidence. Warnings are not automatically errors. They tell you which assumption needs review: point quality, AP grouping, channel model, physical AP placement or real RF behavior.</td></tr></table>
     """,
@@ -755,7 +755,7 @@ TRANSLATIONS = {
         <h2>Survey Screen Boxes</h2>
         <table class="survey-grid">
             <tr>
-                <td class="survey-card"><span class="survey-card-title">CSV</span><br>The saved survey file with metadata comments and aggregated rows.<br><span class="survey-card-use">Save before PDF export or moving between machines.</span></td>
+                <td class="survey-card"><span class="survey-card-title">CSV</span><br>The saved survey file with metadata comments and aggregated rows.<br><span class="survey-card-use">Save before HTML export or moving between machines.</span></td>
                 <td class="survey-gap"></td>
                 <td class="survey-card"><span class="survey-card-title">Map</span><br>The floor-plan file linked to the survey. New surveys start with a scaled A4 blank plan and grid.<br><span class="survey-card-use">If you save without replacing it, a same-name PNG is written next to the CSV.</span></td>
                 <td class="survey-gap"></td>
@@ -818,7 +818,7 @@ TRANSLATIONS = {
     "help_quality_title": "Survey Quality Dashboard",
     "help_quality_subtitle": "The dashboard separates scan evidence, AP model diagnostics, and the points worth reviewing before maps are trusted.",
     "help_quality_body": """
-        <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Main Rule</span><br>Read Survey Quality before interpreting live maps or exported PDFs. The dashboard tells you whether the survey evidence needs a rescan, whether the AP model needs review, or whether the maps can be generated with reasonable confidence.</td></tr></table>
+        <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Main Rule</span><br>Read Survey Quality before interpreting live maps or exported HTML reports. The dashboard tells you whether the survey evidence needs a rescan, whether the AP model needs review, or whether the maps can be generated with reasonable confidence.</td></tr></table>
         <h2>Read The Dashboard In Two Layers</h2>
         <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
             <tr>
@@ -930,7 +930,7 @@ TRANSLATIONS = {
                 <td class="survey-gap"></td>
                 <td class="survey-card"><b>User Model</b><br>Alias, role, position, metadata and analysis-channel overrides describe what the deployment is supposed to be.</td>
                 <td class="survey-gap"></td>
-                <td class="survey-card"><b>Output</b><br>Quality checks, live maps and PDF reports use this model to decide what to show, ignore or warn about.</td>
+                <td class="survey-card"><b>Output</b><br>Quality checks, live maps and HTML reports use this model to decide what to show, ignore or warn about.</td>
             </tr>
         </table>
         <h2>Manager Layers</h2>
@@ -956,7 +956,7 @@ TRANSLATIONS = {
         <h2>What To Review</h2>
         <table class="gate-list">
             <tr><td class="gate-row"><b>1. Group Membership</b><br>Guest/main SSIDs and multiple radios from the same physical AP should be in the same AP group. Split or move BSSIDs when the automatic suggestion is wrong.</td></tr>
-            <tr><td class="gate-row"><b>2. Alias And Role</b><br>Use readable physical names for legends, tooltips and PDF cards. Mark temporary APs as Test/hidden, neighbors as External, and interference-only devices as Interferer.</td></tr>
+            <tr><td class="gate-row"><b>2. Alias And Role</b><br>Use readable physical names for legends, tooltips and report cards. Mark temporary APs as Test/hidden, neighbors as External, and interference-only devices as Interferer.</td></tr>
             <tr><td class="gate-row"><b>3. Position</b><br>Dominant AP diagnostics need physical AP coordinates. Use Set Position and click the floor plan for APs that matter to the survey.</td></tr>
             <tr><td class="gate-row"><b>4. Metadata, Coverage Scope And Channel Model</b><br>Expected bands/channels make setup warnings meaningful. Coverage Scope says whether the AP/network is site-wide or local. Analysis-channel overrides are modeling choices for channel-sensitive maps, not cosmetic labels.</td></tr>
             <tr><td class="gate-row"><b>5. Memory State</b><br>Rows marked From Memory or Memory Update need review so reused AP data does not silently become an assumption.</td></tr>
@@ -1034,7 +1034,7 @@ TRANSLATIONS = {
                 <td class="survey-gap"></td>
                 <td class="survey-card"><b>SSID</b><br>Chooses the network to analyze from the SSIDs present in the survey.</td>
                 <td class="survey-gap"></td>
-                <td class="survey-card"><b>Export PDF</b><br>Exports the current live map type and options. The survey is saved first if needed.</td>
+                <td class="survey-card"><b>Export report</b><br>Exports the current live map type and options. The survey is saved first if needed.</td>
             </tr>
         </table>
         <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
@@ -1213,7 +1213,7 @@ TRANSLATIONS = {
         <h2>Review Order</h2>
         <table class="gate-list">
             <tr><td class="gate-row"><b>1. Fix Point Evidence First</b><br>Missing networks, sparse scans, low confidence and unstable signal can affect every map. Rescan or add nearby points before interpreting RF behavior.</td></tr>
-            <tr><td class="gate-row"><b>2. Fix AP Identity And Position</b><br>AP grouping, alias, role and position issues affect Dominant AP, Interference, AP Channels and PDF diagnostics.</td></tr>
+            <tr><td class="gate-row"><b>2. Fix AP Identity And Position</b><br>AP grouping, alias, role and position issues affect Dominant AP, Interference, AP Channels and HTML diagnostics.</td></tr>
             <tr><td class="gate-row"><b>3. Fix Metadata And Channel Model</b><br>Expected channels/bands and analysis-channel overrides decide whether setup warnings are real issues or planned behavior.</td></tr>
             <tr><td class="gate-row"><b>4. Interpret Maps Last</b><br>Read coverage, channels, roaming and interference only after the evidence and AP model are coherent enough.</td></tr>
         </table>
@@ -1299,13 +1299,13 @@ TRANSLATIONS = {
             <tr>
                 <td class="workflow-card"><b>Survey Bounds</b><br>A live-map option that fades continuous rendering outside the measured survey area.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Boundaries Mask</b><br>A user-drawn PNG sidecar that defines the valid floor-plan area for supported continuous live maps and PDF exports.</td>
+                <td class="workflow-card"><b>Boundaries Mask</b><br>A user-drawn PNG sidecar that defines the valid floor-plan area for supported continuous live maps and HTML exports.</td>
             </tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr>
-                <td class="workflow-card"><b>Diagnostic Card</b><br>PDF report card that explains the affected point, AP group, channel or warning context.</td>
+                <td class="workflow-card"><b>Diagnostic Card</b><br>HTML report card that explains the affected point, AP group, channel or warning context.</td>
                 <td class="workflow-gap"></td>
-                <td class="workflow-card"><b>Map Callout</b><br>Numbered marker on the PDF map that links a visible location to its detail card.</td>
+                <td class="workflow-card"><b>Map Callout</b><br>Numbered marker on the HTML report map that links a visible location to its detail card.</td>
             </tr>
         </table>
     """,
@@ -1348,7 +1348,7 @@ TRANSLATIONS = {
     "help_live": "Live map",
     "help_live_title": "How to Use the Live Map",
     "help_live_steps": (
-        "The Live map shows a survey preview and can export the current view to PDF.\n"
+        "The Live map shows a survey preview and can export the current view to HTML.\n"
         "Choose SSID, band, and map type directly in the Live map tab.\n"
         "Signal coverage and AP interference are calculated in the background, so the GUI stays usable while updating.\n"
         "AP channels and Dominant AP show real points with a dedicated legend.\n"
@@ -1363,10 +1363,10 @@ TRANSLATIONS = {
         "Smooth RBF creates a more continuous visualization; Linear is more conservative.\n"
         "Max distance limits the heatmap to areas near real points and reduces invented shapes.\n"
         "Only >= -70 dBm highlights normally usable areas.\n"
-        "AP interference calculates percentage risk and adds a main-problems report to the PDF.\n"
+        "AP interference calculates percentage risk and adds a main-problems report to the HTML report.\n"
         "AP channels does not interpolate: it shows real points colored by channel, with labels like CH 36 / 80 when channel width is available.\n"
         "Dominant AP shows which AP is strongest at each point and marks in yellow where the second AP is within 5 dB.\n"
-        "If physical AP positions are set, Dominant AP adds warning triangles when signal strength is not coherent with the expected position and adds the issues to the PDF."
+        "If physical AP positions are set, Dominant AP adds warning triangles when signal strength is not coherent with the expected position and adds the issues to the HTML report."
     ),
     "help_scan": "Scan",
     "help_scan_title": "How to Handle Wi-Fi Scans",

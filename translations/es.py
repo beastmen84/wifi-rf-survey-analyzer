@@ -601,7 +601,7 @@ TRANSLATIONS.update({
     "help_overview_body": """
         <table class="callout-table"><tr><td class="callout-accent-good"></td><td class="callout-content"><span class="callout-label">Regla principal</span><br>No confíes en un mapa hasta que los datos del estudio y el modelo AP sean suficientemente coherentes.</td></tr></table>
         <h2>Workflow</h2>
-        <table class="workflow-grid"><tr><td class="workflow-card"><b>1. Preparar</b><br>Crea o abre un estudio, elige unidades, carga el plano y calibra la escala.</td><td class="workflow-gap"></td><td class="workflow-card"><b>2. Medir</b><br>Coloca puntos donde trabajan o hacen roaming los clientes. Recoge varios escaneos por punto.</td></tr><tr><td class="workflow-vertical-gap" colspan="3"></td></tr><tr><td class="workflow-card"><b>3. Validar</b><br>Revisa Calidad estudio, redes relevantes, AP Memory, roles, metadatos y posiciones AP.</td><td class="workflow-gap"></td><td class="workflow-card"><b>4. Exportar</b><br>Lee los mapas Live y exporta PDF solo después de validar los datos.</td></tr></table>
+        <table class="workflow-grid"><tr><td class="workflow-card"><b>1. Preparar</b><br>Crea o abre un estudio, elige unidades, carga el plano y calibra la escala.</td><td class="workflow-gap"></td><td class="workflow-card"><b>2. Medir</b><br>Coloca puntos donde trabajan o hacen roaming los clientes. Recoge varios escaneos por punto.</td></tr><tr><td class="workflow-vertical-gap" colspan="3"></td></tr><tr><td class="workflow-card"><b>3. Validar</b><br>Revisa Calidad estudio, redes relevantes, AP Memory, roles, metadatos y posiciones AP.</td><td class="workflow-gap"></td><td class="workflow-card"><b>4. Exportar</b><br>Lee los mapas Live y exporta HTML solo después de validar los datos.</td></tr></table>
         <h2>Puntos de decisión</h2>
         <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Orden recomendado</span><br>Corrige primero los puntos a reescanear, luego el modelo AP y después los mapas. Los warnings son hipótesis a revisar, no errores automáticos.</td></tr></table>
     """,
@@ -641,7 +641,7 @@ TRANSLATIONS.update({
         <h2>Opciones</h2>
         <p>SSID, banda, tipo de mapa, labels, interpolación, smoothing, distancia máxima, grupo AP y Survey Bounds se memorizan por tipo de mapa durante la sesión.</p>
         <h2>Límites</h2>
-        <p>Si existe una máscara de Límites, sustituye el límite automático en los mapas continuos y los exports PDF soportados.</p>
+        <p>Si existe una máscara de Límites, sustituye el límite automático en los mapas continuos y los exports HTML soportados.</p>
     """,
     "help_reports_body": """
         <h2>Exportación PDF</h2>
@@ -656,7 +656,7 @@ TRANSLATIONS.update({
         <h2>Patrones frecuentes</h2>
         <p>Red relevante ausente, baja confianza, señal inestable, detalles scanner limitados, AP sin posición, metadatos incoherentes o canal cambiado.</p>
         <h2>Prioridad</h2>
-        <p>Corrige los problemas de puntos antes que los del modelo, y luego vuelve a leer los mapas Live y los PDF.</p>
+        <p>Corrige los problemas de puntos antes que los del modelo, y luego vuelve a leer los mapas Live y los HTML.</p>
     """,
     "help_glossary_body": """
         <h2>Evidencia Wi-Fi</h2>
@@ -798,7 +798,7 @@ TRANSLATIONS.update({
         "6. Use Cobertura señal para el nivel dBm, Interferencia AP para solapes, Canales AP para canales y AP dominante para roaming."
     ),
     "help_live_steps": (
-        "El Mapa Live muestra una vista previa del estudio y puede exportar la vista actual a PDF.\n"
+        "El Mapa Live muestra una vista previa del estudio y puede exportar la vista actual a HTML.\n"
         "Elija SSID, banda y tipo de mapa directamente en el Mapa Live.\n"
         "Cobertura señal e Interferencia AP se calculan en segundo plano para mantener la interfaz utilizable.\n"
         "Canales AP y AP dominante muestran puntos reales con leyenda dedicada.\n"
@@ -810,7 +810,7 @@ TRANSLATIONS.update({
         "RBF suave crea una visualización más continua; Lineal es más conservador.\n"
         "Distancia max limita el mapa a zonas cercanas a puntos reales y reduce formas inventadas.\n"
         "Solo >= -70 dBm resalta áreas normalmente utilizables.\n"
-        "Interferencia AP calcula riesgo porcentual y añade los principales problemas al PDF.\n"
+        "Interferencia AP calcula riesgo porcentual y añade los principales problemas al HTML.\n"
         "Canales AP no interpola: muestra puntos reales coloreados por canal, con CH 36 / 80 cuando hay ancho de canal.\n"
         "AP dominante muestra qué AP es más fuerte en cada punto y marca en amarillo donde el segundo AP está a 5 dB o menos."
     ),
@@ -839,14 +839,14 @@ TRANSLATIONS.update({
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr><td class="workflow-card"><div class="step-label">3. Validar</div><div class="step-title">Leer Calidad estudio</div><p>Separe problemas de punto a reescanear de diagnósticos de configuración AP. Una advertencia es una hipótesis que revisar, no un error automático.</p><div class="step-gate"><b>Avance cuando:</b> la calidad de puntos sea aceptable y los hallazgos restantes estén entendidos.</div></td><td class="workflow-gap"></td><td class="workflow-card"><div class="step-label">4. Modelar AP</div><div class="step-title">Hacer creíble el modelo</div><p>Revise grupos AP, alias, roles, BSSID, metadatos, posiciones físicas, canales de análisis forzados y estados de Memoria AP.</p><div class="step-gate"><b>Avance cuando:</b> el modelo AP coincida con el despliegue o las incógnitas queden documentadas.</div></td></tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
-            <tr><td class="workflow-card" colspan="3"><div class="step-label">5. Analizar</div><div class="step-title">Usar mapas como resultado revisado</div><p>Use mapas Live y PDF para leer cobertura, canales, roaming e interferencias después de revisar los datos.</p><div class="step-gate"><b>Avance cuando:</b> las advertencias hayan sido revisadas y puedan explicarse.</div></td></tr>
+            <tr><td class="workflow-card" colspan="3"><div class="step-label">5. Analizar</div><div class="step-title">Usar mapas como resultado revisado</div><p>Use mapas Live y HTML para leer cobertura, canales, roaming e interferencias después de revisar los datos.</p><div class="step-gate"><b>Avance cuando:</b> las advertencias hayan sido revisadas y puedan explicarse.</div></td></tr>
         </table>
         <h2>Puertas de decisión</h2>
         <div class="gate-list">
             <div class="gate-row"><b>Distancias:</b> el sistema de medida pertenece al estudio. Cambiar unidades tras calibrar elimina la escala; vuelva a calibrar antes de leer distancias, cuadrícula o posiciones AP.</div>
             <div class="gate-row"><b>Cobertura:</b> revise SSID relevantes y calidad de puntos antes de interpretar zonas rojas o verdes.</div>
             <div class="gate-row"><b>Interferencias:</b> valide grupos AP, roles, cambios de canal y overrides de análisis antes de confiar en mapas sensibles al canal.</div>
-            <div class="gate-row"><b>Exportación:</b> abra el mapa Live correspondiente y lea tooltips o detalles antes de generar el PDF.</div>
+            <div class="gate-row"><b>Exportación:</b> abra el mapa Live correspondiente y lea tooltips o detalles antes de generar el informe HTML.</div>
         </div>
         <table class="section-card callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Cómo piensa la aplicación</span><br>Puntos, escaneos brutos, metadatos, Memoria AP y posiciones físicas son evidencia. El programa señala qué supuesto revisar: calidad del punto, agrupación AP, modelo de canal, posición física o comportamiento RF real.</td></tr></table>
     """,
@@ -870,7 +870,7 @@ TRANSLATIONS.update({
     "help_survey_body": """
         <h2>Bloques de la pantalla Estudio</h2>
         <table class="survey-grid">
-            <tr><td class="survey-card"><span class="survey-card-title">CSV</span><br>Archivo principal con filas agregadas y comentarios de metadatos.<br><span class="survey-card-use">Guárdelo antes de exportar PDF o mover el estudio entre equipos.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Plano</span><br>PDF/imagen vinculado al estudio. Un estudio nuevo puede empezar con un A4 blanco ya escalado.<br><span class="survey-card-use">Si no se carga un plano real, se escribe un PNG con el mismo nombre junto al CSV.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Puntos</span><br>Posiciones de medición colocadas sobre el plano.<br><span class="survey-card-use">Añádalas donde los clientes trabajan, hacen roaming o reportan problemas.</span></td></tr>
+            <tr><td class="survey-card"><span class="survey-card-title">CSV</span><br>Archivo principal con filas agregadas y comentarios de metadatos.<br><span class="survey-card-use">Guárdelo antes de exportar HTML o mover el estudio entre equipos.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Plano</span><br>PDF/imagen vinculado al estudio. Un estudio nuevo puede empezar con un A4 blanco ya escalado.<br><span class="survey-card-use">Si no se carga un plano real, se escribe un PNG con el mismo nombre junto al CSV.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Puntos</span><br>Posiciones de medición colocadas sobre el plano.<br><span class="survey-card-use">Añádalas donde los clientes trabajan, hacen roaming o reportan problemas.</span></td></tr>
             <tr><td class="survey-vertical-gap" colspan="5"></td></tr>
             <tr><td class="survey-card"><span class="survey-card-title">Escaneos brutos</span><br>Muestras repetidas conservadas en el sidecar <code>.scan</code>.<br><span class="survey-card-use">Más evidencia bruta mejora confianza y diagnósticos.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Grupos AP</span><br>Modelo de AP físicos usado por mapas y calidad.<br><span class="survey-card-use">Revíselo antes de AP dominante, Interferencia o Canales AP.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">SSID relevantes</span><br>Redes consideradas importantes por controles de calidad.<br><span class="survey-card-use">Gestionar añade o quita SSID; Limpiar borra la selección.</span></td></tr>
         </table>
@@ -888,7 +888,7 @@ TRANSLATIONS.update({
         <p>Un estudio puede empezar sin plano externo. La elección métrico/imperial crea un A4 blanco preescalado, con cuadrícula activa. En planos reales, la cuadrícula aparece tras calibrar. Vista &gt; Límites permite dibujar una máscara PNG <code>&lt;survey&gt;.boundaries.png</code> con pincel circular o cuadrado de 20 a 120 px. Una máscara vacía equivale a no tener máscara.</p>
     """,
     "help_quality_body": """
-        <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Regla principal</span><br>Lea Calidad estudio antes de interpretar mapas Live o PDF. El dashboard indica si la evidencia de punto debe reescanearse, si el modelo AP necesita revisión o si los mapas pueden generarse con confianza razonable.</td></tr></table>
+        <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Regla principal</span><br>Lea Calidad estudio antes de interpretar mapas Live o HTML. El dashboard indica si la evidencia de punto debe reescanearse, si el modelo AP necesita revisión o si los mapas pueden generarse con confianza razonable.</td></tr></table>
         <h2>Dos capas de lectura</h2>
         <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
             <tr><td class="workflow-card"><div class="step-label">Capa 1</div><div class="step-title">Calidad de puntos</div><p>Redes relevantes ausentes, datos escasos, detalles scanner limitados, baja confianza y señal inestable pertenecen a la evidencia del punto.</p><div class="step-gate"><b>Acción habitual:</b> enfocar el punto, inspeccionar filas, reescanear o recoger puntos cercanos.</div></td><td class="workflow-gap"></td><td class="workflow-card"><div class="step-label">Capa 2</div><div class="step-title">Modelo AP</div><p>Grupos AP, roles, metadatos, estado de memoria, cambios de canal y posiciones físicas explican cómo interpretar lo medido.</p><div class="step-gate"><b>Acción habitual:</b> abrir mapa, metadatos o gestor AP afectado y corregir el modelo.</div></td></tr>
@@ -902,7 +902,7 @@ TRANSLATIONS.update({
             <tr><td class="workflow-card"><b>Acciones de mapa</b><br>Canales AP, Interferencia y AP dominante abren el Mapa Live con banda, grupo AP o punto relevante cuando el hallazgo tiene contexto visual.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Acciones de modelo AP</b><br>Abrir grupo AP o Metadatos AP lleva al editor que puede corregir el modelo.</td></tr>
         </table>
         <h2>Significado de KPI</h2>
-        <table class="survey-grid"><tr><td class="survey-card"><b>Puntos del estudio</b><br>Total puntos mide evidencia espacial. Escaneo OK indica puntos utilizables. Puntos a revisar no significa reescanear todo: algunos requieren revisar AP o posición.</td><td class="survey-gap"></td><td class="survey-card"><b>Calidad escaneo</b><br>Red relevante ausente, datos escasos, detalles scanner limitados, baja confianza y señal inestable pueden debilitar todos los mapas.</td><td class="survey-gap"></td><td class="survey-card"><b>Modelo AP</b><br>Memoria AP, posiciones ausentes, metadatos incoherentes, canales cambiados y hallazgos AP dominante afectan sobre todo AP dominante, Canales AP, Interferencia y PDF.</td></tr></table>
+        <table class="survey-grid"><tr><td class="survey-card"><b>Puntos del estudio</b><br>Total puntos mide evidencia espacial. Escaneo OK indica puntos utilizables. Puntos a revisar no significa reescanear todo: algunos requieren revisar AP o posición.</td><td class="survey-gap"></td><td class="survey-card"><b>Calidad escaneo</b><br>Red relevante ausente, datos escasos, detalles scanner limitados, baja confianza y señal inestable pueden debilitar todos los mapas.</td><td class="survey-gap"></td><td class="survey-card"><b>Modelo AP</b><br>Memoria AP, posiciones ausentes, metadatos incoherentes, canales cambiados y hallazgos AP dominante afectan sobre todo AP dominante, Canales AP, Interferencia y HTML.</td></tr></table>
         <h2>Orden de corrección</h2>
         <table class="gate-list"><tr><td class="gate-row"><b>1. Corregir evidencia de punto</b><br>Reescanee o añada puntos si los datos brutos no son fiables.</td></tr><tr><td class="gate-row"><b>2. Corregir identidad y posición AP</b><br>Alias, roles, grupos BSSID y coordenadas AP deben representar el despliegue real.</td></tr><tr><td class="gate-row"><b>3. Corregir metadatos y canales</b><br>Bandas/canales esperados y override de análisis deciden si una advertencia es error o comportamiento previsto.</td></tr><tr><td class="gate-row"><b>4. Leer mapas</b><br>Interprete cobertura, roaming e interferencias solo después de estos controles.</td></tr></table>
     """,
@@ -932,7 +932,7 @@ TRANSLATIONS.update({
         <h2>Interpolación, suavizado y distancia max</h2>
         <table class="gate-list"><tr><td class="gate-row"><b>RBF suave:</b> genera una superficie continua, útil visualmente, pero puede parecer demasiado optimista lejos de los puntos.</td></tr><tr><td class="gate-row"><b>Lineal:</b> más conservador y cercano a los triángulos entre puntos, aunque a veces menos agradable visualmente.</td></tr><tr><td class="gate-row"><b>Distancia max:</b> limita el render alrededor de la evidencia medida. El valor automático se basa en la densidad de puntos cuando hay suficientes, y evita grandes zonas inventadas.</td></tr></table>
         <h2>Límites y máscara manual</h2>
-        <p>El límite automático reduce el render fuera de la envolvente de puntos. Si existe una máscara Límites, tiene prioridad para mapas continuos y PDF soportados. El mejor resultado se obtiene cuando los puntos también siguen el borde real de las salas: mapa y máscara describen la misma geometría.</p>
+        <p>El límite automático reduce el render fuera de la envolvente de puntos. Si existe una máscara Límites, tiene prioridad para mapas continuos y HTML soportados. El mejor resultado se obtiene cuando los puntos también siguen el borde real de las salas: mapa y máscara describen la misma geometría.</p>
         <h2>Tooltips y leyendas</h2>
         <p>Los tooltips Live están estructurados por secciones para lectura rápida: señal, radio, posición, interferencia, AP servidor, interferente, AP dominante o segundo AP según el mapa. Los mapas discretos usan la leyenda para centrarse en un AP o canal; doble clic en un elemento centra el punto o grupo en la vista.</p>
         <h2>Rendimiento</h2>
@@ -958,7 +958,7 @@ TRANSLATIONS.update({
         <h2>Patrones de troubleshooting</h2>
         <table class="gate-list"><tr><td class="gate-row"><b>Cobertura demasiado optimista lejos de puntos</b><br>Causa probable: interpolación rellenando espacio no medido. Acción: reducir distancia max o recoger más puntos.</td></tr><tr><td class="gate-row"><b>Interferencia en un canal antiguo</b><br>Causa probable: cambio de canal, secuencia ambigua u override ausente. Acción: leer detalle de cambio y metadatos AP.</td></tr><tr><td class="gate-row"><b>AP dominante lejos de su marcador</b><br>Causa probable: mala posición, grupo equivocado, roaming cliente o fuga RF real. Acción: abrir detalle AP dominante y verificar AP más cercano.</td></tr><tr><td class="gate-row"><b>Muchos puntos a revisar</b><br>Causa probable: SSID relevantes ausentes, señal inestable o escaneos escasos. Acción: enfocar y reescanear antes de interpretar.</td></tr><tr><td class="gate-row"><b>Canales inesperados en un AP</b><br>Causa probable: metadatos obsoletos, configuración cambiada o evidencia banda/canal ambigua. Acción: comparar con el controlador real.</td></tr></table>
         <h2>Orden de revisión</h2>
-        <table class="gate-list"><tr><td class="gate-row"><b>1. Evidencia de punto</b><br>Corrija redes ausentes, escaneos escasos, baja confianza e inestabilidad antes de mapas.</td></tr><tr><td class="gate-row"><b>2. Identidad y posición AP</b><br>Corrija grupo, alias, rol y coordenadas porque afectan AP dominante, Interferencia, Canales AP y PDF.</td></tr><tr><td class="gate-row"><b>3. Metadatos y canales</b><br>Expectativas de banda/canal y override de análisis determinan si una advertencia es real.</td></tr><tr><td class="gate-row"><b>4. Mapas al final</b><br>Lea cobertura, canales, roaming e interferencias cuando los supuestos sean suficientemente coherentes.</td></tr></table>
+        <table class="gate-list"><tr><td class="gate-row"><b>1. Evidencia de punto</b><br>Corrija redes ausentes, escaneos escasos, baja confianza e inestabilidad antes de mapas.</td></tr><tr><td class="gate-row"><b>2. Identidad y posición AP</b><br>Corrija grupo, alias, rol y coordenadas porque afectan AP dominante, Interferencia, Canales AP y HTML.</td></tr><tr><td class="gate-row"><b>3. Metadatos y canales</b><br>Expectativas de banda/canal y override de análisis determinan si una advertencia es real.</td></tr><tr><td class="gate-row"><b>4. Mapas al final</b><br>Lea cobertura, canales, roaming e interferencias cuando los supuestos sean suficientemente coherentes.</td></tr></table>
     """,
     "help_glossary_body": """
         <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Uso</span><br>Este glosario estabiliza los términos usados en la interfaz y reportes. Las páginas de workflow explican acciones; esta página explica vocabulario.</td></tr></table>
@@ -971,7 +971,7 @@ TRANSLATIONS.update({
         <h2>Memoria y persistencia</h2>
         <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0"><tr><td class="workflow-card"><b>Memoria AP</b><br>Archivo persistente con alias, roles, metadatos, canales forzados y posiciones compatibles para futuros estudios.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Desde memoria</b><br>Estado que indica datos aplicados desde Memoria AP y pendientes de confirmación.</td></tr><tr><td class="workflow-vertical-gap" colspan="3"></td></tr><tr><td class="workflow-card"><b>Actualización memoria</b><br>Estado que indica que la memoria contiene datos diferentes a los del grupo actual.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Memoria opciones mapa</b><br>El Mapa Live recuerda opciones por tipo de mapa durante la sesión.</td></tr></table>
         <h2>Mapas y reportes</h2>
-        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0"><tr><td class="workflow-card"><b>Interpolación</b><br>Estimación visual entre mediciones reales. Ayuda a leer, no reemplaza puntos.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Distancia max</b><br>Límite de render que evita que los mapas continuos se extiendan demasiado lejos de la evidencia.</td></tr><tr><td class="workflow-vertical-gap" colspan="3"></td></tr><tr><td class="workflow-card"><b>Límite estudio</b><br>Opción Live que atenúa el render continuo fuera del área medida.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Máscara Límites</b><br>PNG dibujado por el usuario que define el área válida para mapas continuos y PDF soportados.</td></tr></table>
+        <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0"><tr><td class="workflow-card"><b>Interpolación</b><br>Estimación visual entre mediciones reales. Ayuda a leer, no reemplaza puntos.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Distancia max</b><br>Límite de render que evita que los mapas continuos se extiendan demasiado lejos de la evidencia.</td></tr><tr><td class="workflow-vertical-gap" colspan="3"></td></tr><tr><td class="workflow-card"><b>Límite estudio</b><br>Opción Live que atenúa el render continuo fuera del área medida.</td><td class="workflow-gap"></td><td class="workflow-card"><b>Máscara Límites</b><br>PNG dibujado por el usuario que define el área válida para mapas continuos y HTML soportados.</td></tr></table>
     """,
     "help_legal_body": """
         <h2>Aplicación</h2>
