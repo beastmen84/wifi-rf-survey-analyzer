@@ -7,6 +7,8 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+## v1.2.0 - 2026-11-04
+
 - Relevant-network selection now happens before the capture review, including
   the first point. Feedback uses the chosen scope immediately and Save confirms
   the reviewed measurement in one step. Missing/new-network choices also precede

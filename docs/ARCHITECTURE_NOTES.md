@@ -22,6 +22,12 @@ interpolated colors.
 
 Current status:
 
+- 1.2.0 is the intentional Windows release for fixed receiver selection, guided
+  capture, separate measurement-quality axes and the scope/review/hover polish.
+  The source release passes 569 tests and 475 subtests in both offscreen (38.94 s)
+  and native Windows (42.63 s) modes; pip check and essential Ruff checks pass.
+  Source/bundle verification and field-test limits are recorded separately in
+  `docs/AUDIT_1_2_0.md`. Existing versioned Windows archives remain unchanged;
 - capture scope is validated once per completed batch before review. First SSID
   selection, missing-network retry/keep and new-network decisions precede the
   displayed feedback. Save requires a reviewed/validated batch and no longer
@@ -60,7 +66,7 @@ Current status:
   (47.90 s). Native snapshots check 420/560 phase heights, column geometry,
   wrapped details and tooltips in four themes/languages. A long-list hover
   reproduced an oversized popup; the compact form is bounded to four names;
-- post-1.1.0 points use `qt_capture_dialog.py` for preparation, fixed-five-scan
+- 1.2.0 points use `qt_capture_dialog.py` for preparation, fixed-five-scan
   progress and provisional review. `WifiScanWorker` reports metadata-only
   progress and uses a threading Event for cooperative cancellation between
   requests/during the pause; current native requests finish within the existing
@@ -90,7 +96,7 @@ Current status:
   fresh observations and excludes four cached reads. The point stays provisional
   until Save, then source UI and both HTML reports retain its evidence. This is
   workflow/freshness validation, not controlled RF calibration or a packaged run;
-- post-1.1.0 acquisition fixes a receiver per survey: `wifi/adapters.py` provides
+- 1.2.0 acquisition fixes a receiver per survey: `wifi/adapters.py` provides
   read-only GUID/name discovery, `qt_survey_setup.py` combines units and adapter
   selection in New Survey with a finite QThread discovery task and refresh.
   `capture_adapter` JSON metadata persists ID/name/description, and the footer
@@ -108,11 +114,11 @@ Current status:
   30 consecutive cancels during discovery. A real pinned capture accepts 54
   fresh observations, excludes two cached reads and persists matching receiver
   evidence in memory. These checks do not establish RF receiver calibration;
-- post-1.1.0 source polish squares both upper corners of the central Live Map
+- 1.2.0 source polish squares both upper corners of the central Live Map
   tab. Rounded corners belong only to the outer edge of the first/last tabs;
-  the uniform central highlight remains. Existing release artifacts retain
-  their tagged source state until another build is requested;
-- `v1.1.0` is the current source version and the user-requested Windows test
+  the uniform central highlight remains. Previous versioned release archives
+  retain their tagged source state;
+- `v1.2.0` is the current source version and the user-requested Windows test
   package. Live Map uses **Export Map** (EN/IT) with a dedicated localized label;
   Analysis retains its report action. Help documents the distinct commands.
   The selected middle tab has a solid badge background and accent underline;
@@ -209,7 +215,7 @@ Current status:
   the maintenance handoff; do not suppress Windows exception diagnostics.
 
 - public release versioning is separate from the survey schema generation:
-  `v1.1.0` is the current source release, and Windows exe/ZIP
+  `v1.2.0` is the current source release, and Windows exe/ZIP
   artifacts are generated separately from the tagged source state;
 - future release candidates should use beta tags for validation/polish or a new
   minor line for feature-level additions; do not regenerate exe/ZIP for every
@@ -219,7 +225,7 @@ Current status:
   is needed after `v1.1.0` work has started, create a `release/1.0.x` branch
   from the last stable tag, cherry-pick only the bugfix commits, update
   version/changelog, build the package, then tag the patch release;
-- `CHANGELOG.md` records the completed `v1.1.0` feature and maintenance changes
+- `CHANGELOG.md` records the completed `v1.2.0` feature and maintenance changes
   together. Future patch backports should be documented against their actual
   target release rather than implying that the 1.1 environment ships on 1.0;
 - `README.md` is public-facing repo documentation and should not expose internal
@@ -1240,15 +1246,17 @@ Post-1.0 monitoring:
 
 ## Suggested Next Priorities
 
-1.1.0 field-test follow-up:
+1.2.0 field-test follow-up:
 
-1. Use the `v1.1.0` Windows package for user field testing, covering new survey
-   units, blank-plan/grid behavior, Boundaries drawing and brush size,
+1. Use the `v1.2.0` Windows package for user field testing, covering fixed receiver
+   selection/disconnection, guided capture, relevant-network selection before
+   review, single-save confirmation, repeat/discard and point-outline hover.
+   Continue checking new survey units, blank-plan/grid behavior, Boundaries drawing and brush size,
    manual-mask Live/HTML application, Go to Point focus zoom, discrete-map
    legend focus, tooltip readability, settings panels and localized Help.
 2. Continue real office survey validation and review Local Area scope, Client
    Roaming, continuous map bounds, manual Boundaries usefulness, tooltip
-   evidence and PDF output against real data. Tune only if evidence shows false
+   evidence and offline HTML reports against real data. Tune only if evidence shows false
    positives, false negatives or confusing output.
 3. Keep the Help Center, tooltips and report wording under visual review in the
    running UI, but treat this as post-1.0 polish unless a blocker appears.

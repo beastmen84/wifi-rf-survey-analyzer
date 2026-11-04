@@ -21,7 +21,7 @@ physical APs, review survey quality, and export explainable RF maps.
 
 ## Release Status
 
-- Current source version: `v1.1.0`
+- Current source version: `v1.2.0`
 - Release type: stable public source release
 - Active UI: PySide6
 - Main entry point: `main.py`
@@ -30,9 +30,11 @@ physical APs, review survey quality, and export explainable RF maps.
   tag. Public builds use `WiFiRFSurveyAnalyzer-v<version>-win64.zip`.
 - Project license: MPL 2.0 (`MPL-2.0`)
 
-`v1.1.0` adds the final Analysis and recommendations workflow, offline HTML map
-and analysis reports, and verified fixes to RF evidence handling. `v1.0.0` was
-the first stable public source release of the current Qt workflow.
+`v1.2.0` adds a fixed Wi-Fi receiver per survey, guided measurement capture and
+separate acquisition reliability, signal stability and observed coverage.
+Relevant networks are chosen before reviewing a capture; compact review cards
+and immediate point popups make the results easier to read. `v1.1.0` introduced
+the final Analysis workflow and offline HTML map and analysis reports.
 The pre-release [data-accuracy audit](docs/AUDIT_1_1_0.md) records the precision
 fixes and their verification, including live scan-freshness checks. Controlled
 field validation, receiver calibration and 6 GHz hardware checks remain separate
@@ -43,11 +45,14 @@ from these software checks.
 - PDF/image floor-plan loading with scale calibration.
 - New surveys start with a generated, pre-scaled A4 blank plan and grid for
   quick tests when no real floor plan is available. Starting from the app start
-  page asks only for metric or imperial units before creating that default
-  scale; starting a new survey while another survey is open first asks to save
-  the current survey, discard changes, or cancel. The grid overlay shows the
+  page asks for metric or imperial units and the Wi-Fi adapter before creating
+  that default scale; starting a new survey while another survey is open first
+  asks to save the current survey, discard changes, or cancel. The grid overlay shows the
   current square size directly on the map.
 - Measurement-point capture with repeated Wi-Fi scans.
+- Fixed receiver selection, a short preparation and five scan attempts, followed
+  by an explicit Save, Repeat or Discard review. Review and reports distinguish
+  acquisition reliability, signal stability and observed coverage.
 - Raw scan preservation in a linked `.scan` sidecar file.
 - Relevant SSID selection for focused quality checks and map interpretation.
 - AP Group Manager for BSSID grouping, aliases, roles, metadata, expected
@@ -462,11 +467,11 @@ between official release builds.
 
 Current source release:
 
-- `v1.1.0`
+- `v1.2.0`
 
 Expected Windows ZIP name:
 
-- `WiFiRFSurveyAnalyzer-v1.1.0-win64.zip`
+- `WiFiRFSurveyAnalyzer-v1.2.0-win64.zip`
 
 Historical beta ZIPs may still use the older artifact stem:
 
