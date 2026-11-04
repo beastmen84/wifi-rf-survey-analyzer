@@ -100,6 +100,7 @@ class FloorplanView(QGraphicsView):
         self.grid_label = ""
         self.grid_ui_scale = 1.0
         self.boundaries_edit_active = False
+        self.design_mode_active = False
         self.boundaries_tool = "draw"
         self.boundaries_shape = "circle"
         self.boundaries_brush_size_px = float(BOUNDARIES_BRUSH_SIZE_DEFAULT_PX)
@@ -1226,6 +1227,9 @@ class FloorplanView(QGraphicsView):
 
     def mousePressEvent(self, event):
         self.hide_point_tooltip()
+        if self.design_mode_active and event.button() == Qt.MouseButton.RightButton:
+            event.accept()
+            return
         if self.boundaries_edit_active and event.button() == Qt.MouseButton.RightButton:
             point = self.mapToScene(event.position().toPoint())
             point = self.clamp_boundaries_point(point)

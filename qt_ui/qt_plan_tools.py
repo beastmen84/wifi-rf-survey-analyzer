@@ -1,6 +1,6 @@
 """Blank-plan toolbar shell. Geometry editing is deliberately not enabled yet."""
 
-from PySide6.QtCore import QEvent, QPoint, QSize, Qt, QTimer
+from PySide6.QtCore import QEvent, QPoint, QRect, QSize, Qt, QTimer
 from PySide6.QtGui import QColor, QIcon, QPixmap, QShortcut, QKeySequence, QPainter, QPen
 from PySide6.QtWidgets import QColorDialog, QFrame, QHBoxLayout, QLabel, QPushButton, QStyle, QVBoxLayout
 
@@ -24,6 +24,7 @@ class PlanToolsOverlay(QFrame):
         self.header = QLabel()
         layout.addWidget(self.header)
         row = QHBoxLayout()
+        self.tool_row = row
         row.setSpacing(owner.spx(4))
         self.rectangle_button = owner.create_boundaries_tool_button("square.png", "blank_tool_rectangle")
         self.eraser_button = owner.create_boundaries_tool_button("eraser.png", "blank_tool_eraser")
@@ -46,7 +47,6 @@ class PlanToolsOverlay(QFrame):
         layout.addLayout(row)
         self.note = QLabel()
         self.note.setWordWrap(True)
-        self.note.setMaximumWidth(owner.spx(230))
         layout.addWidget(self.note)
         self.toggle_button = QPushButton(self.parentWidget())
         self.toggle_button.setObjectName("appBarToggleButton")
@@ -93,6 +93,7 @@ class PlanToolsOverlay(QFrame):
                 self.owner.toggle_points_panel()
             self.owner.set_boundaries_mode_enabled(False, show_status=False)
         self.toggle_button.setChecked(self.open)
+        self.owner.floorplan_view.design_mode_active = self.open
         self.escape_shortcut.setEnabled(self.open)
         self.setVisible(self.open)
         self.position_controls()
@@ -133,13 +134,26 @@ class PlanToolsOverlay(QFrame):
         if points is not None and self.owner.points_panel_expanded and not points.isHidden():
             if self.open:
                 self.open = False
+                self.owner.floorplan_view.design_mode_active = False
                 self.toggle_button.setChecked(False)
                 self.escape_shortcut.setEnabled(False)
                 self.hide()
             top = viewport.mapFromGlobal(points.mapToGlobal(QPoint(0, 0))).y()
             bottom = min(bottom, top - margin)
         self.toggle_button.setGeometry(margin, max(margin, bottom - size.height()), size.width(), size.height())
-        self.adjustSize()
+        margins = self.layout().contentsMargins()
+        width = max(self.owner.spx(240), self.tool_row.sizeHint().width() + margins.left() + margins.right())
+        note_width = width - margins.left() - margins.right()
+        self.note.setFixedWidth(note_width)
+        # heightForWidth includes minimumHeight: remove the previous fixed height
+        # before measuring, otherwise each positioning pass grows the palette.
+        self.note.setMinimumHeight(0)
+        self.note.setMaximumHeight(16777215)
+        text_height = max(self.note.heightForWidth(note_width), self.note.fontMetrics().boundingRect(
+            QRect(0, 0, note_width, 10000), Qt.TextFlag.TextWordWrap, self.note.text()).height())
+        self.note.setFixedHeight(text_height + self.owner.spx(4))
+        self.layout().invalidate()
+        self.setFixedSize(width, self.layout().sizeHint().height())
         self.move(margin, max(margin, self.toggle_button.y() - margin - self.height()))
         self.toggle_button.raise_()
         if self.open:

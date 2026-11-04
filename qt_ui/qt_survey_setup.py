@@ -5,7 +5,7 @@ import math
 from PySide6.QtCore import QThread, QTimer, Qt, Signal, Slot
 from PySide6.QtWidgets import (
     QComboBox, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout,
-    QLabel, QPushButton, QVBoxLayout, QDoubleSpinBox, QGroupBox,
+    QLabel, QPushButton, QVBoxLayout, QDoubleSpinBox, QWidget,
 )
 
 from app_core.units import (MEASUREMENT_SYSTEM_IMPERIAL, MEASUREMENT_SYSTEM_METRIC,
@@ -45,6 +45,7 @@ class SurveySetupDialog(QDialog):
         layout.addWidget(intro)
 
         form = QFormLayout()
+        form.setHorizontalSpacing(widget_px(app, 16))
         self.units_combo = QComboBox()
         for system in (MEASUREMENT_SYSTEM_METRIC, MEASUREMENT_SYSTEM_IMPERIAL):
             self.units_combo.addItem(app.tr("measurement_system_" + system), system)
@@ -77,9 +78,16 @@ class SurveySetupDialog(QDialog):
         hint = QLabel(app.tr("capture_adapter_fixed_hint"))
         hint.setWordWrap(True)
         layout.addWidget(hint)
-        self.blank_plan_group = QGroupBox(app.tr("blank_plan_size"))
+        self.blank_plan_group = QWidget()
         self.blank_plan_group.setObjectName("blankPlanGroup")
-        blank_layout = QFormLayout(self.blank_plan_group)
+        blank_layout = QVBoxLayout(self.blank_plan_group)
+        blank_layout.setContentsMargins(0, 0, 0, 0)
+        blank_layout.setSpacing(widget_px(app, 10))
+        self.blank_title = QLabel(app.tr("blank_plan_size"))
+        blank_layout.addWidget(self.blank_title)
+        blank_fields = QFormLayout()
+        blank_fields.setContentsMargins(0, 0, 0, 0)
+        blank_fields.setHorizontalSpacing(widget_px(app, 16))
         self.blank_width_spin = QDoubleSpinBox()
         self.blank_height_spin = QDoubleSpinBox()
         self.blank_units = self.units_combo.currentData()
@@ -88,17 +96,22 @@ class SurveySetupDialog(QDialog):
             spin.setDecimals(2)
             spin.setKeyboardTracking(False)
             spin.setMinimumWidth(widget_px(app, 130))
-            spin.setMinimumHeight(widget_px(app, 32))
+            spin.setMinimumHeight(widget_px(app, 36))
         width, height, density = blank_floorplan_geometry(self.blank_units)
         self.set_blank_dimensions(width / density, height / density)
         self.blank_width_spin.valueChanged.connect(lambda value: self.remember_blank_dimension(0, value))
         self.blank_height_spin.valueChanged.connect(lambda value: self.remember_blank_dimension(1, value))
-        blank_layout.addRow(app.tr("blank_plan_width"), self.blank_width_spin)
-        blank_layout.addRow(app.tr("blank_plan_height"), self.blank_height_spin)
+        blank_fields.addRow(app.tr("blank_plan_width"), self.blank_width_spin)
+        blank_fields.addRow(app.tr("blank_plan_height"), self.blank_height_spin)
+        label_width = max(form.labelForField(self.units_combo).sizeHint().width() if not adapter_only else 0,
+                          form.labelForField(row).sizeHint().width())
+        for spin in (self.blank_width_spin, self.blank_height_spin):
+            blank_fields.labelForField(spin).setMinimumWidth(label_width)
+        blank_layout.addLayout(blank_fields)
         self.blank_hint = QLabel(app.tr("blank_plan_size_hint"))
         self.blank_hint.setWordWrap(True)
         self.blank_hint.setMinimumHeight(self.blank_hint.fontMetrics().lineSpacing() * 3)
-        blank_layout.addRow(self.blank_hint)
+        blank_layout.addWidget(self.blank_hint)
         self.units_combo.currentIndexChanged.connect(self.change_blank_units)
         self.blank_plan_group.setVisible(not adapter_only)
         layout.addWidget(self.blank_plan_group)

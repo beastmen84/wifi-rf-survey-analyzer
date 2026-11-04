@@ -130,7 +130,7 @@ def test_toolbar_states_color_cancel_and_boundaries_exclusion(window, qt_app):
     assert tools.toggle_button.isEnabled()
 
 
-def test_toolbar_stays_in_viewport_and_does_not_capture_survey_clicks(window, qt_app):
+def test_design_mode_blocks_survey_clicks_and_restores_capture_on_exit(window, qt_app):
     create_survey(window)
     window.resize(1400, 950)
     window.show()
@@ -145,13 +145,28 @@ def test_toolbar_stays_in_viewport_and_does_not_capture_survey_clicks(window, qt
     captures = []
     view.surveyPointRequested.connect(lambda x, y: captures.append((x, y)))
     QTest.mouseClick(view.viewport(), Qt.MouseButton.RightButton, pos=QPoint(view.viewport().width() // 2, 70))
-    assert len(captures) == 1
+    assert len(captures) == 0
     QTest.mouseClick(tools.note, Qt.MouseButton.RightButton)
-    assert len(captures) == 1  # Toolbar background must not leak clicks to the map.
+    assert len(captures) == 0  # Toolbar background must not leak clicks to the map.
+    assert tools.note.height() >= tools.note.heightForWidth(tools.note.width())
+    size_before = tools.size()
+    for _ in range(30):
+        tools.position_controls()
+    assert tools.size() == size_before
+    tools.set_open(False)
+    QTest.mouseClick(view.viewport(), Qt.MouseButton.RightButton, pos=QPoint(view.viewport().width() // 2, 70))
+    assert len(captures) == 1
+    tools.set_open(True)
+    QTest.keyClick(window, Qt.Key.Key_Escape)
+    assert not tools.open and not view.design_mode_active
+    QTest.mouseClick(view.viewport(), Qt.MouseButton.RightButton, pos=QPoint(view.viewport().width() // 2, 70))
+    assert len(captures) == 2
+    tools.set_open(True)
     window.toggle_points_panel()
     qt_app.processEvents()
     points_top = tools.parentWidget().mapFromGlobal(window.points_overlay.mapToGlobal(QPoint())).y()
     assert tools.toggle_button.geometry().bottom() < points_top
     QTest.keyClick(window, Qt.Key.Key_Escape)
     assert not tools.open
+    assert not view.design_mode_active
     window.hide()

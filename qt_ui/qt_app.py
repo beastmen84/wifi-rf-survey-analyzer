@@ -1277,6 +1277,11 @@ class WifiHeatmapQtApp(
         combo_arrow_icon = (
             Path(__file__).resolve().parent.parent / "images" / "combo_arrow_white.svg"
         ).as_posix()
+        spin_variant = "light" if self.theme in {"dark", "contrast"} else "dark"
+        spin_up = Path(resource_path("images", f"spin_up_{spin_variant}.svg")).as_posix()
+        spin_down = Path(resource_path("images", f"spin_down_{spin_variant}.svg")).as_posix()
+        spin_up_hover = Path(resource_path("images", "spin_up_light.svg")).as_posix()
+        spin_down_hover = Path(resource_path("images", "spin_down_light.svg")).as_posix()
         s = self.spx
         font = self.spt
         self.setStyleSheet(
@@ -1341,8 +1346,61 @@ class WifiHeatmapQtApp(
                 background: {palette["panel"]};
                 border: 1px solid {palette["border"]};
                 border-radius: {s(5)}px;
-                padding: {s(4)}px {s(10)}px;
+                padding: {s(4)}px {s(36)}px {s(4)}px {s(10)}px;
             }}
+            QDoubleSpinBox#blankPlanDimension:focus {{
+                border: 1px solid {palette["metric_info"]};
+            }}
+            QDoubleSpinBox#blankPlanDimension::up-button {{
+                subcontrol-origin: border;
+                subcontrol-position: top right;
+                top: {s(2)}px;
+                right: {s(2)}px;
+                width: {s(28)}px;
+                height: {s(16)}px;
+                background: transparent;
+                border: 0;
+                border-radius: {s(3)}px;
+            }}
+            QDoubleSpinBox#blankPlanDimension::down-button {{
+                subcontrol-origin: border;
+                subcontrol-position: bottom right;
+                bottom: {s(2)}px;
+                right: {s(2)}px;
+                width: {s(28)}px;
+                height: {s(16)}px;
+                background: transparent;
+                border: 0;
+                border-radius: {s(3)}px;
+            }}
+            QDoubleSpinBox#blankPlanDimension::up-button:hover,
+            QDoubleSpinBox#blankPlanDimension::down-button:hover {{
+                background: {palette["metric_info"]};
+            }}
+            QDoubleSpinBox#blankPlanDimension::up-button:pressed,
+            QDoubleSpinBox#blankPlanDimension::down-button:pressed {{
+                background: {palette["metric_info"]};
+            }}
+            QDoubleSpinBox#blankPlanDimension::up-arrow {{
+                image: url("{spin_up}");
+                width: {s(12)}px;
+                height: {s(8)}px;
+            }}
+            QDoubleSpinBox#blankPlanDimension::down-arrow {{
+                image: url("{spin_down}");
+                width: {s(12)}px;
+                height: {s(8)}px;
+            }}
+            QDoubleSpinBox#blankPlanDimension::up-arrow:hover {{ image: url("{spin_up_hover}"); }}
+            QDoubleSpinBox#blankPlanDimension::down-arrow:hover {{ image: url("{spin_down_hover}"); }}
+            QDoubleSpinBox#blankPlanDimension::up-button:disabled,
+            QDoubleSpinBox#blankPlanDimension::down-button:disabled,
+            QDoubleSpinBox#blankPlanDimension::up-button:off,
+            QDoubleSpinBox#blankPlanDimension::down-button:off {{
+                background: transparent;
+            }}
+            QDoubleSpinBox#blankPlanDimension::up-arrow:off {{ image: url("{spin_up}"); }}
+            QDoubleSpinBox#blankPlanDimension::down-arrow:off {{ image: url("{spin_down}"); }}
             QFrame#boundariesToolbarSeparator {{
                 background: {palette["border"]};
                 border: 0;

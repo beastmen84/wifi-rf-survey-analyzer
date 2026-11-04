@@ -32,15 +32,21 @@ Current status:
   blank dimensions and retain their own calibration workflow.
 - `qt_plan_tools.py` provides the blank-only viewport overlay and toolbar shell.
   Snap/color are window-local choices; rectangle/eraser/history controls remain
-  disabled, and there is no shape geometry or RF effect yet. Opening the toolbar
-  keeps point capture active, closes Boundaries and collapses an expanded points
+  disabled, and there is no shape geometry or RF effect yet. Opening Design Mode
+  blocks right-click capture in FloorplanView, closes Boundaries and collapses an expanded points
   table. Expanding the table closes the palette and keeps its entry button above
   the table. Imported plans hide it; scans disable it; Escape closes it. The UI
   and Help describe this limited stage explicitly in all four languages.
-  Verification: 585 tests + 475 subtests on native Windows, then 29 focused tests
-  + 434 subtests after toolbar input shielding. Native layout QA checks 16
-  language/theme combinations, dialog text fit, viewport anchoring and Italian
-  decimal input. Essential Ruff checks and git diff --check pass.
+  The palette measures the actual note width/font and reserves its complete
+  wrapped height, including on scale/language changes. New Survey uses a flat,
+  zero-margin blank-sheet section and themed SVG spin chevrons rather than the
+  native platform buttons; labels and input columns align with the receiver form.
+  Verification after Design Mode polish: 585 tests + 475 subtests on native
+  Windows (48.73 s), followed by 61 focused tests + 434 subtests (5.90 s).
+  Native QA checks 16 language/theme combinations (including live spin-button
+  clicks and zero-indent labels) and 16 palette cases across 100/125/150/175%
+  and four languages. Notes fit, repeated positioning stays the same size and
+  right-click capture is restored after exit. Essential Ruff/diff checks pass.
   Release 1.2.0 artifacts/tag remain unchanged until another build is requested;
 - 1.2.0 is the intentional Windows release for fixed receiver selection, guided
   capture, separate measurement-quality axes and the scope/review/hover polish.

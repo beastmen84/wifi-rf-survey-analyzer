@@ -10,13 +10,16 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 - Added blank-sheet width/height to New Survey, with m/ft conversion and bounded
   raster allocation. Custom dimensions, a common physical scale and the actual
   PNG size survive save/reopen; importing a floor plan replaces the blank sheet.
-- Added a bottom-left Draw toolbar exclusively for generated blank sheets,
+- Added a bottom-left Design Mode toolbar exclusively for generated blank sheets,
   including reopened surveys. Snap and stroke color can be selected; rectangle,
   eraser and undo/redo remain disabled until shape editing is implemented.
-  Toolbar opening leaves point capture active; it coordinates with Boundaries
+  Opening Design Mode suspends right-click point capture; it coordinates with Boundaries
   and the points panel, closes with Escape and updates across all themes/languages.
 - Updated EN/IT/FR/ES labels and Help to describe configurable sheets and the
   toolbar's current capabilities, removing the fixed A4 description.
+- Aligned the blank-sheet section with the rest of New Survey and replaced native
+  numeric spin arrows with themed SVG chevrons and compact hover/press controls.
+  The Design Mode palette fits its wrapped note at the current font/scale.
 
 ## v1.2.0 - 2026-11-04
 

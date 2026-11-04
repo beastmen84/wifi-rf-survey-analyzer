@@ -52,8 +52,9 @@ from these software checks.
 - Blank-sheet dimensions are converted when switching m/ft and preserved with
   the generated PNG on save/reopen. Loading an external floor plan replaces the
   sheet and uses that plan's calibration. The blank sheet has a bottom-left
-  Draw toolbar with snap and stroke-color choices; rectangle, eraser and history
-  controls are currently disabled, and opening the toolbar leaves capture active.
+  Design Mode toolbar with snap and stroke-color choices; rectangle, eraser and
+  history controls are currently disabled. While Design Mode is open, right-click
+  cannot capture survey points. Close it or press Esc to resume capture.
 - Measurement-point capture with repeated Wi-Fi scans.
 - Fixed receiver selection, a short preparation and five scan attempts, followed
   by an explicit Save, Repeat or Discard review. Review and reports distinguish
