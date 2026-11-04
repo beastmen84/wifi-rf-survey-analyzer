@@ -5,6 +5,7 @@ import tempfile
 import math
 
 from PIL import Image
+from survey.plan_drawing import render_plan_drawing
 
 from app_core.constants import (
     APP_ID,
@@ -44,14 +45,15 @@ def default_floorplan_temp_path():
     return Path(tempfile.gettempdir()) / APP_ID / DEFAULT_FLOORPLAN_FILENAME
 
 
-def write_default_floorplan(path, width_px=DEFAULT_FLOORPLAN_WIDTH_PX, height_px=DEFAULT_FLOORPLAN_HEIGHT_PX):
+def write_default_floorplan(path, width_px=DEFAULT_FLOORPLAN_WIDTH_PX, height_px=DEFAULT_FLOORPLAN_HEIGHT_PX, segments=None):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    Image.new(
+    image = Image.new(
         "RGB",
         (int(width_px), int(height_px)),
         "white",
-    ).save(path, format="PNG")
+    )
+    render_plan_drawing(image, segments).save(path, format="PNG")
     return path
 
 

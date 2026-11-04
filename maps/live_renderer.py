@@ -383,6 +383,7 @@ def build_result_cache_key(df, config, bg_image, translations, boundary_mask_ima
     return (
         bg_image.size,
         image_fingerprint(bg_image),
+        bg_image.info.get("plan_drawing_fingerprint"),
         tuple(sorted(translations.items())),
         len(df),
         tuple(df.columns),

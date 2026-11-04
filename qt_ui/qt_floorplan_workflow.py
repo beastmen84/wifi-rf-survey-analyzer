@@ -31,6 +31,7 @@ from qt_ui.qt_floorplan import (
 from qt_ui.qt_theme import QT_THEMES
 from qt_ui.qt_windowing import get_centered_open_file_name
 from survey.store import build_boundaries_file_path
+from survey.plan_drawing import PLAN_DRAWING_KEY, drawing_segments
 
 
 class FloorplanWorkflowMixin:
@@ -85,11 +86,14 @@ class FloorplanWorkflowMixin:
         if self.session is None:
             return True
 
-        if self.session.metadata.get(DEFAULT_FLOORPLAN_METADATA_KEY) != "1":
+        is_default = self.session.metadata.get(DEFAULT_FLOORPLAN_METADATA_KEY) == "1"
+        has_drawing = drawing_segments(self.session.metadata) is not None
+        if not is_default and not has_drawing:
             return True
 
         image_file = default_floorplan_save_path(csv_file)
-        if image_file.exists():
+        current_file = self.session.metadata.get("map_file", "")
+        if image_file.exists() and (is_default or os.path.abspath(image_file) != os.path.abspath(current_file)):
             response = QMessageBox.question(
                 self,
                 self.tr("replace_default_floorplan_title"),
@@ -102,7 +106,7 @@ class FloorplanWorkflowMixin:
 
         pixmap = self.floorplan_view.pixmap_item.pixmap()
         write_default_floorplan(transaction.stage_file(image_file) if transaction else image_file,
-                                pixmap.width(), pixmap.height())
+                                pixmap.width(), pixmap.height(), segments=drawing_segments(self.session.metadata))
         self.session.metadata["map_file"] = os.path.abspath(image_file)
         self.session.metadata.pop(DEFAULT_FLOORPLAN_METADATA_KEY, None)
         self.session.metadata[GENERATED_FLOORPLAN_METADATA_KEY] = "1"
@@ -149,6 +153,7 @@ class FloorplanWorkflowMixin:
             self.clear_saved_boundaries_metadata(mark_dirty=False)
             self.session.metadata.pop(BLANK_PLAN_WIDTH_KEY, None)
             self.session.metadata.pop(BLANK_PLAN_HEIGHT_KEY, None)
+            self.session.metadata.pop(PLAN_DRAWING_KEY, None)
             was_default_floorplan = (
                 self.session.metadata.pop(DEFAULT_FLOORPLAN_METADATA_KEY, None) is not None
             )

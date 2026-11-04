@@ -108,8 +108,9 @@ def test_toolbar_states_color_cancel_and_boundaries_exclusion(window, qt_app):
     tools = window.plan_tools
     tools.set_open(True)
     assert tools.open
+    assert tools.rectangle_button.isEnabled()
     assert all(not button.isEnabled() for button in
-               (tools.rectangle_button, tools.eraser_button, tools.undo_button, tools.redo_button))
+               (tools.eraser_button, tools.undo_button, tools.redo_button, tools.snap_button))
     tools.snap_button.click()
     assert not tools.snap_button.isChecked()
     with patch("qt_ui.qt_plan_tools.QColorDialog.getColor", return_value=QColor("#d84315")):
@@ -144,7 +145,8 @@ def test_design_mode_blocks_survey_clicks_and_restores_capture_on_exit(window, q
     view.surveyPointRequested.disconnect(window.create_point_from_floorplan)
     captures = []
     view.surveyPointRequested.connect(lambda x, y: captures.append((x, y)))
-    QTest.mouseClick(view.viewport(), Qt.MouseButton.RightButton, pos=QPoint(view.viewport().width() // 2, 70))
+    with patch("qt_ui.qt_rectangle_design.RectangleSizeDialog.exec", return_value=0):
+        QTest.mouseClick(view.viewport(), Qt.MouseButton.RightButton, pos=QPoint(view.viewport().width() // 2, 70))
     assert len(captures) == 0
     QTest.mouseClick(tools.note, Qt.MouseButton.RightButton)
     assert len(captures) == 0  # Toolbar background must not leak clicks to the map.

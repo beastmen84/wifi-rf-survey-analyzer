@@ -43,6 +43,7 @@ from ap.positioning import (
 )
 from app_core.constants import SURVEY_FIELDNAMES
 from app_core.units import format_distance_meters
+from survey.plan_drawing import render_plan_drawing
 from maps.heatmap import get_channel_map_points, get_dominant_ap_points
 from maps.live_renderer import render_live_continuous_map
 from maps.rendering import (
@@ -82,6 +83,7 @@ class LiveMapRenderWorker(QObject):
         ap_groups=None,
         px_per_meter=None,
         boundary_mask_image=None,
+        plan_segments=None,
     ):
         super().__init__()
         self.rows = deepcopy(list(rows or []))
@@ -93,6 +95,7 @@ class LiveMapRenderWorker(QObject):
         self.request = None
         self.px_per_meter = px_per_meter
         self.boundary_mask_image = boundary_mask_image
+        self.plan_segments = deepcopy(plan_segments)
 
     @Slot()
     def run(self):
@@ -102,6 +105,7 @@ class LiveMapRenderWorker(QObject):
                 logger_name="live_map",
             )
             bg_image = load_floorplan_image(self.map_file)
+            bg_image = render_plan_drawing(bg_image, self.plan_segments)
             df = pd.DataFrame(self.rows, columns=SURVEY_FIELDNAMES)
             payload = render_live_map_payload(
                 df=df,

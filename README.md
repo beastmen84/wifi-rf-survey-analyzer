@@ -52,9 +52,13 @@ from these software checks.
 - Blank-sheet dimensions are converted when switching m/ft and preserved with
   the generated PNG on save/reopen. Loading an external floor plan replaces the
   sheet and uses that plan's calibration. The blank sheet has a bottom-left
-  Design Mode toolbar with snap and stroke-color choices; rectangle, eraser and
-  history controls are currently disabled. While Design Mode is open, right-click
-  cannot capture survey points. Close it or press Esc to resume capture.
+  Design Mode toolbar for axis-aligned rectangles: right-drag shows live m/ft
+  dimensions; a right-click opens exact dimensions, followed by another
+  right-click to place the preview. Left-drag pans. Color and undo/redo are
+  available; snapping and segment erasing are planned next. Esc cancels a draft
+  before exiting the mode. Right-click capture resumes after leaving Design Mode.
+  Drawings remain editable after save/reopen and appear in PNG/Live/HTML maps.
+  The shapes are visual plan geometry; RF findings still use measured data.
 - Measurement-point capture with repeated Wi-Fi scans.
 - Fixed receiver selection, a short preparation and five scan attempts, followed
   by an explicit Save, Repeat or Discard review. Review and reports distinguish
@@ -489,7 +493,7 @@ Historical beta ZIPs may still use the older artifact stem:
 Possible future product areas:
 
 - Broader recommendation rules validated against additional real surveys.
-- Built-in floorplan creator for lightweight technical survey drawings.
+- Extend blank-sheet design with snapping, segment erasing and closed-area grid styling.
 - Combined survey report across multiple live-map views.
 - Deeper AP metadata diagnostics where rules are clear.
 - Further AP physical/radio/BSSID model refinement if real deployments require

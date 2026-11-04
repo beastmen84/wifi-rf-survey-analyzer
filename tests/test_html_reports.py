@@ -18,6 +18,7 @@ from maps.config import MapConfig
 from qt_ui.qt_live_preview import LivePreviewMixin
 from tests.test_advisor import fixture_survey, analysis_window, qt_app, wait_for_analysis
 from translations.i18n import translate
+from survey.plan_drawing import PLAN_DRAWING_KEY, encode_drawing, rectangle_segments
 
 
 class ReportDOM(HTMLParser):
@@ -197,3 +198,32 @@ def test_live_export_escapes_names_and_passes_the_boundary_mask_to_shared_render
     html = output.read_text(encoding="utf-8")
     assert '<img src="https://' not in html and "&lt;img" in html
     assert all(resource.startswith("data:") for resource in ReportDOM(html).resources)
+
+
+def test_both_workspace_html_exports_include_current_editable_shapes(analysis_window, tmp_path):
+    window = analysis_window
+    image = tmp_path / "drawing.png"
+    Image.new("RGB", (400, 300), "white").save(image)
+    window.session.metadata.update(map_file=str(image), _generated_floorplan="1", px_per_meter="50")
+    window.session.metadata[PLAN_DRAWING_KEY] = encode_drawing(rectangle_segments(100, 100, 120, 60, "#d84315"))
+    window.session.csv_file = str(tmp_path / "survey.csv")
+    window.load_saved_plan()
+    window.refresh_session_labels()
+    wait_for_analysis(window.analysis_view)
+    analysis = str(tmp_path / "drawing.analysis.html")
+    with (patch("qt_ui.qt_analysis.get_centered_save_file_name", return_value=(analysis, "")),
+          patch("qt_ui.qt_analysis.export_analysis_report", wraps=export_analysis_report) as export):
+        assert window.analysis_view.export_report()
+        assert export.call_args.args[3].getpixel((150, 100)) == (216, 67, 21)
+    assert Path(analysis).is_file()
+    window.live_ssid_combo.addItem("Office")
+    window.live_ssid_combo.setCurrentText("Office")
+    live = str(tmp_path / "drawing.live.html")
+    with (patch.object(window, "can_render_live_preview", return_value=True),
+          patch.object(window, "ensure_saved_for_map_export", return_value=True),
+          patch("qt_ui.qt_live_export.QMessageBox.information"),
+          patch("qt_ui.qt_live_export.get_centered_save_file_name", return_value=(live, "")),
+          patch("qt_ui.qt_live_export.generate_live_html_export", wraps=generate_live_html_export) as export):
+        assert window.export_live_report()
+        assert export.call_args.args[1].getpixel((150, 100)) == (216, 67, 21)
+    assert Path(live).is_file()

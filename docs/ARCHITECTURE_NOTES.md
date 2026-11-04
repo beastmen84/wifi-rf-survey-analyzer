@@ -22,6 +22,34 @@ interpolated colors.
 
 Current status:
 
+- Rectangle design is implemented in `qt_rectangle_design.py`. Design Mode
+  selects Rectangle, consumes right-button gestures and leaves left-drag pan
+  available. Drag recognition uses QApplication's viewport-pixel threshold;
+  previews show locale-aware m/ft dimensions. A click opens a bounded numeric
+  dialog; confirmation creates a cursor-following preview, and the next right
+  press commits without reopening the dialog on release. Numeric positioning
+  clamps the anchor to the sheet while retaining the requested width/height.
+  Esc cancels the draft first and exits only when no draft remains; deactivation,
+  session replacement or mode exit cancels provisional geometry.
+- `survey/plan_drawing.py` validates optional version-1 `plan_drawing` metadata
+  within schema 2: finite, axis-aligned pixel segments and strict RGB colors.
+  Each rectangle contributes four independent segments in survey/map coordinates.
+  Placement undo/redo retains up to 50 in-session actions. Only committed shapes
+  dirty the survey; shape-only surveys require replacement confirmation. Invalid
+  drawing data stays untouched and disables editing rather than being discarded.
+- Generated PNG materialization now includes the current vectors on every save,
+  in the existing file transaction. Reopened editable sheets clear the baked
+  background and render vectors once. Live workers snapshot the vector list;
+  Live/Analysis HTML exports render the same current geometry. A vector digest
+  supplements the image thumbnail cache key to distinguish subpixel edits.
+  Empty vectors rebuild a white canvas, so undo never resurrects stale baked
+  lines. External-plan imports clear the drawing. No RF rule uses wall geometry.
+  Grid/shape snapping, segment erasing and closed-face/grid fading remain pending;
+  Verification: 607 tests + 475 subtests on native Windows (37.33 s), essential
+  Ruff and diff checks pass. Native Qt QA in 16 theme/language combinations covers
+  live-dimension drags, the real modal numeric dialog, cursor-following placement,
+  undo/redo and text fit. Tests also verify transaction rollback, snapshot workers,
+  cache identity and actual Live/Analysis HTML exports with current geometry;
 - Post-1.2.0 blank-sheet setup accepts width/height in m or ft (1-500 m per axis).
   `default_floorplan.py` computes one isotropic pixels-per-meter scale and caps
   the raster at 4096 px per side; each raster extent differs from the requested
@@ -30,9 +58,9 @@ Current status:
   displayed raster size instead of reverting to the old A4 bitmap. Save/reopen
   retains scale, size and generated-sheet identity; imported plans clear the
   blank dimensions and retain their own calibration workflow.
-- `qt_plan_tools.py` provides the blank-only viewport overlay and toolbar shell.
-  Snap/color are window-local choices; rectangle/eraser/history controls remain
-  disabled, and there is no shape geometry or RF effect yet. Opening Design Mode
+- `qt_plan_tools.py` provides the blank-only viewport overlay and rectangle tools.
+  Color is a window-local choice; snap and eraser controls remain disabled.
+  Opening Design Mode
   blocks right-click capture in FloorplanView, closes Boundaries and collapses an expanded points
   table. Expanding the table closes the palette and keeps its entry button above
   the table. Imported plans hide it; scans disable it; Escape closes it. The UI
@@ -1310,9 +1338,10 @@ Future expansion:
     conservative; 6 GHz still requires real hardware validation. Optional future
     work includes per-survey objective persistence, per-AP channel capabilities,
     richer RF measurements and multi-map report composition.
-15. Add a lightweight Floorplan Creator for technical RF floor maps. Scope
-    should be scaled geometry, snap, wall thickness, simple shapes, doors and
-    measurements; it should not become an interior-design tool.
+15. Extend the implemented blank-sheet rectangle editor with grid/geometry snap,
+    independent-segment erasing and closed-area grid fading. Curves and configurable
+    stroke thickness remain outside the current scope. Keep the editor focused on
+    survey-ready technical plans.
 16. Add richer deployment/reporting outputs.
 
 ## Final Vision

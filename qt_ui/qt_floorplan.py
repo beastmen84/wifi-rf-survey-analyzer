@@ -1228,6 +1228,9 @@ class FloorplanView(QGraphicsView):
     def mousePressEvent(self, event):
         self.hide_point_tooltip()
         if self.design_mode_active and event.button() == Qt.MouseButton.RightButton:
+            controller = getattr(self, "rectangle_design", None)
+            if controller is not None:
+                controller.press(event)
             event.accept()
             return
         if self.boundaries_edit_active and event.button() == Qt.MouseButton.RightButton:
@@ -1264,7 +1267,7 @@ class FloorplanView(QGraphicsView):
             event.accept()
             return
 
-        if self.has_floorplan() and event.button() == Qt.MouseButton.LeftButton:
+        if self.has_floorplan() and not self.design_mode_active and event.button() == Qt.MouseButton.LeftButton:
             scene_point = self.mapToScene(event.position().toPoint())
             for item in self.scene.items(scene_point):
                 point_data = item.data(0)
@@ -1280,9 +1283,13 @@ class FloorplanView(QGraphicsView):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
+        controller = getattr(self, "rectangle_design", None) if self.design_mode_active else None
+        if controller is not None and controller.move(event):
+            event.accept()
+            return
         if event.buttons():
             self.hide_point_tooltip()
-        else:
+        elif not self.design_mode_active:
             self.update_point_tooltip(event.position())
         scene_point = self.mapToScene(event.position().toPoint())
         if (
@@ -1298,10 +1305,27 @@ class FloorplanView(QGraphicsView):
             return
 
         super().mouseMoveEvent(event)
+        if controller is not None:
+            controller.move(event)
         if self.boundaries_edit_active:
             self.update_boundaries_brush_preview(scene_point)
 
+    def mouseDoubleClickEvent(self, event):
+        if self.design_mode_active and event.button() == Qt.MouseButton.RightButton:
+            controller = getattr(self, "rectangle_design", None)
+            if controller is not None:
+                controller.press(event)
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)
+
     def mouseReleaseEvent(self, event):
+        if self.design_mode_active and event.button() == Qt.MouseButton.RightButton:
+            controller = getattr(self, "rectangle_design", None)
+            if controller is not None:
+                controller.release(event)
+            event.accept()
+            return
         if self.boundaries_edit_active and event.button() == Qt.MouseButton.RightButton:
             point = self.clamp_boundaries_point(
                 self.mapToScene(event.position().toPoint())
@@ -1319,10 +1343,15 @@ class FloorplanView(QGraphicsView):
         if not self.pending_ap_position_group_id and not self.scale_calibration_active:
             if self.boundaries_edit_active:
                 self.update_boundaries_cursor()
+            elif self.design_mode_active:
+                self.viewport().setCursor(Qt.CursorShape.CrossCursor)
             else:
                 self.viewport().setCursor(Qt.CursorShape.ArrowCursor)
 
     def leaveEvent(self, event):
+        controller = getattr(self, "rectangle_design", None)
+        if controller is not None:
+            controller.hide_preview()
         self.hide_point_tooltip()
         self.hide_boundaries_brush_preview()
         super().leaveEvent(event)

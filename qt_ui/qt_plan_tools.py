@@ -1,4 +1,4 @@
-"""Blank-plan toolbar shell. Geometry editing is deliberately not enabled yet."""
+"""Blank-sheet design tools and rectangle gesture coordination."""
 
 from PySide6.QtCore import QEvent, QPoint, QRect, QSize, Qt, QTimer
 from PySide6.QtGui import QColor, QIcon, QPixmap, QShortcut, QKeySequence, QPainter, QPen
@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QColorDialog, QFrame, QHBoxLayout, QLabel, QPushBu
 
 from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
 from qt_ui.qt_theme import QT_THEMES
+from qt_ui.qt_rectangle_design import RectangleDesignController
 
 
 class PlanToolsOverlay(QFrame):
@@ -32,13 +33,13 @@ class PlanToolsOverlay(QFrame):
         self.redo_button = owner.create_boundaries_text_button("", "blank_tool_redo")
         self.undo_button.setIcon(owner.style().standardIcon(QStyle.StandardPixmap.SP_ArrowBack))
         self.redo_button.setIcon(owner.style().standardIcon(QStyle.StandardPixmap.SP_ArrowForward))
-        # No enabled control should pretend to draw or erase before geometry exists.
         for button in (self.rectangle_button, self.eraser_button, self.undo_button, self.redo_button):
             button.setEnabled(False)
             row.addWidget(button)
         self.snap_button = owner.create_boundaries_text_button("", "blank_tool_snap")
         self.snap_button.setCheckable(True)
-        self.snap_button.setChecked(True)
+        self.snap_button.setChecked(False)
+        self.snap_button.setEnabled(False)
         self.snap_button.toggled.connect(self.update_snap_icon)
         self.color_button = owner.create_boundaries_text_button("", "blank_tool_color")
         self.color_button.clicked.connect(self.choose_color)
@@ -54,18 +55,31 @@ class PlanToolsOverlay(QFrame):
         self.toggle_button.setCheckable(True)
         self.toggle_button.setMinimumHeight(owner.spx(34))
         self.toggle_button.clicked.connect(self.set_open)
+        self.controller = RectangleDesignController(self)
+        self.drawing_error = False
+        self.rectangle_button.setCheckable(True)
+        self.rectangle_button.clicked.connect(self.select_rectangle)
+        self.undo_button.clicked.connect(self.controller.undo)
+        self.redo_button.clicked.connect(self.controller.redo)
         self.escape_shortcut = QShortcut(QKeySequence("Esc"), owner)
-        self.escape_shortcut.activated.connect(lambda: self.set_open(False))
+        self.escape_shortcut.activated.connect(self.on_escape)
         self.parentWidget().installEventFilter(self)
         self.sync()
 
     def available(self):
         session = self.owner.session
-        return bool(session and self.owner.floorplan_view.has_floorplan() and
+        return bool(session and not self.drawing_error and self.owner.get_px_per_meter()
+                    and self.owner.floorplan_view.has_floorplan() and
                     any(session.metadata.get(key) == "1" for key in
                         (DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY)))
 
     def sync(self):
+        self.drawing_error = False
+        try:
+            self.controller.sync()
+        except (ValueError, TypeError, KeyError):
+            self.drawing_error = True
+            self.owner.status.showMessage(self.owner.tr("rectangle_invalid_drawing"))
         tr = self.owner.tr
         self.toggle_button.setText(tr("blank_tools"))
         self.toggle_button.setToolTip(tr("blank_tools_hint"))
@@ -84,19 +98,39 @@ class PlanToolsOverlay(QFrame):
             self.set_open(False)
         self.toggle_button.setVisible(available)
         self.toggle_button.setEnabled(available and not self.owner.scan_in_progress)
+        self.rectangle_button.setEnabled(available and self.open)
+        self.rectangle_button.setChecked(available and self.open)
         self.position_controls()
 
     def set_open(self, opened):
         self.open = bool(opened and self.available() and not self.owner.scan_in_progress)
         if self.open:
+            self.owner.floorplan_view.hide_point_tooltip()
             if self.owner.points_panel_expanded:
                 self.owner.toggle_points_panel()
             self.owner.set_boundaries_mode_enabled(False, show_status=False)
+            self.owner.floorplan_view.cancel_scale_calibration_pick()
+            self.owner.floorplan_view.cancel_ap_position_pick()
+        else:
+            self.controller.cancel()
         self.toggle_button.setChecked(self.open)
         self.owner.floorplan_view.design_mode_active = self.open
+        self.owner.floorplan_view.viewport().setCursor(Qt.CursorShape.CrossCursor if self.open else Qt.CursorShape.ArrowCursor)
         self.escape_shortcut.setEnabled(self.open)
         self.setVisible(self.open)
+        self.rectangle_button.setEnabled(self.open)
+        self.rectangle_button.setChecked(self.open)
+        self.undo_button.setEnabled(self.open and bool(self.controller.undo_stack))
+        self.redo_button.setEnabled(self.open and bool(self.controller.redo_stack))
         self.position_controls()
+
+    def on_escape(self):
+        if not self.controller.cancel():
+            self.set_open(False)
+
+    def select_rectangle(self):
+        self.controller.cancel()
+        self.rectangle_button.setChecked(self.open)
 
     def choose_color(self):
         color = QColorDialog.getColor(self.stroke_color, self.owner, self.owner.tr("blank_tool_color"))
@@ -134,7 +168,9 @@ class PlanToolsOverlay(QFrame):
         if points is not None and self.owner.points_panel_expanded and not points.isHidden():
             if self.open:
                 self.open = False
+                self.controller.cancel()
                 self.owner.floorplan_view.design_mode_active = False
+                self.owner.floorplan_view.viewport().setCursor(Qt.CursorShape.ArrowCursor)
                 self.toggle_button.setChecked(False)
                 self.escape_shortcut.setEnabled(False)
                 self.hide()

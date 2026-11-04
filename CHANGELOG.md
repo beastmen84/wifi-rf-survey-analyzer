@@ -11,8 +11,8 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
   raster allocation. Custom dimensions, a common physical scale and the actual
   PNG size survive save/reopen; importing a floor plan replaces the blank sheet.
 - Added a bottom-left Design Mode toolbar exclusively for generated blank sheets,
-  including reopened surveys. Snap and stroke color can be selected; rectangle,
-  eraser and undo/redo remain disabled until shape editing is implemented.
+  including reopened surveys. Rectangle drawing, stroke color and undo/redo are
+  available; grid/shape snapping and segment erasing remain for later steps.
   Opening Design Mode suspends right-click point capture; it coordinates with Boundaries
   and the points panel, closes with Escape and updates across all themes/languages.
 - Updated EN/IT/FR/ES labels and Help to describe configurable sheets and the
@@ -20,6 +20,15 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 - Aligned the blank-sheet section with the rest of New Survey and replaced native
   numeric spin arrows with themed SVG chevrons and compact hover/press controls.
   The Design Mode palette fits its wrapped note at the current font/scale.
+- Added right-drag rectangles with live m/ft dimensions and numeric placement
+  after a simple right-click. Left-drag pans; Esc cancels a provisional shape
+  before exiting Design Mode. Shapes stay within the sheet and do not record RF
+  points. Save/reopen retains four independent editable segments per rectangle;
+  undo/redo is available for placements, with complete save-failure rollback.
+- Generated PNGs, Live Map and both HTML exports show the current drawing,
+  including unsaved edits and undo. Exact vector fingerprints prevent stale
+  cached backgrounds after small changes. Drawing geometry has no RF attenuation
+  effect; boundaries and data-collection rules remain separate.
 
 ## v1.2.0 - 2026-11-04
 

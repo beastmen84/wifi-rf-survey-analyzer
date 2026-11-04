@@ -13,6 +13,7 @@ from advisor.models import AnalysisProfile, analysis_fingerprint
 from advisor.presentation import wording, finding_html, wrap_html
 from exporting.analysis_report import export_analysis_report
 from qt_ui.qt_live_map import load_floorplan_image
+from survey.plan_drawing import drawing_segments, render_plan_drawing
 from qt_ui.qt_theme import QT_THEMES
 from qt_ui.qt_windowing import get_centered_save_file_name
 from app_core.logging import log_exception
@@ -359,6 +360,7 @@ class AnalysisView(QWidget):
             plan = self.app.session.metadata.get("map_file", "")
             if plan and Path(plan).is_file():
                 image = load_floorplan_image(plan)
+                image = render_plan_drawing(image, drawing_segments(self.app.session.metadata))
             # A modal file dialog can process survey events: validate again.
             if self.report.fingerprint != self.fingerprint(self.context()):
                 self.inputs_changed()
