@@ -105,7 +105,7 @@ TRANSLATIONS = {
     "ap_memory_status_applied": "AP Memory: {applied} To Confirm / {total} Saved",
     "unsaved_survey": "Unsaved Survey",
     "no_map": "No Map",
-    "default_floorplan_name": "A4 Blank Plan",
+    "default_floorplan_name": "Blank Plan",
     "replace_default_floorplan_title": "Replace Blank Plan Image?",
     "replace_default_floorplan": "The generated blank plan will be saved as:\n{path}\n\nThat file already exists. Replace it?",
     "generated_floorplan_cleanup_failed": "Could not delete replaced blank plan: {path}",
@@ -757,7 +757,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="survey-card"><span class="survey-card-title">CSV</span><br>The saved survey file with metadata comments and aggregated rows.<br><span class="survey-card-use">Save before HTML export or moving between machines.</span></td>
                 <td class="survey-gap"></td>
-                <td class="survey-card"><span class="survey-card-title">Map</span><br>The floor-plan file linked to the survey. New surveys start with a scaled A4 blank plan and grid.<br><span class="survey-card-use">If you save without replacing it, a same-name PNG is written next to the CSV.</span></td>
+                <td class="survey-card"><span class="survey-card-title">Map</span><br>The floor-plan file linked to the survey. New surveys start with a scaled blank plan and grid.<br><span class="survey-card-use">If you save without replacing it, a same-name PNG is written next to the CSV.</span></td>
                 <td class="survey-gap"></td>
                 <td class="survey-card"><span class="survey-card-title">Points</span><br>Measurement locations collected on the floor plan.<br><span class="survey-card-use">Add points where clients work, roam or report problems.</span></td>
             </tr>
@@ -809,7 +809,7 @@ TRANSLATIONS = {
             </ul>
         </td></tr></table>
         <h2>Blank Plan And Grid</h2>
-        <p>New surveys can be used without an external floor plan. Choose metric or imperial units when creating the survey; the generated A4 blank plan is then pre-scaled for practical office tests and opens with Grid enabled. The map label shows the current square size, such as <code>1 square = 1 m</code> or <code>1 square = 3 ft</code>. On real floor plans, Grid becomes available after scale calibration.</p>
+        <p>New surveys can be used without an external floor plan. Choose metric or imperial units when creating the survey; the generated blank plan is then pre-scaled for practical office tests and opens with Grid enabled. The map label shows the current square size, such as <code>1 square = 1 m</code> or <code>1 square = 3 ft</code>. On real floor plans, Grid becomes available after scale calibration.</p>
         <h2>Boundary Masks</h2>
         <p>Use <b>View &gt; Boundaries</b> when the measured area needs a manual mask. The vertical toolbar chooses draw or erase, circle or square brush, and brush size from 20 to 120 px in 10 px steps. Right-drag edits the mask; left-click selection, zoom and pan remain available. The mask is saved beside the CSV as <code>&lt;survey&gt;.boundaries.png</code>. Clearing an empty mask is equivalent to having no manual boundaries.</p>
         <table class="callout-table"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Best Result</span><br>Manual boundaries work best when measurement points also follow the real edge of the area you want to show. That keeps the live-map interpolation and the visible mask aligned.</td></tr></table>

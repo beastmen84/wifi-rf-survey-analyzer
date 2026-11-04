@@ -1,12 +1,16 @@
 """Survey units and explicit receiver selection, with asynchronous discovery."""
 
+import math
+
 from PySide6.QtCore import QThread, QTimer, Qt, Signal, Slot
 from PySide6.QtWidgets import (
     QComboBox, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout,
-    QLabel, QPushButton, QVBoxLayout,
+    QLabel, QPushButton, QVBoxLayout, QDoubleSpinBox, QGroupBox,
 )
 
-from app_core.units import MEASUREMENT_SYSTEM_IMPERIAL, MEASUREMENT_SYSTEM_METRIC
+from app_core.units import (MEASUREMENT_SYSTEM_IMPERIAL, MEASUREMENT_SYSTEM_METRIC,
+    meters_to_display_units, display_units_to_meters, distance_unit_label)
+from qt_ui.default_floorplan import (blank_floorplan_geometry, BLANK_PLAN_MIN_METERS, BLANK_PLAN_MAX_METERS)
 from qt_ui.scaling import widget_px
 from wifi.adapters import adapter_identity, adapter_name, list_wifi_adapters
 
@@ -24,6 +28,7 @@ class AdapterDiscoveryThread(QThread):
 class SurveySetupDialog(QDialog):
     def __init__(self, app, *, adapter_only=False, preferred_id=""):
         super().__init__(app)
+        self.setFont(app.font())
         self.app = app
         self.adapter_only = adapter_only
         self.preferred_id = preferred_id
@@ -72,6 +77,31 @@ class SurveySetupDialog(QDialog):
         hint = QLabel(app.tr("capture_adapter_fixed_hint"))
         hint.setWordWrap(True)
         layout.addWidget(hint)
+        self.blank_plan_group = QGroupBox(app.tr("blank_plan_size"))
+        self.blank_plan_group.setObjectName("blankPlanGroup")
+        blank_layout = QFormLayout(self.blank_plan_group)
+        self.blank_width_spin = QDoubleSpinBox()
+        self.blank_height_spin = QDoubleSpinBox()
+        self.blank_units = self.units_combo.currentData()
+        for spin in (self.blank_width_spin, self.blank_height_spin):
+            spin.setObjectName("blankPlanDimension")
+            spin.setDecimals(2)
+            spin.setKeyboardTracking(False)
+            spin.setMinimumWidth(widget_px(app, 130))
+            spin.setMinimumHeight(widget_px(app, 32))
+        width, height, density = blank_floorplan_geometry(self.blank_units)
+        self.set_blank_dimensions(width / density, height / density)
+        self.blank_width_spin.valueChanged.connect(lambda value: self.remember_blank_dimension(0, value))
+        self.blank_height_spin.valueChanged.connect(lambda value: self.remember_blank_dimension(1, value))
+        blank_layout.addRow(app.tr("blank_plan_width"), self.blank_width_spin)
+        blank_layout.addRow(app.tr("blank_plan_height"), self.blank_height_spin)
+        self.blank_hint = QLabel(app.tr("blank_plan_size_hint"))
+        self.blank_hint.setWordWrap(True)
+        self.blank_hint.setMinimumHeight(self.blank_hint.fontMetrics().lineSpacing() * 3)
+        blank_layout.addRow(self.blank_hint)
+        self.units_combo.currentIndexChanged.connect(self.change_blank_units)
+        self.blank_plan_group.setVisible(not adapter_only)
+        layout.addWidget(self.blank_plan_group)
         self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self.ok_button = self.buttons.button(QDialogButtonBox.StandardButton.Ok)
         self.ok_button.setText(app.tr("capture_adapter_use" if adapter_only else "survey_setup_create"))
@@ -130,10 +160,33 @@ class SurveySetupDialog(QDialog):
     def selected_adapter(self):
         return self.adapter_combo.currentData()
 
+    def set_blank_dimensions(self, width_m, height_m):
+        self.blank_dimensions_m = (width_m, height_m)
+        for spin, meters in ((self.blank_width_spin, width_m), (self.blank_height_spin, height_m)):
+            spin.blockSignals(True)
+            spin.setRange(math.ceil(meters_to_display_units(BLANK_PLAN_MIN_METERS, self.blank_units) * 100) / 100,
+                          math.floor(meters_to_display_units(BLANK_PLAN_MAX_METERS, self.blank_units) * 100) / 100)
+            spin.setSuffix(" " + distance_unit_label(self.blank_units))
+            spin.setValue(meters_to_display_units(meters, self.blank_units))
+            spin.blockSignals(False)
+
+    def remember_blank_dimension(self, index, value):
+        dimensions = list(self.blank_dimensions_m)
+        dimensions[index] = display_units_to_meters(value, self.blank_units)
+        self.blank_dimensions_m = tuple(dimensions)
+
+    def change_blank_units(self):
+        self.blank_units = self.units_combo.currentData()
+        self.set_blank_dimensions(*self.blank_dimensions_m)
+
     def options(self):
         adapter = self.selected_adapter() or {}
-        return {"measurement_system": self.units_combo.currentData(),
-                "adapter": {key: adapter.get(key, "") for key in ("id", "name", "description")}}
+        result = {"measurement_system": self.units_combo.currentData(),
+                  "adapter": {key: adapter.get(key, "") for key in ("id", "name", "description")}}
+        if not self.adapter_only:
+            result["blank_plan"] = {
+                "width_m": self.blank_dimensions_m[0], "height_m": self.blank_dimensions_m[1]}
+        return result
 
     def accept(self):
         adapter = self.selected_adapter()

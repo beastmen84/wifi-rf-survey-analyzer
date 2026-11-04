@@ -202,7 +202,9 @@ def test_setup_selects_receiver_refreshes_and_returns_units(window, qt_app):
         dialog.units_combo.setCurrentIndex(dialog.units_combo.findData("imperial"))
         dialog.refresh_adapters()
         wait_until(qt_app, lambda: dialog.thread is None)
-        assert dialog.options() == {"measurement_system": "imperial", "adapter": RECEIVER}
+        assert dialog.options()["measurement_system"] == "imperial"
+        assert dialog.options()["adapter"] == RECEIVER
+        assert set(dialog.options()["blank_plan"]) == {"width_m", "height_m"}
         assert dialog.ok_button.isEnabled()
         dialog.reject()
         dialog.deleteLater()

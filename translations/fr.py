@@ -106,7 +106,7 @@ TRANSLATIONS.update({
     "ap_memory_status_applied": "Mémoire AP : {applied} à confirmer / {total} enregistrés",
     "unsaved_survey": "Relevé non enregistré",
     "no_map": "Aucun plan",
-    "default_floorplan_name": "Plan A4 blanc",
+    "default_floorplan_name": "Plan vierge",
     "replace_default_floorplan_title": "Remplacer le plan blanc ?",
     "replace_default_floorplan": "Le plan blanc généré sera enregistré sous :\n{path}\n\nCe fichier existe déjà. Le remplacer ?",
     "generated_floorplan_cleanup_failed": "Impossible de supprimer le plan blanc remplacé : {path}",
@@ -613,7 +613,7 @@ TRANSLATIONS.update({
     """,
     "help_survey_body": """
         <h2>Fichiers du relevé</h2>
-        <table class="survey-grid"><tr><td class="survey-card"><span class="survey-card-title">CSV</span><br>Données agrégées et métadonnées.</td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">.scan</span><br>Échantillons bruts répétés.</td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Plan</span><br>PDF/image ou plan A4 généré.</td></tr></table>
+        <table class="survey-grid"><tr><td class="survey-card"><span class="survey-card-title">CSV</span><br>Données agrégées et métadonnées.</td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">.scan</span><br>Échantillons bruts répétés.</td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Plan</span><br>PDF/image ou plan généré.</td></tr></table>
         <h2>Collecte</h2>
         <p>Placez les points dans les zones réellement utilisées : bureaux, salles, couloirs, portes et zones de problème. Pour un relevé précis, visez environ 2-3 m entre points quand l'espace le permet.</p>
         <h2>Réseaux pertinents</h2>
@@ -882,7 +882,7 @@ TRANSLATIONS.update({
     "help_survey_body": """
         <h2>Blocs de l'écran Relevé</h2>
         <table class="survey-grid">
-            <tr><td class="survey-card"><span class="survey-card-title">CSV</span><br>Fichier principal du relevé avec lignes agrégées et commentaires de métadonnées.<br><span class="survey-card-use">À enregistrer avant export HTML ou transfert de machine.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Plan</span><br>Fichier PDF/image lié au relevé. Un nouveau relevé peut commencer avec un plan A4 blanc déjà à l'échelle.<br><span class="survey-card-use">Si aucun plan réel n'est chargé, une image PNG du même nom est écrite près du CSV.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Points</span><br>Positions de mesure placées sur le plan.<br><span class="survey-card-use">Ajoutez-les là où les clients travaillent, roament ou signalent un problème.</span></td></tr>
+            <tr><td class="survey-card"><span class="survey-card-title">CSV</span><br>Fichier principal du relevé avec lignes agrégées et commentaires de métadonnées.<br><span class="survey-card-use">À enregistrer avant export HTML ou transfert de machine.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Plan</span><br>Fichier PDF/image lié au relevé. Un nouveau relevé peut commencer avec un plan blanc déjà à l'échelle.<br><span class="survey-card-use">Si aucun plan réel n'est chargé, une image PNG du même nom est écrite près du CSV.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Points</span><br>Positions de mesure placées sur le plan.<br><span class="survey-card-use">Ajoutez-les là où les clients travaillent, roament ou signalent un problème.</span></td></tr>
             <tr><td class="survey-vertical-gap" colspan="5"></td></tr>
             <tr><td class="survey-card"><span class="survey-card-title">Scans bruts</span><br>Échantillons répétés conservés dans le sidecar <code>.scan</code>.<br><span class="survey-card-use">Plus d'évidence brute améliore confiance et diagnostics.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Groupes AP</span><br>Modèle d'AP physiques utilisé par cartes et qualité.<br><span class="survey-card-use">À revoir avant AP dominant, Interférence ou Canaux AP.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">SSID pertinents</span><br>Réseaux jugés importants par les contrôles qualité.<br><span class="survey-card-use">Gérer ajoute ou retire des SSID ; Effacer supprime la sélection.</span></td></tr>
         </table>
@@ -897,7 +897,7 @@ TRANSLATIONS.update({
         <h2>Placement des points</h2>
         <table class="callout-table"><tr><td class="callout-accent-good"></td><td class="callout-content"><span class="callout-label">Règle terrain</span><br><ul><li>Placez les points aux postes, salles, couloirs, portes et zones problématiques.</li><li>Pour un relevé précis, visez environ 2-3 m entre points quand l'espace le permet, et resserrez autour des transitions AP.</li><li>Ne scannez pas en marchant : arrêtez-vous, laissez finir le scan, puis avancez.</li></ul></td></tr></table>
         <h2>Plan blanc, grille et limites</h2>
-        <p>Un relevé peut commencer sans plan externe. Le choix métrique/impérial crée un A4 blanc pré-échelonné, avec grille activée. Sur plan réel, la grille devient disponible après calibration. Vue &gt; Limites permet de dessiner un masque PNG <code>&lt;survey&gt;.boundaries.png</code> avec brosse ronde ou carrée de 20 à 120 px. Un masque vide équivaut à aucun masque.</p>
+        <p>Un relevé peut commencer sans plan externe. Le choix métrique/impérial crée un blanc pré-échelonné, avec grille activée. Sur plan réel, la grille devient disponible après calibration. Vue &gt; Limites permet de dessiner un masque PNG <code>&lt;survey&gt;.boundaries.png</code> avec brosse ronde ou carrée de 20 à 120 px. Un masque vide équivaut à aucun masque.</p>
     """,
     "help_quality_body": """
         <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Règle principale</span><br>Lisez Qualité relevé avant les cartes Live ou les HTML. Le tableau de bord indique si l'évidence de point doit être rescannée, si le modèle AP doit être revu ou si les cartes peuvent être générées avec une confiance raisonnable.</td></tr></table>

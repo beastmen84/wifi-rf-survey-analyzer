@@ -179,7 +179,8 @@ def build_help_sections(parent, tr):
             "<h2>" + escape(tr("capture_adapter_help_title")) + "</h2><p>"
             + escape(tr("capture_adapter_help")) + "</p><h2>" + escape(tr("measurement_help_title")) + "</h2><p>"
             + escape(tr("measurement_help")) + "</p><p>" + escape(tr("measurement_scope_flow_help"))
-            + "</p>" + tr("help_survey_body"),
+            + "</p><h2>" + escape(tr("blank_plan_size")) + "</h2><p>"
+            + escape(tr("blank_plan_help")) + "</p>" + tr("help_survey_body"),
         ),
         build_help_section(
             "quality",

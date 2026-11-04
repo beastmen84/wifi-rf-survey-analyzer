@@ -74,6 +74,7 @@ from qt_ui.qt_windowing import (
     install_dialog_centering,
 )
 from qt_ui.qt_workspace_settings import WorkspaceSettingsMixin
+from qt_ui.qt_plan_tools import PlanToolsOverlay
 from qt_ui.scaling import (
     format_ui_scale_diagnostics,
     normalize_ui_scale_mode,
@@ -670,6 +671,7 @@ class WifiHeatmapQtApp(
         self.floorplan_view.boundariesMaskChanged.connect(self.on_boundaries_mask_changed)
         self.floorplan_view.boundariesMaskEdited.connect(self.on_boundaries_mask_edited)
         floorplan_layout.addWidget(self.floorplan_view)
+        self.plan_tools = PlanToolsOverlay(self)
 
         self.points_overlay = QFrame(self.floorplan_container)
         self.points_overlay.setObjectName("floatingPointsPanel")
@@ -941,6 +943,7 @@ class WifiHeatmapQtApp(
         y = max(margin, container_height - height - margin)
         self.points_overlay.setGeometry(x, y, width, height)
         self.points_overlay.raise_()
+        self.plan_tools.position_controls()
 
     def eventFilter(self, source, event):
         if self.handle_settings_menu_event_filter(event):
@@ -1333,6 +1336,12 @@ class WifiHeatmapQtApp(
                 background: {palette["panel"]};
                 border: 1px solid {palette["border"]};
                 border-radius: {s(8)}px;
+            }}
+            QDoubleSpinBox#blankPlanDimension {{
+                background: {palette["panel"]};
+                border: 1px solid {palette["border"]};
+                border-radius: {s(5)}px;
+                padding: {s(4)}px {s(10)}px;
             }}
             QFrame#boundariesToolbarSeparator {{
                 background: {palette["border"]};
@@ -1908,6 +1917,7 @@ class WifiHeatmapQtApp(
         self.calibrate_button.setText(self.tr("calibrate_scale"))
         self.grid_button.setText(self.tr("grid"))
         self.boundaries_button.setText(self.tr("boundaries"))
+        self.plan_tools.sync()
         self.delete_scale_button.setText(self.tr("delete_scale"))
         self.ap_groups_button.setText(self.tr("ap_groups_title"))
         self.quality_button.setText(self.tr("quality_dashboard_title"))

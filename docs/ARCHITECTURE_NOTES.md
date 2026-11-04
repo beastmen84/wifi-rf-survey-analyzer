@@ -22,6 +22,26 @@ interpolated colors.
 
 Current status:
 
+- Post-1.2.0 blank-sheet setup accepts width/height in m or ft (1-500 m per axis).
+  `default_floorplan.py` computes one isotropic pixels-per-meter scale and caps
+  the raster at 4096 px per side; each raster extent differs from the requested
+  size by at most half a pixel. Unit toggles preserve canonical meter values.
+  Initial physical dimensions are metadata; materialization writes the currently
+  displayed raster size instead of reverting to the old A4 bitmap. Save/reopen
+  retains scale, size and generated-sheet identity; imported plans clear the
+  blank dimensions and retain their own calibration workflow.
+- `qt_plan_tools.py` provides the blank-only viewport overlay and toolbar shell.
+  Snap/color are window-local choices; rectangle/eraser/history controls remain
+  disabled, and there is no shape geometry or RF effect yet. Opening the toolbar
+  keeps point capture active, closes Boundaries and collapses an expanded points
+  table. Expanding the table closes the palette and keeps its entry button above
+  the table. Imported plans hide it; scans disable it; Escape closes it. The UI
+  and Help describe this limited stage explicitly in all four languages.
+  Verification: 585 tests + 475 subtests on native Windows, then 29 focused tests
+  + 434 subtests after toolbar input shielding. Native layout QA checks 16
+  language/theme combinations, dialog text fit, viewport anchoring and Italian
+  decimal input. Essential Ruff checks and git diff --check pass.
+  Release 1.2.0 artifacts/tag remain unchanged until another build is requested;
 - 1.2.0 is the intentional Windows release for fixed receiver selection, guided
   capture, separate measurement-quality axes and the scope/review/hover polish.
   The source release passes 569 tests and 475 subtests in both offscreen (38.94 s)

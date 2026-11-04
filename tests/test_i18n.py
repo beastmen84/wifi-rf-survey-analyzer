@@ -223,6 +223,7 @@ LAYOUT_SENSITIVE_KEYS = (
 )
 
 ALLOWED_IDENTICAL_TRANSLATION_KEYS = frozenset({
+    "blank_tool_rectangle",  # Rectangle is also the French noun.
     "app_title",
     "copyright",
     "qt_csv",

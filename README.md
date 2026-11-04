@@ -43,12 +43,17 @@ from these software checks.
 ## Core Features
 
 - PDF/image floor-plan loading with scale calibration.
-- New surveys start with a generated, pre-scaled A4 blank plan and grid for
-  quick tests when no real floor plan is available. Starting from the app start
-  page asks for metric or imperial units and the Wi-Fi adapter before creating
-  that default scale; starting a new survey while another survey is open first
-  asks to save the current survey, discard changes, or cancel. The grid overlay shows the
-  current square size directly on the map.
+- New surveys start with a generated, pre-scaled blank plan and grid for
+  use when no real floor plan is available. Starting from the app start
+  page asks for metric or imperial units, the Wi-Fi adapter and blank-sheet width
+  and height before creating the scale. Starting a new survey while another is
+  open first asks to save the current survey, discard changes, or cancel.
+  The grid overlay shows the current square size directly on the map.
+- Blank-sheet dimensions are converted when switching m/ft and preserved with
+  the generated PNG on save/reopen. Loading an external floor plan replaces the
+  sheet and uses that plan's calibration. The blank sheet has a bottom-left
+  Draw toolbar with snap and stroke-color choices; rectangle, eraser and history
+  controls are currently disabled, and opening the toolbar leaves capture active.
 - Measurement-point capture with repeated Wi-Fi scans.
 - Fixed receiver selection, a short preparation and five scan attempts, followed
   by an explicit Save, Repeat or Discard review. Review and reports distinguish
@@ -84,9 +89,10 @@ from these software checks.
 ## Main Workflow
 
 1. Start a new survey or open an existing survey CSV.
-2. Choose metric or imperial units and a Wi-Fi adapter in the New Survey dialog,
+2. Choose metric or imperial units, a Wi-Fi adapter and the blank-sheet dimensions
+   in the New Survey dialog,
    then load a floor plan image/PDF or keep the
-   generated scaled A4 plan for tests.
+   generated scaled blank plan.
 3. Calibrate scale when real-world distances matter.
 4. Place measurement points on the floor plan, roughly every 2-3 m for
    precise surveys when the space allows.

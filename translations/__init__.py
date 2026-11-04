@@ -21,11 +21,13 @@ from translations.advisor import dictionary as advisor_dictionary
 from translations.reports import dictionary as report_dictionary
 from translations.capture import dictionary as capture_dictionary
 from translations.measurement import dictionary as measurement_dictionary
+from translations.blank_plan import dictionary as blank_plan_dictionary
 for _language, _dictionary in TRANSLATIONS.items():
     _dictionary.update(advisor_dictionary(_language))
     _dictionary.update(report_dictionary(_language))
     _dictionary.update(capture_dictionary(_language))
     _dictionary.update(measurement_dictionary(_language))
+    _dictionary.update(blank_plan_dictionary(_language))
 
 LANGUAGE_LABELS = {
     "it": IT_LANGUAGE_LABEL,

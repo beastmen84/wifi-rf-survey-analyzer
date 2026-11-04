@@ -106,7 +106,7 @@ TRANSLATIONS.update({
     "ap_memory_status_applied": "Memoria AP: {applied} por confirmar / {total} guardados",
     "unsaved_survey": "Estudio sin guardar",
     "no_map": "Sin plano",
-    "default_floorplan_name": "Plano A4 blanco",
+    "default_floorplan_name": "Plano en blanco",
     "replace_default_floorplan_title": "¿Reemplazar plano blanco?",
     "replace_default_floorplan": "El plano blanco generado se guardará como:\n{path}\n\nEse archivo ya existe. ¿Reemplazarlo?",
     "generated_floorplan_cleanup_failed": "No se pudo eliminar el plano blanco reemplazado: {path}",
@@ -613,7 +613,7 @@ TRANSLATIONS.update({
     """,
     "help_survey_body": """
         <h2>Archivos del estudio</h2>
-        <table class="survey-grid"><tr><td class="survey-card"><span class="survey-card-title">CSV</span><br>Datos agregados y metadatos.</td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">.scan</span><br>Muestras brutas repetidas.</td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Plano</span><br>PDF/imagen o plano A4 generado.</td></tr></table>
+        <table class="survey-grid"><tr><td class="survey-card"><span class="survey-card-title">CSV</span><br>Datos agregados y metadatos.</td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">.scan</span><br>Muestras brutas repetidas.</td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Plano</span><br>PDF/imagen o plano generado.</td></tr></table>
         <h2>Recogida</h2>
         <p>Coloca puntos en las zonas realmente usadas: puestos de trabajo, salas, pasillos, puertas y áreas problemáticas. Para un estudio preciso, apunta a unos 2-3 m entre puntos cuando el espacio lo permita.</p>
         <h2>Redes relevantes</h2>
@@ -870,7 +870,7 @@ TRANSLATIONS.update({
     "help_survey_body": """
         <h2>Bloques de la pantalla Estudio</h2>
         <table class="survey-grid">
-            <tr><td class="survey-card"><span class="survey-card-title">CSV</span><br>Archivo principal con filas agregadas y comentarios de metadatos.<br><span class="survey-card-use">Guárdelo antes de exportar HTML o mover el estudio entre equipos.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Plano</span><br>PDF/imagen vinculado al estudio. Un estudio nuevo puede empezar con un A4 blanco ya escalado.<br><span class="survey-card-use">Si no se carga un plano real, se escribe un PNG con el mismo nombre junto al CSV.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Puntos</span><br>Posiciones de medición colocadas sobre el plano.<br><span class="survey-card-use">Añádalas donde los clientes trabajan, hacen roaming o reportan problemas.</span></td></tr>
+            <tr><td class="survey-card"><span class="survey-card-title">CSV</span><br>Archivo principal con filas agregadas y comentarios de metadatos.<br><span class="survey-card-use">Guárdelo antes de exportar HTML o mover el estudio entre equipos.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Plano</span><br>PDF/imagen vinculado al estudio. Un estudio nuevo puede empezar con un blanco ya escalado.<br><span class="survey-card-use">Si no se carga un plano real, se escribe un PNG con el mismo nombre junto al CSV.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Puntos</span><br>Posiciones de medición colocadas sobre el plano.<br><span class="survey-card-use">Añádalas donde los clientes trabajan, hacen roaming o reportan problemas.</span></td></tr>
             <tr><td class="survey-vertical-gap" colspan="5"></td></tr>
             <tr><td class="survey-card"><span class="survey-card-title">Escaneos brutos</span><br>Muestras repetidas conservadas en el sidecar <code>.scan</code>.<br><span class="survey-card-use">Más evidencia bruta mejora confianza y diagnósticos.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Grupos AP</span><br>Modelo de AP físicos usado por mapas y calidad.<br><span class="survey-card-use">Revíselo antes de AP dominante, Interferencia o Canales AP.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">SSID relevantes</span><br>Redes consideradas importantes por controles de calidad.<br><span class="survey-card-use">Gestionar añade o quita SSID; Limpiar borra la selección.</span></td></tr>
         </table>
@@ -885,7 +885,7 @@ TRANSLATIONS.update({
         <h2>Colocación de puntos</h2>
         <table class="callout-table"><tr><td class="callout-accent-good"></td><td class="callout-content"><span class="callout-label">Regla de campo</span><br><ul><li>Coloque puntos en puestos, salas, pasillos, puertas y zonas problemáticas.</li><li>Para un estudio preciso, apunte a unos 2-3 m entre puntos cuando el espacio lo permita, y cierre la distancia en transiciones AP.</li><li>No escanee caminando: deténgase, espere a que termine el escaneo y avance.</li></ul></td></tr></table>
         <h2>Plano blanco, cuadrícula y límites</h2>
-        <p>Un estudio puede empezar sin plano externo. La elección métrico/imperial crea un A4 blanco preescalado, con cuadrícula activa. En planos reales, la cuadrícula aparece tras calibrar. Vista &gt; Límites permite dibujar una máscara PNG <code>&lt;survey&gt;.boundaries.png</code> con pincel circular o cuadrado de 20 a 120 px. Una máscara vacía equivale a no tener máscara.</p>
+        <p>Un estudio puede empezar sin plano externo. La elección métrico/imperial crea un blanco preescalado, con cuadrícula activa. En planos reales, la cuadrícula aparece tras calibrar. Vista &gt; Límites permite dibujar una máscara PNG <code>&lt;survey&gt;.boundaries.png</code> con pincel circular o cuadrado de 20 a 120 px. Una máscara vacía equivale a no tener máscara.</p>
     """,
     "help_quality_body": """
         <table class="callout-table" width="100%" cellspacing="0" cellpadding="0"><tr><td class="callout-accent-info"></td><td class="callout-content"><span class="callout-label">Regla principal</span><br>Lea Calidad estudio antes de interpretar mapas Live o HTML. El dashboard indica si la evidencia de punto debe reescanearse, si el modelo AP necesita revisión o si los mapas pueden generarse con confianza razonable.</td></tr></table>

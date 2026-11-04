@@ -58,6 +58,7 @@ class SurveySessionWorkflowMixin:
 
         self.invalidate_live_preview()
         self.session = SurveySession()
+        self.plan_tools.set_open(False)
         self.set_session_measurement_system_metadata(self.measurement_system, mark_dirty=False)
         if options.get("adapter"):
             self.session.set_capture_adapter(options["adapter"], mark_dirty=False)
@@ -65,7 +66,7 @@ class SurveySessionWorkflowMixin:
         self.boundaries_files_pending_delete = set()
         self.load_session_ssid_state()
         self.reset_live_option_memory()
-        if not self.load_default_floorplan():
+        if not self.load_default_floorplan(**options.get("blank_plan", {})):
             self.floorplan_view.clear_floorplan()
         self.live_view.clear()
         self.show_workspace_page()
@@ -202,6 +203,7 @@ class SurveySessionWorkflowMixin:
 
         self.invalidate_live_preview()
         self.session = session
+        self.plan_tools.set_open(False)
         self.floorplan_view.clear_floorplan()
         self.generated_floorplans_pending_delete = set()
         self.boundaries_files_pending_delete = set()
@@ -431,6 +433,7 @@ class SurveySessionWorkflowMixin:
         self.delete_scale_button.setEnabled(can_use_session and not live_tab_active and has_scale)
         self.update_floorplan_grid_button_state()
         self.update_boundaries_button_state()
+        self.plan_tools.sync()
         self.update_save_action_state()
         self.refresh_live_controls()
         self.update_point_action_state()

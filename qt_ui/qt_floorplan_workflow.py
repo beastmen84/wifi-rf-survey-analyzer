@@ -17,10 +17,10 @@ from app_core.constants import (
 )
 from app_core.units import display_units_to_meters, format_scale_density, meters_to_display_units
 from qt_ui.default_floorplan import (
-    default_floorplan_px_per_meter,
     default_floorplan_save_path,
     ensure_default_floorplan,
     write_default_floorplan,
+    blank_floorplan_geometry, BLANK_PLAN_WIDTH_KEY, BLANK_PLAN_HEIGHT_KEY,
 )
 from qt_ui.qt_floorplan import (
     BOUNDARIES_BRUSH_SIZE_MAX_PX,
@@ -51,12 +51,13 @@ class FloorplanWorkflowMixin:
 
         self.load_plan_file(file_path, save_metadata=True)
 
-    def load_default_floorplan(self):
+    def load_default_floorplan(self, width_m=None, height_m=None):
         if self.session is None:
             return False
 
         try:
-            file_path = ensure_default_floorplan()
+            width_px, height_px, density = blank_floorplan_geometry(self.measurement_system, width_m, height_m)
+            file_path = ensure_default_floorplan(width_px, height_px)
             self.floorplan_view.load_floorplan(str(file_path))
         except Exception as exc:
             QMessageBox.warning(
@@ -70,7 +71,9 @@ class FloorplanWorkflowMixin:
         self.session.metadata["map_file"] = os.path.abspath(file_path)
         self.session.metadata[MEASUREMENT_SYSTEM_METADATA_KEY] = self.measurement_system
         self.session.metadata[DEFAULT_FLOORPLAN_METADATA_KEY] = "1"
-        self.session.metadata["px_per_meter"] = f"{default_floorplan_px_per_meter(self.measurement_system):.6f}"
+        self.session.metadata["px_per_meter"] = f"{density:.12g}"
+        self.session.metadata[BLANK_PLAN_WIDTH_KEY] = f"{width_m if width_m is not None else width_px / density:.12g}"
+        self.session.metadata[BLANK_PLAN_HEIGHT_KEY] = f"{height_m if height_m is not None else height_px / density:.12g}"
         self.session.dirty = was_dirty
         self.floorplan_view.set_points(self.session.get_point_summaries())
         self.floorplan_view.set_ap_groups(self.session.get_ap_groups())
@@ -97,7 +100,9 @@ class FloorplanWorkflowMixin:
             if response != QMessageBox.StandardButton.Yes:
                 return False
 
-        write_default_floorplan(transaction.stage_file(image_file) if transaction else image_file)
+        pixmap = self.floorplan_view.pixmap_item.pixmap()
+        write_default_floorplan(transaction.stage_file(image_file) if transaction else image_file,
+                                pixmap.width(), pixmap.height())
         self.session.metadata["map_file"] = os.path.abspath(image_file)
         self.session.metadata.pop(DEFAULT_FLOORPLAN_METADATA_KEY, None)
         self.session.metadata[GENERATED_FLOORPLAN_METADATA_KEY] = "1"
@@ -142,6 +147,8 @@ class FloorplanWorkflowMixin:
 
         if save_metadata:
             self.clear_saved_boundaries_metadata(mark_dirty=False)
+            self.session.metadata.pop(BLANK_PLAN_WIDTH_KEY, None)
+            self.session.metadata.pop(BLANK_PLAN_HEIGHT_KEY, None)
             was_default_floorplan = (
                 self.session.metadata.pop(DEFAULT_FLOORPLAN_METADATA_KEY, None) is not None
             )
@@ -406,6 +413,8 @@ class FloorplanWorkflowMixin:
             return
 
         enabled = bool(enabled and self.can_use_boundaries_mode())
+        if enabled:
+            self.plan_tools.set_open(False)
         if enabled and self.floorplan_view.grid_visible:
             self.set_floorplan_grid_enabled(False, show_status=False)
 
