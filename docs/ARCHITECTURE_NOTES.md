@@ -22,8 +22,22 @@ interpolated colors.
 
 Current status:
 
+- capture scope is validated once per completed batch before review. First SSID
+  selection, missing-network retry/keep and new-network decisions precede the
+  displayed feedback. Save requires a reviewed/validated batch and no longer
+  launches selectors or returns to a changed review; flags reset on retry/close;
+- the capture review no longer has a details toggle. Scope is shown directly in
+  the coverage card. Actionable notes are inline, while routine cache exclusion
+  and explanations already in cards are omitted from the extra note area.
+  Layout height-for-width drives review fitting within the screen limit, leaving
+  scrollbars only for actual overflow. Saved evidence and report data are unchanged;
+- scope/review closeout passes 569 tests + 475 subtests native (42.20 s), followed
+  by 51 capture/i18n tests + 434 subtests after Help and duplicate-note cleanup.
+  Native layout QA across four themes/languages gives zero scrollbar range for
+  ordinary and limited captures; long-content/small-screen overflow remains
+  reachable. Scope-first, one-save, cancel, retry and verified-empty paths pass;
 - guided-capture UI polish sizes preparation/scanning at 420 logical pixels and
-  review at 560 (scaled/clamped to the screen), keeping the dialog centered.
+  review from 560 (grown to fit content and clamped to the screen), keeping the dialog centered.
   Each review card uses a 2:3 column ratio with a main status and a smaller
   wrapped description. Inactive stacked pages no longer dictate dialog height;
 - Survey hover now uses bounded compact HTML (four SSID names plus a count),

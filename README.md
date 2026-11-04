@@ -83,11 +83,11 @@ from these software checks.
    then load a floor plan image/PDF or keep the
    generated scaled A4 plan for tests.
 3. Calibrate scale when real-world distances matter.
-4. Select relevant SSIDs.
-5. Place measurement points on the floor plan, roughly every 2-3 m for
+4. Place measurement points on the floor plan, roughly every 2-3 m for
    precise surveys when the space allows.
-6. Hold the device still during the short preparation and five guided scan
-   attempts. Review the result, then save, repeat or discard the measurement.
+5. Hold the device still during the short preparation and five guided scans.
+6. On the first capture choose relevant SSIDs before the review appears, then
+   save, repeat or discard the measurement using feedback for the chosen scope.
 7. Review acquisition reliability, signal stability and observed coverage
    separately. Reopen **Measurement details** from a selected saved point, then
    use Survey Quality to fix point-level issues first.
@@ -160,8 +160,10 @@ not become new samples. Saving a point also checks its receiver against the
 survey selection, including raw samples and verified empty captures.
 
 The guided capture displays actual scan progress and keeps results provisional
-until **Save point**. Discard is available during collection; the current native
-request completes before the worker releases its resources. Repeating uses a
+until **Save point**. Relevant-network selection and any missing/new-network
+choices happen before feedback is shown; Save confirms that reviewed scope
+without opening another selector. Discard is available during collection; the
+current native request completes before the worker releases its resources. Repeating uses a
 new, fixed set of five attempts. An existing point is preserved until its
 replacement is saved; the app does not automatically repeat until RSSI improves.
 
@@ -185,7 +187,11 @@ These presentation checks do not replace the RF engine's recommendation guards.
 
 Preparation and scanning use a compact dialog; review expands only when needed.
 Review cards place the main result on the left and smaller, wrapped details on
-the right. Survey hover summaries show up to four SSID names and a remaining
+the right. Selected SSIDs are visible in the coverage card. Useful warnings are
+shown directly; routine cache-exclusion notes and repeated explanations do not
+need an extra disclosure. The review fits its content when screen space allows;
+scrolling is retained for genuine overflow, without a redundant details toggle.
+Survey hover summaries show up to four SSID names and a remaining
 count; the point table retains the full list. Survey tooltips appear immediately
 over the painted point, including its selection outline, and stay stationary
 while the pointer remains there. They close immediately on exit or map gestures.

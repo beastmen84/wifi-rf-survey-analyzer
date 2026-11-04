@@ -7,6 +7,13 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Relevant-network selection now happens before the capture review, including
+  the first point. Feedback uses the chosen scope immediately and Save confirms
+  the reviewed measurement in one step. Missing/new-network choices also precede
+  review; cancellation/retry continue to preserve existing points.
+- Removed the redundant review disclosure. Scope is visible in the coverage card,
+  useful notes are inline and the dialog fits its content to avoid tiny scroll
+  ranges. Scrolling remains available for genuinely long content/small screens.
 - Reduced preparation/scanning dialog height and made review cards use two
   columns: primary status on the left, smaller wrapped details on the right.
 - Bounded Survey hover summaries to four network names plus a remaining count.

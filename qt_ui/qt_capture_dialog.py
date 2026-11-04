@@ -3,7 +3,7 @@
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QDialog, QFrame, QHBoxLayout, QLabel, QProgressBar, QPushButton,
-    QScrollArea, QStackedWidget, QToolButton, QVBoxLayout, QWidget,
+    QScrollArea, QStackedWidget, QVBoxLayout, QWidget,
 )
 
 from qt_ui.qt_theme import QT_THEMES
@@ -77,10 +77,13 @@ class GuidedCaptureDialog(QDialog):
         self.stack.addWidget(collecting)
 
         review_scroll = QScrollArea()
+        self.review_scroll = review_scroll
         review_scroll.setWidgetResizable(True)
         review_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        review_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         review = QWidget()
         review_layout = QVBoxLayout(review)
+        self.review_layout = review_layout
         review_layout.setContentsMargins(0, 0, widget_px(app, 6), 0)
         review_layout.setSpacing(widget_px(app, 12))
         self.review_title = QLabel()
@@ -124,18 +127,12 @@ class GuidedCaptureDialog(QDialog):
         self.review_hint.setWordWrap(True)
         self.review_hint.setObjectName("captureMuted")
         review_layout.addWidget(self.review_hint)
-        self.details_toggle = QToolButton()
-        self.details_toggle.setText(self.text("details"))
-        self.details_toggle.setCheckable(True)
-        self.details_toggle.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        self.details_toggle.setArrowType(Qt.ArrowType.RightArrow)
-        review_layout.addWidget(self.details_toggle)
         self.notes_label = QLabel()
+        self.notes_label.setObjectName("captureReviewNote")
         self.notes_label.setTextFormat(Qt.TextFormat.PlainText)
         self.notes_label.setWordWrap(True)
         self.notes_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.notes_label.hide()
-        self.details_toggle.toggled.connect(self.toggle_details)
         review_layout.addWidget(self.notes_label)
         review_layout.addStretch(1)
         review_scroll.setWidget(review)
@@ -176,6 +173,7 @@ class GuidedCaptureDialog(QDialog):
             QLabel#captureStageTitle {{ font-size: {s(18)}px; font-weight: 700; }}
             QLabel#captureCounter {{ font-size: {s(29)}px; color: {p['metric_info']}; font-weight: 700; padding: {s(10)}px 0; }}
             QLabel#captureSteps, QLabel#captureMuted {{ color: {p['muted']}; }}
+            QLabel#captureReviewNote {{ color: {p['muted']}; font-size: {s(12)}px; }}
             QFrame#measurementCard {{ background: {p['panel']}; border: 1px solid {p['border']}; border-radius: {s(9)}px; }}
             QLabel#measurementValue {{ font-size: {s(17)}px; font-weight: 700; }}
             QLabel#measurementDetail {{ font-size: {s(12)}px; color: {p['muted']}; }}
@@ -189,7 +187,6 @@ class GuidedCaptureDialog(QDialog):
             QPushButton:focus {{ border: 2px solid {p['metric_info']}; }}
             QProgressBar {{ background: {p['panel_alt']}; border: 0; border-radius: {s(5)}px; }}
             QProgressBar::chunk {{ background: {p['metric_info']}; border-radius: {s(5)}px; }}
-            QToolButton {{ color: {p['text']}; border: 0; padding: {s(6)}px 0; }}
         """)
 
     def set_phase(self, phase):
@@ -217,6 +214,12 @@ class GuidedCaptureDialog(QDialog):
         screen = self.screen()
         available = screen.availableGeometry() if screen else None
         target = widget_px(self.app, 560 if self.phase == "review" else 420)
+        if self.phase == "review":
+            self.layout().activate()
+            width = self.review_scroll.contentsRect().width()
+            needed = self.review_layout.totalHeightForWidth(width)
+            overhead = self.height() - self.review_scroll.height()
+            target = max(target, overhead + needed + widget_px(self.app, 8))
         if available:
             target = min(target, int(available.height() * .88))
         center = self.frameGeometry().center()
@@ -263,22 +266,22 @@ class GuidedCaptureDialog(QDialog):
         self.set_phase("review")
         self.primary_button.setEnabled(assessment.can_save)
         self.review_title.setText(self.text("ready" if assessment.collection == "verified" and assessment.stability != "variable" else "check"))
-        for widgets, data in zip(self.cards, measurement_cards(assessment, self.app.tr)):
+        cards = measurement_cards(assessment, self.app.tr)
+        for widgets, data in zip(self.cards, cards):
             card, title, value, detail = widgets
             title.setText(data["title"])
             value.setText(data["value"])
             value.setProperty("tone", data["tone"])
             value.style().unpolish(value)
             value.style().polish(value)
-            detail.setText(data["detail"])
-        notes = [self.text("scope", ssids=", ".join(sorted(scope)))] if scope else []
-        notes.extend(self.text("note_" + note) for note in assessment.notes)
+            context = self.text("scope", ssids=", ".join(sorted(scope))) + "\n" if data["key"] == "coverage" and scope else ""
+            detail.setText(context + data["detail"])
+        # Scope is visible in the coverage card. Routine cache exclusion and
+        # explanations already in the cards do not need an extra disclosure.
+        notes = [self.text("note_" + note) for note in assessment.notes if note != "cache_excluded"]
+        notes = [note for note in notes if not any(note in card["detail"] for card in cards)]
         self.notes_label.setText("\n\n".join(notes))
-        self.details_toggle.setVisible(bool(notes))
-
-    def toggle_details(self, expanded):
-        self.notes_label.setVisible(expanded)
-        self.details_toggle.setArrowType(Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow)
+        self.notes_label.setVisible(bool(notes))
 
     def show_error(self, message):
         self.timer.stop()

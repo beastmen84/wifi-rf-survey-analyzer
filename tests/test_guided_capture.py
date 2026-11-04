@@ -193,6 +193,114 @@ def test_capture_is_provisional_until_save_and_persisted_view_retains_three_axes
     assert window.tr("measurement_collection_verified") in window.points_table.item(0, 4).toolTip()
 
 
+def test_first_scope_is_chosen_before_review_and_one_save_commits(window, qt_app):
+    window.session = SurveySession()
+    window.session.set_capture_adapter(RECEIVER)
+    window.relevant_ssids, window.known_ssids = set(), set()
+
+    def choose_before_review():
+        assert window.capture_dialog.phase == "scanning"
+        assert not window.capture_scope_validated
+        window.accept_wifi_capture()
+        assert not window.session.rows and not window.session.measurement_points()
+        return QDialog.DialogCode.Accepted
+
+    with (patch("qt_ui.qt_point_workflow.scan_wifi", return_value=(measured(), "lswifi")),
+          patch("qt_ui.qt_point_workflow.RelevantNetworksDialog") as selector,
+          patch.object(window, "validate_relevant_networks", wraps=window.validate_relevant_networks) as validate):
+        selector.return_value.exec.side_effect = choose_before_review
+        selector.return_value.selected_ssids.return_value = {"Office"}
+        window.start_wifi_scan(10, 20)
+        window.capture_dialog.primary_action()
+        wait_until(qt_app, lambda: window.scan_thread is None)
+        assert window.capture_dialog.phase == "review" and window.relevant_ssids == {"Office"}
+        assert window.capture_dialog.cards[2][2].text() == window.tr("measurement_coverage_weak")
+        assert "Office" in window.capture_dialog.cards[2][3].text()
+        assert not window.session.rows
+        validate.assert_called_once()
+        window.capture_dialog.primary_action()
+        assert window.capture_dialog is None and len(window.session.measurement_points()) == 1
+        assert window.session.rows[0]["is_relevant"] == "1"
+        validate.assert_called_once()
+        selector.return_value.exec.assert_called_once()
+
+
+def test_cancelling_first_scope_discards_before_feedback_or_point_creation(window, qt_app):
+    window.session = SurveySession()
+    window.session.set_capture_adapter(RECEIVER)
+    window.relevant_ssids, window.known_ssids = set(), set()
+    with (patch("qt_ui.qt_point_workflow.scan_wifi", return_value=(measured(), "lswifi")),
+          patch("qt_ui.qt_point_workflow.RelevantNetworksDialog") as selector):
+        selector.return_value.exec.return_value = QDialog.DialogCode.Rejected
+        window.start_wifi_scan(10, 20)
+        dialog = window.capture_dialog
+        with patch.object(dialog, "show_review", wraps=dialog.show_review) as review:
+            dialog.primary_action()
+            wait_until(qt_app, lambda: window.scan_thread is None)
+            review.assert_not_called()
+    assert window.capture_dialog is None and not window.scan_in_progress
+    assert not window.session.measurement_points() and not window.session.rows and not window.session.raw_scan_rows
+
+
+def test_missing_scope_retry_happens_before_review_and_preserves_old_point(window, qt_app):
+    window.session = SurveySession()
+    window.session.set_capture_adapter(RECEIVER)
+    window.relevant_ssids, window.known_ssids = {"Office"}, {"Office"}
+    window.session.add_points(10, 20, measured())
+    previous = deepcopy((window.session.rows, window.session.raw_scan_rows, window.session.metadata))
+    window.pending_rescan_point = window.session.get_points()[0]
+    with (patch("qt_ui.qt_point_workflow.scan_wifi", return_value=(measured(ssid="Neighbor"), "lswifi")),
+          patch("qt_ui.qt_point_workflow.MissingRelevantNetworksDialog") as selector):
+        selector.return_value.exec.return_value = QDialog.DialogCode.Accepted
+        selector.return_value.action = "retry"
+        window.start_wifi_scan(10, 20)
+        dialog = window.capture_dialog
+        with patch.object(dialog, "show_review", wraps=dialog.show_review) as review:
+            dialog.primary_action()
+            wait_until(qt_app, lambda: window.scan_thread is None)
+            review.assert_not_called()
+        assert dialog.phase == "prepare" and not window.capture_scope_validated
+        assert (window.session.rows, window.session.raw_scan_rows, window.session.metadata) == previous
+        dialog.reject()
+
+
+def test_empty_scan_does_not_open_an_empty_scope_selector(window, qt_app):
+    window.session = SurveySession()
+    window.session.set_capture_adapter(RECEIVER)
+    window.relevant_ssids, window.known_ssids = set(), set()
+    empty = scanner.ScanBatch([], measured().capture)
+    with (patch("qt_ui.qt_point_workflow.scan_wifi", return_value=(empty, "lswifi")),
+          patch("qt_ui.qt_point_workflow.RelevantNetworksDialog") as selector):
+        window.start_wifi_scan(10, 20)
+        window.capture_dialog.primary_action()
+        wait_until(qt_app, lambda: window.scan_thread is None)
+        assert window.capture_dialog.phase == "review"
+        selector.assert_not_called()
+        window.capture_dialog.primary_action()
+    assert window.capture_dialog is None and len(window.session.measurement_points()) == 1
+
+
+def test_review_scope_and_useful_notes_are_visible_without_disclosure(window, qt_app):
+    dialog = GuidedCaptureDialog(window, 1, 2, RECEIVER, read_only=True)
+    complete = measured()
+    complete.capture["cached_excluded"] = 4
+    dialog.show_review(assessment(complete), {"Office"})
+    dialog.show()
+    qt_app.processEvents()
+    assert not hasattr(dialog, "details_toggle")
+    assert "Office" in dialog.cards[2][3].text() and dialog.notes_label.isHidden()
+    assert dialog.review_scroll.verticalScrollBar().maximum() == 0
+    dialog.show_review(assessment(measured((-55,), complete=False)), {"Office"})
+    qt_app.processEvents()
+    assert dialog.notes_label.isVisible()
+    assert window.tr("measurement_note_few_samples") in dialog.cards[1][3].text()
+    assert window.tr("measurement_note_few_samples") not in dialog.notes_label.text()
+    assert window.tr("measurement_note_incomplete_capture") in dialog.notes_label.text()
+    assert dialog.review_scroll.verticalScrollBar().maximum() == 0
+    dialog.reject()
+    dialog.deleteLater()
+
+
 def test_cancel_during_preparation_does_not_start_receiver_or_change_points(window):
     window.session = SurveySession()
     window.session.set_capture_adapter(RECEIVER)

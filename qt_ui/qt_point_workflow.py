@@ -62,6 +62,7 @@ class PointCaptureMixin:
         self.set_scan_busy(True, self.tr("scanning", x=int(x), y=int(y)))
         self.capture_result = None
         self.capture_error = None
+        self.capture_scope_validated = False
         self.capture_cancel_requested = False
         self.capture_dialog = GuidedCaptureDialog(self, int(x), int(y), adapter)
         self.capture_dialog.start_requested.connect(self.start_prepared_wifi_scan)
@@ -78,6 +79,7 @@ class PointCaptureMixin:
         adapter = self.session.capture_adapter()
         self.capture_result = None
         self.capture_error = None
+        self.capture_scope_validated = False
         log_event(f"qt point scan start x={int(x)} y={int(y)}", logger_name="main")
 
         thread = QThread(self)
@@ -114,6 +116,22 @@ class PointCaptureMixin:
             self.capture_error = "no_networks_found"
             self.capture_dialog.show_error(self.tr(self.capture_error))
             return
+        if not self.capture_scope_validated and self.assess_pending_capture().can_save:
+            # Resolve scope against the completed batch before showing feedback.
+            # Save only confirms a batch whose scope is already resolved.
+            try:
+                action = self.validate_relevant_networks(networks)
+            except Exception as exc:
+                log_exception("capture scope selection failed", exc, logger_name="main")
+                self.capture_dialog.show_error(self.tr(str(exc)))
+                return
+            if action == "retry":
+                self.retry_wifi_capture()
+                return
+            if action == "cancel":
+                self.discard_wifi_capture()
+                return
+            self.capture_scope_validated = True
         assessment = self.assess_pending_capture()
         self.capture_dialog.show_review(assessment, self.relevant_ssids)
 
@@ -123,23 +141,14 @@ class PointCaptureMixin:
             relevant_ssids=self.relevant_ssids, expected_adapter_id=self.session.capture_adapter().get("id", ""))
 
     def accept_wifi_capture(self):
-        if self.scan_thread is not None or not self.capture_result or self.capture_cancel_requested:
+        if (self.scan_thread is not None or not self.capture_result or self.capture_cancel_requested
+                or not self.capture_scope_validated or self.capture_dialog is None
+                or self.capture_dialog.phase != "review"):
             return
         try:
             networks, _backend = self.capture_result
             x, y = self.pending_scan_point
             if not self.assess_pending_capture().can_save:
-                return
-            previous_scope = set(self.relevant_ssids)
-            action = self.validate_relevant_networks(networks)
-            if action == "retry":
-                self.retry_wifi_capture()
-                return
-            if action == "cancel":
-                self.discard_wifi_capture()
-                return
-            if previous_scope != set(self.relevant_ssids):
-                self.present_wifi_capture()
                 return
             rescan_point = self.pending_rescan_point
             assessment = self.assess_pending_capture()
@@ -180,6 +189,7 @@ class PointCaptureMixin:
             return
         self.capture_result = None
         self.capture_error = None
+        self.capture_scope_validated = False
         self.capture_dialog.begin_preparation()
 
     def discard_wifi_capture(self):
@@ -201,6 +211,7 @@ class PointCaptureMixin:
         self.pending_rescan_point = None
         self.capture_result = None
         self.capture_error = None
+        self.capture_scope_validated = False
         self.set_scan_busy(False)
 
     def set_scan_busy(self, is_busy, message=None):

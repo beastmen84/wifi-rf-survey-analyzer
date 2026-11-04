@@ -246,6 +246,7 @@ class WifiHeatmapQtApp(
         self.capture_dialog = None
         self.capture_result = None
         self.capture_error = None
+        self.capture_scope_validated = False
         self.capture_cancel_requested = False
         self.pending_scan_point = None
         self.pending_rescan_point = None
