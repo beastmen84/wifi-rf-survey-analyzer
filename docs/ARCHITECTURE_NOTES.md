@@ -22,6 +22,25 @@ interpolated colors.
 
 Current status:
 
+- `survey/plan_snapping.py` implements deterministic point/rectangle-anchor
+  snapping, using sorted endpoint/edge indexes and bounded axis-pair searches.
+  Nearby real corners take priority, followed by overlapping finite edges, then
+  optional grid targets. Ties are stable; all translations remain in sheet bounds.
+  Numeric width/height are never rounded or resized, including opposite-corner
+  and separate-edge alignments. Grid indices tolerate floating-point boundary
+  rounding without dropping the final visible line.
+- RectangleDesignController converts a 10-UI-pixel acquisition radius to scene
+  coordinates at the current zoom. Both drag anchors/endpoints and numeric
+  previews snap. The grid step is shared with FloorplanView's actual grid renderer,
+  including imperial intervals. Geometry snap is automatic; the grid checkbox is
+  optional and turns the grid on. Hiding the grid clears grid snap. Alt suspends
+  both, including immediate key-driven preview refresh. Orange cosmetic guides
+  and rings plus localized labels show the active target without recording RF
+  points or changing draft metadata. Targets rebuild after undo/redo/reopen;
+  Verification: full native suite passes 630 tests + 475 subtests (58.45 s).
+  Final focused checks after floating-boundary and Alt-key refinements pass
+  58 tests + 434 subtests. Native source QA covers 48 corner/edge/grid cases
+  across all themes/languages plus 16 palette-fit cases across 100-175% scales;
 - Rectangle design is implemented in `qt_rectangle_design.py`. Design Mode
   selects Rectangle, consumes right-button gestures and leaves left-drag pan
   available. Drag recognition uses QApplication's viewport-pixel threshold;
@@ -44,7 +63,7 @@ Current status:
   supplements the image thumbnail cache key to distinguish subpixel edits.
   Empty vectors rebuild a white canvas, so undo never resurrects stale baked
   lines. External-plan imports clear the drawing. No RF rule uses wall geometry.
-  Grid/shape snapping, segment erasing and closed-face/grid fading remain pending;
+  Segment erasing and closed-face/grid fading remain pending;
   Verification: 607 tests + 475 subtests on native Windows (37.33 s), essential
   Ruff and diff checks pass. Native Qt QA in 16 theme/language combinations covers
   live-dimension drags, the real modal numeric dialog, cursor-following placement,
@@ -59,7 +78,7 @@ Current status:
   retains scale, size and generated-sheet identity; imported plans clear the
   blank dimensions and retain their own calibration workflow.
 - `qt_plan_tools.py` provides the blank-only viewport overlay and rectangle tools.
-  Color is a window-local choice; snap and eraser controls remain disabled.
+  Color and grid-snap state are window-local choices; the eraser remains disabled.
   Opening Design Mode
   blocks right-click capture in FloorplanView, closes Boundaries and collapses an expanded points
   table. Expanding the table closes the palette and keeps its entry button above
@@ -1338,8 +1357,8 @@ Future expansion:
     conservative; 6 GHz still requires real hardware validation. Optional future
     work includes per-survey objective persistence, per-AP channel capabilities,
     richer RF measurements and multi-map report composition.
-15. Extend the implemented blank-sheet rectangle editor with grid/geometry snap,
-    independent-segment erasing and closed-area grid fading. Curves and configurable
+15. Extend the implemented blank-sheet rectangle editor with independent-segment
+    erasing and closed-area grid fading. Curves and configurable
     stroke thickness remain outside the current scope. Keep the editor focused on
     survey-ready technical plans.
 16. Add richer deployment/reporting outputs.

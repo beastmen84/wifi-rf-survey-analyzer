@@ -4,10 +4,11 @@ import math
 from PySide6.QtCore import QEvent, QObject, QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QPen, QPixmap
 from PySide6.QtWidgets import (QApplication, QDialog, QDialogButtonBox, QDoubleSpinBox,
-    QFormLayout, QGraphicsLineItem, QGraphicsRectItem, QLabel, QVBoxLayout)
+    QFormLayout, QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsRectItem, QLabel, QVBoxLayout)
 
 from app_core.units import distance_unit_label, display_units_to_meters, meters_to_display_units
 from survey.plan_drawing import PLAN_DRAWING_KEY, drawing_segments, encode_drawing, rectangle_segments
+from survey.plan_snapping import PlanSnapper, SnapResult
 from qt_ui.scaling import widget_px
 
 
@@ -58,6 +59,11 @@ class RectangleDesignController(QObject):
         self.session = self.pixmap = None
         self.document = None
         self.items = []
+        self.snapper = PlanSnapper()
+        self.snap_items = []
+        self.snap_guides = ()
+        self.snap_bypass = False
+        self.last_pointer = None
         self.undo_stack, self.redo_stack = [], []
         self.preview = None
         self.origin = self.press_position = self.pending_size = self.last_size = None
@@ -67,10 +73,17 @@ class RectangleDesignController(QObject):
         self.measurement.setStyleSheet("background:#182433;color:white;border:1px solid #8194aa;border-radius:4px;padding:6px 9px;")
         self.measurement.hide()
         self.owner.installEventFilter(self)
+        self.view.installEventFilter(self)
+        self.view.viewport().installEventFilter(self)
 
     def eventFilter(self, source, event):
         if source is self.owner and event.type() == QEvent.Type.WindowDeactivate:
             self.cancel()
+        if (self.tools.open and event.type() in (QEvent.Type.KeyPress, QEvent.Type.KeyRelease)
+                and event.key() == Qt.Key.Key_Alt):
+            self.snap_bypass = event.type() == QEvent.Type.KeyPress
+            self.refresh_snap()
+            return True  # Alt belongs to Design Mode, not menu mnemonic focus.
         return super().eventFilter(source, event)
 
     def sync(self):
@@ -81,6 +94,7 @@ class RectangleDesignController(QObject):
                 # scene.clear() has already destroyed these C++ graphics items.
                 self.preview = None
                 self.items = []
+                self.snap_items = []
             self.cancel()
             self.undo_stack.clear()
             self.redo_stack.clear()
@@ -106,6 +120,7 @@ class RectangleDesignController(QObject):
         if any(line[key] > extent + 1e-7 for line in lines or []
                for keys, extent in ((('x1', 'x2'), bounds.width()), (('y1', 'y2'), bounds.height())) for key in keys):
             raise ValueError("Saved drawing is outside the sheet")
+        self.snapper = PlanSnapper(lines or [])
         if lines is not None and self.view.pixmap_item is not None:
             white = QPixmap(self.view.pixmap_item.pixmap().size())
             white.fill(Qt.GlobalColor.white)
@@ -125,22 +140,81 @@ class RectangleDesignController(QObject):
             self.preview = None
         self.origin = self.press_position = self.pending_size = None
         self.dragged = self.consume_release = False
+        self.last_pointer = None
+        self.snap_bypass = False
+        self.clear_snap_guides()
         self.measurement.hide()
         return existed
 
     def hide_preview(self):
+        self.last_pointer = None
         if self.preview is not None:
             self.preview.hide()
         self.measurement.hide()
+        for item in self.snap_items:
+            item.hide()
 
-    def pointer_rect(self, point):
+    def snap_position(self, point, width=0, height=0, bypass=False):
         bounds = self.view.scene.sceneRect()
+        if bypass or self.snap_bypass:
+            return SnapResult(min(max(point.x(), bounds.left()), bounds.right() - width),
+                              min(max(point.y(), bounds.top()), bounds.bottom() - height))
+        zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
+        grid = self.view.grid_spacing_pixels() if self.tools.snap_button.isChecked() else None
+        return self.snapper.snap(point.x(), point.y(), width, height,
+                                 (bounds.left(), bounds.top(), bounds.right(), bounds.bottom()),
+                                 widget_px(self.owner, 10) / zoom, grid)
+
+    def pointer_rect(self, point, bypass=False):
         if self.pending_size:
             width, height = self.pending_size
-            return QRectF(min(max(point.x(), 0), bounds.right() - width),
-                          min(max(point.y(), 0), bounds.bottom() - height), width, height)
-        point = QPointF(min(max(point.x(), 0), bounds.right()), min(max(point.y(), 0), bounds.bottom()))
+            result = self.snap_position(point, width, height, bypass)
+            self.snap_guides = result.guides
+            return QRectF(result.x, result.y, width, height)
+        result = self.snap_position(point, bypass=bypass)
+        self.snap_guides = result.guides
+        point = QPointF(result.x, result.y)
         return QRectF(self.origin, point).normalized()
+
+    def refresh_snap(self):
+        if self.last_pointer is not None and (self.pending_size or self.dragged):
+            point = self.view.mapToScene(self.last_pointer.toPoint())
+            if self.view.scene.sceneRect().contains(point) or self.dragged:
+                self.show_preview(self.pointer_rect(point), self.last_pointer)
+
+    def clear_snap_guides(self):
+        for item in self.snap_items:
+            self.view.scene.removeItem(item)
+        self.snap_items = []
+        self.snap_guides = ()
+
+    def show_snap_guides(self, rect):
+        guides = self.snap_guides
+        self.clear_snap_guides()
+        self.snap_guides = guides
+        zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
+        radius = widget_px(self.owner, 5) / zoom
+        for guide in guides:
+            x, y = guide.point
+            pen = QPen(QColor("#d97706"), 1.5)
+            pen.setCosmetic(True)
+            marker = QGraphicsEllipseItem(x - radius, y - radius, 2 * radius, 2 * radius)
+            marker.setPen(pen)
+            additions = [marker]
+            if guide.axis in ("x", "y") and guide.span:
+                pen = QPen(QColor("#d97706"), 1, Qt.PenStyle.DotLine)
+                pen.setCosmetic(True)
+                if guide.axis == "x":
+                    line = QGraphicsLineItem(x, min(rect.top(), guide.span[0]), x, max(rect.bottom(), guide.span[1]))
+                else:
+                    line = QGraphicsLineItem(min(rect.left(), guide.span[0]), y, max(rect.right(), guide.span[1]), y)
+                line.setPen(pen)
+                additions.append(line)
+            for item in additions:
+                item.setZValue(9)
+                item.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
+                self.view.scene.addItem(item)
+                self.snap_items.append(item)
 
     def show_preview(self, rect, position):
         if self.preview is None:
@@ -152,11 +226,16 @@ class RectangleDesignController(QObject):
         pen = QPen(self.tools.stroke_color, 2, Qt.PenStyle.DashLine)
         self.preview.setPen(pen)
         self.preview.show()
+        self.show_snap_guides(rect)
         density = self.owner.get_px_per_meter()
         values = [meters_to_display_units(value / density, self.owner.measurement_system)
                   for value in (rect.width(), rect.height())]
         numbers = [self.measurement.locale().toString(value, "f", 2) for value in values]
-        self.measurement.setText(f"{numbers[0]} × {numbers[1]} {distance_unit_label(self.owner.measurement_system)}")
+        text = f"{numbers[0]} × {numbers[1]} {distance_unit_label(self.owner.measurement_system)}"
+        kinds = [kind for kind in ("corner", "edge", "grid") if any(guide.kind == kind for guide in self.snap_guides)]
+        if kinds:
+            text += "\n" + " · ".join(self.owner.tr("design_snap_" + kind) for kind in kinds)
+        self.measurement.setText(text)
         self.measurement.adjustSize()
         viewport = self.view.viewport()
         self.measurement.move(max(4, min(int(position.x()) + 16, viewport.width() - self.measurement.width() - 4)),
@@ -168,28 +247,35 @@ class RectangleDesignController(QObject):
         if event.button() != Qt.MouseButton.RightButton:
             return False
         point = self.view.mapToScene(event.position().toPoint())
+        self.last_pointer = event.position()
+        bypass = bool(event.modifiers() & Qt.KeyboardModifier.AltModifier)
         if self.pending_size:
             if self.view.scene.sceneRect().contains(point):
-                rect = self.pointer_rect(point)
+                rect = self.pointer_rect(point, bypass)
                 self.commit(rect)
                 self.cancel()
             self.consume_release = True
         elif self.view.scene.sceneRect().contains(point):
-            self.origin, self.press_position = point, event.position()
+            result = self.snap_position(point, bypass=bypass)
+            self.origin, self.press_position = QPointF(result.x, result.y), event.position()
+            self.snap_guides = result.guides
+            self.show_snap_guides(QRectF(self.origin, self.origin))
             self.dragged = False
         return True
 
     def move(self, event):
+        self.last_pointer = event.position()
+        bypass = bool(event.modifiers() & Qt.KeyboardModifier.AltModifier)
         point = self.view.mapToScene(event.position().toPoint())
         if self.pending_size:
             if self.view.scene.sceneRect().contains(point):
-                self.show_preview(self.pointer_rect(point), event.position())
+                self.show_preview(self.pointer_rect(point, bypass), event.position())
             else:
                 self.hide_preview()
         if self.origin is not None and event.buttons() & Qt.MouseButton.RightButton:
             self.dragged |= (event.position() - self.press_position).manhattanLength() >= QApplication.startDragDistance()
             if self.dragged:
-                self.show_preview(self.pointer_rect(point), event.position())
+                self.show_preview(self.pointer_rect(point, bypass), event.position())
             return True
         return False
 
@@ -204,7 +290,7 @@ class RectangleDesignController(QObject):
         point = self.view.mapToScene(event.position().toPoint())
         dragged = self.dragged or (event.position() - self.press_position).manhattanLength() >= QApplication.startDragDistance()
         if dragged:
-            rect = self.pointer_rect(point)
+            rect = self.pointer_rect(point, bool(event.modifiers() & Qt.KeyboardModifier.AltModifier))
             if rect.width() > 0 and rect.height() > 0:
                 self.commit(rect)
             self.cancel()
@@ -226,6 +312,7 @@ class RectangleDesignController(QObject):
         self.cancel()
         self.pending_size = self.last_size = (width, height)
         point = anchor if anchor is not None else bounds.center()
+        self.last_pointer = QPointF(self.view.mapFromScene(point))
         self.show_preview(self.pointer_rect(point), self.view.mapFromScene(point))
 
     def commit(self, rect):

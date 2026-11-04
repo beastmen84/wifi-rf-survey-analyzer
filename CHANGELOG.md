@@ -12,7 +12,8 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
   PNG size survive save/reopen; importing a floor plan replaces the blank sheet.
 - Added a bottom-left Design Mode toolbar exclusively for generated blank sheets,
   including reopened surveys. Rectangle drawing, stroke color and undo/redo are
-  available; grid/shape snapping and segment erasing remain for later steps.
+  available, along with optional grid snapping and automatic shape snapping.
+  Segment erasing remains for a later step.
   Opening Design Mode suspends right-click point capture; it coordinates with Boundaries
   and the points panel, closes with Escape and updates across all themes/languages.
 - Updated EN/IT/FR/ES labels and Help to describe configurable sheets and the
@@ -29,6 +30,12 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
   including unsaved edits and undo. Exact vector fingerprints prevent stale
   cached backgrounds after small changes. Drawing geometry has no RF attenuation
   effect; boundaries and data-collection rules remain separate.
+- Added nearby corner/edge snapping with deterministic target priority and
+  zoom-independent screen tolerance. Grid snapping uses the displayed m/ft grid
+  interval. Numeric rectangles translate without resizing; all results stay
+  inside the sheet. Orange markers, alignment guides and dimension labels show
+  active targets. Alt temporarily bypasses all snapping. Preview updates follow
+  grid toggles; turning the grid off also turns grid snapping off.
 
 ## v1.2.0 - 2026-11-04
 

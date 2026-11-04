@@ -40,7 +40,6 @@ class PlanToolsOverlay(QFrame):
         self.snap_button.setCheckable(True)
         self.snap_button.setChecked(False)
         self.snap_button.setEnabled(False)
-        self.snap_button.toggled.connect(self.update_snap_icon)
         self.color_button = owner.create_boundaries_text_button("", "blank_tool_color")
         self.color_button.clicked.connect(self.choose_color)
         row.addWidget(self.snap_button)
@@ -56,6 +55,7 @@ class PlanToolsOverlay(QFrame):
         self.toggle_button.setMinimumHeight(owner.spx(34))
         self.toggle_button.clicked.connect(self.set_open)
         self.controller = RectangleDesignController(self)
+        self.snap_button.toggled.connect(self.toggle_grid_snap)
         self.drawing_error = False
         self.rectangle_button.setCheckable(True)
         self.rectangle_button.clicked.connect(self.select_rectangle)
@@ -100,6 +100,7 @@ class PlanToolsOverlay(QFrame):
         self.toggle_button.setEnabled(available and not self.owner.scan_in_progress)
         self.rectangle_button.setEnabled(available and self.open)
         self.rectangle_button.setChecked(available and self.open)
+        self.snap_button.setEnabled(available and self.open)
         self.position_controls()
 
     def set_open(self, opened):
@@ -120,6 +121,7 @@ class PlanToolsOverlay(QFrame):
         self.setVisible(self.open)
         self.rectangle_button.setEnabled(self.open)
         self.rectangle_button.setChecked(self.open)
+        self.snap_button.setEnabled(self.open)
         self.undo_button.setEnabled(self.open and bool(self.controller.undo_stack))
         self.redo_button.setEnabled(self.open and bool(self.controller.redo_stack))
         self.position_controls()
@@ -131,6 +133,12 @@ class PlanToolsOverlay(QFrame):
     def select_rectangle(self):
         self.controller.cancel()
         self.rectangle_button.setChecked(self.open)
+
+    def toggle_grid_snap(self, checked):
+        self.update_snap_icon()
+        if checked:
+            self.owner.set_floorplan_grid_enabled(True, show_status=False)
+        self.controller.refresh_snap()
 
     def choose_color(self):
         color = QColorDialog.getColor(self.stroke_color, self.owner, self.owner.tr("blank_tool_color"))
@@ -168,6 +176,7 @@ class PlanToolsOverlay(QFrame):
         if points is not None and self.owner.points_panel_expanded and not points.isHidden():
             if self.open:
                 self.open = False
+                self.snap_button.setEnabled(False)
                 self.controller.cancel()
                 self.owner.floorplan_view.design_mode_active = False
                 self.owner.floorplan_view.viewport().setCursor(Qt.CursorShape.ArrowCursor)

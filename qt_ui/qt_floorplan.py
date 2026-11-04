@@ -802,11 +802,7 @@ class FloorplanView(QGraphicsView):
         if not self.has_floorplan() or not self.grid_visible or not self.grid_px_per_meter:
             return
 
-        interval_m = choose_grid_interval_meters(
-            self.grid_px_per_meter,
-            self.grid_measurement_system,
-        )
-        spacing_px = interval_m * self.grid_px_per_meter
+        spacing_px = self.grid_spacing_pixels()
         if spacing_px <= 0:
             return
 
@@ -844,6 +840,11 @@ class FloorplanView(QGraphicsView):
             self.grid_items.append(item)
             index += 1
             y = index * spacing_px
+
+    def grid_spacing_pixels(self):
+        if not self.grid_visible or not self.grid_px_per_meter:
+            return None
+        return choose_grid_interval_meters(self.grid_px_per_meter, self.grid_measurement_system) * self.grid_px_per_meter
 
     def clear_grid_items(self):
         for item in self.grid_items:

@@ -369,6 +369,10 @@ class FloorplanWorkflowMixin:
             self.ui_scale,
         )
         self.update_floorplan_grid_button_state()
+        if hasattr(self, "plan_tools"):
+            if not enabled:
+                self.plan_tools.snap_button.setChecked(False)
+            self.plan_tools.controller.refresh_snap()
         if show_status:
             self.status.showMessage(
                 self.tr("grid_enabled") if enabled else self.tr("grid_disabled")
