@@ -9,10 +9,12 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 - Reduced preparation/scanning dialog height and made review cards use two
   columns: primary status on the left, smaller wrapped details on the right.
-- Bounded Survey hover summaries to four network names plus a remaining count,
-  added a small hover margin at low zoom, and closed stale tooltips on point/map
-  changes and gestures. Nearby-point choice is deterministic; AP hover retains
-  priority where an AP marker is under the pointer.
+- Bounded Survey hover summaries to four network names plus a remaining count.
+  Survey popups appear immediately over the painted point and its black outline,
+  remain stationary without expiring and close immediately on exit. A dedicated
+  input-transparent popup avoids competing Qt tooltip delays and slow-edge
+  flicker. Overlapping points retain the current popup until its outline is left;
+  AP hover retains priority where an AP marker is under the pointer.
 - Added guided point capture: a short preparation, real five-attempt progress,
   cooperative discard, and an explicit Save / Repeat / Discard review. Results
   remain provisional; failed/discarded rescans preserve previous measurements.

@@ -4,7 +4,7 @@ from pathlib import Path
 import math
 
 from PySide6.QtCore import QEvent, QPointF, QRect, QRectF, Qt, Signal
-from PySide6.QtGui import QBrush, QColor, QImage, QPainter, QPainterPath, QPen, QPixmap
+from PySide6.QtGui import QBrush, QColor, QImage, QPainter, QPainterPath, QPainterPathStroker, QPen, QPixmap
 from PySide6.QtWidgets import (
     QGraphicsEllipseItem,
     QGraphicsItem,
@@ -25,6 +25,7 @@ from app_core.units import (
 from ap.groups import normalize_ap_role
 from qt_ui.pdf_floorplan import render_pdf_page_to_qimage
 from qt_ui.qt_tooltips import build_html_tooltip, tooltip_section
+from qt_ui.qt_point_hover import SurveyPointHover
 
 
 AP_MARKER_BASE_SIZE = 20
@@ -78,6 +79,7 @@ class FloorplanView(QGraphicsView):
         self.pixmap_item = None
         self.marker_items = []
         self.hover_point_key = None
+        self.point_hover_popup = None
         self.ap_marker_items = []
         self.grid_items = []
         self.scale_calibration_items = []
@@ -1132,30 +1134,63 @@ class FloorplanView(QGraphicsView):
         return self.focus_point_zoom_level
 
     def hide_point_tooltip(self):
-        if getattr(self, "hover_point_key", None) is not None:
-            QToolTip.hideText()
-            self.hover_point_key = None
+        popup = getattr(self, "point_hover_popup", None)
+        if popup is not None:
+            popup.hide()
+        self.hover_point_key = None
 
     def point_hover_rect(self, item):
-        rect = self.mapFromScene(item.sceneBoundingRect()).boundingRect()
-        half = max(7, (max(rect.width(), rect.height()) + 1) // 2 + 2)
-        center = rect.center()
-        return QRect(center.x() - half, center.y() - half, half * 2 + 1, half * 2 + 1)
+        return self.mapFromScene(item.sceneBoundingRect()).boundingRect().adjusted(-1, -1, 1, 1)
+
+    def point_hover_shape(self, item):
+        # QGraphicsEllipseItem.shape() includes the painted pen, including the
+        # selected black outline. Half a viewport pixel covers antialiasing.
+        shape = self.viewportTransform().map(item.mapToScene(item.shape()))
+        antialias = QPainterPathStroker()
+        antialias.setWidth(1.0)
+        return shape.united(antialias.createStroke(shape))
 
     def point_for_hover(self, position):
-        # Exact AP tooltips keep priority over the small Survey hover margin.
-        first = next((item for item in self.items(position) if item.toolTip()), None)
+        position = QPointF(position)
+        first = next((item for item in self.items(position.toPoint()) if item.toolTip()), None)
         if first is not None and first.data(1) != "survey_point":
             return None
         candidates = []
-        for item in self.marker_items:
-            rect = self.point_hover_rect(item)
-            if rect.contains(position):
+        query = QRect(round(position.x()) - 1, round(position.y()) - 1, 3, 3)
+        for item in self.items(query):
+            if item.data(1) != "survey_point":
+                continue
+            if self.point_hover_shape(item).contains(position):
                 center = self.viewportTransform().map(item.sceneBoundingRect().center())
                 distance = (position.x() - center.x()) ** 2 + (position.y() - center.y()) ** 2
                 key = self.point_key(item.data(0))
+                if key == self.hover_point_key:
+                    return item
                 candidates.append((distance, key != self.selected_point_key, str(key), item))
         return min(candidates, key=lambda candidate: candidate[:3])[3] if candidates else None
+
+    def update_point_tooltip(self, position):
+        if self.boundaries_edit_active or self.scale_calibration_active or self.pending_ap_position_group_id:
+            self.hide_point_tooltip()
+            return False
+        item = self.point_for_hover(position)
+        if item is None:
+            self.hide_point_tooltip()
+            return False
+        key = self.point_key(item.data(0))
+        popup = self.point_hover_popup
+        if key == self.hover_point_key and popup is not None and popup.isVisible():
+            return True
+        if popup is None:
+            popup = SurveyPointHover(self.viewport())
+            popup.context_changed.connect(self.hide_point_tooltip)
+            self.point_hover_popup = popup
+        QToolTip.hideText()
+        anchor = self.point_hover_rect(item)
+        anchor.moveTopLeft(self.viewport().mapToGlobal(anchor.topLeft()))
+        self.hover_point_key = key
+        popup.present(item.toolTip(), anchor)
+        return True
 
     def viewportEvent(self, event):
         if event.type() == QEvent.Type.ToolTip:
@@ -1163,16 +1198,9 @@ class FloorplanView(QGraphicsView):
                 self.hide_point_tooltip()
                 event.accept()
                 return True
-            item = self.point_for_hover(event.pos())
-            if item is not None:
-                key = self.point_key(item.data(0))
-                if key != self.hover_point_key:
-                    self.hide_point_tooltip()
-                self.hover_point_key = key
-                QToolTip.showText(event.globalPos(), item.toolTip(), self.viewport(), self.point_hover_rect(item), 12000)
+            if self.update_point_tooltip(event.pos()):
                 event.accept()
                 return True
-            self.hide_point_tooltip()
         elif event.type() in {QEvent.Type.Leave, QEvent.Type.Hide, QEvent.Type.Resize}:
             self.hide_point_tooltip()
         return super().viewportEvent(event)
@@ -1248,10 +1276,10 @@ class FloorplanView(QGraphicsView):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
-        if self.hover_point_key is not None:
-            hovered = self.point_for_hover(event.position().toPoint())
-            if event.buttons() or hovered is None or self.point_key(hovered.data(0)) != self.hover_point_key:
-                self.hide_point_tooltip()
+        if event.buttons():
+            self.hide_point_tooltip()
+        else:
+            self.update_point_tooltip(event.position())
         scene_point = self.mapToScene(event.position().toPoint())
         if (
             self.boundaries_edit_active

@@ -186,9 +186,12 @@ These presentation checks do not replace the RF engine's recommendation guards.
 Preparation and scanning use a compact dialog; review expands only when needed.
 Review cards place the main result on the left and smaller, wrapped details on
 the right. Survey hover summaries show up to four SSID names and a remaining
-count; the point table retains the full list. A small screen-pixel hover margin
-helps with points at low zoom. Tooltips close when moving to another point,
-panning, zooming, refreshing the map or starting a map gesture.
+count; the point table retains the full list. Survey tooltips appear immediately
+over the painted point, including its selection outline, and stay stationary
+while the pointer remains there. They close immediately on exit or map gestures.
+The popup does not intercept mouse input, has no automatic expiry and does not
+use the standard Qt tooltip delay. In overlapping markers it retains the current
+point until that point's outline is left. Pan, zoom and refresh close the popup.
 
 The `netsh` compatibility/diagnostic scanner reads English, Italian, French and Spanish field labels,
 preserves explicit band information, and reports command failures or timeouts.

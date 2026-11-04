@@ -28,10 +28,20 @@ Current status:
   wrapped description. Inactive stacked pages no longer dictate dialog height;
 - Survey hover now uses bounded compact HTML (four SSID names plus a count),
   preserving complete data in the point table. FloorplanView handles tooltip
-  events with a small viewport-pixel margin, nearest-point/selected-tie ordering
-  and exact AP-hover priority. Tooltips hide on pointer/context/gesture changes,
+  mouse moves using the marker's actual painted shape (black pen included, with
+  half-pixel antialias tolerance). `qt_point_hover.py` provides an immediate,
+  input-transparent popup independent of QToolTip wake/fade/expiry timers. A
+  current overlapping point keeps ownership until its outline is left; cold
+  selection uses nearest-point/selected-tie ordering and exact AP-hover priority.
+  Tooltips hide on pointer/context/gesture changes,
   viewport exit/resize, scrolling, zoom and point refresh. RF rules, measurement
   data, marker appearance and point-click behavior are unchanged;
+- immediate-hover closeout passes 564 tests + 475 subtests on native Windows
+  (45.67 s), including 19 hover regressions. Directed native Qt mouse sweeps
+  cross the black outline without restarts/repositioning; a 13 s hold retains
+  visibility and suppresses the native QToolTip. Windows confirms the popup's
+  actual input-transparent extended style. Physical cursor playback was not
+  reliable in this session; these checks do not claim manual pointer validation;
 - layout/hover polish passes 556 tests and 475 subtests on native Windows
   (47.90 s). Native snapshots check 420/560 phase heights, column geometry,
   wrapped details and tooltips in four themes/languages. A long-list hover
