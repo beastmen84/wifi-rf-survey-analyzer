@@ -1,6 +1,6 @@
 # Local RF Analysis And Recommendations
 
-Status: initial implementation for the `v1.1.0` feature line
+Status: implemented in `v1.1.0`
 
 Last updated: 2026-11-04
 
@@ -26,7 +26,8 @@ survey CSV metadata. The category filter affects browsing, not report scope.
 
 Findings show confidence, an action, measured points/readings, limitations and
 post-change checks. Point links return to the survey canvas/table. The existing
-Live Map report remains a separate view of the current map filters. Both
+**Export Map** in Live Map remains a separate view of the current map filters.
+**Export report** in Analysis exports the whole survey. Both
 workspace exporters now create standalone HTML. Analysis reports include an
 optional numbered floor-plan overview, a summary and action cards; complete
 measurements/parameters are expandable while important limits remain visible.

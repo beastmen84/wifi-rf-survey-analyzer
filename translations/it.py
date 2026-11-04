@@ -1034,7 +1034,7 @@ TRANSLATIONS = {
                 <td class="survey-gap"></td>
                 <td class="survey-card"><b>SSID</b><br>Sceglie la rete da analizzare fra gli SSID presenti nel rilievo.</td>
                 <td class="survey-gap"></td>
-                <td class="survey-card"><b>Esporta report</b><br>Esporta il tipo mappa live e le opzioni correnti. Il rilievo viene salvato prima se necessario.</td>
+                <td class="survey-card"><b>Export Map</b><br>Esporta il tipo mappa live e le opzioni correnti in HTML autonomo. Il rilievo viene salvato prima se necessario.</td>
             </tr>
         </table>
         <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">

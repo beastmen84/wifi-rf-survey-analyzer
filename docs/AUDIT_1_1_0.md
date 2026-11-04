@@ -60,6 +60,20 @@ i punti senza timestamp/raw adeguati richiedono una nuova misura prima di
 ottenere suggerimenti operativi precisi. I gruppi manuali precedenti conservano
 la semantica esplicita; i nuovi gruppi automatici richiedono conferma fisica.
 
+## Verifica del pacchetto 1.1.0
+
+Nota di rilascio del 2026-11-04: la versione 1.1.0 viene preparata su richiesta
+dell'utente per la prova sul campo. La suite successiva passa 480 test e 475
+sottotest, sia offscreen sia Windows nativo. La build PyInstaller si avvia e
+completa il caricamento dei moduli; 79 moduli applicativi e il launcher inclusi
+nell'eseguibile corrispondono al sorgente verificato. Versione, risorse e documenti
+del pacchetto sono stati controllati. Le prove UI automatiche sul sorgente
+coprono anche le 16 combinazioni di lingua/tema e la scheda centrale uniforme.
+Il servizio di automazione delle finestre non è disponibile in questa sessione:
+non vengono dichiarati clic, export o scansioni hardware verificati nell'EXE.
+Le prove controllate RF, la calibrazione assoluta e l'hardware 6 GHz restano
+pendenti come indicato sotto; la generazione del pacchetto non li sostituisce.
+
 ## Verifiche dell'audit iniziale, prima delle correzioni
 
 - Revisione del percorso acquisizione -> normalizzazione -> aggregazione ->

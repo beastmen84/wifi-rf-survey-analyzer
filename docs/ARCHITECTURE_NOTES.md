@@ -22,6 +22,18 @@ interpolated colors.
 
 Current status:
 
+- `v1.1.0` is the current source version and the user-requested Windows test
+  package. Live Map uses **Export Map** (EN/IT) with a dedicated localized label;
+  Analysis retains its report action. Help documents the distinct commands.
+  The selected middle tab has a solid badge background and accent underline;
+  directional gradients apply only to the two outer tabs. Field RF validation
+  and the known calibration/6 GHz limits remain separate from packaging checks;
+- the 1.1.0 Windows PyInstaller build starts successfully and reaches module-ready
+  state. Its 79 application modules plus launcher match tested source bytecode;
+  packaged version/resources/docs are checked. Full suites pass 480 tests and
+  475 subtests in both offscreen/native modes. The Windows UI automation service
+  is unavailable in this session, so interactive packaged exports/scans are left
+  to the user's trial, rather than claimed from source tests alone;
 - workspace report exports now use standalone HTML for Live Map and Analysis.
   Shared responsive styling puts summaries/actions first and complete evidence
   in disclosures, retaining visible uncertainty. Native browser printing opens
@@ -107,7 +119,7 @@ Current status:
   the maintenance handoff; do not suppress Windows exception diagnostics.
 
 - public release versioning is separate from the survey schema generation:
-  `v1.0.0` is the current stable public source release, and Windows exe/ZIP
+  `v1.1.0` is the current source release, and Windows exe/ZIP
   artifacts are generated separately from the tagged source state;
 - future release candidates should use beta tags for validation/polish or a new
   minor line for feature-level additions; do not regenerate exe/ZIP for every
@@ -117,9 +129,9 @@ Current status:
   is needed after `v1.1.0` work has started, create a `release/1.0.x` branch
   from the last stable tag, cherry-pick only the bugfix commits, update
   version/changelog, build the package, then tag the patch release;
-- `CHANGELOG.md` keeps feature-release work and patch-release candidates
-  separate: `Work In Progress - v1.1.0` for the next feature release and
-  `Unreleased Bugfixes - v1.0.x` for fixes that may ship before `v1.1.0`;
+- `CHANGELOG.md` records the completed `v1.1.0` feature and maintenance changes
+  together. Future patch backports should be documented against their actual
+  target release rather than implying that the 1.1 environment ships on 1.0;
 - `README.md` is public-facing repo documentation and should not expose internal
   release cadence details; keep internal planning here and in the local ignored
   `.private/AI_CHAT_HISTORY.md` handoff, with public release notes in
@@ -1138,12 +1150,11 @@ Post-1.0 monitoring:
 
 ## Suggested Next Priorities
 
-1.0 release follow-up:
+1.1.0 field-test follow-up:
 
-1. Build the `v1.0.0` Windows exe/ZIP package from the tagged source state and
-   run the operational smoke test in the packaged app, covering new survey
+1. Use the `v1.1.0` Windows package for user field testing, covering new survey
    units, blank-plan/grid behavior, Boundaries drawing and brush size,
-   manual-mask Live/PDF application, Go to Point focus zoom, discrete-map
+   manual-mask Live/HTML application, Go to Point focus zoom, discrete-map
    legend focus, tooltip readability, settings panels and localized Help.
 2. Continue real office survey validation and review Local Area scope, Client
    Roaming, continuous map bounds, manual Boundaries usefulness, tooltip

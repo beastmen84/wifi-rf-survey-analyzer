@@ -21,7 +21,7 @@ physical APs, review survey quality, and export explainable RF maps.
 
 ## Release Status
 
-- Current source version: `v1.0.0`
+- Current source version: `v1.1.0`
 - Release type: stable public source release
 - Active UI: PySide6
 - Main entry point: `main.py`
@@ -30,10 +30,9 @@ physical APs, review survey quality, and export explainable RF maps.
   tag. Public builds use `WiFiRFSurveyAnalyzer-v<version>-win64.zip`.
 - Project license: MPL 2.0 (`MPL-2.0`)
 
-`v1.0.0` is the first stable public source release of the current Qt workflow.
-Executable and ZIP artifacts are built separately from the tagged source state.
-The development source also includes the upcoming Analysis and recommendations
-workflow described below; see the changelog for changes since the stable release.
+`v1.1.0` adds the final Analysis and recommendations workflow, offline HTML map
+and analysis reports, and verified fixes to RF evidence handling. `v1.0.0` was
+the first stable public source release of the current Qt workflow.
 The pre-release [data-accuracy audit](docs/AUDIT_1_1_0.md) records the precision
 fixes and their verification, including live scan-freshness checks. Controlled
 field validation, receiver calibration and 6 GHz hardware checks remain separate
@@ -92,7 +91,8 @@ from these software checks.
 9. Use Live Map views to inspect coverage, interference, channels, and roaming.
 10. Open Analysis and recommendations, set the coverage target and evidence
     requirements, and review the suggested actions and their supporting points.
-11. Export the analysis report or current Live Map as standalone HTML. Open the
+11. Use **Export Map** in Live Map or **Export report** in Analysis to save
+    standalone HTML. Open the
     report in a browser to inspect details, follow point links or print it.
 
 ## Data Model
@@ -405,11 +405,11 @@ between official release builds.
 
 Current source release:
 
-- `v1.0.0`
+- `v1.1.0`
 
 Expected Windows ZIP name:
 
-- `WiFiRFSurveyAnalyzer-v1.0.0-win64.zip`
+- `WiFiRFSurveyAnalyzer-v1.1.0-win64.zip`
 
 Historical beta ZIPs may still use the older artifact stem:
 

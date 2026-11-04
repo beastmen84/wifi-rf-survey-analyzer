@@ -162,11 +162,15 @@ class WorkspaceTabBar(QTabBar):
             gradient.setColorAt(0.0, faded)
             gradient.setColorAt(0.62, accent.lighter(115))
             gradient.setColorAt(1.0, accent)
-        else:
+        elif index == self.count() - 1:
             gradient = QLinearGradient(rect.left(), 0, rect.right(), 0)
             gradient.setColorAt(0.0, accent)
             gradient.setColorAt(0.38, accent.lighter(115))
             gradient.setColorAt(1.0, faded)
+        else:
+            gradient = QLinearGradient(rect.left(), 0, rect.right(), 0)
+            gradient.setColorAt(0.0, accent)
+            gradient.setColorAt(1.0, accent)
         return gradient
 
     def paintEvent(self, event):
@@ -1750,6 +1754,7 @@ class WifiHeatmapQtApp(
                 border-bottom: {s(3)}px solid {palette["badge_border"]};
             }}
             QTabBar#workspaceTabBar::tab:selected {{
+                background: {palette["badge_bg"]};
                 color: {palette["title"]};
                 border-bottom: {s(3)}px solid transparent;
                 font-weight: 800;
@@ -1910,7 +1915,7 @@ class WifiHeatmapQtApp(
         self.live_usable_check.setText(self.tr("usable_only"))
         self.live_survey_bounds_check.setText(self.tr("survey_bounds"))
         self.live_auto_check.setText(self.tr("live_auto_update"))
-        self.live_report_export_button.setText(self.tr("report_export"))
+        self.live_report_export_button.setText(self.tr("report_export_map"))
         self.live_update_button.setText(self.tr("live_update_now"))
         if self.boundaries_toolbar is not None:
             self.boundaries_draw_button.setToolTip(self.tr("boundaries_draw_tooltip"))

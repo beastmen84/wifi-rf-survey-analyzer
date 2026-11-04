@@ -1034,7 +1034,7 @@ TRANSLATIONS = {
                 <td class="survey-gap"></td>
                 <td class="survey-card"><b>SSID</b><br>Chooses the network to analyze from the SSIDs present in the survey.</td>
                 <td class="survey-gap"></td>
-                <td class="survey-card"><b>Export report</b><br>Exports the current live map type and options. The survey is saved first if needed.</td>
+                <td class="survey-card"><b>Export Map</b><br>Exports the current live map type and options as standalone HTML. The survey is saved first if needed.</td>
             </tr>
         </table>
         <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">

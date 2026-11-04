@@ -5,7 +5,7 @@ This file tracks user-facing changes between official release builds.
 The project uses semantic public release tags such as `v0.9.0-beta.1`,
 `v0.9.0-beta.2`, and `v1.0.0`.
 
-## Work In Progress - v1.1.0
+## v1.1.0 - 2026-11-04
 
 ### Added
 
@@ -23,15 +23,15 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
   require sufficient stable evidence and explicit 5/6 GHz candidate channels.
 - Findings show measured evidence, confidence, assumptions and point links.
   Data-quality and metadata inconsistencies are presented before RF actions.
-- Added complete PDF/HTML analysis reports with a numbered floor-plan overview,
+- Added complete HTML analysis reports with a numbered floor-plan overview,
   joint-plan summary and measured evidence. Reports use the same analysis
-  snapshot and reject stale data. Existing Live Map PDF export remains available.
+  snapshot and reject stale data. Browser printing can save the complete report as PDF.
 - Added English, Italian, French and Spanish UI/report/Help wording and automated
   rule, worker, export, pagination and translation regression checks.
 
 ### Fixed / Changed
 
-- Live Map and Analysis now use **Export report** with HTML as their workspace
+- Live Map uses **Export Map**, and Analysis uses **Export report**, with HTML as their workspace
   export format. Images/styles/controls are embedded in one portable file;
   no server or network access is required. Existing PDF generation helpers are
   retained internally for compatibility; workspace printing uses the browser.
@@ -39,6 +39,8 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
   visible, while confidence, minimum points and channel candidates move into
   expandable settings. Active values and missing candidate warnings remain
   visible. Updated report Help and EN/IT/FR/ES wording.
+- The selected central Live Map tab now has a uniform background and underline;
+  edge-tab gradients remain confined to the first and last workspace tabs.
 - Migrated the development environment to CPython 3.15.2 with PySide6 6.12.0,
   NumPy 2.5.4, SciPy 1.18.1, pandas 3.1.0, Matplotlib 3.11.2 and lswifi 0.5.0.
   Updated pytest/PyInstaller and the complete pinned dependency snapshot;
@@ -70,23 +72,19 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 - Added regression coverage for all eleven precision-audit findings and updated
   the audit with before/after hardware evidence and remaining validation limits.
 
-### Known Issues Before Release
+### Known Limits
 
 - Controlled moving-position/AP-change field tests, absolute-RSSI reference
   calibration and 6 GHz/6E/7 hardware validation remain outstanding. Unsupported
   RF geometry is gated conservatively; see `docs/AUDIT_1_1_0.md` for evidence.
 - The previously observed intermittent native Qt/COM `0x8001010d` diagnostic
   remains unexplained. It did not appear in the final native correction run;
-  that result does not establish a fix. A new Windows package is not yet built.
+  that result does not establish a fix.
 
-## Unreleased Bugfixes - v1.0.x
+### Maintenance Included Since v1.0.0
 
-### Added
-
-### Fixed / Changed
-
-- Updated Pillow to 13.0.0 and setuptools to 84.2.1 for security fixes; the
-  remaining dependency versions retain the validated 1.0 baseline.
+- Updated Pillow to 13.0.0 and setuptools to 84.2.1 for security fixes,
+  included in the pinned Python 3.15 dependency stack above.
 - Survey saves now stage CSV, raw scan data and generated images, restore the
   previous file set on write errors, and recover interrupted saves on reopening.
   Preferences and AP Memory also use atomic single-file replacement.
