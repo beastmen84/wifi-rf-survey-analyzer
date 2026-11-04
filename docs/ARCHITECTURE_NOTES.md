@@ -22,6 +22,10 @@ interpolated colors.
 
 Current status:
 
+- post-1.1.0 source polish squares both upper corners of the central Live Map
+  tab. Rounded corners belong only to the outer edge of the first/last tabs;
+  the uniform central highlight remains. Existing release artifacts retain
+  their tagged source state until another build is requested;
 - `v1.1.0` is the current source version and the user-requested Windows test
   package. Live Map uses **Export Map** (EN/IT) with a dedicated localized label;
   Analysis retains its report action. Help documents the distinct commands.

@@ -1737,16 +1737,18 @@ class WifiHeatmapQtApp(
                 padding: {s(4)}px {s(28)}px {s(3)}px {s(28)}px;
                 min-width: {s(128)}px;
                 margin: 0;
-                border-top-left-radius: {s(7)}px;
-                border-top-right-radius: {s(7)}px;
+                border-top-left-radius: 0;
+                border-top-right-radius: 0;
                 font-size: {font(9.5)}pt;
                 font-weight: 700;
             }}
             QTabBar#workspaceTabBar::tab:first {{
+                border-top-left-radius: {s(7)}px;
                 border-top-right-radius: 0;
             }}
             QTabBar#workspaceTabBar::tab:last {{
                 border-top-left-radius: 0;
+                border-top-right-radius: {s(7)}px;
             }}
             QTabBar#workspaceTabBar::tab:hover {{
                 background: {palette["button_hover"]};

@@ -5,6 +5,11 @@ This file tracks user-facing changes between official release builds.
 The project uses semantic public release tags such as `v0.9.0-beta.1`,
 `v0.9.0-beta.2`, and `v1.0.0`.
 
+## Unreleased
+
+- Squared both upper corners of the central Live Map tab, keeping its uniform
+  selected highlight and the rounded outer corners of the workspace tab bar.
+
 ## v1.1.0 - 2026-11-04
 
 ### Added
