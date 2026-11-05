@@ -70,6 +70,15 @@ def test_tangent_circle_does_not_create_empty_fragment():
     assert normalize_plan(lines, curves) == (lines, curves)
 
 
+def test_same_color_line_overlap_unites_but_keeps_real_curve_contacts_and_sources():
+    lines = [line((100, 300), (500, 300)), line((250, 300), (350, 300))]
+    result, curves, owners, curve_owners = normalize_plan(lines, [circle()], with_sources=True)
+    assert result == [line((100, 300), (200, 300)), line((200, 300), (400, 300)), line((400, 300), (500, 300))]
+    assert len(curves) == 2 and curve_owners == [frozenset({0}), frozenset({0})]
+    assert owners == [frozenset({0, 1})] * 3
+    assert normalize_plan(result, curves) == (result, curves)
+
+
 def test_colored_arc_pieces_and_real_gap_do_not_heal():
     source = circle()
     pieces = [subcurve(source, .1, .4), subcurve(source, .6, .9)]

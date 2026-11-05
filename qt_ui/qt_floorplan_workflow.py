@@ -430,6 +430,22 @@ class FloorplanWorkflowMixin:
         if not self.grid_button.isEnabled():
             return
         menu = QMenu(self)
+        menu.setObjectName("gridOptionsMenu")
+        palette = QT_THEMES[self.theme]
+        menu.setStyleSheet(f"""
+            QMenu#gridOptionsMenu {{
+                background: {palette['panel']}; color: {palette['text']};
+                border: 1px solid {palette['border']}; border-radius: {self.spx(5)}px;
+                padding: {self.spx(4)}px;
+            }}
+            QMenu#gridOptionsMenu::item {{
+                padding: {self.spx(7)}px {self.spx(12)}px;
+                border-radius: {self.spx(3)}px;
+            }}
+            QMenu#gridOptionsMenu::item:selected {{
+                background: {palette['button_hover']};
+            }}
+        """)
         action = menu.addAction(self.tr("grid_size_action"))
         action.triggered.connect(self.choose_grid_size)
         menu.exec(self.grid_button.mapToGlobal(position))

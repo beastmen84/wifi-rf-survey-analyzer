@@ -101,8 +101,10 @@ from these software checks.
   radius, chord and sagitta. Circular areas use analytic geometry. Selection
   commands are listed one per line in the palette and measurement panel.
   If a move, rotation or erase removes a junction, contiguous straight fragments
-  with the same color rejoin automatically. Cuts remain at real junctions,
-  corners, gaps, color transitions and independent overlapping strokes.
+  with the same color rejoin automatically. Same-color straight overlaps and
+  duplicates also unite, removing artificial cuts at their old endpoints. Cuts
+  remain at real junctions, curve contacts, corners, gaps and color transitions;
+  overlapping strokes of different colors stay separate.
   Tap and release **R** for a 90-degree turn. Hold **R** and move around the
   orange center for **5-degree steps**: the object stays frozen in place and
   shows equivalent angles such as `(+315° / -45°)`. Release R to apply, or Esc

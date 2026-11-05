@@ -79,12 +79,23 @@ def split_segments(segments, with_sources=False, limit=40000):
 
 
 def join_segments(segments, with_sources=False, protected=()):
-    """Join like-colored end-to-end fragments only at unbranched vertices.
+    """Union like-colored overlapping fragments, then join unbranched ends.
 
-    Input must already be split at every real intersection. Gaps, corners,
-    color transitions and independent overlapping/duplicate strokes stay intact.
+    Input must already be split at every real intersection and overlap endpoint.
+    Gaps, corners, real branches and differently colored strokes stay intact.
     Source sets identify every input fragment absorbed by a joined output.
     """
+    unique, origins, by_stroke = [], [], {}
+    for index, line in enumerate(segments):
+        start, end = (line["x1"], line["y1"]), (line["x2"], line["y2"])
+        key = (*sorted((start, end)), line["color"])
+        if key in by_stroke:
+            origins[by_stroke[key]].add(index)
+        else:
+            by_stroke[key] = len(unique)
+            unique.append(line)
+            origins.append({index})
+    segments = unique
     endpoints = defaultdict(list)
     parents = list(range(len(segments)))
     for index, line in enumerate(segments):
@@ -112,7 +123,7 @@ def join_segments(segments, with_sources=False, protected=()):
         va, vb = vectors
         if (abs(cross(va, vb)) > EPSILON * math.hypot(*va) * math.hypot(*vb)
                 or va[0] * vb[0] + va[1] * vb[1] >= 0):
-            continue  # Coincident duplicates leave in the same direction.
+            continue
         parents[root(second)] = root(first)
 
     components = defaultdict(list)
@@ -129,7 +140,7 @@ def join_segments(segments, with_sources=False, protected=()):
         high = max(values, key=lambda point: point[0] * dx + point[1] * dy)
         merged.update(x1=low[0], y1=low[1], x2=high[0], y2=high[1])
         result.append(merged)
-        sources.append(frozenset(indices))
+        sources.append(frozenset().union(*(origins[index] for index in indices)))
     return (result, sources) if with_sources else result
 
 

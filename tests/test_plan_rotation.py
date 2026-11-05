@@ -66,7 +66,7 @@ def test_oblique_cross_t_overlap_and_join_use_real_finite_geometry():
     assert all((200, 200) in ((s["x1"], s["y1"]), (s["x2"], s["y2"])) for s in cross)
     assert normalize_segments(cross[:2]) == [line(100, 100, 300, 300)]
     assert len(normalize_segments([line(100, 100, 300, 300), line(200, 200, 300, 200)])) == 3
-    assert len(normalize_segments([line(100, 100, 300, 300), line(200, 200, 400, 400)])) == 4
+    assert normalize_segments([line(100, 100, 300, 300), line(200, 200, 400, 400)]) == [line(100, 100, 400, 400)]
     assert len(normalize_segments([line(100, 100, 200, 200), line(200.00001, 200.00001, 300, 300)])) == 2
 
 

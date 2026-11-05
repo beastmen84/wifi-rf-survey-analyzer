@@ -7,6 +7,12 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Same-color straight strokes now unite across partial overlaps and duplicate
+  ink, preventing artificial endpoints from splitting selection and erasure.
+  Real T/cross/curve contacts, corners, different colors and actual gaps remain
+  separate. The same normalization applies to drawing, transforms, reopen and
+  saving, with shared undo/redo and retained source ownership. Updated Help in
+  EN/IT/FR/ES. Balanced the Grid context menu's text padding in all four themes.
 - Added a per-survey grid square size to New Survey and a right-click Grid action
   for later changes. Defaults are 1 m / 3 ft; inputs use tenths of a meter or
   whole feet, with minimums of 0.1 m / 1 ft. The saved physical interval controls
@@ -106,14 +112,15 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
   contextual notes and Help in EN/IT/FR/ES; dependencies/schema/version unchanged.
 - Rejoin contiguous, collinear fragments of the same color when a move, rotation
   or erase removes their junction. Real T/cross junctions, corners, erased gaps,
-  color changes and independent duplicate/overlap strokes retain their cuts.
+  color changes and differently colored overlap strokes retain their cuts.
   Old saved obsolete cuts normalize on read and persist on save. Undo/redo
   restores the corresponding cuts; snapping and closed areas follow the current
   geometry. A joined segment containing stationary geometry is not automatically
   selected by a transform. EN/IT/FR/ES Help describes the behavior.
 - Split actual editable strokes at finite cross/T intersections and collinear
-  overlap endpoints. Colors, direction and independent duplicate strokes are
-  preserved; the eraser can remove a single fragment between cuts. Existing
+  overlap endpoints before uniting same-color straight ink. Colors and the
+  earliest stroke direction are preserved; the eraser can remove a single
+  fragment between real cuts. Existing
   drawings receive cuts on read, persisted on save with transaction rollback.
 - Added Line with right-drag measurement and a single-length m/ft
   dialog for cursor-following placement. R rotates Line and Rectangle placement

@@ -22,6 +22,26 @@ interpolated colors.
 
 Current status:
 
+- Straight same-color overlaps/duplicates now form a geometric union in
+  plan_geometry.join_segments. After intersection/overlap splitting, identical
+  unordered endpoint/color pairs collapse while collecting all original source
+  indices. The degree-two continuation join then removes obsolete overlap cuts;
+  real T/cross branches, protected curve contacts, corners, gaps and different
+  colors remain separate. First input direction/order is retained. Existing
+  read/edit/transform/save normalization uses the same rule without schema
+  changes. This supersedes the earlier independent same-color duplicate policy;
+  curved duplicates and different-color overlays retain their prior behavior.
+  Selection provenance still prevents a joined stationary stroke being selected
+  for a subsequent move. A fully covered new line adds no redundant undo entry.
+  Verification: 1484 tests +475 subtests passed on native Windows in107.79s
+  (.private/overlap-full.txt). Added coverage for opposite-direction duplicates,
+  nested/partial overlaps, all72 five-degree orientations, real T/curve contacts,
+  source ownership, selection/eraser targets, undo/redo and save/reopen.
+  Essential Ruff and diff checks pass. No release rebuild or physical-mouse QA.
+- Grid's icon-free context menu has local themed symmetric item/menu padding,
+  removing the native style's empty icon gutter. Native Qt render checks cover
+  EN/IT/FR/ES, all four themes and UI100/125/150/175; measured text ink margins
+  differ by at most four physical pixels, including font bearings/antialiasing.
 - app_core/survey_grid.py validates optional grid_spacing_m metadata. New Survey
   stores physical grid size (default 1 m / 3 ft); inputs quantize to 0.1 m or 1 ft
   and unit switching reflects that quantization honestly. FloorplanView uses the
@@ -84,7 +104,7 @@ Current status:
   stale scene/document state; out-of-sheet edits are rejected without clipping.
 - plan_curve_geometry.py computes analytic line/circle/arc intersections,
   canonical cuts, source mappings and same-circle/color continuation joins.
-  Actual branches, gaps and independent duplicates remain separate. Work is
+  Actual branches, gaps and independent curved duplicates remain separate. Work is
   bounded by 40000 fragments and one million curve pair candidates. Exact stored
   arc endpoints survive shallow-arc calculations; tangent roots collapse to one
   contact instead of producing microscopic false crossings. Subarc sagittas are
@@ -179,9 +199,10 @@ Current status:
   collinear overlaps with a 1e-9-pixel point registry, preserved source identities
   and ordered cuts along the segment direction. A bounding-box sweep limits pair
   checks to 1000000; output fragment limits remain 40000. Pure orthogonal inputs
-  retain their previous sweep. Joins test collinearity/opposite rays, preserving
-  independent duplicates/colors/real gaps. Region walks use angularly sorted
-  neighbors; duplicate edges collapse only in the derived face graph. Complexity
+  retain their previous sweep. Joins test collinearity/opposite rays after
+  uniting same-color duplicate ink, preserving colors/real gaps. Region walks
+  use angularly sorted neighbors; remaining coincident differently colored or
+  curved edges collapse only in the derived face graph. Complexity
   overflow leaves no partial region result. No RF attenuation is inferred.
 - Oblique eraser picking uses finite projection distance; area selection clips
   the actual segment rather than its bounding box. Angled numeric/moving shapes
@@ -203,9 +224,9 @@ Current status:
   These use synthetic geometry/events, not physical pointer or frozen-app testing.
 - Obsolete cuts now rejoin through `join_segments` / `normalize_segments` in
   `survey/plan_geometry.py`. Normalization splits current intersections, then
-  joins same-color opposite-ray continuations only at vertices incident to
-  exactly two fragments. It does not bridge coordinate gaps or merge corners,
-  color transitions, T/cross junctions, overlaps or duplicate stroke identities.
+  unites same-color duplicate pieces, then joins opposite-ray continuations only
+  at vertices incident to exactly two unique fragments. It does not bridge
+  coordinate gaps or merge corners, color transitions or T/cross junctions.
   Components preserve earliest input order/direction/color. Source sets retain
   every input absorbed by an output; selection transforms retain only outputs
   entirely from transformed inputs, avoiding accidental later movement of any
@@ -221,7 +242,7 @@ Current status:
   Essential Ruff and diff checks pass; native QA uses synthetic events/geometry.
 - The expanded editor adds `survey/plan_geometry.py`: finite cross/T and collinear
   endpoint cuts, stable per-source color/direction/order, rigid translation and
-  exact quarter-turn geometry. Duplicate strokes remain independent. Cuts are
+  exact quarter-turn geometry. Differently colored overlaps remain independent. Cuts are
   idempotent; obsolete straight cuts rejoin after their junction disappears.
   `drawing_segments` normalizes older models on read without mutating metadata;
   edits and generated-plan materialization persist the pieces in the same JSON
@@ -258,13 +279,13 @@ Current status:
   pass; native QA uses synthetic geometry/events rather than physical OS pointer
   or packaged-EXE validation.
 - Point 6 is implemented by `survey/plan_regions.py`: an optimized orthogonal planar graph
-  derived from validated editable segments. Collinear overlaps/duplicates merge
-  only in the derived model; a sweep splits finite T/cross intersections. Directed
+  derived from validated editable segments. Remaining coincident edges collapse
+  in the derived model; a sweep splits finite T/cross intersections. Directed
   edge walks in angular order retain positive-area bounded faces. Winding union
   handles disconnected/nested perimeters and bridge walks without parity holes.
   Open tails, exterior walks and real gaps do not become closed areas. Coordinates
-  within 1e-9 scene pixels coalesce only to absorb float arithmetic noise; model
-  coordinates and independent erasable sides remain untouched. More than 100000
+  within 1e-9 scene pixels coalesce only to absorb float arithmetic noise; face
+  graph construction leaves its input model untouched. More than 100000
   intersection events yield no partial result, normal grid and a status message.
 - FloorplanView renders major/minor grid strokes as two input-transparent path
   batches. Normal exterior and 28%-opacity interior passes use cached clip paths
@@ -293,7 +314,7 @@ Current status:
 - Point 5 adds `survey/plan_erasing.py` (finite nearest-segment picking and closed
   area intersection) plus `qt_ui/qt_plan_eraser.py` (provisional gestures and red
   feedback). A click picks one nearest independent segment, with equal-distance
-  ties preferring the last drawn side. Overlapping duplicates remain independent;
+  ties preferring the last drawn side. Different-color overlaps remain independent;
   an area selects all touched sides, including boundary/crossing intersections.
   Erasing removes the complete current fragment. Selection is unsnapped, clipped to the
   sheet, with a 6-UI-pixel pick margin plus half the original stroke width.
