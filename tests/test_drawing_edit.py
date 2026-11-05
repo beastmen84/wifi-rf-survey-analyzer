@@ -168,7 +168,7 @@ def test_select_click_one_fragment_and_marquee_many_does_not_dirty(selection_edi
     QTest.mouseClick(app.floorplan_view.viewport(), Qt.MouseButton.RightButton, pos=point(app, 200, 100))
     assert selection.selected == (0,)
     QTest.mouseClick(app.floorplan_view.viewport(), Qt.MouseButton.RightButton, pos=point(app, 500, 400))
-    assert not selection.selected and not app.session.dirty
+    assert selection.selected == (0,) and not app.session.dirty
 
 
 def test_selected_rotation_is_one_undo_action_and_preserves_selection(selection_editor):

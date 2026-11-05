@@ -7,6 +7,17 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Added a per-survey grid square size to New Survey and a right-click Grid action
+  for later changes. Defaults are 1 m / 3 ft; inputs use tenths of a meter or
+  whole feet, with minimums of 0.1 m / 1 ft. The saved physical interval controls
+  both rendered grid lines and snapping; legacy surveys keep automatic spacing.
+- Select now picks nearby strokes first with a screen-space margin, or selects
+  the complete boundary when clicking inside a closed region. The measurement
+  panel shows the exact area in m²/ft², accounting for nested holes and circular
+  edges while excluding dangling strokes. Open-space clicks preserve selection.
+  Single segments show length, circles radius, and arcs length/radius/chord/
+  sagitta. Selection commands appear vertically, one per line; perimeter M/R/Del
+  and undo/redo use the existing shared history. Updated EN/IT/FR/ES Help.
 - Line right-drag now supports any direction, including diagonals, with a fixed
   starting point and a freely moving endpoint. Corner/edge/grid snapping, Alt,
   live length, editable intersections, closed areas and undo/redo remain active.

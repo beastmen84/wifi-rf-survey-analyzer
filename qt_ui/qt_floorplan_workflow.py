@@ -4,7 +4,7 @@ import os
 
 try:
     from PySide6.QtCore import QTimer
-    from PySide6.QtWidgets import QInputDialog, QMessageBox
+    from PySide6.QtWidgets import QInputDialog, QMessageBox, QMenu
 except ModuleNotFoundError as exc:
     print("PySide6 is required for main.py. Run: pip install -r requirements.txt")
     raise SystemExit(1) from exc
@@ -15,7 +15,8 @@ from app_core.constants import (
     GENERATED_FLOORPLAN_METADATA_KEY,
     MEASUREMENT_SYSTEM_METADATA_KEY,
 )
-from app_core.units import display_units_to_meters, format_scale_density, meters_to_display_units
+from app_core.units import display_units_to_meters, format_scale_density, meters_to_display_units, distance_unit_label
+from app_core.survey_grid import GRID_SPACING_KEY, survey_grid_spacing, grid_input_decimals, normalize_grid_spacing
 from qt_ui.default_floorplan import (
     default_floorplan_save_path,
     ensure_default_floorplan,
@@ -370,15 +371,21 @@ class FloorplanWorkflowMixin:
     def set_floorplan_grid_enabled(self, enabled, show_status=True):
         px_per_meter = self.get_px_per_meter()
         enabled = bool(enabled and px_per_meter and self.floorplan_view.has_floorplan())
+        try:
+            interval = survey_grid_spacing(self.session.metadata) if self.session else None
+        except (ValueError, TypeError):
+            interval = None
+            self.status.showMessage(self.tr("grid_invalid_spacing"))
         self.floorplan_view.set_grid(
             enabled,
             px_per_meter,
             self.measurement_system,
             self.floorplan_grid_color(),
-            self.tr("grid_scale_label", interval=format_grid_interval(px_per_meter, self.measurement_system))
+            self.tr("grid_scale_label", interval=format_grid_interval(px_per_meter, self.measurement_system, interval))
             if enabled
             else "",
             self.ui_scale,
+            interval_m=interval,
         )
         self.update_floorplan_grid_button_state()
         if hasattr(self, "plan_tools"):
@@ -414,9 +421,48 @@ class FloorplanWorkflowMixin:
             and not self.scan_in_progress
         )
         self.grid_button.setEnabled(can_show_grid)
+        self.grid_button.setToolTip(self.tr("grid_options_hint"))
         self.grid_button.blockSignals(True)
         self.grid_button.setChecked(bool(can_show_grid and self.floorplan_view.grid_visible))
         self.grid_button.blockSignals(False)
+
+    def show_grid_options(self, position):
+        if not self.grid_button.isEnabled():
+            return
+        menu = QMenu(self)
+        action = menu.addAction(self.tr("grid_size_action"))
+        action.triggered.connect(self.choose_grid_size)
+        menu.exec(self.grid_button.mapToGlobal(position))
+        menu.deleteLater()
+
+    def choose_grid_size(self):
+        if self.session is None or not self.grid_button.isEnabled():
+            return False
+        session = self.session
+        pixmap = self.floorplan_view.pixmap_item
+        current = self.floorplan_view.grid_interval_m
+        if current is None:
+            from qt_ui.qt_floorplan import choose_grid_interval_meters
+            current = choose_grid_interval_meters(self.get_px_per_meter(), self.measurement_system)
+        decimals = grid_input_decimals(self.measurement_system)
+        self.grid_dialog_open = True
+        try:
+            value, accepted = QInputDialog.getDouble(self, self.tr("grid_size_action"), self.tr("grid_size_prompt", unit=distance_unit_label(self.measurement_system)),
+                meters_to_display_units(current, self.measurement_system), 1 if decimals == 0 else .1,
+                10000, decimals, step=1 if decimals == 0 else .1)
+        finally:
+            self.grid_dialog_open = False
+        if not accepted or self.session is not session or self.floorplan_view.pixmap_item is not pixmap:
+            return False
+        spacing = normalize_grid_spacing(display_units_to_meters(value, self.measurement_system), self.measurement_system)
+        encoded = f"{spacing:.12g}"
+        if self.session.metadata.get(GRID_SPACING_KEY) == encoded:
+            return False
+        self.session.metadata[GRID_SPACING_KEY] = encoded
+        self.session.dirty = True
+        self.set_floorplan_grid_enabled(self.floorplan_view.grid_visible, show_status=False)
+        self.refresh_session_labels()
+        return True
 
     def can_use_boundaries_mode(self):
         return (

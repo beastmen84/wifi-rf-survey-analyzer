@@ -78,6 +78,11 @@ from these software checks.
   the eraser restores its normal grid; undo restores the closed appearance.
   This grid styling stays in the survey view and is not baked into exported maps.
   The shapes are visual plan geometry; RF findings still use measured data.
+- **Grid square size** is configurable in New Survey: default **1 m** or
+  **3 ft**, with **0.1 m** steps or **whole feet**. The physical size is saved in
+  the survey and used by the visible grid and every snap tool. Right-click the
+  main **Grid** button to change it later. Unit changes round to the input's
+  precision. Older surveys keep their automatic spacing until explicitly edited.
 - Intersections split editable strokes into individual fragments, including T
   joints and overlapping endpoints. Erase deletes only the chosen fragment.
   Line draws in any direction, including diagonals, by right-drag, or asks only for a length
@@ -89,6 +94,12 @@ from these software checks.
   with Esc. R also rotates during a move. The selection's box snaps to unselected
   geometry or the optional grid; Alt suspends snapping. Edits share undo/redo,
   recompute closed areas and survive save/reopen, including older drawings.
+  A click within about six screen pixels of a stroke picks the single fragment
+  first; a click farther inside a closed region selects all its boundary pieces
+  and shows its area in **m²/ft²**, including nested holes. Open-space clicks keep
+  the selection. Single lines show length, circles radius, and arcs length,
+  radius, chord and sagitta. Circular areas use analytic geometry. Selection
+  commands are listed one per line in the palette and measurement panel.
   If a move, rotation or erase removes a junction, contiguous straight fragments
   with the same color rejoin automatically. Cuts remain at real junctions,
   corners, gaps, color transitions and independent overlapping strokes.

@@ -14,6 +14,14 @@ MAX_INTERSECTIONS = 100000
 class PlanRegions:
     faces: tuple = ()
     limited: bool = False
+    boundaries: tuple = ()
+
+
+@dataclass(frozen=True)
+class RegionBoundary:
+    lines: frozenset
+    curves: frozenset
+    area: float
 
 
 def canonical_coordinates(values):

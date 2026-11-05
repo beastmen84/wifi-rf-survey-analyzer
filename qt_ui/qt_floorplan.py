@@ -122,6 +122,7 @@ class FloorplanView(QGraphicsView):
         self.grid_visible = False
         self.grid_px_per_meter = None
         self.grid_measurement_system = "metric"
+        self.grid_interval_m = None
         self.grid_color = "#3A6EA5"
         self.grid_label = ""
         self.grid_ui_scale = 1.0
@@ -817,10 +818,12 @@ class FloorplanView(QGraphicsView):
         color="#3A6EA5",
         label="",
         ui_scale=1.0,
+        interval_m=None,
     ):
         self.grid_visible = bool(visible and px_per_meter)
         self.grid_px_per_meter = float(px_per_meter) if px_per_meter else None
         self.grid_measurement_system = normalize_measurement_system(measurement_system)
+        self.grid_interval_m = float(interval_m) if interval_m is not None else None
         self.grid_color = color
         self.grid_label = str(label or "") if self.grid_visible else ""
         self.grid_ui_scale = max(0.5, float(ui_scale or 1.0))
@@ -894,7 +897,8 @@ class FloorplanView(QGraphicsView):
     def grid_spacing_pixels(self):
         if not self.grid_visible or not self.grid_px_per_meter:
             return None
-        return choose_grid_interval_meters(self.grid_px_per_meter, self.grid_measurement_system) * self.grid_px_per_meter
+        interval = self.grid_interval_m if self.grid_interval_m is not None else choose_grid_interval_meters(self.grid_px_per_meter, self.grid_measurement_system)
+        return interval * self.grid_px_per_meter
 
     def clear_grid_items(self):
         for item in self.grid_items:
@@ -1501,14 +1505,14 @@ def choose_grid_interval_meters(px_per_meter, measurement_system, min_spacing_px
     return METRIC_GRID_INTERVALS_M[-1]
 
 
-def format_grid_interval(px_per_meter, measurement_system):
+def format_grid_interval(px_per_meter, measurement_system, interval_m=None):
     measurement_system = normalize_measurement_system(measurement_system)
-    interval_m = choose_grid_interval_meters(px_per_meter, measurement_system)
+    interval_m = choose_grid_interval_meters(px_per_meter, measurement_system) if interval_m is None else interval_m
     value = meters_to_display_units(interval_m, measurement_system)
     if abs(value - round(value)) < 0.01:
         value_text = str(int(round(value)))
     else:
-        value_text = f"{value:.1f}".rstrip("0").rstrip(".")
+        value_text = f"{value:.3f}".rstrip("0").rstrip(".")
     return f"{value_text} {distance_unit_label(measurement_system)}"
 
 

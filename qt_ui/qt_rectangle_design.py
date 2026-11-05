@@ -115,7 +115,8 @@ class RectangleDesignController(QObject):
     def eventFilter(self, source, event):
         if source is self.view.viewport() and event.type() == QEvent.Type.Resize:
             self.position_measurement()
-        if source is self.owner and event.type() == QEvent.Type.WindowDeactivate and not (self.text.dialog_open or self.curve.dialog_open):
+        if source is self.owner and event.type() == QEvent.Type.WindowDeactivate and not (
+                self.text.dialog_open or self.curve.dialog_open or getattr(self.owner, "grid_dialog_open", False)):
             self.cancel()
         if event.type() == QEvent.Type.KeyRelease and event.key() == Qt.Key.Key_R and self.rotation.active:
             if not event.isAutoRepeat():

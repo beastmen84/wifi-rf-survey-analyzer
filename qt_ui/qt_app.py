@@ -483,6 +483,8 @@ class WifiHeatmapQtApp(
         self.calibrate_button = self.create_app_bar_button(self.start_scale_calibration)
         self.grid_button = self.create_app_bar_button(self.toggle_floorplan_grid, "appBarToggleButton")
         self.grid_button.setCheckable(True)
+        self.grid_button.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.grid_button.customContextMenuRequested.connect(self.show_grid_options)
         self.boundaries_button = self.create_app_bar_button(self.toggle_boundaries_mode, "appBarToggleButton")
         self.boundaries_button.setCheckable(True)
         self.delete_scale_button = QPushButton()

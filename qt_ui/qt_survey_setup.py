@@ -12,6 +12,7 @@ from app_core.units import (MEASUREMENT_SYSTEM_IMPERIAL, MEASUREMENT_SYSTEM_METR
     meters_to_display_units, display_units_to_meters, distance_unit_label)
 from qt_ui.default_floorplan import (default_blank_dimensions_m, BLANK_PLAN_MIN_METERS, BLANK_PLAN_MAX_METERS)
 from qt_ui.scaling import widget_px
+from app_core.survey_grid import default_grid_spacing_m, grid_input_decimals, normalize_grid_spacing
 from wifi.adapters import adapter_identity, adapter_name, list_wifi_adapters
 
 
@@ -101,11 +102,25 @@ class SurveySetupDialog(QDialog):
         self.set_blank_dimensions(*default_blank_dimensions_m(self.blank_units))
         self.blank_width_spin.valueChanged.connect(lambda value: self.remember_blank_dimension(0, value))
         self.blank_height_spin.valueChanged.connect(lambda value: self.remember_blank_dimension(1, value))
+        self.grid_size_spin = QDoubleSpinBox()
+        self.grid_size_spin.setObjectName("blankPlanDimension")
+        self.grid_size_spin.setKeyboardTracking(False)
+        self.grid_size_spin.setMinimumHeight(widget_px(app, 36))
+        self.grid_size_spin.setMinimumWidth(widget_px(app, 130))
+        self.grid_spacing_custom = False
+        self.set_grid_spacing(default_grid_spacing_m(self.blank_units))
+        self.grid_size_spin.valueChanged.connect(self.remember_grid_spacing)
         blank_fields.addRow(app.tr("blank_plan_width"), self.blank_width_spin)
         blank_fields.addRow(app.tr("blank_plan_height"), self.blank_height_spin)
+        blank_fields.addRow(app.tr("grid_square_size"), self.grid_size_spin)
         label_width = max(form.labelForField(self.units_combo).sizeHint().width() if not adapter_only else 0,
-                          form.labelForField(row).sizeHint().width())
-        for spin in (self.blank_width_spin, self.blank_height_spin):
+                          form.labelForField(row).sizeHint().width(),
+                          *(blank_fields.labelForField(spin).sizeHint().width()
+                            for spin in (self.blank_width_spin, self.blank_height_spin, self.grid_size_spin)))
+        form.labelForField(row).setMinimumWidth(label_width)
+        if not adapter_only:
+            form.labelForField(self.units_combo).setMinimumWidth(label_width)
+        for spin in (self.blank_width_spin, self.blank_height_spin, self.grid_size_spin):
             blank_fields.labelForField(spin).setMinimumWidth(label_width)
         blank_layout.addLayout(blank_fields)
         self.blank_hint = QLabel(app.tr("blank_plan_size_hint"))
@@ -193,12 +208,30 @@ class SurveySetupDialog(QDialog):
         self.blank_units = self.units_combo.currentData()
         self.set_blank_dimensions(*(self.blank_dimensions_m if self.blank_dimensions_custom
                                     else default_blank_dimensions_m(self.blank_units)))
+        self.set_grid_spacing(self.grid_spacing_m if self.grid_spacing_custom else default_grid_spacing_m(self.blank_units))
+
+    def set_grid_spacing(self, meters):
+        self.grid_spacing_m = normalize_grid_spacing(meters, self.blank_units)
+        spin = self.grid_size_spin
+        spin.blockSignals(True)
+        decimals = grid_input_decimals(self.blank_units)
+        spin.setDecimals(decimals)
+        spin.setRange(1 if decimals == 0 else .1, 10000)
+        spin.setSingleStep(1 if decimals == 0 else .1)
+        spin.setSuffix(" " + distance_unit_label(self.blank_units))
+        spin.setValue(meters_to_display_units(self.grid_spacing_m, self.blank_units))
+        spin.blockSignals(False)
+
+    def remember_grid_spacing(self, value):
+        self.grid_spacing_custom = True
+        self.grid_spacing_m = display_units_to_meters(value, self.blank_units)
 
     def options(self):
         adapter = self.selected_adapter() or {}
         result = {"measurement_system": self.units_combo.currentData(),
                   "adapter": {key: adapter.get(key, "") for key in ("id", "name", "description")}}
         if not self.adapter_only:
+            result["grid_spacing_m"] = self.grid_spacing_m
             result["blank_plan"] = {
                 "width_m": self.blank_dimensions_m[0], "height_m": self.blank_dimensions_m[1]}
         return result

@@ -208,7 +208,9 @@ def test_grid_toggle_updates_preview_without_changing_numeric_size(editor, qt_ap
 
 def test_grid_snap_uses_the_displayed_imperial_interval(editor, qt_app):
     window, controller = editor
+    from app_core.survey_grid import GRID_SPACING_KEY, default_grid_spacing_m
     window.measurement_system = "imperial"
+    window.session.metadata[GRID_SPACING_KEY] = str(default_grid_spacing_m("imperial"))
     window.plan_tools.snap_button.click()
     step = window.floorplan_view.grid_spacing_pixels()
     assert step == pytest.approx(.9144 * window.get_px_per_meter())

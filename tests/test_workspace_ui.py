@@ -1456,7 +1456,7 @@ class SurveySessionWorkflowTests(unittest.TestCase):
 
                 self.assertTrue(window.floorplan_view.grid_visible)
                 self.assertTrue(window.grid_button.isChecked())
-                self.assertEqual(window.floorplan_view.grid_label, "1 square = 5 m")
+                self.assertEqual(window.floorplan_view.grid_label, "1 square = 1 m")
                 self.assertGreater(len(window.floorplan_view.grid_items), 0)
 
                 window.toggle_floorplan_grid()

@@ -76,6 +76,8 @@ def dictionary(language):
     result.update(extensions_dictionary(language))
     from translations.plan_curves import dictionary as curves_dictionary
     result.update(curves_dictionary(language))
+    from translations.design_measurements import dictionary as measurements_dictionary
+    result.update(measurements_dictionary(language))
     result["blank_plan_help"] += " " + result["design_regions_help"]
     result["blank_plan_help"] += " " + result["drawing_edit_help"]
     result["blank_plan_help"] += " " + result["drawing_join_help"]
@@ -87,4 +89,5 @@ def dictionary(language):
     result["blank_plan_help"] += " " + result["circle_rotation_help"]
     result["blank_plan_help"] += " " + result["blank_plan_defaults_help"]
     result["blank_plan_help"] += " " + result["curve_precision_help"]
+    result["blank_plan_help"] += " " + result["design_measurements_help"]
     return result

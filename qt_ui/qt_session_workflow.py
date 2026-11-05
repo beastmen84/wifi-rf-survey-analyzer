@@ -25,6 +25,7 @@ from app_core.settings import (
     save_measurement_system,
 )
 from app_core.units import normalize_measurement_system
+from app_core.survey_grid import GRID_SPACING_KEY, default_grid_spacing_m, normalize_grid_spacing
 from ap.memory import count_memory_applied_groups, get_ap_memory_summary
 from qt_ui.qt_windowing import get_centered_open_file_name, get_centered_save_file_name
 from qt_ui.qt_survey_setup import SurveySetupDialog
@@ -61,6 +62,7 @@ class SurveySessionWorkflowMixin:
         self.session = SurveySession()
         self.plan_tools.set_open(False)
         self.set_session_measurement_system_metadata(self.measurement_system, mark_dirty=False)
+        self.session.metadata[GRID_SPACING_KEY] = f"{normalize_grid_spacing(options.get('grid_spacing_m', default_grid_spacing_m(self.measurement_system)), self.measurement_system):.12g}"
         if options.get("adapter"):
             self.session.set_capture_adapter(options["adapter"], mark_dirty=False)
         self.generated_floorplans_pending_delete = set()

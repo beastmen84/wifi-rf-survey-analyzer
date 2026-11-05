@@ -22,6 +22,31 @@ interpolated colors.
 
 Current status:
 
+- app_core/survey_grid.py validates optional grid_spacing_m metadata. New Survey
+  stores physical grid size (default 1 m / 3 ft); inputs quantize to 0.1 m or 1 ft
+  and unit switching reflects that quantization honestly. FloorplanView uses the
+  explicit interval for both its visible grid and every snap controller. Legacy
+  files without the key still choose automatic intervals. Grid's context menu
+  edits the current survey without changing its calibration or drawing geometry;
+  modal/scene guards reject stale results and preserve Design Mode state.
+- Select's lazy RegionPicker requests analytic half-edge boundaries with original
+  segment/curve source indices. Nearby finite strokes win over interior picking
+  using a six-screen-pixel margin plus stroke half-width. Interior picks choose
+  bounded faces; nested disconnected loops subtract immediate holes and include
+  their boundary pieces. Bridges traversed in both directions are excluded.
+  Coincident ink retains all source owners without doubling the area. Open-space
+  clicks leave the current selection intact; Esc clears it.
+- Face areas use Green's theorem with exact line cross-products and circular
+  segment contributions R²*(sweep-sin(sweep))/2, evaluated stably for shallow arcs.
+  Sampled polygons are only for containment/display. The shared PlanRegions adds
+  optional RegionBoundary source sets and analytic area, without changing saved
+  drawing schemas. Region selection caps containment work at 2000 faces and
+  inherits existing intersection/display complexity guards.
+- Selection HUD shows single-line length, circle radius, or arc length/radius/
+  chord/sagitta, and perimeters show net m²/ft². Units use the actual calibration
+  with a squared conversion for area. R/M previews preserve rigid area; after
+  commit the displayed area is rebound only if the selected pieces still match
+  a complete current region. Commands in both HUD and palette use one row each.
 - Line right-drag is free in both coordinates and uses the shared point snapper;
   the origin stays fixed, while the endpoint can snap to actual corners, finite
   edges or visible grid intersections. Numeric placement/rotation stay rigid.

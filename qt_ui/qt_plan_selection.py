@@ -15,6 +15,12 @@ from survey.plan_curves import curves_geometry, transform_curves, validate_curve
 from survey.plan_curve_geometry import normalize_plan
 from survey.plan_curve_rendering import curve_path
 from survey.curve_erasing import intersecting_curves
+from survey.plan_erasing import nearest_segment
+from survey.curve_erasing import nearest_curve
+from survey.planar_geometry import point_projection
+from survey.plan_curves import project_curve, curve_info
+from app_core.units import meters_to_display_units, distance_unit_label
+from qt_ui.qt_plan_region_selection import RegionPicker
 
 
 class PlanSelectionController:
@@ -32,6 +38,8 @@ class PlanSelectionController:
         self.move_anchor = None
         self.move_preview = []
         self.move_snapper = PlanSnapper()
+        self.region_picker = None
+        self.selected_region_area = None
 
     def reset_scene(self):
         self.highlights, self.area = [], None
@@ -41,6 +49,7 @@ class PlanSelectionController:
     def set_segments(self, lines):
         self.cancel()
         self.lines = lines
+        self.region_picker = None
 
     def cancel(self):
         active = self.origin is not None or self.moving or self.has_selection()
@@ -50,6 +59,7 @@ class PlanSelectionController:
         self.selected = ()
         self.selected_labels = ()
         self.selected_curves = ()
+        self.selected_region_area = None
         self.move_label_source, self.move_label_preview = [], []
         self.move_curve_source, self.move_curve_preview = [], []
         self.clear_items()
@@ -131,10 +141,12 @@ class PlanSelectionController:
             curves = self.selected_curve_shapes()
         return list(lines) + labels_geometry(labels) + curves_geometry(curves)
 
-    def set_selected(self, indices, label_indices=(), curve_indices=()):
+    def set_selected(self, indices, label_indices=(), curve_indices=(), *, region_area=None):
         self.selected = tuple(sorted(indices))
         self.selected_labels = tuple(sorted(label_indices))
         self.selected_curves = tuple(sorted(curve_indices))
+        self.selected_region_area = (self.regions().matching_area(self.selected, self.selected_curves)
+                                     if region_area is not None else None)
         self.show_lines([self.lines[index] for index in self.selected], labels=self.selected_texts(), curves=self.selected_curve_shapes())
         self.drawing.tools.update_tool_state()
 
@@ -146,18 +158,67 @@ class PlanSelectionController:
 
     def show_count(self, position):
         if self.has_selection():
-            text = self.owner.tr("selection_items_count").format(count=len(self.selected) + len(self.selected_labels) + len(self.selected_curves))
-            text += "\n" + self.owner.tr("selection_move_hint" if self.moving else "selection_keys_hint")
-            if not self.can_rotate():
-                text = self.owner.tr("selection_items_count").format(count=1) + "\n" + self.owner.tr(
-                    "circle_move_hint" if self.moving else "circle_selection_hint")
-            if len(self.selected_curves) == 1 and not (self.selected or self.selected_labels):
+            count = len(self.selected) + len(self.selected_labels) + len(self.selected_curves)
+            rows = []
+            if self.selected_region_area is not None:
+                rows.append(self.measure("selection_area", self.selected_region_area, power=2))
+            elif count == 1 and self.selected:
+                line = (self.move_preview[0] if self.moving and self.move_preview else self.lines[self.selected[0]])
+                rows.append(self.measure("line_length", math.hypot(line["x2"] - line["x1"], line["y2"] - line["y1"])))
+            elif count == 1 and self.selected_curves:
                 curve = self.move_curve_preview[0] if self.moving and self.move_curve_preview else self.selected_curve_shapes()[0]
-                self.drawing.curve.show_measurements(curve, position)
-                text = self.drawing.measurement.text() + "\n" + text
-            self.drawing.show_measurement(text, position)
+                _cx, _cy, radius, _start, sweep = curve_info(curve)
+                if curve["kind"] == "arc":
+                    rows.append(self.measure("selection_arc_length", radius * abs(sweep)))
+                rows.append(self.measure("curve_radius", radius))
+                if curve["kind"] == "arc":
+                    rows.append(self.measure("curve_chord", math.hypot(curve["x2"] - curve["x1"], curve["y2"] - curve["y1"])))
+                    rows.append(self.measure("curve_sagitta", curve["height"]))
+            rows.append(self.owner.tr("selection_items_count").format(count=count))
+            if self.moving:
+                rows.append(self.owner.tr("selection_action_place"))
+            if self.can_rotate():
+                rows.append(self.owner.tr("selection_action_rotate"))
+            if not self.moving:
+                rows.append(self.owner.tr("selection_action_move"))
+                if count == 1 and (self.selected_labels or self.selected_curves):
+                    rows.append(self.owner.tr("selection_action_edit"))
+            rows.extend(self.owner.tr(key) for key in ("selection_action_delete", "selection_action_cancel"))
+            self.drawing.show_measurement("\n".join(rows), position)
         else:
             self.drawing.measurement.hide()
+
+    def measure(self, key, pixels, power=1):
+        density = self.owner.get_px_per_meter()
+        value = pixels / density ** power * meters_to_display_units(1, self.owner.measurement_system) ** power
+        unit = distance_unit_label(self.owner.measurement_system) + ("²" if power == 2 else "")
+        return self.owner.tr(key) + ": " + self.drawing.measurement.locale().toString(value, "f", 2) + " " + unit
+
+    def regions(self):
+        if self.region_picker is None:
+            self.region_picker = RegionPicker(self.lines, self.drawing.curves())
+            if self.region_picker.limited:
+                self.owner.status.showMessage(self.owner.tr("design_regions_limited"))
+        return self.region_picker
+
+    def pick_stroke(self, point):
+        zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
+        tolerance = widget_px(self.owner, 6) / zoom + 1
+        x, y = point.x(), point.y()
+        curves = self.drawing.curves()
+        line_index = nearest_segment(self.lines, x, y, tolerance)
+        curve_index = nearest_curve(curves, x, y, tolerance)
+        choices = []
+        if line_index is not None:
+            line = self.lines[line_index]
+            projection = point_projection((x, y), (line["x1"], line["y1"]), (line["x2"], line["y2"]))
+            choices.append((math.dist((x, y), projection), 1, line_index))
+        if curve_index is not None:
+            choices.append((math.dist((x, y), project_curve(curves[curve_index], (x, y))), 0, curve_index))
+        if not choices:
+            return (), ()
+        _distance, kind, index = min(choices)
+        return ((index,), ()) if kind else ((), (index,))
 
     def press(self, event):
         self.last_pointer = event.position()
@@ -217,6 +278,7 @@ class PlanSelectionController:
             return True
         if self.origin is None:
             return True
+        region_area = None
         if self.dragged or (event.position() - self.press_position).manhattanLength() >= QApplication.startDragDistance():
             indices = self.show_area(event.position())
             label_indices = self.area_labels
@@ -224,12 +286,19 @@ class PlanSelectionController:
         else:
             hit = self.drawing.text.hit(self.origin)
             label_indices = (hit,) if hit is not None else ()
-            indices = () if label_indices else self.drawing.eraser.pick(self.origin)
-            curve_indices = () if label_indices or indices else self.drawing.eraser.pick_curves(self.origin)
+            indices, curve_indices = ((), ()) if label_indices else self.pick_stroke(self.origin)
+            if not (label_indices or indices or curve_indices):
+                region = self.regions().pick(self.origin)
+                if region is None:
+                    self.origin = self.press_position = None
+                    self.dragged = False
+                    self.show_count(event.position())
+                    return True  # Open space does not change the current selection.
+                indices, curve_indices, region_area = region.lines, region.curves, region.area
         self.origin = self.press_position = None
         self.dragged = False
         self.clear_items()
-        self.set_selected(indices, label_indices, curve_indices)
+        self.set_selected(indices, label_indices, curve_indices, region_area=region_area)
         self.show_count(event.position())
         return True
 
@@ -241,6 +310,7 @@ class PlanSelectionController:
         return left >= bounds.left() - 1e-7 and top >= bounds.top() - 1e-7 and right <= bounds.right() + 1e-7 and bottom <= bounds.bottom() + 1e-7
 
     def apply_transformed(self, transformed, transformed_labels=None, transformed_curves=None):
+        region_area = self.selected_region_area
         transformed_labels = self.selected_texts() if transformed_labels is None else transformed_labels
         transformed_curves = self.selected_curve_shapes() if transformed_curves is None else transformed_curves
         if not self.fits(self.geometry(transformed, transformed_labels, transformed_curves)):
@@ -250,7 +320,7 @@ class PlanSelectionController:
         if transformed == current and transformed_labels == self.selected_texts() and transformed_curves == self.selected_curve_shapes():
             previous, previous_labels, previous_curves = self.selected, self.selected_labels, self.selected_curves
             self.cancel()
-            self.set_selected(previous, previous_labels, previous_curves)
+            self.set_selected(previous, previous_labels, previous_curves, region_area=region_area)
             return False
         selected_indices = set(self.selected)
         others = [line for index, line in enumerate(self.lines) if index not in selected_indices]
@@ -268,12 +338,12 @@ class PlanSelectionController:
         other_labels = [label for index, label in enumerate(self.drawing.text.labels) if index not in self.selected_labels]
         changed = self.drawing.apply_edit(normalized, other_labels + list(transformed_labels), curves)
         if changed:
-            self.set_selected(selected, range(len(other_labels), len(other_labels) + len(transformed_labels)), selected_curves)
+            self.set_selected(selected, range(len(other_labels), len(other_labels) + len(transformed_labels)), selected_curves, region_area=region_area)
         elif self.moving:
             # A zero-offset placement finishes the preview without a history edit.
             previous, previous_labels, previous_curves = self.selected, self.selected_labels, self.selected_curves
             self.cancel()
-            self.set_selected(previous, previous_labels, previous_curves)
+            self.set_selected(previous, previous_labels, previous_curves, region_area=region_area)
         return changed
 
     def delete_selected(self):
