@@ -1,6 +1,8 @@
-"""Editable segment intersections and rigid orthogonal transformations."""
+"""Editable segment intersections and rigid planar transformations."""
 from bisect import bisect_left, bisect_right, insort
 from collections import defaultdict
+import math
+from survey.planar_geometry import cross, EPSILON, split_general_segments
 
 
 def split_segments(segments, with_sources=False, limit=40000):
@@ -9,6 +11,8 @@ def split_segments(segments, with_sources=False, limit=40000):
     Preserve stroke color, input order, direction and independent duplicates.
     This primitive only splits; normalize_segments also removes obsolete cuts.
     """
+    if any(line["x1"] != line["x2"] and line["y1"] != line["y2"] for line in segments):
+        return split_general_segments(segments, with_sources, limit)
     groups = defaultdict(list)
     keys = []
     for index, line in enumerate(segments):
@@ -98,14 +102,16 @@ def join_segments(segments, with_sources=False):
             continue
         first, second = incident
         a, b = segments[first], segments[second]
-        horizontal = a["y1"] == a["y2"]
-        if a["color"] != b["color"] or horizontal != (b["y1"] == b["y2"]):
+        if a["color"] != b["color"]:
             continue
-        axis = "x" if horizontal else "y"
-        coordinate = point[0] if horizontal else point[1]
-        a_other = a[axis + "2"] if a[axis + "1"] == coordinate else a[axis + "1"]
-        b_other = b[axis + "2"] if b[axis + "1"] == coordinate else b[axis + "1"]
-        if not (min(a_other, b_other) < coordinate < max(a_other, b_other)):
+        vectors = []
+        for item in (a, b):
+            start, end = (item["x1"], item["y1"]), (item["x2"], item["y2"])
+            other = end if start == point else start
+            vectors.append((other[0] - point[0], other[1] - point[1]))
+        va, vb = vectors
+        if (abs(cross(va, vb)) > EPSILON * math.hypot(*va) * math.hypot(*vb)
+                or va[0] * vb[0] + va[1] * vb[1] >= 0):
             continue  # Coincident duplicates leave in the same direction.
         parents[root(second)] = root(first)
 
@@ -116,12 +122,12 @@ def join_segments(segments, with_sources=False):
     for indices in sorted(components.values(), key=lambda group: group[0]):
         first = segments[indices[0]]
         merged = dict(first)
-        axis = "x" if first["y1"] == first["y2"] else "y"
-        values = [segments[index][axis + suffix] for index in indices for suffix in ("1", "2")]
-        low, high = min(values), max(values)
-        if first[axis + "1"] > first[axis + "2"]:
-            low, high = high, low
-        merged[axis + "1"], merged[axis + "2"] = low, high
+        dx, dy = first["x2"] - first["x1"], first["y2"] - first["y1"]
+        values = [(segments[index]["x" + suffix], segments[index]["y" + suffix])
+                  for index in indices for suffix in ("1", "2")]
+        low = min(values, key=lambda point: point[0] * dx + point[1] * dy)
+        high = max(values, key=lambda point: point[0] * dx + point[1] * dy)
+        merged.update(x1=low[0], y1=low[1], x2=high[0], y2=high[1])
         result.append(merged)
         sources.append(frozenset(indices))
     return (result, sources) if with_sources else result
@@ -149,19 +155,24 @@ def translate_segments(segments, dx, dy):
 
 def rotate_segments(segments, turns=1):
     """Rotate clockwise in screen coordinates about the selection's box center."""
+    return rotate_degrees(segments, turns * 90)
+
+
+def rotate_degrees(segments, degrees, pivot=None):
     if not segments:
         return []
-    if turns % 4 == 0:
+    angle = degrees % 360
+    if angle == 0:
         return [dict(line) for line in segments]
     left, top, right, bottom = segment_bounds(segments)
-    cx, cy = (left + right) / 2, (top + bottom) / 2
+    cx, cy = pivot if pivot is not None else ((left + right) / 2, (top + bottom) / 2)
+    cosine, sine = ((1, 0), (0, 1), (-1, 0), (0, -1))[int(angle // 90)] if angle % 90 == 0 else (
+        math.cos(math.radians(angle)), math.sin(math.radians(angle)))
     result = []
     for line in segments:
         updated = dict(line)
         for suffix in ("1", "2"):
             x, y = line["x" + suffix] - cx, line["y" + suffix] - cy
-            for _ in range(turns % 4):
-                x, y = -y, x
-            updated["x" + suffix], updated["y" + suffix] = cx + x, cy + y
+            updated["x" + suffix], updated["y" + suffix] = cx + x * cosine - y * sine, cy + x * sine + y * cosine
         result.append(updated)
     return result

@@ -19,8 +19,6 @@ def validate_segments(segments):
         coordinates = {key: float(segment[key]) for key in ("x1", "y1", "x2", "y2")}
         if any(not math.isfinite(value) or not 0 <= value <= 100000 for value in coordinates.values()):
             raise ValueError("Invalid plan segment coordinates")
-        if coordinates["x1"] != coordinates["x2"] and coordinates["y1"] != coordinates["y2"]:
-            raise ValueError("Plan segments must be horizontal or vertical")
         if coordinates["x1"] == coordinates["x2"] and coordinates["y1"] == coordinates["y2"]:
             raise ValueError("Empty plan segment")
         color = str(segment["color"])

@@ -2,6 +2,8 @@
 from bisect import bisect_left, bisect_right
 from dataclasses import dataclass
 import math
+from survey.planar_geometry import point_projection
+from survey.plan_geometry import segment_bounds
 
 
 @dataclass(frozen=True)
@@ -41,8 +43,10 @@ def nearest_grid(value, minimum, maximum, spacing):
 
 class PlanSnapper:
     def __init__(self, segments=()):
+        self.segments = list(segments)
+        self.oblique = [line for line in self.segments if line["x1"] != line["x2"] and line["y1"] != line["y2"]]
         self.vertical, self.horizontal, vertices = [], [], set()
-        for line in segments:
+        for line in self.segments:
             x1, y1, x2, y2 = (line[key] for key in ("x1", "y1", "x2", "y2"))
             vertices.update(((x1, y1), (x2, y2)))
             if x1 == x2:
@@ -88,6 +92,12 @@ class PlanSnapper:
         if corners:
             _, anchor_x, anchor_y, vx, vy = min(corners)
             return SnapResult(anchor_x, anchor_y, (SnapGuide("corner", (vx, vy)),))
+
+        diagonal = self.edge_translation([(x + dx, y + dy) for dx in x_offsets for dy in y_offsets], self.oblique,
+                                          (x, y, x + width, y + height), bounds, tolerance)
+        if diagonal is not None:
+            dx, dy, guide = diagonal
+            return SnapResult(x + dx, y + dy, (guide,))
 
         xs = self.axis_targets(x, y, height, x_offsets, self.vertical, self.v_positions,
                                left, max_x, tolerance, grid)
@@ -144,7 +154,7 @@ class PlanSnapper:
         ox, oy = origin
         if not all(math.isfinite(value) for value in origin) or not (left <= ox <= right and top <= oy <= bottom):
             raise ValueError("Invalid drag origin")
-        if any(guide.kind == "corner" for guide in direct.guides):
+        if any(guide.kind == "corner" or guide.axis == "line" for guide in direct.guides):
             return direct
         x, y = min(max(x, left), right), min(max(y, top), bottom)
         xs = self.axis_targets(x, min(oy, y), abs(y - oy), (0,), self.vertical, self.v_positions,
@@ -189,8 +199,68 @@ class PlanSnapper:
             return SnapResult(*point, (SnapGuide("corner", point),))
         lines, positions = (self.vertical, self.v_positions) if horizontal else (self.horizontal, self.h_positions)
         targets = self.axis_targets(value, fixed, 0, (0,), lines, positions, minimum, maximum, tolerance, grid)
+        for line in self.oblique:
+            a, b = (line["x1"], line["y1"]), (line["x2"], line["y2"])
+            fixed_axis = 1 if horizontal else 0
+            low, high = sorted((a[fixed_axis], b[fixed_axis]))
+            if low <= fixed <= high:
+                t = (fixed - a[fixed_axis]) / (b[fixed_axis] - a[fixed_axis])
+                candidate = a[1 - fixed_axis] + t * (b[1 - fixed_axis] - a[1 - fixed_axis])
+                if minimum <= candidate <= maximum and abs(candidate - value) <= tolerance:
+                    targets.append(AxisTarget(candidate, "edge", candidate, (*a, *b)))
         target = min(targets, key=lambda entry: (0 if entry.kind == "edge" else 1 if entry.kind == "grid" else 2,
                                                 abs(entry.value - value), entry.value))
         point = (target.value, fixed) if horizontal else (fixed, target.value)
         guide = () if not target.kind else (SnapGuide(target.kind, point, "x" if horizontal else "y", target.span),)
+        if len(target.span) == 4:
+            guide = (SnapGuide("edge", point, "line", target.span),)
         return SnapResult(*point, guide)
+
+    @staticmethod
+    def edge_translation(vertices, targets, box, bounds, tolerance):
+        choices = []
+        for point in vertices:
+            for line in targets:
+                if (point[0] < min(line["x1"], line["x2"]) - tolerance
+                        or point[0] > max(line["x1"], line["x2"]) + tolerance
+                        or point[1] < min(line["y1"], line["y2"]) - tolerance
+                        or point[1] > max(line["y1"], line["y2"]) + tolerance):
+                    continue
+                a, b = (line["x1"], line["y1"]), (line["x2"], line["y2"])
+                px, py = point_projection(point, a, b)
+                dx, dy = px - point[0], py - point[1]
+                distance = dx * dx + dy * dy
+                if (distance <= tolerance ** 2 and bounds[0] <= box[0] + dx
+                        and bounds[1] <= box[1] + dy and box[2] + dx <= bounds[2] and box[3] + dy <= bounds[3]):
+                    choices.append((distance, dx, dy, px, py, a, b))
+        if not choices:
+            return None
+        _, dx, dy, px, py, a, b = min(choices)
+        return dx, dy, SnapGuide("edge", (px, py), "line", (*a, *b))
+
+    def snap_geometry(self, segments, bounds, tolerance, grid=None):
+        """Rigidly snap real vertices of an angled shape, preserving its angle."""
+        box = segment_bounds(segments)
+        vertices = sorted({(line[x], line[y]) for line in segments for x, y in (("x1", "y1"), ("x2", "y2"))})
+        corners = []
+        for vx, vy in vertices:
+            for tx, ty in self.nearby(self.vertices, self.vertex_x, vx, tolerance):
+                dx, dy = tx - vx, ty - vy
+                distance = dx * dx + dy * dy
+                if (distance <= tolerance ** 2 and bounds[0] <= box[0] + dx and bounds[1] <= box[1] + dy
+                        and box[2] + dx <= bounds[2] and box[3] + dy <= bounds[3]):
+                    corners.append((distance, dx, dy, tx, ty))
+        if corners:
+            _, dx, dy, tx, ty = min(corners)
+            return SnapResult(dx, dy, (SnapGuide("corner", (tx, ty)),))
+        edge = self.edge_translation(vertices, self.segments, box, bounds, tolerance)
+        if edge:
+            dx, dy, guide = edge
+            return SnapResult(dx, dy, (guide,))
+        if grid and grid > 0:
+            vx, vy = segments[0]["x1"], segments[0]["y1"]
+            gx = nearest_grid(vx, bounds[0] + vx - box[0], bounds[2] + vx - box[2], grid)
+            gy = nearest_grid(vy, bounds[1] + vy - box[1], bounds[3] + vy - box[3], grid)
+            if gx is not None and gy is not None:
+                return SnapResult(gx - vx, gy - vy, (SnapGuide("grid", (gx, gy)),))
+        return SnapResult(0, 0)

@@ -22,6 +22,51 @@ interpolated colors.
 
 Current status:
 
+- `qt_plan_rotation.py` distinguishes R tap/release (legacy 90-degree action)
+  from held-R pointer orbit (5-degree quantization). It freezes actual geometry
+  about the snapshot bounding-box center, draws a cosmetic pivot/ray/preview and
+  equivalent gesture angles such as (+315 degrees / -45 degrees). No model/history
+  mutation occurs while held. Mouse drag threshold and a 12-UI-pixel center dead
+  zone prevent jitter; key auto-repeat releases do not end the gesture. Releasing
+  R commits one static selection action or updates an uncommitted numeric/moving
+  preview. The cursor grip is rebound at release to avoid a translation jump.
+  Esc restores the original preview/selection; mode exit/deactivation/scene
+  replacement cancel transient state. Mouse presses/releases, pan and zoom cannot
+  place or translate during rotation. Frozen-center out-of-sheet orientations are
+  red and rejected rather than clipped or silently translated.
+- Numeric Rectangle uses a path preview with rect() bounding-box compatibility,
+  intrinsic dimensions, angle and cursor offset. Numeric Line stores a full
+  angle while retaining the turns property for cardinal compatibility. Direct
+  drags remain axis-locked. R tap swaps Rectangle dimensions or increments Line's
+  angle by 90; held gestures retain side/line lengths. Rotation around static or
+  moving selected segments uses the same immutable geometry snapshot. Zero-size
+  in-progress rectangle drags render provisionally without validating a shape.
+- `survey/planar_geometry.py` supports finite arbitrary-angle crossings, T and
+  collinear overlaps with a 1e-9-pixel point registry, preserved source identities
+  and ordered cuts along the segment direction. A bounding-box sweep limits pair
+  checks to 1000000; output fragment limits remain 40000. Pure orthogonal inputs
+  retain their previous sweep. Joins test collinearity/opposite rays, preserving
+  independent duplicates/colors/real gaps. Region walks use angularly sorted
+  neighbors; duplicate edges collapse only in the derived face graph. Complexity
+  overflow leaves no partial region result. No RF attenuation is inferred.
+- Oblique eraser picking uses finite projection distance; area selection clips
+  the actual segment rather than its bounding box. Angled numeric/moving shapes
+  snap via real vertices and finite edge projections, then optional grid, using
+  rigid translation with angle/length unchanged. Axis drags can meet oblique
+  edges. Cosmetic guides show the finite target; no empty rotated-box corner is
+  treated as a vertex. Persistence/render workers/PNG/HTML use the same coordinate
+  model. Optional drawing JSON version 1 and survey schema 2 stay unchanged;
+  old clients that only edit orthogonal drawings cannot edit oblique strokes.
+  Verification: final native Windows suite 865 tests + 475 subtests (81.02 s).
+  Focused geometry/gesture/i18n checks passed 214 + 434 subtests (22.64 s);
+  final focused zero-height/rotation/i18n checks passed 136 + 434 (10.45 s).
+  Tests cover all 72 five-degree orientations, lengths, crossed/overlapping
+  polygons, near-vertical cut order, erased-box false positives, real-vertex
+  snapping, orbit quantization, frozen pivots, auto-repeat, dead zone, cancellation,
+  limits, save/reopen and actual oblique Live/Analysis HTML pixels. Native source
+  Qt QA passes 64 theme/language/tool gesture cases plus 16 readout/scale cases
+  (100-175%, all four palette notes fit). Essential Ruff and diff checks pass.
+  These use synthetic geometry/events, not physical pointer or frozen-app testing.
 - Obsolete cuts now rejoin through `join_segments` / `normalize_segments` in
   `survey/plan_geometry.py`. Normalization splits current intersections, then
   joins same-color opposite-ray continuations only at vertices incident to
@@ -53,7 +98,7 @@ Current status:
   one-spin numeric modal and cursor-following exact-length placement. R rotates
   numeric line previews through four cardinal directions. Rectangle numeric R
   swaps width/height. Both preserve dimensions; orientations that cannot fit are
-  rejected. Direct line commits validate finite axis-aligned sheet bounds.
+  rejected. Direct line commits validate finite endpoints within sheet bounds.
 - `qt_plan_selection.py` selects one fragment or all touched by a right-drag
   area, highlights them blue and supports R (90 degrees around the selection box
   center) and M (rigid cursor-following preview, right press to place). R can
@@ -78,7 +123,7 @@ Current status:
   selection-move pixels against stale baked PNGs. Essential Ruff and diff checks
   pass; native QA uses synthetic geometry/events rather than physical OS pointer
   or packaged-EXE validation.
-- Point 6 is implemented by `survey/plan_regions.py`: an orthogonal planar graph
+- Point 6 is implemented by `survey/plan_regions.py`: an optimized orthogonal planar graph
   derived from validated editable segments. Collinear overlaps/duplicates merge
   only in the derived model; a sweep splits finite T/cross intersections. Directed
   edge walks in angular order retain positive-area bounded faces. Winding union
@@ -169,7 +214,7 @@ Current status:
   Esc cancels the draft first and exits only when no draft remains; deactivation,
   session replacement or mode exit cancels provisional geometry.
 - `survey/plan_drawing.py` validates optional version-1 `plan_drawing` metadata
-  within schema 2: finite, axis-aligned pixel segments and strict RGB colors.
+  within schema 2: finite nonzero pixel segments and strict RGB colors.
   Each rectangle starts with four sides in survey/map coordinates; actual
   intersections split these into independent editable fragments.
   Drawing undo/redo retains up to 50 in-session placement/deletion actions. Only committed edits

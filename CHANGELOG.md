@@ -7,6 +7,19 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Added two R gestures: tap/release for 90 degrees, or hold R and orbit the fixed
+  orange center in 5-degree steps. The readout shows equivalent positive/negative
+  angles. Releasing R applies the gesture; Esc cancels it. Numeric Line/Rectangle
+  previews and selected/moving groups keep their center frozen while rotating;
+  cursor following resumes without a position jump. Auto-repeat and the center
+  dead zone do not introduce extra turns; clicks/panning/zoom are blocked during
+  the gesture. Invalid out-of-sheet orientations appear red and are rejected.
+- Extended editable geometry to oblique strokes: real finite intersections,
+  collinear rejoining, point/area erasing, snapping to real vertices/finite
+  projections and closed-face detection. Orthogonal data keeps its optimized
+  geometry path. Rotation preserves dimensions and remains one undo action;
+  current PNG/Live/HTML backgrounds include committed oblique geometry. Updated
+  contextual notes and Help in EN/IT/FR/ES; dependencies/schema/version unchanged.
 - Rejoin contiguous, collinear fragments of the same color when a move, rotation
   or erase removes their junction. Real T/cross junctions, corners, erased gaps,
   color changes and independent duplicate/overlap strokes retain their cuts.

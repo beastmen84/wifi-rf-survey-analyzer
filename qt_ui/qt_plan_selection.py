@@ -249,13 +249,22 @@ class PlanSelectionController:
         x = min(max(x, bounds.left()), bounds.right() - (right - left))
         y = min(max(y, bounds.top()), bounds.bottom() - (bottom - top))
         self.drawing.snap_guides = ()
-        if not bypass and not self.drawing.snap_bypass:
+        if not bypass and not self.drawing.snap_bypass and not any(
+                line["x1"] != line["x2"] and line["y1"] != line["y2"] for line in source):
             zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
             result = self.move_snapper.snap(x, y, right - left, bottom - top,
                 (bounds.left(), bounds.top(), bounds.right(), bounds.bottom()), widget_px(self.owner, 10) / zoom,
                 self.view.grid_spacing_pixels() if self.drawing.tools.snap_button.isChecked() else None)
             x, y, self.drawing.snap_guides = result.x, result.y, result.guides
         self.move_preview = translate_segments(source, x - left, y - top)
+        if any(line["x1"] != line["x2"] and line["y1"] != line["y2"] for line in self.move_preview):
+            self.move_preview = self.drawing.snap_shape(self.move_preview, bypass, self.move_snapper)
+            left, top, right, bottom = segment_bounds(self.move_preview)
+            x, y = left, top
+            self.show_lines(self.move_preview, moving=True)
+            self.drawing.show_snap_guides(QRectF(left, top, right - left, bottom - top))
+            self.show_count(position)
+            return
         self.show_lines(self.move_preview, moving=True)
         self.drawing.show_snap_guides(QRectF(x, y, right - left, bottom - top))
         self.show_count(position)

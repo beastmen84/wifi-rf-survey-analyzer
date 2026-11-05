@@ -351,7 +351,7 @@ def test_rotation_during_a_new_selection_gesture_does_not_transform_old_selectio
     assert selection.selected == (0,) and not app.session.dirty
 
 
-@pytest.mark.parametrize("geometry", [QLineF(10, 10, 30, 30), QLineF(-10, 10, 30, 10),
+@pytest.mark.parametrize("geometry", [QLineF(float("nan"), 10, 30, 30), QLineF(-10, 10, 30, 10),
                                      QLineF(10, 10, 10000, 10)])
 def test_invalid_line_commit_does_not_mutate_model_or_history(editor, geometry):
     app, drawing = editor

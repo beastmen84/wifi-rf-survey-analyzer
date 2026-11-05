@@ -1,6 +1,14 @@
 """Additional segment editing controls and help in the four UI languages."""
 LANGUAGES = ("en", "it", "fr", "es")
 TEXT = {
+    "rotation_angle": ("Rotation", "Rotazione", "Rotation en cours", "Rotación"),
+    "rotation_outside_hint": ("Outside sheet · Esc cancels", "Fuori dal foglio · Esc annulla",
+                              "Hors de la feuille · Échap annule", "Fuera de la hoja · Esc cancela"),
+    "rotation_hold_help": (
+        "Tap and release R for 90°. Hold R and move the mouse around the orange center for 5° steps. The object freezes in place during the gesture, with the current gesture's equivalent positive/negative angle displayed, for example (+315° / -45°). Release R to apply; Esc restores the previous orientation. This works for selected segments and cursor-following Line/Rectangle previews, including a moving selection. The center stays fixed: an orientation outside the sheet is shown red and rejected. Oblique segments remain editable, snappable and erasable; intersections, rejoining, closed areas, saves and exports use their real geometry.",
+        "Premi e rilascia R per 90°. Tieni R e muovi il mouse attorno al centro arancione per scatti di 5°. Durante il gesto l'oggetto resta fermo e compare l'angolo equivalente positivo/negativo del gesto corrente, per esempio (+315° / -45°). Rilascia R per applicare; Esc ripristina l'orientamento precedente. Vale per i tratti selezionati e le anteprime di Linea/Rettangolo che seguono il cursore, anche durante uno spostamento. Il centro resta fisso: un orientamento fuori dal foglio appare rosso e viene rifiutato. I tratti obliqui restano modificabili, agganciabili e cancellabili; incroci, ricongiungimenti, aree chiuse, salvataggi ed export usano la geometria reale.",
+        "Appuyez puis relâchez R pour 90°. Maintenez R et déplacez la souris autour du centre orange par pas de 5°. L'objet reste fixe pendant le geste ; ses angles équivalents positif/négatif sont affichés, par exemple (+315° / -45°). Relâchez R pour appliquer ; Échap restaure l'orientation précédente. Cela fonctionne pour les segments sélectionnés et les aperçus Ligne/Rectangle, même pendant un déplacement. Le centre reste fixe : une orientation hors de la feuille apparaît en rouge et est refusée. Les segments obliques restent modifiables, alignables et effaçables ; intersections, jonctions, zones fermées, enregistrement et exports utilisent leur géométrie réelle.",
+        "Pulsa y suelta R para 90°. Mantén R y mueve el ratón alrededor del centro naranja en pasos de 5°. El objeto queda fijo durante el gesto y se muestran sus ángulos equivalentes positivo/negativo, por ejemplo (+315° / -45°). Suelta R para aplicar; Esc restaura la orientación anterior. Funciona en segmentos seleccionados y vistas previas de Línea/Rectángulo, también al mover. El centro permanece fijo: una orientación fuera de la hoja aparece roja y se rechaza. Los segmentos oblicuos siguen siendo editables, ajustables y borrables; intersecciones, uniones, áreas cerradas, guardados y exportaciones usan su geometría real."),
     "drawing_join_help": (
         "When moving, rotating or erasing removes a junction, contiguous straight fragments of the same color rejoin automatically. Real T/cross junctions, corners, gaps, color transitions and overlapping duplicate strokes stay separate. Undo restores the junction and its cuts. If a moved fragment joins stationary geometry, that combined segment is not automatically selected for another move.",
         "Quando uno spostamento, una rotazione o la gomma eliminano una giunzione, i tratti contigui sulla stessa retta e dello stesso colore si ricongiungono automaticamente. Giunzioni a T o a croce, angoli, spazi vuoti, cambi di colore e tratti duplicati sovrapposti restano separati. Annulla ripristina la giunzione e i suoi tagli. Se un tratto spostato si unisce a geometria rimasta ferma, il segmento combinato non viene selezionato automaticamente per un altro spostamento.",
@@ -15,7 +23,8 @@ TEXT = {
         "Inserisci la lunghezza, poi muovi l'anteprima e posizionala col destro. R ruota di 90°; Esc annulla.",
         "Saisissez une longueur, déplacez l'aperçu et placez-le par clic droit. R tourne de 90° ; Échap annule.",
         "Introduce la longitud, mueve la vista previa y colócala con clic derecho. R gira 90°; Esc cancela."),
-    "design_rotate_hint": ("R: rotate 90°", "R: ruota di 90°", "R : tourner de 90°", "R: girar 90°"),
+    "design_rotate_hint": ("Tap R: 90° · Hold + mouse: 5°", "Tocco R: 90° · Tieni + mouse: 5°",
+                           "R bref : 90° · Maintenir + souris : 5°", "Toque R: 90° · Mantén + ratón: 5°"),
     "design_rotation_outside": (
         "This rotation does not fit the sheet. Move the selection or use another orientation.",
         "La rotazione non entra nel foglio. Sposta la selezione o usa un altro orientamento.",
@@ -27,15 +36,15 @@ TEXT = {
         "La modification dépasse les limites du dessin. Le dessin existant est conservé.",
         "La edición supera los límites del dibujo. Se conserva el dibujo existente."),
     "line_tools_note": (
-        "Right-drag draws a horizontal or vertical line with live length. Right-click enters its length, then click again to place. R rotates the moving preview; Alt suspends snapping. Esc cancels.",
-        "Trascina col destro per una linea orizzontale o verticale con misura. Clic destro per inserire la lunghezza, poi ancora per posizionare. R ruota l'anteprima; Alt sospende gli agganci. Esc annulla.",
-        "Glissez avec le bouton droit pour une ligne horizontale ou verticale mesurée. Clic droit pour sa longueur, puis pour placer. R tourne l'aperçu ; Alt suspend l'alignement. Échap annule.",
-        "Arrastra con el derecho para una línea horizontal o vertical con medida. Clic derecho para la longitud y de nuevo para colocar. R gira la vista previa; Alt suspende el ajuste. Esc cancela."),
+        "Right-drag draws an axis-locked line. Right-click enters length, then click again to place. Tap R: 90°; hold R + mouse: 5° steps around the fixed center. Alt bypasses snapping; Esc cancels.",
+        "Trascina col destro per una linea sugli assi. Clic destro per la lunghezza, poi ancora per posizionare. Tocco R: 90°; tieni R + mouse: scatti di 5° sul centro fisso. Alt sospende gli agganci; Esc annulla.",
+        "Glissez avec le bouton droit pour une ligne sur les axes. Clic droit pour sa longueur, puis pour placer. R bref : 90° ; maintenez R + souris : pas de 5° autour du centre fixe. Alt suspend l'alignement ; Échap annule.",
+        "Arrastra con el derecho para una línea sobre los ejes. Clic derecho para la longitud y de nuevo para colocar. Toque R: 90°; mantén R + ratón: pasos de 5° sobre el centro fijo. Alt suspende el ajuste; Esc cancela."),
     "selection_tools_note": (
-        "Right-click selects a segment; right-drag selects touched segments. R rotates the selection 90°. M starts a cursor-following move; right-click places it. R also rotates while moving. Esc cancels; left-drag pans.",
-        "Clic destro seleziona un tratto; trascinando selezioni quelli toccati. R ruota di 90°. M avvia lo spostamento col cursore; clic destro posiziona. R ruota anche durante lo spostamento. Esc annulla; il sinistro sposta la vista.",
-        "Clic droit pour un segment ; glissez pour les segments touchés. R tourne de 90°. M déplace la sélection avec le pointeur ; clic droit pour placer. R tourne aussi pendant le déplacement. Échap annule ; le bouton gauche déplace la vue.",
-        "Clic derecho selecciona un tramo; arrastra para los tramos tocados. R gira 90°. M mueve la selección con el cursor; clic derecho la coloca. R también gira al mover. Esc cancela; el izquierdo desplaza la vista."),
+        "Right-click selects; right-drag selects touched segments. Tap R: 90°; hold R + mouse: 5° steps about the fixed center. M moves with the cursor; right-click places. R also works while moving. Esc cancels; left-drag pans.",
+        "Clic destro seleziona; trascinando selezioni i tratti toccati. Tocco R: 90°; tieni R + mouse: scatti di 5° sul centro fisso. M sposta col cursore; clic destro posiziona. R vale anche nello spostamento. Esc annulla; il sinistro sposta la vista.",
+        "Clic droit pour sélectionner ; glissez pour les segments touchés. R bref : 90° ; maintenez R + souris : pas de 5° autour du centre fixe. M déplace avec le pointeur ; clic droit place. R fonctionne aussi en déplacement. Échap annule ; le bouton gauche déplace la vue.",
+        "Clic derecho selecciona; arrastra para los tramos tocados. Toque R: 90°; mantén R + ratón: pasos de 5° sobre el centro fijo. M mueve con el cursor; clic derecho coloca. R funciona también al mover. Esc cancela; el izquierdo desplaza la vista."),
     "selection_count": ("Selected segments: {count}", "Tratti selezionati: {count}",
                         "Segments sélectionnés : {count}", "Tramos seleccionados: {count}"),
     "selection_keys_hint": ("R: rotate · M: move", "R: ruota · M: sposta", "R : tourner · M : déplacer", "R: girar · M: mover"),

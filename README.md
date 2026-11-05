@@ -52,7 +52,7 @@ from these software checks.
 - Blank-sheet dimensions are converted when switching m/ft and preserved with
   the generated PNG on save/reopen. Loading an external floor plan replaces the
   sheet and uses that plan's calibration. The blank sheet has a bottom-left
-  Design Mode toolbar for axis-aligned rectangles: right-drag shows live m/ft
+  Design Mode toolbar for rectangles: right-drag shows live m/ft
   dimensions; a right-click opens exact dimensions, followed by another
   right-click to place the preview. Left-drag pans. Color and undo/redo are
   available. Nearby corners and edges snap automatically, with orange target
@@ -86,6 +86,13 @@ from these software checks.
   If a move, rotation or erase removes a junction, contiguous straight fragments
   with the same color rejoin automatically. Cuts remain at real junctions,
   corners, gaps, color transitions and independent overlapping strokes.
+  Tap and release **R** for a 90-degree turn. Hold **R** and move around the
+  orange center for **5-degree steps**: the object stays frozen in place and
+  shows equivalent angles such as `(+315° / -45°)`. Release R to apply, or Esc
+  to restore its previous orientation. This works on selections, moving groups
+  and Line/Rectangle placement previews. Out-of-sheet orientations appear red
+  and are rejected. Rotated oblique strokes retain real intersections, snapping,
+  partial erasing, closed-area detection and saved/exported geometry.
 - Measurement-point capture with repeated Wi-Fi scans.
 - Fixed receiver selection, a short preparation and five scan attempts, followed
   by an explicit Save, Repeat or Discard review. Review and reports distinguish

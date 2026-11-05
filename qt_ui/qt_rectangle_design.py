@@ -2,21 +2,35 @@
 import math
 
 from PySide6.QtCore import QEvent, QObject, QPointF, QRectF, Qt
-from PySide6.QtGui import QColor, QPen, QPixmap
+from PySide6.QtGui import QColor, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import (QApplication, QDialog, QDialogButtonBox, QDoubleSpinBox,
     QAbstractSpinBox, QComboBox, QFormLayout, QGraphicsEllipseItem, QGraphicsLineItem,
-    QGraphicsRectItem, QLabel, QLineEdit, QPlainTextEdit, QTextEdit, QVBoxLayout)
+    QGraphicsPathItem, QLabel, QLineEdit, QPlainTextEdit, QTextEdit, QVBoxLayout)
 
 from app_core.units import distance_unit_label, display_units_to_meters, meters_to_display_units
 from survey.plan_drawing import PLAN_DRAWING_KEY, drawing_segments, encode_drawing, rectangle_segments
 from survey.plan_snapping import PlanSnapper, SnapResult
 from survey.plan_regions import PlanRegions, closed_plan_regions
-from survey.plan_geometry import normalize_segments
+from survey.plan_geometry import normalize_segments, rotate_degrees, segment_bounds, translate_segments
 from survey.plan_drawing import validate_segments
 from qt_ui.scaling import widget_px
 from qt_ui.qt_plan_eraser import PlanEraserController
 from qt_ui.qt_line_design import LineDesignController
 from qt_ui.qt_plan_selection import PlanSelectionController
+from qt_ui.qt_plan_rotation import PlanRotationController
+
+
+class RectanglePreview(QGraphicsPathItem):
+    def set_geometry(self, lines, rect):
+        self.geometry_rect = QRectF(rect)
+        path = QPainterPath()
+        for line in lines:
+            path.moveTo(line["x1"], line["y1"])
+            path.lineTo(line["x2"], line["y2"])
+        self.setPath(path)
+
+    def rect(self):
+        return QRectF(self.geometry_rect)
 
 
 class RectangleSizeDialog(QDialog):
@@ -74,6 +88,8 @@ class RectangleDesignController(QObject):
         self.last_pointer = None
         self.undo_stack, self.redo_stack = [], []
         self.preview = None
+        self.pending_angle = 0
+        self.placement_offset = QPointF()
         self.origin = self.press_position = self.pending_size = self.last_size = None
         self.dragged = self.consume_release = False
         self.measurement = QLabel(self.view.viewport())
@@ -83,6 +99,7 @@ class RectangleDesignController(QObject):
         self.eraser = PlanEraserController(self)
         self.line = LineDesignController(self)
         self.selection = PlanSelectionController(self)
+        self.rotation = PlanRotationController(self)
         self.owner.installEventFilter(self)
         self.view.installEventFilter(self)
         self.view.viewport().installEventFilter(self)
@@ -90,6 +107,10 @@ class RectangleDesignController(QObject):
     def eventFilter(self, source, event):
         if source is self.owner and event.type() == QEvent.Type.WindowDeactivate:
             self.cancel()
+        if event.type() == QEvent.Type.KeyRelease and event.key() == Qt.Key.Key_R and self.rotation.active:
+            if not event.isAutoRepeat():
+                self.rotation.finish()
+            return True
         if (self.tools.open and event.type() in (QEvent.Type.KeyPress, QEvent.Type.KeyRelease)
                 and event.key() == Qt.Key.Key_Alt):
             self.snap_bypass = event.type() == QEvent.Type.KeyPress
@@ -103,13 +124,10 @@ class RectangleDesignController(QObject):
             if event.isAutoRepeat():
                 return True
             if event.key() == Qt.Key.Key_R:
-                if self.tools.active_tool == "rectangle" and self.pending_size:
-                    return self.rotate_preview()
-                if self.tools.active_tool == "line":
-                    return self.line.rotate()
-                if self.tools.active_tool == "select":
-                    return self.selection.rotate()
+                return self.rotation.begin()
             elif self.tools.active_tool == "select":
+                if self.rotation.active:
+                    return True
                 return self.selection.begin_move()
         return super().eventFilter(source, event)
 
@@ -122,6 +140,7 @@ class RectangleDesignController(QObject):
                 self.preview = None
                 self.items = []
                 self.snap_items = []
+                self.rotation.reset_scene()
                 self.eraser.reset_scene()
                 self.line.reset_scene()
                 self.selection.reset_scene()
@@ -142,6 +161,7 @@ class RectangleDesignController(QObject):
         return drawing_segments(self.owner.session.metadata) if self.owner.session else None
 
     def redraw(self):
+        self.rotation.cancel()
         self.eraser.cancel()
         self.line.cancel()
         self.selection.cancel()
@@ -173,13 +193,15 @@ class RectangleDesignController(QObject):
             self.items.append(item)
 
     def cancel(self):
-        states = (self.eraser.cancel(), self.line.cancel(), self.selection.cancel(),
+        states = (self.rotation.cancel(), self.eraser.cancel(), self.line.cancel(), self.selection.cancel(),
                   self.origin is not None, self.pending_size is not None)
         existed = any(states)
         if self.preview is not None:
             self.view.scene.removeItem(self.preview)
             self.preview = None
         self.origin = self.press_position = self.pending_size = None
+        self.pending_angle = 0
+        self.placement_offset = QPointF()
         self.dragged = self.consume_release = False
         self.last_pointer = None
         self.snap_bypass = False
@@ -188,6 +210,8 @@ class RectangleDesignController(QObject):
         return existed
 
     def hide_preview(self):
+        if self.rotation.active:
+            return
         self.eraser.hide_preview()
         self.line.hide_preview()
         self.selection.hide_preview()
@@ -215,7 +239,15 @@ class RectangleDesignController(QObject):
 
     def pointer_rect(self, point, bypass=False):
         if self.pending_size:
+            point = point + self.placement_offset
             width, height = self.pending_size
+            if self.pending_angle:
+                local = rotate_degrees(rectangle_segments(0, 0, width, height, self.tools.stroke_color.name()), self.pending_angle)
+                left, top, right, bottom = segment_bounds(local)
+                local = translate_segments(local, point.x() - left, point.y() - top)
+                lines = self.snap_shape(local, bypass)
+                left, top, right, bottom = segment_bounds(lines)
+                return QRectF(left, top, right - left, bottom - top)
             result = self.snap_position(point, width, height, bypass)
             self.snap_guides = result.guides
             return QRectF(result.x, result.y, width, height)
@@ -225,6 +257,8 @@ class RectangleDesignController(QObject):
         return QRectF(self.origin, point).normalized()
 
     def refresh_snap(self):
+        if self.rotation.active:
+            return
         if self.tools.active_tool == "line":
             self.line.refresh_snap()
             return
@@ -266,6 +300,11 @@ class RectangleDesignController(QObject):
                     line = QGraphicsLineItem(min(rect.left(), guide.span[0]), y, max(rect.right(), guide.span[1]), y)
                 line.setPen(pen)
                 additions.append(line)
+            elif guide.axis == "line" and len(guide.span) == 4:
+                line = QGraphicsLineItem(*guide.span)
+                pen.setStyle(Qt.PenStyle.DotLine)
+                line.setPen(pen)
+                additions.append(line)
             for item in additions:
                 item.setZValue(9)
                 item.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
@@ -274,18 +313,18 @@ class RectangleDesignController(QObject):
 
     def show_preview(self, rect, position):
         if self.preview is None:
-            self.preview = QGraphicsRectItem()
+            self.preview = RectanglePreview()
             self.preview.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
             self.preview.setZValue(8)
             self.view.scene.addItem(self.preview)
-        self.preview.setRect(rect)
+        self.preview.set_geometry(self.rectangle_geometry(rect), rect)
         pen = QPen(self.tools.stroke_color, 2, Qt.PenStyle.DashLine)
         self.preview.setPen(pen)
         self.preview.show()
         self.show_snap_guides(rect)
         density = self.owner.get_px_per_meter()
         values = [meters_to_display_units(value / density, self.owner.measurement_system)
-                  for value in (rect.width(), rect.height())]
+                  for value in (self.pending_size if self.pending_size else (rect.width(), rect.height()))]
         numbers = [self.measurement.locale().toString(value, "f", 2) for value in values]
         text = f"{numbers[0]} × {numbers[1]} {distance_unit_label(self.owner.measurement_system)}"
         if self.pending_size:
@@ -305,6 +344,8 @@ class RectangleDesignController(QObject):
         self.measurement.raise_()
 
     def press(self, event):
+        if self.rotation.active:
+            return True
         if event.button() != Qt.MouseButton.RightButton:
             return False
         if self.tools.active_tool == "eraser":
@@ -331,6 +372,9 @@ class RectangleDesignController(QObject):
         return True
 
     def move(self, event):
+        if self.rotation.active:
+            self.rotation.move(event.position())
+            return True
         if self.tools.active_tool == "eraser":
             return self.eraser.move(event)
         if self.tools.active_tool == "line":
@@ -353,6 +397,8 @@ class RectangleDesignController(QObject):
         return False
 
     def release(self, event):
+        if self.rotation.active:
+            return True
         if event.button() != Qt.MouseButton.RightButton:
             return False
         if self.tools.active_tool == "eraser":
@@ -398,13 +444,44 @@ class RectangleDesignController(QObject):
         if rect.width() <= 0 or rect.height() <= 0 or not self.view.scene.sceneRect().contains(rect):
             raise ValueError("Rectangle is outside the sheet")
         previous = list(self.segments() or [])
-        lines = rectangle_segments(rect.x(), rect.y(), rect.width(), rect.height(), self.tools.stroke_color.name())
+        lines = self.rectangle_geometry(rect)
         self.apply_edit(previous + lines)
+
+    def rectangle_geometry(self, rect):
+        if rect.width() == 0 or rect.height() == 0:
+            if rect.width() == rect.height() == 0:
+                return []
+            return [dict(x1=rect.left(), y1=rect.top(), x2=rect.right(), y2=rect.bottom(),
+                         color=self.tools.stroke_color.name())]
+        if self.pending_size and self.pending_angle:
+            width, height = self.pending_size
+            local = rotate_degrees(rectangle_segments(0, 0, width, height, self.tools.stroke_color.name()), self.pending_angle)
+            left, top, _, _ = segment_bounds(local)
+            return translate_segments(local, rect.x() - left, rect.y() - top)
+        return rectangle_segments(rect.x(), rect.y(), rect.width(), rect.height(), self.tools.stroke_color.name())
+
+    def snap_shape(self, lines, bypass=False, snapper=None):
+        bounds = self.view.scene.sceneRect()
+        left, top, right, bottom = segment_bounds(lines)
+        dx = min(max(left, bounds.left()), bounds.right() - (right - left)) - left
+        dy = min(max(top, bounds.top()), bounds.bottom() - (bottom - top)) - top
+        lines = translate_segments(lines, dx, dy)
+        self.snap_guides = ()
+        if not bypass and not self.snap_bypass:
+            zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
+            result = (snapper or self.snapper).snap_geometry(lines,
+                (bounds.left(), bounds.top(), bounds.right(), bounds.bottom()), widget_px(self.owner, 10) / zoom,
+                self.view.grid_spacing_pixels() if self.tools.snap_button.isChecked() else None)
+            self.snap_guides = result.guides
+            lines = translate_segments(lines, result.x, result.y)
+        return lines
 
     def rotate_preview(self):
         width, height = self.pending_size
         bounds = self.view.scene.sceneRect()
-        if height > bounds.width() or width > bounds.height():
+        rotated = rotate_degrees(rectangle_segments(0, 0, height, width, self.tools.stroke_color.name()), self.pending_angle)
+        left, top, right, bottom = segment_bounds(rotated)
+        if right - left > bounds.width() or bottom - top > bounds.height():
             self.owner.status.showMessage(self.owner.tr("design_rotation_outside"))
             return True
         self.pending_size = self.last_size = (height, width)

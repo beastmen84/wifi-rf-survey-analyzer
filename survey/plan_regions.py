@@ -1,8 +1,9 @@
-"""Bounded faces of a finite orthogonal segment graph, without raster closure."""
+"""Bounded faces of finite segment graphs, without raster closure."""
 from bisect import bisect_left, bisect_right, insort
 from collections import defaultdict
 from dataclasses import dataclass
 import math
+from survey.planar_geometry import split_general_segments
 
 # This only absorbs arithmetic noise in derived geometry, never edits the model.
 COORDINATE_EPSILON = 1e-9
@@ -52,7 +53,7 @@ def direction(origin, point):
 
 
 def closed_plan_regions(segments, max_intersections=MAX_INTERSECTIONS):
-    """Return all bounded faces of validated axis-aligned segments.
+    """Return all bounded faces, with an optimized path for axis-aligned data.
 
     Merge duplicates/collinear overlaps, split T/cross intersections, then walk
     directed edges in angular order. Positive-area walks bound finite faces;
@@ -62,6 +63,17 @@ def closed_plan_regions(segments, max_intersections=MAX_INTERSECTIONS):
     """
     if not segments:
         return PlanRegions()
+    if any(line["x1"] != line["x2"] and line["y1"] != line["y2"] for line in segments):
+        try:
+            pieces = split_general_segments(segments, limit=len(segments) + 2 * max_intersections)
+        except ValueError:
+            return PlanRegions(limited=True)
+        graph = defaultdict(set)
+        for line in pieces:
+            a, b = (line["x1"], line["y1"]), (line["x2"], line["y2"])
+            graph[a].add(b)
+            graph[b].add(a)
+        return PlanRegions(tuple(walk_faces(graph)))
     xs = canonical_coordinates(line[key] for line in segments for key in ("x1", "x2"))
     ys = canonical_coordinates(line[key] for line in segments for key in ("y1", "y2"))
     horizontal, vertical = defaultdict(list), defaultdict(list)
@@ -105,7 +117,11 @@ def closed_plan_regions(segments, max_intersections=MAX_INTERSECTIONS):
             for a, b in zip(points, points[1:]):
                 graph[a].add(b)
                 graph[b].add(a)
-    neighbors = {point: sorted(adjacent, key=lambda other: direction(point, other))
+    return PlanRegions(tuple(walk_faces(graph)))
+
+
+def walk_faces(graph):
+    neighbors = {point: sorted(adjacent, key=lambda other: math.atan2(other[1] - point[1], other[0] - point[0]))
                  for point, adjacent in graph.items()}
     visited, faces = set(), []
     for start, adjacent in neighbors.items():
@@ -124,4 +140,4 @@ def closed_plan_regions(segments, max_intersections=MAX_INTERSECTIONS):
                                  for a, b in zip(face, face[1:] + face[:1]))
                 if area > 0:
                     faces.append(tuple(face))
-    return PlanRegions(tuple(faces))
+    return faces

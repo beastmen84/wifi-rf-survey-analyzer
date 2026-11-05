@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (QApplication, QDialog, QDialogButtonBox, QDoubleS
 
 from app_core.units import distance_unit_label, display_units_to_meters, meters_to_display_units
 from qt_ui.scaling import widget_px
+from survey.plan_geometry import rotate_degrees, segment_bounds
 
 
 class LineSizeDialog(QDialog):
@@ -48,6 +49,7 @@ class LineDesignController:
         self.origin = self.press_position = self.last_pointer = None
         self.pending_length = self.last_length = None
         self.turns = 0
+        self.placement_offset = QPointF()
         self.preview = None
         self.dragged = self.consume_release = False
 
@@ -56,12 +58,21 @@ class LineDesignController:
         self.cancel()
         self.last_length = None
 
+    @property
+    def turns(self):
+        return self.angle / 90
+
+    @turns.setter
+    def turns(self, turns):
+        self.angle = (turns * 90) % 360
+
     def cancel(self):
         active = self.origin is not None or self.pending_length is not None
         if self.preview is not None:
             self.view.scene.removeItem(self.preview)
             self.preview = None
         self.origin = self.press_position = self.last_pointer = self.pending_length = None
+        self.placement_offset = QPointF()
         self.dragged = self.consume_release = False
         self.drawing.clear_snap_guides()
         self.drawing.measurement.hide()
@@ -75,8 +86,14 @@ class LineDesignController:
     def geometry(self, point, bypass=False):
         bounds = self.view.scene.sceneRect()
         if self.pending_length is not None:
-            dx, dy = ((1, 0), (0, 1), (-1, 0), (0, -1))[self.turns % 4]
-            dx, dy = dx * self.pending_length, dy * self.pending_length
+            point = point + self.placement_offset
+            local = rotate_degrees([dict(x1=0, y1=0, x2=self.pending_length, y2=0, color="#000000")], self.angle, (0, 0))[0]
+            dx, dy = local["x2"], local["y2"]
+            if self.angle % 90:
+                lines = self.drawing.snap_shape([dict(local, x1=point.x(), y1=point.y(),
+                    x2=point.x() + dx, y2=point.y() + dy)], bypass)
+                line = lines[0]
+                return QLineF(line["x1"], line["y1"], line["x2"], line["y2"])
             result = self.drawing.snap_position(QPointF(point.x() + min(0, dx), point.y() + min(0, dy)),
                                                  abs(dx), abs(dy), bypass)
             self.drawing.snap_guides = result.guides
@@ -118,8 +135,10 @@ class LineDesignController:
             raise ValueError("Line does not fit the sheet")
         self.cancel()
         self.pending_length = self.last_length = length
-        if length > (bounds.width() if self.turns % 2 == 0 else bounds.height()):
-            self.turns = (self.turns + 1) % 4
+        local = rotate_degrees([dict(x1=0, y1=0, x2=length, y2=0, color="#000000")], self.angle)
+        left, top, right, bottom = segment_bounds(local)
+        if right - left > bounds.width() or bottom - top > bounds.height():
+            self.turns = 0 if length <= bounds.width() else 1
         point = anchor if anchor is not None else bounds.center()
         self.last_pointer = QPointF(self.view.mapFromScene(point))
         self.show_preview(self.geometry(point), self.last_pointer)
@@ -128,8 +147,9 @@ class LineDesignController:
         if self.pending_length is None:
             return False
         bounds = self.view.scene.sceneRect()
-        extent = bounds.height() if self.turns % 2 == 0 else bounds.width()
-        if self.pending_length > extent:
+        local = rotate_degrees([dict(x1=0, y1=0, x2=self.pending_length, y2=0, color="#000000")], self.angle + 90)
+        left, top, right, bottom = segment_bounds(local)
+        if right - left > bounds.width() or bottom - top > bounds.height():
             self.owner.status.showMessage(self.owner.tr("design_rotation_outside"))
             return True
         self.turns = (self.turns + 1) % 4
@@ -195,9 +215,8 @@ class LineDesignController:
     def commit(self, line):
         bounds = self.view.scene.sceneRect()
         if (not all(math.isfinite(value) for value in (line.x1(), line.y1(), line.x2(), line.y2()))
-                or not bounds.contains(line.p1()) or not bounds.contains(line.p2())
-                or (line.x1() != line.x2() and line.y1() != line.y2())):
-            raise ValueError("Line is outside the sheet or not axis-aligned")
+                or not bounds.contains(line.p1()) or not bounds.contains(line.p2())):
+            raise ValueError("Line is outside the sheet")
         if line.length() > 0:
             segment = dict(x1=line.x1(), y1=line.y1(), x2=line.x2(), y2=line.y2(),
                            color=self.drawing.tools.stroke_color.name())

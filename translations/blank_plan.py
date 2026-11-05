@@ -42,10 +42,10 @@ TEXT = {
         "Al arrastrar un rectángulo, sus lados móviles también se alinean con lados cercanos de otras formas, aunque el cursor los sobrepase; las guías naranjas muestran la alineación. La esquina inicial queda fija. La cuadrícula se atenúa dentro de perímetros realmente cerrados por los segmentos actuales, incluidas formas unidas o superpuestas. Borrar un lado exterior abre el área y restaura la cuadrícula normal; Deshacer restaura el cierre. Los huecos abiertos siguen abiertos. Es una ayuda visual y no añade atenuación RF de paredes."),
     "blank_tool_color": ("Stroke color", "Colore del tratto", "Couleur du trait", "Color del trazo"),
     "blank_tools_note": (
-        "Right-drag draws and aligns the moving sides; right-click sets dimensions. Shapes snap automatically; the grid button adds grid snapping. Alt suspends snapping. Esc cancels, then exits.",
-        "Trascina col destro: si allineano anche i lati mobili. Clic destro per le misure. Aggancio automatico alle forme; il pulsante griglia aggiunge lo snap al reticolo. Alt sospende gli agganci. Esc annulla, poi esce.",
-        "Glissez avec le bouton droit pour tracer et aligner les côtés mobiles ; cliquez pour les dimensions. Alignement automatique sur les formes ; le bouton grille ajoute le quadrillage. Alt suspend l'alignement. Échap annule, puis quitte.",
-        "Arrastra con el botón derecho para dibujar y alinear los lados móviles; haz clic para las medidas. Ajuste automático a formas; el botón cuadrícula añade la rejilla. Alt suspende el ajuste. Esc cancela y después sale."),
+        "Right-drag draws; right-click sets dimensions. In placement: tap R for 90°, hold R + mouse for 5° steps. Shapes snap automatically; the grid button adds grid snapping. Alt bypasses; Esc cancels, then exits.",
+        "Trascina col destro; clic destro per le misure. Nel posizionamento: tocco R per 90°, tieni R + mouse per scatti di 5°. Aggancio automatico alle forme; il pulsante griglia aggiunge lo snap al reticolo. Alt sospende; Esc annulla, poi esce.",
+        "Glissez avec le bouton droit ; cliquez pour les dimensions. Au placement : R bref pour 90°, maintenez R + souris par pas de 5°. Alignement automatique sur les formes ; le bouton grille ajoute le quadrillage. Alt suspend ; Échap annule, puis quitte.",
+        "Arrastra con el derecho; clic derecho para las medidas. Al colocar: toque R para 90°, mantén R + ratón en pasos de 5°. Ajuste automático a formas; el botón cuadrícula añade la rejilla. Alt suspende; Esc cancela y después sale."),
     "rectangle_size_title": ("Rectangle dimensions", "Dimensioni del rettangolo", "Dimensions du rectangle", "Dimensiones del rectángulo"),
     "rectangle_size_hint": ("Enter the dimensions, then right-click the sheet to place the preview. Esc cancels placement.",
         "Inserisci le misure, poi fai clic destro sul foglio per posizionare l'anteprima. Esc annulla il posizionamento.",
@@ -70,4 +70,5 @@ def dictionary(language):
     result["blank_plan_help"] += " " + result["design_regions_help"]
     result["blank_plan_help"] += " " + result["drawing_edit_help"]
     result["blank_plan_help"] += " " + result["drawing_join_help"]
+    result["blank_plan_help"] += " " + result["rotation_hold_help"]
     return result

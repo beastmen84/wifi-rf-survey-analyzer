@@ -1258,6 +1258,10 @@ class FloorplanView(QGraphicsView):
         return super().viewportEvent(event)
 
     def wheelEvent(self, event):
+        controller = getattr(self, "rectangle_design", None)
+        if controller is not None and controller.rotation.active:
+            event.accept()
+            return
         self.hide_point_tooltip()
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             if event.angleDelta().y() > 0:
@@ -1277,6 +1281,10 @@ class FloorplanView(QGraphicsView):
         super().wheelEvent(event)
 
     def mousePressEvent(self, event):
+        controller = getattr(self, "rectangle_design", None)
+        if controller is not None and controller.rotation.active:
+            event.accept()
+            return
         self.hide_point_tooltip()
         if self.design_mode_active and event.button() == Qt.MouseButton.RightButton:
             controller = getattr(self, "rectangle_design", None)
@@ -1371,6 +1379,10 @@ class FloorplanView(QGraphicsView):
         super().mouseDoubleClickEvent(event)
 
     def mouseReleaseEvent(self, event):
+        controller = getattr(self, "rectangle_design", None)
+        if controller is not None and controller.rotation.active:
+            event.accept()
+            return
         if self.design_mode_active and event.button() == Qt.MouseButton.RightButton:
             controller = getattr(self, "rectangle_design", None)
             if controller is not None:

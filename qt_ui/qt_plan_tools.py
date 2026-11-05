@@ -139,6 +139,9 @@ class PlanToolsOverlay(QFrame):
         self.position_controls()
 
     def on_escape(self):
+        if self.controller.rotation.active:
+            self.controller.rotation.cancel()
+            return
         if not self.controller.cancel():
             self.set_open(False)
 

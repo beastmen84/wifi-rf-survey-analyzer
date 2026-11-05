@@ -200,7 +200,7 @@ def test_live_export_escapes_names_and_passes_the_boundary_mask_to_shared_render
     assert all(resource.startswith("data:") for resource in ReportDOM(html).resources)
 
 
-@pytest.mark.parametrize("operation", ["draw", "erase", "move", "line"])
+@pytest.mark.parametrize("operation", ["draw", "erase", "move", "line", "oblique"])
 def test_both_workspace_html_exports_include_current_editable_shapes(analysis_window, tmp_path, operation):
     window = analysis_window
     image = tmp_path / "drawing.png"
@@ -231,11 +231,11 @@ def test_both_workspace_html_exports_include_current_editable_shapes(analysis_wi
         selection.set_selected(range(4))
         assert selection.apply_transformed(translate_segments(lines, 0, 80))
         window.plan_tools.set_open(False)
-    elif operation == "line":
+    elif operation in ("line", "oblique"):
         from PySide6.QtCore import QLineF
         from PySide6.QtGui import QColor
         window.plan_tools.stroke_color = QColor("#d84315")
-        window.plan_tools.controller.line.commit(QLineF(50, 180, 80, 180))
+        window.plan_tools.controller.line.commit(QLineF(50, 180, 80, 210 if operation == "oblique" else 180))
     expected = (255, 255, 255) if operation in ("erase", "move") else (216, 67, 21)
     bottom = (255, 255, 255) if operation == "move" else (216, 67, 21)
     wait_for_analysis(window.analysis_view)
@@ -249,6 +249,8 @@ def test_both_workspace_html_exports_include_current_editable_shapes(analysis_wi
             assert export.call_args.args[3].getpixel((150, 180)) == (216, 67, 21)
         if operation == "line":
             assert export.call_args.args[3].getpixel((60, 180)) == (216, 67, 21)
+        if operation == "oblique":
+            assert export.call_args.args[3].getpixel((60, 190)) == (216, 67, 21)
     assert Path(analysis).is_file()
     window.live_ssid_combo.addItem("Office")
     window.live_ssid_combo.setCurrentText("Office")
@@ -265,4 +267,6 @@ def test_both_workspace_html_exports_include_current_editable_shapes(analysis_wi
             assert export.call_args.args[1].getpixel((150, 180)) == (216, 67, 21)
         if operation == "line":
             assert export.call_args.args[1].getpixel((60, 180)) == (216, 67, 21)
+        if operation == "oblique":
+            assert export.call_args.args[1].getpixel((60, 190)) == (216, 67, 21)
     assert Path(live).is_file()
