@@ -40,7 +40,8 @@ from ap.groups import (
     normalize_ap_role,
     is_ap_group_confirmed,
 )
-from ap.memory import apply_ap_memory_to_groups, update_ap_memory_from_groups
+from ap.memory import (apply_ap_memory_to_groups, update_ap_memory_from_groups,
+                       load_ap_memory, restore_physical_confirmation)
 from wifi.band import get_row_band
 from wifi.evidence import PROVENANCE_FIELDS, finite_number, integer, valid_signal
 from wifi.adapters import CAPTURE_ADAPTER_KEY, adapter_identity
@@ -342,6 +343,8 @@ class SurveySession:
                 "physical_confirmed": is_ap_group_confirmed(group),
                 "role": normalize_ap_role(group.get("role")),
             }
+            if group.get("physical_confirmation_revoked"):
+                clean_group["physical_confirmation_revoked"] = True
             position = normalize_ap_position(group.get("position"))
             if position:
                 clean_group["position"] = position
@@ -388,6 +391,10 @@ class SurveySession:
             self.metadata.get("map_file", ""),
         )
         groups = merge_auto_ap_group_fragments(groups, self.rows)
+        # Healing can reconstruct an exact known membership from MAC fragments.
+        records = load_ap_memory().get("groups", [])
+        for group in groups:
+            restore_physical_confirmation(group, records)
 
         return self.set_ap_groups(groups, update_memory=update_memory)
 

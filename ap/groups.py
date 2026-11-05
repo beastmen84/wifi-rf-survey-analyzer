@@ -253,6 +253,7 @@ def build_manual_ap_group(
     memory_applied_at="",
     memory_match_bssids=None,
     physical_confirmed=None,
+    physical_confirmation_revoked=False,
 ):
     clean_bssids = sorted({
         normalize_bssid(bssid)
@@ -270,6 +271,8 @@ def build_manual_ap_group(
         "physical_confirmed": bool(locked) if physical_confirmed is None else bool(physical_confirmed),
         "role": normalize_ap_role(role),
     }
+    if physical_confirmation_revoked:
+        invalidate_ap_group_confirmation(group)
 
     clean_position = normalize_ap_position(position)
     if clean_position:
@@ -354,6 +357,7 @@ def merge_new_bssids_into_manual_groups(manual_groups, rows):
             memory_applied_at=group.get(AP_MEMORY_APPLIED_AT_KEY, ""),
             memory_match_bssids=group.get(AP_MEMORY_MATCH_BSSIDS_KEY, []),
             physical_confirmed=is_ap_group_confirmed(group),
+            physical_confirmation_revoked=group.get("physical_confirmation_revoked", False),
         )
         for group in manual_groups
     ]
@@ -486,6 +490,7 @@ def merge_compatible_ap_group_fragments(group_id, groups):
         memory_applied_at=memory_applied_at,
         memory_match_bssids=memory_match_bssids,
         physical_confirmed=False,  # Automatic healing does not confirm physical identity.
+        physical_confirmation_revoked=any(group.get("physical_confirmation_revoked") for group in groups),
     )
 
 
@@ -564,7 +569,14 @@ def build_bssid_to_manual_group_map(manual_groups, *, confirmed_only=False):
 
 def is_ap_group_confirmed(group):
     """Legacy explicit manual groups stay valid; new auto groups need confirmation."""
-    return bool(group.get("physical_confirmed", group.get("locked", True)))
+    return not group.get("physical_confirmation_revoked", False) and bool(
+        group.get("physical_confirmed", group.get("locked", True)))
+
+
+def invalidate_ap_group_confirmation(group):
+    """An explicit edit/revocation must survive subsequent automatic memory refresh."""
+    group["physical_confirmed"] = False
+    group["physical_confirmation_revoked"] = True
 
 
 def resolve_ap_group_key(bssid, bssid_group_map=None):

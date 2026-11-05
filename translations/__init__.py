@@ -28,6 +28,7 @@ for _language, _dictionary in TRANSLATIONS.items():
     _dictionary.update(capture_dictionary(_language))
     _dictionary.update(measurement_dictionary(_language))
     _dictionary.update(blank_plan_dictionary(_language))
+    _dictionary["help_ap_groups_body"] += _dictionary["advisor_group_confirmation_help"]
 
 LANGUAGE_LABELS = {
     "it": IT_LANGUAGE_LABEL,

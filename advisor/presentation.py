@@ -23,7 +23,7 @@ def finding_html(finding, report, language, interactive=False, browser=False):
         body[1:3] = [f'<p class="muted">{safe(tr(finding.severity))}'
             f'{" · " + safe(finding.band) + " GHz" if finding.band else ""}</p>']
     for metric, value in finding.metrics.items():
-        if metric == "neighbor_ids":
+        if metric in {"neighbor_ids", "evidence_group_ids"}:
             continue
         if isinstance(value, float):
             value = f"{value:.1f}"
@@ -39,7 +39,8 @@ def finding_html(finding, report, language, interactive=False, browser=False):
                         if interactive and point_id in index else safe(label) + " · ")
         body.append("</p>")
         refs = set(finding.point_ids)
-        groups = set(finding.group_ids) | set(finding.metrics.get("neighbor_ids", ()))
+        groups = (set(finding.group_ids) | set(finding.metrics.get("neighbor_ids", ()))
+                  | set(finding.metrics.get("evidence_group_ids", ())))
         readings = {}
         for row in report.readings:
             if (row.point_id not in refs or (finding.band and row.band != finding.band

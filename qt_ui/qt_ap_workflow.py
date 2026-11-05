@@ -9,6 +9,7 @@ except ModuleNotFoundError as exc:
 from qt_ui.qt_ap_groups import open_qt_ap_group_manager
 from qt_ui.qt_floorplan import format_ap_tooltip
 from ap.memory import clear_group_memory_flag
+from ap.groups import invalidate_ap_group_confirmation
 
 
 class ApWorkflowMixin:
@@ -46,6 +47,8 @@ class ApWorkflowMixin:
         updated = False
         for group in groups:
             if str(group.get("group_id", "")) == str(group_id):
+                if group.get("position") != {"x": int(x), "y": int(y)}:
+                    invalidate_ap_group_confirmation(group)
                 group["position"] = {"x": int(x), "y": int(y)}
                 group["locked"] = True
                 clear_group_memory_flag(group)

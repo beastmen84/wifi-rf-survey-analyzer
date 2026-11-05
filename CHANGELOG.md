@@ -7,6 +7,18 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Replaced the physical AP confirmation command inside Alias with an accessible
+  first-column circle in AP Group Manager. Click or press Space to toggle approval;
+  green with a check means confirmed. Real changes to BSSIDs, alias, role, position
+  or metadata clear approval; unchanged values keep it. Save persists the state.
+- AP Memory now remembers physical approval for an exact BSSID membership.
+  Changed/subset groups and explicit local revocations cannot inherit approval;
+  historical MAC unions never count as a confirmed device. Older memory files
+  remain readable and need an initial explicit approval.
+- Analysis asks once per unconfirmed group transmitting a relevant SSID, with
+  evidence from its real BSSIDs. Unrelated networks remain separate RF neighbors
+  without requiring identity confirmation; incomplete radio evidence still blocks
+  precise channel proposals. Updated all four UI/Help/report languages.
 - Added two R gestures: tap/release for 90 degrees, or hold R and orbit the fixed
   orange center in 5-degree steps. The readout shows equivalent positive/negative
   angles. Releasing R applies the gesture; Esc cancels it. Numeric Line/Rectangle

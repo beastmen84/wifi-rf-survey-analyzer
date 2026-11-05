@@ -101,13 +101,23 @@ from these software checks.
 - Relevant SSID selection for focused quality checks and map interpretation.
 - AP Group Manager for BSSID grouping, aliases, roles, metadata, expected
   channels, analysis-channel overrides, and physical AP positions.
-- Persistent AP Memory for reusing known AP metadata across surveys.
+  Click the circle in the first column to confirm that the listed BSSIDs belong
+  to one physical AP: green with a check means approved. Save to keep the change.
+  Changing BSSIDs, alias, role, position or metadata clears approval; accepting
+  unchanged values keeps it. Click a green circle to revoke approval.
+- Persistent AP Memory for reusing known AP metadata and physical-group approval
+  across surveys. Approval is restored only for the exact same BSSIDs; a subset,
+  extra BSSID or local revocation requires confirmation. Older memory records
+  without approval need an initial confirmation using the circle.
 - Survey Quality Dashboard with point-rescan findings, AP model diagnostics,
   clickable KPI point lists, and prioritized "what to fix next" guidance.
 - Live Coverage, Interference, AP Channels, and Dominant AP maps.
 - A final Analysis and recommendations tab with local rules for channel plans,
   coverage, AP dominance, client roaming and missing survey evidence. Findings
   explain their confidence and link back to measured points.
+  Physical-group confirmation is requested once per group transmitting a relevant
+  SSID. Other networks remain individual RF neighbors without an approval request;
+  their measured channel, width and evidence quality still affect recommendations.
 - Optional manual Boundaries masks for limiting continuous live maps and HTML
   exports to the useful survey area when the floor-plan shape or measured
   perimeter needs explicit control.
@@ -141,7 +151,8 @@ from these software checks.
 7. Review acquisition reliability, signal stability and observed coverage
    separately. Reopen **Measurement details** from a selected saved point, then
    use Survey Quality to fix point-level issues first.
-8. Review AP groups, metadata, channel overrides, and AP positions.
+8. Review AP groups, metadata, channel overrides, and AP positions. Confirm the
+   groups transmitting relevant networks using the first-column circles, then Save.
 9. Use Live Map views to inspect coverage, interference, channels, and roaming.
 10. Open Analysis and recommendations, set the coverage target and evidence
     requirements, and review the suggested actions and their supporting points.

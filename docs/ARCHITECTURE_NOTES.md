@@ -398,14 +398,26 @@ Current status:
   unknown provenance. No synthetic BSS or RSSI is written for empty points;
 - AP groups have a separate `physical_confirmed` flag. Automatic proposals do
   not suppress neighbors; alias edits/locking do not establish physical identity.
-  The AP Group Manager provides explicit confirmation after equipment checks.
-  Legacy manually locked groups retain their prior explicit model semantics;
+  AP Group Manager exposes this as a first-column hollow/green checked circle,
+  backed by native CheckStateRole and keyboard Space through APConfirmationDelegate.
+  The Alias menu contains only alias operations; existing !/M markers remain visible.
+  Changes to membership, alias, role, metadata or physical position invalidate approval;
+  no-op edits preserve it. An optional `physical_confirmation_revoked` tombstone
+  survives CSV normalization/refresh/reopen and prevents automatic memory restoration.
+  Confirming again removes the tombstone. Legacy manual groups without the new
+  fields retain their prior explicit model semantics;
 - UI/metadata membership remains distinct from RF identity: the group map's
   `confirmed_only=True` mode is used by live/export analysis and its filters.
   Roles and channel overrides follow separated BSSIDs as well as confirmed
   group IDs, so preserving neighbors does not lose explicit user metadata;
-- advisor engine 2 requires matching fresh raw evidence and rejects uncertain
+- advisor engine 3 requires matching fresh raw evidence and rejects uncertain
   groups, mixed receivers and unsupported geometry for precise proposals.
+  Only proposed groups observed transmitting a relevant SSID receive confirmation
+  findings, one per original group. `evidence_group_ids` links their separate RF
+  identities to the evidence table without exposing an internal metric in reports.
+  Unrelated unconfirmed BSSIDs remain fixed, separate RF neighbors; identity alone
+  does not block a proposal, but poor/unknown radio evidence still does. Unconfirmed
+  relevant groups continue to block precise proposals for affected neighbors.
   Controlled power trials require separated locations and alternate coverage
   at every observed location dependent on the target AP;
 - the user-authorized interpreter migration targets CPython 3.15.2 in a new
@@ -657,6 +669,16 @@ Current status:
   metadata itself did not change, and the workspace footer shows
   empty/saved/to-confirm memory status; the Settings popup exposes AP Memory
   folder/open and clear actions, with destructive confirmation before clearing;
+- AP Memory schema 1 gains an optional per-record `physical_confirmed` boolean.
+  Missing values are false. Physical approval restores only when normalized BSSID
+  sets match exactly, independently of map and observation order, and the local
+  group has no revocation tombstone. Metadata still uses overlap matching with
+  exact matches preferred. Explicit approval/revocation invalidates overlapping
+  approval records; changed approved memberships get their own exact record rather
+  than trusting the historical MAC union. Automatic union growth clears approval.
+  Confirm From Memory accepts recalled data separately; an approved group stays
+  approved, while an unknown grouping needs the circle. Auto-healed fragments are
+  checked again for an exact known approval, preserving local revocations;
 - the 2026-05-12 operational test survey is a useful baseline: all 25 points
   passed quality, all raw samples came from `lswifi`, relevant AP positions were
   complete, and the remaining findings are AP setup/anomaly diagnostics rather

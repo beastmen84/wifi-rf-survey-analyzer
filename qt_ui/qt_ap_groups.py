@@ -2,7 +2,7 @@
 
 import math
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, QSignalBlocker
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
@@ -56,6 +56,8 @@ from ap.groups import (
     normalize_ap_role,
     normalize_coverage_radius_m,
     normalize_bssid,
+    is_ap_group_confirmed,
+    invalidate_ap_group_confirmation,
 )
 from ap.memory import (
     apply_group_memory_update,
@@ -71,6 +73,7 @@ from app_core.units import (
 )
 from qt_ui.qt_theme import QT_THEMES, build_scrollbar_stylesheet
 from qt_ui.scaling import widget_font, widget_px
+from qt_ui.qt_ap_confirmation import APConfirmationDelegate
 from wifi.band import get_row_band
 
 
@@ -263,12 +266,12 @@ class APGroupManagerDialog(QDialog):
         self.table.setShowGrid(False)
         self.table.setWordWrap(True)
         self.table.setTextElideMode(Qt.TextElideMode.ElideRight)
-        self.table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.table.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.table.verticalHeader().setVisible(False)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setHorizontalHeaderLabels([
-            "",
+            "✓",
             self.tr("ap_alias_group"),
             self.tr("ap_alias_value"),
             self.tr("ap_group_role"),
@@ -279,6 +282,9 @@ class APGroupManagerDialog(QDialog):
             self.tr("ap_alias_channels"),
             self.tr("ap_group_management"),
         ])
+        self.table.horizontalHeaderItem(0).setToolTip(self.tr("advisor_group_confirmation_column"))
+        self.table.setItemDelegateForColumn(0, APConfirmationDelegate(self))
+        self.table.itemChanged.connect(self.on_confirmation_changed)
         self.configure_table_columns()
         self.table.horizontalHeader().sectionClicked.connect(self.sort_by_column_index)
         self.table.itemSelectionChanged.connect(self.update_action_state)
@@ -303,9 +309,6 @@ class APGroupManagerDialog(QDialog):
         self.bssid_management_button = QPushButton(self.tr("ap_group_bssid_management"))
         self.alias_button = QPushButton(self.tr("ap_group_alias_menu"))
         self.alias_menu = QMenu(self.alias_button)
-        self.confirm_physical_action = self.alias_menu.addAction(self.tr("advisor_confirm_group"))
-        self.confirm_physical_action.setToolTip(self.tr("advisor_confirm_group_hint"))
-        self.confirm_physical_action.triggered.connect(lambda _checked=False: self.confirm_physical_group())
         self.set_alias_action = self.alias_menu.addAction(self.tr("ap_group_set_alias"))
         self.delete_alias_action = self.alias_menu.addAction(self.tr("ap_group_delete_alias"))
         self.alias_button.setMenu(self.alias_menu)
@@ -564,7 +567,7 @@ class APGroupManagerDialog(QDialog):
 
         self.table.resizeColumnsToContents()
         fixed_limits = {
-            0: (42, 56),
+            0: (68, 84),
             1: (150, 240),
             3: (84, 110),
             4: (86, 112),
@@ -596,7 +599,7 @@ class APGroupManagerDialog(QDialog):
             self.apply_table_column_widths()
 
     def refresh_group_details(self, group):
-        group["alias"] = group.get("alias") or self.aliases.get(group["group_id"], "")
+        group["alias"] = group.get("alias", self.aliases.get(group["group_id"], ""))
         group["role"] = normalize_ap_role(group.get("role", AP_ROLE_INTERNAL))
         group["metadata"] = normalize_ap_metadata(group.get("metadata"))
         seen_ssids = set()
@@ -634,6 +637,7 @@ class APGroupManagerDialog(QDialog):
         )
 
     def render_rows(self):
+        signal_blocker = QSignalBlocker(self.table)
         selected_group_id = self.current_group_id()
         query = self.search_edit.text().strip().lower()
         status_filter = self.current_combo_value(self.status_filter_combo)
@@ -661,8 +665,13 @@ class APGroupManagerDialog(QDialog):
                 else:
                     item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 if column == 0:
+                    item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                    item.setCheckState(Qt.CheckState.Checked if is_ap_group_confirmed(group) else Qt.CheckState.Unchecked)
                     item.setData(Qt.ItemDataRole.UserRole, group["group_id"])
                     item.setToolTip(self.format_group_status_tooltip(group))
+                    item.setData(Qt.ItemDataRole.AccessibleTextRole,
+                                 self.tr("advisor_group_confirmed" if is_ap_group_confirmed(group)
+                                         else "advisor_group_unconfirmed"))
                     if self.group_has_memory_update(group):
                         font = item.font()
                         font.setStrikeOut(True)
@@ -675,6 +684,23 @@ class APGroupManagerDialog(QDialog):
         self.apply_table_column_widths()
         self.update_visible_count_label()
         self.update_action_state()
+        del signal_blocker
+
+    def on_confirmation_changed(self, item):
+        if item.column() != 0:
+            return
+        group = self.get_group_by_id(item.data(Qt.ItemDataRole.UserRole))
+        if group is None:
+            return
+        if item.checkState() == Qt.CheckState.Checked:
+            group["physical_confirmed"] = True
+            group.pop("physical_confirmation_revoked", None)
+            group["locked"] = True
+        else:
+            invalidate_ap_group_confirmation(group)
+        clear_group_memory_flag(group)
+        # Rebuild after the delegate has returned to Qt's event handler.
+        QTimer.singleShot(0, self.render_rows)
 
     def get_group_display_values(self, group):
         role = normalize_ap_role(group.get("role"))
@@ -711,7 +737,8 @@ class APGroupManagerDialog(QDialog):
         return " ".join(status)
 
     def format_group_status_tooltip(self, group):
-        lines = []
+        lines = [self.tr("advisor_group_confirmed" if is_ap_group_confirmed(group)
+                         else "advisor_group_unconfirmed"), self.tr("advisor_group_confirmation_hint")]
         if self.group_conflicts_by_id.get(group["group_id"]):
             lines.append(self.tr("ap_group_status_warning_tooltip"))
         if group_has_memory_flag(group):
@@ -815,7 +842,7 @@ class APGroupManagerDialog(QDialog):
 
     def sort_value(self, group, column):
         if column == "status":
-            return 0 if self.group_conflicts_by_id.get(group["group_id"]) else 1
+            return (is_ap_group_confirmed(group), not bool(self.group_conflicts_by_id.get(group["group_id"])))
         if column == "alias":
             return group.get("alias", "").lower()
         if column == "role":
@@ -883,7 +910,6 @@ class APGroupManagerDialog(QDialog):
         self.bssid_management_button.setEnabled(has_group)
         self.alias_button.setEnabled(has_group)
         self.set_alias_action.setEnabled(has_group)
-        self.confirm_physical_action.setEnabled(bool(group and not group.get("physical_confirmed", group.get("locked", True))))
         self.role_button.setEnabled(has_group)
         self.metadata_button.setEnabled(has_group)
         self.position_button.setEnabled(has_group)
@@ -891,19 +917,12 @@ class APGroupManagerDialog(QDialog):
         self.conflict_button.setEnabled(bool(group and self.group_conflicts_by_id.get(group["group_id"])))
 
     def set_alias(self, group, value):
+        if group.get("alias", "") != value.strip():
+            invalidate_ap_group_confirmation(group)
         group["alias"] = value.strip()
         group["locked"] = True
         clear_group_memory_flag(group)
         self.render_rows()
-
-    def confirm_physical_group(self):
-        group = self.require_selected_group()
-        if group is not None:
-            group["physical_confirmed"] = True
-            group["locked"] = True
-            clear_group_memory_flag(group)
-            self.refresh_all_group_details()
-            self.render_rows()
 
     def prompt_alias_for_selected_group(self):
         group = self.require_selected_group()
@@ -952,6 +971,8 @@ class APGroupManagerDialog(QDialog):
             return
 
         role = AP_ROLE_CHOICES[role_labels.index(label)]
+        if normalize_ap_role(group.get("role")) != role:
+            invalidate_ap_group_confirmation(group)
         group["role"] = role
         group["locked"] = True
         clear_group_memory_flag(group)
@@ -967,7 +988,10 @@ class APGroupManagerDialog(QDialog):
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
-        group["metadata"] = dialog.metadata_values()
+        metadata = dialog.metadata_values()
+        if normalize_ap_metadata(group.get("metadata")) != metadata:
+            invalidate_ap_group_confirmation(group)
+        group["metadata"] = metadata
         group["locked"] = True
         clear_group_memory_flag(group)
         self.refresh_all_group_details()
@@ -1060,6 +1084,7 @@ class APGroupManagerDialog(QDialog):
             if saved_state.get(AP_MEMORY_APPLIED_KEY):
                 group[AP_MEMORY_APPLIED_KEY] = True
             group["locked"] = False
+            invalidate_ap_group_confirmation(group)
 
         self.refresh_all_group_details()
         self.render_rows()
@@ -1210,6 +1235,7 @@ class APGroupManagerDialog(QDialog):
             current_bssids = set(group.get("bssids", []))
             if previous_bssids is None or previous_bssids != current_bssids:
                 clear_group_memory_flag(group)
+                invalidate_ap_group_confirmation(group)
 
     def finish_group_membership_change(self, selected_group_id=None):
         self.groups = [item for item in self.groups if item.get("bssids")]

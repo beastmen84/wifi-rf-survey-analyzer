@@ -45,7 +45,8 @@ def analyze_survey(rows, raw_rows=(), groups=(), relevant_ssids=(), profile=None
         px_per_meter = None
     if not groups:
         groups = build_default_manual_groups(rows)
-    unconfirmed = {str(g.get("group_id")) for g in groups if not is_ap_group_confirmed(g)}
+    proposed_groups = [g for g in groups if not is_ap_group_confirmed(g)]
+    unconfirmed = {str(g.get("group_id")) for g in proposed_groups}
     # Keep the UI's proposed grouping, but do not suppress RF neighbors based on it.
     expanded = []
     for group in groups:
@@ -60,6 +61,7 @@ def analyze_survey(rows, raw_rows=(), groups=(), relevant_ssids=(), profile=None
     group_map = build_bssid_to_manual_group_map(groups)
     by_group = {str(g["group_id"]): g for g in groups if g.get("group_id")}
     labels = {key: str(g.get("alias") or key) for key, g in by_group.items()}
+    labels.update({str(g["group_id"]): str(g.get("alias") or g["group_id"]) for g in proposed_groups})
     clean, points, invalid, invalid_points = [], {}, 0, set()
     for source in rows:
         x, y, signal = number(source.get("x")), number(source.get("y")), number(source.get("signal_dbm"))
@@ -110,10 +112,14 @@ def analyze_survey(rows, raw_rows=(), groups=(), relevant_ssids=(), profile=None
     if empty_points:
         add("empty_measurement", "coverage", empty_points,
             metrics={"points": len(empty_points)}, confidence="high", limitations=("missing_is_not_proven",))
-    for group_id in sorted(unconfirmed & by_group.keys()):
-        pids = {r["point_id"] for r in clean if r["group_id"] == group_id}
+    for group in sorted(proposed_groups, key=lambda g: str(g["group_id"])):
+        bssids = {str(bssid).lower() for bssid in group.get("bssids", ())}
+        evidence = [r for r in clean if str(r["bssid"]).lower() in bssids and r["ssid"] in relevant]
+        pids = {r["point_id"] for r in evidence}
         if pids:
-            add("unconfirmed_group", "data", pids, (group_id,), metrics={"points": len(pids)}, confidence="high")
+            add("unconfirmed_group", "data", pids, (str(group["group_id"]),),
+                metrics={"points": len(pids), "evidence_group_ids": tuple(sorted({r["group_id"] for r in evidence}))},
+                confidence="high")
     if not relevant:
         add("scope_required", "data", points, metrics={"points": len(points)}, confidence="high")
     if len(points) < profile.minimum_points:
@@ -143,12 +149,14 @@ def analyze_survey(rows, raw_rows=(), groups=(), relevant_ssids=(), profile=None
     if selected and px_per_meter is None:
         add("scale_required", "data", (r["point_id"] for r in selected),
             confidence="high", severity="notice")
-    model_conflicts = set(unconfirmed) | {r["group_id"] for r in clean if not r["band"]}
+    radio_conflicts = {r["group_id"] for r in clean if not r["band"]}
+    model_conflicts = set(unconfirmed) | radio_conflicts
     for warning in build_ap_metadata_warnings(clean, groups):
         group_id = warning["group_id"]
         pids = {r["point_id"] for r in selected if r["group_id"] == group_id}
         if pids:
             model_conflicts.add(group_id)
+            radio_conflicts.add(group_id)
             add("metadata_mismatch", "data", pids, (group_id,), confidence="high",
                 metrics={key: ", ".join(warning[key]) for key in (
                     "expected_channels", "observed_channels", "expected_bands", "observed_bands")})
@@ -237,7 +245,12 @@ def analyze_survey(rows, raw_rows=(), groups=(), relevant_ssids=(), profile=None
             pids = {r["point_id"] for r in selected if r["group_id"] == group_id}
             add("missing_position", "position", pids, (group_id,), metrics={"points": len(pids)},
                 confidence="high", severity="notice")
-    _channel_analysis(clean, selected, groups, profile, trusted, add, model_conflicts)
+    # Unrelated unconfirmed networks remain individual, fixed RF neighbors.
+    # Their identity needs no approval; their radio evidence still must be valid.
+    relevant_unconfirmed = {r["group_id"] for r in clean if r["ssid"] in relevant
+                           and r["group_id"] in unconfirmed}
+    _channel_analysis(clean, selected, groups, profile, trusted, add, model_conflicts,
+                      radio_conflicts | relevant_unconfirmed)
     order = {"data": 0, "channels": 1, "coverage": 2, "position": 3, "roaming": 4}
     findings.sort(key=lambda f: (order[f.category], 0 if f.rule == "channel_change" else 1,
                                   {"warning": 0, "notice": 1}.get(f.severity, 2),
@@ -252,7 +265,7 @@ def analyze_survey(rows, raw_rows=(), groups=(), relevant_ssids=(), profile=None
             str(r.get("signal_kind") or "unknown"), str(r.get("freshness") or "unknown")) for r in clean), measurements=measurements)
 
 
-def _channel_analysis(clean, selected, groups, profile, trusted, add, model_conflicts):
+def _channel_analysis(clean, selected, groups, profile, trusted, add, model_conflicts, neighbor_conflicts):
     """One node per physical AP/band; optimize a single coherent channel plan."""
     observations = defaultdict(dict)
     channel_sets, widths = defaultdict(set), defaultdict(set)
@@ -327,7 +340,7 @@ def _channel_analysis(clean, selected, groups, profile, trusted, add, model_conf
             complete = not affected and all(channels[n] is not None and valid_channel(channels[n], band)
                 and node_widths[n] is not None and (band != "2.4" or node_widths[n] == 20)
                 and node_widths[n] != 320
-                and n[0] not in model_conflicts
+                and n[0] not in neighbor_conflicts
                 and (band != "6" or all(get_row_band({"frequency_mhz": r.get("frequency_mhz")}) == "6"
                     for r in observations[n].values()))
                 for n in (node, *graph[node]))

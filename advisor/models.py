@@ -5,7 +5,7 @@ from hashlib import sha256
 import json
 import math
 
-ENGINE_VERSION = "2"
+ENGINE_VERSION = "3"
 
 
 @dataclass(frozen=True)

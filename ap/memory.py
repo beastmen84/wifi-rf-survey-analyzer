@@ -15,6 +15,8 @@ from ap.groups import (
     normalize_ap_position,
     normalize_ap_role,
     normalize_bssid,
+    is_ap_group_confirmed,
+    invalidate_ap_group_confirmation,
 )
 from app_core.settings import APP_SETTINGS_DIR
 from app_core.file_io import atomic_write_text
@@ -137,12 +139,27 @@ def update_ap_memory_from_groups(groups, rows=None, map_file="", path=None):
             continue
 
         record = find_best_memory_record(records, bssids)
+        explicit_confirmation = not group_has_memory_flag(group) and (
+            is_ap_group_confirmed(group) or group.get("physical_confirmation_revoked"))
+        if explicit_confirmation:
+            # Approval refers to one exact membership, never the historical union
+            # of overlapping MAC-based suggestions used for metadata matching.
+            for existing in records:
+                if set(existing.get("bssids", [])) & set(bssids):
+                    existing["physical_confirmed"] = False
+            if record and clean_bssids(record.get("bssids", [])) != bssids:
+                record = None
         if record is None:
             record = build_empty_memory_record(bssids)
             records.append(record)
 
         observed = summarize_observed_group_rows(rows, bssids)
-        record["bssids"] = sorted(set(record.get("bssids", [])) | set(bssids))
+        previous_bssids = clean_bssids(record.get("bssids", []))
+        record["bssids"] = sorted(set(previous_bssids) | set(bssids))
+        if record["bssids"] != previous_bssids:
+            record["physical_confirmed"] = False
+        if explicit_confirmation:
+            record["physical_confirmed"] = is_ap_group_confirmed(group)
         record["last_seen_at"] = now
         record["last_seen_group_id"] = str(group.get("group_id", "")).strip()
         record["ssids"] = sorted(set(record.get("ssids", [])) | observed["ssids"])
@@ -194,12 +211,27 @@ def apply_ap_memory_to_groups(groups, rows=None, map_file="", path=None):
         bssids = clean_bssids(updated_group.get("bssids", []))
         record = find_best_memory_record(records, bssids)
         matched_bssids = sorted(set(record.get("bssids", [])) & set(bssids)) if record else []
-        if record and apply_memory_record_to_group(updated_group, record, map_file):
+        if record and not updated_group.get("physical_confirmation_revoked") and apply_memory_record_to_group(updated_group, record, map_file):
             mark_group_from_memory(updated_group, matched_bssids)
             applied_count += 1
+        restore_physical_confirmation(updated_group, records)
         updated_groups.append(updated_group)
 
     return updated_groups, applied_count
+
+
+def restore_physical_confirmation(group, records):
+    """Restore only an exact approved membership; local edits/revocations win."""
+    if group.get("physical_confirmation_revoked") or is_ap_group_confirmed(group):
+        return False
+    bssids = clean_bssids(group.get("bssids", []))
+    if bssids and any(record.get("physical_confirmed") is True
+                      and clean_bssids(record.get("bssids", [])) == bssids
+                      for record in records):
+        group["physical_confirmed"] = True
+        group["locked"] = True
+        return True
+    return False
 
 
 def find_memory_record_for_group(group, path=None, records=None):
@@ -312,6 +344,7 @@ def apply_group_memory_update(group, map_file="", path=None, records=None):
     if changed:
         clear_group_memory_flag(group)
         group["locked"] = True
+        invalidate_ap_group_confirmation(group)
 
     return changed
 
@@ -354,6 +387,7 @@ def normalize_memory_record(record):
         "alias": str(record.get("alias", "")).strip(),
         "role": normalize_ap_role(record.get("role")),
         "bssids": bssids,
+        "physical_confirmed": record.get("physical_confirmed") is True,
         "ssids": sorted({str(value) for value in record.get("ssids", []) if str(value)}),
         "channels": sorted({str(value).strip() for value in record.get("channels", []) if str(value).strip()}, key=numeric_text_key),
         "bands": sorted({str(value).strip() for value in record.get("bands", []) if str(value).strip()}, key=band_sort_key),
@@ -387,6 +421,8 @@ def find_best_memory_record(records, bssids):
     best_record = None
     best_score = 0
     for record in records:
+        if bssid_set == set(record.get("bssids", [])):
+            return record
         overlap = len(bssid_set & set(record.get("bssids", [])))
         if overlap > best_score:
             best_record = record

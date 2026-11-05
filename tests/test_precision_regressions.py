@@ -407,7 +407,8 @@ def test_empty_capture_is_visible_in_point_table_floorplan_and_dashboard(qt_runt
         qt_runtime.processEvents()
 
 
-def test_group_confirmation_action_persists_independently_of_alias(qt_runtime):
+def test_group_confirmation_badge_persists_independently_of_alias(qt_runtime):
+    from PySide6.QtCore import Qt
     from ap.groups import is_ap_group_confirmed
     from qt_ui.qt_app import WifiHeatmapQtApp
     from qt_ui.qt_ap_groups import APGroupManagerDialog
@@ -424,7 +425,7 @@ def test_group_confirmation_action_persists_independently_of_alias(qt_runtime):
         assert not is_ap_group_confirmed(group)
         dialog.table.selectRow(0)
         group = dialog.require_selected_group()
-        dialog.confirm_physical_action.trigger()
+        dialog.table.item(0, 0).setCheckState(Qt.CheckState.Checked)
         assert is_ap_group_confirmed(group)
         dialog.save_groups()
         assert next(g for g in window.session.get_ap_groups() if g["group_id"] == group["group_id"])["physical_confirmed"]
