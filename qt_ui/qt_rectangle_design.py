@@ -254,13 +254,13 @@ class RectangleDesignController(QObject):
         for item in self.snap_items:
             item.hide()
 
-    def snap_position(self, point, width=0, height=0, bypass=False, drag_origin=None, *, allow_grid=True):
+    def snap_position(self, point, width=0, height=0, bypass=False, drag_origin=None):
         bounds = self.view.scene.sceneRect()
         if bypass or self.snap_bypass:
             return SnapResult(min(max(point.x(), bounds.left()), bounds.right() - width),
                               min(max(point.y(), bounds.top()), bounds.bottom() - height))
         zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
-        grid = self.view.grid_spacing_pixels() if allow_grid and self.tools.snap_button.isChecked() else None
+        grid = self.view.grid_spacing_pixels() if self.tools.snap_button.isChecked() else None
         if drag_origin is not None:
             return self.snapper.snap_drag(point.x(), point.y(), (drag_origin.x(), drag_origin.y()),
                                          (bounds.left(), bounds.top(), bounds.right(), bounds.bottom()),

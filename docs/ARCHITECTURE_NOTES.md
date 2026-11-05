@@ -22,12 +22,17 @@ interpolated colors.
 
 Current status:
 
-- Curve sizing gestures use continuous radius/chord/sagitta coordinates while
-  retaining geometry snaps. Grid quantization applies to initial anchors and
-  whole-object placement, and numeric dimension buttons step by0.01 display
-  units. PlanSnapper.snap_arc_height fits the circular arc through a nearby real
-  vertex with both chord endpoints frozen; it rejects collinear/fixed endpoints
-  and targets whose arc cannot fit the sheet. Signed sagitta uses chord-local
+- Line right-drag is free in both coordinates and uses the shared point snapper;
+  the origin stays fixed, while the endpoint can snap to actual corners, finite
+  edges or visible grid intersections. Numeric placement/rotation stay rigid.
+- Curve sizing gestures retain geometry and optional visible-grid snapping.
+  Radius/chord drag endpoints use the shared point snapper, and numeric dimension
+  buttons step by 0.01 display units. PlanSnapper.snap_arc_height first fits the
+  circular arc through a nearby real vertex, then through the nearest grid point
+  if enabled, with both chord endpoints frozen. A grid target on the finite chord
+  produces a zero-height provisional line; other collinear targets and out-of-sheet
+  curves are rejected. With grid off or Alt held, sizing is continuous.
+  Signed sagitta uses chord-local
   coordinates and a stable circle-center formula, including major arcs. Orange
   guides and Alt press/release immediately update during the pull stage.
 - Numeric circle/arc placement translates an immutable source against an anchor
@@ -141,7 +146,7 @@ Current status:
 - Numeric Rectangle uses a path preview with rect() bounding-box compatibility,
   intrinsic dimensions, angle and cursor offset. Numeric Line stores a full
   angle while retaining the turns property for cardinal compatibility. Direct
-  drags remain axis-locked. R tap swaps Rectangle dimensions or increments Line's
+  Line drags allow any angle. R tap swaps Rectangle dimensions or increments Line's
   angle by 90; held gestures retain side/line lengths. Rotation around static or
   moving selected segments uses the same immutable geometry snapshot. Zero-size
   in-progress rectangle drags render provisionally without validating a shape.
@@ -198,7 +203,7 @@ Current status:
   version/schema. Weighted cut accounting rejects >40000 output fragments before
   history/model mutation. Existing transactional saves restore old metadata/files
   on failure, including when a legacy model was normalized during save.
-- `qt_line_design.py` implements Line's axis-locked right-drag, live m/ft length,
+- `qt_line_design.py` implements Line's free-angle right-drag, live m/ft length,
   one-spin numeric modal and cursor-following exact-length placement. R rotates
   numeric line previews through four cardinal directions. Rectangle numeric R
   swaps width/height. Both preserve dimensions; orientations that cannot fit are

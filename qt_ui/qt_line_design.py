@@ -1,4 +1,4 @@
-"""Axis-locked line drawing, exact length placement and quarter-turn preview."""
+"""Free-angle line drawing, exact length placement and rotation previews."""
 import math
 
 from PySide6.QtCore import QLineF, QPointF, QRectF, Qt
@@ -24,6 +24,7 @@ class LineSizeDialog(QDialog):
         self.length_spin = QDoubleSpinBox()
         self.length_spin.setObjectName("blankPlanDimension")
         self.length_spin.setDecimals(2)
+        self.length_spin.setSingleStep(.01)
         self.length_spin.setRange(.01, math.floor(meters_to_display_units(max(bounds.width(), bounds.height()) / density,
                                                                         owner.measurement_system) * 100) / 100)
         self.length_spin.setSuffix(" " + distance_unit_label(owner.measurement_system))
@@ -84,7 +85,6 @@ class LineDesignController:
             self.preview.hide()
 
     def geometry(self, point, bypass=False):
-        bounds = self.view.scene.sceneRect()
         if self.pending_length is not None:
             point = point + self.placement_offset
             local = rotate_degrees([dict(x1=0, y1=0, x2=self.pending_length, y2=0, color="#000000")], self.angle, (0, 0))[0]
@@ -99,17 +99,7 @@ class LineDesignController:
             self.drawing.snap_guides = result.guides
             anchor = QPointF(result.x - min(0, dx), result.y - min(0, dy))
             return QLineF(anchor, anchor + QPointF(dx, dy))
-        x, y = min(max(point.x(), bounds.left()), bounds.right()), min(max(point.y(), bounds.top()), bounds.bottom())
-        horizontal = abs(x - self.origin.x()) >= abs(y - self.origin.y())
-        raw = QPointF(x, self.origin.y()) if horizontal else QPointF(self.origin.x(), y)
-        if bypass or self.drawing.snap_bypass:
-            self.drawing.snap_guides = ()
-            return QLineF(self.origin, raw)
-        zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
-        result = self.drawing.snapper.snap_line(raw.x(), raw.y(), (self.origin.x(), self.origin.y()),
-            horizontal, (bounds.left(), bounds.top(), bounds.right(), bounds.bottom()),
-            widget_px(self.owner, 10) / zoom,
-            self.view.grid_spacing_pixels() if self.drawing.tools.snap_button.isChecked() else None)
+        result = self.drawing.snap_position(point, bypass=bypass)
         self.drawing.snap_guides = result.guides
         return QLineF(self.origin, QPointF(result.x, result.y))
 

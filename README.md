@@ -80,7 +80,7 @@ from these software checks.
   The shapes are visual plan geometry; RF findings still use measured data.
 - Intersections split editable strokes into individual fragments, including T
   joints and overlapping endpoints. Erase deletes only the chosen fragment.
-  Line draws horizontal/vertical strokes by right-drag, or asks only for a length
+  Line draws in any direction, including diagonals, by right-drag, or asks only for a length
   before cursor-following placement. **R** rotates both Line and Rectangle
   placement previews by 90 degrees while preserving their dimensions.
   Select uses right-click for one fragment or a right-drag box for all touched
@@ -121,10 +121,11 @@ from these software checks.
   and work with Boundaries Fill/Auto Fill. Their editable geometry survives
   save/reopen and appears in PNG, Live Map and HTML reports. The measurements
   panel stays at the top right of the drawing viewport, opposite the grid scale.
-  Radius, chord and bend drags adjust continuously; the grid still snaps the
-  starting anchor and whole-object placement. Numeric arrows adjust by 0.01 m/ft.
-  While bending, approach an existing corner to make the arc pass exactly through
-  it with an orange marker, keeping the chord fixed. Alt releases the snap.
+  With grid snapping active, radius/chord endpoints snap to visible grid
+  intersections, and bending makes the arc pass through the chosen grid point
+  with its chord fixed. Existing corners take priority and show an orange marker.
+  Turn grid snapping off or hold Alt for continuous sizing. Numeric arrows
+  adjust by 0.01 m/ft.
   Numeric previews follow slow cursor movements without sticking to the grid.
 - On generated blank sheets, **Boundaries** includes **Fill** for one closed
   drawn room and **Auto Fill** for all closed drawn rooms. Fill uses a right

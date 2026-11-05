@@ -44,10 +44,10 @@ def test_numeric_preview_follows_slow_cursor_motion_with_grid_enabled(editor, ki
 
 
 @pytest.mark.parametrize("kind", ["circle", "arc"])
-def test_radius_and_chord_size_are_continuous_even_with_grid_enabled(editor, kind):
+def test_radius_and_chord_size_are_continuous_with_grid_disabled(editor, kind):
     app, d = editor
     app.plan_tools.select_tool(kind)
-    app.plan_tools.snap_button.setChecked(True)
+    app.plan_tools.snap_button.setChecked(False)
     start, end = at(app, 300, 250), at(app, 373, 287)
     QTest.mousePress(d.view.viewport(), Qt.MouseButton.RightButton, pos=start)
     origin = QPointF(d.curve.origin)
@@ -60,10 +60,10 @@ def test_radius_and_chord_size_are_continuous_even_with_grid_enabled(editor, kin
         assert (d.curve.chord["x2"], d.curve.chord["y2"]) == pytest.approx((raw.x(), raw.y()))
 
 
-def test_sagitta_pull_is_continuous_instead_of_grid_square_steps(editor):
+def test_sagitta_pull_is_continuous_with_grid_disabled(editor):
     app, d = editor
     app.plan_tools.select_tool("arc")
-    app.plan_tools.snap_button.setChecked(True)
+    app.plan_tools.snap_button.setChecked(False)
     drag(d.view, at(app, 200, 250), at(app, 400, 250))
     target = at(app, 300, 287)
     move(d.view, target)
@@ -125,3 +125,103 @@ def test_fixed_endpoints_and_collinear_points_cannot_force_a_bend():
     chord = dict(x1=100, y1=100, x2=300, y2=100)
     for target in ((100, 100), (200, 100), (300, 100), (400, 100)):
         assert arc_height_through_point(chord, target) is None
+
+
+@pytest.mark.parametrize("kind", ["arc", "circle"])
+def test_curve_size_drag_snaps_to_visible_grid_when_enabled(editor, kind):
+    app, d = editor
+    app.plan_tools.select_tool(kind)
+    app.plan_tools.snap_button.setChecked(True)
+    start, end = at(app, 200, 200), at(app, 347, 287)
+    QTest.mousePress(d.view.viewport(), Qt.MouseButton.RightButton, pos=start)
+    move(d.view, end, Qt.MouseButton.RightButton)
+    assert any(guide.kind == "grid" and guide.point == (350, 300) for guide in d.snap_guides)
+    assert d.snap_items
+    if kind == "circle":
+        assert d.curve.current["radius"] == pytest.approx(math.hypot(150, 100))
+    QTest.mouseRelease(d.view.viewport(), Qt.MouseButton.RightButton, pos=end)
+    if kind == "arc":
+        assert (d.curve.chord["x2"], d.curve.chord["y2"]) == (350, 300)
+
+
+def test_arc_pull_snaps_through_grid_point_and_alt_or_toggle_releases_it(editor):
+    app, d = editor
+    app.plan_tools.select_tool("arc")
+    app.plan_tools.snap_button.setChecked(True)
+    drag(d.view, at(app, 200, 200), at(app, 400, 300))
+    chord = deepcopy(d.curve.chord)
+    cursor = at(app, 350, 192)
+    move(d.view, cursor)
+    assert math.dist(project_curve(d.curve.current, (350, 200)), (350, 200)) < 1e-7
+    assert d.snap_guides[0].kind == "grid" and d.snap_guides[0].point == (350, 200)
+    assert d.curve.chord == chord
+    for bypass in ("alt", "toggle"):
+        if bypass == "alt":
+            QTest.keyPress(d.view, Qt.Key.Key_Alt)
+        else:
+            app.plan_tools.snap_button.setChecked(False)
+        assert not d.snap_guides
+        if bypass == "alt":
+            QTest.keyRelease(d.view, Qt.Key.Key_Alt)
+        else:
+            app.plan_tools.snap_button.setChecked(True)
+        assert d.snap_guides[0].kind == "grid"
+        assert math.dist(project_curve(d.curve.current, (350, 200)), (350, 200)) < 1e-7
+
+
+def test_grid_point_on_chord_keeps_a_zero_bend_preview_without_committing(editor):
+    app, d = editor
+    app.plan_tools.select_tool("arc")
+    app.plan_tools.snap_button.setChecked(True)
+    drag(d.view, at(app, 200, 250), at(app, 400, 250))
+    move(d.view, at(app, 300, 260))
+    assert d.curve.current is None
+    assert d.snap_guides[0].point == (300, 250) and d.snap_items
+    click(app, 300, 260)
+    assert not d.curves() and not d.undo_stack
+
+
+def test_diagonal_line_drag_snaps_both_axes_with_fixed_start_and_alt_bypass(editor):
+    app, d = editor
+    app.plan_tools.select_tool("line")
+    app.plan_tools.snap_button.setChecked(True)
+    start, end = at(app, 203, 202), at(app, 347, 287)
+    QTest.mousePress(d.view.viewport(), Qt.MouseButton.RightButton, pos=start)
+    move(d.view, end, Qt.MouseButton.RightButton)
+    preview = d.line.preview.line()
+    assert (preview.x1(), preview.y1(), preview.x2(), preview.y2()) == (200, 200, 350, 300)
+    assert d.snap_guides[0].kind == "grid"
+    QTest.keyPress(d.view, Qt.Key.Key_Alt)
+    raw = d.view.mapToScene(end)
+    preview = d.line.preview.line()
+    assert (preview.x1(), preview.y1()) == (200, 200)
+    assert (preview.x2(), preview.y2()) == pytest.approx((raw.x(), raw.y()))
+    assert not d.snap_guides
+    QTest.keyRelease(d.view, Qt.Key.Key_Alt)
+    QTest.mouseRelease(d.view.viewport(), Qt.MouseButton.RightButton, pos=end)
+    assert len(d.segments()) == 1
+    assert d.segments()[0] == dict(x1=200, y1=200, x2=350, y2=300, color=app.plan_tools.stroke_color.name())
+
+
+def test_diagonal_line_prefers_real_corner_over_grid(editor):
+    app, d = editor
+    target = (347.3, 298.7)
+    d.store([dict(x1=target[0], y1=target[1], x2=400, y2=400, color="#123456")])
+    app.plan_tools.select_tool("line")
+    app.plan_tools.snap_button.setChecked(True)
+    drag(d.view, at(app, 200, 200), at(app, 350, 300))
+    last = d.segments()[-1]
+    assert (last["x2"], last["y2"]) == target
+
+
+def test_dragged_diagonals_close_a_triangle_and_share_undo(editor):
+    app, d = editor
+    app.plan_tools.select_tool("line")
+    app.plan_tools.snap_button.setChecked(True)
+    for a, b in (((150, 150), (450, 150)), ((450, 150), (300, 350)), ((300, 350), (150, 150))):
+        drag(d.view, at(app, *a), at(app, *b))
+    assert len(d.segments()) == 3 and len(d.regions.faces) == 1
+    d.undo()
+    assert len(d.segments()) == 2 and not d.regions.faces
+    d.redo()
+    assert len(d.regions.faces) == 1 and not app.session.rows

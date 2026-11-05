@@ -7,12 +7,21 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Line right-drag now supports any direction, including diagonals, with a fixed
+  starting point and a freely moving endpoint. Corner/edge/grid snapping, Alt,
+  live length, editable intersections, closed areas and undo/redo remain active.
+- Grid snapping applies to the dragged radius/chord endpoints and the arc's
+  bending stage. The arc passes through the selected visible grid intersection
+  while keeping its chord fixed; real corners take priority. Orange guides show
+  grid targets even on the provisional chord. Alt and the grid toggle immediately
+  release or restore snapping. Numeric dimension steps stay at 0.01 m/ft.
 - Fixed circle/arc numeric previews sticking to the grid during slow cursor
   movement: each update translates the original placement geometry instead of
   feeding the previous snapped result into the next movement. Quarter-turn and
   held rotations rebase placement without changing dimensions or cursor grip.
-- Radius, chord and sagitta drags now adjust continuously; grid snapping remains
-  active for the starting anchor and whole-object placement. Numeric dimension
+- Radius, chord and sagitta drags adjust continuously with grid snapping off or
+  Alt held. With snapping enabled, grid intersections guide sizing and placement.
+  Numeric dimension
   arrows adjust by 0.01 m/ft. During arc bending, nearby real corners constrain
   the arc to pass through the target while keeping the chord fixed. Orange guides
   show the target and Alt temporarily bypasses it. Updated EN/IT/FR/ES Help and
@@ -95,7 +104,7 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
   overlap endpoints. Colors, direction and independent duplicate strokes are
   preserved; the eraser can remove a single fragment between cuts. Existing
   drawings receive cuts on read, persisted on save with transaction rollback.
-- Added Line with right-drag axis-locked measurement and a single-length m/ft
+- Added Line with right-drag measurement and a single-length m/ft
   dialog for cursor-following placement. R rotates Line and Rectangle placement
   previews by 90 degrees without changing dimensions; invalid orientations are
   rejected without clipping. Esc cancels provisional edits.

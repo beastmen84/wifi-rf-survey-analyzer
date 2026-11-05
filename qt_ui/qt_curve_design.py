@@ -143,6 +143,8 @@ class CurveDesignController:
             text += "\n" + self.owner.tr("curve_pull_hint")
             if any(guide.kind == "corner" for guide in self.drawing.snap_guides):
                 text += "\n" + self.owner.tr("design_snap_corner")
+            elif any(guide.kind == "grid" for guide in self.drawing.snap_guides):
+                text += "\n" + self.owner.tr("design_snap_grid")
         elif self.pending is not None and curve["kind"] == "arc":
             text += "\n" + self.owner.tr("design_rotate_hint")
         if (curve["kind"] == "circle" or curve["height"]) and not self.fits(curve):
@@ -210,7 +212,7 @@ class CurveDesignController:
 
     def drag_geometry(self, position, bypass=False):
         point = self.point(position)
-        result = self.drawing.snap_position(point, bypass=bypass, allow_grid=False)
+        result = self.drawing.snap_position(point, bypass=bypass)
         self.drawing.snap_guides = result.guides
         point = QPointF(result.x, result.y)
         color = self.drawing.tools.stroke_color.name()
@@ -235,7 +237,8 @@ class CurveDesignController:
             bounds = self.view.scene.sceneRect()
             zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
             snapped = self.drawing.snapper.snap_arc_height(curve, point.x(), point.y(),
-                (bounds.left(), bounds.top(), bounds.right(), bounds.bottom()), widget_px(self.owner, 10) / zoom)
+                (bounds.left(), bounds.top(), bounds.right(), bounds.bottom()), widget_px(self.owner, 10) / zoom,
+                self.view.grid_spacing_pixels() if self.drawing.tools.snap_button.isChecked() else None)
             if snapped is not None:
                 h, guide = snapped
                 self.drawing.snap_guides = (guide,)
@@ -259,6 +262,7 @@ class CurveDesignController:
         self.preview.setPath(path)
         self.preview.setPen(QPen(self.drawing.tools.stroke_color, 2, Qt.PenStyle.DashLine))
         self.preview.show()
+        self.drawing.show_snap_guides(QRectF(QPointF(curve["x1"], curve["y1"]), QPointF(curve["x2"], curve["y2"])).normalized())
         self.show_measurements(curve, position)
 
     def press(self, event):

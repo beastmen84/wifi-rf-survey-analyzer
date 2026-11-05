@@ -84,9 +84,9 @@ def test_eraser_deletes_only_the_fragment_between_intersections_and_undo_restore
     assert drawing.segments() == original
 
 
-@pytest.mark.parametrize("first,last,horizontal", [((100, 100), (350, 130), True),
-    ((350, 100), (100, 130), True), ((100, 100), (130, 350), False), ((100, 350), (130, 100), False)])
-def test_line_drag_locks_one_axis_and_never_captures_rf(editor, first, last, horizontal):
+@pytest.mark.parametrize("first,last", [((100, 100), (350, 130)),
+    ((350, 100), (100, 130)), ((100, 100), (130, 350)), ((100, 350), (130, 100))])
+def test_line_drag_follows_both_coordinates_and_never_captures_rf(editor, first, last):
     app, drawing = editor
     app.plan_tools.line_button.click()
     captures = []
@@ -94,7 +94,10 @@ def test_line_drag_locks_one_axis_and_never_captures_rf(editor, first, last, hor
     drag(app.floorplan_view, point(app, *first), point(app, *last))
     lines = drawing.segments()
     assert len(lines) == 1 and not captures
-    assert (lines[0]["y1"] == lines[0]["y2"]) == horizontal
+    start = app.floorplan_view.mapToScene(point(app, *first))
+    end = app.floorplan_view.mapToScene(point(app, *last))
+    assert (lines[0]["x1"], lines[0]["y1"]) == pytest.approx((start.x(), start.y()))
+    assert (lines[0]["x2"], lines[0]["y2"]) == pytest.approx((end.x(), end.y()))
     assert len(drawing.undo_stack) == 1
 
 
@@ -299,13 +302,14 @@ def test_legacy_split_model_is_persisted_on_save_and_failed_save_rolls_back(edit
     assert app.open_survey(str(tmp_path / "legacy.csv")) and len(drawing.segments()) == 4
 
 
-def test_line_drag_endpoint_snaps_without_changing_fixed_axis(editor):
+def test_line_drag_endpoint_snaps_to_edge_without_forcing_one_axis(editor):
     app, drawing = editor
     drawing.apply_edit([line(300, 50, 300, 250)])
     app.plan_tools.line_button.click()
     drag(app.floorplan_view, point(app, 100, 150), point(app, 304, 160))
     last = drawing.segments()[-1]
-    assert last["x2"] == 300 and last["y1"] == last["y2"]
+    assert last["x2"] == 300 and last["y1"] != last["y2"]
+    assert last["y2"] == pytest.approx(app.floorplan_view.mapToScene(point(app, 304, 160)).y())
 
 
 def test_rotating_selected_fragment_outside_sheet_is_rejected_atomically(editor):

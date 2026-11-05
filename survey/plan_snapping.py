@@ -255,8 +255,8 @@ class PlanSnapper:
             guide = (SnapGuide("edge", point, "line", target.span),)
         return SnapResult(*point, guide)
 
-    def snap_arc_height(self, chord, x, y, bounds, tolerance):
-        """Bend through a nearby real vertex, keeping both chord endpoints fixed."""
+    def snap_arc_height(self, chord, x, y, bounds, tolerance, grid=None):
+        """Bend through a real corner first, then a grid point; keep A/B fixed."""
         choices = []
         for vx, vy in self.nearby(self.vertices, self.vertex_x, x, tolerance):
             distance = (vx - x) ** 2 + (vy - y) ** 2
@@ -269,10 +269,26 @@ class PlanSnapper:
             if (left >= bounds[0] - 1e-7 and top >= bounds[1] - 1e-7
                     and right <= bounds[2] + 1e-7 and bottom <= bounds[3] + 1e-7):
                 choices.append((distance, vx, vy, height))
-        if not choices:
+        if choices:
+            _, vx, vy, height = min(choices)
+            return height, SnapGuide("corner", (vx, vy))
+        if not grid or grid <= 0:
             return None
-        _, vx, vy, height = min(choices)
-        return height, SnapGuide("corner", (vx, vy))
+        vx = nearest_grid(x, bounds[0], bounds[2], grid)
+        vy = nearest_grid(y, bounds[1], bounds[3], grid)
+        if vx is None or vy is None:
+            return None
+        height = arc_height_through_point(chord, (vx, vy))
+        if height is None:
+            a, b = (chord["x1"], chord["y1"]), (chord["x2"], chord["y2"])
+            if math.dist((vx, vy), point_projection((vx, vy), a, b)) <= 1e-8:
+                return 0, SnapGuide("grid", (vx, vy))
+            return None
+        left, top, right, bottom = curve_bounds(dict(chord, height=height))
+        if (left >= bounds[0] - 1e-7 and top >= bounds[1] - 1e-7
+                and right <= bounds[2] + 1e-7 and bottom <= bounds[3] + 1e-7):
+            return height, SnapGuide("grid", (vx, vy))
+        return None
 
     @staticmethod
     def edge_translation(vertices, targets, box, bounds, tolerance):
