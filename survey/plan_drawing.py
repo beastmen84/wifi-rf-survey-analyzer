@@ -6,7 +6,6 @@ from hashlib import sha256
 
 from PIL import Image, ImageDraw
 from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
-from survey.plan_geometry import normalize_segments
 
 PLAN_DRAWING_KEY = "plan_drawing"
 
@@ -29,18 +28,26 @@ def validate_segments(segments):
 
 
 def drawing_segments(metadata):
+    return drawing_geometry(metadata)[0]
+
+
+def drawing_geometry(metadata):
     generated = any(metadata.get(key) == "1" for key in
                     (DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY))
     if not generated or PLAN_DRAWING_KEY not in metadata:
-        return None
+        return None, []
     document = json.loads(metadata[PLAN_DRAWING_KEY])
     if not isinstance(document, dict) or document.get("version") != 1:
         raise ValueError("Unsupported plan drawing")
-    return normalize_segments(validate_segments(document.get("segments")))
+    from survey.plan_curves import drawing_curves
+    from survey.plan_curve_geometry import normalize_plan
+    return normalize_plan(validate_segments(document.get("segments")), drawing_curves(metadata) or [])
 
 
-def encode_drawing(segments):
-    return json.dumps(dict(version=1, segments=normalize_segments(validate_segments(segments))), separators=(",", ":"))
+def encode_drawing(segments, curves=None):
+    from survey.plan_curve_geometry import normalize_plan
+    lines, _ = normalize_plan(validate_segments(segments), curves or [])
+    return json.dumps(dict(version=1, segments=lines), separators=(",", ":"))
 
 
 def rectangle_segments(x, y, width, height, color):
@@ -51,8 +58,8 @@ def rectangle_segments(x, y, width, height, color):
                               for a, b in zip(corners, corners[1:] + corners[:1])])
 
 
-def render_plan_drawing(image, segments, labels=None):
-    if segments is None and not labels:
+def render_plan_drawing(image, segments, labels=None, curves=None):
+    if segments is None and not labels and not curves:
         return image
     # Generated PNGs may contain an older baked drawing. Rebuild from vectors,
     # including an empty list after Undo, instead of leaving stale lines behind.
@@ -66,6 +73,15 @@ def render_plan_drawing(image, segments, labels=None):
         points = tuple(min(line[key], image.size[index % 2] - 1)
                        for index, key in enumerate(("x1", "y1", "x2", "y2")))
         painter.line(points, fill=line["color"], width=2)
+    from survey.plan_curves import validate_curves, curve_bounds
+    curves = validate_curves(curves or [])
+    for curve in curves:
+        left, top, right, bottom = curve_bounds(curve)
+        if left < -1e-7 or top < -1e-7 or right > image.width + 1e-7 or bottom > image.height + 1e-7:
+            raise ValueError("Curve is outside the sheet")
+    if curves:
+        from survey.plan_curve_rendering import render_curves
+        output = render_curves(output, curves)
     from survey.plan_labels import validate_labels, labels_geometry
     labels = validate_labels(labels or [])
     if any(line[key] < -1e-6 or line[key] > image.size[index] + 1e-6
@@ -74,5 +90,6 @@ def render_plan_drawing(image, segments, labels=None):
     if labels:
         from survey.plan_label_rendering import render_labels
         output = render_labels(output, labels)
-    output.info["plan_drawing_fingerprint"] = sha256(json.dumps([lines, labels], sort_keys=True).encode()).hexdigest()
+    fingerprint = [lines, labels, curves] if curves else [lines, labels]
+    output.info["plan_drawing_fingerprint"] = sha256(json.dumps(fingerprint, sort_keys=True).encode()).hexdigest()
     return output

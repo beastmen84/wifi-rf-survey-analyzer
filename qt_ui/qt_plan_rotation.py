@@ -10,6 +10,8 @@ from qt_ui.scaling import widget_px
 from survey.plan_geometry import rotate_degrees, segment_bounds
 from survey.plan_labels import label_geometry, labels_geometry, transform_labels
 from survey.plan_label_rendering import label_item
+from survey.plan_curves import curves_geometry, transform_curves
+from survey.plan_curve_rendering import curve_item
 
 
 def angle_readout(angle):
@@ -37,6 +39,7 @@ class PlanRotationController:
         d, tool = self.drawing, self.drawing.tools.active_tool
         self.hidden, self.dimmed = [], []
         self.label_base, self.line_base = [], []
+        self.curve_base = []
         if tool == "rectangle" and d.pending_size and d.preview is not None:
             self.target, self.base = "rectangle", d.rectangle_geometry(d.preview.rect())
             position, hide = d.last_pointer, [d.preview]
@@ -50,12 +53,18 @@ class PlanRotationController:
             self.label_base = [deepcopy(d.text.pending)]
             self.base = label_geometry(d.text.pending)
             position, hide = d.text.last_pointer, list(d.text.preview_items)
-        elif tool == "select" and d.selection.has_selection() and d.selection.origin is None:
+        elif tool == "arc" and d.curve.pending is not None and d.curve.preview is not None:
+            self.target = "curve"
+            self.curve_base = transform_curves([d.curve.pending])
+            self.base = curves_geometry(self.curve_base)
+            position, hide = d.curve.last_pointer, [d.curve.preview]
+        elif tool == "select" and d.selection.can_rotate() and d.selection.origin is None:
             s = d.selection
             self.target = "move" if s.moving else "selection"
             self.line_base = [dict(line) for line in (s.move_preview if s.moving else [s.lines[index] for index in s.selected])]
             self.label_base = deepcopy(s.move_label_preview if s.moving else s.selected_texts())
-            self.base = self.line_base + labels_geometry(self.label_base)
+            self.curve_base = transform_curves(s.move_curve_preview if s.moving else s.selected_curve_shapes())
+            self.base = self.line_base + labels_geometry(self.label_base) + curves_geometry(self.curve_base)
             position, hide = s.last_pointer, list(s.highlights) + list(d.text.preview_items)
             for index in s.selected:
                 item = d.items[index]
@@ -63,6 +72,10 @@ class PlanRotationController:
                 item.setOpacity(.25)
             for index in s.selected_labels:
                 item = d.text.items[index]
+                self.dimmed.append((item, item.opacity()))
+                item.setOpacity(.25)
+            for index in s.selected_curves:
+                item = d.curve.items[index]
                 self.dimmed.append((item, item.opacity()))
                 item.setOpacity(.25)
         else:
@@ -112,10 +125,15 @@ class PlanRotationController:
 
     def render(self):
         self.rotated = rotate_degrees(self.base, self.angle, self.pivot)
-        self.valid = self.drawing.selection.fits(self.rotated)
+        rotated_curves = transform_curves(self.curve_base, self.angle, self.pivot)
+        geometry = (rotate_degrees(self.line_base, self.angle, self.pivot)
+                    + labels_geometry(transform_labels(self.label_base, self.angle, self.pivot))
+                    + curves_geometry(rotated_curves)) if self.curve_base else self.rotated
+        self.valid = self.drawing.selection.fits(geometry)
         self.clear_items()
         path = QPainterPath()
-        for line in self.rotated:
+        visible_lines = rotate_degrees(self.line_base, self.angle, self.pivot) if self.curve_base else self.rotated
+        for line in visible_lines:
             path.moveTo(line["x1"], line["y1"])
             path.lineTo(line["x2"], line["y2"])
         item = QGraphicsPathItem(path)
@@ -126,6 +144,10 @@ class PlanRotationController:
         self.items.append(item)
         for label in transform_labels(self.label_base, self.angle, self.pivot):
             self.items.append(label_item(label))
+        for curve in rotated_curves:
+            curved_item = curve_item(curve)
+            curved_item.setPen(pen)
+            self.items.append(curved_item)
         zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
         radius = widget_px(self.owner, 5) / zoom
         cx, cy = self.pivot
@@ -173,6 +195,8 @@ class PlanRotationController:
                 d.line.rotate()
             elif target == "text":
                 d.text.rotate()
+            elif target == "curve":
+                d.curve.rotate()
             else:
                 d.selection.rotate()
             return
@@ -196,10 +220,12 @@ class PlanRotationController:
             s = d.selection
             lines = rotate_degrees(self.line_base, angle, self.pivot)
             labels = transform_labels(self.label_base, angle, self.pivot)
+            curves = transform_curves(self.curve_base, angle, self.pivot)
             s.move_source, s.move_preview, s.move_turns = lines, lines, 0
             s.move_label_source, s.move_label_preview = labels, labels
+            s.move_curve_source, s.move_curve_preview = curves, curves
             s.move_anchor, s.last_pointer = pointer, position
-            s.show_lines(lines, moving=True, labels=labels)
+            s.show_lines(lines, moving=True, labels=labels, curves=curves)
             s.show_count(position)
         elif target == "text":
             label = transform_labels(self.label_base, angle, self.pivot)[0]
@@ -207,5 +233,10 @@ class PlanRotationController:
             d.text.offset = QPointF(label["x"], label["y"]) - pointer
             d.text.last_pointer = position
             d.text.show_labels([label])
+        elif target == "curve":
+            d.curve.pending = transform_curves(self.curve_base, angle, self.pivot)[0]
+            d.curve.anchor = pointer
+            d.curve.last_pointer = position
+            d.curve.show_preview(d.curve.pending, position)
         elif angle:
             d.selection.apply_rotation(angle, self.pivot)

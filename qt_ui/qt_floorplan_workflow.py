@@ -31,8 +31,9 @@ from qt_ui.qt_floorplan import (
 from qt_ui.qt_theme import QT_THEMES
 from qt_ui.qt_windowing import get_centered_open_file_name
 from survey.store import build_boundaries_file_path
-from survey.plan_drawing import PLAN_DRAWING_KEY, drawing_segments, encode_drawing
+from survey.plan_drawing import PLAN_DRAWING_KEY, encode_drawing, drawing_geometry
 from survey.plan_labels import PLAN_LABELS_KEY, drawing_labels, encode_labels
+from survey.plan_curves import PLAN_CURVES_KEY, encode_curves
 
 
 class FloorplanWorkflowMixin:
@@ -88,9 +89,9 @@ class FloorplanWorkflowMixin:
             return True
 
         is_default = self.session.metadata.get(DEFAULT_FLOORPLAN_METADATA_KEY) == "1"
-        segments = drawing_segments(self.session.metadata)
+        segments, curves = drawing_geometry(self.session.metadata)
         labels = drawing_labels(self.session.metadata)
-        has_drawing = segments is not None or bool(labels)
+        has_drawing = segments is not None or bool(labels) or bool(curves)
         if not is_default and not has_drawing:
             return True
 
@@ -109,11 +110,13 @@ class FloorplanWorkflowMixin:
 
         pixmap = self.floorplan_view.pixmap_item.pixmap()
         write_default_floorplan(transaction.stage_file(image_file) if transaction else image_file,
-                                pixmap.width(), pixmap.height(), segments=segments, labels=labels)
+                                pixmap.width(), pixmap.height(), segments=segments, labels=labels, curves=curves)
         if has_drawing:
-            self.session.metadata[PLAN_DRAWING_KEY] = encode_drawing(segments or [])
+            self.session.metadata[PLAN_DRAWING_KEY] = encode_drawing(segments or [], curves)
         if labels or PLAN_LABELS_KEY in self.session.metadata:
             self.session.metadata[PLAN_LABELS_KEY] = encode_labels(labels or [])
+        if curves or PLAN_CURVES_KEY in self.session.metadata:
+            self.session.metadata[PLAN_CURVES_KEY] = encode_curves(curves)
         self.session.metadata["map_file"] = os.path.abspath(image_file)
         self.session.metadata.pop(DEFAULT_FLOORPLAN_METADATA_KEY, None)
         self.session.metadata[GENERATED_FLOORPLAN_METADATA_KEY] = "1"
@@ -162,6 +165,7 @@ class FloorplanWorkflowMixin:
             self.session.metadata.pop(BLANK_PLAN_HEIGHT_KEY, None)
             self.session.metadata.pop(PLAN_DRAWING_KEY, None)
             self.session.metadata.pop(PLAN_LABELS_KEY, None)
+            self.session.metadata.pop(PLAN_CURVES_KEY, None)
             was_default_floorplan = (
                 self.session.metadata.pop(DEFAULT_FLOORPLAN_METADATA_KEY, None) is not None
             )

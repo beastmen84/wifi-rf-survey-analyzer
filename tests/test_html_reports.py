@@ -200,7 +200,7 @@ def test_live_export_escapes_names_and_passes_the_boundary_mask_to_shared_render
     assert all(resource.startswith("data:") for resource in ReportDOM(html).resources)
 
 
-@pytest.mark.parametrize("operation", ["draw", "erase", "move", "line", "oblique", "text"])
+@pytest.mark.parametrize("operation", ["draw", "erase", "move", "line", "oblique", "text", "curves"])
 def test_both_workspace_html_exports_include_current_editable_shapes(analysis_window, tmp_path, operation):
     window = analysis_window
     image = tmp_path / "drawing.png"
@@ -215,6 +215,15 @@ def test_both_workspace_html_exports_include_current_editable_shapes(analysis_wi
     window.load_saved_plan()
     window.refresh_session_labels()
     text_pixel = None
+    curve_pixels = []
+    if operation == "curves":
+        curves = [dict(kind="circle", cx=65, cy=235, radius=25, phase=0, color="#d84315"),
+                  dict(kind="arc", x1=240, y1=200, x2=360, y2=200, height=40, color="#d84315")]
+        window.plan_tools.controller.apply_edit(lines, curves=curves)
+        rendered = render_plan_drawing(Image.new("RGB", (400, 300), "white"), lines, curves=curves)
+        for x, y in ((90, 235), (300, 240)):
+            assert rendered.getpixel((x, y)) != (255, 255, 255)
+            curve_pixels.append(((x, y), rendered.getpixel((x, y))))
     if operation == "text":
         from survey.plan_label_rendering import build_label
         from tests.test_plan_text_fill import style
@@ -263,6 +272,8 @@ def test_both_workspace_html_exports_include_current_editable_shapes(analysis_wi
             assert export.call_args.args[3].getpixel((60, 190)) == (216, 67, 21)
         if operation == "text":
             assert export.call_args.args[3].getpixel(text_pixel) == (216, 67, 21)
+        for pixel, color in curve_pixels:
+            assert export.call_args.args[3].getpixel(pixel) == color
     assert Path(analysis).is_file()
     window.live_ssid_combo.addItem("Office")
     window.live_ssid_combo.setCurrentText("Office")
@@ -283,4 +294,6 @@ def test_both_workspace_html_exports_include_current_editable_shapes(analysis_wi
             assert export.call_args.args[1].getpixel((60, 190)) == (216, 67, 21)
         if operation == "text":
             assert export.call_args.args[1].getpixel(text_pixel) == (216, 67, 21)
+        for pixel, color in curve_pixels:
+            assert export.call_args.args[1].getpixel(pixel) == color
     assert Path(live).is_file()

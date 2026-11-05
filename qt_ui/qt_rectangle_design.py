@@ -8,13 +8,16 @@ from PySide6.QtWidgets import (QApplication, QDialog, QDialogButtonBox, QDoubleS
     QGraphicsPathItem, QLabel, QLineEdit, QPlainTextEdit, QTextEdit, QVBoxLayout)
 
 from app_core.units import distance_unit_label, display_units_to_meters, meters_to_display_units
-from survey.plan_drawing import PLAN_DRAWING_KEY, drawing_segments, encode_drawing, rectangle_segments
+from survey.plan_drawing import PLAN_DRAWING_KEY, drawing_segments, drawing_geometry, encode_drawing, rectangle_segments
+from survey.plan_curves import PLAN_CURVES_KEY, encode_curves, validate_curves, curves_geometry
+from survey.plan_curve_geometry import normalize_plan
+from survey.curved_regions import closed_drawing_regions
+from qt_ui.qt_curve_design import CurveDesignController
 from survey.plan_snapping import PlanSnapper, SnapResult
-from survey.plan_regions import PlanRegions, closed_plan_regions
-from survey.plan_geometry import normalize_segments, rotate_degrees, segment_bounds, translate_segments
+from survey.plan_regions import PlanRegions
+from survey.plan_geometry import rotate_degrees, segment_bounds, translate_segments
 from survey.plan_drawing import validate_segments
 from survey.plan_labels import PLAN_LABELS_KEY, drawing_labels, encode_labels, validate_labels, labels_geometry
-from survey.plan_label_rendering import label_item
 from qt_ui.qt_text_design import TextDesignController
 from qt_ui.scaling import widget_px
 from qt_ui.qt_plan_eraser import PlanEraserController
@@ -102,6 +105,7 @@ class RectangleDesignController(QObject):
         self.eraser = PlanEraserController(self)
         self.line = LineDesignController(self)
         self.text = TextDesignController(self)
+        self.curve = CurveDesignController(self)
         self.selection = PlanSelectionController(self)
         self.rotation = PlanRotationController(self)
         self.owner.installEventFilter(self)
@@ -109,7 +113,9 @@ class RectangleDesignController(QObject):
         self.view.viewport().installEventFilter(self)
 
     def eventFilter(self, source, event):
-        if source is self.owner and event.type() == QEvent.Type.WindowDeactivate and not self.text.dialog_open:
+        if source is self.view.viewport() and event.type() == QEvent.Type.Resize:
+            self.position_measurement()
+        if source is self.owner and event.type() == QEvent.Type.WindowDeactivate and not (self.text.dialog_open or self.curve.dialog_open):
             self.cancel()
         if event.type() == QEvent.Type.KeyRelease and event.key() == Qt.Key.Key_R and self.rotation.active:
             if not event.isAutoRepeat():
@@ -150,6 +156,7 @@ class RectangleDesignController(QObject):
                 self.eraser.reset_scene()
                 self.line.reset_scene()
                 self.text.reset_scene()
+                self.curve.reset_scene()
                 self.selection.reset_scene()
             self.cancel()
             self.undo_stack.clear()
@@ -157,7 +164,7 @@ class RectangleDesignController(QObject):
             self.last_size = None
             self.session, self.pixmap = session, self.view.pixmap_item
             self.document = None
-        document = (session.metadata.get(PLAN_DRAWING_KEY), session.metadata.get(PLAN_LABELS_KEY)) if session else None
+        document = tuple(session.metadata.get(key) for key in (PLAN_DRAWING_KEY, PLAN_LABELS_KEY, PLAN_CURVES_KEY)) if session else None
         if changed_scene or document != self.document:
             self.redraw()
             self.document = document
@@ -170,27 +177,34 @@ class RectangleDesignController(QObject):
     def labels(self):
         return drawing_labels(self.owner.session.metadata) or [] if self.owner.session else []
 
+    def curves(self):
+        return drawing_geometry(self.owner.session.metadata)[1] if self.owner.session else []
+
     def redraw(self):
         self.rotation.cancel()
         self.eraser.cancel()
         self.line.cancel()
         self.text.cancel()
+        self.curve.cancel()
         self.selection.cancel()
         for item in self.items:
             self.view.scene.removeItem(item)
         self.items = []
         lines = self.segments()
         labels = self.labels()
+        curves = self.curves()
         bounds = self.view.scene.sceneRect()
         if any(line[key] > extent + 1e-7 for line in lines or []
                for keys, extent in ((('x1', 'x2'), bounds.width()), (('y1', 'y2'), bounds.height())) for key in keys):
             raise ValueError("Saved drawing is outside the sheet")
         if labels and not self.selection.fits(labels_geometry(labels)):
             raise ValueError("Saved text is outside the sheet")
+        if curves and not self.selection.fits(curves_geometry(curves)):
+            raise ValueError("Saved curve is outside the sheet")
         self.eraser.set_segments(lines or [])
         self.selection.set_segments(lines or [])
-        self.snapper = PlanSnapper(lines or [])
-        self.regions = closed_plan_regions(lines or [])
+        self.snapper = PlanSnapper(lines or [], curves)
+        self.regions = closed_drawing_regions(lines or [], curves)
         self.view.set_grid_regions(self.regions.faces)
         if self.regions.limited:
             self.owner.status.showMessage(self.owner.tr("design_regions_limited"))
@@ -206,9 +220,10 @@ class RectangleDesignController(QObject):
             self.view.scene.addItem(item)
             self.items.append(item)
         self.text.redraw(labels)
+        self.curve.redraw(curves)
 
     def cancel(self):
-        states = (self.rotation.cancel(), self.eraser.cancel(), self.line.cancel(), self.text.cancel(), self.selection.cancel(),
+        states = (self.rotation.cancel(), self.eraser.cancel(), self.line.cancel(), self.text.cancel(), self.curve.cancel(), self.selection.cancel(),
                   self.origin is not None, self.pending_size is not None)
         existed = any(states)
         if self.preview is not None:
@@ -230,6 +245,7 @@ class RectangleDesignController(QObject):
         self.eraser.hide_preview()
         self.line.hide_preview()
         self.text.hide_preview()
+        self.curve.hide_preview()
         self.selection.hide_preview()
         self.last_pointer = None
         if self.preview is not None:
@@ -274,6 +290,9 @@ class RectangleDesignController(QObject):
 
     def refresh_snap(self):
         if self.rotation.active:
+            return
+        if self.tools.active_tool in ("circle", "arc"):
+            self.curve.refresh_snap()
             return
         if self.tools.active_tool == "line":
             self.line.refresh_snap()
@@ -355,18 +374,25 @@ class RectangleDesignController(QObject):
 
     def show_measurement(self, text, position):
         self.measurement.setText(text)
-        self.measurement.adjustSize()
-        viewport = self.view.viewport()
-        self.measurement.move(max(4, min(int(position.x()) + 16, viewport.width() - self.measurement.width() - 4)),
-                              max(4, min(int(position.y()) + 18, viewport.height() - self.measurement.height() - 4)))
+        self.position_measurement()
         self.measurement.show()
         self.measurement.raise_()
+
+    def position_measurement(self):
+        margin = widget_px(self.owner, 12)
+        viewport = self.view.viewport()
+        self.measurement.setWordWrap(True)
+        self.measurement.setMaximumWidth(min(widget_px(self.owner, 330), max(80, viewport.width() // 2 - margin)))
+        self.measurement.adjustSize()
+        self.measurement.move(max(margin, viewport.width() - margin - self.measurement.width()), margin)
 
     def press(self, event):
         if self.rotation.active:
             return True
         if event.button() != Qt.MouseButton.RightButton:
             return False
+        if self.tools.active_tool in ("circle", "arc"):
+            return self.curve.press(event)
         if self.tools.active_tool == "eraser":
             return self.eraser.press(event)
         if self.tools.active_tool == "line":
@@ -399,12 +425,18 @@ class RectangleDesignController(QObject):
             if index is not None:
                 self.selection.cancel()
                 return self.text.edit(index)
+            hits = self.eraser.pick_curves(self.view.mapToScene(event.position().toPoint()))
+            if hits:
+                self.selection.cancel()
+                return self.curve.edit(hits[0])
         return False
 
     def move(self, event):
         if self.rotation.active:
             self.rotation.move(event.position())
             return True
+        if self.tools.active_tool in ("circle", "arc"):
+            return self.curve.move(event)
         if self.tools.active_tool == "eraser":
             return self.eraser.move(event)
         if self.tools.active_tool == "line":
@@ -433,6 +465,8 @@ class RectangleDesignController(QObject):
             return True
         if event.button() != Qt.MouseButton.RightButton:
             return False
+        if self.tools.active_tool in ("circle", "arc"):
+            return self.curve.release(event)
         if self.tools.active_tool == "eraser":
             return self.eraser.release(event)
         if self.tools.active_tool == "line":
@@ -523,32 +557,38 @@ class RectangleDesignController(QObject):
         return True
 
     def snapshot(self):
-        return dict(segments=list(self.segments() or []), labels=self.labels())
+        return dict(segments=list(self.segments() or []), labels=self.labels(), curves=self.curves())
 
-    def apply_edit(self, segments, labels=None):
+    def apply_edit(self, segments, labels=None, curves=None):
         previous = self.snapshot()
         try:
-            segments = normalize_segments(validate_segments(segments))
+            curves = validate_curves(self.curves() if curves is None else curves)
+            segments, curves = normalize_plan(validate_segments(segments), curves)
+            curves = validate_curves(curves)
             labels = validate_labels(self.labels() if labels is None else labels)
         except ValueError:
             self.owner.status.showMessage(self.owner.tr("design_edit_limit"))
             return False
-        if dict(segments=segments, labels=labels) == previous:
+        if dict(segments=segments, labels=labels, curves=curves) == previous:
             return False
-        encode_drawing(segments)  # Validate before changing history or metadata.
+        encode_drawing(segments, curves)  # Validate before changing history or metadata.
         self.undo_stack.append(previous)
         if len(self.undo_stack) > 50:
             del self.undo_stack[0]
         self.redo_stack.clear()
-        self.store(segments, labels)
+        self.store(segments, labels, curves)
         return True
 
-    def store(self, segments, labels=None):
+    def store(self, segments, labels=None, curves=None):
         labels = self.labels() if labels is None else labels
+        curves = self.curves() if curves is None else curves
         encoded_labels = encode_labels(labels)
-        self.owner.session.metadata[PLAN_DRAWING_KEY] = encode_drawing(segments)
+        encoded_curves = encode_curves(curves)
+        self.owner.session.metadata[PLAN_DRAWING_KEY] = encode_drawing(segments, curves)
         if labels or PLAN_LABELS_KEY in self.owner.session.metadata:
             self.owner.session.metadata[PLAN_LABELS_KEY] = encoded_labels
+        if curves or PLAN_CURVES_KEY in self.owner.session.metadata:
+            self.owner.session.metadata[PLAN_CURVES_KEY] = encoded_curves
         self.owner.session.dirty = True
         self.owner.invalidate_live_preview()
         self.owner.refresh_session_labels()
@@ -558,11 +598,11 @@ class RectangleDesignController(QObject):
             self.cancel()
             self.redo_stack.append(self.snapshot())
             state = self.undo_stack.pop()
-            self.store(state["segments"], state["labels"])
+            self.store(state["segments"], state["labels"], state.get("curves", []))
 
     def redo(self):
         if self.redo_stack:
             self.cancel()
             self.undo_stack.append(self.snapshot())
             state = self.redo_stack.pop()
-            self.store(state["segments"], state["labels"])
+            self.store(state["segments"], state["labels"], state.get("curves", []))

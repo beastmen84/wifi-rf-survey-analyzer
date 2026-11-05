@@ -7,6 +7,8 @@ from PySide6.QtWidgets import QApplication, QGraphicsPathItem, QGraphicsRectItem
 
 from qt_ui.scaling import widget_px
 from survey.plan_erasing import intersecting_segments, nearest_segment
+from survey.curve_erasing import intersecting_curves, nearest_curve
+from survey.plan_curve_rendering import curve_path
 
 
 class PlanEraserController:
@@ -67,6 +69,15 @@ class PlanEraserController:
                                 widget_px(self.owner, 6) / zoom + 1)
         return () if index is None else (index,)
 
+    def pick_curves(self, point):
+        zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
+        index = nearest_curve(self.drawing.curves(), point.x(), point.y(), widget_px(self.owner, 6) / zoom + 1)
+        return () if index is None else (index,)
+
+    def pick_all(self, point):
+        lines = self.pick(point)
+        return lines if lines else tuple(len(self.lines) + index for index in self.pick_curves(point))
+
     def show_targets(self, targets, position, rect=None):
         if targets != self.targets:
             for item in self.highlights:
@@ -75,6 +86,9 @@ class PlanEraserController:
             self.targets = targets
             path = QPainterPath()
             for index in targets:
+                if index >= len(self.lines):
+                    path.addPath(curve_path(self.drawing.curves()[index - len(self.lines)]))
+                    continue
                 line = self.lines[index]
                 path.moveTo(line["x1"], line["y1"])
                 path.lineTo(line["x2"], line["y2"])
@@ -116,7 +130,7 @@ class PlanEraserController:
             self.origin = self.point(event)
             self.press_position = event.position()
             self.dragged = False
-            self.show_targets(self.pick(self.origin), event.position())
+            self.show_targets(self.pick_all(self.origin), event.position())
         return True
 
     def move(self, event):
@@ -130,7 +144,7 @@ class PlanEraserController:
                 self.show_area(point, event.position())
             return True
         if self.view.scene.sceneRect().contains(self.view.mapToScene(event.position().toPoint())):
-            self.show_targets(self.pick(point), event.position())
+            self.show_targets(self.pick_all(point), event.position())
         else:
             self.clear_feedback()
         return False
@@ -138,6 +152,7 @@ class PlanEraserController:
     def show_area(self, point, position):
         rect = QRectF(self.origin, point).normalized()
         targets = intersecting_segments(self.lines, rect.left(), rect.top(), rect.right(), rect.bottom())
+        targets += tuple(len(self.lines) + index for index in intersecting_curves(self.drawing.curves(), rect.left(), rect.top(), rect.right(), rect.bottom()))
         self.show_targets(targets, position, rect)
 
     def release(self, event):
@@ -147,7 +162,9 @@ class PlanEraserController:
             self.show_area(self.point(event), event.position())
         targets = set(self.targets)
         lines = self.drawing.segments() or []
+        curves = self.drawing.curves()
         self.cancel()
         if targets:
-            self.drawing.apply_edit([line for index, line in enumerate(lines) if index not in targets])
+            self.drawing.apply_edit([line for index, line in enumerate(lines) if index not in targets],
+                curves=[curve for index, curve in enumerate(curves) if len(lines) + index not in targets])
         return True

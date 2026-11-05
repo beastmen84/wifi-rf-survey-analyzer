@@ -22,6 +22,45 @@ interpolated colors.
 
 Current status:
 
+- Generated plans now have optional plan_curves JSON version 1: circles store
+  center/radius/technical junction phase and arcs store ordered chord endpoints
+  plus signed sagitta. The junction phase is not a circle orientation.
+  survey/plan_curves.py validates finite bounded geometry, up to 5000 curves.
+  No sampled wall segments are persisted. Survey schema 2, plan_drawing v1 and
+  plan_labels v1 remain readable. qt_curve_design.py owns radius drag/numeric
+  placement and chord-drag/pull/confirm or numeric arc placement, remembered
+  dimensions, R tap/hold for arcs and explicit dimension edits. A lone circle
+  cannot rotate in preview, selection or move; a circle in a group only has its
+  center transformed around the group pivot. Dialog results reject
+  stale scene/document state; out-of-sheet edits are rejected without clipping.
+- plan_curve_geometry.py computes analytic line/circle/arc intersections,
+  canonical cuts, source mappings and same-circle/color continuation joins.
+  Actual branches, gaps and independent duplicates remain separate. Work is
+  bounded by 40000 fragments and one million curve pair candidates. Exact stored
+  arc endpoints survive shallow-arc calculations; tangent roots collapse to one
+  contact instead of producing microscopic false crossings. Subarc sagittas are
+  recovered stably from the canonical chord and support radius, retaining
+  same-circle rejoining even for shallow arcs. Point/area erasing
+  and snapping use finite analytic curves, not bounding boxes or display chords.
+- curved_regions.py walks a mixed half-edge graph with analytic junctions and
+  outgoing tangents/curvature, including self-loop circles and parallel arcs.
+  Derived tangent ordering absorbs float ulps without rounding saved coordinates.
+  Only derived face polygons use sampling (0.05 plan-pixel tolerance, 200000-point
+  budget); over-limit work returns no partial fill. Both grid fading and
+  Boundaries Fill/Auto Fill consume these faces. Text remains non-structural.
+- Selection/history/rotation include curves with straight strokes and labels.
+  Source sets prevent stationary geometry absorbed by a join from becoming
+  selected. Real curve bounds are recomputed after rotation rather than rotating
+  an old bounding box. Proxies used for snapping/bounds never become plan walls.
+  plan_curve_rendering.py shares vector paths between native items and raster
+  backgrounds. PNG/Live/Analysis/HTML all receive current normalized curves;
+  workers deepcopy them and fingerprints include their exact parameters. Import
+  clears all three drawing models and rendering rebuilds the generated white
+  background, so erased/undone curves cannot survive as stale PNG ink.
+- The measurement QLabel is fixed at viewport top-right with the same top margin
+  as the grid-scale legend. Pointer motion cannot move it over the draft; viewport
+  resizing reanchors it and limits text wrapping. Native widget QA covers all four
+  languages, themes and 100/125/150/175 UI scales (64 cases), both unit systems.
 - PlanSnapper's shared snap_vertices_to_grid evaluates every distinct actual
   source vertex, retaining only grid targets that keep the whole shape within
   the sheet and choosing the smallest rigid translation with deterministic ties.
@@ -1595,9 +1634,10 @@ Future expansion:
     work includes per-survey objective persistence, per-AP channel capabilities,
     richer RF measurements and multi-map report composition.
 15. Validate the completed initial blank-sheet editor on real survey workflows:
-    custom dimensions, rectangles, snapping, independent-segment erasing and
-    closed-area grid fading. Curves and configurable stroke thickness remain
-    outside the current scope. Keep the editor focused on survey-ready plans.
+    custom dimensions, rectangles, lines, circles/arcs, text, snapping, fragment
+    erasing, selection/transforms, closed-area grid fading and boundary fills.
+    Door/window/marker annotations and configurable stroke thickness remain
+    future work. Keep the editor focused on survey-ready plans.
 16. Add richer deployment/reporting outputs.
 
 ## Final Vision

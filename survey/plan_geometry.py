@@ -78,7 +78,7 @@ def split_segments(segments, with_sources=False, limit=40000):
     return (result, sources) if with_sources else result
 
 
-def join_segments(segments, with_sources=False):
+def join_segments(segments, with_sources=False, protected=()):
     """Join like-colored end-to-end fragments only at unbranched vertices.
 
     Input must already be split at every real intersection. Gaps, corners,
@@ -98,7 +98,7 @@ def join_segments(segments, with_sources=False):
         return index
 
     for point, incident in endpoints.items():
-        if len(incident) != 2:
+        if len(incident) != 2 or point in protected:
             continue
         first, second = incident
         a, b = segments[first], segments[second]

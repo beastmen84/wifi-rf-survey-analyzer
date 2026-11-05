@@ -7,6 +7,22 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Added Circle and Circular arc to Design Mode. Circles use radius drag or a
+  numeric radius; arcs use chord drag followed by perpendicular sagitta movement
+  and a confirming right click, or exact chord/sagitta/side entry. Last dimensions
+  are remembered during the survey. Numeric arc previews support R tap/hold, and
+  selection/double-click or the pencil action reopens their dimension editor.
+  Intersections create editable curved fragments; obsolete cuts rejoin without
+  flattening curves. Snapping, erasing, mixed selection, M/R/Del, shared undo/redo,
+  closed-area grid fading and Boundaries Fill/Auto Fill support curved geometry.
+  Tangent contacts are treated as single analytic junctions at every orientation.
+  Optional parametric curve metadata preserves editable radius/chord/sagitta on
+  reopen and feeds the same current geometry to PNG, Live Map and HTML exports.
+  A single circle has no rotation gesture or rotation hint; group rotations move
+  its center with the group without assigning an orientation to the circle.
+- Fixed the drawing measurements panel at the top right of the viewport, aligned
+  with the scale legend. It stays anchored during pointer movement and window
+  resizing, with bounded wrapping. Updated EN/IT/FR/ES controls and Help.
 - Fixed grid snapping for rotated shapes: every real vertex can anchor the shape,
   rather than only the first segment's start. Numeric previews, either line
   endpoint and moving selections use the nearest valid vertex/grid correction

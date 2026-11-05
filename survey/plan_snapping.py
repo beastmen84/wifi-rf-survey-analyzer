@@ -4,6 +4,8 @@ from dataclasses import dataclass
 import math
 from survey.planar_geometry import point_projection
 from survey.plan_geometry import segment_bounds
+from survey.plan_curves import curve_points, project_curve
+from survey.plan_curve_geometry import line_curve_intersections
 
 
 @dataclass(frozen=True)
@@ -57,8 +59,9 @@ def snap_vertices_to_grid(vertices, box, bounds, spacing):
 
 
 class PlanSnapper:
-    def __init__(self, segments=()):
+    def __init__(self, segments=(), curves=()):
         self.segments = list(segments)
+        self.curves = list(curves)
         self.oblique = [line for line in self.segments if line["x1"] != line["x2"] and line["y1"] != line["y2"]]
         self.vertical, self.horizontal, vertices = [], [], set()
         for line in self.segments:
@@ -70,6 +73,7 @@ class PlanSnapper:
                 self.horizontal.append((y1, min(x1, x2), max(x1, x2)))
         self.vertical = sorted(set(self.vertical))
         self.horizontal = sorted(set(self.horizontal))
+        vertices.update(point for curve in self.curves for point in curve_points(curve, center=True))
         self.vertices = sorted(vertices)
         self.v_positions = [line[0] for line in self.vertical]
         self.h_positions = [line[0] for line in self.horizontal]
@@ -117,6 +121,10 @@ class PlanSnapper:
                                           (x, y, x + width, y + height), bounds, tolerance)
         if diagonal is not None:
             dx, dy, guide = diagonal
+            return SnapResult(x + dx, y + dy, (guide,))
+        curved = self.curve_translation(vertices, (x, y, x + width, y + height), bounds, tolerance)
+        if curved is not None:
+            dx, dy, guide = curved
             return SnapResult(x + dx, y + dy, (guide,))
 
         xs = self.axis_targets(x, y, height, x_offsets, self.vertical, self.v_positions,
@@ -178,7 +186,7 @@ class PlanSnapper:
         ox, oy = origin
         if not all(math.isfinite(value) for value in origin) or not (left <= ox <= right and top <= oy <= bottom):
             raise ValueError("Invalid drag origin")
-        if any(guide.kind == "corner" or guide.axis == "line" for guide in direct.guides):
+        if any(guide.kind == "corner" or guide.axis in ("line", "curve") for guide in direct.guides):
             return direct
         x, y = min(max(x, left), right), min(max(y, top), bottom)
         xs = self.axis_targets(x, min(oy, y), abs(y - oy), (0,), self.vertical, self.v_positions,
@@ -221,6 +229,13 @@ class PlanSnapper:
             chosen = min(vertices, key=lambda coordinate: (abs(coordinate - value), coordinate))
             point = (chosen, fixed) if horizontal else (fixed, chosen)
             return SnapResult(*point, (SnapGuide("corner", point),))
+        side = dict(x1=minimum if horizontal else fixed, y1=fixed if horizontal else minimum,
+                    x2=maximum if horizontal else fixed, y2=fixed if horizontal else maximum)
+        points = [point for curve in self.curves for point in line_curve_intersections(side, curve)
+                  if abs((point[0] if horizontal else point[1]) - value) <= tolerance]
+        if points:
+            chosen = min(points, key=lambda p: (abs((p[0] if horizontal else p[1]) - value), p))
+            return SnapResult(*chosen, (SnapGuide("edge", chosen, "curve"),))
         lines, positions = (self.vertical, self.v_positions) if horizontal else (self.horizontal, self.h_positions)
         targets = self.axis_targets(value, fixed, 0, (0,), lines, positions, minimum, maximum, tolerance, grid)
         for line in self.oblique:
@@ -281,8 +296,27 @@ class PlanSnapper:
         if edge:
             dx, dy, guide = edge
             return SnapResult(dx, dy, (guide,))
+        curved = self.curve_translation(vertices, box, bounds, tolerance)
+        if curved:
+            dx, dy, guide = curved
+            return SnapResult(dx, dy, (guide,))
         if grid and grid > 0:
             snapped = snap_vertices_to_grid(vertices, box, bounds, grid)
             if snapped is not None:
                 return snapped
         return SnapResult(0, 0)
+
+    def curve_translation(self, vertices, box, bounds, tolerance):
+        choices = []
+        for vx, vy in vertices:
+            for curve in self.curves:
+                px, py = project_curve(curve, (vx, vy))
+                dx, dy = px - vx, py - vy
+                distance = dx * dx + dy * dy
+                if (distance <= tolerance ** 2 and bounds[0] <= box[0] + dx and bounds[1] <= box[1] + dy
+                        and box[2] + dx <= bounds[2] and box[3] + dy <= bounds[3]):
+                    choices.append((distance, dx, dy, px, py))
+        if not choices:
+            return None
+        _, dx, dy, px, py = min(choices)
+        return dx, dy, SnapGuide("edge", (px, py), "curve")

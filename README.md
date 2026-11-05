@@ -105,6 +105,20 @@ from these software checks.
   is one undoable edit. Right-double-click selected text, or use **Edit selected
   text**, to reopen its editor. Text remains editable after save/reopen and
   appears consistently in generated PNGs, Live Map and both HTML report types.
+- Design Mode **Circle** uses a right drag from the center to set the radius,
+  or a simple right click to enter it precisely. **Circular arc** uses a right
+  drag from A to B for the chord: release, move the pointer to set the bend and
+  right-click to confirm. A simple right click instead accepts the chord,
+  perpendicular sagitta and side, so the same curve can be reproduced elsewhere.
+  Numeric arc previews support R tap/hold; a single circle has no rotation.
+  In a mixed/group selection, its center follows the group's rotation.
+  Select and right-double-click a curve,
+  or use the pencil action, to inspect/change its dimensions. Curves split at
+  intersections, rejoin obsolete cuts, and support snapping, partial erasing,
+  selection, M, R, Del and undo/redo. Closed curved perimeters also fade the grid
+  and work with Boundaries Fill/Auto Fill. Their editable geometry survives
+  save/reopen and appears in PNG, Live Map and HTML reports. The measurements
+  panel stays at the top right of the drawing viewport, opposite the grid scale.
 - On generated blank sheets, **Boundaries** includes **Fill** for one closed
   drawn room and **Auto Fill** for all closed drawn rooms. Fill uses a right
   click inside the area and respects nested rooms; open perimeters do not fill.
