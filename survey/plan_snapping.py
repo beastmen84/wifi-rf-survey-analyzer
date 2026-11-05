@@ -174,3 +174,23 @@ class PlanSnapper:
         if xt.kind == "grid" or yt.kind == "grid":
             guides.append(SnapGuide("grid", (xt.value, yt.value)))
         return SnapResult(xt.value, yt.value, tuple(guides))
+
+    def snap_line(self, x, y, origin, horizontal, bounds, tolerance, grid=None):
+        """Snap the moving endpoint on one axis, retaining the fixed line axis."""
+        value, fixed = (x, origin[1]) if horizontal else (y, origin[0])
+        minimum, maximum = (bounds[0], bounds[2]) if horizontal else (bounds[1], bounds[3])
+        value = min(max(value, minimum), maximum)
+        vertices = [(vx if horizontal else vy) for vx, vy in self.vertices
+                    if abs((vy if horizontal else vx) - fixed) <= 1e-9
+                    and abs((vx if horizontal else vy) - value) <= tolerance]
+        if vertices:
+            chosen = min(vertices, key=lambda coordinate: (abs(coordinate - value), coordinate))
+            point = (chosen, fixed) if horizontal else (fixed, chosen)
+            return SnapResult(*point, (SnapGuide("corner", point),))
+        lines, positions = (self.vertical, self.v_positions) if horizontal else (self.horizontal, self.h_positions)
+        targets = self.axis_targets(value, fixed, 0, (0,), lines, positions, minimum, maximum, tolerance, grid)
+        target = min(targets, key=lambda entry: (0 if entry.kind == "edge" else 1 if entry.kind == "grid" else 2,
+                                                abs(entry.value - value), entry.value))
+        point = (target.value, fixed) if horizontal else (fixed, target.value)
+        guide = () if not target.kind else (SnapGuide(target.kind, point, "x" if horizontal else "y", target.span),)
+        return SnapResult(*point, guide)

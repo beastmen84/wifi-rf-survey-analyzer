@@ -29,21 +29,31 @@ class PlanToolsOverlay(QFrame):
         self.tool_row = row
         row.setSpacing(owner.spx(4))
         self.rectangle_button = owner.create_boundaries_tool_button("square.png", "blank_tool_rectangle")
+        self.line_button = owner.create_boundaries_text_button("", "blank_tool_line")
         self.eraser_button = owner.create_boundaries_tool_button("eraser.png", "blank_tool_eraser")
+        self.select_button = owner.create_boundaries_text_button("", "blank_tool_select")
         self.undo_button = owner.create_boundaries_text_button("", "blank_tool_undo")
         self.redo_button = owner.create_boundaries_text_button("", "blank_tool_redo")
-        for button in (self.rectangle_button, self.eraser_button, self.undo_button, self.redo_button):
+        for button in (self.rectangle_button, self.line_button, self.eraser_button, self.select_button):
             button.setEnabled(False)
             row.addWidget(button)
+        layout.addLayout(row)
+        actions = QHBoxLayout()
+        self.action_row = actions
+        actions.setSpacing(owner.spx(4))
+        actions.addWidget(self.undo_button)
+        actions.addWidget(self.redo_button)
         self.snap_button = owner.create_boundaries_text_button("", "blank_tool_snap")
         self.snap_button.setCheckable(True)
         self.snap_button.setChecked(False)
         self.snap_button.setEnabled(False)
         self.color_button = owner.create_boundaries_text_button("", "blank_tool_color")
         self.color_button.clicked.connect(self.choose_color)
-        row.addWidget(self.snap_button)
-        row.addWidget(self.color_button)
-        layout.addLayout(row)
+        actions.addWidget(self.snap_button)
+        actions.addWidget(self.color_button)
+        row.addStretch()
+        actions.addStretch()
+        layout.addLayout(actions)
         self.note = QLabel()
         self.note.setWordWrap(True)
         layout.addWidget(self.note)
@@ -58,8 +68,12 @@ class PlanToolsOverlay(QFrame):
         self.drawing_error = False
         self.rectangle_button.setCheckable(True)
         self.eraser_button.setCheckable(True)
+        self.line_button.setCheckable(True)
+        self.select_button.setCheckable(True)
         self.rectangle_button.clicked.connect(self.select_rectangle)
         self.eraser_button.clicked.connect(lambda: self.select_tool("eraser"))
+        self.line_button.clicked.connect(lambda: self.select_tool("line"))
+        self.select_button.clicked.connect(lambda: self.select_tool("select"))
         self.undo_button.clicked.connect(self.controller.undo)
         self.redo_button.clicked.connect(self.controller.redo)
         self.escape_shortcut = QShortcut(QKeySequence("Esc"), owner)
@@ -85,7 +99,8 @@ class PlanToolsOverlay(QFrame):
         self.toggle_button.setText(tr("blank_tools"))
         self.toggle_button.setToolTip(tr("blank_tools_hint"))
         self.header.setText(tr("blank_tools"))
-        for button, key in ((self.rectangle_button, "rectangle"), (self.eraser_button, "eraser"),
+        for button, key in ((self.rectangle_button, "rectangle"), (self.line_button, "line"),
+                            (self.eraser_button, "eraser"), (self.select_button, "select"),
                             (self.undo_button, "undo"), (self.redo_button, "redo"),
                             (self.snap_button, "snap"), (self.color_button, "color")):
             text = tr("blank_tool_" + key)
@@ -137,12 +152,50 @@ class PlanToolsOverlay(QFrame):
         self.position_controls()
 
     def update_tool_state(self):
-        for tool, button in (("rectangle", self.rectangle_button), ("eraser", self.eraser_button)):
+        for tool, button in (("rectangle", self.rectangle_button), ("line", self.line_button),
+                             ("eraser", self.eraser_button), ("select", self.select_button)):
             button.setEnabled(self.open)
             button.setChecked(self.open and self.active_tool == tool)
-        self.snap_button.setEnabled(self.open and self.active_tool == "rectangle")
-        self.color_button.setEnabled(self.open and self.active_tool == "rectangle")
-        self.note.setText(self.owner.tr("eraser_tools_note" if self.active_tool == "eraser" else "blank_tools_note"))
+        self.snap_button.setEnabled(self.open and self.active_tool != "eraser")
+        self.color_button.setEnabled(self.open and self.active_tool in ("rectangle", "line"))
+        key = {"rectangle": "blank_tools_note", "line": "line_tools_note",
+               "eraser": "eraser_tools_note", "select": "selection_tools_note"}[self.active_tool]
+        self.note.setText(self.owner.tr(key))
+        self.update_tool_icons()
+
+    def update_tool_icons(self):
+        size = self.owner.spx(20)
+        for tool, button in (("line", self.line_button), ("select", self.select_button)):
+            pixmap = QPixmap(size, size)
+            pixmap.fill(Qt.GlobalColor.transparent)
+            painter = QPainter(pixmap)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.scale(size / 24, size / 24)
+            color = QColor("#ffffff" if button.isChecked() else QT_THEMES[self.owner.theme]["text"])
+            pen = QPen(color, 1.8)
+            pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+            painter.setPen(pen)
+            if tool == "line":
+                painter.drawLine(4, 12, 20, 12)
+                painter.setBrush(color)
+                painter.drawEllipse(2, 10, 4, 4)
+                painter.drawEllipse(18, 10, 4, 4)
+            else:
+                pen.setStyle(Qt.PenStyle.DashLine)
+                painter.setPen(pen)
+                painter.drawRect(3, 3, 14, 14)
+                painter.setPen(QPen(color, 1.3))
+                painter.setBrush(color)
+                arrow = QPainterPath()
+                arrow.moveTo(12, 10)
+                arrow.lineTo(22, 16)
+                arrow.lineTo(18, 17)
+                arrow.lineTo(16, 22)
+                arrow.closeSubpath()
+                painter.drawPath(arrow)
+            painter.end()
+            button.setIcon(QIcon(pixmap))
+            button.setIconSize(QSize(size, size))
 
     def toggle_grid_snap(self, checked):
         self.update_snap_icon()
@@ -227,7 +280,8 @@ class PlanToolsOverlay(QFrame):
             bottom = min(bottom, top - margin)
         self.toggle_button.setGeometry(margin, max(margin, bottom - size.height()), size.width(), size.height())
         margins = self.layout().contentsMargins()
-        width = max(self.owner.spx(240), self.tool_row.sizeHint().width() + margins.left() + margins.right())
+        width = max(self.owner.spx(270), max(self.tool_row.sizeHint().width(), self.action_row.sizeHint().width())
+                    + margins.left() + margins.right())
         note_width = width - margins.left() - margins.right()
         self.note.setFixedWidth(note_width)
         # heightForWidth includes minimumHeight: remove the previous fixed height

@@ -31,7 +31,7 @@ from qt_ui.qt_floorplan import (
 from qt_ui.qt_theme import QT_THEMES
 from qt_ui.qt_windowing import get_centered_open_file_name
 from survey.store import build_boundaries_file_path
-from survey.plan_drawing import PLAN_DRAWING_KEY, drawing_segments
+from survey.plan_drawing import PLAN_DRAWING_KEY, drawing_segments, encode_drawing
 
 
 class FloorplanWorkflowMixin:
@@ -87,7 +87,8 @@ class FloorplanWorkflowMixin:
             return True
 
         is_default = self.session.metadata.get(DEFAULT_FLOORPLAN_METADATA_KEY) == "1"
-        has_drawing = drawing_segments(self.session.metadata) is not None
+        segments = drawing_segments(self.session.metadata)
+        has_drawing = segments is not None
         if not is_default and not has_drawing:
             return True
 
@@ -106,7 +107,9 @@ class FloorplanWorkflowMixin:
 
         pixmap = self.floorplan_view.pixmap_item.pixmap()
         write_default_floorplan(transaction.stage_file(image_file) if transaction else image_file,
-                                pixmap.width(), pixmap.height(), segments=drawing_segments(self.session.metadata))
+                                pixmap.width(), pixmap.height(), segments=segments)
+        if has_drawing:
+            self.session.metadata[PLAN_DRAWING_KEY] = encode_drawing(segments)
         self.session.metadata["map_file"] = os.path.abspath(image_file)
         self.session.metadata.pop(DEFAULT_FLOORPLAN_METADATA_KEY, None)
         self.session.metadata[GENERATED_FLOORPLAN_METADATA_KEY] = "1"

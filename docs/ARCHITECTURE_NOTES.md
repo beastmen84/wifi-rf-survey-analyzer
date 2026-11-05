@@ -22,6 +22,44 @@ interpolated colors.
 
 Current status:
 
+- The expanded editor adds `survey/plan_geometry.py`: finite cross/T and collinear
+  endpoint cuts, stable per-source color/direction/order, rigid translation and
+  exact quarter-turn geometry. Duplicate strokes remain independent. Cuts are
+  idempotent and never merged away when an intersecting fragment is erased.
+  `drawing_segments` normalizes older models on read without mutating metadata;
+  edits and generated-plan materialization persist the pieces in the same JSON
+  version/schema. Weighted cut accounting rejects >40000 output fragments before
+  history/model mutation. Existing transactional saves restore old metadata/files
+  on failure, including when a legacy model was normalized during save.
+- `qt_line_design.py` implements Line's axis-locked right-drag, live m/ft length,
+  one-spin numeric modal and cursor-following exact-length placement. R rotates
+  numeric line previews through four cardinal directions. Rectangle numeric R
+  swaps width/height. Both preserve dimensions; orientations that cannot fit are
+  rejected. Direct line commits validate finite axis-aligned sheet bounds.
+- `qt_plan_selection.py` selects one fragment or all touched by a right-drag
+  area, highlights them blue and supports R (90 degrees around the selection box
+  center) and M (rigid cursor-following preview, right press to place). R can
+  rotate the moving group. Moving originals dim; Esc/tool exit/deactivation/
+  scene replacement restores opacity and cancels without dirtying. New cuts map
+  back to transformed sources, so the resulting fragments remain selected.
+  Move snapping uses the group box against unselected geometry; Alt suspends it.
+  Zero movement leaves history/redo intact. Static out-of-sheet rotation fails
+  atomically; moving rotated groups clamp as a unit without resizing/clipping.
+  R/M ignore auto-repeat, Ctrl/Alt/Meta, dialogs and text/editable input focus.
+  The palette separates four tools and four actions into two compact rows, with
+  themed Line/Select icons and translated contextual notes. Left-drag pans and
+  Design Mode blocks RF capture throughout all four tools. Schema/dependencies/
+  version/EXE/ZIP remain unchanged; all edits use the existing drawing history.
+  Verification: full native suite 738 tests + 475 subtests (84.05 s); final
+  focused drawing/snap/HTML/i18n checks pass 118 tests + 434 subtests (27.25 s),
+  covering the extra marquee-key guard and invalid-line rejection. Native source
+  Qt QA passes 80 cases: 16 combinations
+  of themes/languages/metric-imperial exercising a real length modal, fragment
+  erasing, R previews and R/M selection, plus 64 four-tool palette-fit cases at
+  100/125/150/175%. Actual Live/Analysis HTML tests include committed line and
+  selection-move pixels against stale baked PNGs. Essential Ruff and diff checks
+  pass; native QA uses synthetic geometry/events rather than physical OS pointer
+  or packaged-EXE validation.
 - Point 6 is implemented by `survey/plan_regions.py`: an orthogonal planar graph
   derived from validated editable segments. Collinear overlaps/duplicates merge
   only in the derived model; a sweep splits finite T/cross intersections. Directed
@@ -60,7 +98,7 @@ Current status:
   feedback). A click picks one nearest independent segment, with equal-distance
   ties preferring the last drawn side. Overlapping duplicates remain independent;
   an area selects all touched sides, including boundary/crossing intersections.
-  No segments are split or shortened. Selection is unsnapped, clipped to the
+  Erasing removes the complete current fragment. Selection is unsnapped, clipped to the
   sheet, with a 6-UI-pixel pick margin plus half the original stroke width.
   The validated line snapshot refreshes on redraw; two cosmetic path overlays
   highlight any number of targets without creating one Qt item per target.
@@ -114,7 +152,8 @@ Current status:
   session replacement or mode exit cancels provisional geometry.
 - `survey/plan_drawing.py` validates optional version-1 `plan_drawing` metadata
   within schema 2: finite, axis-aligned pixel segments and strict RGB colors.
-  Each rectangle contributes four independent segments in survey/map coordinates.
+  Each rectangle starts with four sides in survey/map coordinates; actual
+  intersections split these into independent editable fragments.
   Drawing undo/redo retains up to 50 in-session placement/deletion actions. Only committed edits
   dirty the survey; shape-only surveys require replacement confirmation. Invalid
   drawing data stays untouched and disables editing rather than being discarded.

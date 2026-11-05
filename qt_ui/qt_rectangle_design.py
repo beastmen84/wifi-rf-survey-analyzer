@@ -4,14 +4,19 @@ import math
 from PySide6.QtCore import QEvent, QObject, QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QPen, QPixmap
 from PySide6.QtWidgets import (QApplication, QDialog, QDialogButtonBox, QDoubleSpinBox,
-    QFormLayout, QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsRectItem, QLabel, QVBoxLayout)
+    QAbstractSpinBox, QComboBox, QFormLayout, QGraphicsEllipseItem, QGraphicsLineItem,
+    QGraphicsRectItem, QLabel, QLineEdit, QPlainTextEdit, QTextEdit, QVBoxLayout)
 
 from app_core.units import distance_unit_label, display_units_to_meters, meters_to_display_units
 from survey.plan_drawing import PLAN_DRAWING_KEY, drawing_segments, encode_drawing, rectangle_segments
 from survey.plan_snapping import PlanSnapper, SnapResult
 from survey.plan_regions import PlanRegions, closed_plan_regions
+from survey.plan_geometry import split_segments
+from survey.plan_drawing import validate_segments
 from qt_ui.scaling import widget_px
 from qt_ui.qt_plan_eraser import PlanEraserController
+from qt_ui.qt_line_design import LineDesignController
+from qt_ui.qt_plan_selection import PlanSelectionController
 
 
 class RectangleSizeDialog(QDialog):
@@ -76,6 +81,8 @@ class RectangleDesignController(QObject):
         self.measurement.setStyleSheet("background:#182433;color:white;border:1px solid #8194aa;border-radius:4px;padding:6px 9px;")
         self.measurement.hide()
         self.eraser = PlanEraserController(self)
+        self.line = LineDesignController(self)
+        self.selection = PlanSelectionController(self)
         self.owner.installEventFilter(self)
         self.view.installEventFilter(self)
         self.view.viewport().installEventFilter(self)
@@ -88,6 +95,22 @@ class RectangleDesignController(QObject):
             self.snap_bypass = event.type() == QEvent.Type.KeyPress
             self.refresh_snap()
             return True  # Alt belongs to Design Mode, not menu mnemonic focus.
+        if (self.tools.open and event.type() == QEvent.Type.KeyPress
+                and event.key() in (Qt.Key.Key_R, Qt.Key.Key_M)
+                and not event.modifiers() & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier | Qt.KeyboardModifier.MetaModifier)
+                and QApplication.activeModalWidget() is None
+                and not isinstance(QApplication.focusWidget(), (QLineEdit, QTextEdit, QPlainTextEdit, QAbstractSpinBox, QComboBox))):
+            if event.isAutoRepeat():
+                return True
+            if event.key() == Qt.Key.Key_R:
+                if self.tools.active_tool == "rectangle" and self.pending_size:
+                    return self.rotate_preview()
+                if self.tools.active_tool == "line":
+                    return self.line.rotate()
+                if self.tools.active_tool == "select":
+                    return self.selection.rotate()
+            elif self.tools.active_tool == "select":
+                return self.selection.begin_move()
         return super().eventFilter(source, event)
 
     def sync(self):
@@ -100,6 +123,8 @@ class RectangleDesignController(QObject):
                 self.items = []
                 self.snap_items = []
                 self.eraser.reset_scene()
+                self.line.reset_scene()
+                self.selection.reset_scene()
             self.cancel()
             self.undo_stack.clear()
             self.redo_stack.clear()
@@ -118,6 +143,8 @@ class RectangleDesignController(QObject):
 
     def redraw(self):
         self.eraser.cancel()
+        self.line.cancel()
+        self.selection.cancel()
         for item in self.items:
             self.view.scene.removeItem(item)
         self.items = []
@@ -127,6 +154,7 @@ class RectangleDesignController(QObject):
                for keys, extent in ((('x1', 'x2'), bounds.width()), (('y1', 'y2'), bounds.height())) for key in keys):
             raise ValueError("Saved drawing is outside the sheet")
         self.eraser.set_segments(lines or [])
+        self.selection.set_segments(lines or [])
         self.snapper = PlanSnapper(lines or [])
         self.regions = closed_plan_regions(lines or [])
         self.view.set_grid_regions(self.regions.faces)
@@ -145,7 +173,9 @@ class RectangleDesignController(QObject):
             self.items.append(item)
 
     def cancel(self):
-        existed = self.eraser.cancel() or self.origin is not None or self.pending_size is not None
+        states = (self.eraser.cancel(), self.line.cancel(), self.selection.cancel(),
+                  self.origin is not None, self.pending_size is not None)
+        existed = any(states)
         if self.preview is not None:
             self.view.scene.removeItem(self.preview)
             self.preview = None
@@ -159,6 +189,8 @@ class RectangleDesignController(QObject):
 
     def hide_preview(self):
         self.eraser.hide_preview()
+        self.line.hide_preview()
+        self.selection.hide_preview()
         self.last_pointer = None
         if self.preview is not None:
             self.preview.hide()
@@ -193,6 +225,12 @@ class RectangleDesignController(QObject):
         return QRectF(self.origin, point).normalized()
 
     def refresh_snap(self):
+        if self.tools.active_tool == "line":
+            self.line.refresh_snap()
+            return
+        if self.tools.active_tool == "select":
+            self.selection.refresh_snap()
+            return
         if self.tools.active_tool != "rectangle":
             return
         if self.last_pointer is not None and (self.pending_size or self.dragged):
@@ -250,6 +288,8 @@ class RectangleDesignController(QObject):
                   for value in (rect.width(), rect.height())]
         numbers = [self.measurement.locale().toString(value, "f", 2) for value in values]
         text = f"{numbers[0]} × {numbers[1]} {distance_unit_label(self.owner.measurement_system)}"
+        if self.pending_size:
+            text += "\n" + self.owner.tr("design_rotate_hint")
         kinds = [kind for kind in ("corner", "edge", "alignment", "grid") if any(guide.kind == kind for guide in self.snap_guides)]
         if kinds:
             text += "\n" + " · ".join(self.owner.tr("design_snap_" + kind) for kind in kinds)
@@ -269,6 +309,10 @@ class RectangleDesignController(QObject):
             return False
         if self.tools.active_tool == "eraser":
             return self.eraser.press(event)
+        if self.tools.active_tool == "line":
+            return self.line.press(event)
+        if self.tools.active_tool == "select":
+            return self.selection.press(event)
         point = self.view.mapToScene(event.position().toPoint())
         self.last_pointer = event.position()
         bypass = bool(event.modifiers() & Qt.KeyboardModifier.AltModifier)
@@ -289,6 +333,10 @@ class RectangleDesignController(QObject):
     def move(self, event):
         if self.tools.active_tool == "eraser":
             return self.eraser.move(event)
+        if self.tools.active_tool == "line":
+            return self.line.move(event)
+        if self.tools.active_tool == "select":
+            return self.selection.move(event)
         self.last_pointer = event.position()
         bypass = bool(event.modifiers() & Qt.KeyboardModifier.AltModifier)
         point = self.view.mapToScene(event.position().toPoint())
@@ -309,6 +357,10 @@ class RectangleDesignController(QObject):
             return False
         if self.tools.active_tool == "eraser":
             return self.eraser.release(event)
+        if self.tools.active_tool == "line":
+            return self.line.release(event)
+        if self.tools.active_tool == "select":
+            return self.selection.release(event)
         if self.consume_release:
             self.consume_release = False
             return True
@@ -349,8 +401,23 @@ class RectangleDesignController(QObject):
         lines = rectangle_segments(rect.x(), rect.y(), rect.width(), rect.height(), self.tools.stroke_color.name())
         self.apply_edit(previous + lines)
 
+    def rotate_preview(self):
+        width, height = self.pending_size
+        bounds = self.view.scene.sceneRect()
+        if height > bounds.width() or width > bounds.height():
+            self.owner.status.showMessage(self.owner.tr("design_rotation_outside"))
+            return True
+        self.pending_size = self.last_size = (height, width)
+        self.refresh_snap()
+        return True
+
     def apply_edit(self, segments):
         previous = list(self.segments() or [])
+        try:
+            segments = split_segments(validate_segments(segments))
+        except ValueError:
+            self.owner.status.showMessage(self.owner.tr("design_edit_limit"))
+            return False
         if segments == previous:
             return False
         encode_drawing(segments)  # Validate before changing history or metadata.

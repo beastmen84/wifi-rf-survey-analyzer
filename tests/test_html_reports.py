@@ -200,8 +200,8 @@ def test_live_export_escapes_names_and_passes_the_boundary_mask_to_shared_render
     assert all(resource.startswith("data:") for resource in ReportDOM(html).resources)
 
 
-@pytest.mark.parametrize("erased", [False, True])
-def test_both_workspace_html_exports_include_current_editable_shapes(analysis_window, tmp_path, erased):
+@pytest.mark.parametrize("operation", ["draw", "erase", "move", "line"])
+def test_both_workspace_html_exports_include_current_editable_shapes(analysis_window, tmp_path, operation):
     window = analysis_window
     image = tmp_path / "drawing.png"
     Image.new("RGB", (400, 300), "white").save(image)
@@ -214,7 +214,7 @@ def test_both_workspace_html_exports_include_current_editable_shapes(analysis_wi
     window.session.csv_file = str(tmp_path / "survey.csv")
     window.load_saved_plan()
     window.refresh_session_labels()
-    if erased:
+    if operation == "erase":
         window.plan_tools.set_open(True)
         window.plan_tools.eraser_button.click()
         from PySide6.QtCore import QPointF, Qt
@@ -223,14 +223,32 @@ def test_both_workspace_html_exports_include_current_editable_shapes(analysis_wi
         QTest.mouseClick(window.floorplan_view.viewport(), Qt.MouseButton.RightButton, pos=point)
         assert len(window.plan_tools.controller.segments()) == 3
         window.plan_tools.set_open(False)
-    expected = (255, 255, 255) if erased else (216, 67, 21)
+    elif operation == "move":
+        from survey.plan_geometry import translate_segments
+        window.plan_tools.set_open(True)
+        window.plan_tools.select_button.click()
+        selection = window.plan_tools.controller.selection
+        selection.set_selected(range(4))
+        assert selection.apply_transformed(translate_segments(lines, 0, 80))
+        window.plan_tools.set_open(False)
+    elif operation == "line":
+        from PySide6.QtCore import QLineF
+        from PySide6.QtGui import QColor
+        window.plan_tools.stroke_color = QColor("#d84315")
+        window.plan_tools.controller.line.commit(QLineF(50, 180, 80, 180))
+    expected = (255, 255, 255) if operation in ("erase", "move") else (216, 67, 21)
+    bottom = (255, 255, 255) if operation == "move" else (216, 67, 21)
     wait_for_analysis(window.analysis_view)
     analysis = str(tmp_path / "drawing.analysis.html")
     with (patch("qt_ui.qt_analysis.get_centered_save_file_name", return_value=(analysis, "")),
           patch("qt_ui.qt_analysis.export_analysis_report", wraps=export_analysis_report) as export):
         assert window.analysis_view.export_report()
         assert export.call_args.args[3].getpixel((150, 100)) == expected
-        assert export.call_args.args[3].getpixel((150, 160)) == (216, 67, 21)
+        assert export.call_args.args[3].getpixel((150, 160)) == bottom
+        if operation == "move":
+            assert export.call_args.args[3].getpixel((150, 180)) == (216, 67, 21)
+        if operation == "line":
+            assert export.call_args.args[3].getpixel((60, 180)) == (216, 67, 21)
     assert Path(analysis).is_file()
     window.live_ssid_combo.addItem("Office")
     window.live_ssid_combo.setCurrentText("Office")
@@ -242,5 +260,9 @@ def test_both_workspace_html_exports_include_current_editable_shapes(analysis_wi
           patch("qt_ui.qt_live_export.generate_live_html_export", wraps=generate_live_html_export) as export):
         assert window.export_live_report()
         assert export.call_args.args[1].getpixel((150, 100)) == expected
-        assert export.call_args.args[1].getpixel((150, 160)) == (216, 67, 21)
+        assert export.call_args.args[1].getpixel((150, 160)) == bottom
+        if operation == "move":
+            assert export.call_args.args[1].getpixel((150, 180)) == (216, 67, 21)
+        if operation == "line":
+            assert export.call_args.args[1].getpixel((60, 180)) == (216, 67, 21)
     assert Path(live).is_file()

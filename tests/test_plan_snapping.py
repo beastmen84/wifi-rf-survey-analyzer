@@ -6,6 +6,7 @@ from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtTest import QTest
 
 from survey.plan_drawing import rectangle_segments, drawing_segments
+from survey.plan_geometry import segment_bounds
 from survey.plan_snapping import PlanSnapper
 from qt_ui.scaling import widget_px
 from tests.test_rectangle_design import editor, move
@@ -261,6 +262,8 @@ def test_numeric_commit_uses_the_previewed_snap_and_consumes_release(editor, qt_
     window, controller = editor
     view = window.floorplan_view
     controller.commit(QRectF(100, 100, 200, 100))
+    from PySide6.QtGui import QColor
+    window.plan_tools.stroke_color = QColor("#d84315")
     controller.begin_placement(117.3, 68.9)
     point = view.mapFromScene(QPointF(183, 132))
     move(view, point)
@@ -268,7 +271,8 @@ def test_numeric_commit_uses_the_previewed_snap_and_consumes_release(editor, qt_
     captures = []
     view.surveyPointRequested.connect(lambda *args: captures.append(args))
     QTest.mouseClick(view.viewport(), Qt.MouseButton.RightButton, pos=point)
-    lines = drawing_segments(window.session.metadata)[4:]
-    assert lines[0]["x1"] == pytest.approx(expected.x())
-    assert lines[1]["x2"] - lines[0]["x1"] == pytest.approx(117.3)
+    lines = [line for line in drawing_segments(window.session.metadata) if line["color"] == "#d84315"]
+    left, top, right, bottom = segment_bounds(lines)
+    assert (left, top) == pytest.approx((expected.x(), expected.y()))
+    assert (right - left, bottom - top) == pytest.approx((117.3, 68.9))
     assert not captures and controller.pending_size is None

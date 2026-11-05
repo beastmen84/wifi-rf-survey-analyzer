@@ -72,6 +72,17 @@ from these software checks.
   the eraser restores its normal grid; undo restores the closed appearance.
   This grid styling stays in the survey view and is not baked into exported maps.
   The shapes are visual plan geometry; RF findings still use measured data.
+- Intersections split editable strokes into individual fragments, including T
+  joints and overlapping endpoints. Erase deletes only the chosen fragment.
+  Line draws horizontal/vertical strokes by right-drag, or asks only for a length
+  before cursor-following placement. **R** rotates both Line and Rectangle
+  placement previews by 90 degrees while preserving their dimensions.
+  Select uses right-click for one fragment or a right-drag box for all touched
+  fragments. **R** rotates the selection around its bounding-box center; **M**
+  starts a rigid cursor-following move, confirmed with right-click or cancelled
+  with Esc. R also rotates during a move. The selection's box snaps to unselected
+  geometry or the optional grid; Alt suspends snapping. Edits share undo/redo,
+  recompute closed areas and survive save/reopen, including older drawings.
 - Measurement-point capture with repeated Wi-Fi scans.
 - Fixed receiver selection, a short preparation and five scan attempts, followed
   by an explicit Save, Repeat or Discard review. Review and reports distinguish

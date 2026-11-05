@@ -7,6 +7,21 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Split actual editable strokes at finite cross/T intersections and collinear
+  overlap endpoints. Colors, direction and independent duplicate strokes are
+  preserved; the eraser can remove a single fragment between cuts. Existing
+  drawings receive cuts on read, persisted on save with transaction rollback.
+- Added Line with right-drag axis-locked measurement and a single-length m/ft
+  dialog for cursor-following placement. R rotates Line and Rectangle placement
+  previews by 90 degrees without changing dimensions; invalid orientations are
+  rejected without clipping. Esc cancels provisional edits.
+- Added Select with single-fragment click or touched-fragment marquee. R rotates
+  the selection about its bounding-box center; M starts a rigid moving preview,
+  right-click places it and Esc cancels. R also rotates during movement. The
+  selection box snaps to unselected geometry/grid, with Alt bypass. Confirmed
+  transforms split new intersections, refresh closed areas and share undo/redo.
+  Keyboard commands respect dialogs/text fields. The two-row tool palette and
+  EN/IT/FR/ES Help cover the expanded editor; PNG/Live/HTML use the committed model.
 - Added blank-sheet width/height to New Survey, with m/ft conversion and bounded
   raster allocation. Custom dimensions, a common physical scale and the actual
   PNG size survive save/reopen; importing a floor plan replaces the blank sheet.
