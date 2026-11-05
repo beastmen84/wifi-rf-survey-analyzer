@@ -58,12 +58,19 @@ from these software checks.
   available. Nearby corners and edges snap automatically, with orange target
   indicators; the grid button adds snapping to the displayed grid. Hold Alt to
   suspend snapping. Numeric placement moves the shape without changing its size.
+  During a drag, the moving sides also align with overlapping sides of existing
+  shapes, even when the cursor extends beyond them. The starting corner stays
+  fixed and orange guides identify the height/width alignment.
   Select Eraser to right-click one highlighted side, or right-drag an area to
   erase every whole segment it touches on release. Red previews show the affected
   sides and their count. Each deletion can be undone/redone as one action.
   Esc cancels a draft
   before exiting the mode. Right-click capture resumes after leaving Design Mode.
   Drawings remain editable after save/reopen and appear in PNG/Live/HTML maps.
+  The survey grid fades inside perimeters closed by the current segments,
+  including joined, concave and overlapping shapes. Opening a perimeter with
+  the eraser restores its normal grid; undo restores the closed appearance.
+  This grid styling stays in the survey view and is not baked into exported maps.
   The shapes are visual plan geometry; RF findings still use measured data.
 - Measurement-point capture with repeated Wi-Fi scans.
 - Fixed receiver selection, a short preparation and five scan attempts, followed
@@ -499,7 +506,6 @@ Historical beta ZIPs may still use the older artifact stem:
 Possible future product areas:
 
 - Broader recommendation rules validated against additional real surveys.
-- Extend blank-sheet design with closed-area grid styling.
 - Combined survey report across multiple live-map views.
 - Deeper AP metadata diagnostics where rules are clear.
 - Further AP physical/radio/BSSID model refinement if real deployments require

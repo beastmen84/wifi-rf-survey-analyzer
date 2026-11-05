@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (QApplication, QDialog, QDialogButtonBox, QDoubleS
 from app_core.units import distance_unit_label, display_units_to_meters, meters_to_display_units
 from survey.plan_drawing import PLAN_DRAWING_KEY, drawing_segments, encode_drawing, rectangle_segments
 from survey.plan_snapping import PlanSnapper, SnapResult
+from survey.plan_regions import PlanRegions, closed_plan_regions
 from qt_ui.scaling import widget_px
 from qt_ui.qt_plan_eraser import PlanEraserController
 
@@ -61,6 +62,7 @@ class RectangleDesignController(QObject):
         self.document = None
         self.items = []
         self.snapper = PlanSnapper()
+        self.regions = PlanRegions()
         self.snap_items = []
         self.snap_guides = ()
         self.snap_bypass = False
@@ -126,6 +128,10 @@ class RectangleDesignController(QObject):
             raise ValueError("Saved drawing is outside the sheet")
         self.eraser.set_segments(lines or [])
         self.snapper = PlanSnapper(lines or [])
+        self.regions = closed_plan_regions(lines or [])
+        self.view.set_grid_regions(self.regions.faces)
+        if self.regions.limited:
+            self.owner.status.showMessage(self.owner.tr("design_regions_limited"))
         if lines is not None and self.view.pixmap_item is not None:
             white = QPixmap(self.view.pixmap_item.pixmap().size())
             white.fill(Qt.GlobalColor.white)
@@ -160,13 +166,17 @@ class RectangleDesignController(QObject):
         for item in self.snap_items:
             item.hide()
 
-    def snap_position(self, point, width=0, height=0, bypass=False):
+    def snap_position(self, point, width=0, height=0, bypass=False, drag_origin=None):
         bounds = self.view.scene.sceneRect()
         if bypass or self.snap_bypass:
             return SnapResult(min(max(point.x(), bounds.left()), bounds.right() - width),
                               min(max(point.y(), bounds.top()), bounds.bottom() - height))
         zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
         grid = self.view.grid_spacing_pixels() if self.tools.snap_button.isChecked() else None
+        if drag_origin is not None:
+            return self.snapper.snap_drag(point.x(), point.y(), (drag_origin.x(), drag_origin.y()),
+                                         (bounds.left(), bounds.top(), bounds.right(), bounds.bottom()),
+                                         widget_px(self.owner, 10) / zoom, grid)
         return self.snapper.snap(point.x(), point.y(), width, height,
                                  (bounds.left(), bounds.top(), bounds.right(), bounds.bottom()),
                                  widget_px(self.owner, 10) / zoom, grid)
@@ -177,7 +187,7 @@ class RectangleDesignController(QObject):
             result = self.snap_position(point, width, height, bypass)
             self.snap_guides = result.guides
             return QRectF(result.x, result.y, width, height)
-        result = self.snap_position(point, bypass=bypass)
+        result = self.snap_position(point, bypass=bypass, drag_origin=self.origin)
         self.snap_guides = result.guides
         point = QPointF(result.x, result.y)
         return QRectF(self.origin, point).normalized()
@@ -240,7 +250,7 @@ class RectangleDesignController(QObject):
                   for value in (rect.width(), rect.height())]
         numbers = [self.measurement.locale().toString(value, "f", 2) for value in values]
         text = f"{numbers[0]} × {numbers[1]} {distance_unit_label(self.owner.measurement_system)}"
-        kinds = [kind for kind in ("corner", "edge", "grid") if any(guide.kind == kind for guide in self.snap_guides)]
+        kinds = [kind for kind in ("corner", "edge", "alignment", "grid") if any(guide.kind == kind for guide in self.snap_guides)]
         if kinds:
             text += "\n" + " · ".join(self.owner.tr("design_snap_" + kind) for kind in kinds)
         self.show_measurement(text, position)

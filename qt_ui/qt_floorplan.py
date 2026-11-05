@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QGraphicsItem,
     QGraphicsLineItem,
     QGraphicsPixmapItem,
+    QGraphicsPathItem,
     QGraphicsScene,
     QGraphicsView,
     QToolTip,
@@ -42,6 +43,29 @@ BOUNDARIES_BRUSH_SIZE_DEFAULT_PX = 40
 BOUNDARIES_BRUSH_SIZE_MIN_PX = 20
 BOUNDARIES_BRUSH_SIZE_MAX_PX = 120
 BOUNDARIES_BRUSH_SIZE_STEP_PX = 10
+GRID_INTERIOR_OPACITY = 0.28
+
+
+class FloorplanGridItem(QGraphicsPathItem):
+    """One grid stroke batch, clipped into normal and attenuated regions."""
+    def __init__(self, path, view, pen):
+        super().__init__(path)
+        self.view = view
+        self.setPen(pen)
+        self.setZValue(4)
+        self.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
+
+    def paint(self, painter, option, widget=None):
+        if self.view.grid_interior_path.isEmpty():
+            super().paint(painter, option, widget)
+            return
+        for path, opacity in ((self.view.grid_exterior_path, 1.0),
+                              (self.view.grid_interior_path, GRID_INTERIOR_OPACITY)):
+            painter.save()
+            painter.setClipPath(path, Qt.ClipOperation.IntersectClip)
+            painter.setOpacity(painter.opacity() * opacity)
+            super().paint(painter, option, widget)
+            painter.restore()
 
 
 class BoundariesMaskItem(QGraphicsItem):
@@ -82,6 +106,8 @@ class FloorplanView(QGraphicsView):
         self.point_hover_popup = None
         self.ap_marker_items = []
         self.grid_items = []
+        self.grid_interior_path = QPainterPath()
+        self.grid_exterior_path = QPainterPath()
         self.scale_calibration_items = []
         self.scale_calibration_points = []
         self.selected_point_key = None
@@ -138,6 +164,8 @@ class FloorplanView(QGraphicsView):
         self.marker_items = []
         self.ap_marker_items = []
         self.grid_items = []
+        self.grid_interior_path = QPainterPath()
+        self.grid_exterior_path = QPainterPath()
         self.scale_calibration_items = []
         self.scale_calibration_points = []
         self.selected_point_key = None
@@ -162,6 +190,8 @@ class FloorplanView(QGraphicsView):
         self.marker_items = []
         self.ap_marker_items = []
         self.grid_items = []
+        self.grid_interior_path = QPainterPath()
+        self.grid_exterior_path = QPainterPath()
         self.grid_visible = False
         self.scale_calibration_items = []
         self.scale_calibration_points = []
@@ -819,27 +849,47 @@ class FloorplanView(QGraphicsView):
         minor_pen = QPen(minor_color, 1.0)
         major_pen = QPen(major_color, 1.5)
 
+        minor_path, major_path = QPainterPath(), QPainterPath()
         x = 0.0
         index = 0
         while x <= width:
-            item = QGraphicsLineItem(x, 0, x, height)
-            item.setPen(major_pen if index % GRID_MAJOR_EVERY == 0 else minor_pen)
-            item.setZValue(4)
-            self.scene.addItem(item)
-            self.grid_items.append(item)
+            path = major_path if index % GRID_MAJOR_EVERY == 0 else minor_path
+            path.moveTo(x, 0)
+            path.lineTo(x, height)
             index += 1
             x = index * spacing_px
 
         y = 0.0
         index = 0
         while y <= height:
-            item = QGraphicsLineItem(0, y, width, y)
-            item.setPen(major_pen if index % GRID_MAJOR_EVERY == 0 else minor_pen)
-            item.setZValue(4)
-            self.scene.addItem(item)
-            self.grid_items.append(item)
+            path = major_path if index % GRID_MAJOR_EVERY == 0 else minor_path
+            path.moveTo(0, y)
+            path.lineTo(width, y)
             index += 1
             y = index * spacing_px
+
+        for path, pen in ((minor_path, minor_pen), (major_path, major_pen)):
+            item = FloorplanGridItem(path, self, pen)
+            self.scene.addItem(item)
+            self.grid_items.append(item)
+
+    def set_grid_regions(self, faces):
+        interior = QPainterPath()
+        interior.setFillRule(Qt.FillRule.WindingFill)
+        for face in faces:
+            if not face:
+                continue
+            interior.moveTo(*face[0])
+            for point in face[1:]:
+                interior.lineTo(*point)
+            interior.closeSubpath()
+        self.grid_interior_path = interior
+        sheet = QPainterPath()
+        sheet.addRect(self.scene.sceneRect())
+        self.grid_exterior_path = sheet.subtracted(interior)
+        for item in self.grid_items:
+            item.update()
+        self.viewport().update()
 
     def grid_spacing_pixels(self):
         if not self.grid_visible or not self.grid_px_per_meter:

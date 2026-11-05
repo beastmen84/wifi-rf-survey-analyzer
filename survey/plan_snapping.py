@@ -131,3 +131,46 @@ class PlanSnapper:
             if snapped is not None:
                 targets.append(AxisTarget(snapped, "grid"))
         return targets
+
+    def snap_drag(self, x, y, origin, bounds, tolerance, grid=None):
+        """Resize about a fixed origin, aligning the full draft's moving sides.
+
+        A side may align with a finite target that intersects the draft's span,
+        even when the pointer itself is beyond that segment. Unrelated distant
+        projections are excluded. Numeric placement continues to use snap().
+        """
+        direct = self.snap(x, y, 0, 0, bounds, tolerance)
+        left, top, right, bottom = bounds
+        ox, oy = origin
+        if not all(math.isfinite(value) for value in origin) or not (left <= ox <= right and top <= oy <= bottom):
+            raise ValueError("Invalid drag origin")
+        if any(guide.kind == "corner" for guide in direct.guides):
+            return direct
+        x, y = min(max(x, left), right), min(max(y, top), bottom)
+        xs = self.axis_targets(x, min(oy, y), abs(y - oy), (0,), self.vertical, self.v_positions,
+                               left, right, tolerance, grid)
+        ys = self.axis_targets(y, min(ox, x), abs(x - ox), (0,), self.horizontal, self.h_positions,
+                               top, bottom, tolerance, grid)
+        choices = []
+        for xt in xs:
+            for yt in ys:
+                if xt.kind == "edge" and not overlap(min(oy, yt.value), abs(yt.value - oy), xt.span):
+                    continue
+                if yt.kind == "edge" and not overlap(min(ox, xt.value), abs(xt.value - ox), yt.span):
+                    continue
+                score = (-((xt.kind == "edge") + (yt.kind == "edge")),
+                         -((xt.kind == "grid") + (yt.kind == "grid")),
+                         (xt.value - x) ** 2 + (yt.value - y) ** 2, xt.value, yt.value)
+                choices.append((score, xt, yt))
+        _, xt, yt = min(choices, key=lambda choice: choice[0])
+        guides = []
+        for target, other, fixed, axis in ((xt, yt.value, oy, "x"), (yt, xt.value, ox, "y")):
+            if target.kind == "edge":
+                start, end = sorted((other, fixed))
+                projection = (max(start, target.span[0]) + min(end, target.span[1])) / 2
+                point = (target.coordinate, projection) if axis == "x" else (projection, target.coordinate)
+                kind = "edge" if target.span[0] <= other <= target.span[1] else "alignment"
+                guides.append(SnapGuide(kind, point, axis, target.span))
+        if xt.kind == "grid" or yt.kind == "grid":
+            guides.append(SnapGuide("grid", (xt.value, yt.value)))
+        return SnapResult(xt.value, yt.value, tuple(guides))

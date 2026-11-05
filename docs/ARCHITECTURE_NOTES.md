@@ -22,6 +22,39 @@ interpolated colors.
 
 Current status:
 
+- Point 6 is implemented by `survey/plan_regions.py`: an orthogonal planar graph
+  derived from validated editable segments. Collinear overlaps/duplicates merge
+  only in the derived model; a sweep splits finite T/cross intersections. Directed
+  edge walks in angular order retain positive-area bounded faces. Winding union
+  handles disconnected/nested perimeters and bridge walks without parity holes.
+  Open tails, exterior walks and real gaps do not become closed areas. Coordinates
+  within 1e-9 scene pixels coalesce only to absorb float arithmetic noise; model
+  coordinates and independent erasable sides remain untouched. More than 100000
+  intersection events yield no partial result, normal grid and a status message.
+- FloorplanView renders major/minor grid strokes as two input-transparent path
+  batches. Normal exterior and 28%-opacity interior passes use cached clip paths
+  beneath drawing lines/point markers. Regions rebuild only on drawing redraw;
+  undo/redo/erase/reopen recompute them. Scene replacement/import clears clips;
+  theme/scale/unit/grid changes retain current topology. The grid is not baked
+  into PNG/Live/HTML backgrounds or saved as new metadata; no RF attenuation is
+  inferred. Survey schema/dependencies/version and release artifacts are unchanged.
+- `PlanSnapper.snap_drag` aligns the moving rectangle sides against finite target
+  edges whose spans intersect the full draft, rather than requiring the pointer
+  to lie over the target. Independent height/width alignment works in all drag
+  directions with a fixed origin. Target pairs must still overlap after snapping;
+  real corners take priority, then edges/alignment, then optional grid. Labels
+  distinguish projected Alignment from direct Edge targets. Guides, screen-space
+  tolerance and Alt bypass use the existing interaction. Numeric fixed-size
+  placement continues to use the unchanged translation snap path.
+  Verification: 702 tests + 475 subtests on native Windows (64.00 s); focused
+  topology/snap/i18n suite 64 tests + 434 subtests (8.27 s). An independent cell
+  flood-fill oracle checks 100 seeded random orthogonal graphs (3600 cell probes),
+  alongside concave/overlapping/nested/bridge/gap/limit cases. Pixel rendering
+  verifies interior opacity and restoration after erase/undo/redo. Native source
+  QA passes 16 theme/language/m-ft functional cases plus 32 palette-fit cases
+  across four languages, both tools and 100/125/150/175% settings. Essential Ruff
+  and diff checks pass. These use synthetic geometry/events, not physical pointer
+  or packaged EXE validation.
 - Point 5 adds `survey/plan_erasing.py` (finite nearest-segment picking and closed
   area intersection) plus `qt_ui/qt_plan_eraser.py` (provisional gestures and red
   feedback). A click picks one nearest independent segment, with equal-distance
@@ -39,8 +72,8 @@ Current status:
   deactivation, undo/redo and scene/session replacement clear provisional state.
   Left-drag pans and Design Mode continues to block RF point capture. Existing
   save/PNG/Live/HTML vector rendering handles deletions, including an empty model;
-  snap indexes rebuild from the edited geometry. Closed-face/grid fading remains
-  point 6. Survey schema/dependencies/version are unchanged; EXE/ZIP not rebuilt.
+  snap indexes and closed-region clips rebuild from the edited geometry.
+  Survey schema/dependencies/version are unchanged; EXE/ZIP not rebuilt.
   The palette uses explicit themed curved history arrows, replacing platform
   standard icons that rendered blank in source-native Windows screenshots.
   Verification: full native suite 675 tests + 475 subtests (71.44 s), plus 64
@@ -92,7 +125,7 @@ Current status:
   supplements the image thumbnail cache key to distinguish subpixel edits.
   Empty vectors rebuild a white canvas, so undo never resurrects stale baked
   lines. External-plan imports clear the drawing. No RF rule uses wall geometry.
-  Closed-face/grid fading remains pending;
+  Closed-face/grid fading is derived from the same current vector model;
   Verification: 607 tests + 475 subtests on native Windows (37.33 s), essential
   Ruff and diff checks pass. Native Qt QA in 16 theme/language combinations covers
   live-dimension drags, the real modal numeric dialog, cursor-following placement,
@@ -1386,10 +1419,10 @@ Future expansion:
     conservative; 6 GHz still requires real hardware validation. Optional future
     work includes per-survey objective persistence, per-AP channel capabilities,
     richer RF measurements and multi-map report composition.
-15. Extend the implemented blank-sheet rectangle/segment eraser with
-    closed-area grid fading. Curves and configurable
-    stroke thickness remain outside the current scope. Keep the editor focused on
-    survey-ready technical plans.
+15. Validate the completed initial blank-sheet editor on real survey workflows:
+    custom dimensions, rectangles, snapping, independent-segment erasing and
+    closed-area grid fading. Curves and configurable stroke thickness remain
+    outside the current scope. Keep the editor focused on survey-ready plans.
 16. Add richer deployment/reporting outputs.
 
 ## Final Vision

@@ -29,12 +29,23 @@ TEXT = {
     "design_snap_corner": ("Corner", "Angolo", "Sommet", "Esquina"),
     "design_snap_edge": ("Edge", "Bordo", "Bord", "Borde"),
     "design_snap_grid": ("Grid", "Griglia", "Grille", "Cuadrícula"),
+    "design_snap_alignment": ("Alignment", "Allineamento", "Alignement", "Alineación"),
+    "design_regions_limited": (
+        "Drawing too complex for closed-area detection. The grid keeps its normal appearance.",
+        "Disegno troppo complesso per riconoscere le aree chiuse. La griglia mantiene l'aspetto normale.",
+        "Dessin trop complexe pour détecter les zones fermées. La grille garde son aspect normal.",
+        "Dibujo demasiado complejo para detectar áreas cerradas. La cuadrícula mantiene su aspecto normal."),
+    "design_regions_help": (
+        "While dragging a rectangle, its moving sides also align with nearby sides of existing shapes, even when the pointer extends beyond them; orange guides show the alignment. The starting corner stays fixed. The grid is softer inside perimeters actually closed by the current segments, including joined or overlapping shapes. Erasing an outer side opens that area and restores its normal grid; undo restores the closure. Unclosed gaps stay open. This is a display aid and does not add RF wall attenuation.",
+        "Trascinando un rettangolo, anche i lati mobili si allineano ai lati vicini delle altre forme, quando il cursore li supera; le guide arancioni mostrano l'allineamento. L'angolo iniziale resta fermo. La griglia è attenuata nei perimetri effettivamente chiusi dai segmenti attuali, anche con forme unite o sovrapposte. Cancellando un lato esterno si apre l'area e torna la griglia normale; Annulla ripristina la chiusura. Gli spazi aperti rimangono aperti. È un aiuto visivo e non introduce attenuazione RF delle pareti.",
+        "Pendant le tracé d'un rectangle, ses côtés mobiles s'alignent aussi sur les côtés proches des autres formes, même si le pointeur les dépasse ; les guides orange montrent l'alignement. Le sommet initial reste fixe. La grille est atténuée dans les périmètres réellement fermés par les segments actuels, y compris les formes jointes ou superposées. Effacer un côté extérieur ouvre la zone et rétablit la grille normale ; Annuler restaure la fermeture. Les espaces ouverts restent ouverts. Cet effet visuel n'ajoute aucune atténuation RF des murs.",
+        "Al arrastrar un rectángulo, sus lados móviles también se alinean con lados cercanos de otras formas, aunque el cursor los sobrepase; las guías naranjas muestran la alineación. La esquina inicial queda fija. La cuadrícula se atenúa dentro de perímetros realmente cerrados por los segmentos actuales, incluidas formas unidas o superpuestas. Borrar un lado exterior abre el área y restaura la cuadrícula normal; Deshacer restaura el cierre. Los huecos abiertos siguen abiertos. Es una ayuda visual y no añade atenuación RF de paredes."),
     "blank_tool_color": ("Stroke color", "Colore del tratto", "Couleur du trait", "Color del trazo"),
     "blank_tools_note": (
-        "Right-drag draws; right-click sets dimensions. Shapes snap automatically; the grid button adds grid snapping. Alt suspends snapping. Esc cancels, then exits.",
-        "Trascina col destro; clic destro per le misure. Aggancio automatico alle forme; il pulsante griglia aggiunge lo snap al reticolo. Alt sospende gli agganci. Esc annulla, poi esce.",
-        "Glissez avec le bouton droit ; cliquez pour les dimensions. Alignement automatique sur les formes ; le bouton grille ajoute le quadrillage. Alt suspend l'alignement. Échap annule, puis quitte.",
-        "Arrastra con el botón derecho; haz clic para las medidas. Ajuste automático a formas; el botón cuadrícula añade la rejilla. Alt suspende el ajuste. Esc cancela y después sale."),
+        "Right-drag draws and aligns the moving sides; right-click sets dimensions. Shapes snap automatically; the grid button adds grid snapping. Alt suspends snapping. Esc cancels, then exits.",
+        "Trascina col destro: si allineano anche i lati mobili. Clic destro per le misure. Aggancio automatico alle forme; il pulsante griglia aggiunge lo snap al reticolo. Alt sospende gli agganci. Esc annulla, poi esce.",
+        "Glissez avec le bouton droit pour tracer et aligner les côtés mobiles ; cliquez pour les dimensions. Alignement automatique sur les formes ; le bouton grille ajoute le quadrillage. Alt suspend l'alignement. Échap annule, puis quitte.",
+        "Arrastra con el botón derecho para dibujar y alinear los lados móviles; haz clic para las medidas. Ajuste automático a formas; el botón cuadrícula añade la rejilla. Alt suspende el ajuste. Esc cancela y después sale."),
     "rectangle_size_title": ("Rectangle dimensions", "Dimensioni del rettangolo", "Dimensions du rectangle", "Dimensiones del rectángulo"),
     "rectangle_size_hint": ("Enter the dimensions, then right-click the sheet to place the preview. Esc cancels placement.",
         "Inserisci le misure, poi fai clic destro sul foglio per posizionare l'anteprima. Esc annulla il posizionamento.",
@@ -53,4 +64,6 @@ TEXT = {
 
 
 def dictionary(language):
-    return {key: values[LANGUAGES.index(language)] for key, values in TEXT.items()}
+    result = {key: values[LANGUAGES.index(language)] for key, values in TEXT.items()}
+    result["blank_plan_help"] += " " + result["design_regions_help"]
+    return result

@@ -22,6 +22,72 @@ def kinds(result):
     return {guide.kind for guide in result.guides}
 
 
+@pytest.mark.parametrize("origin,pointer,expected", [
+    ((300, 100), (500, 204), (500, 200)),
+    ((300, 200), (500, 96), (500, 100)),
+    ((100, 100), (46, 204), (46, 200)),
+    ((100, 200), (46, 96), (46, 100)),
+    ((100, 200), (304, 400), (300, 400)),
+    ((300, 200), (96, 400), (100, 400)),
+])
+def test_drag_aligns_full_moving_side_beyond_target_segment(origin, pointer, expected):
+    snapper = PlanSnapper(rectangle_segments(100, 100, 200, 100, "#123456"))
+    direct = snapper.snap(*pointer, 0, 0, BOUNDS, 10)
+    assert (direct.x, direct.y) == pointer
+    result = snapper.snap_drag(*pointer, origin, BOUNDS, 10)
+    assert (result.x, result.y) == expected and "alignment" in kinds(result)
+
+
+def test_drag_alignment_requires_real_overlap_with_draft_span_and_is_deterministic():
+    lines = [line(100, 200, 300, 200), line(100, 210, 300, 210)]
+    for segments in (lines, lines[::-1], lines * 2):
+        result = PlanSnapper(segments).snap_drag(500, 205, (300, 100), BOUNDS, 10, grid=50)
+        assert (result.x, result.y) == (500, 200)
+        assert "alignment" in kinds(result)
+    result = PlanSnapper(lines).snap_drag(500, 204, (350, 100), BOUNDS, 10)
+    assert (result.x, result.y) == (500, 204) and not result.guides
+
+
+def test_drag_supports_two_side_alignment_and_real_corner_priority():
+    lines = [line(400, 100, 400, 200), line(100, 300, 200, 300)]
+    result = PlanSnapper(lines).snap_drag(404, 304, (100, 100), BOUNDS, 10)
+    assert (result.x, result.y) == (400, 300) and len(result.guides) == 2
+    snapper = PlanSnapper(rectangle_segments(100, 100, 200, 100, "#123456"))
+    result = snapper.snap_drag(304, 204, (500, 350), BOUNDS, 10, grid=50)
+    assert (result.x, result.y) == (300, 200) and kinds(result) == {"corner"}
+
+
+@pytest.mark.parametrize("origin", [(float("nan"), 100), (-1, 100), (1000, 100)])
+def test_drag_rejects_invalid_fixed_origin_even_when_pointer_nears_a_corner(origin):
+    snapper = PlanSnapper(rectangle_segments(100, 100, 200, 100, "#123456"))
+    with pytest.raises(ValueError):
+        snapper.snap_drag(300, 200, origin, BOUNDS, 10)
+
+
+def test_drag_preview_aligns_height_and_commit_keeps_start_corner_fixed(editor, qt_app):
+    window, controller = editor
+    controller.commit(QRectF(100, 100, 200, 100))
+    view = window.floorplan_view
+    first, last = view.mapFromScene(QPointF(300, 100)), view.mapFromScene(QPointF(500, 204))
+    captures = []
+    view.surveyPointRequested.connect(lambda *args: captures.append(args))
+    QTest.mousePress(view.viewport(), Qt.MouseButton.RightButton, pos=first)
+    move(view, last, Qt.MouseButton.RightButton)
+    assert controller.origin == QPointF(300, 100)
+    assert controller.preview.rect().bottom() == 200
+    assert "alignment" in {guide.kind for guide in controller.snap_guides}
+    assert window.tr("design_snap_alignment") in controller.measurement.text()
+    QTest.keyPress(window, Qt.Key.Key_Alt)
+    assert controller.preview.rect().bottom() != 200
+    QTest.keyRelease(window, Qt.Key.Key_Alt)
+    assert controller.preview.rect().bottom() == 200
+    expected = controller.preview.rect()
+    QTest.mouseRelease(view.viewport(), Qt.MouseButton.RightButton, pos=last)
+    lines = drawing_segments(window.session.metadata)[4:]
+    assert lines[0]["x1"] == expected.left() == 300 and lines[0]["y1"] == 100
+    assert lines[1]["y2"] == 200 and not captures
+
+
 def test_corner_has_priority_over_grid_and_projected_edges():
     snapper = PlanSnapper(rectangle_segments(103, 107, 200, 120, "#123456"))
     result = snapper.snap(105, 105, 0, 0, BOUNDS, 10, grid=50)

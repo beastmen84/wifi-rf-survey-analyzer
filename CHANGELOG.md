@@ -44,6 +44,18 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
   sheet. Empty selections leave the document/history unchanged. Help is aligned
   in English, Italian, French and Spanish. Undo/redo use explicit themed curved
   arrows so their icons remain visible across Windows styles.
+- Added closed-perimeter grid fading from the current segment graph, including
+  concave, adjacent, nested and overlapping shapes. T/cross intersections and
+  collinear overlaps are recognized; open gaps stay open. Erasing an outer side
+  restores the normal grid in the opened area; undo/redo and reopen update it.
+  The effect is derived in the survey view and changes neither RF data nor PNG/
+  Live/HTML backgrounds. Dense drawings exceeding the topology limit retain the
+  normal grid and show a status message.
+- Extended drag snapping to the moving sides of the entire draft rectangle,
+  allowing height/width alignment beyond an existing segment's endpoint when
+  their spans overlap. The initial corner remains fixed. Orange guides and an
+  Alignment label identify the target; Alt suspends it. Numeric placement keeps
+  its fixed dimensions. EN/IT/FR/ES instructions and Help describe both additions.
 
 ## v1.2.0 - 2026-11-04
 
