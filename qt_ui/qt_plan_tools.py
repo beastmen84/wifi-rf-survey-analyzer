@@ -177,6 +177,7 @@ class PlanToolsOverlay(QFrame):
             button.setEnabled(self.open)
             button.setChecked(self.open and self.active_tool == tool)
         self.snap_button.setEnabled(self.open and self.active_tool != "eraser")
+        self.snap_button.setToolTip(self.owner.tr("curve_grid_hint" if self.active_tool in ("circle", "arc") else "grid_all_vertices_help"))
         self.color_button.setEnabled(self.open and self.active_tool in ("rectangle", "line", "circle", "arc"))
         selection = self.controller.selection
         curve_edit = len(selection.selected_curves) == 1 and not (selection.selected or selection.selected_labels)

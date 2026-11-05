@@ -7,6 +7,16 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Fixed circle/arc numeric previews sticking to the grid during slow cursor
+  movement: each update translates the original placement geometry instead of
+  feeding the previous snapped result into the next movement. Quarter-turn and
+  held rotations rebase placement without changing dimensions or cursor grip.
+- Radius, chord and sagitta drags now adjust continuously; grid snapping remains
+  active for the starting anchor and whole-object placement. Numeric dimension
+  arrows adjust by 0.01 m/ft. During arc bending, nearby real corners constrain
+  the arc to pass through the target while keeping the chord fixed. Orange guides
+  show the target and Alt temporarily bypasses it. Updated EN/IT/FR/ES Help and
+  contextual grid tooltips.
 - New Survey starts blank sheets at 35 × 25 m or 115 × 81 ft. Switching units
   uses the matching preset until dimensions are customized, then preserves the
   physical size through conversion. Generated pixels and calibration match the

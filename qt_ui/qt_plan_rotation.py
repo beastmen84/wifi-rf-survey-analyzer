@@ -234,9 +234,7 @@ class PlanRotationController:
             d.text.last_pointer = position
             d.text.show_labels([label])
         elif target == "curve":
-            d.curve.pending = transform_curves(self.curve_base, angle, self.pivot)[0]
-            d.curve.anchor = pointer
-            d.curve.last_pointer = position
+            d.curve.rebase_pending(transform_curves(self.curve_base, angle, self.pivot)[0], position)
             d.curve.show_preview(d.curve.pending, position)
         elif angle:
             d.selection.apply_rotation(angle, self.pivot)

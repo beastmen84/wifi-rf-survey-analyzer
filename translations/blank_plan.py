@@ -86,4 +86,5 @@ def dictionary(language):
     result["blank_plan_help"] += " " + result["curve_edit_help"]
     result["blank_plan_help"] += " " + result["circle_rotation_help"]
     result["blank_plan_help"] += " " + result["blank_plan_defaults_help"]
+    result["blank_plan_help"] += " " + result["curve_precision_help"]
     return result

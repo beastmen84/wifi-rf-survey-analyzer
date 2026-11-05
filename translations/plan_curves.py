@@ -1,6 +1,16 @@
 """Circular design geometry and fixed measurement HUD."""
 LANGUAGES = ("en", "it", "fr", "es")
 TEXT = {
+    "curve_grid_hint": (
+        "Grid snapping applies to the starting anchor and placement. Radius, chord and bend adjust continuously; existing geometry still snaps precisely. Alt bypasses snapping.",
+        "La griglia aggancia il punto iniziale e il posizionamento. Raggio, corda e curvatura si regolano in continuo; gli agganci alla geometria restano precisi. Alt sospende gli agganci.",
+        "La grille aligne le point initial et le placement. Rayon, corde et courbure se règlent en continu ; la géométrie existante reste alignable avec précision. Alt suspend l'alignement.",
+        "La cuadrícula ajusta el punto inicial y la colocación. Radio, cuerda y curvatura se regulan de forma continua; la geometría existente mantiene el ajuste preciso. Alt suspende el ajuste."),
+    "curve_precision_help": (
+        "Radius, chord and sagitta drags are continuous, even with grid snapping enabled; the grid still applies to the starting anchor and whole-object placement. Numeric dimension buttons step by 0.01 m or ft. While bending an arc, approach an existing corner to make the arc pass exactly through it without moving the chord. An orange marker shows the target; Alt temporarily releases it. Numeric previews follow the cursor even through many small mouse movements, preserving their dimensions.",
+        "Raggio, corda e freccia si trascinano in continuo, anche con lo snap alla griglia attivo; la griglia resta sul punto iniziale e sul posizionamento dell'oggetto. Le frecce dei campi numerici avanzano di 0,01 m o ft. Mentre curvi un arco, avvicinati a un angolo esistente per farci passare esattamente l'arco senza spostare la corda. Un marcatore arancione mostra il bersaglio; Alt lo rilascia temporaneamente. Le anteprime numeriche seguono il cursore anche con tanti piccoli movimenti, mantenendo le dimensioni.",
+        "Rayon, corde et flèche se règlent en continu, même avec la grille active ; celle-ci reste appliquée au point initial et au placement. Les boutons numériques avancent de 0,01 m ou ft. En courbant un arc, approchez un sommet existant pour y faire passer exactement l'arc sans déplacer la corde. Un repère orange montre la cible ; Alt la libère temporairement. Les aperçus suivent aussi les petits mouvements du pointeur en conservant leurs dimensions.",
+        "Radio, cuerda y flecha se regulan de forma continua, incluso con la cuadrícula activa; esta sigue ajustando el punto inicial y la colocación. Los botones numéricos avanzan 0,01 m o ft. Al curvar un arco, acércate a una esquina existente para que pase exactamente por ella sin mover la cuerda. Un marcador naranja muestra el objetivo; Alt lo libera temporalmente. Las vistas previas siguen también los movimientos pequeños del cursor, conservando las medidas."),
     "blank_tool_circle": ("Circle", "Cerchio", "Cercle", "Círculo"),
     "blank_tool_arc": ("Circular arc", "Arco circolare", "Arc de cercle", "Arco circular"),
     "curve_circle_title": ("Circle dimensions", "Dimensioni del cerchio", "Dimensions du cercle", "Dimensiones del círculo"),

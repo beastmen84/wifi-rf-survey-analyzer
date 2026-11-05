@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import math
 from survey.planar_geometry import point_projection
 from survey.plan_geometry import segment_bounds
-from survey.plan_curves import curve_points, project_curve
+from survey.plan_curves import curve_points, project_curve, arc_height_through_point, curve_bounds
 from survey.plan_curve_geometry import line_curve_intersections
 
 
@@ -254,6 +254,25 @@ class PlanSnapper:
         if len(target.span) == 4:
             guide = (SnapGuide("edge", point, "line", target.span),)
         return SnapResult(*point, guide)
+
+    def snap_arc_height(self, chord, x, y, bounds, tolerance):
+        """Bend through a nearby real vertex, keeping both chord endpoints fixed."""
+        choices = []
+        for vx, vy in self.nearby(self.vertices, self.vertex_x, x, tolerance):
+            distance = (vx - x) ** 2 + (vy - y) ** 2
+            if distance > tolerance ** 2:
+                continue
+            height = arc_height_through_point(chord, (vx, vy))
+            if height is None:
+                continue
+            left, top, right, bottom = curve_bounds(dict(chord, height=height))
+            if (left >= bounds[0] - 1e-7 and top >= bounds[1] - 1e-7
+                    and right <= bounds[2] + 1e-7 and bottom <= bounds[3] + 1e-7):
+                choices.append((distance, vx, vy, height))
+        if not choices:
+            return None
+        _, vx, vy, height = min(choices)
+        return height, SnapGuide("corner", (vx, vy))
 
     @staticmethod
     def edge_translation(vertices, targets, box, bounds, tolerance):

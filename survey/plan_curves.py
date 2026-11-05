@@ -28,6 +28,26 @@ def curve_info(curve):
     return cx, cy, radius, start, sweep
 
 
+def arc_height_through_point(chord, point):
+    """Sagitta of the circular arc through a third point on either chord side."""
+    dx, dy = chord["x2"] - chord["x1"], chord["y2"] - chord["y1"]
+    length = math.hypot(dx, dy)
+    if not length:
+        return None
+    px, py = point[0] - chord["x1"], point[1] - chord["y1"]
+    along, across = (px * dx + py * dy) / length, (py * dx - px * dy) / length
+    if abs(across) <= EPS:
+        return None  # Fixed endpoints and collinear points cannot set a bend.
+    offset = math.fsum((along * (along - length), across * across)) / (2 * across)
+    half = length / 2
+    radius = math.hypot(half, offset)
+    if not math.isfinite(radius) or radius > 1e12:
+        return None
+    # Avoid cancellation when the center is on the opposite side of the chord.
+    height = radius + abs(offset) if offset * across >= 0 else half * half / (radius + abs(offset))
+    return math.copysign(height, across)
+
+
 def validate_curves(curves):
     if not isinstance(curves, list) or len(curves) > 5000:
         raise ValueError("Invalid plan curve list")

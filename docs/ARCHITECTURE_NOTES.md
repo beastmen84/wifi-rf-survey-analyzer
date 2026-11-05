@@ -22,6 +22,19 @@ interpolated colors.
 
 Current status:
 
+- Curve sizing gestures use continuous radius/chord/sagitta coordinates while
+  retaining geometry snaps. Grid quantization applies to initial anchors and
+  whole-object placement, and numeric dimension buttons step by0.01 display
+  units. PlanSnapper.snap_arc_height fits the circular arc through a nearby real
+  vertex with both chord endpoints frozen; it rejects collinear/fixed endpoints
+  and targets whose arc cannot fit the sheet. Signed sagitta uses chord-local
+  coordinates and a stable circle-center formula, including major arcs. Orange
+  guides and Alt press/release immediately update during the pull stage.
+- Numeric circle/arc placement translates an immutable source against an anchor
+  cursor position, so many sub-grid mouse events accumulate correctly. Each
+  snapped result is display-only and never becomes the next frame's source.
+  Tap/held arc rotations rebase source and cursor anchor at release. Cancel and
+  scene changes clear the source. No survey or drawing schema changes.
 - New blank sheets default to 35 × 25 m or 115 × 81 ft from unit-specific physical
   presets. SurveySetupDialog follows these presets while dimensions are untouched;
   after a user edit, unit switching converts the saved physical dimensions without

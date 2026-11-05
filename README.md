@@ -121,6 +121,11 @@ from these software checks.
   and work with Boundaries Fill/Auto Fill. Their editable geometry survives
   save/reopen and appears in PNG, Live Map and HTML reports. The measurements
   panel stays at the top right of the drawing viewport, opposite the grid scale.
+  Radius, chord and bend drags adjust continuously; the grid still snaps the
+  starting anchor and whole-object placement. Numeric arrows adjust by 0.01 m/ft.
+  While bending, approach an existing corner to make the arc pass exactly through
+  it with an orange marker, keeping the chord fixed. Alt releases the snap.
+  Numeric previews follow slow cursor movements without sticking to the grid.
 - On generated blank sheets, **Boundaries** includes **Fill** for one closed
   drawn room and **Auto Fill** for all closed drawn rooms. Fill uses a right
   click inside the area and respects nested rooms; open perimeters do not fill.

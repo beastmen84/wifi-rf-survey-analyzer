@@ -30,6 +30,7 @@ class CurveSizeDialog(QDialog):
             spin = QDoubleSpinBox()
             spin.setObjectName("blankPlanDimension")
             spin.setDecimals(2)
+            spin.setSingleStep(.01)
             maximum = min(bounds.width(), bounds.height()) / 2 if kind == "circle" else math.hypot(bounds.width(), bounds.height())
             maximum = meters_to_display_units(maximum / density, owner.measurement_system)
             spin.setRange(.01, max(.01, math.floor(maximum * 100) / 100))
@@ -64,6 +65,7 @@ class CurveDesignController:
         self.drawing, self.owner, self.view = drawing, drawing.owner, drawing.view
         self.items, self.preview = [], None
         self.pending = self.current = None
+        self.placement_source = None
         self.origin = self.press_position = self.last_pointer = self.anchor = None
         self.chord = None
         self.dragged = self.consume_release = self.dialog_open = False
@@ -78,6 +80,7 @@ class CurveDesignController:
         existed = self.pending is not None or self.origin is not None or self.chord is not None
         self.clear_preview()
         self.pending = self.current = self.origin = self.press_position = self.last_pointer = self.anchor = self.chord = None
+        self.placement_source = None
         self.dragged = self.consume_release = False
         self.drawing.clear_snap_guides()
         self.drawing.measurement.hide()
@@ -138,6 +141,8 @@ class CurveDesignController:
             for key, value in values)
         if self.chord is not None:
             text += "\n" + self.owner.tr("curve_pull_hint")
+            if any(guide.kind == "corner" for guide in self.drawing.snap_guides):
+                text += "\n" + self.owner.tr("design_snap_corner")
         elif self.pending is not None and curve["kind"] == "arc":
             text += "\n" + self.owner.tr("design_rotate_hint")
         if (curve["kind"] == "circle" or curve["height"]) and not self.fits(curve):
@@ -162,20 +167,26 @@ class CurveDesignController:
         if right - left > bounds.width() or bottom - top > bounds.height():
             self.owner.status.showMessage(self.owner.tr("design_rotation_outside"))
             return False
-        self.pending, self.anchor = curve, QPointF(point)
         self.last_dimensions[kind] = tuple(dimensions)
-        self.last_pointer = QPointF(self.view.mapFromScene(point))
+        self.rebase_pending(curve, QPointF(self.view.mapFromScene(point)))
         self.update_pending(self.last_pointer)
         return True
 
+    def rebase_pending(self, curve, position):
+        self.pending = dict(curve)
+        self.placement_source = dict(curve)
+        self.last_pointer = QPointF(position)
+        self.anchor = self.point(position)
+
     def update_pending(self, position, bypass=False):
         point = self.point(position)
-        curve = transform_curves([self.pending], dx=point.x() - self.anchor.x(), dy=point.y() - self.anchor.y())[0]
+        # Always translate an immutable placement source. Feeding each snapped
+        # result into the next event traps slow cursor motion on the same grid.
+        curve = transform_curves([self.placement_source], dx=point.x() - self.anchor.x(), dy=point.y() - self.anchor.y())[0]
         proxy = curves_geometry([curve])
         snapped = self.drawing.snap_shape(proxy, bypass)
         dx, dy = snapped[0]["x1"] - proxy[0]["x1"], snapped[0]["y1"] - proxy[0]["y1"]
         self.pending = transform_curves([curve], dx=dx, dy=dy)[0]
-        self.anchor = point
         self.show_preview(self.pending, position)
 
     def rotate(self):
@@ -184,7 +195,8 @@ class CurveDesignController:
         left, top, right, bottom = curve_bounds(self.pending)
         curve = transform_curves([self.pending], 90, ((left + right) / 2, (top + bottom) / 2))[0]
         if self.fits(curve):
-            self.pending = curve
+            self.rebase_pending(curve, self.last_pointer)
+            self.drawing.clear_snap_guides()
             self.show_preview(curve, self.last_pointer)
         else:
             self.owner.status.showMessage(self.owner.tr("design_rotation_outside"))
@@ -193,10 +205,12 @@ class CurveDesignController:
     def refresh_snap(self):
         if self.pending is not None and self.last_pointer is not None:
             self.update_pending(self.last_pointer)
+        elif self.chord is not None and self.last_pointer is not None:
+            self.pull(self.last_pointer)
 
     def drag_geometry(self, position, bypass=False):
         point = self.point(position)
-        result = self.drawing.snap_position(point, bypass=bypass)
+        result = self.drawing.snap_position(point, bypass=bypass, allow_grid=False)
         self.drawing.snap_guides = result.guides
         point = QPointF(result.x, result.y)
         color = self.drawing.tools.stroke_color.name()
@@ -216,10 +230,15 @@ class CurveDesignController:
         point = self.view.mapToScene(position.toPoint())
         h = ((point.y() - (curve["y1"] + curve["y2"]) / 2) * dx
              - (point.x() - (curve["x1"] + curve["x2"]) / 2) * dy) / length
-        if self.drawing.tools.snap_button.isChecked() and not bypass and not self.drawing.snap_bypass:
-            grid = self.view.grid_spacing_pixels()
-            h = round(h / grid) * grid
         self.drawing.clear_snap_guides()
+        if not bypass and not self.drawing.snap_bypass:
+            bounds = self.view.scene.sceneRect()
+            zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
+            snapped = self.drawing.snapper.snap_arc_height(curve, point.x(), point.y(),
+                (bounds.left(), bounds.top(), bounds.right(), bounds.bottom()), widget_px(self.owner, 10) / zoom)
+            if snapped is not None:
+                h, guide = snapped
+                self.drawing.snap_guides = (guide,)
         if abs(h) < 1e-7:
             self.current = None
             self.show_chord(curve, position)
@@ -296,7 +315,7 @@ class CurveDesignController:
             if curve is not None and curve["kind"] == "arc":
                 self.origin = self.press_position = None
                 self.chord = curve
-                self.pull(event.position())
+                self.pull(event.position(), bool(event.modifiers() & Qt.KeyboardModifier.AltModifier))
             else:
                 if curve is not None:
                     self.commit(curve)
