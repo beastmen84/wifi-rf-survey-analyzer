@@ -14,7 +14,8 @@ from app_core.constants import (
     DEFAULT_FLOORPLAN_METRIC_PX_PER_METER,
     DEFAULT_FLOORPLAN_WIDTH_PX,
 )
-from app_core.units import FEET_PER_METER, MEASUREMENT_SYSTEM_IMPERIAL, normalize_measurement_system
+from app_core.units import (FEET_PER_METER, MEASUREMENT_SYSTEM_IMPERIAL,
+                            normalize_measurement_system, display_units_to_meters)
 
 
 DEFAULT_FLOORPLAN_FILENAME = "blank_a4_floorplan.png"
@@ -25,11 +26,17 @@ BLANK_PLAN_MAX_METERS = 500.0
 BLANK_PLAN_MAX_PIXELS = 4096
 
 
+def default_blank_dimensions_m(measurement_system):
+    system = normalize_measurement_system(measurement_system)
+    dimensions = (115, 81) if system == MEASUREMENT_SYSTEM_IMPERIAL else (35, 25)
+    return tuple(display_units_to_meters(value, system) for value in dimensions)
+
+
 def blank_floorplan_geometry(measurement_system, width_m=None, height_m=None):
     """Use one isotropic scale, bounding raster memory even for large sites."""
     density = default_floorplan_px_per_meter(measurement_system)
     if width_m is None and height_m is None:
-        return DEFAULT_FLOORPLAN_WIDTH_PX, DEFAULT_FLOORPLAN_HEIGHT_PX, density
+        width_m, height_m = default_blank_dimensions_m(measurement_system)
     try:
         dimensions = tuple(float(value) for value in (width_m, height_m))
     except (TypeError, ValueError) as exc:

@@ -2,6 +2,11 @@
 
 LANGUAGES = ("en", "it", "fr", "es")
 TEXT = {
+    "blank_plan_defaults_help": (
+        "New sheets default to 35 × 25 m or 115 × 81 ft. Switching units selects that unit's preset until you edit the dimensions; afterwards, it converts the same physical size.",
+        "I nuovi fogli partono da 35 × 25 m o 115 × 81 ft. Cambiare unità sceglie il relativo preset finché non modifichi le dimensioni; dopo, converte la stessa misura fisica.",
+        "Les nouvelles feuilles mesurent 35 × 25 m ou 115 × 81 ft. Changer d'unités choisit le préréglage associé tant que les dimensions ne sont pas modifiées ; ensuite, la taille physique est conservée par conversion.",
+        "Las hojas nuevas miden 35 × 25 m o 115 × 81 ft. Cambiar de unidades usa el valor predeterminado hasta que edites las dimensiones; después, convierte el mismo tamaño físico."),
     "blank_plan_size": ("Blank sheet", "Foglio bianco", "Feuille vierge", "Hoja en blanco"),
     "blank_plan_width": ("Width", "Larghezza", "Largeur", "Ancho"),
     "blank_plan_height": ("Height", "Altezza", "Hauteur", "Alto"),
@@ -80,4 +85,5 @@ def dictionary(language):
     result["blank_plan_help"] += " " + result["plan_curves_help"]
     result["blank_plan_help"] += " " + result["curve_edit_help"]
     result["blank_plan_help"] += " " + result["circle_rotation_help"]
+    result["blank_plan_help"] += " " + result["blank_plan_defaults_help"]
     return result

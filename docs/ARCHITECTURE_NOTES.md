@@ -22,6 +22,12 @@ interpolated colors.
 
 Current status:
 
+- New blank sheets default to 35 × 25 m or 115 × 81 ft from unit-specific physical
+  presets. SurveySetupDialog follows these presets while dimensions are untouched;
+  after a user edit, unit switching converts the saved physical dimensions without
+  resetting them. blank_floorplan_geometry uses the same presets (1750 × 1250 px at
+  50 px/m, or 1840 × 1296 px at 16 px/ft), with one isotropic scale. Old saved surveys
+  retain their stored dimensions, image size and calibration.
 - Generated plans now have optional plan_curves JSON version 1: circles store
   center/radius/technical junction phase and arcs store ordered chord endpoints
   plus signed sagitta. The junction phase is not a circle orientation.

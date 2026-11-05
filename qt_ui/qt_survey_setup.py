@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
 
 from app_core.units import (MEASUREMENT_SYSTEM_IMPERIAL, MEASUREMENT_SYSTEM_METRIC,
     meters_to_display_units, display_units_to_meters, distance_unit_label)
-from qt_ui.default_floorplan import (blank_floorplan_geometry, BLANK_PLAN_MIN_METERS, BLANK_PLAN_MAX_METERS)
+from qt_ui.default_floorplan import (default_blank_dimensions_m, BLANK_PLAN_MIN_METERS, BLANK_PLAN_MAX_METERS)
 from qt_ui.scaling import widget_px
 from wifi.adapters import adapter_identity, adapter_name, list_wifi_adapters
 
@@ -91,14 +91,14 @@ class SurveySetupDialog(QDialog):
         self.blank_width_spin = QDoubleSpinBox()
         self.blank_height_spin = QDoubleSpinBox()
         self.blank_units = self.units_combo.currentData()
+        self.blank_dimensions_custom = False
         for spin in (self.blank_width_spin, self.blank_height_spin):
             spin.setObjectName("blankPlanDimension")
             spin.setDecimals(2)
             spin.setKeyboardTracking(False)
             spin.setMinimumWidth(widget_px(app, 130))
             spin.setMinimumHeight(widget_px(app, 36))
-        width, height, density = blank_floorplan_geometry(self.blank_units)
-        self.set_blank_dimensions(width / density, height / density)
+        self.set_blank_dimensions(*default_blank_dimensions_m(self.blank_units))
         self.blank_width_spin.valueChanged.connect(lambda value: self.remember_blank_dimension(0, value))
         self.blank_height_spin.valueChanged.connect(lambda value: self.remember_blank_dimension(1, value))
         blank_fields.addRow(app.tr("blank_plan_width"), self.blank_width_spin)
@@ -184,13 +184,15 @@ class SurveySetupDialog(QDialog):
             spin.blockSignals(False)
 
     def remember_blank_dimension(self, index, value):
+        self.blank_dimensions_custom = True
         dimensions = list(self.blank_dimensions_m)
         dimensions[index] = display_units_to_meters(value, self.blank_units)
         self.blank_dimensions_m = tuple(dimensions)
 
     def change_blank_units(self):
         self.blank_units = self.units_combo.currentData()
-        self.set_blank_dimensions(*self.blank_dimensions_m)
+        self.set_blank_dimensions(*(self.blank_dimensions_m if self.blank_dimensions_custom
+                                    else default_blank_dimensions_m(self.blank_units)))
 
     def options(self):
         adapter = self.selected_adapter() or {}

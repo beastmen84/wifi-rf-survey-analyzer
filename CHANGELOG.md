@@ -7,6 +7,10 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- New Survey starts blank sheets at 35 × 25 m or 115 × 81 ft. Switching units
+  uses the matching preset until dimensions are customized, then preserves the
+  physical size through conversion. Generated pixels and calibration match the
+  chosen dimensions; existing surveys retain their saved geometry.
 - Added Circle and Circular arc to Design Mode. Circles use radius drag or a
   numeric radius; arcs use chord drag followed by perpendicular sagitta movement
   and a confirming right click, or exact chord/sagitta/side entry. Last dimensions

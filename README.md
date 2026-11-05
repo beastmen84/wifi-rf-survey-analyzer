@@ -49,7 +49,9 @@ from these software checks.
   and height before creating the scale. Starting a new survey while another is
   open first asks to save the current survey, discard changes, or cancel.
   The grid overlay shows the current square size directly on the map.
-- Blank-sheet dimensions are converted when switching m/ft and preserved with
+- Blank sheets start at **35 × 25 m** or **115 × 81 ft**, depending on the units.
+  After customizing the dimensions, switching m/ft converts the same physical size.
+  Blank-sheet dimensions are preserved with
   the generated PNG on save/reopen. Loading an external floor plan replaces the
   sheet and uses that plan's calibration. The blank sheet has a bottom-left
   Design Mode toolbar for rectangles: right-drag shows live m/ft
