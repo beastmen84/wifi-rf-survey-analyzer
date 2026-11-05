@@ -592,6 +592,9 @@ Historical beta ZIPs may still use the older artifact stem:
 
 Possible future product areas:
 
+- Non-structural marker, door and window annotations for generated floor plans.
+- Physical wall thickness/materials, subject to a room model preserving internal
+  dimensions and shared-wall relationships.
 - Broader recommendation rules validated against additional real surveys.
 - Combined survey report across multiple live-map views.
 - Deeper AP metadata diagnostics where rules are clear.

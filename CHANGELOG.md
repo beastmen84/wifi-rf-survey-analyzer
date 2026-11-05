@@ -7,6 +7,9 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Documented the proposed marker/door/window annotation workflow and deferred
+  physical wall thickness/material modeling pending internal-room geometry and
+  shared-wall constraint design. These are roadmap notes, not implemented tools.
 - Same-color straight strokes now unite across partial overlaps and duplicate
   ink, preventing artificial endpoints from splitting selection and erasure.
   Real T/cross/curve contacts, corners, different colors and actual gaps remain

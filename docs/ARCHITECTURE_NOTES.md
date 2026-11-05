@@ -1352,6 +1352,60 @@ Keep the intermittent native Qt/COM diagnostic open until explained. Package
 validation belongs to an explicitly requested release build; no version bump,
 tag or new executable is implied by the corrections.
 
+### Drawing: Annotation Proposal And Deferred Wall Thickness
+
+Status: design notes only; no annotation or physical-wall implementation yet.
+The user explicitly deferred physical wall thickness/material modeling pending
+more careful geometric design, and proposed marker/door/window annotations as
+the next drawing work. Existing editable Text remains available.
+
+Deferred physical walls:
+
+- Existing room boundary segments represent internal room dimensions, not wall
+  centerlines. Thickness must grow outside the internal perimeter while retaining
+  each room's shape, dimensions and internal area.
+- Two touching room perimeters currently share a normalized segment. Giving that
+  wall physical thickness cannot preserve both room positions and internal sizes:
+  two 4 m interiors plus a 0.20 m divider occupy 8.20 m, excluding outer walls.
+- A future design must distinguish rooms, their internal boundary faces, and a
+  shared wall with thickness/material. Relative room placement, a chosen fixed
+  room, connected neighbors, loops and conflicting constraints need explicit
+  handling and a preview. Merely widening the drawing stroke or moving individual
+  opposite segments would corrupt the meaning of the existing measurements.
+- Keep physical thickness, material and visual style distinct. Future fusion
+  must also respect material/thickness, not just color. Do not infer RF losses
+  from these properties as part of the annotation work.
+
+Proposed non-structural annotation tools (not yet implemented):
+
+- Marker: freely drawn dashed paths or grid-following paths, with independent
+  color and visual stroke width. Render above structural lines; exclude from
+  structural splitting/fusion, snap topology, room closure, area and mask fills.
+- Doors: single with left/right opening, double and sliding variants. Choose
+  width when selecting the tool/before placement, and allow later edits.
+- Windows: choose width before placement and allow later edits; no swing symbol.
+- Door/window placement snaps to a host structural segment with orientation and
+  position constrained to that segment. Mask only the host's covered ink interval
+  and draw the annotation above it; never cut/delete the underlying wall or cover
+  the whole composite with an opaque white patch. Topology and areas retain the
+  intact structural model, including for Boundaries Fill/Auto Fill.
+- Proposed first scope for hosted apertures: straight segments, including oblique
+  ones. Curved hosts require a separate placement/symbol design. Single doors
+  need independent hinge-end and opening-side controls to describe both sides.
+- Host association must survive segment splitting/fusion; a mutable list index
+  is insufficient. Define association/rebinding and invalid-host behavior before
+  implementation. Proposed behavior: annotations follow rigid host moves; host
+  deletion removes affected attached annotations in the same undoable edit.
+  Reject an aperture wider than its usable host run or overlapping an existing
+  aperture on the same host, with clear placement feedback.
+- Annotations should share existing select/edit/move/Del and undo/redo behavior,
+  persist on save/reopen and render consistently in PNG, Live Map and HTML.
+  Door/window movement stays attached to a valid wall. Markers remain independent.
+- Suggested implementation order: marker and shared annotation storage/rendering,
+  then wall-hosted windows/masking, then door variants and opening controls.
+  This proposal records the discussion; tool interactions and scope still await
+  implementation agreement. Physical walls remain deferred independently.
+
 ### 1. AP Group Manager UX Monitoring
 
 Current status:
@@ -1706,8 +1760,10 @@ Future expansion:
 15. Validate the completed initial blank-sheet editor on real survey workflows:
     custom dimensions, rectangles, lines, circles/arcs, text, snapping, fragment
     erasing, selection/transforms, closed-area grid fading and boundary fills.
-    Door/window/marker annotations and configurable stroke thickness remain
-    future work. Keep the editor focused on survey-ready plans.
+    Marker/door/window annotations are the proposed next editor step, documented
+    under Remaining Work. Physical wall thickness/materials are explicitly
+    deferred pending a room/shared-wall model preserving internal dimensions.
+    Keep the editor focused on survey-ready plans.
 16. Add richer deployment/reporting outputs.
 
 ## Final Vision
