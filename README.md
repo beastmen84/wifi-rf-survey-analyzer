@@ -58,7 +58,10 @@ from these software checks.
   available. Nearby corners and edges snap automatically, with orange target
   indicators; the grid button adds snapping to the displayed grid. Hold Alt to
   suspend snapping. Numeric placement moves the shape without changing its size.
-  Segment erasing is planned next. Esc cancels a draft
+  Select Eraser to right-click one highlighted side, or right-drag an area to
+  erase every whole segment it touches on release. Red previews show the affected
+  sides and their count. Each deletion can be undone/redone as one action.
+  Esc cancels a draft
   before exiting the mode. Right-click capture resumes after leaving Design Mode.
   Drawings remain editable after save/reopen and appear in PNG/Live/HTML maps.
   The shapes are visual plan geometry; RF findings still use measured data.
@@ -496,7 +499,7 @@ Historical beta ZIPs may still use the older artifact stem:
 Possible future product areas:
 
 - Broader recommendation rules validated against additional real surveys.
-- Extend blank-sheet design with segment erasing and closed-area grid styling.
+- Extend blank-sheet design with closed-area grid styling.
 - Combined survey report across multiple live-map views.
 - Deeper AP metadata diagnostics where rules are clear.
 - Further AP physical/radio/BSSID model refinement if real deployments require

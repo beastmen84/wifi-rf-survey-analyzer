@@ -1,8 +1,8 @@
 """Blank-sheet design tools and rectangle gesture coordination."""
 
 from PySide6.QtCore import QEvent, QPoint, QRect, QSize, Qt, QTimer
-from PySide6.QtGui import QColor, QIcon, QPixmap, QShortcut, QKeySequence, QPainter, QPen
-from PySide6.QtWidgets import QColorDialog, QFrame, QHBoxLayout, QLabel, QPushButton, QStyle, QVBoxLayout
+from PySide6.QtGui import QColor, QIcon, QPixmap, QShortcut, QKeySequence, QPainter, QPainterPath, QPen
+from PySide6.QtWidgets import QColorDialog, QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
 from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
 from qt_ui.qt_theme import QT_THEMES
@@ -15,6 +15,7 @@ class PlanToolsOverlay(QFrame):
         self.setFont(owner.font())
         self.owner = owner
         self.open = False
+        self.active_tool = "rectangle"
         self.stroke_color = QColor("#263238")
         self.setObjectName("boundariesToolbar")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -31,8 +32,6 @@ class PlanToolsOverlay(QFrame):
         self.eraser_button = owner.create_boundaries_tool_button("eraser.png", "blank_tool_eraser")
         self.undo_button = owner.create_boundaries_text_button("", "blank_tool_undo")
         self.redo_button = owner.create_boundaries_text_button("", "blank_tool_redo")
-        self.undo_button.setIcon(owner.style().standardIcon(QStyle.StandardPixmap.SP_ArrowBack))
-        self.redo_button.setIcon(owner.style().standardIcon(QStyle.StandardPixmap.SP_ArrowForward))
         for button in (self.rectangle_button, self.eraser_button, self.undo_button, self.redo_button):
             button.setEnabled(False)
             row.addWidget(button)
@@ -58,7 +57,9 @@ class PlanToolsOverlay(QFrame):
         self.snap_button.toggled.connect(self.toggle_grid_snap)
         self.drawing_error = False
         self.rectangle_button.setCheckable(True)
+        self.eraser_button.setCheckable(True)
         self.rectangle_button.clicked.connect(self.select_rectangle)
+        self.eraser_button.clicked.connect(lambda: self.select_tool("eraser"))
         self.undo_button.clicked.connect(self.controller.undo)
         self.redo_button.clicked.connect(self.controller.redo)
         self.escape_shortcut = QShortcut(QKeySequence("Esc"), owner)
@@ -84,7 +85,6 @@ class PlanToolsOverlay(QFrame):
         self.toggle_button.setText(tr("blank_tools"))
         self.toggle_button.setToolTip(tr("blank_tools_hint"))
         self.header.setText(tr("blank_tools"))
-        self.note.setText(tr("blank_tools_note"))
         for button, key in ((self.rectangle_button, "rectangle"), (self.eraser_button, "eraser"),
                             (self.undo_button, "undo"), (self.redo_button, "redo"),
                             (self.snap_button, "snap"), (self.color_button, "color")):
@@ -93,14 +93,13 @@ class PlanToolsOverlay(QFrame):
             button.setAccessibleName(text)
         self.update_color_icon()
         self.update_snap_icon()
+        self.update_history_icons()
         available = self.available()
         if not available or self.owner.scan_in_progress or self.owner.tabs.currentIndex() != 0:
             self.set_open(False)
         self.toggle_button.setVisible(available)
         self.toggle_button.setEnabled(available and not self.owner.scan_in_progress)
-        self.rectangle_button.setEnabled(available and self.open)
-        self.rectangle_button.setChecked(available and self.open)
-        self.snap_button.setEnabled(available and self.open)
+        self.update_tool_state()
         self.position_controls()
 
     def set_open(self, opened):
@@ -119,9 +118,7 @@ class PlanToolsOverlay(QFrame):
         self.owner.floorplan_view.viewport().setCursor(Qt.CursorShape.CrossCursor if self.open else Qt.CursorShape.ArrowCursor)
         self.escape_shortcut.setEnabled(self.open)
         self.setVisible(self.open)
-        self.rectangle_button.setEnabled(self.open)
-        self.rectangle_button.setChecked(self.open)
-        self.snap_button.setEnabled(self.open)
+        self.update_tool_state()
         self.undo_button.setEnabled(self.open and bool(self.controller.undo_stack))
         self.redo_button.setEnabled(self.open and bool(self.controller.redo_stack))
         self.position_controls()
@@ -131,8 +128,21 @@ class PlanToolsOverlay(QFrame):
             self.set_open(False)
 
     def select_rectangle(self):
+        self.select_tool("rectangle")
+
+    def select_tool(self, tool):
         self.controller.cancel()
-        self.rectangle_button.setChecked(self.open)
+        self.active_tool = tool
+        self.update_tool_state()
+        self.position_controls()
+
+    def update_tool_state(self):
+        for tool, button in (("rectangle", self.rectangle_button), ("eraser", self.eraser_button)):
+            button.setEnabled(self.open)
+            button.setChecked(self.open and self.active_tool == tool)
+        self.snap_button.setEnabled(self.open and self.active_tool == "rectangle")
+        self.color_button.setEnabled(self.open and self.active_tool == "rectangle")
+        self.note.setText(self.owner.tr("eraser_tools_note" if self.active_tool == "eraser" else "blank_tools_note"))
 
     def toggle_grid_snap(self, checked):
         self.update_snap_icon()
@@ -165,6 +175,36 @@ class PlanToolsOverlay(QFrame):
         painter.end()
         self.snap_button.setIcon(QIcon(pixmap))
         self.snap_button.setIconSize(QSize(size, size))
+
+    def update_history_icons(self):
+        size = self.owner.spx(20)
+        palette = QT_THEMES[self.owner.theme]
+        for button, mirrored in ((self.undo_button, False), (self.redo_button, True)):
+            icon = QIcon()
+            for mode, color in ((QIcon.Mode.Normal, palette["text"]), (QIcon.Mode.Disabled, palette["muted"])):
+                pixmap = QPixmap(size, size)
+                pixmap.fill(Qt.GlobalColor.transparent)
+                painter = QPainter(pixmap)
+                painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+                painter.scale(size / 24, size / 24)
+                if mirrored:
+                    painter.translate(24, 0)
+                    painter.scale(-1, 1)
+                pen = QPen(QColor(color), 2)
+                pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+                pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+                painter.setPen(pen)
+                path = QPainterPath()
+                path.moveTo(19, 19)
+                path.cubicTo(22, 9, 12, 5, 5, 11)
+                path.moveTo(5, 5)
+                path.lineTo(5, 11)
+                path.lineTo(11, 11)
+                painter.drawPath(path)
+                painter.end()
+                icon.addPixmap(pixmap, mode)
+            button.setIcon(icon)
+            button.setIconSize(QSize(size, size))
 
     def position_controls(self):
         viewport = self.parentWidget()

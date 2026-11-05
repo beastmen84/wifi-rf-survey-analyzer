@@ -200,21 +200,37 @@ def test_live_export_escapes_names_and_passes_the_boundary_mask_to_shared_render
     assert all(resource.startswith("data:") for resource in ReportDOM(html).resources)
 
 
-def test_both_workspace_html_exports_include_current_editable_shapes(analysis_window, tmp_path):
+@pytest.mark.parametrize("erased", [False, True])
+def test_both_workspace_html_exports_include_current_editable_shapes(analysis_window, tmp_path, erased):
     window = analysis_window
     image = tmp_path / "drawing.png"
     Image.new("RGB", (400, 300), "white").save(image)
     window.session.metadata.update(map_file=str(image), _generated_floorplan="1", px_per_meter="50")
-    window.session.metadata[PLAN_DRAWING_KEY] = encode_drawing(rectangle_segments(100, 100, 120, 60, "#d84315"))
+    lines = rectangle_segments(100, 100, 120, 60, "#d84315")
+    # Keep a stale baked top side to verify an erase also removes old raster ink.
+    from survey.plan_drawing import render_plan_drawing
+    render_plan_drawing(Image.new("RGB", (400, 300), "white"), lines).save(image)
+    window.session.metadata[PLAN_DRAWING_KEY] = encode_drawing(lines)
     window.session.csv_file = str(tmp_path / "survey.csv")
     window.load_saved_plan()
     window.refresh_session_labels()
+    if erased:
+        window.plan_tools.set_open(True)
+        window.plan_tools.eraser_button.click()
+        from PySide6.QtCore import QPointF, Qt
+        from PySide6.QtTest import QTest
+        point = window.floorplan_view.mapFromScene(QPointF(150, 100))
+        QTest.mouseClick(window.floorplan_view.viewport(), Qt.MouseButton.RightButton, pos=point)
+        assert len(window.plan_tools.controller.segments()) == 3
+        window.plan_tools.set_open(False)
+    expected = (255, 255, 255) if erased else (216, 67, 21)
     wait_for_analysis(window.analysis_view)
     analysis = str(tmp_path / "drawing.analysis.html")
     with (patch("qt_ui.qt_analysis.get_centered_save_file_name", return_value=(analysis, "")),
           patch("qt_ui.qt_analysis.export_analysis_report", wraps=export_analysis_report) as export):
         assert window.analysis_view.export_report()
-        assert export.call_args.args[3].getpixel((150, 100)) == (216, 67, 21)
+        assert export.call_args.args[3].getpixel((150, 100)) == expected
+        assert export.call_args.args[3].getpixel((150, 160)) == (216, 67, 21)
     assert Path(analysis).is_file()
     window.live_ssid_combo.addItem("Office")
     window.live_ssid_combo.setCurrentText("Office")
@@ -225,5 +241,6 @@ def test_both_workspace_html_exports_include_current_editable_shapes(analysis_wi
           patch("qt_ui.qt_live_export.get_centered_save_file_name", return_value=(live, "")),
           patch("qt_ui.qt_live_export.generate_live_html_export", wraps=generate_live_html_export) as export):
         assert window.export_live_report()
-        assert export.call_args.args[1].getpixel((150, 100)) == (216, 67, 21)
+        assert export.call_args.args[1].getpixel((150, 100)) == expected
+        assert export.call_args.args[1].getpixel((150, 160)) == (216, 67, 21)
     assert Path(live).is_file()

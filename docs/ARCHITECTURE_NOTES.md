@@ -1,6 +1,6 @@
 # Wi-Fi RF Survey Analyzer - Architecture Notes
 
-Last updated: 2026-11-04
+Last updated: 2026-11-05
 
 This document is the forward-looking product roadmap. Completed items are kept
 only as context; the actionable backlog is in the "Remaining Work" section.
@@ -22,6 +22,35 @@ interpolated colors.
 
 Current status:
 
+- Point 5 adds `survey/plan_erasing.py` (finite nearest-segment picking and closed
+  area intersection) plus `qt_ui/qt_plan_eraser.py` (provisional gestures and red
+  feedback). A click picks one nearest independent segment, with equal-distance
+  ties preferring the last drawn side. Overlapping duplicates remain independent;
+  an area selects all touched sides, including boundary/crossing intersections.
+  No segments are split or shortened. Selection is unsnapped, clipped to the
+  sheet, with a 6-UI-pixel pick margin plus half the original stroke width.
+  The validated line snapshot refreshes on redraw; two cosmetic path overlays
+  highlight any number of targets without creating one Qt item per target.
+- Rectangle/eraser selection is exclusive. Eraser mode disables drawing color
+  and grid-snap controls while retaining their preferences. Right-drag shows a
+  translucent selection box, red sides and localized count; deletion commits on
+  release as one action in the shared 50-entry drawing history. A no-hit gesture
+  leaves dirty/history/redo intact. Esc, switching tools, mode exit, window
+  deactivation, undo/redo and scene/session replacement clear provisional state.
+  Left-drag pans and Design Mode continues to block RF point capture. Existing
+  save/PNG/Live/HTML vector rendering handles deletions, including an empty model;
+  snap indexes rebuild from the edited geometry. Closed-face/grid fading remains
+  point 6. Survey schema/dependencies/version are unchanged; EXE/ZIP not rebuilt.
+  The palette uses explicit themed curved history arrows, replacing platform
+  standard icons that rendered blank in source-native Windows screenshots.
+  Verification: full native suite 675 tests + 475 subtests (71.44 s), plus 64
+  native source Qt gesture/layout cases across four themes/languages and
+  100/125/150/175% scale settings. Geometry, deferred commit/cancel, duplicate
+  sides, pan, viewport tolerance, undo branching, snap refresh, failed-save
+  rollback, empty-sheet reopen and actual Live/Analysis HTML exports are covered.
+  Essential Ruff and diff checks pass. QA uses synthetic events/geometry rather
+  than physical pointer or packaged-app testing. Final focused checks after the
+  history-icon refinement pass 146 tests + 434 subtests (32.84 s).
 - `survey/plan_snapping.py` implements deterministic point/rectangle-anchor
   snapping, using sorted endpoint/edge indexes and bounded axis-pair searches.
   Nearby real corners take priority, followed by overlapping finite edges, then
@@ -42,7 +71,7 @@ Current status:
   58 tests + 434 subtests. Native source QA covers 48 corner/edge/grid cases
   across all themes/languages plus 16 palette-fit cases across 100-175% scales;
 - Rectangle design is implemented in `qt_rectangle_design.py`. Design Mode
-  selects Rectangle, consumes right-button gestures and leaves left-drag pan
+  initially selects Rectangle, consumes right-button gestures and leaves left-drag pan
   available. Drag recognition uses QApplication's viewport-pixel threshold;
   previews show locale-aware m/ft dimensions. A click opens a bounded numeric
   dialog; confirmation creates a cursor-following preview, and the next right
@@ -53,7 +82,7 @@ Current status:
 - `survey/plan_drawing.py` validates optional version-1 `plan_drawing` metadata
   within schema 2: finite, axis-aligned pixel segments and strict RGB colors.
   Each rectangle contributes four independent segments in survey/map coordinates.
-  Placement undo/redo retains up to 50 in-session actions. Only committed shapes
+  Drawing undo/redo retains up to 50 in-session placement/deletion actions. Only committed edits
   dirty the survey; shape-only surveys require replacement confirmation. Invalid
   drawing data stays untouched and disables editing rather than being discarded.
 - Generated PNG materialization now includes the current vectors on every save,
@@ -63,7 +92,7 @@ Current status:
   supplements the image thumbnail cache key to distinguish subpixel edits.
   Empty vectors rebuild a white canvas, so undo never resurrects stale baked
   lines. External-plan imports clear the drawing. No RF rule uses wall geometry.
-  Segment erasing and closed-face/grid fading remain pending;
+  Closed-face/grid fading remains pending;
   Verification: 607 tests + 475 subtests on native Windows (37.33 s), essential
   Ruff and diff checks pass. Native Qt QA in 16 theme/language combinations covers
   live-dimension drags, the real modal numeric dialog, cursor-following placement,
@@ -78,7 +107,7 @@ Current status:
   retains scale, size and generated-sheet identity; imported plans clear the
   blank dimensions and retain their own calibration workflow.
 - `qt_plan_tools.py` provides the blank-only viewport overlay and rectangle tools.
-  Color and grid-snap state are window-local choices; the eraser remains disabled.
+  Color, grid-snap and active-tool state are window-local choices; erasing is available.
   Opening Design Mode
   blocks right-click capture in FloorplanView, closes Boundaries and collapses an expanded points
   table. Expanding the table closes the palette and keeps its entry button above
@@ -1357,8 +1386,8 @@ Future expansion:
     conservative; 6 GHz still requires real hardware validation. Optional future
     work includes per-survey objective persistence, per-AP channel capabilities,
     richer RF measurements and multi-map report composition.
-15. Extend the implemented blank-sheet rectangle editor with independent-segment
-    erasing and closed-area grid fading. Curves and configurable
+15. Extend the implemented blank-sheet rectangle/segment eraser with
+    closed-area grid fading. Curves and configurable
     stroke thickness remain outside the current scope. Keep the editor focused on
     survey-ready technical plans.
 16. Add richer deployment/reporting outputs.

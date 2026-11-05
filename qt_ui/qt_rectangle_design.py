@@ -10,6 +10,7 @@ from app_core.units import distance_unit_label, display_units_to_meters, meters_
 from survey.plan_drawing import PLAN_DRAWING_KEY, drawing_segments, encode_drawing, rectangle_segments
 from survey.plan_snapping import PlanSnapper, SnapResult
 from qt_ui.scaling import widget_px
+from qt_ui.qt_plan_eraser import PlanEraserController
 
 
 class RectangleSizeDialog(QDialog):
@@ -72,6 +73,7 @@ class RectangleDesignController(QObject):
         self.measurement.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         self.measurement.setStyleSheet("background:#182433;color:white;border:1px solid #8194aa;border-radius:4px;padding:6px 9px;")
         self.measurement.hide()
+        self.eraser = PlanEraserController(self)
         self.owner.installEventFilter(self)
         self.view.installEventFilter(self)
         self.view.viewport().installEventFilter(self)
@@ -95,6 +97,7 @@ class RectangleDesignController(QObject):
                 self.preview = None
                 self.items = []
                 self.snap_items = []
+                self.eraser.reset_scene()
             self.cancel()
             self.undo_stack.clear()
             self.redo_stack.clear()
@@ -112,6 +115,7 @@ class RectangleDesignController(QObject):
         return drawing_segments(self.owner.session.metadata) if self.owner.session else None
 
     def redraw(self):
+        self.eraser.cancel()
         for item in self.items:
             self.view.scene.removeItem(item)
         self.items = []
@@ -120,6 +124,7 @@ class RectangleDesignController(QObject):
         if any(line[key] > extent + 1e-7 for line in lines or []
                for keys, extent in ((('x1', 'x2'), bounds.width()), (('y1', 'y2'), bounds.height())) for key in keys):
             raise ValueError("Saved drawing is outside the sheet")
+        self.eraser.set_segments(lines or [])
         self.snapper = PlanSnapper(lines or [])
         if lines is not None and self.view.pixmap_item is not None:
             white = QPixmap(self.view.pixmap_item.pixmap().size())
@@ -134,7 +139,7 @@ class RectangleDesignController(QObject):
             self.items.append(item)
 
     def cancel(self):
-        existed = self.origin is not None or self.pending_size is not None
+        existed = self.eraser.cancel() or self.origin is not None or self.pending_size is not None
         if self.preview is not None:
             self.view.scene.removeItem(self.preview)
             self.preview = None
@@ -147,6 +152,7 @@ class RectangleDesignController(QObject):
         return existed
 
     def hide_preview(self):
+        self.eraser.hide_preview()
         self.last_pointer = None
         if self.preview is not None:
             self.preview.hide()
@@ -177,6 +183,8 @@ class RectangleDesignController(QObject):
         return QRectF(self.origin, point).normalized()
 
     def refresh_snap(self):
+        if self.tools.active_tool != "rectangle":
+            return
         if self.last_pointer is not None and (self.pending_size or self.dragged):
             point = self.view.mapToScene(self.last_pointer.toPoint())
             if self.view.scene.sceneRect().contains(point) or self.dragged:
@@ -235,6 +243,9 @@ class RectangleDesignController(QObject):
         kinds = [kind for kind in ("corner", "edge", "grid") if any(guide.kind == kind for guide in self.snap_guides)]
         if kinds:
             text += "\n" + " · ".join(self.owner.tr("design_snap_" + kind) for kind in kinds)
+        self.show_measurement(text, position)
+
+    def show_measurement(self, text, position):
         self.measurement.setText(text)
         self.measurement.adjustSize()
         viewport = self.view.viewport()
@@ -246,6 +257,8 @@ class RectangleDesignController(QObject):
     def press(self, event):
         if event.button() != Qt.MouseButton.RightButton:
             return False
+        if self.tools.active_tool == "eraser":
+            return self.eraser.press(event)
         point = self.view.mapToScene(event.position().toPoint())
         self.last_pointer = event.position()
         bypass = bool(event.modifiers() & Qt.KeyboardModifier.AltModifier)
@@ -264,6 +277,8 @@ class RectangleDesignController(QObject):
         return True
 
     def move(self, event):
+        if self.tools.active_tool == "eraser":
+            return self.eraser.move(event)
         self.last_pointer = event.position()
         bypass = bool(event.modifiers() & Qt.KeyboardModifier.AltModifier)
         point = self.view.mapToScene(event.position().toPoint())
@@ -282,6 +297,8 @@ class RectangleDesignController(QObject):
     def release(self, event):
         if event.button() != Qt.MouseButton.RightButton:
             return False
+        if self.tools.active_tool == "eraser":
+            return self.eraser.release(event)
         if self.consume_release:
             self.consume_release = False
             return True
@@ -320,11 +337,19 @@ class RectangleDesignController(QObject):
             raise ValueError("Rectangle is outside the sheet")
         previous = list(self.segments() or [])
         lines = rectangle_segments(rect.x(), rect.y(), rect.width(), rect.height(), self.tools.stroke_color.name())
+        self.apply_edit(previous + lines)
+
+    def apply_edit(self, segments):
+        previous = list(self.segments() or [])
+        if segments == previous:
+            return False
+        encode_drawing(segments)  # Validate before changing history or metadata.
         self.undo_stack.append(previous)
         if len(self.undo_stack) > 50:
             del self.undo_stack[0]
         self.redo_stack.clear()
-        self.store(previous + lines)
+        self.store(segments)
+        return True
 
     def store(self, segments):
         self.owner.session.metadata[PLAN_DRAWING_KEY] = encode_drawing(segments)

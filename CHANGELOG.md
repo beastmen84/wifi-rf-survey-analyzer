@@ -13,7 +13,7 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 - Added a bottom-left Design Mode toolbar exclusively for generated blank sheets,
   including reopened surveys. Rectangle drawing, stroke color and undo/redo are
   available, along with optional grid snapping and automatic shape snapping.
-  Segment erasing remains for a later step.
+  Independent-segment erasing is also available.
   Opening Design Mode suspends right-click point capture; it coordinates with Boundaries
   and the points panel, closes with Escape and updates across all themes/languages.
 - Updated EN/IT/FR/ES labels and Help to describe configurable sheets and the
@@ -36,6 +36,14 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
   inside the sheet. Orange markers, alignment guides and dimension labels show
   active targets. Alt temporarily bypasses all snapping. Preview updates follow
   grid toggles; turning the grid off also turns grid snapping off.
+- Added the Design Mode eraser: right-click deletes one highlighted segment;
+  right-drag previews a red area and deletes whole segments it touches on release.
+  Red highlights and a localized count identify the affected sides. Esc cancels;
+  left-drag pans. Deletions share the drawing undo/redo history and update snap
+  targets, saved PNGs, Live Map and HTML exports, including an entirely cleared
+  sheet. Empty selections leave the document/history unchanged. Help is aligned
+  in English, Italian, French and Spanish. Undo/redo use explicit themed curved
+  arrows so their icons remain visible across Windows styles.
 
 ## v1.2.0 - 2026-11-04
 
