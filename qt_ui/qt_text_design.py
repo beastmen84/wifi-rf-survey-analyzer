@@ -1,7 +1,7 @@
 """Measured text placement/editing; glyph geometry remains portable across exports."""
 from copy import deepcopy
 
-from PySide6.QtCore import QPointF, Qt
+from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QPainterPath
 from PySide6.QtWidgets import QDialog
 
@@ -115,6 +115,8 @@ class TextDesignController:
                                       dy=snapped[0]["y1"] - geometry[0]["y1"])[0]
         self.pending = label
         self.show_labels([label])
+        left, top, right, bottom = segment_bounds(label_geometry(label))
+        self.drawing.show_snap_guides(QRectF(left, top, right - left, bottom - top))
         self.drawing.show_measurement(self.owner.tr("plan_text_place_hint"), position)
         return True
 

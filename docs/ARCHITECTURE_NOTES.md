@@ -22,6 +22,15 @@ interpolated colors.
 
 Current status:
 
+- PlanSnapper's shared snap_vertices_to_grid evaluates every distinct actual
+  source vertex, retaining only grid targets that keep the whole shape within
+  the sheet and choosing the smallest rigid translation with deterministic ties.
+  snap_geometry no longer anchors grid snaps to segments[0]. Axis-aligned numeric
+  shapes consider all real corners/endpoints too. Moving axis-aligned groups pass
+  their actual source vertices for corner and grid matching, avoiding phantom
+  bounding-box corners. Geometry corner/edge priority, full-side axis alignment,
+  Alt bypass and fixed-pivot rotation remain intact. The grid marker is the chosen
+  real vertex, including text previews; no model resize or angle change occurs.
 - Generated blank plans support editable text in addition to vector segments.
   survey/plan_labels.py validates optional plan_labels JSON version 1 with stable
   identities, text/style fields, center/angle, conservative bounds and stored

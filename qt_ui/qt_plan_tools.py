@@ -115,6 +115,7 @@ class PlanToolsOverlay(QFrame):
             button.setAccessibleName(text)
         self.edit_text_button.setToolTip(tr("plan_text_edit"))
         self.edit_text_button.setAccessibleName(tr("plan_text_edit"))
+        self.snap_button.setToolTip(tr("grid_all_vertices_help"))
         self.update_color_icon()
         self.update_snap_icon()
         self.update_history_icons()

@@ -7,6 +7,11 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Fixed grid snapping for rotated shapes: every real vertex can anchor the shape,
+  rather than only the first segment's start. Numeric previews, either line
+  endpoint and moving selections use the nearest valid vertex/grid correction
+  while preserving dimensions, angle and sheet bounds. Orange guides identify
+  the actual snapped vertex, including text previews.
 - AP Group status now shows either M or the physical-approval circle, with M
   taking priority. Clicking M opens its Memory actions and cannot approve the
   group. Memory-update candidates can explicitly keep their current data before

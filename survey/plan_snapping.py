@@ -41,6 +41,21 @@ def nearest_grid(value, minimum, maximum, spacing):
     return min(max(index * spacing, minimum), maximum)
 
 
+def snap_vertices_to_grid(vertices, box, bounds, spacing):
+    """Translate rigidly by the smallest valid correction of any real vertex."""
+    choices = []
+    for vx, vy in vertices:
+        gx = nearest_grid(vx, bounds[0] + vx - box[0], bounds[2] + vx - box[2], spacing)
+        gy = nearest_grid(vy, bounds[1] + vy - box[1], bounds[3] + vy - box[3], spacing)
+        if gx is not None and gy is not None:
+            dx, dy = gx - vx, gy - vy
+            choices.append((dx * dx + dy * dy, dx, dy, gx, gy))
+    if not choices:
+        return None
+    _, dx, dy, gx, gy = min(choices)
+    return SnapResult(dx, dy, (SnapGuide("grid", (gx, gy)),))
+
+
 class PlanSnapper:
     def __init__(self, segments=()):
         self.segments = list(segments)
@@ -64,7 +79,7 @@ class PlanSnapper:
     def nearby(values, positions, coordinate, tolerance):
         return values[bisect_left(positions, coordinate - tolerance):bisect_right(positions, coordinate + tolerance)]
 
-    def snap(self, x, y, width, height, bounds, tolerance, grid=None):
+    def snap(self, x, y, width, height, bounds, tolerance, grid=None, *, source_vertices=None):
         """Translate an anchor; zero width/height means a drag point.
 
         Existing corners take precedence, then valid edge alignments, then grid.
@@ -76,24 +91,29 @@ class PlanSnapper:
         max_x, max_y = right - width, bottom - height
         if min(width, height) < 0 or max_x < left or max_y < top:
             raise ValueError("Snapping rectangle does not fit the sheet")
+        original_x, original_y = x, y
         x, y = min(max(x, left), max_x), min(max(y, top), max_y)
         x_offsets = (0,) if width == 0 else (0, width)
         y_offsets = (0,) if height == 0 else (0, height)
+        vertices = ([(x + dx, y + dy) for dx in x_offsets for dy in y_offsets]
+                    if source_vertices is None else
+                    sorted({(vx + (x - original_x), vy + (y - original_y)) for vx, vy in source_vertices}))
+        if any(not math.isfinite(value) for point in vertices for value in point):
+            raise ValueError("Invalid snapping vertices")
 
         corners = []
-        for dx in x_offsets:
-            for dy in y_offsets:
-                for vx, vy in self.nearby(self.vertices, self.vertex_x, x + dx, tolerance):
-                    distance = (vx - x - dx) ** 2 + (vy - y - dy) ** 2
-                    anchor_x, anchor_y = vx - dx, vy - dy
-                    if (distance <= tolerance ** 2 and left <= anchor_x <= max_x
-                            and top <= anchor_y <= max_y):
-                        corners.append((distance, anchor_x, anchor_y, vx, vy))
+        for sx, sy in vertices:
+            for vx, vy in self.nearby(self.vertices, self.vertex_x, sx, tolerance):
+                distance = (vx - sx) ** 2 + (vy - sy) ** 2
+                anchor_x, anchor_y = vx - (sx - x), vy - (sy - y)
+                if (distance <= tolerance ** 2 and left <= anchor_x <= max_x
+                        and top <= anchor_y <= max_y):
+                    corners.append((distance, anchor_x, anchor_y, vx, vy))
         if corners:
             _, anchor_x, anchor_y, vx, vy = min(corners)
             return SnapResult(anchor_x, anchor_y, (SnapGuide("corner", (vx, vy)),))
 
-        diagonal = self.edge_translation([(x + dx, y + dy) for dx in x_offsets for dy in y_offsets], self.oblique,
+        diagonal = self.edge_translation(vertices, self.oblique,
                                           (x, y, x + width, y + height), bounds, tolerance)
         if diagonal is not None:
             dx, dy, guide = diagonal
@@ -116,6 +136,10 @@ class PlanSnapper:
                          xt.value, yt.value)
                 choices.append((score, xt, yt))
         _, xt, yt = min(choices, key=lambda choice: choice[0])
+        if grid and grid > 0 and xt.kind != "edge" and yt.kind != "edge":
+            snapped = snap_vertices_to_grid(vertices, (x, y, x + width, y + height), bounds, grid)
+            return (SnapResult(x + snapped.x, y + snapped.y, snapped.guides)
+                    if snapped is not None else SnapResult(x, y))
         guides = []
         for target, other, extent, axis in ((xt, yt.value, height, "x"), (yt, xt.value, width, "y")):
             if target.kind == "edge":
@@ -258,9 +282,7 @@ class PlanSnapper:
             dx, dy, guide = edge
             return SnapResult(dx, dy, (guide,))
         if grid and grid > 0:
-            vx, vy = segments[0]["x1"], segments[0]["y1"]
-            gx = nearest_grid(vx, bounds[0] + vx - box[0], bounds[2] + vx - box[2], grid)
-            gy = nearest_grid(vy, bounds[1] + vy - box[1], bounds[3] + vy - box[3], grid)
-            if gx is not None and gy is not None:
-                return SnapResult(gx - vx, gy - vy, (SnapGuide("grid", (gx, gy)),))
+            snapped = snap_vertices_to_grid(vertices, box, bounds, grid)
+            if snapped is not None:
+                return snapped
         return SnapResult(0, 0)

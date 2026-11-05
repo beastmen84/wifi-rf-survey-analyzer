@@ -154,10 +154,12 @@ def test_floating_grid_boundary_does_not_lose_the_last_visible_line():
     assert (result.x, result.y) == (4096, 4096)
 
 
-def test_grid_translates_only_the_numeric_anchor():
+def test_grid_translates_the_nearest_numeric_corner_without_resizing():
     result = PlanSnapper().snap(81, 85, 117.3, 63.2, BOUNDS, 10, 50)
-    assert (result.x, result.y) == (100, 100)
-    assert result.x + 117.3 == pytest.approx(217.3)
+    assert (result.x, result.y) == pytest.approx((82.7, 86.8))
+    assert result.x + 117.3 == pytest.approx(200)
+    assert result.y + 63.2 == pytest.approx(150)
+    assert result.guides[0].point == (200, 150)
 
 
 def test_bounds_hold_for_all_numeric_corner_targets():
@@ -193,8 +195,9 @@ def test_grid_toggle_updates_preview_without_changing_numeric_size(editor, qt_ap
     window.plan_tools.snap_button.click()
     rect = controller.preview.rect()
     step = window.floorplan_view.grid_spacing_pixels()
-    assert rect.x() / step == pytest.approx(round(rect.x() / step))
-    assert rect.y() / step == pytest.approx(round(rect.y() / step))
+    assert any(corner.x() / step == pytest.approx(round(corner.x() / step))
+               and corner.y() / step == pytest.approx(round(corner.y() / step))
+               for corner in (rect.topLeft(), rect.topRight(), rect.bottomLeft(), rect.bottomRight()))
     assert rect.width() == pytest.approx(117.3) and rect.height() == pytest.approx(63.2)
     assert controller.snap_items and window.tr("design_snap_grid") in controller.measurement.text()
     assert not window.session.dirty

@@ -74,4 +74,5 @@ def dictionary(language):
     result["blank_plan_help"] += " " + result["drawing_join_help"]
     result["blank_plan_help"] += " " + result["rotation_hold_help"]
     result["blank_plan_help"] += " " + result["plan_extensions_help"]
+    result["blank_plan_help"] += " " + result["grid_all_vertices_help"]
     return result

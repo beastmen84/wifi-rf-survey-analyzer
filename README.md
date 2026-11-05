@@ -58,6 +58,10 @@ from these software checks.
   available. Nearby corners and edges snap automatically, with orange target
   indicators; the grid button adds snapping to the displayed grid. Hold Alt to
   suspend snapping. Numeric placement moves the shape without changing its size.
+  Grid snapping considers every real vertex, including all corners of rotated
+  shapes and either endpoint of a line, and chooses the nearest valid grid
+  intersection. Moving selections use their actual vertices. The orange marker
+  identifies the snapped vertex; dimensions and angles remain unchanged.
   During a drag, the moving sides also align with overlapping sides of existing
   shapes, even when the cursor extends beyond them. The starting corner stays
   fixed and orange guides identify the height/width alignment.

@@ -313,7 +313,9 @@ class PlanSelectionController:
             zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
             result = self.move_snapper.snap(x, y, right - left, bottom - top,
                 (bounds.left(), bounds.top(), bounds.right(), bounds.bottom()), widget_px(self.owner, 10) / zoom,
-                self.view.grid_spacing_pixels() if self.drawing.tools.snap_button.isChecked() else None)
+                self.view.grid_spacing_pixels() if self.drawing.tools.snap_button.isChecked() else None,
+                source_vertices=[(line[a] + (x - left), line[b] + (y - top))
+                                 for line in geometry for a, b in (("x1", "y1"), ("x2", "y2"))])
             x, y, self.drawing.snap_guides = result.x, result.y, result.guides
         self.move_preview = translate_segments(source, x - left, y - top)
         self.move_label_preview = transform_labels(labels, dx=x - left, dy=y - top)
