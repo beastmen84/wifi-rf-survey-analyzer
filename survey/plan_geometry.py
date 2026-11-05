@@ -7,7 +7,7 @@ def split_segments(segments, with_sources=False, limit=40000):
     """Split validated lines at crossings, T joints and collinear endpoints.
 
     Preserve stroke color, input order, direction and independent duplicates.
-    Existing cuts remain editable even after their intersecting side is erased.
+    This primitive only splits; normalize_segments also removes obsolete cuts.
     """
     groups = defaultdict(list)
     keys = []
@@ -72,6 +72,67 @@ def split_segments(segments, with_sources=False, limit=40000):
                                color=line["color"]))
             sources.append(index)
     return (result, sources) if with_sources else result
+
+
+def join_segments(segments, with_sources=False):
+    """Join like-colored end-to-end fragments only at unbranched vertices.
+
+    Input must already be split at every real intersection. Gaps, corners,
+    color transitions and independent overlapping/duplicate strokes stay intact.
+    Source sets identify every input fragment absorbed by a joined output.
+    """
+    endpoints = defaultdict(list)
+    parents = list(range(len(segments)))
+    for index, line in enumerate(segments):
+        endpoints[(line["x1"], line["y1"])].append(index)
+        endpoints[(line["x2"], line["y2"])].append(index)
+
+    def root(index):
+        while parents[index] != index:
+            parents[index] = parents[parents[index]]
+            index = parents[index]
+        return index
+
+    for point, incident in endpoints.items():
+        if len(incident) != 2:
+            continue
+        first, second = incident
+        a, b = segments[first], segments[second]
+        horizontal = a["y1"] == a["y2"]
+        if a["color"] != b["color"] or horizontal != (b["y1"] == b["y2"]):
+            continue
+        axis = "x" if horizontal else "y"
+        coordinate = point[0] if horizontal else point[1]
+        a_other = a[axis + "2"] if a[axis + "1"] == coordinate else a[axis + "1"]
+        b_other = b[axis + "2"] if b[axis + "1"] == coordinate else b[axis + "1"]
+        if not (min(a_other, b_other) < coordinate < max(a_other, b_other)):
+            continue  # Coincident duplicates leave in the same direction.
+        parents[root(second)] = root(first)
+
+    components = defaultdict(list)
+    for index in range(len(segments)):
+        components[root(index)].append(index)
+    result, sources = [], []
+    for indices in sorted(components.values(), key=lambda group: group[0]):
+        first = segments[indices[0]]
+        merged = dict(first)
+        axis = "x" if first["y1"] == first["y2"] else "y"
+        values = [segments[index][axis + suffix] for index in indices for suffix in ("1", "2")]
+        low, high = min(values), max(values)
+        if first[axis + "1"] > first[axis + "2"]:
+            low, high = high, low
+        merged[axis + "1"], merged[axis + "2"] = low, high
+        result.append(merged)
+        sources.append(frozenset(indices))
+    return (result, sources) if with_sources else result
+
+
+def normalize_segments(segments, with_sources=False, limit=40000):
+    """Rebuild current cuts, then join straight continuations without branches."""
+    pieces, origins = split_segments(segments, with_sources=True, limit=limit)
+    joined, groups = join_segments(pieces, with_sources=True)
+    sources = [frozenset(origins[index] for index in group) for group in groups]
+    return (joined, sources) if with_sources else joined
 
 
 def segment_bounds(segments):

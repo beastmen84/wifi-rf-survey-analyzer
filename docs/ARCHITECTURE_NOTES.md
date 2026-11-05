@@ -22,10 +22,28 @@ interpolated colors.
 
 Current status:
 
+- Obsolete cuts now rejoin through `join_segments` / `normalize_segments` in
+  `survey/plan_geometry.py`. Normalization splits current intersections, then
+  joins same-color opposite-ray continuations only at vertices incident to
+  exactly two fragments. It does not bridge coordinate gaps or merge corners,
+  color transitions, T/cross junctions, overlaps or duplicate stroke identities.
+  Components preserve earliest input order/direction/color. Source sets retain
+  every input absorbed by an output; selection transforms retain only outputs
+  entirely from transformed inputs, avoiding accidental later movement of any
+  stationary geometry that joined them. Read/edit/save normalization shares this
+  rule; no metadata or schema changes. Rejoining is part of the same undo action
+  as the move/rotation/erase, never a separate history step. Snap vertices and
+  bounded regions rebuild from the resulting geometry.
+  Verification: 762 tests + 475 subtests on native Windows (82.18 s), focused
+  joining/editor/eraser/region/snap checks 152 passed (17.96 s), plus 16 native
+  source Qt theme/language cases. Coverage includes moving/rotating/deleting
+  branches, preserved real junctions/gaps/colors/duplicates, whole-line eraser
+  picking, selection provenance, undo/redo, save/reopen and closed-area retention.
+  Essential Ruff and diff checks pass; native QA uses synthetic events/geometry.
 - The expanded editor adds `survey/plan_geometry.py`: finite cross/T and collinear
   endpoint cuts, stable per-source color/direction/order, rigid translation and
   exact quarter-turn geometry. Duplicate strokes remain independent. Cuts are
-  idempotent and never merged away when an intersecting fragment is erased.
+  idempotent; obsolete straight cuts rejoin after their junction disappears.
   `drawing_segments` normalizes older models on read without mutating metadata;
   edits and generated-plan materialization persist the pieces in the same JSON
   version/schema. Weighted cut accounting rejects >40000 output fragments before

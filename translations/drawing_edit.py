@@ -1,6 +1,11 @@
 """Additional segment editing controls and help in the four UI languages."""
 LANGUAGES = ("en", "it", "fr", "es")
 TEXT = {
+    "drawing_join_help": (
+        "When moving, rotating or erasing removes a junction, contiguous straight fragments of the same color rejoin automatically. Real T/cross junctions, corners, gaps, color transitions and overlapping duplicate strokes stay separate. Undo restores the junction and its cuts. If a moved fragment joins stationary geometry, that combined segment is not automatically selected for another move.",
+        "Quando uno spostamento, una rotazione o la gomma eliminano una giunzione, i tratti contigui sulla stessa retta e dello stesso colore si ricongiungono automaticamente. Giunzioni a T o a croce, angoli, spazi vuoti, cambi di colore e tratti duplicati sovrapposti restano separati. Annulla ripristina la giunzione e i suoi tagli. Se un tratto spostato si unisce a geometria rimasta ferma, il segmento combinato non viene selezionato automaticamente per un altro spostamento.",
+        "Si un déplacement, une rotation ou la gomme supprime une jonction, les fragments droits contigus de même couleur se rejoignent automatiquement. Les jonctions en T ou en croix, angles, espaces, changements de couleur et traits superposés indépendants restent séparés. Annuler restaure la jonction et ses coupures. Si un fragment déplacé rejoint une géométrie restée fixe, le segment combiné n'est pas automatiquement sélectionné pour un autre déplacement.",
+        "Si un movimiento, giro o borrado elimina una unión, los fragmentos rectos contiguos del mismo color se unen automáticamente. Las uniones en T o cruz, esquinas, huecos, cambios de color y trazos duplicados superpuestos permanecen separados. Deshacer restaura la unión y sus cortes. Si un fragmento movido se une a geometría que quedó fija, el segmento combinado no se selecciona automáticamente para otro movimiento."),
     "blank_tool_line": ("Line", "Linea", "Ligne", "Línea"),
     "blank_tool_select": ("Select", "Seleziona", "Sélectionner", "Seleccionar"),
     "line_length": ("Length", "Lunghezza", "Longueur", "Longitud"),

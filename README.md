@@ -83,6 +83,9 @@ from these software checks.
   with Esc. R also rotates during a move. The selection's box snaps to unselected
   geometry or the optional grid; Alt suspends snapping. Edits share undo/redo,
   recompute closed areas and survive save/reopen, including older drawings.
+  If a move, rotation or erase removes a junction, contiguous straight fragments
+  with the same color rejoin automatically. Cuts remain at real junctions,
+  corners, gaps, color transitions and independent overlapping strokes.
 - Measurement-point capture with repeated Wi-Fi scans.
 - Fixed receiver selection, a short preparation and five scan attempts, followed
   by an explicit Save, Repeat or Discard review. Review and reports distinguish

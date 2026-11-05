@@ -11,7 +11,7 @@ from app_core.units import distance_unit_label, display_units_to_meters, meters_
 from survey.plan_drawing import PLAN_DRAWING_KEY, drawing_segments, encode_drawing, rectangle_segments
 from survey.plan_snapping import PlanSnapper, SnapResult
 from survey.plan_regions import PlanRegions, closed_plan_regions
-from survey.plan_geometry import split_segments
+from survey.plan_geometry import normalize_segments
 from survey.plan_drawing import validate_segments
 from qt_ui.scaling import widget_px
 from qt_ui.qt_plan_eraser import PlanEraserController
@@ -414,7 +414,7 @@ class RectangleDesignController(QObject):
     def apply_edit(self, segments):
         previous = list(self.segments() or [])
         try:
-            segments = split_segments(validate_segments(segments))
+            segments = normalize_segments(validate_segments(segments))
         except ValueError:
             self.owner.status.showMessage(self.owner.tr("design_edit_limit"))
             return False

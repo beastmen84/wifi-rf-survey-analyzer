@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QApplication, QGraphicsPathItem, QGraphicsRectItem
 from qt_ui.scaling import widget_px
 from survey.plan_drawing import validate_segments
 from survey.plan_erasing import intersecting_segments
-from survey.plan_geometry import rotate_segments, segment_bounds, split_segments, translate_segments
+from survey.plan_geometry import normalize_segments, rotate_segments, segment_bounds, translate_segments
 from survey.plan_snapping import PlanSnapper
 
 
@@ -185,11 +185,13 @@ class PlanSelectionController:
         selected_indices = set(self.selected)
         others = [line for index, line in enumerate(self.lines) if index not in selected_indices]
         try:
-            normalized, sources = split_segments(validate_segments(others + transformed), with_sources=True)
+            normalized, sources = normalize_segments(validate_segments(others + transformed), with_sources=True)
         except ValueError:
             self.owner.status.showMessage(self.owner.tr("design_edit_limit"))
             return False
-        selected = tuple(index for index, source in enumerate(sources) if source >= len(others))
+        # A joined piece may include stationary geometry. Do not silently select
+        # that geometry and move it with the next transform.
+        selected = tuple(index for index, source in enumerate(sources) if all(origin >= len(others) for origin in source))
         changed = self.drawing.apply_edit(normalized)
         if changed:
             self.set_selected(selected)

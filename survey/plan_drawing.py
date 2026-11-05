@@ -6,7 +6,7 @@ from hashlib import sha256
 
 from PIL import Image, ImageDraw
 from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
-from survey.plan_geometry import split_segments
+from survey.plan_geometry import normalize_segments
 
 PLAN_DRAWING_KEY = "plan_drawing"
 
@@ -38,11 +38,11 @@ def drawing_segments(metadata):
     document = json.loads(metadata[PLAN_DRAWING_KEY])
     if not isinstance(document, dict) or document.get("version") != 1:
         raise ValueError("Unsupported plan drawing")
-    return split_segments(validate_segments(document.get("segments")))
+    return normalize_segments(validate_segments(document.get("segments")))
 
 
 def encode_drawing(segments):
-    return json.dumps(dict(version=1, segments=split_segments(validate_segments(segments))), separators=(",", ":"))
+    return json.dumps(dict(version=1, segments=normalize_segments(validate_segments(segments))), separators=(",", ":"))
 
 
 def rectangle_segments(x, y, width, height, color):

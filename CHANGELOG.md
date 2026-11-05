@@ -7,6 +7,13 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Rejoin contiguous, collinear fragments of the same color when a move, rotation
+  or erase removes their junction. Real T/cross junctions, corners, erased gaps,
+  color changes and independent duplicate/overlap strokes retain their cuts.
+  Old saved obsolete cuts normalize on read and persist on save. Undo/redo
+  restores the corresponding cuts; snapping and closed areas follow the current
+  geometry. A joined segment containing stationary geometry is not automatically
+  selected by a transform. EN/IT/FR/ES Help describes the behavior.
 - Split actual editable strokes at finite cross/T intersections and collinear
   overlap endpoints. Colors, direction and independent duplicate strokes are
   preserved; the eraser can remove a single fragment between cuts. Existing

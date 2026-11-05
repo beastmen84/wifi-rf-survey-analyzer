@@ -69,4 +69,5 @@ def dictionary(language):
     result.update(editing_dictionary(language))
     result["blank_plan_help"] += " " + result["design_regions_help"]
     result["blank_plan_help"] += " " + result["drawing_edit_help"]
+    result["blank_plan_help"] += " " + result["drawing_join_help"]
     return result
