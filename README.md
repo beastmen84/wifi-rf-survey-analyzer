@@ -93,6 +93,19 @@ from these software checks.
   and Line/Rectangle placement previews. Out-of-sheet orientations appear red
   and are rejected. Rotated oblique strokes retain real intersections, snapping,
   partial erasing, closed-area detection and saved/exported geometry.
+- Design Mode **Text** opens a multiline editor with font, size, bold/italic,
+  alignment, color, outline and a live preview. Click the sheet with the right
+  button to open it; after OK the label follows the cursor until another right
+  click places it. R tap/hold rotates text just like shapes. Select labels or
+  mixed groups of labels/segments to move with M or delete with **Del**. Deletion
+  is one undoable edit. Right-double-click selected text, or use **Edit selected
+  text**, to reopen its editor. Text remains editable after save/reopen and
+  appears consistently in generated PNGs, Live Map and both HTML report types.
+- On generated blank sheets, **Boundaries** includes **Fill** for one closed
+  drawn room and **Auto Fill** for all closed drawn rooms. Fill uses a right
+  click inside the area and respects nested rooms; open perimeters do not fill.
+  Both add to the existing analysis mask. These controls are hidden on imported
+  plans, which retain the existing brush/eraser tools.
 - Measurement-point capture with repeated Wi-Fi scans.
 - Fixed receiver selection, a short preparation and five scan attempts, followed
   by an explicit Save, Repeat or Discard review. Review and reports distinguish
@@ -105,6 +118,9 @@ from these software checks.
   to one physical AP: green with a check means approved. Save to keep the change.
   Changing BSSIDs, alias, role, position or metadata clears approval; accepting
   unchanged values keeps it. Click a green circle to revoke approval.
+  When AP Memory needs review, the first column shows **M** instead of a circle.
+  Resolve Memory first: accept recalled data, update from memory, or keep current
+  data. The circle then shows whether the group needs physical confirmation.
 - Persistent AP Memory for reusing known AP metadata and physical-group approval
   across surveys. Approval is restored only for the exact same BSSIDs; a subset,
   extra BSSID or local revocation requires confirmation. Older memory records

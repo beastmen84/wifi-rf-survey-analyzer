@@ -13,6 +13,9 @@ from survey.plan_snapping import PlanSnapper, SnapResult
 from survey.plan_regions import PlanRegions, closed_plan_regions
 from survey.plan_geometry import normalize_segments, rotate_degrees, segment_bounds, translate_segments
 from survey.plan_drawing import validate_segments
+from survey.plan_labels import PLAN_LABELS_KEY, drawing_labels, encode_labels, validate_labels, labels_geometry
+from survey.plan_label_rendering import label_item
+from qt_ui.qt_text_design import TextDesignController
 from qt_ui.scaling import widget_px
 from qt_ui.qt_plan_eraser import PlanEraserController
 from qt_ui.qt_line_design import LineDesignController
@@ -98,6 +101,7 @@ class RectangleDesignController(QObject):
         self.measurement.hide()
         self.eraser = PlanEraserController(self)
         self.line = LineDesignController(self)
+        self.text = TextDesignController(self)
         self.selection = PlanSelectionController(self)
         self.rotation = PlanRotationController(self)
         self.owner.installEventFilter(self)
@@ -105,7 +109,7 @@ class RectangleDesignController(QObject):
         self.view.viewport().installEventFilter(self)
 
     def eventFilter(self, source, event):
-        if source is self.owner and event.type() == QEvent.Type.WindowDeactivate:
+        if source is self.owner and event.type() == QEvent.Type.WindowDeactivate and not self.text.dialog_open:
             self.cancel()
         if event.type() == QEvent.Type.KeyRelease and event.key() == Qt.Key.Key_R and self.rotation.active:
             if not event.isAutoRepeat():
@@ -117,7 +121,7 @@ class RectangleDesignController(QObject):
             self.refresh_snap()
             return True  # Alt belongs to Design Mode, not menu mnemonic focus.
         if (self.tools.open and event.type() == QEvent.Type.KeyPress
-                and event.key() in (Qt.Key.Key_R, Qt.Key.Key_M)
+                and event.key() in (Qt.Key.Key_R, Qt.Key.Key_M, Qt.Key.Key_Delete)
                 and not event.modifiers() & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier | Qt.KeyboardModifier.MetaModifier)
                 and QApplication.activeModalWidget() is None
                 and not isinstance(QApplication.focusWidget(), (QLineEdit, QTextEdit, QPlainTextEdit, QAbstractSpinBox, QComboBox))):
@@ -125,6 +129,8 @@ class RectangleDesignController(QObject):
                 return True
             if event.key() == Qt.Key.Key_R:
                 return self.rotation.begin()
+            elif event.key() == Qt.Key.Key_Delete and self.tools.active_tool == "select":
+                return self.selection.delete_selected()
             elif self.tools.active_tool == "select":
                 if self.rotation.active:
                     return True
@@ -143,6 +149,7 @@ class RectangleDesignController(QObject):
                 self.rotation.reset_scene()
                 self.eraser.reset_scene()
                 self.line.reset_scene()
+                self.text.reset_scene()
                 self.selection.reset_scene()
             self.cancel()
             self.undo_stack.clear()
@@ -150,7 +157,7 @@ class RectangleDesignController(QObject):
             self.last_size = None
             self.session, self.pixmap = session, self.view.pixmap_item
             self.document = None
-        document = session.metadata.get(PLAN_DRAWING_KEY) if session else None
+        document = (session.metadata.get(PLAN_DRAWING_KEY), session.metadata.get(PLAN_LABELS_KEY)) if session else None
         if changed_scene or document != self.document:
             self.redraw()
             self.document = document
@@ -160,19 +167,26 @@ class RectangleDesignController(QObject):
     def segments(self):
         return drawing_segments(self.owner.session.metadata) if self.owner.session else None
 
+    def labels(self):
+        return drawing_labels(self.owner.session.metadata) or [] if self.owner.session else []
+
     def redraw(self):
         self.rotation.cancel()
         self.eraser.cancel()
         self.line.cancel()
+        self.text.cancel()
         self.selection.cancel()
         for item in self.items:
             self.view.scene.removeItem(item)
         self.items = []
         lines = self.segments()
+        labels = self.labels()
         bounds = self.view.scene.sceneRect()
         if any(line[key] > extent + 1e-7 for line in lines or []
                for keys, extent in ((('x1', 'x2'), bounds.width()), (('y1', 'y2'), bounds.height())) for key in keys):
             raise ValueError("Saved drawing is outside the sheet")
+        if labels and not self.selection.fits(labels_geometry(labels)):
+            raise ValueError("Saved text is outside the sheet")
         self.eraser.set_segments(lines or [])
         self.selection.set_segments(lines or [])
         self.snapper = PlanSnapper(lines or [])
@@ -191,9 +205,10 @@ class RectangleDesignController(QObject):
             item.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
             self.view.scene.addItem(item)
             self.items.append(item)
+        self.text.redraw(labels)
 
     def cancel(self):
-        states = (self.rotation.cancel(), self.eraser.cancel(), self.line.cancel(), self.selection.cancel(),
+        states = (self.rotation.cancel(), self.eraser.cancel(), self.line.cancel(), self.text.cancel(), self.selection.cancel(),
                   self.origin is not None, self.pending_size is not None)
         existed = any(states)
         if self.preview is not None:
@@ -214,6 +229,7 @@ class RectangleDesignController(QObject):
             return
         self.eraser.hide_preview()
         self.line.hide_preview()
+        self.text.hide_preview()
         self.selection.hide_preview()
         self.last_pointer = None
         if self.preview is not None:
@@ -261,6 +277,9 @@ class RectangleDesignController(QObject):
             return
         if self.tools.active_tool == "line":
             self.line.refresh_snap()
+            return
+        if self.tools.active_tool == "text":
+            self.text.refresh_snap()
             return
         if self.tools.active_tool == "select":
             self.selection.refresh_snap()
@@ -352,6 +371,8 @@ class RectangleDesignController(QObject):
             return self.eraser.press(event)
         if self.tools.active_tool == "line":
             return self.line.press(event)
+        if self.tools.active_tool == "text":
+            return self.text.press(event)
         if self.tools.active_tool == "select":
             return self.selection.press(event)
         point = self.view.mapToScene(event.position().toPoint())
@@ -371,6 +392,15 @@ class RectangleDesignController(QObject):
             self.dragged = False
         return True
 
+    def double_click(self, event):
+        if (self.tools.active_tool == "select" and not self.rotation.active and not self.selection.moving
+                and event.button() == Qt.MouseButton.RightButton):
+            index = self.text.hit(self.view.mapToScene(event.position().toPoint()))
+            if index is not None:
+                self.selection.cancel()
+                return self.text.edit(index)
+        return False
+
     def move(self, event):
         if self.rotation.active:
             self.rotation.move(event.position())
@@ -379,6 +409,8 @@ class RectangleDesignController(QObject):
             return self.eraser.move(event)
         if self.tools.active_tool == "line":
             return self.line.move(event)
+        if self.tools.active_tool == "text":
+            return self.text.move(event)
         if self.tools.active_tool == "select":
             return self.selection.move(event)
         self.last_pointer = event.position()
@@ -405,6 +437,8 @@ class RectangleDesignController(QObject):
             return self.eraser.release(event)
         if self.tools.active_tool == "line":
             return self.line.release(event)
+        if self.tools.active_tool == "text":
+            return self.text.release(event)
         if self.tools.active_tool == "select":
             return self.selection.release(event)
         if self.consume_release:
@@ -488,25 +522,33 @@ class RectangleDesignController(QObject):
         self.refresh_snap()
         return True
 
-    def apply_edit(self, segments):
-        previous = list(self.segments() or [])
+    def snapshot(self):
+        return dict(segments=list(self.segments() or []), labels=self.labels())
+
+    def apply_edit(self, segments, labels=None):
+        previous = self.snapshot()
         try:
             segments = normalize_segments(validate_segments(segments))
+            labels = validate_labels(self.labels() if labels is None else labels)
         except ValueError:
             self.owner.status.showMessage(self.owner.tr("design_edit_limit"))
             return False
-        if segments == previous:
+        if dict(segments=segments, labels=labels) == previous:
             return False
         encode_drawing(segments)  # Validate before changing history or metadata.
         self.undo_stack.append(previous)
         if len(self.undo_stack) > 50:
             del self.undo_stack[0]
         self.redo_stack.clear()
-        self.store(segments)
+        self.store(segments, labels)
         return True
 
-    def store(self, segments):
+    def store(self, segments, labels=None):
+        labels = self.labels() if labels is None else labels
+        encoded_labels = encode_labels(labels)
         self.owner.session.metadata[PLAN_DRAWING_KEY] = encode_drawing(segments)
+        if labels or PLAN_LABELS_KEY in self.owner.session.metadata:
+            self.owner.session.metadata[PLAN_LABELS_KEY] = encoded_labels
         self.owner.session.dirty = True
         self.owner.invalidate_live_preview()
         self.owner.refresh_session_labels()
@@ -514,11 +556,13 @@ class RectangleDesignController(QObject):
     def undo(self):
         if self.undo_stack:
             self.cancel()
-            self.redo_stack.append(list(self.segments() or []))
-            self.store(self.undo_stack.pop())
+            self.redo_stack.append(self.snapshot())
+            state = self.undo_stack.pop()
+            self.store(state["segments"], state["labels"])
 
     def redo(self):
         if self.redo_stack:
             self.cancel()
-            self.undo_stack.append(list(self.segments() or []))
-            self.store(self.redo_stack.pop())
+            self.undo_stack.append(self.snapshot())
+            state = self.redo_stack.pop()
+            self.store(state["segments"], state["labels"])

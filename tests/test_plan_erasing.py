@@ -145,7 +145,7 @@ def test_cancelled_erase_does_not_commit_after_late_release(eraser_editor, reaso
         QApplication.sendEvent(app, QEvent(QEvent.Type.WindowDeactivate))
     else:
         # A real undo operation cancels the provisional selection before redraw.
-        drawing.undo_stack.append(original)
+        drawing.undo_stack.append(dict(segments=original, labels=[]))
         drawing.undo()
         app.session.dirty = False
     assert eraser.origin is None and not eraser.highlights and eraser.area is None

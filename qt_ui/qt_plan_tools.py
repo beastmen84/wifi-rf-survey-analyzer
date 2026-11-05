@@ -30,11 +30,12 @@ class PlanToolsOverlay(QFrame):
         row.setSpacing(owner.spx(4))
         self.rectangle_button = owner.create_boundaries_tool_button("square.png", "blank_tool_rectangle")
         self.line_button = owner.create_boundaries_text_button("", "blank_tool_line")
+        self.text_button = owner.create_boundaries_text_button("", "blank_tool_text")
         self.eraser_button = owner.create_boundaries_tool_button("eraser.png", "blank_tool_eraser")
         self.select_button = owner.create_boundaries_text_button("", "blank_tool_select")
         self.undo_button = owner.create_boundaries_text_button("", "blank_tool_undo")
         self.redo_button = owner.create_boundaries_text_button("", "blank_tool_redo")
-        for button in (self.rectangle_button, self.line_button, self.eraser_button, self.select_button):
+        for button in (self.rectangle_button, self.line_button, self.text_button, self.eraser_button, self.select_button):
             button.setEnabled(False)
             row.addWidget(button)
         layout.addLayout(row)
@@ -49,8 +50,11 @@ class PlanToolsOverlay(QFrame):
         self.snap_button.setEnabled(False)
         self.color_button = owner.create_boundaries_text_button("", "blank_tool_color")
         self.color_button.clicked.connect(self.choose_color)
+        self.edit_text_button = owner.create_boundaries_text_button("", "plan_text_edit")
+        self.edit_text_button.clicked.connect(self.edit_selected_text)
         actions.addWidget(self.snap_button)
         actions.addWidget(self.color_button)
+        actions.addWidget(self.edit_text_button)
         row.addStretch()
         actions.addStretch()
         layout.addLayout(actions)
@@ -69,10 +73,12 @@ class PlanToolsOverlay(QFrame):
         self.rectangle_button.setCheckable(True)
         self.eraser_button.setCheckable(True)
         self.line_button.setCheckable(True)
+        self.text_button.setCheckable(True)
         self.select_button.setCheckable(True)
         self.rectangle_button.clicked.connect(self.select_rectangle)
         self.eraser_button.clicked.connect(lambda: self.select_tool("eraser"))
         self.line_button.clicked.connect(lambda: self.select_tool("line"))
+        self.text_button.clicked.connect(lambda: self.select_tool("text"))
         self.select_button.clicked.connect(lambda: self.select_tool("select"))
         self.undo_button.clicked.connect(self.controller.undo)
         self.redo_button.clicked.connect(self.controller.redo)
@@ -100,12 +106,15 @@ class PlanToolsOverlay(QFrame):
         self.toggle_button.setToolTip(tr("blank_tools_hint"))
         self.header.setText(tr("blank_tools"))
         for button, key in ((self.rectangle_button, "rectangle"), (self.line_button, "line"),
+                            (self.text_button, "text"),
                             (self.eraser_button, "eraser"), (self.select_button, "select"),
                             (self.undo_button, "undo"), (self.redo_button, "redo"),
                             (self.snap_button, "snap"), (self.color_button, "color")):
             text = tr("blank_tool_" + key)
             button.setToolTip(text)
             button.setAccessibleName(text)
+        self.edit_text_button.setToolTip(tr("plan_text_edit"))
+        self.edit_text_button.setAccessibleName(tr("plan_text_edit"))
         self.update_color_icon()
         self.update_snap_icon()
         self.update_history_icons()
@@ -156,19 +165,24 @@ class PlanToolsOverlay(QFrame):
 
     def update_tool_state(self):
         for tool, button in (("rectangle", self.rectangle_button), ("line", self.line_button),
+                             ("text", self.text_button),
                              ("eraser", self.eraser_button), ("select", self.select_button)):
             button.setEnabled(self.open)
             button.setChecked(self.open and self.active_tool == tool)
         self.snap_button.setEnabled(self.open and self.active_tool != "eraser")
         self.color_button.setEnabled(self.open and self.active_tool in ("rectangle", "line"))
+        self.edit_text_button.setEnabled(self.open and self.active_tool == "select"
+                                         and len(self.controller.selection.selected_labels) == 1
+                                         and not self.controller.selection.moving)
         key = {"rectangle": "blank_tools_note", "line": "line_tools_note",
-               "eraser": "eraser_tools_note", "select": "selection_tools_note"}[self.active_tool]
+               "eraser": "eraser_tools_note", "select": "selection_tools_note", "text": "text_tools_note"}[self.active_tool]
         self.note.setText(self.owner.tr(key))
         self.update_tool_icons()
 
     def update_tool_icons(self):
         size = self.owner.spx(20)
-        for tool, button in (("line", self.line_button), ("select", self.select_button)):
+        for tool, button in (("line", self.line_button), ("select", self.select_button),
+                             ("text", self.text_button), ("edit", self.edit_text_button)):
             pixmap = QPixmap(size, size)
             pixmap.fill(Qt.GlobalColor.transparent)
             painter = QPainter(pixmap)
@@ -178,7 +192,19 @@ class PlanToolsOverlay(QFrame):
             pen = QPen(color, 1.8)
             pen.setCapStyle(Qt.PenCapStyle.RoundCap)
             painter.setPen(pen)
-            if tool == "line":
+            if tool == "text":
+                font = painter.font()
+                font.setPixelSize(21)
+                font.setBold(True)
+                painter.setFont(font)
+                painter.drawText(QRect(0, 0, 24, 24), Qt.AlignmentFlag.AlignCenter, "T")
+            elif tool == "edit":
+                painter.drawLine(6, 17, 17, 6)
+                painter.drawLine(9, 20, 20, 9)
+                painter.drawLine(17, 6, 20, 9)
+                painter.drawLine(6, 17, 5, 21)
+                painter.drawLine(5, 21, 9, 20)
+            elif tool == "line":
                 painter.drawLine(4, 12, 20, 12)
                 painter.setBrush(color)
                 painter.drawEllipse(2, 10, 4, 4)
@@ -199,6 +225,11 @@ class PlanToolsOverlay(QFrame):
             painter.end()
             button.setIcon(QIcon(pixmap))
             button.setIconSize(QSize(size, size))
+
+    def edit_selected_text(self):
+        indices = self.controller.selection.selected_labels
+        if len(indices) == 1:
+            self.controller.text.edit(indices[0])
 
     def toggle_grid_snap(self, checked):
         self.update_snap_icon()

@@ -67,8 +67,11 @@ def dictionary(language):
     result = {key: values[LANGUAGES.index(language)] for key, values in TEXT.items()}
     from translations.drawing_edit import dictionary as editing_dictionary
     result.update(editing_dictionary(language))
+    from translations.plan_extensions import dictionary as extensions_dictionary
+    result.update(extensions_dictionary(language))
     result["blank_plan_help"] += " " + result["design_regions_help"]
     result["blank_plan_help"] += " " + result["drawing_edit_help"]
     result["blank_plan_help"] += " " + result["drawing_join_help"]
     result["blank_plan_help"] += " " + result["rotation_hold_help"]
+    result["blank_plan_help"] += " " + result["plan_extensions_help"]
     return result

@@ -51,14 +51,14 @@ def rectangle_segments(x, y, width, height, color):
                               for a, b in zip(corners, corners[1:] + corners[:1])])
 
 
-def render_plan_drawing(image, segments):
-    if segments is None:
+def render_plan_drawing(image, segments, labels=None):
+    if segments is None and not labels:
         return image
     # Generated PNGs may contain an older baked drawing. Rebuild from vectors,
     # including an empty list after Undo, instead of leaving stale lines behind.
     output = Image.new("RGB", image.size, "white")
     painter = ImageDraw.Draw(output)
-    lines = validate_segments(segments)
+    lines = validate_segments(segments or [])
     for line in lines:
         if any(line[key] > image.size[index] + 1e-7
                for index, keys in enumerate((("x1", "x2"), ("y1", "y2"))) for key in keys):
@@ -66,5 +66,13 @@ def render_plan_drawing(image, segments):
         points = tuple(min(line[key], image.size[index % 2] - 1)
                        for index, key in enumerate(("x1", "y1", "x2", "y2")))
         painter.line(points, fill=line["color"], width=2)
-    output.info["plan_drawing_fingerprint"] = sha256(json.dumps(lines, sort_keys=True).encode()).hexdigest()
+    from survey.plan_labels import validate_labels, labels_geometry
+    labels = validate_labels(labels or [])
+    if any(line[key] < -1e-6 or line[key] > image.size[index] + 1e-6
+           for line in labels_geometry(labels) for index, keys in enumerate((("x1", "x2"), ("y1", "y2"))) for key in keys):
+        raise ValueError("Text label is outside the sheet")
+    if labels:
+        from survey.plan_label_rendering import render_labels
+        output = render_labels(output, labels)
+    output.info["plan_drawing_fingerprint"] = sha256(json.dumps([lines, labels], sort_keys=True).encode()).hexdigest()
     return output

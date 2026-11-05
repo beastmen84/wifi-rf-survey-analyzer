@@ -234,7 +234,7 @@ class FloorplanView(QGraphicsView):
         self.update_boundaries_cursor()
 
     def set_boundaries_tool_state(self, tool="draw", shape="circle"):
-        self.boundaries_tool = "eraser" if tool == "eraser" else "draw"
+        self.boundaries_tool = tool if tool in ("eraser", "fill") else "draw"
         self.boundaries_shape = "square" if shape == "square" else "circle"
         self.update_boundaries_cursor()
 
@@ -269,7 +269,7 @@ class FloorplanView(QGraphicsView):
             self.update_boundaries_brush_preview()
 
     def update_boundaries_brush_preview(self, scene_point=None):
-        if not self.boundaries_edit_active:
+        if not self.boundaries_edit_active or self.boundaries_tool == "fill":
             self.hide_boundaries_brush_preview()
             return
 
@@ -1294,6 +1294,12 @@ class FloorplanView(QGraphicsView):
             return
         if self.boundaries_edit_active and event.button() == Qt.MouseButton.RightButton:
             point = self.mapToScene(event.position().toPoint())
+            if self.boundaries_tool == "fill":
+                if self.is_point_inside_floorplan(point) and controller is not None:
+                    from qt_ui.qt_plan_fill import fill_closed_boundaries
+                    fill_closed_boundaries(controller.owner, point)
+                event.accept()
+                return
             point = self.clamp_boundaries_point(point)
             self.update_boundaries_brush_preview(point)
             self.boundaries_drawing_active = True
@@ -1373,7 +1379,8 @@ class FloorplanView(QGraphicsView):
         if self.design_mode_active and event.button() == Qt.MouseButton.RightButton:
             controller = getattr(self, "rectangle_design", None)
             if controller is not None:
-                controller.press(event)
+                if not controller.double_click(event):
+                    controller.press(event)
             event.accept()
             return
         super().mouseDoubleClickEvent(event)

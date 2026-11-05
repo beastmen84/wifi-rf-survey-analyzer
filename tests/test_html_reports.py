@@ -200,7 +200,7 @@ def test_live_export_escapes_names_and_passes_the_boundary_mask_to_shared_render
     assert all(resource.startswith("data:") for resource in ReportDOM(html).resources)
 
 
-@pytest.mark.parametrize("operation", ["draw", "erase", "move", "line", "oblique"])
+@pytest.mark.parametrize("operation", ["draw", "erase", "move", "line", "oblique", "text"])
 def test_both_workspace_html_exports_include_current_editable_shapes(analysis_window, tmp_path, operation):
     window = analysis_window
     image = tmp_path / "drawing.png"
@@ -214,6 +214,16 @@ def test_both_workspace_html_exports_include_current_editable_shapes(analysis_wi
     window.session.csv_file = str(tmp_path / "survey.csv")
     window.load_saved_plan()
     window.refresh_session_labels()
+    text_pixel = None
+    if operation == "text":
+        from survey.plan_label_rendering import build_label
+        from tests.test_plan_text_fill import style
+        label = build_label(style(text="Office", size=24, outline_width=0))
+        label.update(x=80, y=220)
+        window.plan_tools.controller.apply_edit(lines, [label])
+        rendered = render_plan_drawing(Image.new("RGB", (400, 300), "white"), lines, [label])
+        text_pixel = next((x, y) for y in range(200, 240) for x in range(10, 150)
+                          if rendered.getpixel((x, y)) == (216, 67, 21))
     if operation == "erase":
         window.plan_tools.set_open(True)
         window.plan_tools.eraser_button.click()
@@ -251,6 +261,8 @@ def test_both_workspace_html_exports_include_current_editable_shapes(analysis_wi
             assert export.call_args.args[3].getpixel((60, 180)) == (216, 67, 21)
         if operation == "oblique":
             assert export.call_args.args[3].getpixel((60, 190)) == (216, 67, 21)
+        if operation == "text":
+            assert export.call_args.args[3].getpixel(text_pixel) == (216, 67, 21)
     assert Path(analysis).is_file()
     window.live_ssid_combo.addItem("Office")
     window.live_ssid_combo.setCurrentText("Office")
@@ -269,4 +281,6 @@ def test_both_workspace_html_exports_include_current_editable_shapes(analysis_wi
             assert export.call_args.args[1].getpixel((60, 180)) == (216, 67, 21)
         if operation == "oblique":
             assert export.call_args.args[1].getpixel((60, 190)) == (216, 67, 21)
+        if operation == "text":
+            assert export.call_args.args[1].getpixel(text_pixel) == (216, 67, 21)
     assert Path(live).is_file()

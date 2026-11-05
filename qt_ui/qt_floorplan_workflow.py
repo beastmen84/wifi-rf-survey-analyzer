@@ -32,6 +32,7 @@ from qt_ui.qt_theme import QT_THEMES
 from qt_ui.qt_windowing import get_centered_open_file_name
 from survey.store import build_boundaries_file_path
 from survey.plan_drawing import PLAN_DRAWING_KEY, drawing_segments, encode_drawing
+from survey.plan_labels import PLAN_LABELS_KEY, drawing_labels, encode_labels
 
 
 class FloorplanWorkflowMixin:
@@ -88,7 +89,8 @@ class FloorplanWorkflowMixin:
 
         is_default = self.session.metadata.get(DEFAULT_FLOORPLAN_METADATA_KEY) == "1"
         segments = drawing_segments(self.session.metadata)
-        has_drawing = segments is not None
+        labels = drawing_labels(self.session.metadata)
+        has_drawing = segments is not None or bool(labels)
         if not is_default and not has_drawing:
             return True
 
@@ -107,9 +109,11 @@ class FloorplanWorkflowMixin:
 
         pixmap = self.floorplan_view.pixmap_item.pixmap()
         write_default_floorplan(transaction.stage_file(image_file) if transaction else image_file,
-                                pixmap.width(), pixmap.height(), segments=segments)
+                                pixmap.width(), pixmap.height(), segments=segments, labels=labels)
         if has_drawing:
-            self.session.metadata[PLAN_DRAWING_KEY] = encode_drawing(segments)
+            self.session.metadata[PLAN_DRAWING_KEY] = encode_drawing(segments or [])
+        if labels or PLAN_LABELS_KEY in self.session.metadata:
+            self.session.metadata[PLAN_LABELS_KEY] = encode_labels(labels or [])
         self.session.metadata["map_file"] = os.path.abspath(image_file)
         self.session.metadata.pop(DEFAULT_FLOORPLAN_METADATA_KEY, None)
         self.session.metadata[GENERATED_FLOORPLAN_METADATA_KEY] = "1"
@@ -157,6 +161,7 @@ class FloorplanWorkflowMixin:
             self.session.metadata.pop(BLANK_PLAN_WIDTH_KEY, None)
             self.session.metadata.pop(BLANK_PLAN_HEIGHT_KEY, None)
             self.session.metadata.pop(PLAN_DRAWING_KEY, None)
+            self.session.metadata.pop(PLAN_LABELS_KEY, None)
             was_default_floorplan = (
                 self.session.metadata.pop(DEFAULT_FLOORPLAN_METADATA_KEY, None) is not None
             )
@@ -445,7 +450,9 @@ class FloorplanWorkflowMixin:
             )
 
     def set_boundaries_tool(self, tool):
-        self.boundaries_tool = "eraser" if tool == "eraser" else "draw"
+        if tool == "fill" and not self.plan_tools.available():
+            return
+        self.boundaries_tool = tool if tool in ("eraser", "fill") else "draw"
         self.floorplan_view.set_boundaries_tool_state(self.boundaries_tool, self.boundaries_shape)
         self.update_boundaries_controls_state()
 
@@ -517,20 +524,33 @@ class FloorplanWorkflowMixin:
             return
 
         active = bool(getattr(self.floorplan_view, "boundaries_edit_active", False))
+        fill_available = bool(getattr(self, "plan_tools", None) and self.plan_tools.available())
+        if not fill_available and self.boundaries_tool == "fill":
+            self.boundaries_tool = "draw"
+            self.floorplan_view.set_boundaries_tool_state("draw", self.boundaries_shape)
+        for button, key in ((self.boundaries_fill_button, "fill"), (self.boundaries_auto_fill_button, "auto_fill")):
+            button.setVisible(fill_available)
+            button.setEnabled(active and fill_available)
+            button.setToolTip(self.tr("boundaries_" + key))
+            button.setAccessibleName(self.tr("boundaries_" + key))
+        self.boundaries_fill_button.setChecked(active and self.boundaries_tool == "fill")
+        from qt_ui.qt_plan_icons import update_fill_icons
+        update_fill_icons(self)
         self.boundaries_draw_button.setEnabled(active)
         self.boundaries_eraser_button.setEnabled(active)
-        self.boundaries_circle_button.setEnabled(active)
-        self.boundaries_square_button.setEnabled(active)
+        brush_active = active and self.boundaries_tool != "fill"
+        self.boundaries_circle_button.setEnabled(brush_active)
+        self.boundaries_square_button.setEnabled(brush_active)
         self.boundaries_clear_button.setEnabled(
             active and self.floorplan_view.has_boundaries_mask()
         )
         self.boundaries_size_increase_button.setEnabled(
-            active and self.floorplan_view.boundaries_brush_size_px < BOUNDARIES_BRUSH_SIZE_MAX_PX
+            brush_active and self.floorplan_view.boundaries_brush_size_px < BOUNDARIES_BRUSH_SIZE_MAX_PX
         )
         self.boundaries_size_decrease_button.setEnabled(
-            active and self.floorplan_view.boundaries_brush_size_px > BOUNDARIES_BRUSH_SIZE_MIN_PX
+            brush_active and self.floorplan_view.boundaries_brush_size_px > BOUNDARIES_BRUSH_SIZE_MIN_PX
         )
-        self.boundaries_size_label.setEnabled(active)
+        self.boundaries_size_label.setEnabled(brush_active)
 
         self.boundaries_draw_button.setChecked(active and self.boundaries_tool == "draw")
         self.boundaries_eraser_button.setChecked(active and self.boundaries_tool == "eraser")

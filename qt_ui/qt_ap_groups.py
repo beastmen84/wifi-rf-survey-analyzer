@@ -156,6 +156,7 @@ class APGroupManagerDialog(QDialog):
         self.groups = []
         self.detected_by_bssid = {}
         self.memory_records = []
+        self.kept_memory_group_ids = set()
         self.group_conflicts_by_id = {}
         self.visible_group_ids = []
         self.sort_column = "ssids"
@@ -567,7 +568,7 @@ class APGroupManagerDialog(QDialog):
 
         self.table.resizeColumnsToContents()
         fixed_limits = {
-            0: (68, 84),
+            0: (42, 56),
             1: (150, 240),
             3: (84, 110),
             4: (86, 112),
@@ -670,6 +671,7 @@ class APGroupManagerDialog(QDialog):
                     item.setData(Qt.ItemDataRole.UserRole, group["group_id"])
                     item.setToolTip(self.format_group_status_tooltip(group))
                     item.setData(Qt.ItemDataRole.AccessibleTextRole,
+                                 self.tr("advisor_group_memory_first") if "M" in str(value) else
                                  self.tr("advisor_group_confirmed" if is_ap_group_confirmed(group)
                                          else "advisor_group_unconfirmed"))
                     if self.group_has_memory_update(group):
@@ -691,6 +693,9 @@ class APGroupManagerDialog(QDialog):
             return
         group = self.get_group_by_id(item.data(Qt.ItemDataRole.UserRole))
         if group is None:
+            return
+        if group_has_memory_flag(group) or self.group_has_memory_update(group):
+            QTimer.singleShot(0, self.render_rows)
             return
         if item.checkState() == Qt.CheckState.Checked:
             group["physical_confirmed"] = True
@@ -739,6 +744,8 @@ class APGroupManagerDialog(QDialog):
     def format_group_status_tooltip(self, group):
         lines = [self.tr("advisor_group_confirmed" if is_ap_group_confirmed(group)
                          else "advisor_group_unconfirmed"), self.tr("advisor_group_confirmation_hint")]
+        if group_has_memory_flag(group) or self.group_has_memory_update(group):
+            lines.insert(0, self.tr("advisor_group_memory_first"))
         if self.group_conflicts_by_id.get(group["group_id"]):
             lines.append(self.tr("ap_group_status_warning_tooltip"))
         if group_has_memory_flag(group):
@@ -749,6 +756,8 @@ class APGroupManagerDialog(QDialog):
         return "\n".join(lines)
 
     def memory_update_fields(self, group):
+        if group.get("group_id") in self.kept_memory_group_ids:
+            return []
         return get_group_memory_update_fields(
             group,
             self.session.metadata.get("map_file", ""),
@@ -904,7 +913,9 @@ class APGroupManagerDialog(QDialog):
         has_any_memory = any(group_has_memory_flag(item) for item in self.groups)
         has_memory_action = has_selected_memory or has_selected_memory_update or has_any_memory
         self.memory_button.setEnabled(has_memory_action)
-        self.confirm_memory_selected_action.setEnabled(has_selected_memory)
+        self.confirm_memory_selected_action.setEnabled(has_selected_memory or has_selected_memory_update)
+        self.confirm_memory_selected_action.setText(self.tr(
+            "advisor_group_keep_current" if has_selected_memory_update else "ap_group_confirm_memory_selected"))
         self.confirm_memory_all_action.setEnabled(has_any_memory)
         self.update_memory_selected_action.setEnabled(has_selected_memory_update)
         self.bssid_management_button.setEnabled(has_group)
@@ -1001,7 +1012,8 @@ class APGroupManagerDialog(QDialog):
         group = self.require_selected_group()
         if group is None:
             return
-
+        if self.group_has_memory_update(group):
+            self.kept_memory_group_ids.add(group["group_id"])
         clear_group_memory_flag(group)
         group["locked"] = True
         self.refresh_all_group_details()

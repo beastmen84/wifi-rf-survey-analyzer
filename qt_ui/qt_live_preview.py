@@ -19,6 +19,7 @@ from ap.groups import (
 )
 from app_core.logging import log_event
 from survey.plan_drawing import drawing_segments
+from survey.plan_labels import drawing_labels
 from maps.config import MapConfig
 from qt_ui.qt_live_map import LiveMapRenderWorker, create_marker_icon, qimage_to_pil_image
 
@@ -68,6 +69,7 @@ class LivePreviewMixin:
         translations = self.build_live_renderer_translations()
         try:
             plan_segments = drawing_segments(self.session.metadata)
+            plan_labels = drawing_labels(self.session.metadata)
         except (ValueError, TypeError, KeyError):
             self.live_view.clear()
             self.live_status_label.setText(self.tr("rectangle_invalid_drawing"))
@@ -88,6 +90,7 @@ class LivePreviewMixin:
             px_per_meter=self.get_px_per_meter(),
             boundary_mask_image=self.current_boundary_mask_image(),
             plan_segments=plan_segments,
+            plan_labels=plan_labels,
         )
         worker.request = (self.session, self.live_generation)
         worker.moveToThread(thread)

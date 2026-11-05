@@ -45,7 +45,7 @@ def default_floorplan_temp_path():
     return Path(tempfile.gettempdir()) / APP_ID / DEFAULT_FLOORPLAN_FILENAME
 
 
-def write_default_floorplan(path, width_px=DEFAULT_FLOORPLAN_WIDTH_PX, height_px=DEFAULT_FLOORPLAN_HEIGHT_PX, segments=None):
+def write_default_floorplan(path, width_px=DEFAULT_FLOORPLAN_WIDTH_PX, height_px=DEFAULT_FLOORPLAN_HEIGHT_PX, segments=None, labels=None):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     image = Image.new(
@@ -53,7 +53,7 @@ def write_default_floorplan(path, width_px=DEFAULT_FLOORPLAN_WIDTH_PX, height_px
         (int(width_px), int(height_px)),
         "white",
     )
-    render_plan_drawing(image, segments).save(path, format="PNG")
+    render_plan_drawing(image, segments, labels).save(path, format="PNG")
     return path
 
 

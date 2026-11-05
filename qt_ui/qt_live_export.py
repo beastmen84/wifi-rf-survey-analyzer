@@ -13,6 +13,7 @@ from app_core.logging import log_exception
 from exporting.live_html import MapExportError, build_live_html_output_path, generate_live_html_export
 from qt_ui.qt_live_map import load_floorplan_image
 from survey.plan_drawing import drawing_segments, render_plan_drawing
+from survey.plan_labels import drawing_labels
 from qt_ui.qt_windowing import get_centered_save_file_name
 
 
@@ -65,7 +66,7 @@ class LiveReportExportMixin:
         unexpected_error = None
         try:
             bg_image = load_floorplan_image(map_file)
-            bg_image = render_plan_drawing(bg_image, drawing_segments(self.session.metadata))
+            bg_image = render_plan_drawing(bg_image, drawing_segments(self.session.metadata), drawing_labels(self.session.metadata))
             result = generate_live_html_export(
                 self.session.to_dataframe(),
                 bg_image,

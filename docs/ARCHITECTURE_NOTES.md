@@ -22,6 +22,43 @@ interpolated colors.
 
 Current status:
 
+- Generated blank plans support editable text in addition to vector segments.
+  survey/plan_labels.py validates optional plan_labels JSON version 1 with stable
+  identities, text/style fields, center/angle, conservative bounds and stored
+  M/L/C glyph outlines. Labels are capped at 500, text at 2048 characters,
+  commands at 25000 per label / 250000 total, and finite bounded coordinates.
+  Glyphs use fixed 96-DPI plan units rather than screen DPI. The editor rebuilds
+  outlines only for an explicit text/style edit, keeping ordinary reopen/export
+  independent of font availability. Importing an external plan clears both models.
+- qt_text_editor.py provides a themed multiline modal with real font choice,
+  size, bold/italic, alignment, color/outline and a fitted glyph preview. Its
+  GlyphPreview fits on the viewport's own resize, including post-layout resize,
+  preventing initial clipping. qt_text_design.py owns right-click prompt then
+  provisional cursor-following placement, whole-label snapping/clamping and edit
+  reopening via right-double-click or the palette's Edit selected text action.
+  Dialogs suppress model-level deactivation cancellation and reject stale scene
+  results; Cancel has no model/history effect.
+- Selection supports segments and labels together. R tap/held-orbit transforms
+  actual lines plus label center/angle around a shared pivot; label boxes are
+  transient geometry only, never physical plan segments or closed RF rooms.
+  Moving previews dim original labels, preserve cursor grip and stay within the
+  sheet. Del removes selected lines/labels as one atomic edit and is ignored in
+  editable fields/modals. Shared 50-action history now snapshots both models;
+  normalization still tracks line sources to avoid selecting stationary joins.
+- PNG/Live/HTML renderers consume the same glyph paths via plan_label_rendering.py.
+  Glyphs paint their outline first and fill second so borders preserve thin stems.
+  render_plan_drawing fingerprints exact segments plus labels and rebuilds a white
+  generated background, including after deleting every label. Live workers deep
+  copy both model snapshots. The existing recoverable save transaction persists
+  text metadata plus the current PNG; scene items and previews are never exported.
+- qt_plan_fill.py adds mask-only Fill/Auto Fill to Boundaries for generated blank
+  plans. It derives bounded vector faces, subtracts disconnected nested rooms for
+  a single-room fill, and uses the existing opaque mask color/PNG sidecar/signals.
+  Open contours/outside clicks produce no mask change. Existing brush strokes are
+  preserved and repeated identical fills do not dirty the survey. Face processing
+  is capped at 2000 regions. Imported plans hide/refuse these actions; brush-shape
+  and size controls are disabled while Fill is active. These fills are static mask
+  edits and remain independent of later vector edits, just like existing strokes.
 - `qt_plan_rotation.py` distinguishes R tap/release (legacy 90-degree action)
   from held-R pointer orbit (5-degree quantization). It freezes actual geometry
   about the snapshot bounding-box center, draws a cosmetic pivot/ray/preview and
@@ -109,9 +146,9 @@ Current status:
   Zero movement leaves history/redo intact. Static out-of-sheet rotation fails
   atomically; moving rotated groups clamp as a unit without resizing/clipping.
   R/M ignore auto-repeat, Ctrl/Alt/Meta, dialogs and text/editable input focus.
-  The palette separates four tools and four actions into two compact rows, with
-  themed Line/Select icons and translated contextual notes. Left-drag pans and
-  Design Mode blocks RF capture throughout all four tools. Schema/dependencies/
+  The palette separates five tools and five actions into two compact rows, with
+  themed Line/Text/Select/Edit icons and translated contextual notes. Left-drag pans and
+  Design Mode blocks RF capture throughout all tools. Schema/dependencies/
   version/EXE/ZIP remain unchanged; all edits use the existing drawing history.
   Verification: full native suite 738 tests + 475 subtests (84.05 s); final
   focused drawing/snap/HTML/i18n checks pass 118 tests + 434 subtests (27.25 s),
@@ -400,7 +437,12 @@ Current status:
   not suppress neighbors; alias edits/locking do not establish physical identity.
   AP Group Manager exposes this as a first-column hollow/green checked circle,
   backed by native CheckStateRole and keyboard Space through APConfirmationDelegate.
-  The Alias menu contains only alias operations; existing !/M markers remain visible.
+  The Alias menu contains only alias operations. The first column shows either M
+  or the approval circle, with M taking priority; conflict detail remains in the
+  tooltip/filter/diagnostic action. Clicking M opens Memory actions, including
+  Keep current data for a memory-update candidate. Approval input is blocked until
+  the memory state is resolved. An exact recalled approval is retained underneath
+  M and appears once that review is complete; unknown groups remain unconfirmed.
   Changes to membership, alias, role, metadata or physical position invalidate approval;
   no-op edits preserve it. An optional `physical_confirmation_revoked` tombstone
   survives CSV normalization/refresh/reopen and prevents automatic memory restoration.

@@ -214,7 +214,7 @@ def test_provisional_move_cancel_keeps_original_model_and_restores_opacity(selec
     elif cancel == "deactivate":
         QApplication.sendEvent(app, QEvent(QEvent.Type.WindowDeactivate))
     else:
-        drawing.undo_stack.append(original)
+        drawing.undo_stack.append(dict(segments=original, labels=[]))
         drawing.undo()
         app.session.dirty = False
     assert not selection.moving and drawing.segments() == original and not app.session.dirty
@@ -237,7 +237,7 @@ def test_rotation_during_move_is_provisional_and_stays_inside_sheet(selection_ed
 def test_zero_move_preserves_history_and_redo(selection_editor):
     app, drawing, selection = selection_editor
     original = drawing.segments()
-    drawing.redo_stack.append(original)
+    drawing.redo_stack.append(dict(segments=original, labels=[]))
     move(app.floorplan_view, point(app, 200, 150))
     QTest.keyClick(app, Qt.Key.Key_M)
     QTest.mouseClick(app.floorplan_view.viewport(), Qt.MouseButton.RightButton, pos=point(app, 200, 150))

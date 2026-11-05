@@ -7,6 +7,23 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- AP Group status now shows either M or the physical-approval circle, with M
+  taking priority. Clicking M opens its Memory actions and cannot approve the
+  group. Memory-update candidates can explicitly keep their current data before
+  proceeding to physical confirmation.
+- Added Fill and Auto Fill to Boundaries on generated blank sheets. Fill uses
+  a right click inside one closed drawn face; Auto Fill adds all closed faces to
+  the existing analysis mask. Nested rooms remain distinct for Fill. Imported
+  plans retain their existing brush tools without these extra controls.
+- Added editable multiline Text in Design Mode, with font, size, bold/italic,
+  alignment, fill/outline colors, outline width and an automatically fitted
+  preview. After OK, right-click places the cursor-following label. R tap/hold,
+  snapping, mixed selection and M movement work for labels. Right-double-click
+  or Edit selected text reopens the editor. Del deletes selected labels and
+  segments in one shared undoable operation. Glyph outlines preserve appearance
+  in PNG, Live Map and HTML exports and remain editable after reopen.
+- Updated English, Italian, French and Spanish Help and tooltips for the new
+  drawing tools, deletion shortcut and memory-first confirmation flow.
 - Replaced the physical AP confirmation command inside Alias with an accessible
   first-column circle in AP Group Manager. Click or press Space to toggle approval;
   green with a check means confirmed. Real changes to BSSIDs, alias, role, position

@@ -14,20 +14,24 @@ class APConfirmationDelegate(QStyledItemDelegate):
         colors = QT_THEMES.get(getattr(owner.app, "theme", "light"), QT_THEMES["light"])
         styled = QStyleOptionViewItem(option)
         self.initStyleOption(styled, index)
-        status = styled.text
+        status = "M" if "M" in styled.text else ""
         styled.text = ""
         styled.features &= ~QStyleOptionViewItem.ViewItemFeature.HasCheckIndicator
         owner.table.style().drawControl(QStyle.ControlElement.CE_ItemViewItem, styled, painter, owner.table)
         size = widget_px(owner, 22)
-        gap = widget_px(owner, 5)
-        text_width = option.fontMetrics.horizontalAdvance(status) + gap if status else 0
-        left = option.rect.center().x() - (size + text_width) / 2
+        left = option.rect.center().x() - size / 2
         circle = QRectF(left, option.rect.center().y() - size / 2, size, size)
         checked = index.data(Qt.ItemDataRole.CheckStateRole) == Qt.CheckState.Checked.value
         selected = bool(option.state & QStyle.StateFlag.State_Selected)
         foreground = option.palette.highlightedText().color() if selected else QColor(colors["text"])
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        if "M" in status:
+            painter.setFont(styled.font)
+            painter.setPen(foreground)
+            painter.drawText(option.rect, Qt.AlignmentFlag.AlignCenter, "M")
+            painter.restore()
+            return
         border = QColor("#21864B") if checked else (foreground if selected else QColor(colors["muted"]))
         painter.setPen(QPen(border, widget_px(owner, 2)))
         painter.setBrush(QColor("#21864B") if checked else Qt.BrushStyle.NoBrush)
@@ -39,11 +43,6 @@ class APConfirmationDelegate(QStyledItemDelegate):
             painter.setPen(QPen(QColor("#FFFFFF"), widget_px(owner, 2),
                                 Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
             painter.drawPath(path)
-        if status:
-            painter.setFont(styled.font)
-            painter.setPen(foreground)
-            painter.drawText(QRectF(circle.right() + gap, option.rect.top(), text_width,
-                                    option.rect.height()), Qt.AlignmentFlag.AlignVCenter, status)
         painter.restore()
 
     def editorEvent(self, event, model, option, index):
@@ -66,6 +65,12 @@ class APConfirmationDelegate(QStyledItemDelegate):
             return False
         if not activate:
             return False
+        if "M" in str(index.data(Qt.ItemDataRole.DisplayRole) or ""):
+            owner = self.parent()
+            owner.select_group_by_id(index.data(Qt.ItemDataRole.UserRole))
+            owner.update_action_state()
+            owner.memory_menu.popup(owner.table.viewport().mapToGlobal(option.rect.bottomLeft()))
+            return True
         checked = index.data(Qt.ItemDataRole.CheckStateRole) == Qt.CheckState.Checked.value
         return model.setData(index, Qt.CheckState.Unchecked if checked else Qt.CheckState.Checked,
                              Qt.ItemDataRole.CheckStateRole)

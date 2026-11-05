@@ -784,6 +784,12 @@ class WifiHeatmapQtApp(
             "boundaries_eraser_tooltip",
             checkable=True,
         )
+        self.boundaries_fill_button = self.create_boundaries_text_button("", "boundaries_fill")
+        self.boundaries_fill_button.setCheckable(True)
+        self.boundaries_auto_fill_button = self.create_boundaries_text_button("", "boundaries_auto_fill")
+        from qt_ui.qt_plan_fill import fill_closed_boundaries
+        self.boundaries_fill_button.clicked.connect(lambda _checked=False: self.set_boundaries_tool("fill"))
+        self.boundaries_auto_fill_button.clicked.connect(lambda _checked=False: fill_closed_boundaries(self))
         self.boundaries_circle_button = self.create_boundaries_tool_button(
             "circle.png",
             "boundaries_circle_tooltip",
@@ -827,6 +833,8 @@ class WifiHeatmapQtApp(
 
         layout.addWidget(self.boundaries_draw_button)
         layout.addWidget(self.boundaries_eraser_button)
+        layout.addWidget(self.boundaries_fill_button)
+        layout.addWidget(self.boundaries_auto_fill_button)
         layout.addWidget(self.create_boundaries_separator())
         layout.addWidget(self.boundaries_circle_button)
         layout.addWidget(self.boundaries_square_button)

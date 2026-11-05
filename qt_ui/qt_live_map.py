@@ -84,6 +84,7 @@ class LiveMapRenderWorker(QObject):
         px_per_meter=None,
         boundary_mask_image=None,
         plan_segments=None,
+        plan_labels=None,
     ):
         super().__init__()
         self.rows = deepcopy(list(rows or []))
@@ -96,6 +97,7 @@ class LiveMapRenderWorker(QObject):
         self.px_per_meter = px_per_meter
         self.boundary_mask_image = boundary_mask_image
         self.plan_segments = deepcopy(plan_segments)
+        self.plan_labels = deepcopy(plan_labels)
 
     @Slot()
     def run(self):
@@ -105,7 +107,7 @@ class LiveMapRenderWorker(QObject):
                 logger_name="live_map",
             )
             bg_image = load_floorplan_image(self.map_file)
-            bg_image = render_plan_drawing(bg_image, self.plan_segments)
+            bg_image = render_plan_drawing(bg_image, self.plan_segments, self.plan_labels)
             df = pd.DataFrame(self.rows, columns=SURVEY_FIELDNAMES)
             payload = render_live_map_payload(
                 df=df,

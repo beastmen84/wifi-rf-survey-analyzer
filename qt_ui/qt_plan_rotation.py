@@ -1,5 +1,6 @@
 """Tap R for a quarter turn; hold R and orbit the fixed pivot in 5° steps."""
 import math
+from copy import deepcopy
 
 from PySide6.QtCore import QLineF, QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QCursor, QPainterPath, QPen
@@ -7,6 +8,8 @@ from PySide6.QtWidgets import QApplication, QGraphicsEllipseItem, QGraphicsLineI
 
 from qt_ui.scaling import widget_px
 from survey.plan_geometry import rotate_degrees, segment_bounds
+from survey.plan_labels import label_geometry, labels_geometry, transform_labels
+from survey.plan_label_rendering import label_item
 
 
 def angle_readout(angle):
@@ -33,6 +36,7 @@ class PlanRotationController:
             return True
         d, tool = self.drawing, self.drawing.tools.active_tool
         self.hidden, self.dimmed = [], []
+        self.label_base, self.line_base = [], []
         if tool == "rectangle" and d.pending_size and d.preview is not None:
             self.target, self.base = "rectangle", d.rectangle_geometry(d.preview.rect())
             position, hide = d.last_pointer, [d.preview]
@@ -41,13 +45,24 @@ class PlanRotationController:
             line = d.line.preview.line()
             self.base = [dict(x1=line.x1(), y1=line.y1(), x2=line.x2(), y2=line.y2(), color=d.tools.stroke_color.name())]
             position, hide = d.line.last_pointer, [d.line.preview]
-        elif tool == "select" and d.selection.selected and d.selection.origin is None:
+        elif tool == "text" and d.text.pending is not None and d.text.preview is not None:
+            self.target = "text"
+            self.label_base = [deepcopy(d.text.pending)]
+            self.base = label_geometry(d.text.pending)
+            position, hide = d.text.last_pointer, list(d.text.preview_items)
+        elif tool == "select" and d.selection.has_selection() and d.selection.origin is None:
             s = d.selection
             self.target = "move" if s.moving else "selection"
-            self.base = [dict(line) for line in (s.move_preview if s.moving else [s.lines[index] for index in s.selected])]
-            position, hide = s.last_pointer, list(s.highlights)
+            self.line_base = [dict(line) for line in (s.move_preview if s.moving else [s.lines[index] for index in s.selected])]
+            self.label_base = deepcopy(s.move_label_preview if s.moving else s.selected_texts())
+            self.base = self.line_base + labels_geometry(self.label_base)
+            position, hide = s.last_pointer, list(s.highlights) + list(d.text.preview_items)
             for index in s.selected:
                 item = d.items[index]
+                self.dimmed.append((item, item.opacity()))
+                item.setOpacity(.25)
+            for index in s.selected_labels:
+                item = d.text.items[index]
                 self.dimmed.append((item, item.opacity()))
                 item.setOpacity(.25)
         else:
@@ -109,6 +124,8 @@ class PlanRotationController:
         pen.setStyle(Qt.PenStyle.DashLine)
         item.setPen(pen)
         self.items.append(item)
+        for label in transform_labels(self.label_base, self.angle, self.pivot):
+            self.items.append(label_item(label))
         zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
         radius = widget_px(self.owner, 5) / zoom
         cx, cy = self.pivot
@@ -154,6 +171,8 @@ class PlanRotationController:
                 d.rotate_preview()
             elif target == "line":
                 d.line.rotate()
+            elif target == "text":
+                d.text.rotate()
             else:
                 d.selection.rotate()
             return
@@ -175,9 +194,18 @@ class PlanRotationController:
             d.line.show_preview(QLineF(line["x1"], line["y1"], line["x2"], line["y2"]), position)
         elif target == "move":
             s = d.selection
-            s.move_source, s.move_preview, s.move_turns = result, result, 0
+            lines = rotate_degrees(self.line_base, angle, self.pivot)
+            labels = transform_labels(self.label_base, angle, self.pivot)
+            s.move_source, s.move_preview, s.move_turns = lines, lines, 0
+            s.move_label_source, s.move_label_preview = labels, labels
             s.move_anchor, s.last_pointer = pointer, position
-            s.show_lines(result, moving=True)
+            s.show_lines(lines, moving=True, labels=labels)
             s.show_count(position)
+        elif target == "text":
+            label = transform_labels(self.label_base, angle, self.pivot)[0]
+            d.text.pending = label
+            d.text.offset = QPointF(label["x"], label["y"]) - pointer
+            d.text.last_pointer = position
+            d.text.show_labels([label])
         elif angle:
-            d.selection.apply_transformed(result)
+            d.selection.apply_rotation(angle, self.pivot)

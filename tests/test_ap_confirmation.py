@@ -126,6 +126,44 @@ def test_dragging_rows_and_right_click_do_not_approve_a_group(manager, runtime):
     assert not any(is_ap_group_confirmed(group) for group in manager.groups)
 
 
+def test_memory_marker_hides_and_blocks_badge_until_memory_is_reviewed(manager, runtime):
+    group = approve(manager)
+    group["memory_applied"] = True
+    manager.render_rows()
+    manager.select_group_by_id("a")
+    manager.show()
+    runtime.processEvents()
+    item = approval_item(manager)
+    assert "M" in item.text()
+    assert "Memory" in item.data(Qt.ItemDataRole.AccessibleTextRole)
+    image = manager.table.viewport().grab(manager.table.visualItemRect(item)).toImage()
+    assert not any(image.pixelColor(x, y).name() == "#21864b"
+                   for x in range(image.width()) for y in range(image.height()))
+    with patch.object(manager.memory_menu, "popup") as popup:
+        QTest.mouseClick(manager.table.viewport(), Qt.MouseButton.LeftButton,
+                         pos=manager.table.visualItemRect(item).center())
+        popup.assert_called_once()
+    assert group["memory_applied"] and is_ap_group_confirmed(group)
+    manager.confirm_memory_for_selected_group()
+    assert "M" not in approval_item(manager).text()
+    assert approval_item(manager).checkState() == Qt.CheckState.Checked
+
+
+def test_memory_update_can_keep_local_data_before_final_approval(manager):
+    group = manager.get_group_by_id("a")
+    manager.memory_records = [dict(bssids=group["bssids"], alias="Different remembered alias", role="internal")]
+    manager.render_rows()
+    manager.select_group_by_id("a")
+    assert "M" in approval_item(manager).text()
+    assert manager.confirm_memory_selected_action.isEnabled()
+    alias = group["alias"]
+    manager.confirm_memory_selected_action.trigger()
+    assert group["alias"] == alias and "M" not in approval_item(manager).text()
+    assert not is_ap_group_confirmed(group)
+    approve(manager)
+    assert is_ap_group_confirmed(group)
+
+
 @pytest.mark.parametrize("field", ["role", "metadata"])
 def test_model_edits_require_reapproval_but_no_op_does_not(manager, field):
     group = approve(manager)
