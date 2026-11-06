@@ -22,6 +22,36 @@ interpolated colors.
 
 Current status:
 
+- Annotation kinds desk/symbol add parametric centered width/height/angle, RGB
+  outline/stroke and nullable RGB fill within the existing optional JSON v1.
+  L desks store arm depth; symmetric desks and symbols enforce equal frame
+  dimensions. plan_objects owns five desk/eight symbol variants and actual
+  corners/cardinal source points. Round objects have no orientation; group
+  rotations move their centers without assigning an angle. Coordinate checks
+  use annotation_fits' 1e-7 tolerance for parametric boundary roundoff, preserving
+  dimensions rather than rounding them. Legacy annotation validation is intact.
+- Hosted and free annotation kinds are explicit. Only door/window mask wall ink,
+  require collinear support, check aperture overlap and follow moved/deleted
+  hosts. Desks/symbols are independent and may overlap; they never enter room
+  topology, areas, Fill or RF analysis. Shared paths/brushes serve scene, previews,
+  picking, raster exports and printing, with brush reset on every legacy path.
+  Interior picking/marquee follows the true silhouette, including empty L notches.
+- ObjectAnnotationDialog separates variants, unit dimensions and outline/fill
+  controls, with optional no-fill and bounded L arm depth. The annotation palette
+  adds two tools and supports centered right-click stamping, R quarter turns in
+  creation/selection/movement, M, Del, properties and shared history/persistence.
+  Snapper's optional explicit source centers preserve parametric object centers
+  (e.g. star circumcenter), while retaining every real vertex; other tools keep
+  the prior bounding-center behavior. Mixed free-object groups include individual
+  centers and their bounding center. Grid off retains drawing magnets; Alt
+  suspends both. Segment clearances apply only to hosted openings.
+  Verification:1677 tests +479 subtests passed in150.56s on native Windows;
+  84 new object regressions cover variants, units, styles, gestures, snaps,
+  history, topology, save/reopen and PNG. Both workspace HTML exports and clean
+  printing verify desk/symbol pixels. Native source QA passed16 language/theme/
+  scale cases and32 property dialogs; light properties/gallery and enlarged dark
+  palette inspected. Essential Ruff/diff checks pass. No packaged EXE or physical
+  mouse/printer validation; no release build or dependency changes.
 - PlanPrintingMixin adds a compact neutral Print Plan button to Project's title
   row; Delete Scale keeps its destructive colors. Session/map presence and scan
   state control availability across Survey/Live/Analysis. No calibration/save

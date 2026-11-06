@@ -6,6 +6,8 @@ import re
 
 from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
 from survey.planar_geometry import point_projection
+from survey.plan_objects import (FREE_ANNOTATIONS, HOSTED_ANNOTATIONS, DESK_VARIANTS,
+                                 SYMBOL_VARIANTS, object_vertices, object_is_round)
 
 PLAN_ANNOTATIONS_KEY = "plan_annotations"
 EPS = 1e-5
@@ -17,7 +19,7 @@ def validate_annotations(items):
     result, identities, total = [], set(), 0
     for source in items:
         identity, kind = str(source["id"]), source["kind"]
-        if not identity or len(identity) > 80 or identity in identities or kind not in ("marker", "door", "window"):
+        if not identity or len(identity) > 80 or identity in identities or kind not in ("marker", *HOSTED_ANNOTATIONS, *FREE_ANNOTATIONS):
             raise ValueError("Invalid annotation identity/type")
         identities.add(identity)
         color = str(source["color"]).lower()
@@ -25,7 +27,30 @@ def validate_annotations(items):
         if not re.fullmatch(r"#[0-9a-f]{6}", color) or not math.isfinite(width) or not .5 <= width <= 20:
             raise ValueError("Invalid annotation appearance")
         item = dict(id=identity, kind=kind, color=color, stroke=width)
-        if kind == "marker":
+        if kind in FREE_ANNOTATIONS:
+            variant = source["variant"]
+            if variant not in (DESK_VARIANTS if kind == "desk" else SYMBOL_VARIANTS):
+                raise ValueError("Invalid object variant")
+            numbers = {key: float(source[key]) for key in ("cx", "cy", "width", "height", "angle")}
+            fill = source.get("fill")
+            if fill is not None:
+                fill = str(fill).lower()
+                if not re.fullmatch(r"#[0-9a-f]{6}", fill):
+                    raise ValueError("Invalid object fill")
+            if any(not math.isfinite(v) for v in numbers.values()) or not all(EPS < numbers[k] <= 100000 for k in ("width", "height")):
+                raise ValueError("Invalid object dimensions")
+            item.update(numbers, variant=variant, fill=fill)
+            if kind == "symbol" or variant in ("square", "l_equal", "round"):
+                if abs(item["width"] - item["height"]) > EPS:
+                    raise ValueError("Object sides must be equal")
+                item["height"] = item["width"]
+            if kind == "desk" and variant in ("l", "l_equal"):
+                arm = float(source["arm"])
+                if not math.isfinite(arm) or not EPS < arm < min(item["width"], item["height"]) - EPS:
+                    raise ValueError("Invalid desk arm depth")
+                item["arm"] = arm
+            item["angle"] = 0 if object_is_round(item) else item["angle"] % 360
+        elif kind == "marker":
             points = source["points"]
             if not isinstance(points, list) or not 2 <= len(points) <= 10000:
                 raise ValueError("Invalid marker path")
@@ -48,13 +73,18 @@ def validate_annotations(items):
             item.update(side=side, hinge=hinge, variant=variant)
         points = annotation_points(item)
         total += len(points)
-        if total > 100000 or any(not math.isfinite(v) or not 0 <= v <= 100000 for p in points for v in p):
+        # Parametric rotations/translations can put an edge an ulp from zero.
+        # Use the same tolerance as annotation_fits without rounding dimensions.
+        precision = 1e-7 if kind in FREE_ANNOTATIONS else 0
+        if total > 100000 or any(not math.isfinite(v) or not -precision <= v <= 100000 + precision for p in points for v in p):
             raise ValueError("Annotation coordinate limits exceeded")
         result.append(item)
     return result
 
 
 def annotation_points(item):
+    if item["kind"] in FREE_ANNOTATIONS:
+        return object_vertices(item)
     return item["points"] if item["kind"] == "marker" else [[item["x1"], item["y1"]], [item["x2"], item["y2"]]]
 
 
@@ -97,18 +127,18 @@ def support_intervals(a, b, lines):
 
 
 def supported(item, lines):
-    if item["kind"] == "marker":
+    if item["kind"] not in HOSTED_ANNOTATIONS:
         return True
     a, b = annotation_points(item)
     return any(low <= EPS and high >= math.dist(a, b) - EPS for low, high in support_intervals(a, b, lines))
 
 
 def overlaps(item, others):
-    if item["kind"] == "marker":
+    if item["kind"] not in HOSTED_ANNOTATIONS:
         return False
     a, b = annotation_points(item)
     for other in others:
-        if other["kind"] == "marker" or other["id"] == item["id"]:
+        if other["kind"] not in HOSTED_ANNOTATIONS or other["id"] == item["id"]:
             continue
         host = {k: other[k] for k in ("x1", "y1", "x2", "y2")}
         if any(high - low > EPS for low, high in support_intervals(a, b, [host])):
@@ -118,7 +148,7 @@ def overlaps(item, others):
 
 def visible_wall_segments(lines, annotations, with_sources=False):
     """Mask wall ink only; the structural model is never modified."""
-    apertures = [a for a in annotations if a["kind"] != "marker"]
+    apertures = [a for a in annotations if a["kind"] in HOSTED_ANNOTATIONS]
     result, sources = [], []
     hosts = [{k: item[k] for k in ("x1", "y1", "x2", "y2")} for item in apertures]
     for index, line in enumerate(lines):
@@ -138,6 +168,12 @@ def transform_annotations(items, angle=0, pivot=(0, 0), dx=0, dy=0):
     result = deepcopy(items)
     cosine, sine = math.cos(math.radians(angle)), math.sin(math.radians(angle))
     for item in result:
+        if item["kind"] in FREE_ANNOTATIONS:
+            x, y = item["cx"] - pivot[0], item["cy"] - pivot[1]
+            item.update(cx=pivot[0] + x * cosine - y * sine + dx,
+                        cy=pivot[1] + x * sine + y * cosine + dy,
+                        angle=0 if object_is_round(item) else (item["angle"] + angle) % 360)
+            continue
         points = []
         for x, y in annotation_points(item):
             x, y = x - pivot[0], y - pivot[1]
@@ -158,7 +194,7 @@ def follow_hosts(items, before, after):
     angle = math.degrees(math.atan2(last["y2"] - last["y1"], last["x2"] - last["x1"])
                          - math.atan2(first["y2"] - first["y1"], first["x2"] - first["x1"]))
     return [transform_annotations([item], angle, old, last["x1"] - old[0], last["y1"] - old[1])[0]
-            if item["kind"] != "marker" and supported(item, before) else item for item in items]
+            if item["kind"] in HOSTED_ANNOTATIONS and supported(item, before) else item for item in items]
 
 
 def place_aperture(point, width, lines, tolerance, template):

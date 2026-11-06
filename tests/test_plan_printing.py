@@ -12,6 +12,7 @@ from PySide6.QtWidgets import QDialog
 
 from qt_ui.qt_plan_printing import PlanPrintPreviewDialog, clean_plan_image, paint_plan_page
 from survey.plan_drawing import PLAN_DRAWING_KEY, rectangle_segments
+from survey.plan_objects import object_default
 from tests.test_blank_plan import create_survey
 from tests.test_capture_adapter import window, qt_app
 from tests.test_plan_annotations import aperture, marker
@@ -57,8 +58,10 @@ def test_clean_snapshot_has_current_unsaved_drawing_but_no_grid_points_masks_or_
     view = app.floorplan_view
     walls = rectangle_segments(100, 200, 500, 250, "#123456")
     curve = dict(kind="circle", cx=700, cy=350, radius=50, phase=0, color="#aa0000")
+    desk = dict(object_default("desk", 50), id="desk", cx=700, cy=450, fill="#abcdef")
+    symbol = dict(object_default("symbol", 50, "arrow"), id="symbol", cx=820, cy=450, fill="#00ff00")
     assert drawing.apply_edit(walls, [dict(label(), x=350, y=350)], [curve],
-                              [aperture(variant="frame"), marker()])
+                              [aperture(variant="frame"), marker(), desk, symbol])
     # A previously saved raster can contain stale ink; current vectors win.
     stale = QImage(view.pixmap_item.pixmap().size(), QImage.Format.Format_RGB888)
     stale.fill(Qt.GlobalColor.white)
@@ -79,6 +82,8 @@ def test_clean_snapshot_has_current_unsaved_drawing_but_no_grid_points_masks_or_
     assert first.getpixel((250, 200)) == (51, 65, 85)  # Frame jamb retained.
     assert first.getpixel((155, 150)) == (217, 119, 6)  # Painted dash retained.
     assert first.getpixel((750, 350)) != (255, 255, 255)  # Committed curve.
+    assert first.getpixel((700, 450)) == (171, 205, 239)  # Desk fill, not an RF overlay.
+    assert first.getpixel((820, 450)) == (0, 255, 0)  # Symbol fill.
     for point in ((60, 55), (50, 100), (700, 150), (750, 150), (700, 500)):
         assert first.getpixel(point) == (255, 255, 255)
     assert any(color == (216, 67, 21) for _count, color in first.getcolors(first.width * first.height))

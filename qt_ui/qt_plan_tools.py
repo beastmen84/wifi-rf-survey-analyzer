@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QColorDialog, QFrame, QHBoxLayout, QLabel, QPushBu
 from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
 from qt_ui.qt_theme import QT_THEMES
 from qt_ui.qt_rectangle_design import RectangleDesignController
+from survey.plan_objects import FREE_ANNOTATIONS, object_is_round
 
 
 class PlanToolsOverlay(QFrame):
@@ -50,7 +51,7 @@ class PlanToolsOverlay(QFrame):
         self.annotation_row = annotation_row
         annotation_row.setSpacing(owner.spx(4))
         self.annotation_buttons = {}
-        for tool in ("marker", "window", "door", "annotation_eraser", "annotation_select"):
+        for tool in ("marker", "window", "door", *FREE_ANNOTATIONS, "annotation_eraser", "annotation_select"):
             button = owner.create_boundaries_text_button("", "annotation_" + {"annotation_select": "select", "annotation_eraser": "eraser"}.get(tool, tool))
             button.setCheckable(True)
             button.clicked.connect(lambda checked=False, tool=tool: self.select_tool(tool))
@@ -192,7 +193,7 @@ class PlanToolsOverlay(QFrame):
 
     def select_tool(self, tool):
         self.controller.cancel()
-        if tool in ("marker", "door", "window") and not self.controller.annotation.configure(tool):
+        if tool in ("marker", "door", "window", *FREE_ANNOTATIONS) and not self.controller.annotation.configure(tool):
             self.update_tool_state()
             return
         self.active_tool = tool
@@ -224,11 +225,11 @@ class PlanToolsOverlay(QFrame):
         self.edit_text_button.setEnabled(self.open and self.active_tool == "select"
                                          and (len(selection.selected_labels) == 1 or curve_edit)
                                          and not selection.moving)
-        if self.active_tool in ("marker", "door", "window", "annotation_select"):
+        if self.active_tool in ("marker", "door", "window", *FREE_ANNOTATIONS, "annotation_select"):
             a = self.controller.annotation
             self.edit_text_button.setEnabled(self.open and not a.moving and (self.active_tool != "annotation_select" or len(a.selected) + len(a.selected_labels) == 1))
         edit_text = self.owner.tr("curve_edit" if curve_edit else "plan_text_edit")
-        if self.active_tool in ("marker", "door", "window", "annotation_select"):
+        if self.active_tool in ("marker", "door", "window", *FREE_ANNOTATIONS, "annotation_select"):
             edit_text = self.owner.tr("annotation_properties")
         self.edit_text_button.setToolTip(edit_text)
         self.edit_text_button.setAccessibleName(edit_text)
@@ -236,7 +237,11 @@ class PlanToolsOverlay(QFrame):
                "circle": "circle_tools_note", "arc": "arc_tools_note",
                "eraser": "eraser_tools_note", "select": "selection_tools_note", "text": "text_tools_note",
                "marker": "annotation_marker_note", "door": "annotation_place_note", "window": "annotation_place_note",
+               "desk": "object_place_note", "symbol": "object_place_note",
                "annotation_select": "annotation_selection_note", "annotation_eraser": "annotation_eraser_note"}[self.active_tool]
+        template = self.controller.annotation.templates.get(self.active_tool)
+        if self.active_tool in FREE_ANNOTATIONS and template and object_is_round(template):
+            key = "object_round_note"
         self.note.setText(self.owner.tr(key))
         self.update_tool_icons()
 
@@ -282,6 +287,17 @@ class PlanToolsOverlay(QFrame):
                 painter.drawLine(4, 20, 4, 4)
                 painter.drawArc(4, 4, 32, 32, 90 * 16, 90 * 16)
                 painter.drawLine(3, 20, 21, 20)
+            elif tool == "desk":
+                path = QPainterPath()
+                path.moveTo(3, 4)
+                for x, y in ((21, 4), (21, 10), (10, 10), (10, 21), (3, 21)):
+                    path.lineTo(x, y)
+                path.closeSubpath()
+                painter.drawPath(path)
+            elif tool == "symbol":
+                painter.drawEllipse(2, 2, 20, 20)
+                painter.drawLine(8, 8, 16, 16)
+                painter.drawLine(8, 16, 16, 8)
             elif tool == "circle":
                 painter.drawEllipse(4, 4, 16, 16)
                 painter.setBrush(color)
@@ -333,7 +349,7 @@ class PlanToolsOverlay(QFrame):
         if self.active_tool == "annotation_select":
             self.controller.annotation.edit()
             return
-        if self.active_tool in ("marker", "door", "window"):
+        if self.active_tool in ("marker", "door", "window", *FREE_ANNOTATIONS):
             self.controller.annotation.configure(self.active_tool)
             return
         indices = self.controller.selection.selected_labels

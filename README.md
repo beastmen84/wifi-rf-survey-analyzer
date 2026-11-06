@@ -131,6 +131,15 @@ from these software checks.
   choices shown as eight configuration icons (four single, two double, sliding,
   frame only). **Frame only** shows the jambs without a leaf or swing arc.
   Only swing arcs are dashed; door leaves remain solid.
+  **Desks** offer square, rectangular, L, equal-sided L and round variants, with
+  editable dimensions and L desktop depth. **Symbols** include circle, X, plus,
+  square, triangle, diamond, star and arrow. Both have independent outline color,
+  outline width and optional fill color. Icon menus choose their variant; the
+  centered preview follows the cursor and right-click places it. **R** rotates
+  non-round objects by 90° before placement or in selection/move. Use annotation
+  selection to pick the outline or interior, move, edit or erase these objects.
+  They retain drawing/grid magnets, undo/redo and save/reopen, and appear in
+  PNG, Live/HTML and Print Plan without changing rooms, areas or RF analysis.
   Apertures hide only the covered wall ink: room closure, internal area
   and Boundaries Fill/Auto Fill retain the complete structural geometry.
   Select annotations to move with **M**, delete with **Del**, or edit by right

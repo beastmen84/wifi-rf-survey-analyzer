@@ -28,6 +28,7 @@ from qt_ui.qt_plan_annotations import AnnotationController, ANNOTATION_TOOLS
 from qt_ui.qt_plan_dimensions import SegmentDimensions
 from survey.plan_annotations import (PLAN_ANNOTATIONS_KEY, drawing_annotations, encode_annotations,
     validate_annotations, visible_wall_segments, follow_hosts, supported)
+from survey.plan_objects import FREE_ANNOTATIONS
 
 
 class RectanglePreview(QGraphicsPathItem):
@@ -147,6 +148,8 @@ class RectangleDesignController(QObject):
                 if event.key() == Qt.Key.Key_M:
                     return self.annotation.begin_move()
                 return self.annotation.rotate()
+            if self.tools.active_tool in FREE_ANNOTATIONS and event.key() == Qt.Key.Key_R:
+                return self.annotation.rotate()
             if event.key() == Qt.Key.Key_R:
                 return self.rotation.begin()
             elif event.key() == Qt.Key.Key_Delete and self.tools.active_tool == "select":
@@ -163,7 +166,7 @@ class RectangleDesignController(QObject):
         if changed_scene:
             self.annotation.templates.clear()
             self.annotation.marker_grid = False
-            if self.tools.active_tool in ("marker", "door", "window"):
+            if self.tools.active_tool in ("marker", "door", "window", *FREE_ANNOTATIONS):
                 self.tools.active_tool = "annotation_select"
             if self.view.pixmap_item is not self.pixmap:
                 # scene.clear() has already destroyed these C++ graphics items.
@@ -587,18 +590,21 @@ class RectangleDesignController(QObject):
             return translate_segments(local, rect.x() - left, rect.y() - top)
         return rectangle_segments(rect.x(), rect.y(), rect.width(), rect.height(), self.tools.stroke_color.name())
 
-    def snap_shape(self, lines, bypass=False, snapper=None):
+    def snap_shape(self, lines, bypass=False, snapper=None, centers=None):
         bounds = self.view.scene.sceneRect()
         left, top, right, bottom = segment_bounds(lines)
         dx = min(max(left, bounds.left()), bounds.right() - (right - left)) - left
         dy = min(max(top, bounds.top()), bounds.bottom() - (bottom - top)) - top
         lines = translate_segments(lines, dx, dy)
+        if centers is not None:
+            centers = [(x + dx, y + dy) for x, y in centers]
         self.snap_guides = ()
         if not bypass and not self.snap_bypass:
             zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
             result = (snapper or self.snapper).snap_geometry(lines,
                 (bounds.left(), bounds.top(), bounds.right(), bounds.bottom()), widget_px(self.owner, 10) / zoom,
-                self.view.grid_spacing_pixels() if self.tools.snap_button.isChecked() else None)
+                self.view.grid_spacing_pixels() if self.tools.snap_button.isChecked() else None,
+                **({"centers": centers} if centers is not None else {}))
             self.snap_guides = result.guides
             lines = translate_segments(lines, result.x, result.y)
         return lines

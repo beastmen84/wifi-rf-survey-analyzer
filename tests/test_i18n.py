@@ -223,6 +223,7 @@ LAYOUT_SENSITIVE_KEYS = (
 )
 
 ALLOWED_IDENTICAL_TRANSLATION_KEYS = frozenset({
+    "object_symbol_triangle",  # Triangle is also the correct French noun.
     "annotation_structure",  # These three labels are also correct French nouns.
     "annotation_group",
     "annotation_type",

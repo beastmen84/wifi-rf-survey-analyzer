@@ -3,13 +3,27 @@ import math
 
 from PIL import Image
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QImage, QPainter, QPainterPath, QPen, QTransform
+from PySide6.QtGui import QBrush, QColor, QImage, QPainter, QPainterPath, QPen, QTransform
 from PySide6.QtWidgets import QGraphicsPathItem
+from survey.plan_objects import FREE_ANNOTATIONS, object_local_vertices, object_is_round
 
 
 def annotation_parts(item):
     path = QPainterPath()
     arcs = QPainterPath()
+    if item["kind"] in FREE_ANNOTATIONS:
+        if object_is_round(item):
+            path.addEllipse(-item["width"] / 2, -item["height"] / 2, item["width"], item["height"])
+        else:
+            points = object_local_vertices(item)
+            path.moveTo(*points[0])
+            for point in points[1:]:
+                path.lineTo(*point)
+            path.closeSubpath()
+        transform = QTransform()
+        transform.translate(item["cx"], item["cy"])
+        transform.rotate(0 if object_is_round(item) else item["angle"])
+        return [(transform.map(path), False)]
     if item["kind"] == "marker":
         path.moveTo(*item["points"][0])
         for point in item["points"][1:]:
@@ -84,10 +98,15 @@ def annotation_item(annotation, color=None):
     for path, dashed in annotation_parts(annotation):
         child = QGraphicsPathItem(path, item)
         child.setPen(annotation_pen(annotation, color, dashed))
+        child.setBrush(annotation_brush(annotation))
         child.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
     item.setZValue(6)
     item.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
     return item
+
+
+def annotation_brush(item):
+    return QBrush(QColor(item["fill"])) if item["kind"] in FREE_ANNOTATIONS and item.get("fill") else QBrush(Qt.BrushStyle.NoBrush)
 
 
 def render_annotations(image, annotations):
@@ -98,6 +117,7 @@ def render_annotations(image, annotations):
     for item in annotations:
         for path, dashed in annotation_parts(item):
             painter.setPen(annotation_pen(item, dashed=dashed))
+            painter.setBrush(annotation_brush(item))
             painter.drawPath(path)
     painter.end()
     raw = native.convertToFormat(QImage.Format.Format_RGBA8888)

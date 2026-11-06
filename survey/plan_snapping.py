@@ -334,11 +334,11 @@ class PlanSnapper:
         _, dx, dy, px, py, a, b = min(choices)
         return dx, dy, SnapGuide("edge", (px, py), "line", (*a, *b))
 
-    def snap_geometry(self, segments, bounds, tolerance, grid=None):
+    def snap_geometry(self, segments, bounds, tolerance, grid=None, centers=None):
         """Rigidly snap real vertices of an angled shape, preserving its angle."""
         box = segment_bounds(segments)
         vertices = sorted({(line[x], line[y]) for line in segments for x, y in (("x1", "y1"), ("x2", "y2"))})
-        vertices.append(((box[0] + box[2]) / 2, (box[1] + box[3]) / 2))
+        vertices.extend(centers if centers is not None else [((box[0] + box[2]) / 2, (box[1] + box[3]) / 2)])
         point = self.point_snap(vertices, box, bounds, tolerance)
         if point is not None:
             return point

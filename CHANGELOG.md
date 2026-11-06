@@ -7,6 +7,15 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Added **Desks** and **Symbols** to Annotations, with icon variant menus, survey
+  unit dimensions, outline color/width and optional fill color. Desks support
+  square, rectangle, unequal/equal-sided L and round shapes; symbols include
+  circle, X, plus, square, triangle, diamond, star and arrow. Right-click places
+  a cursor-following preview; R turns non-round objects by 90°. Annotation
+  picking includes interiors while L notches stay empty. Move/edit/erase,
+  center/vertex snaps, undo/redo, save/reopen and PNG/Live/HTML/Print Plan share
+  the same objects. Rooms, wall hosting and RF analysis remain independent.
+  Updated EN/IT/FR/ES properties, tool notes and Help.
 - Added **Print Plan** at the right of Project, matching the compact Delete Scale
   control. A print preview uses the loaded plan and committed drawing
   edits, including unsaved changes, without survey/grid/mask/heatmap overlays.

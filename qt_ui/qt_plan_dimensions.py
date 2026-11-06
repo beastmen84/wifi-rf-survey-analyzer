@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QGraphicsPathItem, QLabel
 from app_core.units import distance_unit_label, meters_to_display_units
 from qt_ui.scaling import widget_px
 from survey.plan_annotations import annotation_points
+from survey.plan_objects import HOSTED_ANNOTATIONS
 from survey.plan_erasing import nearest_segment
 from survey.planar_geometry import point_projection
 
@@ -56,7 +57,7 @@ class SegmentDimensions:
         if d.tools.active_tool in ("door", "window"):
             aperture = d.annotation.pending
         elif d.tools.active_tool == "annotation_select" and d.annotation.moving and len(d.annotation.draft) == 1:
-            aperture = d.annotation.draft[0] if d.annotation.draft[0]["kind"] != "marker" else None
+            aperture = d.annotation.draft[0] if d.annotation.draft[0]["kind"] in HOSTED_ANNOTATIONS else None
         # Cursor quotes refer to the actual pointer projection. Jamb snapping
         # may put an opening's center elsewhere; its clearances are separate.
         lines = d.selection.lines  # Current displayed model; do not renormalize on every mouse event.

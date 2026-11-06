@@ -15,9 +15,13 @@ from survey.plan_annotation_rendering import annotation_item, annotation_path, a
 from qt_ui.qt_theme import QT_THEMES
 from survey.plan_labels import transform_labels, labels_geometry
 from survey.plan_label_rendering import label_item
+from survey.plan_geometry import segment_bounds
 from qt_ui.scaling import widget_px
+from qt_ui.qt_plan_objects import ObjectAnnotationDialog
+from survey.plan_objects import (FREE_ANNOTATIONS, HOSTED_ANNOTATIONS, object_default,
+                                 object_geometry, object_is_round)
 
-ANNOTATION_TOOLS = ("marker", "door", "window", "annotation_select", "annotation_eraser")
+ANNOTATION_TOOLS = ("marker", *HOSTED_ANNOTATIONS, *FREE_ANNOTATIONS, "annotation_select", "annotation_eraser")
 DOOR_CHOICES = (("single", 0, 1), ("single", 1, 1), ("single", 0, -1), ("single", 1, -1),
                 ("double", 0, 1), ("double", 0, -1), ("sliding", 0, 1), ("frame", 0, 1))
 
@@ -189,9 +193,9 @@ class AnnotationController:
 
     def configure(self, kind):
         density = self.owner.get_px_per_meter()
-        template = self.templates.get(kind) or dict(id="template", kind=kind, color="#d97706" if kind == "marker" else "#334155",
+        template = self.templates.get(kind) or (object_default(kind, density) if kind in FREE_ANNOTATIONS else dict(id="template", kind=kind, color="#d97706" if kind == "marker" else "#334155",
             stroke=3 if kind == "marker" else 2, points=[[0, 0], [1, 1]], x1=0, y1=0, x2=density * (.9 if kind == "door" else 1.2), y2=0,
-            variant="single", hinge=0, side=1)
+            variant="single", hinge=0, side=1))
         result = self.dialog(template)
         if result is not None:
             self.templates[kind] = result
@@ -204,7 +208,7 @@ class AnnotationController:
     def dialog(self, item):
         self.dialog_open = True
         session, pixmap = self.owner.session, self.view.pixmap_item
-        dialog = AnnotationDialog(self, item)
+        dialog = (ObjectAnnotationDialog if item["kind"] in FREE_ANNOTATIONS else AnnotationDialog)(self, item)
         try:
             if (dialog.exec() == QDialog.DialogCode.Accepted and self.drawing.tools.open
                     and session is self.owner.session and pixmap is self.view.pixmap_item):
@@ -268,7 +272,9 @@ class AnnotationController:
         items = self.drawing.annotations()
         for index in reversed(range(len(items))):
             stroker.setWidth(self.tolerance() * 2 + items[index]["stroke"])
-            if stroker.createStroke(annotation_path(items[index])).contains(QPointF(*point)):
+            path = annotation_path(items[index])
+            if ((items[index]["kind"] in FREE_ANNOTATIONS and path.contains(QPointF(*point)))
+                    or stroker.createStroke(path).contains(QPointF(*point))):
                 return (index,), ()
         hit = self.drawing.text.hit(QPointF(*point))
         return ((), (hit,)) if hit is not None else ((), ())
@@ -286,7 +292,13 @@ class AnnotationController:
         self.show(self.selected_items(), self.selected_texts())
         self.drawing.tools.update_tool_state()
         if self.selected or self.selected_labels:
-            self.drawing.show_measurement(self.owner.tr("annotation_selection_note"), self.last_pointer or QPointF())
+            items = self.selected_items()
+            if len(items) == 1 and not self.selected_labels and items[0]["kind"] in FREE_ANNOTATIONS:
+                text = self.object_measurement(items[0]) + "\n" + self.owner.tr(
+                    "object_round_selection_note" if object_is_round(items[0]) else "object_selection_note")
+            else:
+                text = self.owner.tr("object_selection_note" if any(a["kind"] in FREE_ANNOTATIONS for a in items) else "annotation_selection_note")
+            self.drawing.show_measurement(text, self.last_pointer or QPointF())
 
     def press(self, event):
         self.last_pointer = event.position()
@@ -297,7 +309,15 @@ class AnnotationController:
                 self.commit_selection(self.draft, self.draft_labels)
                 self.moving = False
             self.consume_release = True
-        elif tool in ("door", "window"):
+        elif tool in FREE_ANNOTATIONS:
+            self.update_object(event.position())
+            if self.pending and self.valid([self.pending]):
+                item = dict(self.pending, id=uuid4().hex)
+                self.drawing.apply_edit(self.drawing.segments() or [], annotations=self.drawing.annotations() + [item])
+            else:
+                self.owner.status.showMessage(self.owner.tr("object_invalid"))
+            self.consume_release = True
+        elif tool in HOSTED_ANNOTATIONS:
             self.update_aperture(event.position())
             if self.pending and self.valid([self.pending]):
                 self.drawing.apply_edit(self.drawing.segments() or [], annotations=self.drawing.annotations() + [self.pending])
@@ -310,6 +330,34 @@ class AnnotationController:
             if tool == "marker":
                 self.drawing.show_snap_guides(QRectF(QPointF(*self.origin), QPointF(*self.origin)))
         return True
+
+    def object_measurement(self, item):
+        sizes = [item["width"]] if item["kind"] == "symbol" or item["variant"] in ("square", "round", "l_equal") else [item["width"], item["height"]]
+        unit = distance_unit_label(self.owner.measurement_system)
+        values = [meters_to_display_units(size / self.owner.get_px_per_meter(), self.owner.measurement_system) for size in sizes]
+        return self.owner.tr("object_" + item["kind"] + "_" + item["variant"]) + "\n" + " × ".join(
+            self.drawing.measurement.locale().toString(value, "f", 2) for value in values) + " " + unit
+
+    def update_object(self, position):
+        template = self.templates.get(self.drawing.tools.active_tool)
+        if template is None:
+            return
+        point = self.view.mapToScene(position.toPoint())
+        if not self.view.scene.sceneRect().contains(point):
+            self.pending = None
+            self.clear_preview()
+            self.drawing.clear_snap_guides()
+            self.drawing.measurement.hide()
+            return
+        item = dict(template, id="preview", cx=point.x(), cy=point.y())
+        geometry = object_geometry(item)
+        snapped = self.drawing.snap_shape(geometry, centers=[(item["cx"], item["cy"])])
+        self.pending = transform_annotations([item], dx=snapped[0]["x1"] - geometry[0]["x1"],
+                                            dy=snapped[0]["y1"] - geometry[0]["y1"])[0]
+        self.show([self.pending], valid=self.valid([self.pending]))
+        self.drawing.show_snap_guides(annotation_path(self.pending).boundingRect())
+        note = "object_round_note" if object_is_round(item) else "object_place_note"
+        self.drawing.show_measurement(self.object_measurement(item) + "\n" + self.owner.tr(note), position)
 
     def update_aperture(self, position):
         tool = self.drawing.tools.active_tool
@@ -354,7 +402,9 @@ class AnnotationController:
         tool = self.drawing.tools.active_tool
         if self.moving:
             self.update_move(self.last_pointer)
-        elif tool in ("door", "window"):
+        elif tool in FREE_ANNOTATIONS:
+            self.update_object(self.last_pointer)
+        elif tool in HOSTED_ANNOTATIONS:
             self.update_aperture(self.last_pointer)
         elif tool == "marker":
             point = self.point(self.last_pointer, self.marker_grid, True)
@@ -368,7 +418,10 @@ class AnnotationController:
         if self.moving:
             self.update_move(event.position())
             return False
-        if tool in ("door", "window"):
+        if tool in FREE_ANNOTATIONS:
+            self.update_object(event.position())
+            return False
+        if tool in HOSTED_ANNOTATIONS:
             self.update_aperture(event.position())
             return False
         if self.origin is None or not event.buttons() & Qt.MouseButton.RightButton:
@@ -401,7 +454,8 @@ class AnnotationController:
             stroker = QPainterPathStroker()
             stroker.setWidth(2)
             self.selected = tuple(i for i, a in enumerate(self.drawing.annotations())
-                                  if stroker.createStroke(annotation_path(a)).intersects(area))
+                                  if (a["kind"] in FREE_ANNOTATIONS and annotation_path(a).intersects(area))
+                                  or stroker.createStroke(annotation_path(a)).intersects(area))
             self.selected_labels = self.drawing.text.intersecting(rect)
             self.show(self.selected_items(), self.selected_texts(), valid=tool != "annotation_eraser", rectangle=rect)
         return True
@@ -456,20 +510,30 @@ class AnnotationController:
         dx, dy = point[0] - self.anchor[0], point[1] - self.anchor[1]
         draft = transform_annotations(self.move_source, dx=dx, dy=dy)
         for index, item in enumerate(draft):
-            if item["kind"] != "marker":
+            if item["kind"] in HOSTED_ANNOTATIONS:
                 a, b = annotation_points(item)
                 center = [(a[i] + b[i]) / 2 for i in (0, 1)]
                 hosted = self.hosted(center, math.dist(a, b), item)
                 if hosted:
                     draft[index] = hosted
         self.draft, self.draft_labels = draft, transform_labels(self.label_source, dx=dx, dy=dy)
-        if not any(a["kind"] != "marker" for a in draft):
+        if not any(a["kind"] in HOSTED_ANNOTATIONS for a in draft):
             geometry = labels_geometry(self.draft_labels)
             for item in draft:
-                geometry.extend(dict(x1=a[0], y1=a[1], x2=b[0], y2=b[1], color=item["color"])
-                                for a, b in zip(item["points"], item["points"][1:]))
+                if item["kind"] in FREE_ANNOTATIONS:
+                    geometry.extend(object_geometry(item))
+                else:
+                    geometry.extend(dict(x1=a[0], y1=a[1], x2=b[0], y2=b[1], color=item["color"])
+                                    for a, b in zip(item["points"], item["points"][1:]))
             if geometry:
-                snapped = self.drawing.snap_shape(geometry)
+                centers = None
+                if any(a["kind"] in FREE_ANNOTATIONS for a in draft):
+                    centers = [(a["cx"], a["cy"]) for a in draft if a["kind"] in FREE_ANNOTATIONS]
+                    centers.extend((a["x"], a["y"]) for a in self.draft_labels)
+                    if len(draft) + len(self.draft_labels) > 1:
+                        left, top, right, bottom = segment_bounds(geometry)
+                        centers.append(((left + right) / 2, (top + bottom) / 2))
+                snapped = self.drawing.snap_shape(geometry, centers=centers)
                 dx, dy = snapped[0]["x1"] - geometry[0]["x1"], snapped[0]["y1"] - geometry[0]["y1"]
                 self.draft = transform_annotations(draft, dx=dx, dy=dy)
                 self.draft_labels = transform_labels(self.draft_labels, dx=dx, dy=dy)
@@ -489,16 +553,24 @@ class AnnotationController:
         return changed
 
     def rotate(self):
+        tool = self.drawing.tools.active_tool
+        if tool in FREE_ANNOTATIONS and tool in self.templates:
+            item = self.templates[tool]
+            if not object_is_round(item):
+                item["angle"] = (item["angle"] + 90) % 360
+                if self.last_pointer is not None:
+                    self.update_object(self.last_pointer)
+            return True
         items = deepcopy(self.draft if self.moving else self.selected_items())
         labels = deepcopy(self.draft_labels if self.moving else self.selected_texts())
         if not (items or labels):
             return False
         points = [p for a in items for p in annotation_points(a)] + [[a["x"], a["y"]] for a in labels]
         pivot = tuple((min(p[i] for p in points) + max(p[i] for p in points)) / 2 for i in (0, 1))
-        markers = transform_annotations([a for a in items if a["kind"] == "marker"], 90, pivot)
+        markers = transform_annotations([a for a in items if a["kind"] not in HOSTED_ANNOTATIONS], 90, pivot)
         marker_map = {a["id"]: a for a in markers}
         for item in items:
-            if item["kind"] == "marker":
+            if item["kind"] not in HOSTED_ANNOTATIONS:
                 item.update(marker_map[item["id"]])
             elif item["kind"] == "door" and item.get("variant", "single") in ("single", "double"):
                 item["side"] *= -1
@@ -522,5 +594,5 @@ class AnnotationController:
         if item is not None:
             if self.valid([item], exclude=[item["id"]]):
                 return self.commit_selection([item], [])
-            self.owner.status.showMessage(self.owner.tr("annotation_invalid"))
+            self.owner.status.showMessage(self.owner.tr("object_invalid" if item["kind"] in FREE_ANNOTATIONS else "annotation_invalid"))
         return False
