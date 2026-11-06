@@ -253,7 +253,7 @@ class PlanSelectionController:
     def show_area(self, position):
         rect = QRectF(self.origin, self.point(position)).normalized()
         indices = intersecting_segments(self.lines, rect.left(), rect.top(), rect.right(), rect.bottom())
-        self.area_labels = self.drawing.text.intersecting(rect)
+        self.area_labels = ()
         self.area_curves = intersecting_curves(self.drawing.curves(), rect.left(), rect.top(), rect.right(), rect.bottom())
         self.show_lines([self.lines[index] for index in indices],
                         labels=[self.drawing.text.labels[index] for index in self.area_labels],
@@ -284,8 +284,7 @@ class PlanSelectionController:
             label_indices = self.area_labels
             curve_indices = self.area_curves
         else:
-            hit = self.drawing.text.hit(self.origin)
-            label_indices = (hit,) if hit is not None else ()
+            label_indices = ()
             indices, curve_indices = ((), ()) if label_indices else self.pick_stroke(self.origin)
             if not (label_indices or indices or curve_indices):
                 region = self.regions().pick(self.origin)
@@ -336,7 +335,8 @@ class PlanSelectionController:
         selected = tuple(index for index, source in enumerate(sources) if all(origin >= len(others) for origin in source))
         selected_curves = tuple(index for index, source in enumerate(curve_sources) if all(origin >= len(other_curves) for origin in source))
         other_labels = [label for index, label in enumerate(self.drawing.text.labels) if index not in self.selected_labels]
-        changed = self.drawing.apply_edit(normalized, other_labels + list(transformed_labels), curves)
+        changed = self.drawing.apply_edit(normalized, other_labels + list(transformed_labels), curves,
+                                          annotation_move=(current, transformed))
         if changed:
             self.set_selected(selected, range(len(other_labels), len(other_labels) + len(transformed_labels)), selected_curves, region_area=region_area)
         elif self.moving:

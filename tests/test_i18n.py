@@ -223,6 +223,9 @@ LAYOUT_SENSITIVE_KEYS = (
 )
 
 ALLOWED_IDENTICAL_TRANSLATION_KEYS = frozenset({
+    "annotation_structure",  # These three labels are also correct French nouns.
+    "annotation_group",
+    "annotation_type",
     "blank_tool_rectangle",  # Rectangle is also the French noun.
     "app_title",
     "copyright",

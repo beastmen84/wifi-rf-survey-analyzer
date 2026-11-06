@@ -1,6 +1,6 @@
 # Wi-Fi RF Survey Analyzer - Architecture Notes
 
-Last updated: 2026-11-05
+Last updated: 2026-11-06
 
 This document is the forward-looking product roadmap. Completed items are kept
 only as context; the actionable backlog is in the "Remaining Work" section.
@@ -22,6 +22,38 @@ interpolated colors.
 
 Current status:
 
+- Design Mode now separates Structure (rectangle/line/circle/arc/eraser/select)
+  and Annotations (marker/window/door/text/select), with per-group selection and
+  a common history/action row. UI structure picking/marquee/double-click ignore
+  text and annotations. Old programmatic mixed-label transform helpers remain
+  for compatibility; normal UI cannot create a mixed structural selection.
+- plan_annotations JSON v1 stores bounded, stable-ID marker paths and straight
+  wall-hosted aperture endpoints/style. Hosts are geometric collinear coverage
+  runs across normalized segment cuts, not mutable list indices. Width/hinge/
+  opening-side properties are editable; doors support single/double/sliding.
+  Marker has independent dashed color/graphical stroke and free/grid gestures.
+  Markers/text rotate by quarter-turns in annotation selection; R flips a swing
+  door. Physical wall thickness and RF material modeling stay deferred.
+- Logical segments remain complete for regions/snapping/areas/Fill. Only visible
+  collinear wall ink is subtracted at aperture intervals; crossing walls, grid
+  and background are untouched. Scene paths retain one item per logical line so
+  structural move/rotation indices stay valid. Annotation paths are shared among
+  hit tests, native scene and raster PNG/Live/Analysis/HTML rendering. Fingerprints
+  include annotations and render workers deep-copy nested marker points.
+- Selection transforms carry apertures supported by the moved straight runs via
+  the same rigid map; support removal drops apertures in the same history entry.
+  Invalid fit/overlap/out-of-sheet placements leave history/model unchanged.
+  Annotation-only M/Del/properties and text editing leave structure untouched.
+  Save/reopen and transaction rollback use optional annotation metadata; importing
+  a plan clears it. Grid paths and annotations never participate in room topology.
+- Annotation verification:1525 tests +475 subtests passed on native Windows in
+  130.46s (.private/annotations-suite.txt), including both actual workspace HTML
+  exports, nested worker copies and failed-save rollback. Focused closeout passed
+  196 +434 subtests in21.88s. Native Qt layout checks passed16 combinations of
+  EN/IT/FR/ES × light/dark × UI100/175, including property dialogs; test_data
+  SHA256s remained unchanged. Inspected light canvas, door properties and enlarged
+  dark palette. These are source widget/QTest checks, not physical mouse or EXE
+  validation. Essential Ruff and diff checks pass; no release build/push implied.
 - Straight same-color overlaps/duplicates now form a geometric union in
   plan_geometry.join_segments. After intersection/overlap splitting, identical
   unordered endpoint/color pairs collapse while collecting all original source
@@ -1352,12 +1384,13 @@ Keep the intermittent native Qt/COM diagnostic open until explained. Package
 validation belongs to an explicitly requested release build; no version bump,
 tag or new executable is implied by the corrections.
 
-### Drawing: Annotation Proposal And Deferred Wall Thickness
+### Drawing: Annotations And Deferred Wall Thickness
 
-Status: design notes only; no annotation or physical-wall implementation yet.
+Status: marker/door/window annotations and isolated selections implemented;
+physical wall modeling remains deferred.
 The user explicitly deferred physical wall thickness/material modeling pending
-more careful geometric design, and proposed marker/door/window annotations as
-the next drawing work. Existing editable Text remains available.
+more careful geometric design. Existing editable Text now shares the annotation
+selection with marker/door/window tools.
 
 Deferred physical walls:
 
@@ -1376,7 +1409,7 @@ Deferred physical walls:
   must also respect material/thickness, not just color. Do not infer RF losses
   from these properties as part of the annotation work.
 
-Proposed non-structural annotation tools (not yet implemented):
+Implemented non-structural annotation tools:
 
 - Marker: freely drawn dashed paths or grid-following paths, with independent
   color and visual stroke width. Render above structural lines; exclude from
@@ -1389,22 +1422,20 @@ Proposed non-structural annotation tools (not yet implemented):
   and draw the annotation above it; never cut/delete the underlying wall or cover
   the whole composite with an opaque white patch. Topology and areas retain the
   intact structural model, including for Boundaries Fill/Auto Fill.
-- Proposed first scope for hosted apertures: straight segments, including oblique
+- Current scope for hosted apertures: straight segments, including oblique
   ones. Curved hosts require a separate placement/symbol design. Single doors
-  need independent hinge-end and opening-side controls to describe both sides.
-- Host association must survive segment splitting/fusion; a mutable list index
-  is insufficient. Define association/rebinding and invalid-host behavior before
-  implementation. Proposed behavior: annotations follow rigid host moves; host
+  have independent hinge-end and opening-side controls to describe both sides.
+- Host association survives segment splitting/fusion through collinear endpoint
+  coverage, rather than a mutable list index. Annotations follow rigid host moves; host
   deletion removes affected attached annotations in the same undoable edit.
   Reject an aperture wider than its usable host run or overlapping an existing
   aperture on the same host, with clear placement feedback.
-- Annotations should share existing select/edit/move/Del and undo/redo behavior,
+- Annotations use dedicated select/edit/move/Del and shared undo/redo behavior,
   persist on save/reopen and render consistently in PNG, Live Map and HTML.
   Door/window movement stays attached to a valid wall. Markers remain independent.
-- Suggested implementation order: marker and shared annotation storage/rendering,
-  then wall-hosted windows/masking, then door variants and opening controls.
-  This proposal records the discussion; tool interactions and scope still await
-  implementation agreement. Physical walls remain deferred independently.
+- Implemented with common annotation storage/rendering and wall-ink masking.
+  Physical walls remain deferred independently. Curved aperture hosts, physical
+  materials and detailed architectural wall offsets are outside this step.
 
 ### 1. AP Group Manager UX Monitoring
 
@@ -1760,8 +1791,8 @@ Future expansion:
 15. Validate the completed initial blank-sheet editor on real survey workflows:
     custom dimensions, rectangles, lines, circles/arcs, text, snapping, fragment
     erasing, selection/transforms, closed-area grid fading and boundary fills.
-    Marker/door/window annotations are the proposed next editor step, documented
-    under Remaining Work. Physical wall thickness/materials are explicitly
+    Validate the implemented marker/door/window annotations and isolated tool
+    selections in real plans. Physical wall thickness/materials are explicitly
     deferred pending a room/shared-wall model preserving internal dimensions.
     Keep the editor focused on survey-ready plans.
 16. Add richer deployment/reporting outputs.

@@ -1,0 +1,412 @@
+"""Annotation-only gestures, properties and selection; never edits walls."""
+from copy import deepcopy
+import math
+from uuid import uuid4
+
+from PySide6.QtCore import QPointF, QRectF, Qt
+from PySide6.QtGui import QColor, QPainterPath, QPainterPathStroker
+from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, QDialog,
+    QDialogButtonBox, QDoubleSpinBox, QFormLayout, QLabel, QPushButton, QVBoxLayout)
+
+from app_core.units import distance_unit_label, display_units_to_meters, meters_to_display_units
+from survey.plan_annotations import (annotation_points, overlaps, place_aperture, supported,
+                                     transform_annotations, validate_annotations)
+from survey.plan_annotation_rendering import annotation_item, annotation_path, annotation_fits
+from survey.plan_labels import transform_labels, labels_geometry
+from survey.plan_label_rendering import label_item
+from qt_ui.scaling import widget_px
+
+ANNOTATION_TOOLS = ("marker", "door", "window", "annotation_select")
+
+
+class AnnotationDialog(QDialog):
+    def __init__(self, controller, item):
+        super().__init__(controller.owner)
+        self.controller, self.value = controller, deepcopy(item)
+        owner = controller.owner
+        self.setWindowTitle(owner.tr("annotation_" + item["kind"]))
+        self.setMinimumWidth(widget_px(owner, 380))
+        layout = QVBoxLayout(self)
+        form = QFormLayout()
+        layout.addLayout(form)
+        self.color = QPushButton()
+        def update_color():
+            self.color.setText(self.value["color"])
+            self.color.setStyleSheet("border:2px solid " + self.value["color"] + ";padding:6px;")
+        def choose():
+            value = QColorDialog.getColor(QColor(self.value["color"]), self)
+            if value.isValid():
+                self.value["color"] = value.name()
+                update_color()
+        self.color.clicked.connect(choose)
+        update_color()
+        form.addRow(owner.tr("blank_tool_color"), self.color)
+        self.stroke = QDoubleSpinBox()
+        self.stroke.setRange(.5, 20)
+        self.stroke.setSingleStep(.5)
+        self.stroke.setValue(item["stroke"])
+        self.stroke.setSuffix(" px")
+        form.addRow(owner.tr("annotation_stroke"), self.stroke)
+        if item["kind"] == "marker":
+            self.grid = QCheckBox(owner.tr("annotation_grid"))
+            self.grid.setChecked(controller.marker_grid)
+            form.addRow(self.grid)
+        else:
+            self.width = QDoubleSpinBox()
+            self.width.setDecimals(2)
+            self.width.setRange(.01, meters_to_display_units(100, owner.measurement_system))
+            self.width.setSingleStep(.01)
+            self.width.setSuffix(" " + distance_unit_label(owner.measurement_system))
+            self.width.setValue(meters_to_display_units(math.dist(*annotation_points(item)) / owner.get_px_per_meter(), owner.measurement_system))
+            form.addRow(owner.tr("blank_plan_width"), self.width)
+            if item["kind"] == "door":
+                self.variant = QComboBox()
+                for key in ("single", "double", "sliding"):
+                    self.variant.addItem(owner.tr("annotation_" + key), key)
+                self.variant.setCurrentIndex(self.variant.findData(item.get("variant", "single")))
+                form.addRow(owner.tr("annotation_type"), self.variant)
+                self.hinge = QCheckBox(owner.tr("annotation_hinge"))
+                self.hinge.setChecked(bool(item.get("hinge")))
+                self.side = QCheckBox(owner.tr("annotation_side"))
+                self.side.setChecked(item.get("side", 1) < 0)
+                form.addRow(self.hinge)
+                form.addRow(self.side)
+                def update_variant():
+                    self.hinge.setEnabled(self.variant.currentData() == "single")
+                    self.side.setEnabled(self.variant.currentData() != "sliding")
+                self.variant.currentIndexChanged.connect(update_variant)
+                update_variant()
+        hint = QLabel(owner.tr("annotation_properties_hint"))
+        hint.setWordWrap(True)
+        layout.addWidget(hint)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(owner.tr("cancel"))
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def properties(self):
+        result = deepcopy(self.value)
+        result["stroke"] = self.stroke.value()
+        if result["kind"] == "marker":
+            self.controller.marker_grid = self.grid.isChecked()
+        else:
+            width = display_units_to_meters(self.width.value(), self.controller.owner.measurement_system) * self.controller.owner.get_px_per_meter()
+            a, b = annotation_points(result)
+            length = math.dist(a, b)
+            cx, cy = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
+            ux, uy = (b[0] - a[0]) / length, (b[1] - a[1]) / length
+            result.update(x1=cx - width * ux / 2, y1=cy - width * uy / 2,
+                          x2=cx + width * ux / 2, y2=cy + width * uy / 2)
+            if result["kind"] == "door":
+                result.update(variant=self.variant.currentData(), hinge=int(self.hinge.isChecked()), side=-1 if self.side.isChecked() else 1)
+        return result
+
+
+class AnnotationController:
+    def __init__(self, drawing):
+        self.drawing, self.owner, self.view = drawing, drawing.owner, drawing.view
+        self.items, self.preview = [], []
+        self.selected, self.selected_labels = (), ()
+        self.origin = self.last_pointer = None
+        self.moving = self.dialog_open = self.consume_release = False
+        self.pending, self.path, self.draft, self.draft_labels = None, [], [], []
+        self.marker_grid = False
+        self.templates = {}
+
+    def reset_scene(self):
+        self.items, self.preview = [], []
+        self.cancel()
+
+    def cancel(self):
+        existed = bool(self.selected or self.selected_labels or self.origin is not None or self.moving or self.path or self.pending)
+        self.clear_preview()
+        self.selected, self.selected_labels = (), ()
+        self.origin = self.last_pointer = None
+        self.moving = self.consume_release = False
+        self.pending, self.path, self.draft, self.draft_labels = None, [], [], []
+        return existed
+
+    def clear_preview(self):
+        for item in self.preview:
+            self.view.scene.removeItem(item)
+        self.preview = []
+
+    def hide_preview(self):
+        for item in self.preview:
+            item.hide()
+
+    def redraw(self, items):
+        self.cancel()
+        for item in self.items:
+            self.view.scene.removeItem(item)
+        self.items = []
+        for annotation in items:
+            item = annotation_item(annotation)
+            self.view.scene.addItem(item)
+            self.items.append(item)
+
+    def configure(self, kind):
+        density = self.owner.get_px_per_meter()
+        template = self.templates.get(kind) or dict(id="template", kind=kind, color="#d97706" if kind == "marker" else "#334155",
+            stroke=3 if kind == "marker" else 2, points=[[0, 0], [1, 1]], x1=0, y1=0, x2=density * (.9 if kind == "door" else 1.2), y2=0,
+            variant="single", hinge=0, side=1)
+        result = self.dialog(template)
+        if result is not None:
+            self.templates[kind] = result
+            if self.marker_grid:
+                self.owner.set_floorplan_grid_enabled(True, show_status=False)
+        return result is not None
+
+    def dialog(self, item):
+        self.dialog_open = True
+        session, pixmap = self.owner.session, self.view.pixmap_item
+        dialog = AnnotationDialog(self, item)
+        try:
+            if (dialog.exec() == QDialog.DialogCode.Accepted and self.drawing.tools.open
+                    and session is self.owner.session and pixmap is self.view.pixmap_item):
+                return dialog.properties()
+        finally:
+            dialog.deleteLater()
+            self.dialog_open = False
+        return None
+
+    def valid(self, items, labels=(), exclude=(), lines=None):
+        try:
+            validate_annotations(items)
+        except (ValueError, TypeError, KeyError, OverflowError):
+            return False
+        others = [a for a in self.drawing.annotations() if a["id"] not in exclude]
+        bounds = self.view.scene.sceneRect()
+        for item in items:
+            if not annotation_fits(item, bounds):
+                return False
+            if not supported(item, self.drawing.segments() or [] if lines is None else lines) or overlaps(item, others):
+                return False
+            others.append(item)
+        return self.drawing.selection.fits(labels_geometry(labels)) if labels else True
+
+    def show(self, items=(), labels=(), valid=True, rectangle=None):
+        self.clear_preview()
+        for annotation in items:
+            self.preview.append(annotation_item(annotation, "#0284c7" if valid else "#ef4444"))
+        for label in labels:
+            self.preview.append(label_item(label))
+        if rectangle is not None:
+            from PySide6.QtWidgets import QGraphicsRectItem
+            from PySide6.QtGui import QPen
+            item = QGraphicsRectItem(rectangle)
+            item.setPen(QPen(QColor("#0284c7"), 1, Qt.PenStyle.DashLine))
+            self.preview.append(item)
+        for item in self.preview:
+            item.setZValue(9)
+            item.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
+            self.view.scene.addItem(item)
+
+    def point(self, position, grid=False):
+        p = self.view.mapToScene(position.toPoint())
+        bounds = self.view.scene.sceneRect()
+        x, y = min(max(p.x(), bounds.left()), bounds.right()), min(max(p.y(), bounds.top()), bounds.bottom())
+        if grid and not self.drawing.snap_bypass:
+            step = self.view.grid_spacing_pixels()
+            if step:
+                x, y = min(bounds.right(), round(x / step) * step), min(bounds.bottom(), round(y / step) * step)
+        return [x, y]
+
+    def tolerance(self):
+        return widget_px(self.owner, 10) / max(1e-9, abs(self.view.transform().m11()))
+
+    def pick(self, point):
+        stroker = QPainterPathStroker()
+        items = self.drawing.annotations()
+        for index in reversed(range(len(items))):
+            stroker.setWidth(self.tolerance() * 2 + items[index]["stroke"])
+            if stroker.createStroke(annotation_path(items[index])).contains(QPointF(*point)):
+                return (index,), ()
+        hit = self.drawing.text.hit(QPointF(*point))
+        return ((), (hit,)) if hit is not None else ((), ())
+
+    def selected_items(self):
+        items = self.drawing.annotations()
+        return [items[i] for i in self.selected]
+
+    def selected_texts(self):
+        labels = self.drawing.labels()
+        return [labels[i] for i in self.selected_labels]
+
+    def select(self, indices=(), labels=()):
+        self.selected, self.selected_labels = tuple(indices), tuple(labels)
+        self.show(self.selected_items(), self.selected_texts())
+        self.drawing.tools.update_tool_state()
+        if self.selected or self.selected_labels:
+            self.drawing.show_measurement(self.owner.tr("annotation_selection_note"), self.last_pointer or QPointF())
+
+    def press(self, event):
+        self.last_pointer = event.position()
+        tool = self.drawing.tools.active_tool
+        if self.moving:
+            self.update_move(event.position())
+            if self.valid(self.draft, self.draft_labels, exclude=[a["id"] for a in self.selected_items()]):
+                self.commit_selection(self.draft, self.draft_labels)
+                self.moving = False
+            self.consume_release = True
+        elif tool in ("door", "window"):
+            self.update_aperture(event.position())
+            if self.pending and self.valid([self.pending]):
+                self.drawing.apply_edit(self.drawing.segments() or [], annotations=self.drawing.annotations() + [self.pending])
+            else:
+                self.owner.status.showMessage(self.owner.tr("annotation_invalid"))
+            self.consume_release = True
+        else:
+            self.origin = self.point(event.position(), tool == "marker" and self.marker_grid)
+            self.path = [self.origin] if tool == "marker" else []
+        return True
+
+    def update_aperture(self, position):
+        tool = self.drawing.tools.active_tool
+        template = deepcopy(self.templates.get(tool))
+        if not template:
+            return
+        template["id"] = uuid4().hex
+        self.pending = place_aperture(self.point(position), math.dist(*annotation_points(template)),
+                                      self.drawing.segments() or [], self.tolerance(), template)
+        valid = self.pending is not None and self.valid([self.pending])
+        self.show([self.pending] if self.pending else [], valid=valid)
+        self.drawing.show_measurement(self.owner.tr("annotation_place_note" if valid else "annotation_invalid"), position)
+
+    def move(self, event):
+        self.last_pointer = event.position()
+        tool = self.drawing.tools.active_tool
+        if self.moving:
+            self.update_move(event.position())
+            return False
+        if tool in ("door", "window"):
+            self.update_aperture(event.position())
+            return False
+        if self.origin is None or not event.buttons() & Qt.MouseButton.RightButton:
+            return False
+        point = self.point(event.position(), tool == "marker" and self.marker_grid)
+        if tool == "marker":
+            if math.dist(point, self.path[-1]) >= max(.1, self.tolerance() / 10):
+                if len(self.path) >= 9998:
+                    return True
+                if self.marker_grid and not self.drawing.snap_bypass and point[0] != self.path[-1][0] and point[1] != self.path[-1][1]:
+                    self.path.append([point[0], self.path[-1][1]])
+                self.path.append(point)
+            if len(self.path) >= 2:
+                self.show([dict(self.templates["marker"], id="preview", points=self.path)])
+        else:
+            rect = QRectF(QPointF(*self.origin), QPointF(*point)).normalized()
+            area = QPainterPath()
+            area.addRect(rect)
+            stroker = QPainterPathStroker()
+            stroker.setWidth(2)
+            self.selected = tuple(i for i, a in enumerate(self.drawing.annotations())
+                                  if stroker.createStroke(annotation_path(a)).intersects(area))
+            self.selected_labels = self.drawing.text.intersecting(rect)
+            self.show(self.selected_items(), self.selected_texts(), rectangle=rect)
+        return True
+
+    def release(self, event):
+        if self.consume_release:
+            self.consume_release = False
+            return True
+        if self.origin is None:
+            return True
+        if self.drawing.tools.active_tool == "marker":
+            self.move(event)  # The release endpoint is also sampled below.
+            point = self.point(event.position(), self.marker_grid)
+            if point != self.path[-1]:
+                if self.marker_grid and not self.drawing.snap_bypass and point[0] != self.path[-1][0] and point[1] != self.path[-1][1]:
+                    self.path.append([point[0], self.path[-1][1]])
+                self.path.append(point)
+            if len(self.path) >= 2:
+                item = dict(self.templates["marker"], id=uuid4().hex, points=self.path)
+                if self.valid([item]):
+                    self.drawing.apply_edit(self.drawing.segments() or [], annotations=self.drawing.annotations() + [item])
+            self.cancel()
+        else:
+            if math.dist(self.origin, self.point(event.position())) <= self.tolerance() / 2:
+                self.selected, self.selected_labels = self.pick(self.origin)
+            self.origin = None
+            self.select(self.selected, self.selected_labels)
+        return True
+
+    def delete(self):
+        if not (self.selected or self.selected_labels):
+            return False
+        items = [a for i, a in enumerate(self.drawing.annotations()) if i not in self.selected]
+        labels = [a for i, a in enumerate(self.drawing.labels()) if i not in self.selected_labels]
+        self.cancel()
+        return self.drawing.apply_edit(self.drawing.segments() or [], labels=labels, annotations=items)
+
+    def begin_move(self):
+        if not (self.selected or self.selected_labels):
+            return False
+        self.move_source, self.label_source = deepcopy(self.selected_items()), deepcopy(self.selected_texts())
+        self.anchor = self.point(self.last_pointer) if self.last_pointer is not None else annotation_points(self.move_source[0])[0] if self.move_source else [self.label_source[0]["x"], self.label_source[0]["y"]]
+        self.draft, self.draft_labels = self.move_source, self.label_source
+        self.moving = True
+        return True
+
+    def update_move(self, position):
+        point = self.point(position, self.drawing.tools.snap_button.isChecked())
+        dx, dy = point[0] - self.anchor[0], point[1] - self.anchor[1]
+        draft = transform_annotations(self.move_source, dx=dx, dy=dy)
+        for index, item in enumerate(draft):
+            if item["kind"] != "marker":
+                a, b = annotation_points(item)
+                center = [(a[i] + b[i]) / 2 for i in (0, 1)]
+                hosted = place_aperture(center, math.dist(a, b), self.drawing.segments() or [], self.tolerance(), item)
+                if hosted:
+                    draft[index] = hosted
+        self.draft, self.draft_labels = draft, transform_labels(self.label_source, dx=dx, dy=dy)
+        self.show(draft, self.draft_labels, valid=self.valid(draft, self.draft_labels, exclude=[a["id"] for a in self.move_source]))
+
+    def commit_selection(self, items, labels):
+        ids, label_ids = [a["id"] for a in items], [a["id"] for a in labels]
+        replacements, text_replacements = {a["id"]: a for a in items}, {a["id"]: a for a in labels}
+        annotations = [replacements.get(a["id"], a) for a in self.drawing.annotations()]
+        texts = [text_replacements.get(a["id"], a) for a in self.drawing.labels()]
+        changed = self.drawing.apply_edit(self.drawing.segments() or [], labels=texts, annotations=annotations)
+        self.cancel()
+        self.select([i for i, a in enumerate(self.drawing.annotations()) if a["id"] in ids],
+                    [i for i, a in enumerate(self.drawing.labels()) if a["id"] in label_ids])
+        return changed
+
+    def rotate(self):
+        items = deepcopy(self.draft if self.moving else self.selected_items())
+        labels = deepcopy(self.draft_labels if self.moving else self.selected_texts())
+        if not (items or labels):
+            return False
+        points = [p for a in items for p in annotation_points(a)] + [[a["x"], a["y"]] for a in labels]
+        pivot = tuple((min(p[i] for p in points) + max(p[i] for p in points)) / 2 for i in (0, 1))
+        markers = transform_annotations([a for a in items if a["kind"] == "marker"], 90, pivot)
+        marker_map = {a["id"]: a for a in markers}
+        for item in items:
+            if item["kind"] == "marker":
+                item.update(marker_map[item["id"]])
+            elif item["kind"] == "door" and item.get("variant") != "sliding":
+                item["side"] *= -1
+        labels = transform_labels(labels, 90, pivot)
+        if self.valid(items, labels, exclude=[a["id"] for a in self.selected_items()]):
+            if self.moving:
+                self.move_source, self.label_source = items, labels
+                self.anchor = self.point(self.last_pointer) if self.last_pointer is not None else list(pivot)
+                self.draft, self.draft_labels = items, labels
+                self.show(items, labels)
+            else:
+                self.commit_selection(items, labels)
+        return True
+
+    def edit(self):
+        if len(self.selected_labels) == 1 and not self.selected:
+            return self.drawing.text.edit(self.selected_labels[0])
+        if len(self.selected) != 1 or self.selected_labels:
+            return False
+        item = self.dialog(self.selected_items()[0])
+        if item is not None:
+            if self.valid([item], exclude=[item["id"]]):
+                return self.commit_selection([item], [])
+            self.owner.status.showMessage(self.owner.tr("annotation_invalid"))
+        return False

@@ -24,6 +24,9 @@ from qt_ui.qt_plan_eraser import PlanEraserController
 from qt_ui.qt_line_design import LineDesignController
 from qt_ui.qt_plan_selection import PlanSelectionController
 from qt_ui.qt_plan_rotation import PlanRotationController
+from qt_ui.qt_plan_annotations import AnnotationController, ANNOTATION_TOOLS
+from survey.plan_annotations import (PLAN_ANNOTATIONS_KEY, drawing_annotations, encode_annotations,
+    validate_annotations, visible_wall_segments, follow_hosts, supported)
 
 
 class RectanglePreview(QGraphicsPathItem):
@@ -108,6 +111,7 @@ class RectangleDesignController(QObject):
         self.curve = CurveDesignController(self)
         self.selection = PlanSelectionController(self)
         self.rotation = PlanRotationController(self)
+        self.annotation = AnnotationController(self)
         self.owner.installEventFilter(self)
         self.view.installEventFilter(self)
         self.view.viewport().installEventFilter(self)
@@ -116,7 +120,7 @@ class RectangleDesignController(QObject):
         if source is self.view.viewport() and event.type() == QEvent.Type.Resize:
             self.position_measurement()
         if source is self.owner and event.type() == QEvent.Type.WindowDeactivate and not (
-                self.text.dialog_open or self.curve.dialog_open or getattr(self.owner, "grid_dialog_open", False)):
+                self.text.dialog_open or self.curve.dialog_open or self.annotation.dialog_open or getattr(self.owner, "grid_dialog_open", False)):
             self.cancel()
         if event.type() == QEvent.Type.KeyRelease and event.key() == Qt.Key.Key_R and self.rotation.active:
             if not event.isAutoRepeat():
@@ -134,6 +138,12 @@ class RectangleDesignController(QObject):
                 and not isinstance(QApplication.focusWidget(), (QLineEdit, QTextEdit, QPlainTextEdit, QAbstractSpinBox, QComboBox))):
             if event.isAutoRepeat():
                 return True
+            if self.tools.active_tool == "annotation_select":
+                if event.key() == Qt.Key.Key_Delete:
+                    return self.annotation.delete()
+                if event.key() == Qt.Key.Key_M:
+                    return self.annotation.begin_move()
+                return self.annotation.rotate()
             if event.key() == Qt.Key.Key_R:
                 return self.rotation.begin()
             elif event.key() == Qt.Key.Key_Delete and self.tools.active_tool == "select":
@@ -148,6 +158,10 @@ class RectangleDesignController(QObject):
         session = self.owner.session
         changed_scene = session is not self.session or self.view.pixmap_item is not self.pixmap
         if changed_scene:
+            self.annotation.templates.clear()
+            self.annotation.marker_grid = False
+            if self.tools.active_tool in ("marker", "door", "window"):
+                self.tools.active_tool = "annotation_select"
             if self.view.pixmap_item is not self.pixmap:
                 # scene.clear() has already destroyed these C++ graphics items.
                 self.preview = None
@@ -159,13 +173,14 @@ class RectangleDesignController(QObject):
                 self.text.reset_scene()
                 self.curve.reset_scene()
                 self.selection.reset_scene()
+                self.annotation.reset_scene()
             self.cancel()
             self.undo_stack.clear()
             self.redo_stack.clear()
             self.last_size = None
             self.session, self.pixmap = session, self.view.pixmap_item
             self.document = None
-        document = tuple(session.metadata.get(key) for key in (PLAN_DRAWING_KEY, PLAN_LABELS_KEY, PLAN_CURVES_KEY)) if session else None
+        document = tuple(session.metadata.get(key) for key in (PLAN_DRAWING_KEY, PLAN_LABELS_KEY, PLAN_CURVES_KEY, PLAN_ANNOTATIONS_KEY)) if session else None
         if changed_scene or document != self.document:
             self.redraw()
             self.document = document
@@ -181,6 +196,9 @@ class RectangleDesignController(QObject):
     def curves(self):
         return drawing_geometry(self.owner.session.metadata)[1] if self.owner.session else []
 
+    def annotations(self):
+        return drawing_annotations(self.owner.session.metadata) if self.owner.session else []
+
     def redraw(self):
         self.rotation.cancel()
         self.eraser.cancel()
@@ -188,12 +206,14 @@ class RectangleDesignController(QObject):
         self.text.cancel()
         self.curve.cancel()
         self.selection.cancel()
+        self.annotation.cancel()
         for item in self.items:
             self.view.scene.removeItem(item)
         self.items = []
         lines = self.segments()
         labels = self.labels()
         curves = self.curves()
+        annotations = self.annotations()
         bounds = self.view.scene.sceneRect()
         if any(line[key] > extent + 1e-7 for line in lines or []
                for keys, extent in ((('x1', 'x2'), bounds.width()), (('y1', 'y2'), bounds.height())) for key in keys):
@@ -202,6 +222,8 @@ class RectangleDesignController(QObject):
             raise ValueError("Saved text is outside the sheet")
         if curves and not self.selection.fits(curves_geometry(curves)):
             raise ValueError("Saved curve is outside the sheet")
+        if annotations and not self.annotation.valid(annotations, exclude=[a["id"] for a in annotations], lines=lines or []):
+            raise ValueError("Saved annotations have invalid placement")
         self.eraser.set_segments(lines or [])
         self.selection.set_segments(lines or [])
         self.snapper = PlanSnapper(lines or [], curves)
@@ -213,8 +235,13 @@ class RectangleDesignController(QObject):
             white = QPixmap(self.view.pixmap_item.pixmap().size())
             white.fill(Qt.GlobalColor.white)
             self.view.pixmap_item.setPixmap(white)
-        for line in lines or []:
-            item = QGraphicsLineItem(line["x1"], line["y1"], line["x2"], line["y2"])
+        paths = [QPainterPath() for line in lines or []]
+        visible, sources = visible_wall_segments(lines or [], annotations, with_sources=True)
+        for part, index in zip(visible, sources):
+            paths[index].moveTo(part["x1"], part["y1"])
+            paths[index].lineTo(part["x2"], part["y2"])
+        for line, path in zip(lines or [], paths):
+            item = QGraphicsPathItem(path)
             item.setPen(QPen(QColor(line["color"]), 2))
             item.setZValue(5)
             item.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
@@ -222,9 +249,10 @@ class RectangleDesignController(QObject):
             self.items.append(item)
         self.text.redraw(labels)
         self.curve.redraw(curves)
+        self.annotation.redraw(annotations)
 
     def cancel(self):
-        states = (self.rotation.cancel(), self.eraser.cancel(), self.line.cancel(), self.text.cancel(), self.curve.cancel(), self.selection.cancel(),
+        states = (self.rotation.cancel(), self.eraser.cancel(), self.line.cancel(), self.text.cancel(), self.curve.cancel(), self.selection.cancel(), self.annotation.cancel(),
                   self.origin is not None, self.pending_size is not None)
         existed = any(states)
         if self.preview is not None:
@@ -248,6 +276,7 @@ class RectangleDesignController(QObject):
         self.text.hide_preview()
         self.curve.hide_preview()
         self.selection.hide_preview()
+        self.annotation.hide_preview()
         self.last_pointer = None
         if self.preview is not None:
             self.preview.hide()
@@ -291,6 +320,8 @@ class RectangleDesignController(QObject):
 
     def refresh_snap(self):
         if self.rotation.active:
+            return
+        if self.tools.active_tool in ANNOTATION_TOOLS:
             return
         if self.tools.active_tool in ("circle", "arc"):
             self.curve.refresh_snap()
@@ -392,6 +423,8 @@ class RectangleDesignController(QObject):
             return True
         if event.button() != Qt.MouseButton.RightButton:
             return False
+        if self.tools.active_tool in ANNOTATION_TOOLS:
+            return self.annotation.press(event)
         if self.tools.active_tool in ("circle", "arc"):
             return self.curve.press(event)
         if self.tools.active_tool == "eraser":
@@ -420,12 +453,12 @@ class RectangleDesignController(QObject):
         return True
 
     def double_click(self, event):
+        if self.tools.active_tool == "annotation_select" and event.button() == Qt.MouseButton.RightButton:
+            self.annotation.select(*self.annotation.pick(self.annotation.point(event.position())))
+            self.annotation.edit()
+            return True
         if (self.tools.active_tool == "select" and not self.rotation.active and not self.selection.moving
                 and event.button() == Qt.MouseButton.RightButton):
-            index = self.text.hit(self.view.mapToScene(event.position().toPoint()))
-            if index is not None:
-                self.selection.cancel()
-                return self.text.edit(index)
             hits = self.eraser.pick_curves(self.view.mapToScene(event.position().toPoint()))
             if hits:
                 self.selection.cancel()
@@ -436,6 +469,8 @@ class RectangleDesignController(QObject):
         if self.rotation.active:
             self.rotation.move(event.position())
             return True
+        if self.tools.active_tool in ANNOTATION_TOOLS:
+            return self.annotation.move(event)
         if self.tools.active_tool in ("circle", "arc"):
             return self.curve.move(event)
         if self.tools.active_tool == "eraser":
@@ -466,6 +501,8 @@ class RectangleDesignController(QObject):
             return True
         if event.button() != Qt.MouseButton.RightButton:
             return False
+        if self.tools.active_tool in ANNOTATION_TOOLS:
+            return self.annotation.release(event)
         if self.tools.active_tool in ("circle", "arc"):
             return self.curve.release(event)
         if self.tools.active_tool == "eraser":
@@ -558,31 +595,41 @@ class RectangleDesignController(QObject):
         return True
 
     def snapshot(self):
-        return dict(segments=list(self.segments() or []), labels=self.labels(), curves=self.curves())
+        return dict(segments=list(self.segments() or []), labels=self.labels(), curves=self.curves(), annotations=self.annotations())
 
-    def apply_edit(self, segments, labels=None, curves=None):
+    def apply_edit(self, segments, labels=None, curves=None, annotations=None, annotation_move=None):
         previous = self.snapshot()
         try:
             curves = validate_curves(self.curves() if curves is None else curves)
             segments, curves = normalize_plan(validate_segments(segments), curves)
             curves = validate_curves(curves)
             labels = validate_labels(self.labels() if labels is None else labels)
+            if annotations is None:
+                annotations = self.annotations()
+                if annotation_move:
+                    annotations = follow_hosts(annotations, *annotation_move)
+                annotations = [a for a in annotations if supported(a, segments)]
+            annotations = validate_annotations(annotations)
+            if not self.annotation.valid(annotations, labels, exclude=[a["id"] for a in self.annotations()], lines=segments):
+                raise ValueError("Invalid annotation placement")
         except ValueError:
             self.owner.status.showMessage(self.owner.tr("design_edit_limit"))
             return False
-        if dict(segments=segments, labels=labels, curves=curves) == previous:
+        if dict(segments=segments, labels=labels, curves=curves, annotations=annotations) == previous:
             return False
         encode_drawing(segments, curves)  # Validate before changing history or metadata.
         self.undo_stack.append(previous)
         if len(self.undo_stack) > 50:
             del self.undo_stack[0]
         self.redo_stack.clear()
-        self.store(segments, labels, curves)
+        self.store(segments, labels, curves, annotations)
         return True
 
-    def store(self, segments, labels=None, curves=None):
+    def store(self, segments, labels=None, curves=None, annotations=None):
         labels = self.labels() if labels is None else labels
         curves = self.curves() if curves is None else curves
+        annotations = self.annotations() if annotations is None else annotations
+        encoded_annotations = encode_annotations(annotations)
         encoded_labels = encode_labels(labels)
         encoded_curves = encode_curves(curves)
         self.owner.session.metadata[PLAN_DRAWING_KEY] = encode_drawing(segments, curves)
@@ -590,6 +637,8 @@ class RectangleDesignController(QObject):
             self.owner.session.metadata[PLAN_LABELS_KEY] = encoded_labels
         if curves or PLAN_CURVES_KEY in self.owner.session.metadata:
             self.owner.session.metadata[PLAN_CURVES_KEY] = encoded_curves
+        if annotations or PLAN_ANNOTATIONS_KEY in self.owner.session.metadata:
+            self.owner.session.metadata[PLAN_ANNOTATIONS_KEY] = encoded_annotations
         self.owner.session.dirty = True
         self.owner.invalidate_live_preview()
         self.owner.refresh_session_labels()
@@ -599,11 +648,11 @@ class RectangleDesignController(QObject):
             self.cancel()
             self.redo_stack.append(self.snapshot())
             state = self.undo_stack.pop()
-            self.store(state["segments"], state["labels"], state.get("curves", []))
+            self.store(state["segments"], state["labels"], state.get("curves", []), state.get("annotations", []))
 
     def redo(self):
         if self.redo_stack:
             self.cancel()
             self.undo_stack.append(self.snapshot())
             state = self.redo_stack.pop()
-            self.store(state["segments"], state["labels"], state.get("curves", []))
+            self.store(state["segments"], state["labels"], state.get("curves", []), state.get("annotations", []))

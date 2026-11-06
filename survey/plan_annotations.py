@@ -1,0 +1,178 @@
+"""Non-structural paths and geometric wall-hosted apertures in plan pixels."""
+from copy import deepcopy
+import json
+import math
+import re
+
+from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
+from survey.planar_geometry import point_projection
+
+PLAN_ANNOTATIONS_KEY = "plan_annotations"
+EPS = 1e-5
+
+
+def validate_annotations(items):
+    if not isinstance(items, list) or len(items) > 1000:
+        raise ValueError("Too many annotations")
+    result, identities, total = [], set(), 0
+    for source in items:
+        identity, kind = str(source["id"]), source["kind"]
+        if not identity or len(identity) > 80 or identity in identities or kind not in ("marker", "door", "window"):
+            raise ValueError("Invalid annotation identity/type")
+        identities.add(identity)
+        color = str(source["color"]).lower()
+        width = float(source.get("stroke", 2))
+        if not re.fullmatch(r"#[0-9a-f]{6}", color) or not math.isfinite(width) or not .5 <= width <= 20:
+            raise ValueError("Invalid annotation appearance")
+        item = dict(id=identity, kind=kind, color=color, stroke=width)
+        if kind == "marker":
+            points = source["points"]
+            if not isinstance(points, list) or not 2 <= len(points) <= 10000:
+                raise ValueError("Invalid marker path")
+            clean = []
+            for point in points:
+                if not isinstance(point, (tuple, list)) or len(point) != 2:
+                    raise ValueError("Invalid marker point")
+                clean.append([float(v) for v in point])
+            if all(point == clean[0] for point in clean):
+                raise ValueError("Empty marker")
+            item["points"] = clean
+        else:
+            item.update({key: float(source[key]) for key in ("x1", "y1", "x2", "y2")})
+            if math.dist((item["x1"], item["y1"]), (item["x2"], item["y2"])) <= EPS:
+                raise ValueError("Empty aperture")
+            side, hinge = source.get("side", 1), source.get("hinge", 0)
+            variant = source.get("variant", "single")
+            if side not in (-1, 1) or hinge not in (0, 1) or variant not in ("single", "double", "sliding"):
+                raise ValueError("Invalid door configuration")
+            item.update(side=side, hinge=hinge, variant=variant)
+        points = annotation_points(item)
+        total += len(points)
+        if total > 100000 or any(not math.isfinite(v) or not 0 <= v <= 100000 for p in points for v in p):
+            raise ValueError("Annotation coordinate limits exceeded")
+        result.append(item)
+    return result
+
+
+def annotation_points(item):
+    return item["points"] if item["kind"] == "marker" else [[item["x1"], item["y1"]], [item["x2"], item["y2"]]]
+
+
+def drawing_annotations(metadata):
+    if not any(metadata.get(k) == "1" for k in (DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY)):
+        return []
+    if PLAN_ANNOTATIONS_KEY not in metadata:
+        return []
+    document = json.loads(metadata[PLAN_ANNOTATIONS_KEY])
+    if not isinstance(document, dict) or document.get("version") != 1:
+        raise ValueError("Unsupported annotation format")
+    return validate_annotations(document.get("items"))
+
+
+def encode_annotations(items):
+    return json.dumps(dict(version=1, items=validate_annotations(items)), separators=(",", ":"))
+
+
+def support_intervals(a, b, lines):
+    """Project collinear finite hosts onto AB, preserving genuine gaps."""
+    length = math.dist(a, b)
+    if length <= EPS:
+        return []
+    ux, uy = (b[0] - a[0]) / length, (b[1] - a[1]) / length
+    intervals = []
+    for line in lines:
+        points = [(line["x1"], line["y1"]), (line["x2"], line["y2"])]
+        if any(abs((p[0] - a[0]) * uy - (p[1] - a[1]) * ux) > EPS for p in points):
+            continue
+        low, high = sorted((p[0] - a[0]) * ux + (p[1] - a[1]) * uy for p in points)
+        if high >= -EPS and low <= length + EPS:
+            intervals.append((max(0, low), min(length, high)))
+    merged = []
+    for low, high in sorted(intervals):
+        if merged and low <= merged[-1][1] + EPS:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], high))
+        else:
+            merged.append((low, high))
+    return merged
+
+
+def supported(item, lines):
+    if item["kind"] == "marker":
+        return True
+    a, b = annotation_points(item)
+    return any(low <= EPS and high >= math.dist(a, b) - EPS for low, high in support_intervals(a, b, lines))
+
+
+def overlaps(item, others):
+    if item["kind"] == "marker":
+        return False
+    a, b = annotation_points(item)
+    for other in others:
+        if other["kind"] == "marker" or other["id"] == item["id"]:
+            continue
+        host = {k: other[k] for k in ("x1", "y1", "x2", "y2")}
+        if any(high - low > EPS for low, high in support_intervals(a, b, [host])):
+            return True
+    return False
+
+
+def visible_wall_segments(lines, annotations, with_sources=False):
+    """Mask wall ink only; the structural model is never modified."""
+    apertures = [a for a in annotations if a["kind"] != "marker"]
+    result, sources = [], []
+    hosts = [{k: item[k] for k in ("x1", "y1", "x2", "y2")} for item in apertures]
+    for index, line in enumerate(lines):
+        a, b = (line["x1"], line["y1"]), (line["x2"], line["y2"])
+        length = math.dist(a, b)
+        cursor = 0
+        for low, high in support_intervals(a, b, hosts) + [(length, length)]:
+            if low - cursor > EPS:
+                values = [a[i] + (b[i] - a[i]) * t / length for t in (cursor, low) for i in (0, 1)]
+                result.append(dict(zip(("x1", "y1", "x2", "y2"), values), color=line["color"]))
+                sources.append(index)
+            cursor = max(cursor, high)
+    return (result, sources) if with_sources else result
+
+
+def transform_annotations(items, angle=0, pivot=(0, 0), dx=0, dy=0):
+    result = deepcopy(items)
+    cosine, sine = math.cos(math.radians(angle)), math.sin(math.radians(angle))
+    for item in result:
+        points = []
+        for x, y in annotation_points(item):
+            x, y = x - pivot[0], y - pivot[1]
+            points.append([pivot[0] + x * cosine - y * sine + dx, pivot[1] + x * sine + y * cosine + dy])
+        if item["kind"] == "marker":
+            item["points"] = points
+        else:
+            item.update(x1=points[0][0], y1=points[0][1], x2=points[1][0], y2=points[1][1])
+    return result
+
+
+def follow_hosts(items, before, after):
+    """Rigid structural moves carry apertures supported by the moved run."""
+    if not before or len(before) != len(after):
+        return items
+    first, last = before[0], after[0]
+    old = (first["x1"], first["y1"])
+    angle = math.degrees(math.atan2(last["y2"] - last["y1"], last["x2"] - last["x1"])
+                         - math.atan2(first["y2"] - first["y1"], first["x2"] - first["x1"]))
+    return [transform_annotations([item], angle, old, last["x1"] - old[0], last["y1"] - old[1])[0]
+            if item["kind"] != "marker" and supported(item, before) else item for item in items]
+
+
+def place_aperture(point, width, lines, tolerance, template):
+    choices = []
+    for line in lines:
+        a, b = (line["x1"], line["y1"]), (line["x2"], line["y2"])
+        p = point_projection(point, a, b)
+        length = math.dist(a, b)
+        # Extend over normalization cuts, but stop at real collinear gaps.
+        ux, uy = (b[0] - a[0]) / length, (b[1] - a[1]) / length
+        start = (p[0] - width / 2 * ux, p[1] - width / 2 * uy)
+        end = (p[0] + width / 2 * ux, p[1] + width / 2 * uy)
+        item = dict(template, x1=start[0], y1=start[1], x2=end[0], y2=end[1])
+        distance = math.dist(point, p)
+        if distance <= tolerance and supported(item, lines):
+            choices.append((distance, item))
+    return min(choices, key=lambda choice: choice[0])[1] if choices else None

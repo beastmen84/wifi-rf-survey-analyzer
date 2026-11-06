@@ -200,7 +200,7 @@ def test_live_export_escapes_names_and_passes_the_boundary_mask_to_shared_render
     assert all(resource.startswith("data:") for resource in ReportDOM(html).resources)
 
 
-@pytest.mark.parametrize("operation", ["draw", "erase", "move", "line", "oblique", "text", "curves"])
+@pytest.mark.parametrize("operation", ["draw", "erase", "move", "line", "oblique", "text", "curves", "annotations"])
 def test_both_workspace_html_exports_include_current_editable_shapes(analysis_window, tmp_path, operation):
     window = analysis_window
     image = tmp_path / "drawing.png"
@@ -216,6 +216,13 @@ def test_both_workspace_html_exports_include_current_editable_shapes(analysis_wi
     window.refresh_session_labels()
     text_pixel = None
     curve_pixels = []
+    if operation == "annotations":
+        from tests.test_plan_annotations import aperture, marker
+        annotations = [aperture(x1=130, y1=100, x2=170, y2=100), marker(points=[[30, 240], [180, 240]])]
+        assert window.plan_tools.controller.apply_edit(lines, annotations=annotations)
+        rendered = render_plan_drawing(Image.new("RGB", (400, 300), "white"), lines, annotations=annotations)
+        for pixel in ((150, 100), (130, 120), (45, 240)):
+            curve_pixels.append((pixel, rendered.getpixel(pixel)))
     if operation == "curves":
         curves = [dict(kind="circle", cx=65, cy=235, radius=25, phase=0, color="#d84315"),
                   dict(kind="arc", x1=240, y1=200, x2=360, y2=200, height=40, color="#d84315")]
@@ -255,7 +262,7 @@ def test_both_workspace_html_exports_include_current_editable_shapes(analysis_wi
         from PySide6.QtGui import QColor
         window.plan_tools.stroke_color = QColor("#d84315")
         window.plan_tools.controller.line.commit(QLineF(50, 180, 80, 210 if operation == "oblique" else 180))
-    expected = (255, 255, 255) if operation in ("erase", "move") else (216, 67, 21)
+    expected = (255, 255, 255) if operation in ("erase", "move", "annotations") else (216, 67, 21)
     bottom = (255, 255, 255) if operation == "move" else (216, 67, 21)
     wait_for_analysis(window.analysis_view)
     analysis = str(tmp_path / "drawing.analysis.html")

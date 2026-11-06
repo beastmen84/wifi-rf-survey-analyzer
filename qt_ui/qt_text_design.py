@@ -183,7 +183,10 @@ class TextDesignController:
             return True
         labels[index] = label
         self.drawing.apply_edit(self.drawing.segments() or [], labels)
-        self.drawing.selection.set_selected((), (index,))
+        if self.drawing.tools.active_tool == "annotation_select":
+            self.drawing.annotation.select((), (index,))
+        else:
+            self.drawing.selection.set_selected((), (index,))
         return True
 
     def hit(self, point):

@@ -58,18 +58,24 @@ def rectangle_segments(x, y, width, height, color):
                               for a, b in zip(corners, corners[1:] + corners[:1])])
 
 
-def render_plan_drawing(image, segments, labels=None, curves=None):
-    if segments is None and not labels and not curves:
+def render_plan_drawing(image, segments, labels=None, curves=None, annotations=None):
+    if segments is None and not labels and not curves and not annotations:
         return image
     # Generated PNGs may contain an older baked drawing. Rebuild from vectors,
     # including an empty list after Undo, instead of leaving stale lines behind.
     output = Image.new("RGB", image.size, "white")
     painter = ImageDraw.Draw(output)
     lines = validate_segments(segments or [])
+    from survey.plan_annotations import validate_annotations, visible_wall_segments, supported, overlaps
+    annotations = validate_annotations(annotations or [])
+    for index, annotation in enumerate(annotations):
+        if not supported(annotation, lines) or overlaps(annotation, annotations[:index]):
+            raise ValueError("Invalid annotation host")
     for line in lines:
         if any(line[key] > image.size[index] + 1e-7
                for index, keys in enumerate((("x1", "x2"), ("y1", "y2"))) for key in keys):
             raise ValueError("Plan segment is outside the sheet")
+    for line in visible_wall_segments(lines, annotations):
         points = tuple(min(line[key], image.size[index % 2] - 1)
                        for index, key in enumerate(("x1", "y1", "x2", "y2")))
         painter.line(points, fill=line["color"], width=2)
@@ -90,6 +96,15 @@ def render_plan_drawing(image, segments, labels=None, curves=None):
     if labels:
         from survey.plan_label_rendering import render_labels
         output = render_labels(output, labels)
+    if annotations:
+        from survey.plan_annotation_rendering import render_annotations, annotation_fits
+        from PySide6.QtCore import QRectF
+        bounds = QRectF(0, 0, image.width, image.height)
+        if any(not annotation_fits(a, bounds) for a in annotations):
+            raise ValueError("Annotation is outside the sheet")
+        output = render_annotations(output, annotations)
     fingerprint = [lines, labels, curves] if curves else [lines, labels]
+    if annotations:
+        fingerprint = [lines, labels, curves, annotations]
     output.info["plan_drawing_fingerprint"] = sha256(json.dumps(fingerprint, sort_keys=True).encode()).hexdigest()
     return output

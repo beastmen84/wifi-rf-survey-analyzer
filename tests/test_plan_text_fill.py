@@ -197,19 +197,19 @@ def test_text_edit_keeps_identity_pose_and_cancel_is_non_destructive(editor):
 def test_select_then_right_double_click_reopens_text_editor(editor):
     app, drawing = editor
     drawing.store([], [label()])
-    app.plan_tools.select_tool("select")
+    app.plan_tools.select_tool("annotation_select")
     dialog = Mock()
     dialog.exec.return_value = QDialog.DialogCode.Accepted
     dialog.values.return_value = style(text="Edited by double click")
     with patch("qt_ui.qt_text_design.PlanTextDialog", return_value=dialog) as constructor:
         QTest.mouseClick(app.floorplan_view.viewport(), Qt.MouseButton.RightButton, pos=at(app, 300, 220))
         constructor.assert_not_called()
-        assert drawing.selection.selected_labels == (0,)
+        assert drawing.annotation.selected_labels == (0,)
         QTest.mouseDClick(app.floorplan_view.viewport(), Qt.MouseButton.RightButton, pos=at(app, 300, 220))
         QTest.mouseRelease(app.floorplan_view.viewport(), Qt.MouseButton.RightButton, pos=at(app, 300, 220))
         constructor.assert_called_once()
     assert drawing.labels()[0]["text"] == "Edited by double click"
-    assert drawing.selection.selected_labels == (0,)
+    assert drawing.annotation.selected_labels == (0,)
 
 
 def test_delete_does_not_run_inside_an_editable_input(editor):

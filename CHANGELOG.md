@@ -7,6 +7,18 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Added non-structural Marker, Window and Door annotations to generated plans.
+  Marker supports freehand/grid-following dashed paths with its own color and
+  stroke width. Doors support single/double/sliding leaves, width, hinge and swing
+  side; windows have editable width. Straight/oblique host snapping masks only
+  wall ink, preserving room closure, areas and boundary fills. Apertures follow
+  rigid host transforms and disappear with removed support in the same undo step.
+  Overlap/out-of-sheet/unsupported placement is rejected. Save/reopen, generated
+  PNGs, live rendering and both HTML exports include annotations.
+- Reorganized Design Mode into Structure and Annotations, with isolated selection
+  tools. Text belongs to Annotations. Annotation-only click/marquee, M movement,
+  Del, property editing and marker/text quarter-turns cannot modify the walls.
+  Updated EN/IT/FR/ES Help, tooltips and property dialogs.
 - Documented the proposed marker/door/window annotation workflow and deferred
   physical wall thickness/material modeling pending internal-room geometry and
   shared-wall constraint design. These are roadmap notes, not implemented tools.

@@ -25,6 +25,8 @@ class PlanToolsOverlay(QFrame):
         layout.setSpacing(owner.spx(7))
         self.header = QLabel()
         layout.addWidget(self.header)
+        self.structure_heading = QLabel()
+        layout.addWidget(self.structure_heading)
         row = QHBoxLayout()
         self.tool_row = row
         row.setSpacing(owner.spx(4))
@@ -37,10 +39,27 @@ class PlanToolsOverlay(QFrame):
         self.select_button = owner.create_boundaries_text_button("", "blank_tool_select")
         self.undo_button = owner.create_boundaries_text_button("", "blank_tool_undo")
         self.redo_button = owner.create_boundaries_text_button("", "blank_tool_redo")
-        for button in (self.rectangle_button, self.line_button, self.circle_button, self.arc_button, self.text_button, self.eraser_button, self.select_button):
+        for button in (self.rectangle_button, self.line_button, self.circle_button, self.arc_button, self.eraser_button, self.select_button):
             button.setEnabled(False)
             row.addWidget(button)
         layout.addLayout(row)
+        self.annotation_heading = QLabel()
+        layout.addWidget(self.annotation_heading)
+        annotation_row = QHBoxLayout()
+        self.annotation_row = annotation_row
+        annotation_row.setSpacing(owner.spx(4))
+        self.annotation_buttons = {}
+        for tool in ("marker", "window", "door", "annotation_select"):
+            button = owner.create_boundaries_text_button("", "annotation_" + ("select" if tool == "annotation_select" else tool))
+            button.setCheckable(True)
+            button.clicked.connect(lambda checked=False, tool=tool: self.select_tool(tool))
+            self.annotation_buttons[tool] = button
+            annotation_row.addWidget(button)
+        annotation_row.insertWidget(3, self.text_button)
+        annotation_row.addStretch()
+        layout.addLayout(annotation_row)
+        self.actions_heading = QLabel()
+        layout.addWidget(self.actions_heading)
         actions = QHBoxLayout()
         self.action_row = actions
         actions.setSpacing(owner.spx(4))
@@ -111,6 +130,12 @@ class PlanToolsOverlay(QFrame):
         self.toggle_button.setText(tr("blank_tools"))
         self.toggle_button.setToolTip(tr("blank_tools_hint"))
         self.header.setText(tr("blank_tools"))
+        self.structure_heading.setText(tr("annotation_structure"))
+        self.annotation_heading.setText(tr("annotation_group"))
+        self.actions_heading.setText(tr("annotation_controls"))
+        for heading in (self.structure_heading, self.annotation_heading, self.actions_heading):
+            heading.setStyleSheet("font-weight:600;color:" + QT_THEMES[self.owner.theme]["muted"] + ";")
+        self.select_button.setToolTip(tr("annotation_select_structure"))
         for button, key in ((self.rectangle_button, "rectangle"), (self.line_button, "line"),
                             (self.circle_button, "circle"), (self.arc_button, "arc"),
                             (self.text_button, "text"),
@@ -165,18 +190,29 @@ class PlanToolsOverlay(QFrame):
 
     def select_tool(self, tool):
         self.controller.cancel()
+        if tool in ("marker", "door", "window") and not self.controller.annotation.configure(tool):
+            self.update_tool_state()
+            return
         self.active_tool = tool
         self.update_tool_state()
         self.position_controls()
 
     def update_tool_state(self):
+        self.select_button.setToolTip(self.owner.tr("annotation_select_structure"))
+        self.select_button.setAccessibleName(self.owner.tr("annotation_select_structure"))
+        for tool, button in self.annotation_buttons.items():
+            button.setEnabled(self.open)
+            button.setChecked(self.open and self.active_tool == tool)
+            text = self.owner.tr("annotation_" + ("select" if tool == "annotation_select" else tool))
+            button.setToolTip(text)
+            button.setAccessibleName(text)
         for tool, button in (("rectangle", self.rectangle_button), ("line", self.line_button),
                              ("circle", self.circle_button), ("arc", self.arc_button),
                              ("text", self.text_button),
                              ("eraser", self.eraser_button), ("select", self.select_button)):
             button.setEnabled(self.open)
             button.setChecked(self.open and self.active_tool == tool)
-        self.snap_button.setEnabled(self.open and self.active_tool != "eraser")
+        self.snap_button.setEnabled(self.open and self.active_tool not in ("eraser", "marker", "door", "window"))
         self.snap_button.setToolTip(self.owner.tr("curve_grid_hint" if self.active_tool in ("circle", "arc") else "grid_all_vertices_help"))
         self.color_button.setEnabled(self.open and self.active_tool in ("rectangle", "line", "circle", "arc"))
         selection = self.controller.selection
@@ -184,20 +220,28 @@ class PlanToolsOverlay(QFrame):
         self.edit_text_button.setEnabled(self.open and self.active_tool == "select"
                                          and (len(selection.selected_labels) == 1 or curve_edit)
                                          and not selection.moving)
+        if self.active_tool in ("marker", "door", "window", "annotation_select"):
+            a = self.controller.annotation
+            self.edit_text_button.setEnabled(self.open and not a.moving and (self.active_tool != "annotation_select" or len(a.selected) + len(a.selected_labels) == 1))
         edit_text = self.owner.tr("curve_edit" if curve_edit else "plan_text_edit")
+        if self.active_tool in ("marker", "door", "window", "annotation_select"):
+            edit_text = self.owner.tr("annotation_properties")
         self.edit_text_button.setToolTip(edit_text)
         self.edit_text_button.setAccessibleName(edit_text)
         key = {"rectangle": "blank_tools_note", "line": "line_tools_note",
                "circle": "circle_tools_note", "arc": "arc_tools_note",
-               "eraser": "eraser_tools_note", "select": "selection_tools_note", "text": "text_tools_note"}[self.active_tool]
+               "eraser": "eraser_tools_note", "select": "selection_tools_note", "text": "text_tools_note",
+               "marker": "annotation_marker_note", "door": "annotation_place_note", "window": "annotation_place_note",
+               "annotation_select": "annotation_selection_note"}[self.active_tool]
         self.note.setText(self.owner.tr(key))
         self.update_tool_icons()
 
     def update_tool_icons(self):
         size = self.owner.spx(20)
         for tool, button in (("line", self.line_button), ("select", self.select_button),
+                             ("rectangle", self.rectangle_button), ("eraser", self.eraser_button),
                              ("circle", self.circle_button), ("arc", self.arc_button),
-                             ("text", self.text_button), ("edit", self.edit_text_button)):
+                             ("text", self.text_button), ("edit", self.edit_text_button), *self.annotation_buttons.items()):
             pixmap = QPixmap(size, size)
             pixmap.fill(Qt.GlobalColor.transparent)
             painter = QPainter(pixmap)
@@ -207,7 +251,34 @@ class PlanToolsOverlay(QFrame):
             pen = QPen(color, 1.8)
             pen.setCapStyle(Qt.PenCapStyle.RoundCap)
             painter.setPen(pen)
-            if tool == "circle":
+            if tool == "rectangle":
+                painter.drawRect(3, 4, 18, 16)
+            elif tool == "eraser":
+                path = QPainterPath()
+                path.moveTo(3, 14)
+                path.lineTo(13, 4)
+                path.lineTo(21, 12)
+                path.lineTo(12, 21)
+                path.lineTo(9, 21)
+                path.closeSubpath()
+                painter.drawPath(path)
+                painter.drawLine(8, 9, 16, 17)
+                painter.drawLine(14, 21, 22, 21)
+            elif tool == "marker":
+                pen.setStyle(Qt.PenStyle.DashLine)
+                painter.setPen(pen)
+                path = QPainterPath()
+                path.moveTo(3, 17)
+                path.cubicTo(6, 2, 14, 22, 21, 5)
+                painter.drawPath(path)
+            elif tool == "window":
+                painter.drawRect(3, 8, 18, 8)
+                painter.drawLine(3, 12, 21, 12)
+            elif tool == "door":
+                painter.drawLine(4, 20, 4, 4)
+                painter.drawArc(4, 4, 32, 32, 90 * 16, 90 * 16)
+                painter.drawLine(3, 20, 21, 20)
+            elif tool == "circle":
                 painter.drawEllipse(4, 4, 16, 16)
                 painter.setBrush(color)
                 painter.drawEllipse(11, 11, 2, 2)
@@ -255,6 +326,12 @@ class PlanToolsOverlay(QFrame):
             button.setIconSize(QSize(size, size))
 
     def edit_selected_text(self):
+        if self.active_tool == "annotation_select":
+            self.controller.annotation.edit()
+            return
+        if self.active_tool in ("marker", "door", "window"):
+            self.controller.annotation.configure(self.active_tool)
+            return
         indices = self.controller.selection.selected_labels
         if len(indices) == 1:
             self.controller.text.edit(indices[0])
@@ -344,8 +421,11 @@ class PlanToolsOverlay(QFrame):
             bottom = min(bottom, top - margin)
         self.toggle_button.setGeometry(margin, max(margin, bottom - size.height()), size.width(), size.height())
         margins = self.layout().contentsMargins()
-        width = max(self.owner.spx(270), max(self.tool_row.sizeHint().width(), self.action_row.sizeHint().width())
+        width = max(self.owner.spx(350), max(self.tool_row.sizeHint().width(), self.annotation_row.sizeHint().width(), self.action_row.sizeHint().width())
                     + margins.left() + margins.right())
+        if "\n" in self.note.text():
+            width = max(width, max(self.note.fontMetrics().horizontalAdvance(row) for row in self.note.text().splitlines())
+                        + margins.left() + margins.right() + self.owner.spx(8))
         note_width = width - margins.left() - margins.right()
         self.note.setFixedWidth(note_width)
         # heightForWidth includes minimumHeight: remove the previous fixed height

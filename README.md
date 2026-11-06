@@ -88,7 +88,7 @@ from these software checks.
   Line draws in any direction, including diagonals, by right-drag, or asks only for a length
   before cursor-following placement. **R** rotates both Line and Rectangle
   placement previews by 90 degrees while preserving their dimensions.
-  Select uses right-click for one fragment or a right-drag box for all touched
+  Select Structure uses right-click for one fragment or a right-drag box for all touched
   fragments. **R** rotates the selection around its bounding-box center; **M**
   starts a rigid cursor-following move, confirmed with right-click or cancelled
   with Esc. R also rotates during a move. The selection's box snaps to unselected
@@ -112,11 +112,25 @@ from these software checks.
   and Line/Rectangle placement previews. Out-of-sheet orientations appear red
   and are rejected. Rotated oblique strokes retain real intersections, snapping,
   partial erasing, closed-area detection and saved/exported geometry.
+- Design Mode separates **Structure** from **Annotations**, with independent
+  selection tools. Structure selection and the eraser affect walls and curves;
+  annotation selection affects markers, doors, windows and text. **Marker** draws
+  dashed freehand or grid-following paths with its own color and graphical width.
+  **Door** supports single, double and sliding variants; **Window** uses a simple
+  window symbol. Choose width before placement, then right-click on a straight
+  wall, including oblique walls. Doors have independent hinge and opening-side
+  controls. Apertures hide only the covered wall ink: room closure, internal area
+  and Boundaries Fill/Auto Fill retain the complete structural geometry.
+  Select annotations to move with **M**, delete with **Del**, or edit by right
+  double-click / Properties. **R** rotates markers/text by 90° or reverses a swing
+  door's opening side. Attached openings follow rigid host moves; deleting their
+  support also deletes them in the same undoable edit. Overlapping openings and
+  invalid placements are rejected. PNG, Live Map and HTML use the same symbols.
 - Design Mode **Text** opens a multiline editor with font, size, bold/italic,
   alignment, color, outline and a live preview. Click the sheet with the right
   button to open it; after OK the label follows the cursor until another right
-  click places it. R tap/hold rotates text just like shapes. Select labels or
-  mixed groups of labels/segments to move with M or delete with **Del**. Deletion
+  click places it. R tap/hold rotates its placement preview. Select Annotations
+  selects labels alone or with other annotations to move with M or delete with **Del**. Deletion
   is one undoable edit. Right-double-click selected text, or use **Edit selected
   text**, to reopen its editor. Text remains editable after save/reopen and
   appears consistently in generated PNGs, Live Map and both HTML report types.
@@ -592,7 +606,6 @@ Historical beta ZIPs may still use the older artifact stem:
 
 Possible future product areas:
 
-- Non-structural marker, door and window annotations for generated floor plans.
 - Physical wall thickness/materials, subject to a room model preserving internal
   dimensions and shared-wall relationships.
 - Broader recommendation rules validated against additional real surveys.
