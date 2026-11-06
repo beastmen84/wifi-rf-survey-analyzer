@@ -22,6 +22,31 @@ interpolated colors.
 
 Current status:
 
+- PlanPrintingMixin adds a compact neutral Print Plan button to Project's title
+  row; Delete Scale keeps its destructive colors. Session/map presence and scan
+  state control availability across Survey/Live/Analysis. No calibration/save
+  prerequisite is imposed. qt_plan_printing.clean_plan_image copies the loaded
+  pixmap, rebuilding generated plans with current committed geometry, labels,
+  curves and annotations through the shared renderer. It ignores stale baked
+  drawing ink and every scene-only overlay/selection/draft. Imported pixels are
+  copied without reopening their source file. Metadata/history are not mutated.
+  PlanPrintPreviewDialog uses a QPrintPreviewWidget with localized text buttons
+  for Page Setup, zoom/Fit, Print and Close; this avoids invisible system-stock
+  toolbar icons observed in the initial native-dialog preview on this Windows
+  installation. QPageSetupDialog/QPrintDialog apply only accepted changes;
+  actual printing starts only after the printer dialog is accepted. The preview
+  holds an immutable image snapshot. The single-page painter
+  fits/centers it in the printable device width/height, preserving aspect ratio
+  without adding margins twice; A4 and 10mm margins with automatic orientation
+  are initial defaults. This is page fitting, not architectural 1:1 scaling.
+  Preview handles printer/paper selection, safe cancellation and localized
+  rendering errors. No job is sent merely by opening the preview. QtPrintSupport
+  is statically imported from the existing PySide6 dependency; no new package.
+  Verification:97 printing/workspace/i18n tests +461 subtests passed in20.36s;
+  real PDF-device tests verify single-page portrait/landscape, aspect, centering
+  and margins. Native source checks passed16 language/theme/scale toolbar and
+  preview layouts, with no physical print jobs. Essential Ruff/diff checks pass.
+  Physical printers and the packaged EXE have not been tested for this feature.
 - Door's additive variant="frame" renders two solid jambs and a clear opening,
   without a leaf or swing arc. The eighth properties icon uses the same shared
   paths as the scene/hit tests/raster exports. It retains endpoint-based width,

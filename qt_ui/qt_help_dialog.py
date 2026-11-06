@@ -169,7 +169,8 @@ def build_help_sections(parent, tr):
             tr("help_controls_nav"),
             tr("help_controls_title"),
             tr("help_controls_subtitle"),
-            build_controls_body(parent, tr) + tr("help_controls_body"),
+            build_controls_body(parent, tr) + tr("help_controls_body")
+            + "<h2>" + escape(tr("print_plan")) + "</h2><p>" + escape(tr("print_plan_help")) + "</p>",
         ),
         build_help_section(
             "survey",

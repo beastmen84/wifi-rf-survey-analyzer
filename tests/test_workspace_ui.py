@@ -597,6 +597,7 @@ class SettingsMenuTests(unittest.TestCase):
                 QApplication.processEvents()
                 buttons = (
                     window.delete_scale_button,
+                    window.print_plan_button,
                     window.manage_relevant_button,
                     window.clear_relevant_button,
                     window.live_report_export_button,

@@ -7,6 +7,11 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Added **Print Plan** at the right of Project, matching the compact Delete Scale
+  control. A print preview uses the loaded plan and committed drawing
+  edits, including unsaved changes, without survey/grid/mask/heatmap overlays.
+  Fits one page without distortion, starts with automatic portrait/landscape,
+  and supports printer/paper selection. Updated EN/IT/FR/ES Help.
 - Added **Frame only** to Door properties: a wall-hosted opening with two jambs,
   no leaf or swing arc. It uses the same width, snapping, editing, persistence
   and export behavior as other openings, with an eighth configuration icon.

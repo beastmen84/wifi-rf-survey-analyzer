@@ -425,6 +425,7 @@ class SurveySessionWorkflowMixin:
         )
         live_tab_active = self.tabs.currentIndex() == 1
         has_map = self.floorplan_view.has_floorplan()
+        self.print_plan_button.setEnabled(can_use_session and has_map)
         has_zoom_map = self.live_view.pixmap_item is not None if live_tab_active else has_map
         has_scale = self.has_calibrated_scale()
         self.zoom_in_button.setEnabled(has_zoom_map and not self.scan_in_progress)

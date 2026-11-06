@@ -43,6 +43,11 @@ from these software checks.
 ## Core Features
 
 - PDF/image floor-plan loading with scale calibration.
+- **Print Plan**, at the right of **Project**, opens a print preview of the clean
+  plan with committed drawing/text/door/window/marker edits, including unsaved
+  changes. Survey points, AP symbols, grid, masks and heatmaps are excluded.
+  The whole plan fits one page with its proportions preserved; select paper and
+  printer in the preview. Printing does not require saving the survey.
 - New surveys start with a generated, pre-scaled blank plan and grid for
   use when no real floor plan is available. Starting from the app start
   page asks for metric or imperial units, the Wi-Fi adapter and blank-sheet width

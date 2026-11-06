@@ -55,6 +55,7 @@ from qt_ui.qt_ap_workflow import ApWorkflowMixin
 from qt_ui.qt_analysis import AnalysisView
 from qt_ui.qt_floorplan import FloorplanView
 from qt_ui.qt_floorplan_workflow import FloorplanWorkflowMixin
+from qt_ui.qt_plan_printing import PlanPrintingMixin
 from qt_ui.qt_help_dialog import open_qt_help_dialog
 from qt_ui.qt_live_export import LiveReportExportMixin
 from qt_ui.qt_live_options import LiveOptionsMixin
@@ -219,6 +220,7 @@ class WifiHeatmapQtApp(
     LiveOptionsMixin,
     LiveReportExportMixin,
     FloorplanWorkflowMixin,
+    PlanPrintingMixin,
     SurveySessionWorkflowMixin,
     WorkspaceSettingsMixin,
     QMainWindow,
@@ -462,6 +464,11 @@ class WifiHeatmapQtApp(
         layout.setSpacing(self.spx(10))
 
         project_section, self.project_section_label, project_row = self.build_app_bar_section()
+        self.print_plan_button = QPushButton()
+        self.print_plan_button.setObjectName("appBarTitleButton")
+        self.print_plan_button.clicked.connect(self.print_plan)
+        self.print_plan_button.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        project_section.title_row.addWidget(self.print_plan_button)
         self.new_workspace_button = self.create_app_bar_button(self.new_survey)
         self.open_workspace_button = self.create_app_bar_button(lambda: self.open_survey())
         self.save_workspace_button = self.create_app_bar_button(self.save_survey)
@@ -561,6 +568,7 @@ class WifiHeatmapQtApp(
     def fit_localized_button_widths(self):
         for button, min_width in (
             (self.delete_scale_button, 0),
+            (self.print_plan_button, 0),
             (self.manage_relevant_button, 0),
             (self.clear_relevant_button, 0),
             (self.live_report_export_button, 118),
@@ -1665,17 +1673,19 @@ class WifiHeatmapQtApp(
                 font-size: {font(8)}pt;
                 font-weight: 600;
             }}
-            QPushButton#appBarTitleDangerButton {{
+            QPushButton#appBarTitleButton, QPushButton#appBarTitleDangerButton {{
                 min-width: 0;
                 padding: {s(2)}px {s(7)}px;
                 border-radius: {s(4)}px;
                 font-size: {font(8)}pt;
                 font-weight: 700;
+            }}
+            QPushButton#appBarTitleDangerButton {{
                 background: {palette["save_dirty_bg"]};
                 color: {palette["save_dirty_text"]};
                 border: 1px solid {palette["save_dirty_border"]};
             }}
-            QPushButton#appBarTitleDangerButton:disabled {{
+            QPushButton#appBarTitleButton:disabled, QPushButton#appBarTitleDangerButton:disabled {{
                 background: {palette["panel_alt"]};
                 color: {palette["muted"]};
                 border: 1px solid {palette["border"]};
@@ -1979,6 +1989,9 @@ class WifiHeatmapQtApp(
         self.open_workspace_button.setText(self.tr("open_existing_survey"))
         self.save_workspace_button.setText(self.tr("save"))
         self.load_plan_button.setText(self.tr("load_plan"))
+        self.print_plan_button.setText(self.tr("print_plan"))
+        self.print_plan_button.setToolTip(self.tr("print_plan_hint"))
+        self.print_plan_button.setAccessibleName(self.tr("print_plan"))
         self.zoom_out_button.setText("-")
         self.zoom_in_button.setText("+")
         self.fit_view_button.setText(self.tr("fit"))

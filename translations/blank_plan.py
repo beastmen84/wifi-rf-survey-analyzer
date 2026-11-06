@@ -2,6 +2,23 @@
 
 LANGUAGES = ("en", "it", "fr", "es")
 TEXT = {
+    "print_plan": ("Print Plan", "Stampa Pianta", "Imprimer le plan", "Imprimir plano"),
+    "print_plan_setup": ("Page Setup", "Imposta Pagina", "Mise en page", "Configurar página"),
+    "print_plan_send": ("Print…", "Stampa…", "Imprimer…", "Imprimir…"),
+    "print_plan_hint": (
+        "Preview and print the clean plan, fitted to the paper, without survey overlays.",
+        "Anteprima e stampa della pianta pulita, adattata al foglio, senza sovrapposizioni del rilievo.",
+        "Aperçu et impression du plan seul, ajusté au papier, sans superpositions du relevé.",
+        "Vista previa e impresión del plano limpio, ajustado al papel, sin superposiciones del estudio."),
+    "print_plan_error": ("Could not prepare the plan for printing: {error}",
+        "Impossibile preparare la pianta per la stampa: {error}",
+        "Impossible de préparer le plan pour l'impression : {error}",
+        "No se pudo preparar el plano para imprimir: {error}"),
+    "print_plan_help": (
+        "Print Plan, at the right of the Project heading, opens a print preview. It includes the loaded plan and committed structures, text, doors, windows and markers, including unsaved edits. Survey points, AP symbols, grid, analysis masks, heatmaps, selection and tool previews are omitted. The whole plan fits one page with its proportions preserved; this is not a 1:1 architectural-scale print. Choose paper and printer in the preview. No survey save is required.",
+        "Stampa Pianta, a destra del titolo Progetto, apre l'anteprima di stampa. Include la pianta caricata e struttura, testo, porte, finestre e marker confermati, anche con modifiche non salvate. Esclude punti di rilevamento, simboli AP, griglia, maschere di analisi, heatmap, selezioni e anteprime degli strumenti. La pianta intera si adatta a una pagina mantenendo le proporzioni; non è una stampa in scala architettonica 1:1. Scegli carta e stampante dall'anteprima. Non richiede di salvare il rilievo.",
+        "Imprimer le plan, à droite du titre Projet, ouvre un aperçu. Il inclut le plan chargé et les structures, textes, portes, fenêtres et marqueurs validés, même non enregistrés. Points de mesure, symboles AP, grille, masques d'analyse, cartes thermiques, sélection et aperçus des outils sont exclus. Le plan entier tient sur une page sans déformation ; ce n'est pas une impression architecturale à l'échelle 1:1. Choisissez papier et imprimante dans l'aperçu, sans devoir enregistrer le relevé.",
+        "Imprimir plano, a la derecha del título Proyecto, abre una vista previa. Incluye el plano cargado y estructuras, textos, puertas, ventanas y marcadores confirmados, aunque no se hayan guardado. Excluye puntos de medición, símbolos AP, cuadrícula, máscaras de análisis, mapas de calor, selección y vistas previas de herramientas. El plano completo cabe en una página sin deformarse; no es una impresión arquitectónica a escala 1:1. Elige papel e impresora en la vista previa, sin guardar el estudio."),
     "blank_plan_defaults_help": (
         "New sheets default to 35 × 25 m or 115 × 81 ft. Switching units selects that unit's preset until you edit the dimensions; afterwards, it converts the same physical size.",
         "I nuovi fogli partono da 35 × 25 m o 115 × 81 ft. Cambiare unità sceglie il relativo preset finché non modifichi le dimensioni; dopo, converte la stessa misura fisica.",
