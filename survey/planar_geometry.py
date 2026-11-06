@@ -68,7 +68,11 @@ def split_general_segments(segments, with_sources=False, limit=40000):
     for index, line in enumerate(segments):
         a, b = canonical[(line["x1"], line["y1"])], canonical[(line["x2"], line["y2"])]
         if a == b:
-            raise ValueError("Segment below coordinate precision")
+            # Legacy orthogonal cuts can leave sub-EPSILON float residues.
+            # Their endpoints already coalesce in our point registry; such an
+            # empty edge must not reject an otherwise valid oblique edit.
+            source_keys.append(None)
+            continue
         key = tuple(sorted((a, b)))
         groups[key].append(index)
         source_keys.append((key, a))
@@ -96,7 +100,10 @@ def split_general_segments(segments, with_sources=False, limit=40000):
                         cuts[key].add(point)
         active.append(box)
     result, sources = [], []
-    for index, (line, (key, start)) in enumerate(zip(segments, source_keys)):
+    for index, (line, source) in enumerate(zip(segments, source_keys)):
+        if source is None:
+            continue
+        key, start = source
         end = key[1] if start == key[0] else key[0]
         dx, dy = end[0] - start[0], end[1] - start[1]
         points = sorted(cuts[key], key=lambda point: (point[0] - start[0]) * dx + (point[1] - start[1]) * dy)

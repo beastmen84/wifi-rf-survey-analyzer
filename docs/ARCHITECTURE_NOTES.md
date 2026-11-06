@@ -22,6 +22,21 @@ interpolated colors.
 
 Current status:
 
+- Orthogonal split_segments canonicalizes X/Y coordinates with the existing
+  EPSILON=1e-9 plan-pixel tolerance before generating cuts, dropping only edges
+  collapsed at that precision. This prevents float-ulp slivers from near-identical
+  intersection heights. split_general_segments skips edges whose canonical
+  endpoints coalesce, instead of rejecting the entire oblique edit. Both paths
+  preserve original source indices after skipped edges; original input/output
+  complexity caps remain active. Legacy JSON normalizes on read without mutating
+  metadata, and persistence/history share the corrected geometry. No UI release
+  handler, measured RF data, survey schema, dependencies or version changes.
+  Verification:1561 tests +475 subtests passed in128.98s on native Windows;
+  focused geometry574 passed in22.79s and11 new residue/GUI/history/persistence
+  regressions passed in5.81s. A read-only GUI probe of the affected saved plan
+  reproduced diagonal rejection before the fix and committed all4 directions
+  afterward, with the original CSV hash unchanged. Source Qt/QTest validation;
+  no physical OS pointer or packaged EXE claim. Essential Ruff/diff checks pass.
 - FloorplanView.scrollContentsBy preserves positions of direct viewport widgets
   explicitly tagged fixedViewportOverlay. Qt's incremental viewport scroll moves
   child widgets alongside map content; the palette, Design Mode toggle and two

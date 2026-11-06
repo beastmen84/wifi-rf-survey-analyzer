@@ -7,6 +7,10 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Fixed dragged diagonal lines disappearing on release in older drawings with
+  microscopic rounding fragments. Orthogonal cuts now share the existing numeric
+  tolerance, and collapsed empty edges no longer reject valid oblique edits.
+  Real gaps, resolvable short features and source ownership remain preserved.
 - Fixed Design Mode controls drifting with the map during pan/zoom. The palette,
   toggle and measurement HUDs keep their viewport anchors, including during an
   active placement preview, without changing normal map scrolling or rendering.

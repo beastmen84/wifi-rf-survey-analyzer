@@ -86,7 +86,8 @@ from these software checks.
 - Intersections split editable strokes into individual fragments, including T
   joints and overlapping endpoints. Erase deletes only the chosen fragment.
   Line draws in any direction, including diagonals, by right-drag, or asks only for a length
-  before cursor-following placement. **R** rotates both Line and Rectangle
+  before cursor-following placement. Older plans with microscopic rounding
+  residues remain editable when adding diagonals. **R** rotates both Line and Rectangle
   placement previews by 90 degrees while preserving their dimensions.
   Select Structure uses right-click for one fragment or a right-drag box for all touched
   fragments. **R** rotates the selection around its bounding-box center; **M**

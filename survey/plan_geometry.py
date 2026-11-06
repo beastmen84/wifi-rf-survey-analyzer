@@ -13,6 +13,29 @@ def split_segments(segments, with_sources=False, limit=40000):
     """
     if any(line["x1"] != line["x2"] and line["y1"] != line["y2"] for line in segments):
         return split_general_segments(segments, with_sources, limit)
+    if len(segments) > limit:
+        raise ValueError("Too many editable plan segments")
+
+    def canonical_axis(keys):
+        values = sorted({line[key] for line in segments for key in keys})
+        result, anchor = {}, None
+        for value in values:
+            if anchor is None or value - anchor > EPSILON:
+                anchor = value
+            result[value] = anchor
+        return result
+
+    # Canonicalize orthogonal coordinates before computing intersections too.
+    # Otherwise two heights differing only by float ulps can create tiny cuts
+    # which later invalidate the general-angle geometry path.
+    xs, ys = canonical_axis(("x1", "x2")), canonical_axis(("y1", "y2"))
+    cleaned, origins = [], []
+    for index, line in enumerate(segments):
+        item = dict(line, x1=xs[line["x1"]], x2=xs[line["x2"]], y1=ys[line["y1"]], y2=ys[line["y2"]])
+        if item["x1"] != item["x2"] or item["y1"] != item["y2"]:
+            cleaned.append(item)
+            origins.append(index)
+    segments = cleaned
     groups = defaultdict(list)
     keys = []
     for index, line in enumerate(segments):
@@ -74,7 +97,7 @@ def split_segments(segments, with_sources=False, limit=40000):
             result.append(dict(x1=low if horizontal else coordinate, y1=coordinate if horizontal else low,
                                x2=high if horizontal else coordinate, y2=coordinate if horizontal else high,
                                color=line["color"]))
-            sources.append(index)
+            sources.append(origins[index])
     return (result, sources) if with_sources else result
 
 
