@@ -7,6 +7,14 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Added **Save as JPEG** beside Print Plan: clean-plan snapshot, graphical scale,
+  A5–A0/Letter/Legal, portrait/landscape, 150/300 DPI, live page preview and pixel
+  dimensions. Stores print resolution and writes the JPEG atomically. Canceling
+  export creates no file. Updated EN/IT/FR/ES Help.
+- Canceling Windows print-to-file no longer reports "Cannot start the print
+  device" as a program error. A native job that does not start leaves a neutral
+  status message and keeps the preview available; preview/render failures remain
+  visible.
 - Audited plan editing, geometry, persistence, rendering and interaction cost.
   Desk/symbol placement, single selection and movement now show transient m/ft
   clearances from the actual footprint to straight/curved structure, including

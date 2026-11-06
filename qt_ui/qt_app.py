@@ -469,6 +469,11 @@ class WifiHeatmapQtApp(
         self.print_plan_button.clicked.connect(self.print_plan)
         self.print_plan_button.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         project_section.title_row.addWidget(self.print_plan_button)
+        self.save_plan_jpeg_button = QPushButton()
+        self.save_plan_jpeg_button.setObjectName("appBarTitleButton")
+        self.save_plan_jpeg_button.clicked.connect(self.save_plan_jpeg)
+        self.save_plan_jpeg_button.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        project_section.title_row.addWidget(self.save_plan_jpeg_button)
         self.new_workspace_button = self.create_app_bar_button(self.new_survey)
         self.open_workspace_button = self.create_app_bar_button(lambda: self.open_survey())
         self.save_workspace_button = self.create_app_bar_button(self.save_survey)
@@ -569,6 +574,7 @@ class WifiHeatmapQtApp(
         for button, min_width in (
             (self.delete_scale_button, 0),
             (self.print_plan_button, 0),
+            (self.save_plan_jpeg_button, 0),
             (self.manage_relevant_button, 0),
             (self.clear_relevant_button, 0),
             (self.live_report_export_button, 118),
@@ -1992,6 +1998,9 @@ class WifiHeatmapQtApp(
         self.print_plan_button.setText(self.tr("print_plan"))
         self.print_plan_button.setToolTip(self.tr("print_plan_hint"))
         self.print_plan_button.setAccessibleName(self.tr("print_plan"))
+        self.save_plan_jpeg_button.setText(self.tr("save_plan_jpeg"))
+        self.save_plan_jpeg_button.setToolTip(self.tr("save_plan_jpeg_hint"))
+        self.save_plan_jpeg_button.setAccessibleName(self.tr("save_plan_jpeg"))
         self.zoom_out_button.setText("-")
         self.zoom_in_button.setText("+")
         self.fit_view_button.setText(self.tr("fit"))

@@ -22,6 +22,27 @@ interpolated colors.
 
 Current status:
 
+- Save as JPEG is adjacent to Print Plan in Project's title row and shares its
+  session/map/scan availability. qt_plan_jpeg.py owns paper choices A5–A0/Letter/
+  Legal, orientation,150/300DPI, bounded thumbnail preview and exact mm-to-pixel
+  conversion. The shared draw_plan_page painter now serves both QPrinter and
+  white RGB JPEG pages with10mm margins and the same calibrated footer. QImage
+  dots-per-meter metadata preserves print resolution; QImageWriter quality95
+  writes through QSaveFile for atomic replacement. Full export allocation occurs
+  only after options/path confirmation. Source snapshot, calibration and units
+  stay immutable across dialogs; no survey save or metadata mutation is required.
+- Native print dispatch has an explicit printing flag. PrintDeviceNotStarted
+  represents QPainter.begin returningFalse; during actual printing it produces
+  a neutral status and no failure dialog. Windows print-to-file cancellation can
+  returnFalse while the printer stays Idle, so Aborted alone is insufficient.
+  Preview failures still surface. Aborted printer finalization is benign. Primary
+  Qt source inspected:github.com/qt/qtbase, src/printsupport/platform/windows/
+  qprintengine_win.cpp begin and widgets/qprintpreviewwidget.cpp print. No driver
+  or physical-printer success is inferred from mocked cancellation tests.
+  Validation:1769 tests +479 subtests passed172.42s; after final HiDPI/spacing
+  polish,89 targeted tests +434 subtests passed26.38s. Native UI checked24
+  EN/IT/FR/ES x light/dark x100/125/175 configurations and all paper previews,
+  including explicit non-overlap checks and inspection of the actual JPEG.
 - Plan audit (2026-11-06): survey/plan_clearances.py measures finite structural
   line/arc/circle distances to actual desk/symbol silhouettes. Concave footprints,
   round analytic gaps, contact versus penetration and rotated vertices are

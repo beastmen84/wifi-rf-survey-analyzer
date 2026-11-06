@@ -47,18 +47,17 @@ def print_scale_reference(image_width, px_per_meter, measurement_system="metric"
     return dict(value=length, source_pixels=meters * density, unit=distance_unit_label(measurement_system))
 
 
-def paint_plan_page(printer, image, px_per_meter=None, measurement_system="metric", tr=None):
+class PrintDeviceNotStarted(RuntimeError):
+    """A native job can fail to start when its print-to-file prompt is cancelled."""
+
+
+def draw_plan_page(painter, image, width, height, dpi, px_per_meter=None, measurement_system="metric", tr=None):
     tr = tr or (lambda key: translate("en", key))
-    painter = QPainter()
-    if not painter.begin(printer):
-        raise RuntimeError("Cannot start the print device")
+    painter.save()
     try:
-        # With fullPage=False, the device origin is the printable area's corner.
-        # Using its width/height avoids applying paper margins twice.
-        width, height = printer.width(), printer.height()
         if image.isNull() or width <= 0 or height <= 0:
             raise ValueError("The plan or printable page is empty")
-        millimeter = printer.resolution() / 25.4
+        millimeter = dpi / 25.4
         footer = 17 * millimeter
         body_height = height - footer
         if body_height <= 0:
@@ -90,14 +89,28 @@ def paint_plan_page(printer, image, px_per_meter=None, measurement_system="metri
             painter.setPen(QColor("#475569"))
             painter.drawText(QPointF(x, y), tr("print_plan_scale_missing"))
     finally:
-        if not painter.end():
+        painter.restore()
+
+
+def paint_plan_page(printer, image, px_per_meter=None, measurement_system="metric", tr=None):
+    painter = QPainter()
+    if not painter.begin(printer):
+        raise PrintDeviceNotStarted("Cannot start the print device")
+    try:
+        # fullPage=False makes the printable area's corner the device origin.
+        draw_plan_page(painter, image, printer.width(), printer.height(), printer.resolution(),
+                       px_per_meter, measurement_system, tr)
+    finally:
+        if not painter.end() and printer.printerState() != QPrinter.PrinterState.Aborted:
             raise RuntimeError("Cannot finish the print page")
+    return printer.printerState() != QPrinter.PrinterState.Aborted
 
 
 class PlanPrintPreviewDialog(QDialog):
     def __init__(self, printer, owner):
         super().__init__(owner)
         self.device = printer
+        self.printing = False
         self.setWindowTitle(owner.tr("print_plan"))
         available = owner.screen().availableGeometry()
         self.resize(min(owner.spx(1000), available.width()), min(owner.spx(760), available.height()))
@@ -141,13 +154,21 @@ class PlanPrintPreviewDialog(QDialog):
         dialog.setMinMax(1, 1)
         try:
             if dialog.exec() == QDialog.DialogCode.Accepted:
-                self.preview.print()
+                self.printing = True
+                try:
+                    self.preview.print()
+                finally:
+                    self.printing = False
                 self.preview.updatePreview()
         finally:
             dialog.deleteLater()
 
 
 class PlanPrintingMixin:
+    def save_plan_jpeg(self):
+        from qt_ui.qt_plan_jpeg import export_plan_jpeg
+        return export_plan_jpeg(self)
+
     def print_plan(self):
         if self.session is None or self.scan_in_progress or not self.floorplan_view.has_floorplan():
             return False
@@ -167,7 +188,16 @@ class PlanPrintingMixin:
 
             def paint(device):
                 try:
-                    paint_plan_page(device, image, density, units, self.tr)
+                    if not paint_plan_page(device, image, density, units, self.tr):
+                        self.status.showMessage(self.tr("print_plan_not_started"))
+                except PrintDeviceNotStarted as error:
+                    if dialog.printing:
+                        # Windows print-to-file cancellation can leave the engine
+                        # Idle and return False from begin(), rather than Aborted.
+                        self.status.showMessage(self.tr("print_plan_not_started"))
+                    else:
+                        errors.append(error)
+                        dialog.reject()
                 except Exception as error:
                     errors.append(error)
                     dialog.reject()

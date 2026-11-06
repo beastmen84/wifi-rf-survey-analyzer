@@ -51,6 +51,11 @@ from these software checks.
   A graphical reference in m/ft uses the calibrated plan scale and follows paper
   fitting, so its length stays meaningful after changing page size/orientation.
   Uncalibrated plans explicitly report that their scale is unavailable.
+- **Save as JPEG**, beside **Print Plan**, exports the same clean plan and scale
+  reference. Choose A5–A0, Letter or Legal, portrait/landscape and 150/300 DPI;
+  preview the page and exact pixel dimensions before choosing the file. The JPEG
+  stores its print resolution and includes unsaved drawing edits. Use actual-size
+  printing in your image application to retain the selected paper dimensions.
 - New surveys start with a generated, pre-scaled blank plan and grid for
   use when no real floor plan is available. Starting from the app start
   page asks for metric or imperial units, the Wi-Fi adapter and blank-sheet width

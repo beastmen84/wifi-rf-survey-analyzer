@@ -2,6 +2,28 @@
 
 LANGUAGES = ("en", "it", "fr", "es")
 TEXT = {
+    "save_plan_jpeg": ("Save as JPEG", "Salva come JPEG", "Enregistrer en JPEG", "Guardar como JPEG"),
+    "save_plan_jpeg_hint": (
+        "Clean plan with scale reference, fitted to the selected page with its proportions preserved.",
+        "Pianta pulita con riferimento di scala, adattata al formato scelto mantenendo le proporzioni.",
+        "Plan seul avec référence d'échelle, ajusté au format choisi en conservant ses proportions.",
+        "Plano limpio con referencia de escala, ajustado al formato elegido manteniendo sus proporciones."),
+    "plan_jpeg_paper": ("Paper size", "Formato carta", "Format papier", "Tamaño de papel"),
+    "plan_jpeg_orientation": ("Page orientation", "Orientamento pagina", "Orientation de page", "Orientación de página"),
+    "plan_jpeg_portrait": ("Portrait", "Verticale", "Portrait (vertical)", "Vertical"),
+    "plan_jpeg_landscape": ("Landscape", "Orizzontale", "Paysage", "Horizontal"),
+    "plan_jpeg_resolution": ("Resolution", "Risoluzione", "Résolution", "Resolución"),
+    "plan_jpeg_saved": ("JPEG saved: {path}", "JPEG salvato: {path}", "JPEG enregistré : {path}", "JPEG guardado: {path}"),
+    "plan_jpeg_error": ("Could not save the plan as JPEG: {error}", "Impossibile salvare la pianta come JPEG: {error}",
+        "Impossible d'enregistrer le plan en JPEG : {error}", "No se pudo guardar el plano como JPEG: {error}"),
+    "plan_jpeg_replace": ("Replace the existing file {name}?", "Sostituire il file esistente {name}?",
+        "Remplacer le fichier existant {name} ?", "¿Reemplazar el archivo existente {name}?"),
+    "plan_jpeg_help": (
+        "Save as JPEG, beside Print Plan in Project, exports the clean plan with the same scale reference. Choose A5–A0, Letter or Legal, portrait/landscape and 150/300 DPI. The dialog previews the page and shows its exact pixel size. The whole plan fits the selected page with 10 mm margins and its proportions preserved. The JPEG stores its resolution for printing; choose actual size in the image-printing application to preserve the chosen paper size. Unsaved drawing edits are included without requiring a survey save. Canceling either dialog creates no file.",
+        "Salva come JPEG, accanto a Stampa Pianta in Progetto, esporta la pianta pulita con lo stesso riferimento di scala. Scegli A5–A0, Letter o Legal, verticale/orizzontale e 150/300 DPI. La finestra mostra l'anteprima e le dimensioni esatte in pixel. La pianta intera si adatta alla pagina con margini di 10 mm mantenendo le proporzioni. Il JPEG memorizza la risoluzione per la stampa: nell'app usata per stampare l'immagine scegli dimensioni effettive per mantenere il formato carta scelto. Include le modifiche al disegno non salvate, senza richiedere il salvataggio del rilievo. Annullando una delle due finestre non viene creato alcun file.",
+        "Enregistrer en JPEG, à côté d'Imprimer le plan dans Projet, exporte le plan seul avec la même référence d'échelle. Choisissez A5–A0, Letter ou Legal, portrait/paysage et 150/300 DPI. La fenêtre montre l'aperçu et les dimensions exactes en pixels. Le plan entier s'ajuste à la page avec des marges de 10 mm sans déformation. Le JPEG mémorise sa résolution d'impression : choisissez la taille réelle dans l'application d'impression pour conserver le format papier choisi. Les modifications non enregistrées sont incluses sans enregistrer le relevé. Annuler l'une des fenêtres ne crée aucun fichier.",
+        "Guardar como JPEG, junto a Imprimir plano en Proyecto, exporta el plano limpio con la misma referencia de escala. Elige A5–A0, Letter o Legal, vertical/horizontal y 150/300 DPI. La ventana muestra la vista previa y las dimensiones exactas en píxeles. El plano completo se ajusta a la página con márgenes de 10 mm sin deformarse. El JPEG guarda su resolución de impresión: elige tamaño real en la aplicación de impresión para conservar el papel elegido. Incluye cambios sin guardar, sin guardar el estudio. Cancelar cualquiera de las ventanas no crea archivos."),
+    "print_plan_not_started": ("Printing was not started.", "Stampa non avviata.", "L'impression n'a pas été lancée.", "No se inició la impresión."),
     "print_scale_help": (
         "The footer includes a calibrated graphical scale reference in m/ft, resized with the plan when the paper changes. Uncalibrated plans explicitly report that scale is unavailable.",
         "Il piè di pagina include un riferimento grafico di scala calibrato in m/ft, ridimensionato insieme alla pianta quando cambia la carta. Le piante non calibrate indicano esplicitamente che la scala non è disponibile.",
