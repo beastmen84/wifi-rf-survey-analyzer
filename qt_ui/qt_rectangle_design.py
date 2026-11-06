@@ -25,6 +25,7 @@ from qt_ui.qt_line_design import LineDesignController
 from qt_ui.qt_plan_selection import PlanSelectionController
 from qt_ui.qt_plan_rotation import PlanRotationController
 from qt_ui.qt_plan_annotations import AnnotationController, ANNOTATION_TOOLS
+from qt_ui.qt_plan_dimensions import SegmentDimensions
 from survey.plan_annotations import (PLAN_ANNOTATIONS_KEY, drawing_annotations, encode_annotations,
     validate_annotations, visible_wall_segments, follow_hosts, supported)
 
@@ -112,6 +113,7 @@ class RectangleDesignController(QObject):
         self.selection = PlanSelectionController(self)
         self.rotation = PlanRotationController(self)
         self.annotation = AnnotationController(self)
+        self.dimensions = SegmentDimensions(self)
         self.owner.installEventFilter(self)
         self.view.installEventFilter(self)
         self.view.viewport().installEventFilter(self)
@@ -174,6 +176,7 @@ class RectangleDesignController(QObject):
                 self.curve.reset_scene()
                 self.selection.reset_scene()
                 self.annotation.reset_scene()
+                self.dimensions.reset_scene()
             self.cancel()
             self.undo_stack.clear()
             self.redo_stack.clear()
@@ -200,6 +203,7 @@ class RectangleDesignController(QObject):
         return drawing_annotations(self.owner.session.metadata) if self.owner.session else []
 
     def redraw(self):
+        self.dimensions.hide()
         self.rotation.cancel()
         self.eraser.cancel()
         self.line.cancel()
@@ -226,7 +230,7 @@ class RectangleDesignController(QObject):
             raise ValueError("Saved annotations have invalid placement")
         self.eraser.set_segments(lines or [])
         self.selection.set_segments(lines or [])
-        self.snapper = PlanSnapper(lines or [], curves)
+        self.snapper = PlanSnapper(lines or [], curves, region_centers=lambda: self.selection.regions().centers())
         self.regions = closed_drawing_regions(lines or [], curves)
         self.view.set_grid_regions(self.regions.faces)
         if self.regions.limited:
@@ -252,6 +256,7 @@ class RectangleDesignController(QObject):
         self.annotation.redraw(annotations)
 
     def cancel(self):
+        self.dimensions.hide()
         states = (self.rotation.cancel(), self.eraser.cancel(), self.line.cancel(), self.text.cancel(), self.curve.cancel(), self.selection.cancel(), self.annotation.cancel(),
                   self.origin is not None, self.pending_size is not None)
         existed = any(states)
@@ -269,6 +274,7 @@ class RectangleDesignController(QObject):
         return existed
 
     def hide_preview(self):
+        self.dimensions.hide()
         if self.rotation.active:
             return
         self.eraser.hide_preview()
@@ -322,6 +328,7 @@ class RectangleDesignController(QObject):
         if self.rotation.active:
             return
         if self.tools.active_tool in ANNOTATION_TOOLS:
+            self.annotation.refresh_snap()
             return
         if self.tools.active_tool in ("circle", "arc"):
             self.curve.refresh_snap()
@@ -399,12 +406,16 @@ class RectangleDesignController(QObject):
         text = f"{numbers[0]} × {numbers[1]} {distance_unit_label(self.owner.measurement_system)}"
         if self.pending_size:
             text += "\n" + self.owner.tr("design_rotate_hint")
-        kinds = [kind for kind in ("corner", "edge", "alignment", "grid") if any(guide.kind == kind for guide in self.snap_guides)]
+        kinds = [kind for kind in ("corner", "midpoint", "area_center", "edge", "alignment", "grid") if any(guide.kind == kind for guide in self.snap_guides)]
         if kinds:
             text += "\n" + " · ".join(self.owner.tr("design_snap_" + kind) for kind in kinds)
         self.show_measurement(text, position)
 
     def show_measurement(self, text, position):
+        for kind in ("midpoint", "area_center"):
+            label = self.owner.tr("design_snap_" + kind)
+            if any(g.kind == kind for g in self.snap_guides) and label not in text:
+                text += "\n" + label
         self.measurement.setText(text)
         self.position_measurement()
         self.measurement.show()
@@ -414,9 +425,13 @@ class RectangleDesignController(QObject):
         margin = widget_px(self.owner, 12)
         viewport = self.view.viewport()
         self.measurement.setWordWrap(True)
-        self.measurement.setMaximumWidth(min(widget_px(self.owner, 330), max(80, viewport.width() // 2 - margin)))
+        limit = min(widget_px(self.owner, 330), max(80, viewport.width() // 2 - margin))
+        natural = max((self.measurement.fontMetrics().horizontalAdvance(row) for row in self.measurement.text().splitlines()), default=0)
+        self.measurement.setMinimumWidth(0)
+        self.measurement.setFixedWidth(min(limit, natural + 24))  # CSS padding is in unscaled logical pixels.
         self.measurement.adjustSize()
         self.measurement.move(max(margin, viewport.width() - margin - self.measurement.width()), margin)
+        self.dimensions.position()
 
     def press(self, event):
         if self.rotation.active:
@@ -466,6 +481,11 @@ class RectangleDesignController(QObject):
         return False
 
     def move(self, event):
+        consumed = self._move(event)
+        self.dimensions.update(event)
+        return consumed
+
+    def _move(self, event):
         if self.rotation.active:
             self.rotation.move(event.position())
             return True

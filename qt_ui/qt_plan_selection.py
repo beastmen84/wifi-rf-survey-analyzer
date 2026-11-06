@@ -408,6 +408,7 @@ class PlanSelectionController:
         selected = set(self.selected)
         self.move_snapper = PlanSnapper([line for index, line in enumerate(self.lines) if index not in selected],
                                       [curve for index, curve in enumerate(self.drawing.curves()) if index not in self.selected_curves])
+        self.move_snapper.region_centers = lambda: RegionPicker(self.move_snapper.segments, self.move_snapper.curves).centers()
         self.clear_items()
         for index in self.selected:
             self.drawing.items[index].setOpacity(.25)

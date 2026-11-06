@@ -80,9 +80,9 @@ def test_oblique_eraser_and_marquee_ignore_empty_bounding_box_corners():
 
 def test_oblique_snap_uses_actual_vertices_and_finite_edge_projections():
     snapper = PlanSnapper([line(100, 100, 300, 300)])
-    result = snapper.snap(204, 200, 0, 0, (0, 0, 900, 600), 10)
-    assert (result.x, result.y) == (202, 202) and result.guides[0].axis == "line"
-    source = [line(204, 200, 254, 250)]
+    result = snapper.snap(224, 220, 0, 0, (0, 0, 900, 600), 10)
+    assert (result.x, result.y) == (222, 222) and result.guides[0].axis == "line"
+    source = [line(224, 220, 274, 270)]
     result = snapper.snap_geometry(source, (0, 0, 900, 600), 10)
     assert result.guides and result.x == -2 and result.y == 2
 

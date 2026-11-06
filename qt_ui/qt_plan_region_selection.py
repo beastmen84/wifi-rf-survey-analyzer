@@ -1,7 +1,8 @@
 """Click regions with exact areas and source boundaries, including nested holes."""
 from dataclasses import dataclass
+import math
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QPointF
 from PySide6.QtGui import QPainterPath
 
 from survey.curved_regions import closed_drawing_regions
@@ -58,3 +59,39 @@ class RegionPicker:
         lines, curves = tuple(sorted(lines)), tuple(sorted(curves))
         matches = [region.area for _path, region in self.records if region.lines == lines and region.curves == curves]
         return min(matches) if matches else None
+
+    def centers(self):
+        """Interior centroids, with an interior fallback for concave/holed rooms."""
+        result = []
+        for path, _region in self.records:
+            polygon = [(p.x(), p.y()) for p in path.toFillPolygon()]
+            if len(polygon) < 3:
+                continue
+            ox, oy = polygon[0]
+            local = [(x - ox, y - oy) for x, y in polygon]
+            pairs = list(zip(local, local[1:] + local[:1]))
+            cross = [a[0] * b[1] - b[0] * a[1] for a, b in pairs]
+            area2 = math.fsum(cross)
+            box = path.boundingRect()
+            center = (box.center().x(), box.center().y())
+            if abs(area2) > 1e-10:
+                center = (ox + math.fsum((a[0] + b[0]) * c for (a, b), c in zip(pairs, cross)) / (3 * area2),
+                          oy + math.fsum((a[1] + b[1]) * c for (a, b), c in zip(pairs, cross)) / (3 * area2))
+            if path.contains(QPointF(*center)):
+                result.append(center)
+                continue
+            # A centroid inside a courtyard or outside a concave L is not a
+            # useful snap point. Pick the nearest central interior scan span.
+            candidates = []
+            levels = [center[1]] + [box.top() + box.height() * t for t in (.25, .5, .75)]
+            edges = list(zip(polygon, polygon[1:] + polygon[:1]))
+            for y in levels:
+                xs = sorted(a[0] + (y - a[1]) * (b[0] - a[0]) / (b[1] - a[1]) for a, b in edges
+                            if (a[1] <= y < b[1]) or (b[1] <= y < a[1]))
+                for left, right in zip(xs, xs[1:]):
+                    point = ((left + right) / 2, y)
+                    if right - left > 1e-8 and path.contains(QPointF(*point)):
+                        candidates.append((math.dist(point, center), -(right - left), point))
+            if candidates:
+                result.append(min(candidates)[2])
+        return result

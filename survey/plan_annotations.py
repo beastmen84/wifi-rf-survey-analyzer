@@ -176,3 +176,47 @@ def place_aperture(point, width, lines, tolerance, template):
         if distance <= tolerance and supported(item, lines):
             choices.append((distance, item))
     return min(choices, key=lambda choice: choice[0])[1] if choices else None
+
+
+def align_aperture(item, lines, snapper, bounds, tolerance, grid=None):
+    """Align jambs or the opening center without losing geometric wall support."""
+    from survey.plan_snapping import SnapGuide, nearest_grid
+    a, b = annotation_points(item)
+    anchors = [a, b, [(a[i] + b[i]) / 2 for i in (0, 1)]]
+
+    def candidate(anchor, target):
+        dx, dy = target[0] - anchor[0], target[1] - anchor[1]
+        moved = transform_annotations([item], dx=dx, dy=dy)[0]
+        if (supported(moved, lines) and all(bounds[0] - EPS <= p[0] <= bounds[2] + EPS
+                and bounds[1] - EPS <= p[1] <= bounds[3] + EPS for p in annotation_points(moved))):
+            return moved
+        return None
+
+    for kind, points, xs in snapper.target_groups():
+        choices = []
+        for anchor in anchors:
+            for target in snapper.nearby(points, xs, anchor[0], tolerance):
+                distance = math.dist(anchor, target)
+                if distance <= tolerance:
+                    moved = candidate(anchor, target)
+                    if moved is not None:
+                        choices.append((distance, tuple(target), moved))
+        if choices:
+            _distance, target, moved = min(choices, key=lambda c: c[:2])
+            return moved, (SnapGuide(kind, target),)
+    if grid and grid > 0:
+        axis = 0 if abs(b[0] - a[0]) >= abs(b[1] - a[1]) else 1
+        choices = []
+        for anchor in anchors:
+            value = nearest_grid(anchor[axis], bounds[axis], bounds[axis + 2], grid)
+            if value is None:
+                continue
+            t = (value - anchor[axis]) / (b[axis] - a[axis])
+            target = [anchor[i] + t * (b[i] - a[i]) for i in (0, 1)]
+            moved = candidate(anchor, target)
+            if moved is not None:
+                choices.append((math.dist(anchor, target), tuple(target), moved))
+        if choices:
+            _distance, target, moved = min(choices, key=lambda c: c[:2])
+            return moved, (SnapGuide("grid", target),)
+    return item, ()

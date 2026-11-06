@@ -7,13 +7,14 @@ from PySide6.QtGui import QColor, QImage, QPainter, QPainterPath, QPen, QTransfo
 from PySide6.QtWidgets import QGraphicsPathItem
 
 
-def annotation_path(item):
+def annotation_parts(item):
     path = QPainterPath()
+    arcs = QPainterPath()
     if item["kind"] == "marker":
         path.moveTo(*item["points"][0])
         for point in item["points"][1:]:
             path.lineTo(*point)
-        return path
+        return [(path, True)]
     length = math.hypot(item["x2"] - item["x1"], item["y2"] - item["y1"])
     side = item.get("side", 1)
     if item["kind"] == "window":
@@ -29,9 +30,9 @@ def annotation_path(item):
         def leaf(origin, radius, direction):
             path.moveTo(origin, 0)
             path.lineTo(origin, side * radius)
-            path.moveTo(origin + direction * radius, 0)
+            arcs.moveTo(origin + direction * radius, 0)
             k = .5522847498307936
-            path.cubicTo(origin + direction * radius, side * radius * k,
+            arcs.cubicTo(origin + direction * radius, side * radius * k,
                          origin + direction * radius * k, side * radius, origin, side * radius)
         if item.get("variant") == "double":
             leaf(0, length / 2, 1)
@@ -41,12 +42,23 @@ def annotation_path(item):
     transform = QTransform()
     transform.translate(item["x1"], item["y1"])
     transform.rotate(math.degrees(math.atan2(item["y2"] - item["y1"], item["x2"] - item["x1"])))
-    return transform.map(path)
+    parts = [(transform.map(path), False)]
+    if not arcs.isEmpty():
+        parts.append((transform.map(arcs), True))
+    return parts
 
 
-def annotation_pen(item, color=None):
+def annotation_path(item):
+    path = QPainterPath()
+    for part, _dashed in annotation_parts(item):
+        path.addPath(part)
+    return path
+
+
+def annotation_pen(item, color=None, dashed=None):
     pen = QPen(QColor(color or item["color"]), item["stroke"])
-    if item["kind"] == "marker":
+    is_dashed = item["kind"] == "marker" if dashed is None else dashed
+    if is_dashed:
         pen.setStyle(Qt.PenStyle.DashLine)
     pen.setCapStyle(Qt.PenCapStyle.RoundCap)
     pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
@@ -63,7 +75,11 @@ def annotation_fits(item, bounds):
 
 def annotation_item(annotation, color=None):
     item = QGraphicsPathItem(annotation_path(annotation))
-    item.setPen(annotation_pen(annotation, color))
+    item.setPen(QPen(Qt.PenStyle.NoPen))
+    for path, dashed in annotation_parts(annotation):
+        child = QGraphicsPathItem(path, item)
+        child.setPen(annotation_pen(annotation, color, dashed))
+        child.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
     item.setZValue(6)
     item.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
     return item
@@ -75,8 +91,9 @@ def render_annotations(image, annotations):
     painter = QPainter(native)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
     for item in annotations:
-        painter.setPen(annotation_pen(item))
-        painter.drawPath(annotation_path(item))
+        for path, dashed in annotation_parts(item):
+            painter.setPen(annotation_pen(item, dashed=dashed))
+            painter.drawPath(path)
     painter.end()
     raw = native.convertToFormat(QImage.Format.Format_RGBA8888)
     return Image.frombytes("RGBA", (raw.width(), raw.height()), bytes(raw.constBits()),

@@ -256,7 +256,7 @@ def test_properties_units_and_pose_preservation(editor, system):
     dialog = AnnotationDialog(d.annotation, original)
     try:
         dialog.width.setValue(3)
-        dialog.variant.setCurrentIndex(dialog.variant.findData("double"))
+        dialog.choose_door("double")
         result = dialog.properties()
         meters = 3 if system == "metric" else .9144
         assert math.dist(*annotation_points(result)) == pytest.approx(meters * app.get_px_per_meter())

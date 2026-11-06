@@ -119,13 +119,30 @@ from these software checks.
   **Door** supports single, double and sliding variants; **Window** uses a simple
   window symbol. Choose width before placement, then right-click on a straight
   wall, including oblique walls. Doors have independent hinge and opening-side
-  controls. Apertures hide only the covered wall ink: room closure, internal area
+  choices shown as seven configuration icons (four single, two double, sliding).
+  Only swing arcs are dashed; door leaves remain solid.
+  Apertures hide only the covered wall ink: room closure, internal area
   and Boundaries Fill/Auto Fill retain the complete structural geometry.
   Select annotations to move with **M**, delete with **Del**, or edit by right
   double-click / Properties. **R** rotates markers/text by 90° or reverses a swing
   door's opening side. Attached openings follow rigid host moves; deleting their
   support also deletes them in the same undoable edit. Overlapping openings and
   invalid placements are rejected. PNG, Live Map and HTML use the same symbols.
+  Structure and Annotations also have their own **eraser**: right-click removes
+  one item and right-drag removes the touched items in that layer, including text
+  for annotation erasing. Undo restores the same objects and their wall ink.
+- With a drawing tool active, hovering over a segment shows the distances from
+  endpoint **A** to the cursor and from the cursor to **B**, with matching colored
+  dimension lines. Door/window previews separately report the free space before
+  and after the opening, so cursor distance is not confused with jamb clearance.
+  Quotes use survey m/ft units and stay out of saved/exported geometry.
+  **Segment midpoints** and **room centers** are snap targets alongside corners
+  and edges. Shapes, text and openings can also snap from their own center; for
+  doors/windows this is the midpoint of the opening on the wall. Room centers
+  stay inside usable regions, including concave rooms or rooms with holes.
+  The grid toggle controls only grid snapping; drawing magnets remain active.
+  **Alt** suspends both drawing and grid magnets, while hosted openings still
+  require a supporting wall.
 - Design Mode **Text** opens a multiline editor with font, size, bold/italic,
   alignment, color, outline and a live preview. Click the sheet with the right
   button to open it; after OK the label follows the cursor until another right

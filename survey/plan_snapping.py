@@ -59,7 +59,7 @@ def snap_vertices_to_grid(vertices, box, bounds, spacing):
 
 
 class PlanSnapper:
-    def __init__(self, segments=(), curves=()):
+    def __init__(self, segments=(), curves=(), region_centers=()):
         self.segments = list(segments)
         self.curves = list(curves)
         self.oblique = [line for line in self.segments if line["x1"] != line["x2"] and line["y1"] != line["y2"]]
@@ -78,6 +78,32 @@ class PlanSnapper:
         self.v_positions = [line[0] for line in self.vertical]
         self.h_positions = [line[0] for line in self.horizontal]
         self.vertex_x = [point[0] for point in self.vertices]
+        self.midpoints = sorted({((s["x1"] + s["x2"]) / 2, (s["y1"] + s["y2"]) / 2) for s in self.segments})
+        self.region_centers = region_centers
+        self._centers = None
+
+    def target_groups(self):
+        yield "corner", self.vertices, self.vertex_x
+        yield "midpoint", self.midpoints, [p[0] for p in self.midpoints]
+        if self._centers is None:
+            self._centers = sorted(set(self.region_centers() if callable(self.region_centers) else self.region_centers))
+        yield "area_center", self._centers, [p[0] for p in self._centers]
+
+    def point_snap(self, vertices, box, bounds, tolerance):
+        """Corners, segment midpoints, then interior room centers; no grid."""
+        for kind, targets, xs in self.target_groups():
+            choices = []
+            for vx, vy in vertices:
+                for tx, ty in self.nearby(targets, xs, vx, tolerance):
+                    dx, dy = tx - vx, ty - vy
+                    distance = dx * dx + dy * dy
+                    if (distance <= tolerance ** 2 and bounds[0] <= box[0] + dx and bounds[1] <= box[1] + dy
+                            and box[2] + dx <= bounds[2] and box[3] + dy <= bounds[3]):
+                        choices.append((distance, dx, dy, tx, ty))
+            if choices:
+                _, dx, dy, tx, ty = min(choices)
+                return SnapResult(dx, dy, (SnapGuide(kind, (tx, ty)),))
+        return None
 
     @staticmethod
     def nearby(values, positions, coordinate, tolerance):
@@ -105,17 +131,11 @@ class PlanSnapper:
         if any(not math.isfinite(value) for point in vertices for value in point):
             raise ValueError("Invalid snapping vertices")
 
-        corners = []
-        for sx, sy in vertices:
-            for vx, vy in self.nearby(self.vertices, self.vertex_x, sx, tolerance):
-                distance = (vx - sx) ** 2 + (vy - sy) ** 2
-                anchor_x, anchor_y = vx - (sx - x), vy - (sy - y)
-                if (distance <= tolerance ** 2 and left <= anchor_x <= max_x
-                        and top <= anchor_y <= max_y):
-                    corners.append((distance, anchor_x, anchor_y, vx, vy))
-        if corners:
-            _, anchor_x, anchor_y, vx, vy = min(corners)
-            return SnapResult(anchor_x, anchor_y, (SnapGuide("corner", (vx, vy)),))
+        if width or height:
+            vertices.append((x + width / 2, y + height / 2))
+        point = self.point_snap(vertices, (x, y, x + width, y + height), bounds, tolerance)
+        if point is not None:
+            return SnapResult(x + point.x, y + point.y, point.guides)
 
         diagonal = self.edge_translation(vertices, self.oblique,
                                           (x, y, x + width, y + height), bounds, tolerance)
@@ -186,7 +206,7 @@ class PlanSnapper:
         ox, oy = origin
         if not all(math.isfinite(value) for value in origin) or not (left <= ox <= right and top <= oy <= bottom):
             raise ValueError("Invalid drag origin")
-        if any(guide.kind == "corner" or guide.axis in ("line", "curve") for guide in direct.guides):
+        if any(guide.kind in ("corner", "midpoint", "area_center") or guide.axis in ("line", "curve") for guide in direct.guides):
             return direct
         x, y = min(max(x, left), right), min(max(y, top), bottom)
         xs = self.axis_targets(x, min(oy, y), abs(y - oy), (0,), self.vertical, self.v_positions,
@@ -222,13 +242,14 @@ class PlanSnapper:
         value, fixed = (x, origin[1]) if horizontal else (y, origin[0])
         minimum, maximum = (bounds[0], bounds[2]) if horizontal else (bounds[1], bounds[3])
         value = min(max(value, minimum), maximum)
-        vertices = [(vx if horizontal else vy) for vx, vy in self.vertices
-                    if abs((vy if horizontal else vx) - fixed) <= 1e-9
-                    and abs((vx if horizontal else vy) - value) <= tolerance]
-        if vertices:
-            chosen = min(vertices, key=lambda coordinate: (abs(coordinate - value), coordinate))
-            point = (chosen, fixed) if horizontal else (fixed, chosen)
-            return SnapResult(*point, (SnapGuide("corner", point),))
+        for kind, points, _xs in self.target_groups():
+            vertices = [(vx if horizontal else vy) for vx, vy in points
+                        if abs((vy if horizontal else vx) - fixed) <= 1e-9
+                        and abs((vx if horizontal else vy) - value) <= tolerance]
+            if vertices:
+                chosen = min(vertices, key=lambda coordinate: (abs(coordinate - value), coordinate))
+                point = (chosen, fixed) if horizontal else (fixed, chosen)
+                return SnapResult(*point, (SnapGuide(kind, point),))
         side = dict(x1=minimum if horizontal else fixed, y1=fixed if horizontal else minimum,
                     x2=maximum if horizontal else fixed, y2=fixed if horizontal else maximum)
         points = [point for curve in self.curves for point in line_curve_intersections(side, curve)
@@ -257,21 +278,22 @@ class PlanSnapper:
 
     def snap_arc_height(self, chord, x, y, bounds, tolerance, grid=None):
         """Bend through a real corner first, then a grid point; keep A/B fixed."""
-        choices = []
-        for vx, vy in self.nearby(self.vertices, self.vertex_x, x, tolerance):
-            distance = (vx - x) ** 2 + (vy - y) ** 2
-            if distance > tolerance ** 2:
-                continue
-            height = arc_height_through_point(chord, (vx, vy))
-            if height is None:
-                continue
-            left, top, right, bottom = curve_bounds(dict(chord, height=height))
-            if (left >= bounds[0] - 1e-7 and top >= bounds[1] - 1e-7
-                    and right <= bounds[2] + 1e-7 and bottom <= bounds[3] + 1e-7):
-                choices.append((distance, vx, vy, height))
-        if choices:
-            _, vx, vy, height = min(choices)
-            return height, SnapGuide("corner", (vx, vy))
+        for kind, points, xs in self.target_groups():
+            choices = []
+            for vx, vy in self.nearby(points, xs, x, tolerance):
+                distance = (vx - x) ** 2 + (vy - y) ** 2
+                if distance > tolerance ** 2:
+                    continue
+                height = arc_height_through_point(chord, (vx, vy))
+                if height is None:
+                    continue
+                left, top, right, bottom = curve_bounds(dict(chord, height=height))
+                if (left >= bounds[0] - 1e-7 and top >= bounds[1] - 1e-7
+                        and right <= bounds[2] + 1e-7 and bottom <= bounds[3] + 1e-7):
+                    choices.append((distance, vx, vy, height))
+            if choices:
+                _, vx, vy, height = min(choices)
+                return height, SnapGuide(kind, (vx, vy))
         if not grid or grid <= 0:
             return None
         vx = nearest_grid(x, bounds[0], bounds[2], grid)
@@ -316,17 +338,10 @@ class PlanSnapper:
         """Rigidly snap real vertices of an angled shape, preserving its angle."""
         box = segment_bounds(segments)
         vertices = sorted({(line[x], line[y]) for line in segments for x, y in (("x1", "y1"), ("x2", "y2"))})
-        corners = []
-        for vx, vy in vertices:
-            for tx, ty in self.nearby(self.vertices, self.vertex_x, vx, tolerance):
-                dx, dy = tx - vx, ty - vy
-                distance = dx * dx + dy * dy
-                if (distance <= tolerance ** 2 and bounds[0] <= box[0] + dx and bounds[1] <= box[1] + dy
-                        and box[2] + dx <= bounds[2] and box[3] + dy <= bounds[3]):
-                    corners.append((distance, dx, dy, tx, ty))
-        if corners:
-            _, dx, dy, tx, ty = min(corners)
-            return SnapResult(dx, dy, (SnapGuide("corner", (tx, ty)),))
+        vertices.append(((box[0] + box[2]) / 2, (box[1] + box[3]) / 2))
+        point = self.point_snap(vertices, box, bounds, tolerance)
+        if point is not None:
+            return point
         edge = self.edge_translation(vertices, self.segments, box, bounds, tolerance)
         if edge:
             dx, dy, guide = edge

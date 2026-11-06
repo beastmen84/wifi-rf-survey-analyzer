@@ -7,6 +7,17 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Door properties now offer a row of seven configuration icons. Only swing arcs
+  are dashed; leaves, windows and sliding symbols remain solid in scene/exports.
+- Added an annotation-only eraser alongside the structural eraser, with click or
+  drag-area deletion, text support and shared undo/redo.
+- Added transient segment A/cursor/B dimension overlays and separate door/window
+  jamb clearances in survey units. Measurements do not change survey data.
+- Added segment-midpoint and interior-room-center snap targets, plus center
+  anchors for shape/text/opening placement and movement. Opening centers are
+  measured along the wall aperture, independently of swing-symbol bounds.
+  Grid off preserves drawing magnets; Alt suspends all magnets and refreshes
+  previews immediately. Updated four-language Help and tooltips.
 - Added non-structural Marker, Window and Door annotations to generated plans.
   Marker supports freehand/grid-following dashed paths with its own color and
   stroke width. Doors support single/double/sliding leaves, width, hinge and swing

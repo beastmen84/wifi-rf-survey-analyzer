@@ -31,6 +31,7 @@ for _language, _dictionary in TRANSLATIONS.items():
     _dictionary.update(blank_plan_dictionary(_language))
     _dictionary.update(annotation_dictionary(_language))
     _dictionary["blank_plan_help"] += " " + _dictionary["annotation_help"]
+    _dictionary["blank_plan_help"] += " " + _dictionary["drawing_precision_help"]
     _dictionary["help_ap_groups_body"] += _dictionary["advisor_group_confirmation_help"]
     _dictionary["help_ap_groups_body"] += _dictionary["ap_confirmation_priority_help"]
 

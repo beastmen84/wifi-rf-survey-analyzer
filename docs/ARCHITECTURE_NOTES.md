@@ -22,6 +22,38 @@ interpolated colors.
 
 Current status:
 
+- Door properties use seven mutually exclusive icon buttons: four single-leaf
+  hinge/side configurations, two double and one sliding. annotation_parts shares
+  solid leaf/window paths and separately dashed swing paths among scene, icons,
+  hit testing and raster exports. No saved annotation format change is needed.
+- Annotation erasing is a separate tool in the annotation row, reusing its finite
+  path/text picker and stroke marquee; click/drag deletion never removes walls.
+  Structural erasing continues to remove attached openings only when support is
+  lost, atomically with that structural operation. Other annotations are intact.
+- PlanSnapper has distinct corner, segment-midpoint and interior-region-center
+  targets before edge/grid fallbacks. The actual vertex set remains unchanged;
+  midpoint/center magnets never split walls or affect topology. Rigid shapes and
+  text may also use their bounding center as a source anchor. Aperture alignment
+  uses its jambs/opening midpoint, never the bounding center of the swing symbol.
+  Hosting constrains both endpoint and center snaps to a valid collinear run.
+- RegionPicker.centers lazily computes a polygon centroid, including holes. If
+  it is outside the usable shape, a central interior scan span supplies a valid
+  representative point. Region areas retain their existing analytic calculation.
+  Grid toggle controls grid only, including marker mode; Alt bypasses all drawing
+  and grid magnets. Projection onto a wall is still required for hosted openings.
+- qt_plan_dimensions.py adds only transient, input-transparent scene paths and a
+  fixed badge below the drawing HUD. A/B dimensions measure the actual cursor's
+  finite projection, not an aperture symbol's center. Clearances use aperture
+  endpoints separately, and appear only on their complete supporting segment.
+  Both quantities use survey units/calibration. Mode/scene changes, leaving walls
+  or left-panning hide them; no metadata, raw RF data or export geometry changes.
+  Verification:1547 tests +475 subtests passed in130.86s on native Windows;
+  cursor/HUD/help closeout118 +434 subtests in23.88s. New precision-tool tests
+  cover all seven icons, isolated erasers, oblique/center/midpoint magnets,
+  actual pointer vs jamb clearance, m/ft, Alt, transient state and dashed arc
+  rendering. Native16-case EN/IT/FR/ES × light/dark × UI100/175 checks inspect
+  dialogs, palette and clearances; these are synthetic widgets, not physical
+  mouse/EXE QA. Test-data hashes unchanged; essential Ruff/diff checks pass.
 - Design Mode now separates Structure (rectangle/line/circle/arc/eraser/select)
   and Annotations (marker/window/door/text/select), with per-group selection and
   a common history/action row. UI structure picking/marquee/double-click ignore

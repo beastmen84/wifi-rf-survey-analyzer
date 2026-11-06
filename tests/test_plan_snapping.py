@@ -99,7 +99,7 @@ def test_corner_has_priority_over_grid_and_projected_edges():
 def test_edge_snap_does_not_extend_beyond_a_real_segment():
     snapper = PlanSnapper([line(100, 100, 100, 200)])
     result = snapper.snap(104, 150, 0, 0, BOUNDS, 10)
-    assert (result.x, result.y) == (100, 150) and kinds(result) == {"edge"}
+    assert (result.x, result.y) == (100, 150) and kinds(result) == {"midpoint"}
     result = snapper.snap(104, 250, 0, 0, BOUNDS, 10)
     assert (result.x, result.y) == (104, 250) and not result.guides
 

@@ -49,8 +49,8 @@ class PlanToolsOverlay(QFrame):
         self.annotation_row = annotation_row
         annotation_row.setSpacing(owner.spx(4))
         self.annotation_buttons = {}
-        for tool in ("marker", "window", "door", "annotation_select"):
-            button = owner.create_boundaries_text_button("", "annotation_" + ("select" if tool == "annotation_select" else tool))
+        for tool in ("marker", "window", "door", "annotation_eraser", "annotation_select"):
+            button = owner.create_boundaries_text_button("", "annotation_" + {"annotation_select": "select", "annotation_eraser": "eraser"}.get(tool, tool))
             button.setCheckable(True)
             button.clicked.connect(lambda checked=False, tool=tool: self.select_tool(tool))
             self.annotation_buttons[tool] = button
@@ -198,12 +198,14 @@ class PlanToolsOverlay(QFrame):
         self.position_controls()
 
     def update_tool_state(self):
+        self.eraser_button.setToolTip(self.owner.tr("structure_eraser"))
+        self.eraser_button.setAccessibleName(self.owner.tr("structure_eraser"))
         self.select_button.setToolTip(self.owner.tr("annotation_select_structure"))
         self.select_button.setAccessibleName(self.owner.tr("annotation_select_structure"))
         for tool, button in self.annotation_buttons.items():
             button.setEnabled(self.open)
             button.setChecked(self.open and self.active_tool == tool)
-            text = self.owner.tr("annotation_" + ("select" if tool == "annotation_select" else tool))
+            text = self.owner.tr("annotation_" + {"annotation_select": "select", "annotation_eraser": "eraser"}.get(tool, tool))
             button.setToolTip(text)
             button.setAccessibleName(text)
         for tool, button in (("rectangle", self.rectangle_button), ("line", self.line_button),
@@ -212,8 +214,8 @@ class PlanToolsOverlay(QFrame):
                              ("eraser", self.eraser_button), ("select", self.select_button)):
             button.setEnabled(self.open)
             button.setChecked(self.open and self.active_tool == tool)
-        self.snap_button.setEnabled(self.open and self.active_tool not in ("eraser", "marker", "door", "window"))
-        self.snap_button.setToolTip(self.owner.tr("curve_grid_hint" if self.active_tool in ("circle", "arc") else "grid_all_vertices_help"))
+        self.snap_button.setEnabled(self.open and self.active_tool not in ("eraser", "annotation_eraser"))
+        self.snap_button.setToolTip(self.owner.tr("drawing_snap_help"))
         self.color_button.setEnabled(self.open and self.active_tool in ("rectangle", "line", "circle", "arc"))
         selection = self.controller.selection
         curve_edit = len(selection.selected_curves) == 1 and not (selection.selected or selection.selected_labels)
@@ -232,7 +234,7 @@ class PlanToolsOverlay(QFrame):
                "circle": "circle_tools_note", "arc": "arc_tools_note",
                "eraser": "eraser_tools_note", "select": "selection_tools_note", "text": "text_tools_note",
                "marker": "annotation_marker_note", "door": "annotation_place_note", "window": "annotation_place_note",
-               "annotation_select": "annotation_selection_note"}[self.active_tool]
+               "annotation_select": "annotation_selection_note", "annotation_eraser": "annotation_eraser_note"}[self.active_tool]
         self.note.setText(self.owner.tr(key))
         self.update_tool_icons()
 
@@ -253,7 +255,7 @@ class PlanToolsOverlay(QFrame):
             painter.setPen(pen)
             if tool == "rectangle":
                 painter.drawRect(3, 4, 18, 16)
-            elif tool == "eraser":
+            elif tool in ("eraser", "annotation_eraser"):
                 path = QPainterPath()
                 path.moveTo(3, 14)
                 path.lineTo(13, 4)
@@ -339,6 +341,8 @@ class PlanToolsOverlay(QFrame):
             self.controller.curve.edit(self.controller.selection.selected_curves[0])
 
     def toggle_grid_snap(self, checked):
+        if self.active_tool == "marker":
+            self.controller.annotation.marker_grid = checked
         self.update_snap_icon()
         if checked:
             self.owner.set_floorplan_grid_enabled(True, show_status=False)

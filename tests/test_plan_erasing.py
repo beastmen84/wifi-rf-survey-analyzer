@@ -208,7 +208,8 @@ def test_hover_hide_and_scene_replacement_clear_transient_items_safely(eraser_ed
     baseline = len(view.scene.items())
     for _ in range(8):
         move(view, point)
-    assert len(view.scene.items()) == baseline + 2
+    assert len(drawing.dimensions.items) == 2
+    assert len(view.scene.items()) == baseline + 2 + len(drawing.dimensions.items)
     drawing.hide_preview()
     assert not any(item.isVisible() for item in eraser.highlights)
     move(view, point)
