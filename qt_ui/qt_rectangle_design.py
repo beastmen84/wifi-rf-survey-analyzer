@@ -103,6 +103,7 @@ class RectangleDesignController(QObject):
         self.origin = self.press_position = self.pending_size = self.last_size = None
         self.dragged = self.consume_release = False
         self.measurement = QLabel(self.view.viewport())
+        self.measurement.setProperty("fixedViewportOverlay", True)
         self.measurement.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         self.measurement.setStyleSheet("background:#182433;color:white;border:1px solid #8194aa;border-radius:4px;padding:6px 9px;")
         self.measurement.hide()

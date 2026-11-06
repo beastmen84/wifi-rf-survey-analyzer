@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QGraphicsScene,
     QGraphicsView,
     QToolTip,
+    QWidget,
 )
 
 from app_core.units import (
@@ -1283,6 +1284,18 @@ class FloorplanView(QGraphicsView):
                 return
 
         super().wheelEvent(event)
+
+    def scrollContentsBy(self, dx, dy):
+        # QGraphicsView's incremental scroll also translates QWidget children
+        # of the viewport. Registered HUDs are screen controls, not map content.
+        viewport = self.viewport()
+        overlays = [(widget, widget.pos()) for widget in viewport.findChildren(
+            QWidget, options=Qt.FindChildOption.FindDirectChildrenOnly)
+            if widget.property("fixedViewportOverlay")]
+        super().scrollContentsBy(dx, dy)
+        for widget, position in overlays:
+            if widget.parentWidget() is viewport:
+                widget.move(position)
 
     def mousePressEvent(self, event):
         controller = getattr(self, "rectangle_design", None)

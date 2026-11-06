@@ -12,6 +12,7 @@ from qt_ui.qt_rectangle_design import RectangleDesignController
 class PlanToolsOverlay(QFrame):
     def __init__(self, owner):
         super().__init__(owner.floorplan_view.viewport())
+        self.setProperty("fixedViewportOverlay", True)
         self.setFont(owner.font())
         self.owner = owner
         self.open = False
@@ -83,6 +84,7 @@ class PlanToolsOverlay(QFrame):
         self.note.setWordWrap(True)
         layout.addWidget(self.note)
         self.toggle_button = QPushButton(self.parentWidget())
+        self.toggle_button.setProperty("fixedViewportOverlay", True)
         self.toggle_button.setObjectName("appBarToggleButton")
         self.toggle_button.setAttribute(Qt.WidgetAttribute.WA_NoMousePropagation, True)
         self.toggle_button.setCheckable(True)

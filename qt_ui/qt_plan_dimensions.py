@@ -17,6 +17,7 @@ class SegmentDimensions:
         self.drawing, self.view, self.owner = drawing, drawing.view, drawing.owner
         self.items, self.values = [], None
         self.badge = QLabel(self.view.viewport())
+        self.badge.setProperty("fixedViewportOverlay", True)
         self.badge.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         self.badge.setStyleSheet("background:#182433;color:white;border:1px solid #8194aa;border-radius:4px;padding:6px 9px;")
         self.badge.hide()

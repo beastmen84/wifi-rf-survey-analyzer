@@ -22,6 +22,17 @@ interpolated colors.
 
 Current status:
 
+- FloorplanView.scrollContentsBy preserves positions of direct viewport widgets
+  explicitly tagged fixedViewportOverlay. Qt's incremental viewport scroll moves
+  child widgets alongside map content; the palette, Design Mode toggle and two
+  drawing HUDs now restore their screen anchors synchronously after the normal
+  view scroll. Other viewport widgets and graphics items retain Qt's behavior;
+  no full-repaint mode, reparenting or delayed position correction is introduced.
+  Resize/layout positioning remains with the existing overlay controllers.
+  Verification:1550 tests +475 subtests passed in129.49s on native Windows;
+  focused overlay/setup/gesture tests40 passed in12.58s. All3 new anchor cases
+  reproduced the drift before the fix. Source Qt/QTest validation includes
+  scrollbar/wheel/hand-drag/zoom and pending previews, not physical mouse/EXE QA.
 - Door properties use seven mutually exclusive icon buttons: four single-leaf
   hinge/side configurations, two double and one sliding. annotation_parts shares
   solid leaf/window paths and separately dashed swing paths among scene, icons,

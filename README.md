@@ -113,7 +113,8 @@ from these software checks.
   and are rejected. Rotated oblique strokes retain real intersections, snapping,
   partial erasing, closed-area detection and saved/exported geometry.
 - Design Mode separates **Structure** from **Annotations**, with independent
-  selection tools. Structure selection and the eraser affect walls and curves;
+  selection tools. Its palette, toggle and measurement panels stay anchored to
+  the viewport during zoom and pan. Structure selection and the eraser affect walls and curves;
   annotation selection affects markers, doors, windows and text. **Marker** draws
   dashed freehand or grid-following paths with its own color and graphical width.
   **Door** supports single, double and sliding variants; **Window** uses a simple

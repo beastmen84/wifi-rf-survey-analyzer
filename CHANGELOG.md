@@ -7,6 +7,9 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Fixed Design Mode controls drifting with the map during pan/zoom. The palette,
+  toggle and measurement HUDs keep their viewport anchors, including during an
+  active placement preview, without changing normal map scrolling or rendering.
 - Door properties now offer a row of seven configuration icons. Only swing arcs
   are dashed; leaves, windows and sliding symbols remain solid in scene/exports.
 - Added an annotation-only eraser alongside the structural eraser, with click or
