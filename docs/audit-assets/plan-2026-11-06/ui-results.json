@@ -1,0 +1,151 @@
+{
+  "cases": [
+    {
+      "language": "en",
+      "theme": "light",
+      "scale": 100,
+      "status": "passed"
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "scale": 125,
+      "status": "passed"
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "scale": 175,
+      "status": "passed"
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "scale": 100,
+      "status": "passed"
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "scale": 125,
+      "status": "passed"
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "scale": 175,
+      "status": "passed"
+    },
+    {
+      "language": "it",
+      "theme": "light",
+      "scale": 100,
+      "status": "passed"
+    },
+    {
+      "language": "it",
+      "theme": "light",
+      "scale": 125,
+      "status": "passed"
+    },
+    {
+      "language": "it",
+      "theme": "light",
+      "scale": 175,
+      "status": "passed"
+    },
+    {
+      "language": "it",
+      "theme": "dark",
+      "scale": 100,
+      "status": "passed"
+    },
+    {
+      "language": "it",
+      "theme": "dark",
+      "scale": 125,
+      "status": "passed"
+    },
+    {
+      "language": "it",
+      "theme": "dark",
+      "scale": 175,
+      "status": "passed"
+    },
+    {
+      "language": "fr",
+      "theme": "light",
+      "scale": 100,
+      "status": "passed"
+    },
+    {
+      "language": "fr",
+      "theme": "light",
+      "scale": 125,
+      "status": "passed"
+    },
+    {
+      "language": "fr",
+      "theme": "light",
+      "scale": 175,
+      "status": "passed"
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "scale": 100,
+      "status": "passed"
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "scale": 125,
+      "status": "passed"
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "scale": 175,
+      "status": "passed"
+    },
+    {
+      "language": "es",
+      "theme": "light",
+      "scale": 100,
+      "status": "passed"
+    },
+    {
+      "language": "es",
+      "theme": "light",
+      "scale": 125,
+      "status": "passed"
+    },
+    {
+      "language": "es",
+      "theme": "light",
+      "scale": 175,
+      "status": "passed"
+    },
+    {
+      "language": "es",
+      "theme": "dark",
+      "scale": 100,
+      "status": "passed"
+    },
+    {
+      "language": "es",
+      "theme": "dark",
+      "scale": 125,
+      "status": "passed"
+    },
+    {
+      "language": "es",
+      "theme": "dark",
+      "scale": 175,
+      "status": "passed"
+    }
+  ],
+  "native_qt": true,
+  "physical_mouse": false,
+  "physical_printer": false
+}

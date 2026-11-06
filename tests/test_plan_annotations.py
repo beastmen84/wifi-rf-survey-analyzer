@@ -256,7 +256,7 @@ def test_properties_units_and_pose_preservation(editor, system):
     original = aperture()
     dialog = AnnotationDialog(d.annotation, original)
     try:
-        dialog.width.setValue(3)
+        dialog.width_spin.setValue(3)
         dialog.choose_door("double")
         result = dialog.properties()
         meters = 3 if system == "metric" else .9144

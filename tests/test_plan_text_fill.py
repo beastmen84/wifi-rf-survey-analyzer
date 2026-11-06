@@ -76,7 +76,7 @@ def test_editor_validates_text_and_previews_style(qt_app, window):
         qt_app.processEvents()
         assert not dialog.buttons.button(dialog.buttons.StandardButton.Ok).isEnabled()
         dialog.content.setPlainText("Ufficio\nReception")
-        dialog.size.setValue(30)
+        dialog.size_spin.setValue(30)
         dialog.bold.setChecked(True)
         dialog.italic.setChecked(True)
         dialog.outline.setValue(2)

@@ -3,7 +3,7 @@ from copy import deepcopy
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
-from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QColorDialog, QDialog,
+from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QDialog,
     QDialogButtonBox, QDoubleSpinBox, QFormLayout, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget)
 
 from app_core.units import distance_unit_label, display_units_to_meters, meters_to_display_units
@@ -11,6 +11,7 @@ from qt_ui.qt_theme import QT_THEMES
 from qt_ui.scaling import widget_px
 from survey.plan_annotation_rendering import annotation_path
 from survey.plan_objects import DESK_VARIANTS, SYMBOL_VARIANTS, object_default, object_is_round
+from qt_ui.qt_plan_colors import choose_plan_color
 
 
 class ObjectAnnotationDialog(QDialog):
@@ -100,7 +101,7 @@ class ObjectAnnotationDialog(QDialog):
             button.setText(self.value[key])
             button.setStyleSheet("border:2px solid " + self.value[key] + ";padding:6px;")
         def choose():
-            color = QColorDialog.getColor(QColor(self.value[key]), self)
+            color = choose_plan_color(self.value[key], self)
             if color.isValid():
                 self.value[key] = color.name()
                 update()

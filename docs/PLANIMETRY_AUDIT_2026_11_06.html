@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="it">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Audit planimetria · 6 novembre 2026</title>
+<style>
+  :root{color-scheme:light;--ink:#182b43;--muted:#52647a;--line:#dce4ee;--blue:#006b9e}
+  *{box-sizing:border-box}body{margin:0;background:#f1f5f9;color:var(--ink);font:16px/1.6 system-ui,Segoe UI,sans-serif}
+  main{max-width:1140px;margin:auto;padding:32px 24px 60px}header{background:#152b44;color:white;padding:38px;border-radius:18px}
+  h1{font-size:clamp(28px,5vw,43px);line-height:1.15;margin:12px 0 20px;letter-spacing:-.025em}h2{font-size:25px;margin:0 0 18px;line-height:1.3}
+  h3{font-size:18px;margin:0 0 8px}p{margin:10px 0}header p{max-width:760px;color:#d6e5f4}.eyebrow{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#a8d7fa}
+  section{background:white;border:1px solid var(--line);border-radius:14px;padding:28px;margin-top:22px}a{color:var(--blue);text-underline-offset:3px}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:22px}.card{border:1px solid var(--line);border-radius:12px;background:white;padding:22px}
+  .card strong{display:block;font-size:30px;line-height:1.2;color:#006947}.card span{font-size:14px;color:var(--muted)}.muted,figcaption{color:var(--muted);font-size:14px}
+  .tag{display:inline-block;font-size:12px;font-weight:700;background:#e4f6eb;color:#12623c;border-radius:20px;padding:3px 10px;white-space:nowrap}
+  .note{border-left:4px solid #0799bd;background:#edf8fc;padding:14px 18px;border-radius:0 8px 8px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  table{border-collapse:collapse;width:100%;font-size:14px}th{text-align:left;background:#eef3f8;color:#344b64}th,td{padding:13px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  .scroll{overflow:auto}td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}figure{margin:18px 0}img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:9px;display:block;background:white}
+  figcaption{padding:8px 0}details{border-top:1px solid var(--line);padding:16px 0 0;margin-top:20px}summary{cursor:pointer;font-weight:650;color:var(--blue)}code{font-size:13px;background:#eef3f8;padding:2px 5px;border-radius:4px}
+  li{margin:7px 0}footer{padding-top:25px;font-size:13px;color:var(--muted)}.print{max-height:650px;margin:auto;width:auto}
+  @media(max-width:700px){main{padding:15px 12px 35px}header,section{padding:22px 18px}.cards,.grid{grid-template-columns:1fr}.card strong{font-size:25px}}
+  @media print{body{background:white;font-size:11px}main{padding:0}header{background:white;color:#182b43;border:1px solid #dce4ee}header p,.eyebrow{color:#52647a}section,.card{break-inside:avoid}details:not([open]){display:none}a{color:inherit}.cards{gap:8px}img{max-height:400px;width:auto}}
+</style>
+<main>
+  <header>
+    <div class="eyebrow">Wi-Fi RF Survey Analyzer · sorgenti 1.2.0 · 06.11.2026</div>
+    <h1>Planimetria: audit e correzioni</h1>
+    <p>Verificati geometria, strumenti di disegno, annotazioni, salvataggi, rendering,
+      stampa e costo delle interazioni. Corrette cause reali di lentezza, la persistenza
+      dei colori e la visibilità del testo selezionato. Aggiunte le distanze dalla struttura.</p>
+  </header>
+  <div class="cards">
+    <div class="card"><strong>1.723 + 479</strong><span>test e sottotest della suite completa</span></div>
+    <div class="card"><strong>24 configurazioni</strong><span>UI nativa · quattro lingue, due temi, tre scale</span></div>
+    <div class="card"><strong>1.610 → 2,73 ms</strong><span>ricerca porta fuori parete · caso sintetico con 600 pareti</span></div>
+  </div>
+  <section>
+    <h2>Posizionare gli oggetti con riferimenti reali</h2>
+    <p>Scrivanie e simboli mostrano fino a due quote minime verso la struttura, una per
+      asse principale. La misura parte dal <strong>contorno effettivo</strong>, non dal centro.
+      Le guide seguono posa, selezione singola, spostamento e rotazione.</p>
+    <div class="note">Linee tratteggiate e valori in m/ft sulla mappa; riepilogo fisso in alto
+      a destra. Il rosso indica un'intersezione. Le quote restano strumenti temporanei:
+      non entrano nella stampa, nei file del rilievo o nei risultati RF.</div>
+    <figure><a href="audit-assets/plan-2026-11-06/clearances-it-light-100.png"><img src="audit-assets/plan-2026-11-06/clearances-it-light-100.png" alt="Scrivania in anteprima con distanza dalla parete sinistra e superiore e riepilogo delle misure"></a>
+      <figcaption>Acquisizione della UI Qt sui sorgenti, con dati sintetici. Le quote si riferiscono al bordo della scrivania.</figcaption></figure>
+    <details><summary>Versione scura con UI al 175%</summary>
+      <figure><img loading="lazy" src="audit-assets/plan-2026-11-06/clearances-it-dark-175.png" alt="Quote nel tema scuro con interfaccia ingrandita al 175%"></figure>
+    </details>
+  </section>
+  <section>
+    <h2>Problemi risolti</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Problema</th><th>Correzione verificata</th><th>Esito</th></tr></thead>
+      <tbody>
+        <tr><td>Movimenti del mouse elaborati due volte</td><td>Un solo passaggio normalmente; ricalcolo dopo il pan solo se cambia la trasformazione della vista.</td><td><span class="tag">Risolto</span></td></tr>
+        <tr><td>Porte: tentativi su tutte le pareti per ciascuna parete</td><td>Il ripiego che aggancia lo stipite considera solo supporti finiti abbastanza vicini al cursore.</td><td><span class="tag">Risolto</span></td></tr>
+        <tr><td>Decodifica/validazione e ricostruzione dei percorsi durante l'hover</td><td>Riutilizzo del modello visualizzato e dei percorsi Qt; scarto preliminare tramite rettangolo d'ingombro. Guide riutilizzate.</td><td><span class="tag">Risolto</span></td></tr>
+        <tr><td>Finestre Testo trattenute dopo la chiusura</td><td>Eliminazione differita nel blocco di uscita: zero finestre residue dopo sei annullamenti, rispetto alle sei precedenti.</td><td><span class="tag">Risolto</span></td></tr>
+        <tr><td>Colori personalizzati persi al riavvio</td><td>Palette Qt e colori confermati degli strumenti salvati nelle preferenze dell'app. I colori esplicitamente aggiunti alla palette restano anche annullando il selettore.</td><td><span class="tag">Risolto</span></td></tr>
+        <tr><td>Testo selezionato poco riconoscibile</td><td>Contorno cosmetico bianco/nero secondo il colore del testo, più cornice tratteggiata. Testo sopra ai riempimenti degli arredi anche negli export, e selezionabile sugli arredi.</td><td><span class="tag">Risolto</span></td></tr>
+        <tr><td>Stampa senza riferimento metrico</td><td>Barra graduata calibrata in m/ft, ridimensionata con la pianta. Scala non disponibile dichiarata per piante non calibrate.</td><td><span class="tag">Risolto</span></td></tr>
+        <tr><td>Piccola perdita numerica sugli archi molto piatti</td><td>Proiezione raffinata nella parametrizzazione relativa alla corda, evitando sottrazioni fra centro e raggio molto grandi.</td><td><span class="tag">Risolto</span></td></tr>
+        <tr><td>Anteprime rimaste visibili uscendo dal viewport</td><td>Pulizia anche sull'evento del viewport; quote aggiornate subito dopo una rotazione.</td><td><span class="tag">Risolto</span></td></tr>
+      </tbody></table></div>
+  </section>
+  <section>
+    <h2>Prestazioni: misure prima e dopo</h2>
+    <p>Stesso interprete e macchina, dati sintetici con 40/200/600 pareti e altrettanti
+      arredi. Tempi mediani in millisecondi. La misurazione finale include le nuove quote.</p>
+    <div class="scroll"><table>
+      <thead><tr><th>Pareti / arredi</th><th class="num">Hover scrivania<br>prima → dopo</th><th class="num">Selezione senza hit<br>prima → dopo</th><th class="num">Porta fuori parete<br>prima → dopo</th><th class="num">Nuove quote<br>ambiente libero</th></tr></thead>
+      <tbody>
+        <tr><td>40 / 40</td><td class="num">6,59 → 1,34</td><td class="num">1,49 → 0,34</td><td class="num">6,98 → 0,19</td><td class="num">0,18</td></tr>
+        <tr><td>200 / 200</td><td class="num">24,54 → 1,81</td><td class="num">6,93 → 1,71</td><td class="num">155,33 → 0,91</td><td class="num">0,26</td></tr>
+        <tr><td>600 / 600</td><td class="num">47,95 → 3,02</td><td class="num">28,47 → 5,30</td><td class="num">1.609,93 → 2,73</td><td class="num">0,47</td></tr>
+      </tbody></table></div>
+    <p class="muted">Hover e quote: 25 campioni; selezione: 10; porte: 3, dopo un riscaldamento.
+      Sono tempi delle operazioni sintetiche, non FPS o una garanzia per ogni planimetria.
+      Il caso quote usa quattro pareti vicine e le restanti lontane; evita la cache della posa.
+      Le quote sono nuove, quindi non hanno un confronto precedente.</p>
+    <details><summary>Dati e riproducibilità</summary>
+      <p><a href="audit-assets/plan-2026-11-06/benchmark-before.json">JSON prima</a> ·
+        <a href="audit-assets/plan-2026-11-06/benchmark-after.json">JSON dopo</a> ·
+        <a href="audit-assets/plan-2026-11-06/ui-results.json">24 risultati UI</a>.</p>
+      <p>Runner: <code>tools/benchmark_planimetry.py --output risultato.json</code> e
+        <code>tools/check_planimetry_ui.py --output cartella</code>. Impostazioni e memoria AP
+        isolate; nessuna scansione RF o stampa fisica. La baseline è stata raccolta prima
+        delle correzioni sui sorgenti del commit <code>74d78cd</code>.</p>
+    </details>
+  </section>
+  <section>
+    <h2>Selezione del testo e stampa</h2>
+    <div class="grid">
+      <div><h3>Testo scuro e chiaro</h3><p>La selezione è riconoscibile senza cambiare lo stile salvato.
+        Cornice e contorno di selezione sono esclusi dagli export.</p>
+        <figure><a href="audit-assets/plan-2026-11-06/text-selection-it-light-100.png"><img loading="lazy" src="audit-assets/plan-2026-11-06/text-selection-it-light-100.png" alt="Testi chiaro e scuro selezionati, con contorni contrastanti e cornici blu"></a></figure></div>
+      <div><h3>Scala grafica in fondo alla pagina</h3><p>Barra e pianta condividono lo stesso fattore di adattamento.
+        Il riferimento resta corretto cambiando carta o orientamento.</p>
+        <figure><a href="audit-assets/plan-2026-11-06/printed-scale.png"><img class="print" loading="lazy" src="audit-assets/plan-2026-11-06/printed-scale.png" alt="Pianta pulita su pagina A4 con riferimento di scala in basso"></a>
+          <figcaption>Pagina prodotta con il dispositivo PDF di Qt e poi renderizzata. Non è una stampa architettonica a rapporto fisso.</figcaption></figure></div>
+    </div>
+  </section>
+  <section>
+    <h2>Copertura delle verifiche</h2>
+    <ul>
+      <li><strong>Geometria:</strong> intersezioni, segmenti spezzati e ricongiunti, ambienti chiusi,
+        aree, archi/cerchi, snap, selezioni e trasformazioni coperti dalla suite esistente.</li>
+      <li><strong>Nuove regressioni:</strong> 46 test per quote, contatto contro intersezione, incavi a L,
+        contorni ruotati, curve, cache, m/ft, eventi mouse e storico, colori, durata dei dialoghi,
+        selezione del testo e scala stampata. Distanze sulle curve confrontate con un oracolo
+        indipendente a campionamento denso; scala PDF misurata sui pixel renderizzati in entrambe le unità e orientamenti.</li>
+      <li><strong>Persistenza e isolamento:</strong> formati opzionali esistenti mantenuti; guide e preferenze
+        non modificano geometria, chiusura ambienti o dati RF. La suite comprende salvataggio/riapertura,
+        undo/redo, rollback ed export HTML.</li>
+      <li><strong>Grafica:</strong> UI Qt nativa sui sorgenti, EN/IT/FR/ES, chiaro/scuro e 100/125/175%;
+        48 dialoghi scrivanie/simboli con tutte le 13 varianti, controllo del testo e dei box,
+        fissaggio del riepilogo durante il pan e ispezione delle immagini incluse.</li>
+      <li><strong>Suite finale:</strong> 1.723 test e 479 sottotest superati in 169,99 secondi,
+        dopo gli ultimi ritocchi alla selezione, rotazione e Help.</li>
+      <li><strong>Ambiente:</strong> Python 3.15.2; 31 versioni installate corrispondono al lockfile;
+        <code>pip check</code> e Ruff essenziale superati. QtPrintSupport usa la dipendenza PySide6
+        già presente. Nessun pacchetto aggiunto e nessuna modifica alle dipendenze.</li>
+    </ul>
+    <div class="note"><strong>Limiti:</strong> prove automatizzate e acquisizioni dei sorgenti, senza
+      collaudo manuale del puntatore, stampante fisica o nuovo EXE. Il benchmark non copre ogni
+      combinazione al limite massimo dei formati. L'audit riguarda la planimetria: non è una nuova
+      certificazione della raccolta RF o una ricerca aggiornata di vulnerabilità dei pacchetti.</div>
+  </section>
+  <footer>Audit sui sorgenti · nessuna nuova versione, build, pubblicazione o push ·
+    spessori fisici e materiali delle pareti restano rinviati.</footer>
+</main>
+</html>

@@ -48,6 +48,9 @@ from these software checks.
   changes. Survey points, AP symbols, grid, masks and heatmaps are excluded.
   The whole plan fits one page with its proportions preserved; select paper and
   printer in the preview. Printing does not require saving the survey.
+  A graphical reference in m/ft uses the calibrated plan scale and follows paper
+  fitting, so its length stays meaningful after changing page size/orientation.
+  Uncalibrated plans explicitly report that their scale is unavailable.
 - New surveys start with a generated, pre-scaled blank plan and grid for
   use when no real floor plan is available. Starting from the app start
   page asks for metric or imperial units, the Wi-Fi adapter and blank-sheet width
@@ -140,6 +143,11 @@ from these software checks.
   selection to pick the outline or interior, move, edit or erase these objects.
   They retain drawing/grid magnets, undo/redo and save/reopen, and appear in
   PNG, Live/HTML and Print Plan without changing rooms, areas or RF analysis.
+  Placement, individual selection and movement show up to two nearest clearances
+  to structure (one per principal direction), measured from the actual footprint
+  rather than its center. Dashed guides and m/ft values support rotated/L/round
+  objects and curved walls; a red indicator identifies structural intersections.
+  These temporary guides are excluded from saved plans and exports.
   Apertures hide only the covered wall ink: room closure, internal area
   and Boundaries Fill/Auto Fill retain the complete structural geometry.
   Select annotations to move with **M**, delete with **Del**, or edit by right
@@ -170,6 +178,12 @@ from these software checks.
   is one undoable edit. Right-double-click selected text, or use **Edit selected
   text**, to reopen its editor. Text remains editable after save/reopen and
   appears consistently in generated PNGs, Live Map and both HTML report types.
+  Selected text has a thin contrasting outline and dashed selection frame;
+  text stays above furniture fills in both the editor and exported plans.
+- Custom colors explicitly saved in the color picker and the last accepted
+  drawing-tool colors persist between sessions in application settings. Existing
+  survey objects retain their own styles; changing preferences does not dirty a
+  survey or change its geometry.
 - Design Mode **Circle** uses a right drag from the center to set the radius,
   or a simple right click to enter it precisely. **Circular arc** uses a right
   drag from A to B for the chord: release, move the pointer to set the bend and

@@ -1,0 +1,105 @@
+{
+  "python": "3.15.2",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "cases": {
+    "40": {
+      "desk_hover": {
+        "median_ms": 1.3376999995671213,
+        "p95_ms": 1.437300001271069,
+        "max_ms": 1.5964999911375344,
+        "samples": 25
+      },
+      "annotation_no_hit": {
+        "median_ms": 0.34250000317115337,
+        "p95_ms": 0.41090000013355166,
+        "max_ms": 0.41090000013355166,
+        "samples": 10
+      },
+      "door_off_wall": {
+        "median_ms": 0.18790000467561185,
+        "p95_ms": 0.19120000069960952,
+        "max_ms": 0.19120000069960952,
+        "samples": 3
+      },
+      "normalize_orthogonal": {
+        "median_ms": 0.3893000102834776,
+        "p95_ms": 0.4040000058012083,
+        "max_ms": 0.4040000058012083,
+        "samples": 3
+      },
+      "clearance_open_room": {
+        "median_ms": 0.1762000028975308,
+        "p95_ms": 0.22289999469649047,
+        "max_ms": 0.24140000459738076,
+        "samples": 25
+      }
+    },
+    "200": {
+      "desk_hover": {
+        "median_ms": 1.8137000006390736,
+        "p95_ms": 2.2874999995110556,
+        "max_ms": 2.360200000111945,
+        "samples": 25
+      },
+      "annotation_no_hit": {
+        "median_ms": 1.7069499954232015,
+        "p95_ms": 1.7936000076588243,
+        "max_ms": 1.7936000076588243,
+        "samples": 10
+      },
+      "door_off_wall": {
+        "median_ms": 0.9061000018846244,
+        "p95_ms": 0.9254000033251941,
+        "max_ms": 0.9254000033251941,
+        "samples": 3
+      },
+      "normalize_orthogonal": {
+        "median_ms": 1.8893000087700784,
+        "p95_ms": 1.9480000046314672,
+        "max_ms": 1.9480000046314672,
+        "samples": 3
+      },
+      "clearance_open_room": {
+        "median_ms": 0.259000007645227,
+        "p95_ms": 0.28229999588802457,
+        "max_ms": 0.301799998851493,
+        "samples": 25
+      }
+    },
+    "600": {
+      "desk_hover": {
+        "median_ms": 3.023500001290813,
+        "p95_ms": 3.1258000090019777,
+        "max_ms": 3.132099998765625,
+        "samples": 25
+      },
+      "annotation_no_hit": {
+        "median_ms": 5.304699996486306,
+        "p95_ms": 5.403600007412024,
+        "max_ms": 5.403600007412024,
+        "samples": 10
+      },
+      "door_off_wall": {
+        "median_ms": 2.7280999929644167,
+        "p95_ms": 2.7288999990560114,
+        "max_ms": 2.7288999990560114,
+        "samples": 3
+      },
+      "normalize_orthogonal": {
+        "median_ms": 5.933799999183975,
+        "p95_ms": 5.998100008582696,
+        "max_ms": 5.998100008582696,
+        "samples": 3
+      },
+      "clearance_open_room": {
+        "median_ms": 0.4698999982792884,
+        "p95_ms": 0.4889999981969595,
+        "max_ms": 0.5345999961718917,
+        "samples": 25
+      }
+    }
+  },
+  "retained_text_dialogs_after_6_cancels": 0,
+  "settings_isolated": true,
+  "physical_mouse_or_printer": false
+}

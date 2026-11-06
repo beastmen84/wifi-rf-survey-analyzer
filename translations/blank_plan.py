@@ -2,6 +2,13 @@
 
 LANGUAGES = ("en", "it", "fr", "es")
 TEXT = {
+    "print_scale_help": (
+        "The footer includes a calibrated graphical scale reference in m/ft, resized with the plan when the paper changes. Uncalibrated plans explicitly report that scale is unavailable.",
+        "Il piè di pagina include un riferimento grafico di scala calibrato in m/ft, ridimensionato insieme alla pianta quando cambia la carta. Le piante non calibrate indicano esplicitamente che la scala non è disponibile.",
+        "Le pied de page comprend une référence graphique d'échelle étalonnée en m/ft, redimensionnée avec le plan lorsque le papier change. Un plan non étalonné indique explicitement que l'échelle est indisponible.",
+        "El pie de página incluye una referencia gráfica de escala calibrada en m/ft, ajustada junto con el plano al cambiar el papel. Los planos sin calibrar indican que la escala no está disponible."),
+    "print_plan_scale": ("Scale reference", "Riferimento di scala", "Référence d'échelle", "Referencia de escala"),
+    "print_plan_scale_missing": ("Scale unavailable: plan not calibrated", "Scala non disponibile: pianta non calibrata", "Échelle indisponible : plan non étalonné", "Escala no disponible: plano sin calibrar"),
     "print_plan": ("Print Plan", "Stampa Pianta", "Imprimer le plan", "Imprimir plano"),
     "print_plan_setup": ("Page Setup", "Imposta Pagina", "Mise en page", "Configurar página"),
     "print_plan_send": ("Print…", "Stampa…", "Imprimer…", "Imprimir…"),

@@ -7,6 +7,19 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Audited plan editing, geometry, persistence, rendering and interaction cost.
+  Desk/symbol placement, single selection and movement now show transient m/ft
+  clearances from the actual footprint to straight/curved structure, including
+  rotated/L/round objects and a red intersection warning. Printed plans include
+  a calibrated graphical scale reference that follows page fitting.
+- Persist custom color-picker slots (including explicitly saved slots on Cancel)
+  and accepted tool colors between sessions. Selected text has a cosmetic
+  contrasting outline and dashed frame; text remains above filled furniture in
+  native and raster rendering. EN/IT/FR/ES Help describes these behaviors.
+- Removed duplicate hover processing, cached validated annotation display data,
+  bounded picking with native paths and rejected off-wall door fallbacks early.
+  Canceled text editors release their Qt dialogs. Viewport leave hides draft
+  overlays; shallow arc projections use stable chord-relative geometry.
 - Added **Desks** and **Symbols** to Annotations, with icon variant menus, survey
   unit dimensions, outline color/width and optional fill color. Desks support
   square, rectangle, unequal/equal-sided L and round shapes; symbols include

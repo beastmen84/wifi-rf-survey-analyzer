@@ -114,10 +114,10 @@ def test_toolbar_states_color_cancel_and_boundaries_exclusion(window, qt_app):
                (tools.undo_button, tools.redo_button))
     tools.snap_button.click()
     assert tools.snap_button.isChecked() and window.floorplan_view.grid_visible
-    with patch("qt_ui.qt_plan_tools.QColorDialog.getColor", return_value=QColor("#d84315")):
+    with patch("qt_ui.qt_plan_colors.QColorDialog.getColor", return_value=QColor("#d84315")):
         tools.color_button.click()
     assert tools.stroke_color.name() == "#d84315"
-    with patch("qt_ui.qt_plan_tools.QColorDialog.getColor", return_value=QColor()):
+    with patch("qt_ui.qt_plan_colors.QColorDialog.getColor", return_value=QColor()):
         tools.color_button.click()
     assert tools.stroke_color.name() == "#d84315"
     window.set_boundaries_mode_enabled(True, show_status=False)

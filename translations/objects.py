@@ -1,6 +1,17 @@
 """Freely placed desks and symbols, EN/IT/FR/ES."""
 LANGUAGES = ("en", "it", "fr", "es")
 TEXT = {
+    "plan_precision_help": (
+        "While placing, selecting one desk/symbol or moving it, dashed guides show up to two nearest clearances to structure, measured from the actual footprint in m/ft. Rotated, concave and round objects and curved walls are supported. Red marks an intersection; these guides are never exported. Selected text has a thin contrasting outline and dashed frame. Text stays above furniture fills. Custom color-picker slots and accepted tool colors persist between sessions; existing objects retain their own styles.",
+        "Durante la posa, la selezione singola o lo spostamento di scrivanie/simboli, guide tratteggiate mostrano fino a due distanze minime dalla struttura, dal contorno reale in m/ft. Supportano oggetti ruotati, concavi e tondi e pareti curve. Il rosso indica un'intersezione; le guide non vengono esportate. Il testo selezionato ha un contorno sottile contrastante e una cornice tratteggiata; resta sopra ai riempimenti degli arredi. La palette personalizzata e i colori confermati degli strumenti persistono tra sessioni; gli oggetti esistenti mantengono il proprio stile.",
+        "Pendant la pose, la sélection unique ou le déplacement d'un bureau/symbole, des guides pointillés montrent jusqu'à deux écarts minimaux à la structure, depuis le contour réel en m/ft. Objets tournés, concaves, ronds et murs courbes sont pris en charge. Le rouge indique une intersection ; les guides ne sont pas exportés. Le texte sélectionné a un contour contrasté fin et un cadre pointillé ; il reste au-dessus des meubles. La palette personnalisée et les couleurs validées des outils persistent entre sessions ; les objets existants gardent leur style.",
+        "Al colocar, seleccionar un solo escritorio/símbolo o moverlo, las guías discontinuas muestran hasta dos distancias mínimas a la estructura, desde el contorno real en m/ft. Se admiten objetos girados, cóncavos, redondos y paredes curvas. El rojo indica una intersección; las guías no se exportan. El texto seleccionado tiene un contorno fino contrastado y un marco discontinuo; permanece sobre los muebles. La paleta personalizada y los colores confirmados de las herramientas persisten entre sesiones; los objetos existentes conservan su estilo."),
+    "object_clearances": ("Clearance to structure", "Distanze dalla struttura", "Écarts à la structure", "Distancias a la estructura"),
+    "object_gap_left": ("Left", "Sinistra", "À gauche", "Izquierda"),
+    "object_gap_right": ("Right", "Destra", "À droite", "Derecha"),
+    "object_gap_above": ("Above", "Sopra", "Au-dessus", "Arriba"),
+    "object_gap_below": ("Below", "Sotto", "Au-dessous", "Abajo"),
+    "object_intersects": ("Intersects structure", "Interseca la struttura", "Intersection avec la structure", "Interseca la estructura"),
     "annotation_desk": ("Desks", "Scrivanie", "Bureaux", "Escritorios"),
     "annotation_symbol": ("Symbols", "Simboli", "Symboles", "Símbolos"),
     "object_desk_square": ("Square desk", "Scrivania quadrata", "Bureau carré", "Escritorio cuadrado"),

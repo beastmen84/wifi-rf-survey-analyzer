@@ -1,7 +1,8 @@
 """Clean floor-plan snapshots and a single-page native print preview."""
 from PIL import Image
-from PySide6.QtCore import QMarginsF, QRectF
-from PySide6.QtGui import QImage, QPageLayout, QPageSize, QPainter
+import math
+from PySide6.QtCore import QLocale, QMarginsF, QPointF, QRectF
+from PySide6.QtGui import QColor, QImage, QPageLayout, QPageSize, QPainter, QPen
 from PySide6.QtPrintSupport import QPrinter, QPrintPreviewWidget, QPrintDialog, QPageSetupDialog
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QMessageBox, QPushButton, QVBoxLayout
 
@@ -9,6 +10,8 @@ from app_core.logging import log_exception
 from survey.plan_drawing import drawing_geometry, render_plan_drawing
 from survey.plan_labels import drawing_labels
 from survey.plan_annotations import drawing_annotations
+from app_core.units import meters_to_display_units, display_units_to_meters, distance_unit_label
+from translations.i18n import translate
 
 
 def clean_plan_image(view, metadata):
@@ -26,7 +29,26 @@ def clean_plan_image(view, metadata):
                   rendered.width * 3, QImage.Format.Format_RGB888).copy()
 
 
-def paint_plan_page(printer, image):
+def print_scale_reference(image_width, px_per_meter, measurement_system="metric"):
+    try:
+        density = float(px_per_meter)
+    except (ValueError, TypeError, OverflowError):
+        return None
+    if not math.isfinite(density) or density <= 0:
+        return None
+    target = meters_to_display_units(image_width / density * .22, measurement_system)
+    if not math.isfinite(target) or target <= 0:
+        return None
+    power = 10.0 ** math.floor(math.log10(target))
+    if not power:
+        return None
+    length = max(value for value in (1, 2, 5) if value * power <= target * (1 + 1e-12)) * power
+    meters = display_units_to_meters(length, measurement_system)
+    return dict(value=length, source_pixels=meters * density, unit=distance_unit_label(measurement_system))
+
+
+def paint_plan_page(printer, image, px_per_meter=None, measurement_system="metric", tr=None):
+    tr = tr or (lambda key: translate("en", key))
     painter = QPainter()
     if not painter.begin(printer):
         raise RuntimeError("Cannot start the print device")
@@ -36,12 +58,37 @@ def paint_plan_page(printer, image):
         width, height = printer.width(), printer.height()
         if image.isNull() or width <= 0 or height <= 0:
             raise ValueError("The plan or printable page is empty")
-        factor = min(width / image.width(), height / image.height())
+        millimeter = printer.resolution() / 25.4
+        footer = 17 * millimeter
+        body_height = height - footer
+        if body_height <= 0:
+            raise ValueError("The printable page is too small")
+        factor = min(width / image.width(), body_height / image.height())
         target = QRectF((width - image.width() * factor) / 2,
-                        (height - image.height() * factor) / 2,
+                        (body_height - image.height() * factor) / 2,
                         image.width() * factor, image.height() * factor)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         painter.drawImage(target, image)
+        font = painter.font()
+        font.setPointSizeF(8.5)
+        font.setBold(False)
+        painter.setFont(font)
+        reference = print_scale_reference(image.width(), px_per_meter, measurement_system)
+        x, y = target.left(), height - 6 * millimeter
+        if reference:
+            length = reference["source_pixels"] * factor
+            label = QLocale().toString(reference["value"], "g", 4) + " " + reference["unit"]
+            pen = QPen(QColor("#111827"), max(1, .25 * millimeter))
+            painter.setPen(pen)
+            painter.drawText(QPointF(x, y - 4 * millimeter), tr("print_plan_scale"))
+            painter.drawLine(QPointF(x, y), QPointF(x + length, y))
+            for endpoint in (x, x + length):
+                painter.drawLine(QPointF(endpoint, y - millimeter), QPointF(endpoint, y + millimeter))
+            painter.drawText(QPointF(x, y + 4 * millimeter), "0")
+            painter.drawText(QPointF(x + length - painter.fontMetrics().horizontalAdvance(label), y + 4 * millimeter), label)
+        else:
+            painter.setPen(QColor("#475569"))
+            painter.drawText(QPointF(x, y), tr("print_plan_scale_missing"))
     finally:
         if not painter.end():
             raise RuntimeError("Cannot finish the print page")
@@ -107,6 +154,7 @@ class PlanPrintingMixin:
         dialog = None
         try:
             image = clean_plan_image(self.floorplan_view, dict(self.session.metadata))
+            density, units = self.get_px_per_meter(), self.measurement_system
             printer = QPrinter(QPrinter.PrinterMode.HighResolution)
             printer.setDocName(self.session_display_name())
             printer.setPageSize(QPageSize(QPageSize.PageSizeId.A4))
@@ -119,7 +167,7 @@ class PlanPrintingMixin:
 
             def paint(device):
                 try:
-                    paint_plan_page(device, image)
+                    paint_plan_page(device, image, density, units, self.tr)
                 except Exception as error:
                     errors.append(error)
                     dialog.reject()

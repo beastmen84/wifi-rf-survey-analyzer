@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QPainterPath, QPainterPathStroker, QPainter, QPen, QPixmap, QIcon
-from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QDialog,
+from PySide6.QtWidgets import (QApplication, QCheckBox, QDialog,
     QButtonGroup, QHBoxLayout, QWidget, QDialogButtonBox, QDoubleSpinBox, QFormLayout, QLabel, QPushButton, QVBoxLayout)
 
 from app_core.units import distance_unit_label, display_units_to_meters, meters_to_display_units
@@ -16,6 +16,9 @@ from qt_ui.qt_theme import QT_THEMES
 from survey.plan_labels import transform_labels, labels_geometry
 from survey.plan_label_rendering import label_item
 from survey.plan_geometry import segment_bounds
+from survey.planar_geometry import point_projection
+from app_core.plan_preferences import tool_colors, save_tool_colors
+from qt_ui.qt_plan_colors import choose_plan_color
 from qt_ui.scaling import widget_px
 from qt_ui.qt_plan_objects import ObjectAnnotationDialog
 from survey.plan_objects import (FREE_ANNOTATIONS, HOSTED_ANNOTATIONS, object_default,
@@ -41,7 +44,7 @@ class AnnotationDialog(QDialog):
             self.color.setText(self.value["color"])
             self.color.setStyleSheet("border:2px solid " + self.value["color"] + ";padding:6px;")
         def choose():
-            value = QColorDialog.getColor(QColor(self.value["color"]), self)
+            value = choose_plan_color(self.value["color"], self)
             if value.isValid():
                 self.value["color"] = value.name()
                 update_color()
@@ -59,13 +62,13 @@ class AnnotationDialog(QDialog):
             self.grid.setChecked(controller.drawing.tools.snap_button.isChecked())
             form.addRow(self.grid)
         else:
-            self.width = QDoubleSpinBox()
-            self.width.setDecimals(2)
-            self.width.setRange(.01, meters_to_display_units(100, owner.measurement_system))
-            self.width.setSingleStep(.01)
-            self.width.setSuffix(" " + distance_unit_label(owner.measurement_system))
-            self.width.setValue(meters_to_display_units(math.dist(*annotation_points(item)) / owner.get_px_per_meter(), owner.measurement_system))
-            form.addRow(owner.tr("blank_plan_width"), self.width)
+            self.width_spin = QDoubleSpinBox()
+            self.width_spin.setDecimals(2)
+            self.width_spin.setRange(.01, meters_to_display_units(100, owner.measurement_system))
+            self.width_spin.setSingleStep(.01)
+            self.width_spin.setSuffix(" " + distance_unit_label(owner.measurement_system))
+            self.width_spin.setValue(meters_to_display_units(math.dist(*annotation_points(item)) / owner.get_px_per_meter(), owner.measurement_system))
+            form.addRow(owner.tr("blank_plan_width"), self.width_spin)
             if item["kind"] == "door":
                 self.door_group = QButtonGroup(self)
                 self.door_buttons = {}
@@ -135,7 +138,7 @@ class AnnotationDialog(QDialog):
             self.controller.marker_grid = self.grid.isChecked()
             self.controller.drawing.tools.snap_button.setChecked(self.grid.isChecked())
         else:
-            width = display_units_to_meters(self.width.value(), self.controller.owner.measurement_system) * self.controller.owner.get_px_per_meter()
+            width = display_units_to_meters(self.width_spin.value(), self.controller.owner.measurement_system) * self.controller.owner.get_px_per_meter()
             a, b = annotation_points(result)
             length = math.dist(a, b)
             cx, cy = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
@@ -152,6 +155,7 @@ class AnnotationController:
     def __init__(self, drawing):
         self.drawing, self.owner, self.view = drawing, drawing.owner, drawing.view
         self.items, self.preview = [], []
+        self.model = []
         self.selected, self.selected_labels = (), ()
         self.origin = self.last_pointer = None
         self.moving = self.dialog_open = self.consume_release = False
@@ -161,6 +165,7 @@ class AnnotationController:
 
     def reset_scene(self):
         self.items, self.preview = [], []
+        self.model = []
         self.cancel()
 
     def cancel(self):
@@ -186,6 +191,7 @@ class AnnotationController:
         for item in self.items:
             self.view.scene.removeItem(item)
         self.items = []
+        self.model = items
         for annotation in items:
             item = annotation_item(annotation)
             self.view.scene.addItem(item)
@@ -196,9 +202,11 @@ class AnnotationController:
         template = self.templates.get(kind) or (object_default(kind, density) if kind in FREE_ANNOTATIONS else dict(id="template", kind=kind, color="#d97706" if kind == "marker" else "#334155",
             stroke=3 if kind == "marker" else 2, points=[[0, 0], [1, 1]], x1=0, y1=0, x2=density * (.9 if kind == "door" else 1.2), y2=0,
             variant="single", hinge=0, side=1))
+        template = dict(template, **tool_colors(kind))
         result = self.dialog(template)
         if result is not None:
             self.templates[kind] = result
+            save_tool_colors(kind, result)
             if kind == "marker":
                 self.drawing.tools.snap_button.setChecked(self.marker_grid)
             if self.marker_grid:
@@ -218,17 +226,17 @@ class AnnotationController:
             self.dialog_open = False
         return None
 
-    def valid(self, items, labels=(), exclude=(), lines=None):
+    def valid(self, items, labels=(), exclude=(), lines=None, existing=None):
         try:
             validate_annotations(items)
         except (ValueError, TypeError, KeyError, OverflowError):
             return False
-        others = [a for a in self.drawing.annotations() if a["id"] not in exclude]
+        others = [a for a in (self.model if existing is None else existing) if a["id"] not in exclude]
         bounds = self.view.scene.sceneRect()
         for item in items:
             if not annotation_fits(item, bounds):
                 return False
-            if not supported(item, self.drawing.segments() or [] if lines is None else lines) or overlaps(item, others):
+            if not supported(item, self.drawing.selection.lines if lines is None else lines) or overlaps(item, others):
                 return False
             others.append(item)
         return self.drawing.selection.fits(labels_geometry(labels)) if labels else True
@@ -238,7 +246,7 @@ class AnnotationController:
         for annotation in items:
             self.preview.append(annotation_item(annotation, "#0284c7" if valid else "#ef4444"))
         for label in labels:
-            self.preview.append(label_item(label if valid else dict(label, color="#ef4444")))
+            self.preview.append(label_item(label if valid else dict(label, color="#ef4444"), selected=True))
         if rectangle is not None:
             from PySide6.QtWidgets import QGraphicsRectItem
             from PySide6.QtGui import QPen
@@ -268,23 +276,30 @@ class AnnotationController:
         return widget_px(self.owner, 10) / max(1e-9, abs(self.view.transform().m11()))
 
     def pick(self, point):
+        # Text on filled furniture stays reachable. Keep the existing priority
+        # for hosted openings/markers under whitespace in a label's frame.
+        hit = self.drawing.text.hit(QPointF(*point))
         stroker = QPainterPathStroker()
-        items = self.drawing.annotations()
+        items = self.model
         for index in reversed(range(len(items))):
             stroker.setWidth(self.tolerance() * 2 + items[index]["stroke"])
-            path = annotation_path(items[index])
+            path = self.items[index].path()
+            margin = self.tolerance() + items[index]["stroke"] / 2
+            if not path.boundingRect().adjusted(-margin, -margin, margin, margin).contains(QPointF(*point)):
+                continue
             if ((items[index]["kind"] in FREE_ANNOTATIONS and path.contains(QPointF(*point)))
                     or stroker.createStroke(path).contains(QPointF(*point))):
+                if hit is not None and items[index]["kind"] in FREE_ANNOTATIONS:
+                    return (), (hit,)
                 return (index,), ()
-        hit = self.drawing.text.hit(QPointF(*point))
         return ((), (hit,)) if hit is not None else ((), ())
 
     def selected_items(self):
-        items = self.drawing.annotations()
+        items = self.model
         return [items[i] for i in self.selected]
 
     def selected_texts(self):
-        labels = self.drawing.labels()
+        labels = self.drawing.text.labels
         return [labels[i] for i in self.selected_labels]
 
     def select(self, indices=(), labels=()):
@@ -373,7 +388,7 @@ class AnnotationController:
         self.drawing.show_measurement(self.owner.tr("annotation_place_note" if valid else "annotation_invalid"), position)
 
     def hosted(self, point, width, template):
-        lines = self.drawing.segments() or []
+        lines = self.drawing.selection.lines
         item = place_aperture(point, width, lines, self.tolerance(), template)
         if item is None and not self.drawing.snap_bypass:
             # A jamb can anchor to a wall endpoint even though the cursor's
@@ -381,6 +396,8 @@ class AnnotationController:
             choices = []
             for line in lines:
                 a, b = (line["x1"], line["y1"]), (line["x2"], line["y2"])
+                if math.dist(point, point_projection(point, a, b)) > self.tolerance():
+                    continue
                 length = math.dist(a, b)
                 for sign in (-1, 1):
                     center = [point[i] + sign * width / 2 * (b[i] - a[i]) / length for i in (0, 1)]
@@ -453,7 +470,7 @@ class AnnotationController:
             area.addRect(rect)
             stroker = QPainterPathStroker()
             stroker.setWidth(2)
-            self.selected = tuple(i for i, a in enumerate(self.drawing.annotations())
+            self.selected = tuple(i for i, a in enumerate(self.model)
                                   if (a["kind"] in FREE_ANNOTATIONS and annotation_path(a).intersects(area))
                                   or stroker.createStroke(annotation_path(a)).intersects(area))
             self.selected_labels = self.drawing.text.intersecting(rect)
@@ -560,6 +577,8 @@ class AnnotationController:
                 item["angle"] = (item["angle"] + 90) % 360
                 if self.last_pointer is not None:
                     self.update_object(self.last_pointer)
+                    if self.pending is not None:
+                        self.drawing.dimensions.update_object(self.pending)
             return True
         items = deepcopy(self.draft if self.moving else self.selected_items())
         labels = deepcopy(self.draft_labels if self.moving else self.selected_texts())
@@ -581,8 +600,12 @@ class AnnotationController:
                 self.anchor = self.point(self.last_pointer) if self.last_pointer is not None else list(pivot)
                 self.draft, self.draft_labels = items, labels
                 self.show(items, labels)
+                if len(items) == 1 and not labels and items[0]["kind"] in FREE_ANNOTATIONS:
+                    self.drawing.dimensions.update_object(items[0])
             else:
                 self.commit_selection(items, labels)
+                if len(items) == 1 and not labels and items[0]["kind"] in FREE_ANNOTATIONS:
+                    self.drawing.dimensions.update_object(items[0])
         return True
 
     def edit(self):
@@ -593,6 +616,9 @@ class AnnotationController:
         item = self.dialog(self.selected_items()[0])
         if item is not None:
             if self.valid([item], exclude=[item["id"]]):
-                return self.commit_selection([item], [])
+                changed = self.commit_selection([item], [])
+                if changed:
+                    save_tool_colors(item["kind"], item)
+                return changed
             self.owner.status.showMessage(self.owner.tr("object_invalid" if item["kind"] in FREE_ANNOTATIONS else "annotation_invalid"))
         return False

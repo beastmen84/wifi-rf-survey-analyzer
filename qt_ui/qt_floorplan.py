@@ -1283,6 +1283,10 @@ class FloorplanView(QGraphicsView):
                 return True
         elif event.type() in {QEvent.Type.Leave, QEvent.Type.Hide, QEvent.Type.Resize}:
             self.hide_point_tooltip()
+            if event.type() != QEvent.Type.Resize:
+                controller = getattr(self, "rectangle_design", None)
+                if controller is not None:
+                    controller.hide_preview()
         return super().viewportEvent(event)
 
     def wheelEvent(self, event):
@@ -1396,6 +1400,7 @@ class FloorplanView(QGraphicsView):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
+        before_navigation = self.viewportTransform()
         controller = getattr(self, "rectangle_design", None) if self.design_mode_active else None
         if controller is not None and controller.move(event):
             event.accept()
@@ -1418,10 +1423,10 @@ class FloorplanView(QGraphicsView):
             return
 
         super().mouseMoveEvent(event)
-        if controller is not None:
+        if controller is not None and self.viewportTransform() != before_navigation:
             controller.move(event)
         if self.boundaries_edit_active:
-            self.update_boundaries_brush_preview(scene_point)
+            self.update_boundaries_brush_preview(self.mapToScene(event.position().toPoint()))
 
     def mouseDoubleClickEvent(self, event):
         if self.design_mode_active and event.button() == Qt.MouseButton.RightButton:

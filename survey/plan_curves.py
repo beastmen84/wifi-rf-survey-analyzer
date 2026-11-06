@@ -160,8 +160,24 @@ def project_curve(curve, point):
     dx, dy = point[0] - cx, point[1] - cy
     distance = math.hypot(dx, dy)
     candidate = (cx + radius * dx / distance, cy + radius * dy / distance) if distance else point_at(curve, 0)
-    if parameter_at(curve, candidate) is not None:
-        return candidate
+    fraction = parameter_at(curve, candidate)
+    if fraction is not None:
+        if curve["kind"] == "circle":
+            return candidate
+        # Avoid subtracting huge, nearly equal center/radius coordinates on
+        # shallow arcs. Refine along the stable chord-relative parameterization.
+        _, _, _, start, sweep = curve_info(curve)
+        for _ in range(3):
+            q = point_at(curve, fraction)
+            angle = start + sweep * fraction
+            sine, cosine = math.sin(angle), math.cos(angle)
+            ex, ey = q[0] - point[0], q[1] - point[1]
+            derivative = sweep * (radius - ex * cosine - ey * sine)
+            if abs(derivative) <= EPS:
+                break
+            fraction = max(0, min(1, fraction - (-ex * sine + ey * cosine) / derivative))
+        return min((point_at(curve, fraction), point_at(curve, 0), point_at(curve, 1)),
+                   key=lambda p: math.dist(p, point))
     return min((point_at(curve, 0), point_at(curve, 1)), key=lambda p: math.dist(p, point))
 
 

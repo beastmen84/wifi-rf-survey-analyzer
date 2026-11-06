@@ -3,7 +3,7 @@ from copy import deepcopy
 from unittest.mock import patch
 
 import pytest
-from PIL import Image, ImageChops
+from PIL import Image
 from PySide6.QtCore import QMarginsF, QPointF, QSize, Qt
 from PySide6.QtGui import QColor, QImage, QPageLayout, QPageSize, QPainter, QPixmap
 from PySide6.QtPdf import QPdfDocument
@@ -121,14 +121,21 @@ def test_real_pdf_print_is_one_centered_page_without_distortion_or_double_margin
     try:
         assert document.load(str(output)) == QPdfDocument.Error.None_
         assert document.pageCount() == 1
+        assert "Scale unavailable" in document.getAllText(0).text()
         page = document.pagePointSize(0)
         assert (page.width() > page.height()) == (size[0] > size[1])
         rendered = pillow(document.render(0, QSize(900, round(900 * page.height() / page.width()))))
-        box = ImageChops.difference(rendered, Image.new("RGB", rendered.size, "white")).getbbox()
+        # Isolate the plan's unique fill: the footer is deliberately outside it.
+        pixels = rendered.load()
+        mask = Image.new("1", rendered.size)
+        mask.putdata([int(max(abs(v - target) for v, target in zip(pixels[x, y], (18, 52, 86))) <= 2)
+                      for y in range(rendered.height) for x in range(rendered.width)])
+        box = mask.getbbox()
         left, top, right, bottom = box
         assert (right - left) / (bottom - top) == pytest.approx(size[0] / size[1], abs=.02)
         assert abs(left - (rendered.width - right)) <= 3
-        assert abs(top - (rendered.height - bottom)) <= 3
+        footer = 17 * rendered.height / (297 if size[0] < size[1] else 210)
+        assert abs(top - (rendered.height - bottom - footer)) <= 3
         assert min(left, top, rendered.width - right, rendered.height - bottom) >= 20
     finally:
         document.close()

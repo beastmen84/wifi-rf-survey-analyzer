@@ -7,7 +7,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QFont, QFontMetricsF, QImage, QPainter, QPainterPath, QPen, QTransform
 from PySide6.QtWidgets import QGraphicsPathItem
 
-from survey.plan_labels import validate_labels
+from survey.plan_labels import validate_labels, label_geometry
 
 
 def build_label(style, identity=None):
@@ -89,12 +89,36 @@ class GlyphItem(QGraphicsPathItem):
         painter.restore()
 
 
-def label_item(label):
+def selection_contrast(color):
+    components = QColor(color).getRgbF()[:3]
+    linear = [value / 12.92 if value <= .04045 else ((value + .055) / 1.055) ** 2.4 for value in components]
+    luminance = sum(c * weight for c, weight in zip(linear, (.2126, .7152, .0722)))
+    return "#000000" if luminance > .179 else "#ffffff"
+
+
+def label_item(label, selected=False):
     item = GlyphItem(glyph_path(label))
     item.setPen(label_pen(label))
     item.setBrush(QColor(label["color"]))
-    item.setZValue(6)
+    item.setZValue(7)  # Text stays legible above filled furniture annotations.
     item.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
+    if selected:
+        halo = QGraphicsPathItem(item.path(), item)
+        pen = QPen(QColor(selection_contrast(label["color"])), 1.25)
+        pen.setCosmetic(True)
+        halo.setPen(pen)
+        halo.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
+        frame = QPainterPath()
+        for index, line in enumerate(label_geometry(label)):
+            if index == 0:
+                frame.moveTo(line["x1"], line["y1"])
+            frame.lineTo(line["x2"], line["y2"])
+        frame.closeSubpath()
+        bounds = QGraphicsPathItem(frame, item)
+        pen = QPen(QColor("#0284c7"), 1, Qt.PenStyle.DashLine)
+        pen.setCosmetic(True)
+        bounds.setPen(pen)
+        bounds.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
     return item
 
 

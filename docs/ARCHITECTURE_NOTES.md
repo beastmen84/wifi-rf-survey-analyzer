@@ -22,6 +22,35 @@ interpolated colors.
 
 Current status:
 
+- Plan audit (2026-11-06): survey/plan_clearances.py measures finite structural
+  line/arc/circle distances to actual desk/symbol silhouettes. Concave footprints,
+  round analytic gaps, contact versus penetration and rotated vertices are
+  explicit. ClearanceIndex caches committed primitive boxes, applies conservative
+  lower bounds and retains at most one closest quote per principal axis. The
+  annotation UI uses pooled cosmetic paths/text and a fixed viewport badge in
+  survey units. Overlays never enter metadata, topology, RF or exports. A changed
+  drawing rebuilds the index; the last pose is cached only within that index.
+- app_core/plan_preferences.py persists validated RGB palette/tool colors through
+  atomic app settings, with no survey geometry or text content. qt_plan_colors
+  restores all Qt custom slots and saves explicit palette edits even on Cancel.
+  Existing annotation styles override defaults. Selected text has input-transparent
+  cosmetic black/white glyph edging and a dashed frame. Labels render above
+  filled annotations in both Qt and raster output; transient selection is absent
+  from print/export. Text editor dialogs now use deferred deletion in finally.
+- Pointer hot paths use the controller's validated displayed annotation model
+  and native paths with bounding-box prefiltering. Off-wall door fallback is
+  limited to nearby finite hosts. FloorplanView runs the design controller once
+  per normal mouse event, with a second remap only after actual panning. Viewport
+  leave/hide clears previews. Arc projection refines stable point_at coordinates
+  rather than subtracting large near-equal center/radius coordinates.
+- Print preview snapshots calibration and units with the clean image. The page
+  painter reserves a 17 mm footer and draws a nice 1/2/5 graphical reference at
+  exactly the same fit factor as the plan. Missing calibration is labeled; no
+  nominal architectural print ratio is asserted. See PLANIMETRY_AUDIT_2026_11_06.html
+  for reproducible measurements, native source previews and validation limits.
+  Final sequential native suite:1723 tests +479 subtests passed in169.99s;24 UI
+  language/theme/scale cases and48 desk/symbol property dialogs passed.31 pinned
+  installed versions match the lockfile;pip check and essential Ruff pass.
 - Annotation kinds desk/symbol add parametric centered width/height/angle, RGB
   outline/stroke and nullable RGB fill within the existing optional JSON v1.
   L desks store arm depth; symmetric desks and symbols enforce equal frame

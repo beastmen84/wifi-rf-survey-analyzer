@@ -1,0 +1,87 @@
+{
+  "python": "3.15.2",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "cases": {
+    "40": {
+      "desk_hover": {
+        "median_ms": 6.585900002392009,
+        "p95_ms": 8.38600000133738,
+        "max_ms": 8.696500008227304,
+        "samples": 25
+      },
+      "annotation_no_hit": {
+        "median_ms": 1.486349996412173,
+        "p95_ms": 1.796299999114126,
+        "max_ms": 1.796299999114126,
+        "samples": 10
+      },
+      "door_off_wall": {
+        "median_ms": 6.975600001169369,
+        "p95_ms": 8.373000004212372,
+        "max_ms": 8.373000004212372,
+        "samples": 3
+      },
+      "normalize_orthogonal": {
+        "median_ms": 0.6435000104829669,
+        "p95_ms": 0.6468000065069646,
+        "max_ms": 0.6468000065069646,
+        "samples": 3
+      }
+    },
+    "200": {
+      "desk_hover": {
+        "median_ms": 24.539599995478056,
+        "p95_ms": 27.050999997300096,
+        "max_ms": 27.16469998995308,
+        "samples": 25
+      },
+      "annotation_no_hit": {
+        "median_ms": 6.925100002263207,
+        "p95_ms": 7.90289998985827,
+        "max_ms": 7.90289998985827,
+        "samples": 10
+      },
+      "door_off_wall": {
+        "median_ms": 155.3332000039518,
+        "p95_ms": 218.57369999634102,
+        "max_ms": 218.57369999634102,
+        "samples": 3
+      },
+      "normalize_orthogonal": {
+        "median_ms": 1.9923999934690073,
+        "p95_ms": 2.1557000000029802,
+        "max_ms": 2.1557000000029802,
+        "samples": 3
+      }
+    },
+    "600": {
+      "desk_hover": {
+        "median_ms": 47.95390000799671,
+        "p95_ms": 101.6823999962071,
+        "max_ms": 116.77310000231955,
+        "samples": 25
+      },
+      "annotation_no_hit": {
+        "median_ms": 28.472649995819665,
+        "p95_ms": 30.428600002778694,
+        "max_ms": 30.428600002778694,
+        "samples": 10
+      },
+      "door_off_wall": {
+        "median_ms": 1609.934299995075,
+        "p95_ms": 1734.1097000025911,
+        "max_ms": 1734.1097000025911,
+        "samples": 3
+      },
+      "normalize_orthogonal": {
+        "median_ms": 9.879599994746968,
+        "p95_ms": 10.490399989066646,
+        "max_ms": 10.490399989066646,
+        "samples": 3
+      }
+    }
+  },
+  "retained_text_dialogs_after_6_cancels": 6,
+  "settings_isolated": true,
+  "physical_mouse_or_printer": false
+}

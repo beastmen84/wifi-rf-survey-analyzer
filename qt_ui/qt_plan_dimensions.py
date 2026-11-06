@@ -1,14 +1,15 @@
 """Transient split-segment dimensions; no model, topology or export changes."""
 import math
+from html import escape
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QPainterPath, QPen
-from PySide6.QtWidgets import QGraphicsPathItem, QLabel
+from PySide6.QtGui import QColor, QPainterPath, QPen, QTransform
+from PySide6.QtWidgets import QGraphicsItem, QGraphicsPathItem, QGraphicsTextItem, QLabel
 
 from app_core.units import distance_unit_label, meters_to_display_units
 from qt_ui.scaling import widget_px
 from survey.plan_annotations import annotation_points
-from survey.plan_objects import HOSTED_ANNOTATIONS
+from survey.plan_objects import HOSTED_ANNOTATIONS, FREE_ANNOTATIONS
 from survey.plan_erasing import nearest_segment
 from survey.planar_geometry import point_projection
 
@@ -17,21 +18,104 @@ class SegmentDimensions:
     def __init__(self, drawing):
         self.drawing, self.view, self.owner = drawing, drawing.view, drawing.owner
         self.items, self.values = [], None
+        self.text_items = []
+        self.last_object = None
         self.badge = QLabel(self.view.viewport())
         self.badge.setProperty("fixedViewportOverlay", True)
         self.badge.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         self.badge.setStyleSheet("background:#182433;color:white;border:1px solid #8194aa;border-radius:4px;padding:6px 9px;")
         self.badge.hide()
+        self.view.zoomChanged.connect(self.refresh)
 
     def reset_scene(self):
         self.items = []  # scene.clear() already deleted these native objects.
+        self.text_items = []
         self.hide()
 
     def hide(self):
         self.values = None
+        self.last_object = None
         self.badge.hide()
-        for item in self.items:
+        for item in self.items + self.text_items:
             item.hide()
+
+    def refresh(self, *_args):
+        if self.last_object is not None and self.badge.isVisible():
+            self.update_object(self.last_object)
+
+    def path_item(self, index, path, color, dashed=False):
+        while len(self.items) <= index:
+            item = QGraphicsPathItem()
+            item.setZValue(10)
+            item.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
+            self.view.scene.addItem(item)
+            self.items.append(item)
+        item = self.items[index]
+        pen = QPen(QColor(color), 1.5, Qt.PenStyle.DashLine if dashed else Qt.PenStyle.SolidLine)
+        pen.setCosmetic(True)
+        item.setPen(pen)
+        item.setPath(path)
+        item.show()
+
+    def update_object(self, item):
+        quotes = self.drawing.clearance_index.query(item)
+        if not quotes:
+            self.hide()
+            return
+        self.last_object = item
+        self.values = dict(kind="object", quotes=quotes)
+        rows = [self.owner.tr("object_clearances")]
+        zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
+        tick = widget_px(self.owner, 4) / zoom
+        for text in self.text_items:
+            text.hide()
+        for index, quote in enumerate(quotes):
+            color = "#ef4444" if quote.overlap else ("#0284c7", "#a855f7")[index]
+            caption = self.owner.tr("object_intersects" if quote.overlap else "object_gap_" + quote.direction)
+            value = self.number(quote.distance)
+            accent = "#fca5a5" if quote.overlap else ("#67caff", "#d8b4fe")[index]
+            rows.append("<span style='color:" + accent + "'>" + escape(caption) + "</span> · " + escape(value))
+            a, b = quote.start, quote.end
+            path = QPainterPath()
+            path.moveTo(*a)
+            path.lineTo(*b)
+            if quote.distance > 1e-7:
+                nx, ny = -(b[1] - a[1]) / quote.distance, (b[0] - a[0]) / quote.distance
+                for x, y in (a, b):
+                    path.moveTo(x - tick * nx, y - tick * ny)
+                    path.lineTo(x + tick * nx, y + tick * ny)
+            else:
+                path.moveTo(a[0] - tick, a[1] - tick)
+                path.lineTo(a[0] + tick, a[1] + tick)
+                path.moveTo(a[0] - tick, a[1] + tick)
+                path.lineTo(a[0] + tick, a[1] - tick)
+            self.path_item(index, path, color, True)
+            while len(self.text_items) <= index:
+                text = QGraphicsTextItem()
+                text.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations)
+                text.setFont(self.owner.font())
+                text.setZValue(11)
+                text.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
+                self.view.scene.addItem(text)
+                self.text_items.append(text)
+            text = self.text_items[index]
+            ink = "#b91c1c" if quote.overlap else ("#0369a1", "#7e22ce")[index]
+            if text.data(0) != (value, ink):
+                text.setHtml("<span style='background:white;color:" + ink + ";font-weight:600'>" + escape(value) + "</span>")
+                text.setData(0, (value, ink))
+            bounds = text.boundingRect()
+            projection = ((abs(b[0] - a[0]) * bounds.width() + abs(b[1] - a[1]) * bounds.height()) / quote.distance
+                          if quote.distance > 1e-7 else math.inf)
+            if quote.distance * zoom > projection + widget_px(self.owner, 6):
+                text.setPos((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+                text.setTransform(QTransform.fromTranslate(-bounds.width() / 2, -bounds.height() / 2))
+                text.show()
+        for unused in self.items[len(quotes):]:
+            unused.hide()
+        self.badge.setText("<br>".join(rows))
+        self.position()
+        self.badge.show()
+        self.badge.raise_()
 
     def position(self):
         margin = widget_px(self.owner, 12)
@@ -53,6 +137,19 @@ class SegmentDimensions:
             self.hide()
             return
         point = self.view.mapToScene(event.position().toPoint())
+        free = None
+        if d.tools.active_tool in FREE_ANNOTATIONS:
+            free = d.annotation.pending
+        elif d.tools.active_tool == "annotation_select":
+            objects = d.annotation.draft if d.annotation.moving else d.annotation.selected_items()
+            if len(objects) == 1 and not d.annotation.selected_labels and objects[0]["kind"] in FREE_ANNOTATIONS:
+                free = objects[0]
+        if free is not None:
+            self.update_object(free)
+            return
+        self.last_object = None
+        for text in self.text_items:
+            text.hide()
         aperture = None
         if d.tools.active_tool in ("door", "window"):
             aperture = d.annotation.pending
@@ -86,23 +183,13 @@ class SegmentDimensions:
         self.position()
         self.badge.show()
         self.badge.raise_()
-        for item in self.items:
-            self.view.scene.removeItem(item)
-        self.items = []
         normal = (-(b[1] - a[1]) / length, (b[0] - a[0]) / length)
         offset, tick = widget_px(self.owner, 12) / zoom, widget_px(self.owner, 4) / zoom
-        for start, end, color in ((a, p, "#0284c7"), (p, b, "#a855f7")):
+        for index, (start, end, color) in enumerate(((a, p, "#0284c7"), (p, b, "#a855f7"))):
             path = QPainterPath()
             path.moveTo(start[0] + normal[0] * offset, start[1] + normal[1] * offset)
             path.lineTo(end[0] + normal[0] * offset, end[1] + normal[1] * offset)
             for x, y in (start, end):
                 path.moveTo(x + normal[0] * (offset - tick), y + normal[1] * (offset - tick))
                 path.lineTo(x + normal[0] * (offset + tick), y + normal[1] * (offset + tick))
-            item = QGraphicsPathItem(path)
-            pen = QPen(QColor(color), 1.5)
-            pen.setCosmetic(True)
-            item.setPen(pen)
-            item.setZValue(10)
-            item.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
-            self.view.scene.addItem(item)
-            self.items.append(item)
+            self.path_item(index, path, color)

@@ -29,6 +29,7 @@ from qt_ui.qt_plan_dimensions import SegmentDimensions
 from survey.plan_annotations import (PLAN_ANNOTATIONS_KEY, drawing_annotations, encode_annotations,
     validate_annotations, visible_wall_segments, follow_hosts, supported)
 from survey.plan_objects import FREE_ANNOTATIONS
+from survey.plan_clearances import ClearanceIndex
 
 
 class RectanglePreview(QGraphicsPathItem):
@@ -115,6 +116,7 @@ class RectangleDesignController(QObject):
         self.selection = PlanSelectionController(self)
         self.rotation = PlanRotationController(self)
         self.annotation = AnnotationController(self)
+        self.clearance_index = ClearanceIndex()
         self.dimensions = SegmentDimensions(self)
         self.owner.installEventFilter(self)
         self.view.installEventFilter(self)
@@ -230,10 +232,11 @@ class RectangleDesignController(QObject):
             raise ValueError("Saved text is outside the sheet")
         if curves and not self.selection.fits(curves_geometry(curves)):
             raise ValueError("Saved curve is outside the sheet")
-        if annotations and not self.annotation.valid(annotations, exclude=[a["id"] for a in annotations], lines=lines or []):
+        if annotations and not self.annotation.valid(annotations, lines=lines or [], existing=()):
             raise ValueError("Saved annotations have invalid placement")
         self.eraser.set_segments(lines or [])
         self.selection.set_segments(lines or [])
+        self.clearance_index = ClearanceIndex(lines or [], curves)
         self.snapper = PlanSnapper(lines or [], curves, region_centers=lambda: self.selection.regions().centers())
         self.regions = closed_drawing_regions(lines or [], curves)
         self.view.set_grid_regions(self.regions.faces)

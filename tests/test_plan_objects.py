@@ -75,10 +75,10 @@ def test_object_dialog_variants_dimensions_and_independent_colors(editor, kind, 
         if dialog.height_spin.isHidden() is False:
             dialog.height_spin.setValue(3)
         dialog.stroke.setValue(3.5)
-        with patch("qt_ui.qt_plan_objects.QColorDialog.getColor", return_value=QColor("#123456")):
+        with patch("qt_ui.qt_plan_colors.QColorDialog.getColor", return_value=QColor("#123456")):
             dialog.outline.click()
         dialog.fill_enabled.setChecked(True)
-        with patch("qt_ui.qt_plan_objects.QColorDialog.getColor", return_value=QColor("#abcdef")):
+        with patch("qt_ui.qt_plan_colors.QColorDialog.getColor", return_value=QColor("#abcdef")):
             dialog.fill.click()
         result = validate_annotations([dialog.properties()])[0]
         assert result["width"] == pytest.approx(display_units_to_meters(2, system) * app.get_px_per_meter())

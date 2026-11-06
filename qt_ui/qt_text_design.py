@@ -9,6 +9,7 @@ from qt_ui.qt_text_editor import PlanTextDialog
 from survey.plan_geometry import segment_bounds
 from survey.plan_labels import label_geometry, transform_labels
 from survey.plan_label_rendering import build_label, label_item
+from app_core.plan_preferences import save_tool_colors
 
 
 class TextDesignController:
@@ -51,7 +52,7 @@ class TextDesignController:
 
     def show_labels(self, labels):
         self.clear_preview()
-        self.preview_items = [label_item(label) for label in labels]
+        self.preview_items = [label_item(label, selected=True) for label in labels]
         for item in self.preview_items:
             item.setOpacity(.85)
             item.setZValue(9)
@@ -74,6 +75,7 @@ class TextDesignController:
     def read_editor(self, previous=None):
         session, pixmap = self.owner.session, self.view.pixmap_item
         self.dialog_open = True
+        dialog = None
         try:
             dialog = PlanTextDialog(self.owner, previous or self.last_style)
             if dialog.exec() != QDialog.DialogCode.Accepted:
@@ -82,11 +84,14 @@ class TextDesignController:
                 return None
             label = build_label(dialog.values(), previous.get("id") if previous else None)
             self.last_style = label
+            save_tool_colors("text", label)
             return label
         except (ValueError, KeyError, TypeError):
             self.owner.status.showMessage(self.owner.tr("plan_text_invalid"))
             return None
         finally:
+            if dialog is not None:
+                dialog.deleteLater()
             self.dialog_open = False
 
     def begin_placement(self, label, position):

@@ -93,9 +93,6 @@ def render_plan_drawing(image, segments, labels=None, curves=None, annotations=N
     if any(line[key] < -1e-6 or line[key] > image.size[index] + 1e-6
            for line in labels_geometry(labels) for index, keys in enumerate((("x1", "x2"), ("y1", "y2"))) for key in keys):
         raise ValueError("Text label is outside the sheet")
-    if labels:
-        from survey.plan_label_rendering import render_labels
-        output = render_labels(output, labels)
     if annotations:
         from survey.plan_annotation_rendering import render_annotations, annotation_fits
         from PySide6.QtCore import QRectF
@@ -103,6 +100,9 @@ def render_plan_drawing(image, segments, labels=None, curves=None, annotations=N
         if any(not annotation_fits(a, bounds) for a in annotations):
             raise ValueError("Annotation is outside the sheet")
         output = render_annotations(output, annotations)
+    if labels:
+        from survey.plan_label_rendering import render_labels
+        output = render_labels(output, labels)
     fingerprint = [lines, labels, curves] if curves else [lines, labels]
     if annotations:
         fingerprint = [lines, labels, curves, annotations]

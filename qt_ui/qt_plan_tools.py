@@ -2,12 +2,14 @@
 
 from PySide6.QtCore import QEvent, QPoint, QRect, QSize, Qt, QTimer
 from PySide6.QtGui import QColor, QIcon, QPixmap, QShortcut, QKeySequence, QPainter, QPainterPath, QPen
-from PySide6.QtWidgets import QColorDialog, QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
 from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
 from qt_ui.qt_theme import QT_THEMES
 from qt_ui.qt_rectangle_design import RectangleDesignController
 from survey.plan_objects import FREE_ANNOTATIONS, object_is_round
+from app_core.plan_preferences import tool_colors, save_tool_colors
+from qt_ui.qt_plan_colors import choose_plan_color
 
 
 class PlanToolsOverlay(QFrame):
@@ -18,7 +20,7 @@ class PlanToolsOverlay(QFrame):
         self.owner = owner
         self.open = False
         self.active_tool = "rectangle"
-        self.stroke_color = QColor("#263238")
+        self.stroke_color = QColor(tool_colors("structure").get("color", "#263238"))
         self.setObjectName("boundariesToolbar")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setAttribute(Qt.WidgetAttribute.WA_NoMousePropagation, True)
@@ -367,9 +369,10 @@ class PlanToolsOverlay(QFrame):
         self.controller.refresh_snap()
 
     def choose_color(self):
-        color = QColorDialog.getColor(self.stroke_color, self.owner, self.owner.tr("blank_tool_color"))
+        color = choose_plan_color(self.stroke_color, self.owner, self.owner.tr("blank_tool_color"))
         if color.isValid():
             self.stroke_color = color
+            save_tool_colors("structure", dict(color=color.name()))
             self.update_color_icon()
 
     def update_color_icon(self):

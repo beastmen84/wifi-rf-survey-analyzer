@@ -1,12 +1,14 @@
 """Compact plan-text editor with a live, font-independent outline preview."""
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPixmap
-from PySide6.QtWidgets import (QCheckBox, QColorDialog, QComboBox, QDialog, QDialogButtonBox,
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox,
     QDoubleSpinBox, QFontComboBox, QFormLayout, QGraphicsScene, QGraphicsView,
     QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QVBoxLayout)
 
 from qt_ui.scaling import widget_px
 from survey.plan_label_rendering import build_label, label_item
+from app_core.plan_preferences import tool_colors
+from qt_ui.qt_plan_colors import choose_plan_color
 
 
 class GlyphPreview(QGraphicsView):
@@ -23,8 +25,11 @@ class PlanTextDialog(QDialog):
         tr = owner.tr
         self.setWindowTitle(tr("plan_text_title"))
         self.resize(widget_px(owner, 540), widget_px(owner, 570))
+        new_text = previous is None
         previous = previous or dict(text="", family="Segoe UI", size=24, bold=False, italic=False,
             color="#263238", outline_color="#ffffff", outline_width=0, alignment="left")
+        if new_text:
+            previous = dict(previous, **tool_colors("text"))
         self.colors = {key: previous[key] for key in ("color", "outline_color")}
         layout = QVBoxLayout(self)
         layout.setSpacing(widget_px(owner, 10))
@@ -37,13 +42,13 @@ class PlanTextDialog(QDialog):
         self.family = QFontComboBox()
         self.family.setCurrentFont(QFont(previous["family"]))
         form.addRow(tr("plan_text_font"), self.family)
-        self.size = QDoubleSpinBox()
-        self.size.setRange(1, 300)
-        self.size.setDecimals(1)
-        self.size.setSuffix(" pt")
-        self.size.setValue(previous["size"])
+        self.size_spin = QDoubleSpinBox()
+        self.size_spin.setRange(1, 300)
+        self.size_spin.setDecimals(1)
+        self.size_spin.setSuffix(" pt")
+        self.size_spin.setValue(previous["size"])
         style = QHBoxLayout()
-        style.addWidget(self.size)
+        style.addWidget(self.size_spin)
         self.bold, self.italic = QCheckBox(tr("plan_text_bold")), QCheckBox(tr("plan_text_italic"))
         self.bold.setChecked(previous["bold"])
         self.italic.setChecked(previous["italic"])
@@ -84,20 +89,20 @@ class PlanTextDialog(QDialog):
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
         layout.addWidget(self.buttons)
-        for signal in (self.content.textChanged, self.family.currentFontChanged, self.size.valueChanged,
+        for signal in (self.content.textChanged, self.family.currentFontChanged, self.size_spin.valueChanged,
                        self.bold.toggled, self.italic.toggled, self.alignment.currentIndexChanged, self.outline.valueChanged):
             signal.connect(self.refresh_preview)
         self.refresh_preview()
 
     def choose_color(self, field):
-        color = QColorDialog.getColor(QColor(self.colors[field]), self, self.owner.tr("plan_text_" + field))
+        color = choose_plan_color(self.colors[field], self, self.owner.tr("plan_text_" + field))
         if color.isValid():
             self.colors[field] = color.name()
             self.refresh_preview()
 
     def values(self):
         return dict(text=self.content.toPlainText(), family=self.family.currentFont().family(),
-            size=self.size.value(), bold=self.bold.isChecked(), italic=self.italic.isChecked(),
+            size=self.size_spin.value(), bold=self.bold.isChecked(), italic=self.italic.isChecked(),
             alignment=self.alignment.currentData(), outline_width=self.outline.value(), **self.colors)
 
     def refresh_preview(self, *_args):
