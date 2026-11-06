@@ -120,10 +120,11 @@ from these software checks.
   the viewport during zoom and pan. Structure selection and the eraser affect walls and curves;
   annotation selection affects markers, doors, windows and text. **Marker** draws
   dashed freehand or grid-following paths with its own color and graphical width.
-  **Door** supports single, double and sliding variants; **Window** uses a simple
+  **Door** supports single, double, sliding and frame-only variants; **Window** uses a simple
   window symbol. Choose width before placement, then right-click on a straight
   wall, including oblique walls. Doors have independent hinge and opening-side
-  choices shown as seven configuration icons (four single, two double, sliding).
+  choices shown as eight configuration icons (four single, two double, sliding,
+  frame only). **Frame only** shows the jambs without a leaf or swing arc.
   Only swing arcs are dashed; door leaves remain solid.
   Apertures hide only the covered wall ink: room closure, internal area
   and Boundaries Fill/Auto Fill retain the complete structural geometry.

@@ -7,6 +7,9 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Added **Frame only** to Door properties: a wall-hosted opening with two jambs,
+  no leaf or swing arc. It uses the same width, snapping, editing, persistence
+  and export behavior as other openings, with an eighth configuration icon.
 - The survey floor plan can now be panned even when it fits entirely in the
   viewport, including by dragging the surrounding margin. Design Mode controls
   stay fixed while covered sheet areas can be moved into reach. Fit recenters
@@ -20,7 +23,7 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 - Fixed Design Mode controls drifting with the map during pan/zoom. The palette,
   toggle and measurement HUDs keep their viewport anchors, including during an
   active placement preview, without changing normal map scrolling or rendering.
-- Door properties now offer a row of seven configuration icons. Only swing arcs
+- Door properties now offer a row of eight configuration icons. Only swing arcs
   are dashed; leaves, windows and sliding symbols remain solid in scene/exports.
 - Added an annotation-only eraser alongside the structural eraser, with click or
   drag-area deletion, text support and shared undo/redo.

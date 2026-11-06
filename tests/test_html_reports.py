@@ -218,10 +218,12 @@ def test_both_workspace_html_exports_include_current_editable_shapes(analysis_wi
     curve_pixels = []
     if operation == "annotations":
         from tests.test_plan_annotations import aperture, marker
-        annotations = [aperture(x1=130, y1=100, x2=170, y2=100), marker(points=[[30, 240], [180, 240]])]
+        annotations = [aperture(x1=130, y1=100, x2=170, y2=100),
+                       aperture(id="frame", x1=185, y1=160, x2=215, y2=160, variant="frame"),
+                       marker(points=[[30, 240], [180, 240]])]
         assert window.plan_tools.controller.apply_edit(lines, annotations=annotations)
         rendered = render_plan_drawing(Image.new("RGB", (400, 300), "white"), lines, annotations=annotations)
-        for pixel in ((150, 100), (130, 120), (45, 240)):
+        for pixel in ((150, 100), (130, 120), (45, 240), (200, 160), (185, 160), (185, 175)):
             curve_pixels.append((pixel, rendered.getpixel(pixel)))
     if operation == "curves":
         curves = [dict(kind="circle", cx=65, cy=235, radius=25, phase=0, color="#d84315"),

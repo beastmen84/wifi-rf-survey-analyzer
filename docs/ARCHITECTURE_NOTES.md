@@ -22,6 +22,16 @@ interpolated colors.
 
 Current status:
 
+- Door's additive variant="frame" renders two solid jambs and a clear opening,
+  without a leaf or swing arc. The eighth properties icon uses the same shared
+  paths as the scene/hit tests/raster exports. It retains endpoint-based width,
+  host support, masks, center snaps and existing annotation persistence; R has
+  no invisible side-flip edit for frame/sliding variants. Room geometry and the
+  optional annotation JSON version remain unchanged.
+  Verification:117 annotation/precision/HTML/i18n tests +434 subtests passed in
+  41.57s, including real save/reopen and both workspace HTML export paths. Native
+  source dialog checks passed16 language/theme/scale combinations; inspected the
+  Italian light screenshot. Essential Ruff/diff checks pass; no EXE build/QA.
 - FloorplanView uses a view-only scroll rectangle padded by one viewport per
   axis at the current zoom. Left-button hand panning works on a fully fitted
   sheet and on its surrounding margin. Zoom/resize refresh this navigation area;
@@ -61,8 +71,8 @@ Current status:
   focused overlay/setup/gesture tests40 passed in12.58s. All3 new anchor cases
   reproduced the drift before the fix. Source Qt/QTest validation includes
   scrollbar/wheel/hand-drag/zoom and pending previews, not physical mouse/EXE QA.
-- Door properties use seven mutually exclusive icon buttons: four single-leaf
-  hinge/side configurations, two double and one sliding. annotation_parts shares
+- Door properties use eight mutually exclusive icon buttons: four single-leaf
+  hinge/side configurations, two double, sliding and frame only. annotation_parts shares
   solid leaf/window paths and separately dashed swing paths among scene, icons,
   hit testing and raster exports. No saved annotation format change is needed.
 - Annotation erasing is a separate tool in the annotation row, reusing its finite
@@ -101,7 +111,7 @@ Current status:
 - plan_annotations JSON v1 stores bounded, stable-ID marker paths and straight
   wall-hosted aperture endpoints/style. Hosts are geometric collinear coverage
   runs across normalized segment cuts, not mutable list indices. Width/hinge/
-  opening-side properties are editable; doors support single/double/sliding.
+  opening-side properties are editable; doors support single/double/sliding/frame.
   Marker has independent dashed color/graphical stroke and free/grid gestures.
   Markers/text rotate by quarter-turns in annotation selection; R flips a swing
   door. Physical wall thickness and RF material modeling stay deferred.
@@ -1485,7 +1495,7 @@ Implemented non-structural annotation tools:
 - Marker: freely drawn dashed paths or grid-following paths, with independent
   color and visual stroke width. Render above structural lines; exclude from
   structural splitting/fusion, snap topology, room closure, area and mask fills.
-- Doors: single with left/right opening, double and sliding variants. Choose
+- Doors: single with left/right opening, double, sliding and frame-only variants. Choose
   width when selecting the tool/before placement, and allow later edits.
 - Windows: choose width before placement and allow later edits; no swing symbol.
 - Door/window placement snaps to a host structural segment with orientation and

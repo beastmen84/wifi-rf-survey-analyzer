@@ -22,6 +22,11 @@ def annotation_parts(item):
         path.addRect(0, -depth, length, depth * 2)
         path.moveTo(0, 0)
         path.lineTo(length, 0)
+    elif item.get("variant") == "frame":
+        depth = max(3, length * .04)
+        jamb = min(length / 4, max(1, length * .02))
+        path.addRect(0, -depth, jamb, depth * 2)
+        path.addRect(length - jamb, -depth, jamb, depth * 2)
     elif item.get("variant") == "sliding":
         depth = max(3, length * .04)
         path.addRect(0, -depth, length * .6, depth)

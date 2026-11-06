@@ -43,7 +43,7 @@ def validate_annotations(items):
                 raise ValueError("Empty aperture")
             side, hinge = source.get("side", 1), source.get("hinge", 0)
             variant = source.get("variant", "single")
-            if side not in (-1, 1) or hinge not in (0, 1) or variant not in ("single", "double", "sliding"):
+            if side not in (-1, 1) or hinge not in (0, 1) or variant not in ("single", "double", "sliding", "frame"):
                 raise ValueError("Invalid door configuration")
             item.update(side=side, hinge=hinge, variant=variant)
         points = annotation_points(item)

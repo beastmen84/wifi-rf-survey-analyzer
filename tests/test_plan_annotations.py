@@ -46,7 +46,7 @@ def choose(app, tool, item=None):
         app.plan_tools.controller.annotation.templates[tool] = item
 
 
-@pytest.mark.parametrize("item", [marker(), aperture(), aperture("window"), aperture(variant="double"), aperture(variant="sliding")])
+@pytest.mark.parametrize("item", [marker(), aperture(), aperture("window"), aperture(variant="double"), aperture(variant="sliding"), aperture(variant="frame")])
 def test_annotation_roundtrip_preserves_originals_and_legacy_absence(item):
     original = deepcopy(item)
     metadata = {"_generated_floorplan": "1", PLAN_ANNOTATIONS_KEY: encode_annotations([item])}
@@ -114,12 +114,13 @@ def test_mask_only_hides_host_ink_and_export_fingerprint_tracks_annotations(qt_a
     assert restored.getpixel((265, 200)) == (18, 52, 86)
 
 
-def test_marker_and_apertures_leave_room_topology_and_area_untouched(editor):
+@pytest.mark.parametrize("variant", ["single", "frame"])
+def test_marker_and_apertures_leave_room_topology_and_area_untouched(editor, variant):
     app, d = editor
     walls = rectangle_segments(100, 200, 500, 250, "#123456")
     assert d.apply_edit(walls)
     before = deepcopy(d.regions)
-    assert d.apply_edit(d.segments(), annotations=[aperture(), marker()])
+    assert d.apply_edit(d.segments(), annotations=[aperture(variant=variant), marker()])
     assert d.segments() == walls and d.regions.faces == before.faces
     assert d.selection.regions().pick(QPointF(350, 325)).area == 125000
     assert (275, 200) not in d.snapper.vertices
@@ -174,7 +175,7 @@ def test_marker_gesture_stays_above_structure_and_preserves_it(editor, grid):
 
 
 @pytest.mark.parametrize("kind,variant,hinge,side", [("window", "single", 0, 1), ("door", "single", 0, 1),
-    ("door", "single", 1, -1), ("door", "double", 0, 1), ("door", "sliding", 0, 1)])
+    ("door", "single", 1, -1), ("door", "double", 0, 1), ("door", "sliding", 0, 1), ("door", "frame", 0, 1)])
 def test_aperture_cursor_preview_place_reject_overlap_and_properties(editor, kind, variant, hinge, side):
     app, d = editor
     d.store([line()])
@@ -265,16 +266,17 @@ def test_properties_units_and_pose_preservation(editor, system):
         dialog.deleteLater()
 
 
-def test_annotations_survive_save_png_reopen_and_clear_on_external_import(editor, tmp_path):
+@pytest.mark.parametrize("variant", ["single", "frame"])
+def test_annotations_survive_save_png_reopen_and_clear_on_external_import(editor, tmp_path, variant):
     app, d = editor
-    d.store([line()], annotations=[aperture(), marker()])
+    d.store([line()], annotations=[aperture(variant=variant), marker()])
     app.plan_tools.set_open(False)
     path = tmp_path / "annotations.csv"
     app.session.csv_file = str(path)
     with patch("qt_ui.qt_session_workflow.QMessageBox.warning") as error:
         assert app.save_survey(), error.call_args
     assert app.open_survey(str(path))
-    assert d.annotations() == [aperture(), marker()] and d.segments() == [line()]
+    assert d.annotations() == [aperture(variant=variant), marker()] and d.segments() == [line()]
     with Image.open(path.with_suffix(".png")) as image:
         assert image.convert("RGB").getpixel((275, 200)) == (255, 255, 255)
     external = tmp_path / "external.png"

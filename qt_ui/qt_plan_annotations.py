@@ -19,7 +19,7 @@ from qt_ui.scaling import widget_px
 
 ANNOTATION_TOOLS = ("marker", "door", "window", "annotation_select", "annotation_eraser")
 DOOR_CHOICES = (("single", 0, 1), ("single", 1, 1), ("single", 0, -1), ("single", 1, -1),
-                ("double", 0, 1), ("double", 0, -1), ("sliding", 0, 1))
+                ("double", 0, 1), ("double", 0, -1), ("sliding", 0, 1), ("frame", 0, 1))
 
 
 class AnnotationDialog(QDialog):
@@ -83,7 +83,7 @@ class AnnotationDialog(QDialog):
                 self.door_group.idClicked.connect(lambda _index: self.update_door_icons())
                 variant = item.get("variant", "single")
                 self.choose_door(variant, item.get("hinge", 0) if variant == "single" else 0,
-                                 item.get("side", 1) if variant != "sliding" else 1)
+                                 item.get("side", 1) if variant in ("single", "double") else 1)
                 layout.addWidget(QLabel(owner.tr("annotation_type")))
                 layout.addWidget(choices)
         hint = QLabel(owner.tr("annotation_properties_hint"))
@@ -500,7 +500,7 @@ class AnnotationController:
         for item in items:
             if item["kind"] == "marker":
                 item.update(marker_map[item["id"]])
-            elif item["kind"] == "door" and item.get("variant") != "sliding":
+            elif item["kind"] == "door" and item.get("variant", "single") in ("single", "double"):
                 item["side"] *= -1
         labels = transform_labels(labels, 90, pivot)
         if self.valid(items, labels, exclude=[a["id"] for a in self.selected_items()]):

@@ -21,11 +21,11 @@ from tests.test_capture_adapter import window, qt_app
 BOUNDS = (0, 0, 900, 600)
 
 
-@pytest.mark.parametrize("variant", ["single", "double", "sliding"])
+@pytest.mark.parametrize("variant", ["single", "double", "sliding", "frame"])
 def test_only_door_swing_arcs_are_dashed_in_shared_scene_and_export(qt_app, variant):
     item = aperture(variant=variant, x1=200, x2=300, stroke=2)
     parts = annotation_parts(item)
-    assert [dashed for _path, dashed in parts] == ([False] if variant == "sliding" else [False, True])
+    assert [dashed for _path, dashed in parts] == ([False] if variant in ("sliding", "frame") else [False, True])
     native = annotation_item(item)
     assert sorted(child.pen().style().value for child in native.childItems()) == sorted(
         (Qt.PenStyle.DashLine if dashed else Qt.PenStyle.SolidLine).value for _path, dashed in parts)
@@ -35,6 +35,12 @@ def test_only_door_swing_arcs_are_dashed_in_shared_scene_and_export(qt_app, vari
         samples = [image.getpixel((round(200 + 100 * math.cos(a * math.pi / 180)),
                                   round(200 + 100 * math.sin(a * math.pi / 180)))) for a in range(5, 85)]
         assert any(p == (255, 255, 255) for p in samples) and any(p != (255, 255, 255) for p in samples)
+    elif variant == "frame":
+        assert parts[0][0].boundingRect() == QRectF(200, 196, 100, 8)
+        assert image.getpixel((200, 200)) == (51, 65, 85)
+        assert image.getpixel((300, 200)) == (51, 65, 85)
+        assert image.getpixel((250, 200)) == (255, 255, 255)
+        assert image.getpixel((200, 230)) == (255, 255, 255)
 
 
 @pytest.mark.parametrize("choice", DOOR_CHOICES)
@@ -42,7 +48,7 @@ def test_door_icon_row_selects_exact_configuration_without_flip_options(editor, 
     app, d = editor
     dialog = AnnotationDialog(d.annotation, aperture())
     try:
-        assert len(dialog.door_buttons) == 7
+        assert len(dialog.door_buttons) == 8
         button = dialog.door_buttons[choice]
         button.click()
         value = dialog.properties()
@@ -50,6 +56,24 @@ def test_door_icon_row_selects_exact_configuration_without_flip_options(editor, 
         assert sum(b.isChecked() for b in dialog.door_buttons.values()) == 1
         assert not button.icon().isNull() and button.accessibleName()
         assert not hasattr(dialog, "hinge") and not hasattr(dialog, "side")
+    finally:
+        dialog.deleteLater()
+
+
+def test_frame_can_be_picked_but_r_does_not_create_an_invisible_edit(editor):
+    app, d = editor
+    frame = aperture(variant="frame")
+    d.store([line()], annotations=[frame])
+    choose(app, "annotation_select")
+    QTest.mouseClick(app.floorplan_view.viewport(), Qt.MouseButton.RightButton, pos=at(app, 250, 200))
+    assert d.annotation.selected == (0,)
+    before, history, dirty = d.snapshot(), len(d.undo_stack), app.session.dirty
+    QTest.keyClick(app, Qt.Key.Key_R)
+    assert d.snapshot() == before and len(d.undo_stack) == history and app.session.dirty == dirty
+    dialog = AnnotationDialog(d.annotation, dict(frame, side=-1, hinge=1))
+    try:
+        assert dialog.door_buttons[("frame", 0, 1)].isChecked()
+        assert dialog.properties()["variant"] == "frame"
     finally:
         dialog.deleteLater()
 
