@@ -7,6 +7,12 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- The survey floor plan can now be panned even when it fits entirely in the
+  viewport, including by dragging the surrounding margin. Design Mode controls
+  stay fixed while covered sheet areas can be moved into reach. Fit recenters
+  the actual sheet; navigation margins do not enlarge drawing or export bounds.
+  Outside-sheet clicks cannot place survey/AP/calibration points or start masks.
+  Updated EN/IT/FR/ES Help.
 - Fixed dragged diagonal lines disappearing on release in older drawings with
   microscopic rounding fragments. Orthogonal cuts now share the existing numeric
   tolerance, and collapsed empty edges no longer reject valid oblique edits.

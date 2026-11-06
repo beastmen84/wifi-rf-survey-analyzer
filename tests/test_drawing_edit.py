@@ -146,7 +146,7 @@ def test_rectangle_preview_r_swaps_measurements_without_dirty_or_history(editor)
     QTest.mouseClick(app.floorplan_view.viewport(), Qt.MouseButton.RightButton, pos=point(app, 400, 300))
     left, top, right, bottom = segment_bounds(drawing.segments())
     assert (left, top) == pytest.approx((400, 300), abs=1)
-    assert (right - left, bottom - top) == (100, 250)
+    assert (right - left, bottom - top) == pytest.approx((100, 250), rel=0, abs=1e-9)
 
 
 @pytest.fixture

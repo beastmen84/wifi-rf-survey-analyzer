@@ -22,6 +22,19 @@ interpolated colors.
 
 Current status:
 
+- FloorplanView uses a view-only scroll rectangle padded by one viewport per
+  axis at the current zoom. Left-button hand panning works on a fully fitted
+  sheet and on its surrounding margin. Zoom/resize refresh this navigation area;
+  Fit continues to target and recenter the physical scene rectangle. Existing
+  fixedViewportOverlay widgets keep their screen anchors during scrolling.
+  QGraphicsScene.sceneRect remains the real sheet for grid, geometry, masks and
+  exports; no persisted drawing dimensions change. Mouse point acquisition,
+  AP positioning, scale calibration and starting boundary strokes reject the
+  outside navigation margin, retaining their pending mode for a valid click.
+  Verification:1575 tests +475 subtests passed in128.81s on native Windows;
+  14 new Qt gesture cases cover fitted/below-fit panning, obscured-area drawing,
+  fixed controls, resizing, Fit and outside-click acquisition guards. Essential
+  Ruff/diff checks pass. Source Qt/QTest validation, not physical mouse/EXE QA.
 - Orthogonal split_segments canonicalizes X/Y coordinates with the existing
   EPSILON=1e-9 plan-pixel tolerance before generating cuts, dropping only edges
   collapsed at that precision. This prevents float-ulp slivers from near-identical

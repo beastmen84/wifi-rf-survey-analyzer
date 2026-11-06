@@ -189,6 +189,8 @@ class FloorplanView(QGraphicsView):
         self.reset_boundaries_mask(emit_signal=False)
         self.scene.clear()
         self.pixmap_item = None
+        self.scene.setSceneRect(QRectF())
+        self.setSceneRect(QRectF())
         self.marker_items = []
         self.ap_marker_items = []
         self.grid_items = []
@@ -1165,6 +1167,7 @@ class FloorplanView(QGraphicsView):
         factor = zoom_level / self.zoom_level
         self.zoom_level = zoom_level
         self.scale(factor, factor)
+        self.update_navigation_rect()
         self.update_boundaries_cursor()
         self.zoomChanged.emit(self.zoom_level)
 
@@ -1173,11 +1176,31 @@ class FloorplanView(QGraphicsView):
         if not self.has_floorplan():
             return
 
+        self.update_navigation_rect()
         self.fitInView(self.scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
         transform = self.transform()
         self.zoom_level = max(transform.m11(), transform.m22())
+        self.update_navigation_rect()
+        self.centerOn(self.scene.sceneRect().center())
         self.update_boundaries_cursor()
         self.zoomChanged.emit(self.zoom_level)
+
+    def update_navigation_rect(self):
+        if not self.has_floorplan():
+            return
+        viewport = self.viewport()
+        center = self.mapToScene(viewport.rect()).boundingRect().center()
+        transform = self.transform()
+        margin_x = viewport.width() / max(1e-9, math.hypot(transform.m11(), transform.m12()))
+        margin_y = viewport.height() / max(1e-9, math.hypot(transform.m21(), transform.m22()))
+        # Pad only this view's scrollable area. The scene rect remains the
+        # physical sheet used by drawing, grid, calibration and exports.
+        self.setSceneRect(self.scene.sceneRect().adjusted(-margin_x, -margin_y, margin_x, margin_y))
+        self.centerOn(center)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.update_navigation_rect()
 
     def set_focus_point_zoom_percent(self, percent):
         try:
@@ -1311,8 +1334,11 @@ class FloorplanView(QGraphicsView):
             return
         if self.boundaries_edit_active and event.button() == Qt.MouseButton.RightButton:
             point = self.mapToScene(event.position().toPoint())
+            if not self.is_point_inside_floorplan(point):
+                event.accept()
+                return
             if self.boundaries_tool == "fill":
-                if self.is_point_inside_floorplan(point) and controller is not None:
+                if controller is not None:
                     from qt_ui.qt_plan_fill import fill_closed_boundaries
                     fill_closed_boundaries(controller.owner, point)
                 event.accept()
@@ -1327,13 +1353,17 @@ class FloorplanView(QGraphicsView):
         if self.scale_calibration_active:
             if event.button() == Qt.MouseButton.LeftButton:
                 point = self.mapToScene(event.position().toPoint())
-                self.pick_scale_calibration_point(point.x(), point.y())
+                if self.is_point_inside_floorplan(point):
+                    self.pick_scale_calibration_point(point.x(), point.y())
             event.accept()
             return
 
         if self.pending_ap_position_group_id:
             if event.button() == Qt.MouseButton.LeftButton:
                 point = self.mapToScene(event.position().toPoint())
+                if not self.is_point_inside_floorplan(point):
+                    event.accept()
+                    return
                 group_id = self.pending_ap_position_group_id
                 self.pending_ap_position_group_id = ""
                 self.pending_ap_position_label = ""
@@ -1345,7 +1375,8 @@ class FloorplanView(QGraphicsView):
 
         if self.has_floorplan() and event.button() == Qt.MouseButton.RightButton:
             point = self.mapToScene(event.position().toPoint())
-            self.surveyPointRequested.emit(int(round(point.x())), int(round(point.y())))
+            if self.is_point_inside_floorplan(point):
+                self.surveyPointRequested.emit(int(round(point.x())), int(round(point.y())))
             event.accept()
             return
 

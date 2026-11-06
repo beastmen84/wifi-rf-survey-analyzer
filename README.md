@@ -56,7 +56,9 @@ from these software checks.
   sheet and uses that plan's calibration. The blank sheet has a bottom-left
   Design Mode toolbar for rectangles: right-drag shows live m/ft
   dimensions; a right-click opens exact dimensions, followed by another
-  right-click to place the preview. Left-drag pans. Color and undo/redo are
+  right-click to place the preview. Left-drag pans even when the whole sheet is
+  visible; move it away from the fixed Design Mode panel to reach covered areas.
+  **Fit** recenters the complete sheet. Color and undo/redo are
   available. Nearby corners and edges snap automatically, with orange target
   indicators; the grid button adds snapping to the displayed grid. Hold Alt to
   suspend snapping. Numeric placement moves the shape without changing its size.
