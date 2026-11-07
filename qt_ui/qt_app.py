@@ -76,6 +76,7 @@ from qt_ui.qt_windowing import (
 )
 from qt_ui.qt_workspace_settings import WorkspaceSettingsMixin
 from qt_ui.qt_plan_tools import PlanToolsOverlay
+from qt_ui.qt_layers import LayersPanel
 from qt_ui.scaling import (
     format_ui_scale_diagnostics,
     normalize_ui_scale_mode,
@@ -771,7 +772,14 @@ class WifiHeatmapQtApp(
         self.points_table_body.setVisible(False)
         self.points_panel_resize_button.setVisible(False)
         self.update_points_panel_toggle()
-        layout.addWidget(self.floorplan_container, 1)
+        map_area = QFrame()
+        map_area_layout = QHBoxLayout(map_area)
+        map_area_layout.setContentsMargins(0, 0, 0, 0)
+        map_area_layout.setSpacing(self.spx(6))
+        map_area_layout.addWidget(self.floorplan_container, 1)
+        self.layers_panel = LayersPanel(self)
+        map_area_layout.addWidget(self.layers_panel)
+        layout.addWidget(map_area, 1)
         QTimer.singleShot(0, self.position_boundaries_toolbar)
         QTimer.singleShot(0, self.position_points_overlay)
         return tab
@@ -1911,7 +1919,7 @@ class WifiHeatmapQtApp(
                 color: {palette["text"]};
                 font-weight: 600;
             }}
-            QTableWidget {{
+            QTableWidget, QTreeWidget {{
                 background: {palette["panel"]};
                 alternate-background-color: {palette["panel_alt"]};
                 color: {palette["text"]};
@@ -1922,7 +1930,7 @@ class WifiHeatmapQtApp(
                 border-bottom: 1px solid {palette["border"]};
                 padding: {s(4)}px {s(6)}px;
             }}
-            QTableWidget::item:selected {{
+            QTableWidget::item:selected, QTreeWidget::item:selected {{
                 background: {palette["selection"]};
                 color: {palette["text"]};
             }}
@@ -1998,6 +2006,7 @@ class WifiHeatmapQtApp(
         self.print_plan_button.setText(self.tr("print_plan"))
         self.print_plan_button.setToolTip(self.tr("print_plan_hint"))
         self.print_plan_button.setAccessibleName(self.tr("print_plan"))
+        self.layers_panel.retranslate()
         self.save_plan_jpeg_button.setText(self.tr("save_plan_jpeg"))
         self.save_plan_jpeg_button.setToolTip(self.tr("save_plan_jpeg_hint"))
         self.save_plan_jpeg_button.setAccessibleName(self.tr("save_plan_jpeg"))

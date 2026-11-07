@@ -36,6 +36,7 @@ from survey.plan_drawing import PLAN_DRAWING_KEY, encode_drawing, drawing_geomet
 from survey.plan_labels import PLAN_LABELS_KEY, drawing_labels, encode_labels
 from survey.plan_annotations import PLAN_ANNOTATIONS_KEY, drawing_annotations, encode_annotations
 from survey.plan_curves import PLAN_CURVES_KEY, encode_curves
+from survey.plan_layers import PLAN_LAYERS_KEY, visible_layers, read_layers, write_layers
 
 
 class FloorplanWorkflowMixin:
@@ -94,7 +95,9 @@ class FloorplanWorkflowMixin:
         segments, curves = drawing_geometry(self.session.metadata)
         labels = drawing_labels(self.session.metadata)
         annotations = drawing_annotations(self.session.metadata)
-        has_drawing = segments is not None or bool(labels) or bool(curves) or bool(annotations)
+        layered_generated = PLAN_LAYERS_KEY in self.session.metadata and (
+            is_default or self.session.metadata.get(GENERATED_FLOORPLAN_METADATA_KEY) == "1")
+        has_drawing = segments is not None or bool(labels) or bool(curves) or bool(annotations) or layered_generated
         if not is_default and not has_drawing:
             return True
 
@@ -113,15 +116,19 @@ class FloorplanWorkflowMixin:
 
         pixmap = self.floorplan_view.pixmap_item.pixmap()
         write_default_floorplan(transaction.stage_file(image_file) if transaction else image_file,
-                                pixmap.width(), pixmap.height(), segments=segments, labels=labels, curves=curves, annotations=annotations)
-        if has_drawing:
-            self.session.metadata[PLAN_DRAWING_KEY] = encode_drawing(segments or [], curves)
-        if labels or PLAN_LABELS_KEY in self.session.metadata:
-            self.session.metadata[PLAN_LABELS_KEY] = encode_labels(labels or [])
-        if curves or PLAN_CURVES_KEY in self.session.metadata:
-            self.session.metadata[PLAN_CURVES_KEY] = encode_curves(curves)
-        if annotations or PLAN_ANNOTATIONS_KEY in self.session.metadata:
-            self.session.metadata[PLAN_ANNOTATIONS_KEY] = encode_annotations(annotations)
+                                pixmap.width(), pixmap.height(), segments=segments, labels=labels, curves=curves, annotations=annotations,
+                                layers=visible_layers(self.session.metadata))
+        if layered_generated:
+            write_layers(self.session.metadata, read_layers(self.session.metadata))
+        else:
+            if has_drawing:
+                self.session.metadata[PLAN_DRAWING_KEY] = encode_drawing(segments or [], curves)
+            if labels or PLAN_LABELS_KEY in self.session.metadata:
+                self.session.metadata[PLAN_LABELS_KEY] = encode_labels(labels or [])
+            if curves or PLAN_CURVES_KEY in self.session.metadata:
+                self.session.metadata[PLAN_CURVES_KEY] = encode_curves(curves)
+            if annotations or PLAN_ANNOTATIONS_KEY in self.session.metadata:
+                self.session.metadata[PLAN_ANNOTATIONS_KEY] = encode_annotations(annotations)
         self.session.metadata["map_file"] = os.path.abspath(image_file)
         self.session.metadata.pop(DEFAULT_FLOORPLAN_METADATA_KEY, None)
         self.session.metadata[GENERATED_FLOORPLAN_METADATA_KEY] = "1"
@@ -172,6 +179,7 @@ class FloorplanWorkflowMixin:
             self.session.metadata.pop(PLAN_LABELS_KEY, None)
             self.session.metadata.pop(PLAN_CURVES_KEY, None)
             self.session.metadata.pop(PLAN_ANNOTATIONS_KEY, None)
+            self.session.metadata.pop(PLAN_LAYERS_KEY, None)
             was_default_floorplan = (
                 self.session.metadata.pop(DEFAULT_FLOORPLAN_METADATA_KEY, None) is not None
             )

@@ -43,6 +43,7 @@ def main():
         from survey.plan_curve_geometry import normalize_plan
         from survey.plan_clearances import ClearanceIndex
         from survey.plan_drawing import rectangle_segments
+        from survey.plan_layers import read_layers, add_layer, active_layer
         from tests.test_rectangle_design import move
 
         app = QApplication.instance() or QApplication([])
@@ -94,6 +95,30 @@ def main():
             case["clearance_open_room"] = measure(clearances, 25)
             results["cases"][str(count)] = case
             print(f"{count}: " + json.dumps(case), flush=True)
+        results["layer_cases"] = {}
+        for count in (40, 200, 600):
+            document = read_layers({"_generated_floorplan": "1"})
+            for number in range(1, 4):
+                document = add_layer(document, f"Benchmark {number}")
+            for number, layer in enumerate(document["layers"]):
+                layer["drawing"]["segments"] = [dict(x1=100, y1=20 + i * 1400 / count,
+                    x2=1900, y2=20 + i * 1400 / count, color="#263238") for i in range(number, count, 4)]
+                layer["drawing"]["annotations"] = [dict(object_default("desk", 50), id=f"d{i}",
+                    cx=400 + i % 20 * 60, cy=100 + i // 20 * 40, width=40, height=20)
+                    for i in range(number, count, 4)]
+            drawing.change_layers(document)
+            with patch.object(drawing.annotation, "configure", return_value=True):
+                tools.select_tool("desk")
+            drawing.annotation.templates["desk"] = object_default("desk", 50)
+            positions = [view.mapFromScene(QPointF(650 + i % 8, 700 + i // 8)) for i in range(30)]
+            cursor = iter(positions)
+            case = {"desk_hover": measure(hover, 25),
+                    "cached_document_read": measure(drawing.layer_document, 100),
+                    "four_layer_redraw": measure(drawing.redraw, 3)}
+            assert len(drawing.layer_document()["layers"]) == 4
+            assert active_layer(drawing.layer_document())["id"] == document["active"]
+            results["layer_cases"][str(count)] = case
+            print(f"4 layers/{count}: " + json.dumps(case), flush=True)
         before = len(window.findChildren(PlanTextDialog))
         with patch.object(PlanTextDialog, "exec", return_value=QDialog.DialogCode.Rejected):
             for _ in range(6):

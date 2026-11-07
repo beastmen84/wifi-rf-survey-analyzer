@@ -15,6 +15,7 @@ from qt_ui.qt_live_map import load_floorplan_image
 from survey.plan_drawing import drawing_geometry, render_plan_drawing
 from survey.plan_labels import drawing_labels
 from survey.plan_annotations import drawing_annotations
+from survey.plan_layers import visible_layers
 from qt_ui.qt_windowing import get_centered_save_file_name
 
 
@@ -68,7 +69,7 @@ class LiveReportExportMixin:
         try:
             bg_image = load_floorplan_image(map_file)
             lines, curves = drawing_geometry(self.session.metadata)
-            bg_image = render_plan_drawing(bg_image, lines, drawing_labels(self.session.metadata), curves, drawing_annotations(self.session.metadata))
+            bg_image = render_plan_drawing(bg_image, lines, drawing_labels(self.session.metadata), curves, drawing_annotations(self.session.metadata), layers=visible_layers(self.session.metadata))
             result = generate_live_html_export(
                 self.session.to_dataframe(),
                 bg_image,

@@ -58,7 +58,10 @@ def rectangle_segments(x, y, width, height, color):
                               for a, b in zip(corners, corners[1:] + corners[:1])])
 
 
-def render_plan_drawing(image, segments, labels=None, curves=None, annotations=None):
+def render_plan_drawing(image, segments, labels=None, curves=None, annotations=None, layers=None):
+    if layers is not None:
+        from survey.plan_layer_rendering import render_layers
+        return render_layers(image, layers)
     if segments is None and not labels and not curves and not annotations:
         return image
     # Generated PNGs may contain an older baked drawing. Rebuild from vectors,

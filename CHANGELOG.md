@@ -7,6 +7,20 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Added a collapsible **Layers** column beside Survey, independent of Design
+  Mode, with renameable permanent Layer 0, new layers, visibility, locks,
+  drag/Up/Down stacking and **Move selection to layer…**. Only the active visible,
+  unlocked layer is editable; structural joins, intersections and rooms remain
+  isolated per layer. Furniture/text/markers can reference visible structure for
+  snapping, and furniture clearances use visible walls. Doors/windows retain
+  their host layer and follow transferred supporting walls. Changes are undoable;
+  hidden drawings, order and active layer survive save/reopen. Existing drawings
+  open on Layer 0. Live Map, generated PNGs, both HTML reports and clean Print
+  Plan/JPEG share visible-layer order. Imported bitmap backgrounds are preserved,
+  and saved generated PNGs cannot leave hidden-layer ghost images in Survey.
+  RF points, AP data, measurements and existing Boundaries masks remain independent.
+  Layer dialogs reject stale results; whole-document limits are checked before
+  changing edit history. Updated EN/IT/FR/ES controls and Help.
 - Fixed object-to-wall distance labels disappearing at small clearances or low
   zoom. Short quotes now use external labels with leader lines, including contact
   at zero, avoiding the object and neighboring labels while retaining m/ft units.

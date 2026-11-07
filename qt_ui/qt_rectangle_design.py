@@ -1,5 +1,6 @@
 """Right-button rectangle gestures and provisional, dimensioned placement."""
 import math
+from copy import deepcopy
 
 from PySide6.QtCore import QEvent, QObject, QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QPainterPath, QPen, QPixmap
@@ -30,6 +31,11 @@ from survey.plan_annotations import (PLAN_ANNOTATIONS_KEY, drawing_annotations, 
     validate_annotations, visible_wall_segments, follow_hosts, supported)
 from survey.plan_objects import FREE_ANNOTATIONS
 from survey.plan_clearances import ClearanceIndex
+from survey.plan_layers import (PLAN_LAYERS_KEY, STATE_KEYS, read_layers, active_layer, editable_layer,
+    validate_document, write_layers)
+from qt_ui.qt_clean_plan import VectorPlanSource
+from qt_ui.qt_plan_region_selection import RegionPicker
+from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
 
 
 class RectanglePreview(QGraphicsPathItem):
@@ -92,6 +98,8 @@ class RectangleDesignController(QObject):
         self.session = self.pixmap = None
         self.document = None
         self.items = []
+        self.passive_items = []
+        self._layer_cache_key, self._layer_cache = None, None
         self.snapper = PlanSnapper()
         self.regions = PlanRegions()
         self.snap_items = []
@@ -123,6 +131,9 @@ class RectangleDesignController(QObject):
         self.view.viewport().installEventFilter(self)
 
     def eventFilter(self, source, event):
+        if (self.tools.open and not self.editable() and event.type() in (QEvent.Type.KeyPress, QEvent.Type.KeyRelease)
+                and event.key() in (Qt.Key.Key_R, Qt.Key.Key_M, Qt.Key.Key_Delete)):
+            return False if QApplication.activeModalWidget() else True
         if source is self.view.viewport() and event.type() == QEvent.Type.Resize:
             self.position_measurement()
         if source is self.owner and event.type() == QEvent.Type.WindowDeactivate and not (
@@ -174,6 +185,7 @@ class RectangleDesignController(QObject):
                 # scene.clear() has already destroyed these C++ graphics items.
                 self.preview = None
                 self.items = []
+                self.passive_items = []
                 self.snap_items = []
                 self.rotation.reset_scene()
                 self.eraser.reset_scene()
@@ -189,23 +201,51 @@ class RectangleDesignController(QObject):
             self.last_size = None
             self.session, self.pixmap = session, self.view.pixmap_item
             self.document = None
-        document = tuple(session.metadata.get(key) for key in (PLAN_DRAWING_KEY, PLAN_LABELS_KEY, PLAN_CURVES_KEY, PLAN_ANNOTATIONS_KEY)) if session else None
+        document = tuple(session.metadata.get(key) for key in (PLAN_DRAWING_KEY, PLAN_LABELS_KEY, PLAN_CURVES_KEY, PLAN_ANNOTATIONS_KEY, PLAN_LAYERS_KEY)) if session else None
         if changed_scene or document != self.document:
             self.redraw()
             self.document = document
         self.tools.undo_button.setEnabled(self.tools.open and bool(self.undo_stack))
         self.tools.redo_button.setEnabled(self.tools.open and bool(self.redo_stack))
 
+    def layer_document(self):
+        if self.owner.session is None:
+            return None
+        metadata = self.owner.session.metadata
+        key = (self.owner.session, tuple(metadata.get(k) for k in
+               (PLAN_LAYERS_KEY, PLAN_DRAWING_KEY, PLAN_LABELS_KEY, PLAN_CURVES_KEY, PLAN_ANNOTATIONS_KEY)))
+        if key != self._layer_cache_key:
+            self._layer_cache = read_layers(metadata)
+            self._layer_cache_key = key
+        return self._layer_cache
+
+    def editable(self):
+        try:
+            return self.owner.session is not None and editable_layer(self.layer_document())
+        except (ValueError, TypeError, KeyError):
+            return False
+
+    def active_state(self):
+        return active_layer(self.layer_document())["drawing"]
+
     def segments(self):
+        if self.owner.session and PLAN_LAYERS_KEY in self.owner.session.metadata:
+            return deepcopy(self.active_state()["segments"])
         return drawing_segments(self.owner.session.metadata) if self.owner.session else None
 
     def labels(self):
+        if self.owner.session and PLAN_LAYERS_KEY in self.owner.session.metadata:
+            return deepcopy(self.active_state()["labels"])
         return drawing_labels(self.owner.session.metadata) or [] if self.owner.session else []
 
     def curves(self):
+        if self.owner.session and PLAN_LAYERS_KEY in self.owner.session.metadata:
+            return deepcopy(self.active_state()["curves"])
         return drawing_geometry(self.owner.session.metadata)[1] if self.owner.session else []
 
     def annotations(self):
+        if self.owner.session and PLAN_LAYERS_KEY in self.owner.session.metadata:
+            return deepcopy(self.active_state()["annotations"])
         return drawing_annotations(self.owner.session.metadata) if self.owner.session else []
 
     def redraw(self):
@@ -219,6 +259,9 @@ class RectangleDesignController(QObject):
         self.annotation.cancel()
         for item in self.items:
             self.view.scene.removeItem(item)
+        for item in self.passive_items:
+            self.view.scene.removeItem(item)
+        self.passive_items = []
         self.items = []
         lines = self.segments()
         labels = self.labels()
@@ -242,7 +285,10 @@ class RectangleDesignController(QObject):
         self.view.set_grid_regions(self.regions.faces)
         if self.regions.limited:
             self.owner.status.showMessage(self.owner.tr("design_regions_limited"))
-        if lines is not None and self.view.pixmap_item is not None:
+        generated = self.owner.session and any(self.owner.session.metadata.get(key) == "1" for key in
+                    (DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY))
+        layered = self.owner.session and PLAN_LAYERS_KEY in self.owner.session.metadata
+        if (lines is not None or layered) and self.view.pixmap_item is not None and generated:
             white = QPixmap(self.view.pixmap_item.pixmap().size())
             white.fill(Qt.GlobalColor.white)
             self.view.pixmap_item.setPixmap(white)
@@ -261,6 +307,43 @@ class RectangleDesignController(QObject):
         self.text.redraw(labels)
         self.curve.redraw(curves)
         self.annotation.redraw(annotations)
+        self.reference_snapper = self.snapper
+        if self.owner.session and PLAN_LAYERS_KEY in self.owner.session.metadata:
+            document = self.layer_document()
+            visible = [layer for layer in document["layers"] if layer["visible"]]
+            # Validate even hidden geometry against the current sheet dimensions.
+            VectorPlanSource.from_layers(self.view.pixmap_item.pixmap().size(), document["layers"])
+            reference_lines = [line for layer in visible for line in layer["drawing"]["segments"] or []]
+            reference_curves = [curve for layer in visible for curve in layer["drawing"]["curves"]]
+            faces = []
+            centers = []
+            for rank, layer in enumerate(document["layers"]):
+                state = layer["drawing"]
+                z = 7 + rank * .02
+                if layer["id"] == document["active"]:
+                    for group, offset in ((self.items, .001), (self.curve.items, .002),
+                                          (self.annotation.items, .006), (self.text.items, .009)):
+                        for item in group:
+                            item.setZValue(z + offset)
+                            item.setVisible(layer["visible"])
+                elif layer["visible"]:
+                    source = VectorPlanSource(self.view.pixmap_item.pixmap().size(), state["segments"] or [],
+                                              state["curves"], state["labels"], state["annotations"])
+                    for index, (path, pen, brush) in enumerate(source._commands):
+                        item = QGraphicsPathItem(path)
+                        item.setPen(pen)
+                        item.setBrush(brush)
+                        item.setZValue(z + .01 * index / max(1, len(source._commands)))
+                        item.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
+                        self.view.scene.addItem(item)
+                        self.passive_items.append(item)
+                if layer["visible"]:
+                    regions = closed_drawing_regions(state["segments"] or [], state["curves"])
+                    faces.extend(regions.faces)
+                    centers.extend(RegionPicker(state["segments"] or [], state["curves"]).centers())
+            self.clearance_index = ClearanceIndex(reference_lines, reference_curves)
+            self.reference_snapper = PlanSnapper(reference_lines, reference_curves, region_centers=lambda: centers)
+            self.view.set_grid_regions(faces)
 
     def cancel(self):
         self.dimensions.hide()
@@ -441,6 +524,8 @@ class RectangleDesignController(QObject):
         self.dimensions.position()
 
     def press(self, event):
+        if not self.editable():
+            return event.button() == Qt.MouseButton.RightButton
         if self.rotation.active:
             return True
         if event.button() != Qt.MouseButton.RightButton:
@@ -488,6 +573,8 @@ class RectangleDesignController(QObject):
         return False
 
     def move(self, event):
+        if not self.editable():
+            return bool(event.buttons() & Qt.MouseButton.RightButton)
         consumed = self._move(event)
         self.dimensions.update(event)
         return consumed
@@ -524,6 +611,8 @@ class RectangleDesignController(QObject):
         return False
 
     def release(self, event):
+        if not self.editable():
+            return event.button() == Qt.MouseButton.RightButton
         if self.rotation.active:
             return True
         if event.button() != Qt.MouseButton.RightButton:
@@ -604,7 +693,9 @@ class RectangleDesignController(QObject):
         self.snap_guides = ()
         if not bypass and not self.snap_bypass:
             zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
-            result = (snapper or self.snapper).snap_geometry(lines,
+            reference = self.reference_snapper if self.tools.active_tool in (
+                "desk", "symbol", "text", "marker", "annotation_select") else self.snapper
+            result = (snapper or reference).snap_geometry(lines,
                 (bounds.left(), bounds.top(), bounds.right(), bounds.bottom()), widget_px(self.owner, 10) / zoom,
                 self.view.grid_spacing_pixels() if self.tools.snap_button.isChecked() else None,
                 **({"centers": centers} if centers is not None else {}))
@@ -625,9 +716,14 @@ class RectangleDesignController(QObject):
         return True
 
     def snapshot(self):
-        return dict(segments=list(self.segments() or []), labels=self.labels(), curves=self.curves(), annotations=self.annotations())
+        state = dict(segments=list(self.segments() or []), labels=self.labels(), curves=self.curves(), annotations=self.annotations())
+        if self.owner.session and PLAN_LAYERS_KEY in self.owner.session.metadata:
+            state["layers"] = deepcopy(self.layer_document())
+        return state
 
     def apply_edit(self, segments, labels=None, curves=None, annotations=None, annotation_move=None):
+        if not self.editable():
+            return False
         previous = self.snapshot()
         try:
             curves = validate_curves(self.curves() if curves is None else curves)
@@ -642,10 +738,15 @@ class RectangleDesignController(QObject):
             annotations = validate_annotations(annotations)
             if not self.annotation.valid(annotations, labels, exclude=[a["id"] for a in self.annotations()], lines=segments):
                 raise ValueError("Invalid annotation placement")
+            if PLAN_LAYERS_KEY in self.owner.session.metadata:
+                document = deepcopy(self.layer_document())
+                active_layer(document)["drawing"] = dict(segments=segments, labels=labels, curves=curves, annotations=annotations)
+                document = validate_document(document)
+                VectorPlanSource.from_layers(self.view.pixmap_item.pixmap().size(), document["layers"])
         except ValueError:
             self.owner.status.showMessage(self.owner.tr("design_edit_limit"))
             return False
-        if dict(segments=segments, labels=labels, curves=curves, annotations=annotations) == previous:
+        if dict(segments=segments, labels=labels, curves=curves, annotations=annotations) == {k: previous[k] for k in STATE_KEYS}:
             return False
         encode_drawing(segments, curves)  # Validate before changing history or metadata.
         self.undo_stack.append(previous)
@@ -662,6 +763,12 @@ class RectangleDesignController(QObject):
         encoded_annotations = encode_annotations(annotations)
         encoded_labels = encode_labels(labels)
         encoded_curves = encode_curves(curves)
+        if PLAN_LAYERS_KEY in self.owner.session.metadata:
+            document = deepcopy(self.layer_document())
+            active_layer(document)["drawing"] = dict(segments=segments, curves=curves, labels=labels, annotations=annotations)
+            write_layers(self.owner.session.metadata, document)
+            self.finish_layer_change()
+            return
         self.owner.session.metadata[PLAN_DRAWING_KEY] = encode_drawing(segments, curves)
         if labels or PLAN_LABELS_KEY in self.owner.session.metadata:
             self.owner.session.metadata[PLAN_LABELS_KEY] = encoded_labels
@@ -673,16 +780,44 @@ class RectangleDesignController(QObject):
         self.owner.invalidate_live_preview()
         self.owner.refresh_session_labels()
 
+    def finish_layer_change(self):
+        self.owner.session.dirty = True
+        self.owner.invalidate_live_preview()
+        self.owner.refresh_session_labels()
+
+    def change_layers(self, document, history=True):
+        document = validate_document(document)
+        VectorPlanSource.from_layers(self.view.pixmap_item.pixmap().size(), document["layers"])
+        previous = self.snapshot()
+        if document == self.layer_document() and PLAN_LAYERS_KEY in self.owner.session.metadata:
+            return False
+        self.cancel()
+        if history:
+            self.undo_stack.append(previous)
+            del self.undo_stack[:-50]
+            self.redo_stack.clear()
+        write_layers(self.owner.session.metadata, document)
+        self.finish_layer_change()
+        return True
+
+    def restore_state(self, state):
+        if "layers" in state:
+            write_layers(self.owner.session.metadata, state["layers"])
+            self.finish_layer_change()
+        else:
+            self.owner.session.metadata.pop(PLAN_LAYERS_KEY, None)
+            self.store(state["segments"], state["labels"], state.get("curves", []), state.get("annotations", []))
+
     def undo(self):
         if self.undo_stack:
             self.cancel()
             self.redo_stack.append(self.snapshot())
             state = self.undo_stack.pop()
-            self.store(state["segments"], state["labels"], state.get("curves", []), state.get("annotations", []))
+            self.restore_state(state)
 
     def redo(self):
         if self.redo_stack:
             self.cancel()
             self.undo_stack.append(self.snapshot())
             state = self.redo_stack.pop()
-            self.store(state["segments"], state["labels"], state.get("curves", []), state.get("annotations", []))
+            self.restore_state(state)

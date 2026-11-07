@@ -21,6 +21,7 @@ from app_core.logging import log_event
 from survey.plan_drawing import drawing_geometry
 from survey.plan_labels import drawing_labels
 from survey.plan_annotations import drawing_annotations
+from survey.plan_layers import visible_layers
 from maps.config import MapConfig
 from qt_ui.qt_live_map import LiveMapRenderWorker, create_marker_icon, qimage_to_pil_image
 
@@ -72,6 +73,7 @@ class LivePreviewMixin:
             plan_segments, plan_curves = drawing_geometry(self.session.metadata)
             plan_labels = drawing_labels(self.session.metadata)
             plan_annotations = drawing_annotations(self.session.metadata)
+            plan_layers = visible_layers(self.session.metadata)
         except (ValueError, TypeError, KeyError):
             self.live_view.clear()
             self.live_status_label.setText(self.tr("rectangle_invalid_drawing"))
@@ -95,6 +97,7 @@ class LivePreviewMixin:
             plan_labels=plan_labels,
             plan_curves=plan_curves,
             plan_annotations=plan_annotations,
+            plan_layers=plan_layers,
         )
         worker.request = (self.session, self.live_generation)
         worker.moveToThread(thread)

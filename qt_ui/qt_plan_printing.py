@@ -13,19 +13,21 @@ from survey.plan_annotations import drawing_annotations
 from app_core.units import meters_to_display_units, display_units_to_meters, distance_unit_label
 from translations.i18n import translate
 from qt_ui.qt_clean_plan import VectorPlanSource
+from survey.plan_layers import visible_layers
 
 
 def clean_plan_image(view, metadata):
     # Read the loaded source, never the viewport/scene containing survey overlays.
     image = view.pixmap_item.pixmap().toImage()
+    layers = visible_layers(metadata)
     lines, curves = drawing_geometry(metadata)
     labels, annotations = drawing_labels(metadata), drawing_annotations(metadata)
-    if lines is None and not (curves or labels or annotations):
+    if layers is None and lines is None and not (curves or labels or annotations):
         return image
     native = image.convertToFormat(QImage.Format.Format_RGBA8888)
     source = Image.frombytes("RGBA", (native.width(), native.height()), bytes(native.constBits()),
                              "raw", "RGBA", native.bytesPerLine()).convert("RGB")
-    rendered = render_plan_drawing(source, lines, labels, curves, annotations)
+    rendered = render_plan_drawing(source, lines, labels, curves, annotations, layers=layers)
     return QImage(rendered.tobytes("raw", "RGB"), rendered.width, rendered.height,
                   rendered.width * 3, QImage.Format.Format_RGB888).copy()
 
@@ -33,6 +35,11 @@ def clean_plan_image(view, metadata):
 def clean_plan_source(view, metadata):
     # Reuse the established full-document validation before building portable
     # path/pen/brush snapshots. Loaded bitmap plans keep their original pixels.
+    layers = visible_layers(metadata)
+    if layers is not None:
+        from survey.plan_layer_rendering import source_for_layers
+        image = view.pixmap_item.pixmap().toImage()
+        return source_for_layers(image.size(), layers, image)
     image = clean_plan_image(view, metadata)
     lines, curves = drawing_geometry(metadata)
     if lines is None:

@@ -263,7 +263,8 @@ class AnnotationController:
         bounds = self.view.scene.sceneRect()
         x, y = min(max(p.x(), bounds.left()), bounds.right()), min(max(p.y(), bounds.top()), bounds.bottom())
         if drawing_snap and not self.drawing.snap_bypass:
-            result = self.drawing.snapper.snap(x, y, 0, 0,
+            snapper = self.drawing.reference_snapper if self.drawing.tools.active_tool == "marker" else self.drawing.snapper
+            result = snapper.snap(x, y, 0, 0,
                 (bounds.left(), bounds.top(), bounds.right(), bounds.bottom()), self.tolerance(),
                 self.view.grid_spacing_pixels() if grid else None)
             x, y = result.x, result.y

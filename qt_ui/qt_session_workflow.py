@@ -30,6 +30,7 @@ from ap.memory import count_memory_applied_groups, get_ap_memory_summary
 from qt_ui.qt_windowing import get_centered_open_file_name, get_centered_save_file_name
 from qt_ui.qt_survey_setup import SurveySetupDialog
 from survey.plan_drawing import PLAN_DRAWING_KEY
+from survey.plan_layers import PLAN_LAYERS_KEY
 from wifi.adapters import adapter_name
 from survey.store import SurveyFormatError, SurveySession, normalize_survey_measurement_system
 
@@ -121,7 +122,8 @@ class SurveySessionWorkflowMixin:
         if self.session is None:
             return True
 
-        has_rows = bool(self.session.rows or self.session.raw_scan_rows or self.session.metadata.get(PLAN_DRAWING_KEY))
+        has_rows = bool(self.session.rows or self.session.raw_scan_rows or self.session.metadata.get(PLAN_DRAWING_KEY)
+                        or self.session.metadata.get(PLAN_LAYERS_KEY))
         has_csv = bool(self.session.csv_file)
         has_default_floorplan = self.session.metadata.get(DEFAULT_FLOORPLAN_METADATA_KEY) == "1"
         has_generated_floorplan = self.session.metadata.get(GENERATED_FLOORPLAN_METADATA_KEY) == "1"
@@ -439,6 +441,7 @@ class SurveySessionWorkflowMixin:
         self.update_floorplan_grid_button_state()
         self.update_boundaries_button_state()
         self.plan_tools.sync()
+        self.layers_panel.sync()
         self.update_save_action_state()
         self.refresh_live_controls()
         self.update_point_action_state()

@@ -194,6 +194,8 @@ class PlanToolsOverlay(QFrame):
         self.select_tool("rectangle")
 
     def select_tool(self, tool):
+        if not self.controller.editable():
+            return
         self.controller.cancel()
         if tool in ("marker", "door", "window", *FREE_ANNOTATIONS) and not self.controller.annotation.configure(tool):
             self.update_tool_state()
@@ -246,6 +248,14 @@ class PlanToolsOverlay(QFrame):
             key = "object_round_note"
         self.note.setText(self.owner.tr(key))
         self.update_tool_icons()
+        if self.owner.session is not None and not self.controller.editable():
+            for button in (self.rectangle_button, self.line_button, self.circle_button, self.arc_button,
+                           self.text_button, self.eraser_button, self.select_button, self.snap_button,
+                           self.color_button, self.edit_text_button, *self.annotation_buttons.values()):
+                button.setEnabled(False)
+            self.note.setText(self.owner.tr("layer_readonly"))
+        if hasattr(self.owner, "layers_panel"):
+            self.owner.layers_panel.update_selection()
 
     def update_tool_icons(self):
         size = self.owner.spx(20)

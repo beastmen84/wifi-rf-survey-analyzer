@@ -98,6 +98,27 @@ from these software checks.
   the eraser restores its normal grid; undo restores the closed appearance.
   This grid styling stays in the survey view and is not baked into exported maps.
   The shapes are visual plan geometry; RF findings still use measured data.
+- **Layers** is a collapsible column at the right of Survey, available even with
+  Design Mode closed. It reserves its own space beside the plan. Existing drawings
+  belong to **Layer 0**, which can be renamed and locked but stays visible and
+  cannot be deleted. Add up to 32 layers, rename them, toggle visibility/locking,
+  and use **Up/Down** or drag the rows to change their order: the top row is painted
+  above the others. Click a row to choose the active layer. Drawing, selection and
+  erasing work only on that layer; hidden or locked layers cannot be edited.
+  **Move selection to layer…** transfers selected pieces to another visible,
+  unlocked layer. Doors/windows follow a transferred supporting wall; unsupported
+  openings cannot be transferred on their own. The header's undo/redo controls
+  also work with Design Mode closed. Layer changes support undo/redo,
+  and all layers, including hidden content, survive save/reopen.
+  Structural intersections, joins and closed rooms are calculated separately for
+  each layer. Desks, symbols, markers and text can use visible walls in other
+  layers as reference snap targets; desk/symbol distances also use those walls.
+  These references do not join or edit the other layer's structure. Explicit
+  Boundaries Fill/Auto Fill uses the active layer's closed rooms; the resulting
+  RF mask remains independent of layer visibility. Survey points and operational
+  AP markers remain independent too. Live Map, saved generated PNGs, HTML reports,
+  Print Plan and Save as JPEG use the visible drawing layers in the same order.
+  Clean print/JPEG retain their exclusion of measurement/AP/heatmap overlays.
 - **Grid square size** is configurable in New Survey: default **1 m** or
   **3 ft**, with **0.1 m** steps or **whole feet**. The physical size is saved in
   the survey and used by the visible grid and every snap tool. Right-click the
@@ -191,7 +212,7 @@ from these software checks.
   text**, to reopen its editor. Text remains editable after save/reopen and
   appears consistently in generated PNGs, Live Map and both HTML report types.
   Selected text has a thin contrasting outline and dashed selection frame;
-  text stays above furniture fills in both the editor and exported plans.
+  text stays above furniture fills within its layer in the editor and exports.
 - Custom colors explicitly saved in the color picker and the last accepted
   drawing-tool colors persist between sessions in application settings. Existing
   survey objects retain their own styles; changing preferences does not dirty a

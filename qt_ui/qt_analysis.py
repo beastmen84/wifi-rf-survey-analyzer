@@ -14,6 +14,7 @@ from advisor.presentation import wording, finding_html, wrap_html
 from exporting.analysis_report import export_analysis_report
 from qt_ui.qt_live_map import load_floorplan_image
 from survey.plan_drawing import drawing_geometry, render_plan_drawing
+from survey.plan_layers import PLAN_LAYERS_KEY, visible_layers, read_layers
 from survey.plan_labels import drawing_labels
 from survey.plan_annotations import drawing_annotations
 from qt_ui.qt_theme import QT_THEMES
@@ -187,6 +188,14 @@ class AnalysisView(QWidget):
         if session is None:
             return None
         metadata = deepcopy(session.metadata)
+        if PLAN_LAYERS_KEY in metadata:
+            try:
+                # Presentation changes are not changes to the RF evidence.
+                layers = read_layers(metadata)["layers"]
+                metadata[PLAN_LAYERS_KEY] = [(layer["id"], layer["drawing"])
+                    for layer in sorted(layers, key=lambda layer: layer["id"])]
+            except (ValueError, TypeError, KeyError):
+                pass  # Retain malformed input in the fingerprint; drawing UI reports it.
         path = Path(str(metadata.get("map_file", "")))
         try:
             stat = path.stat() if metadata.get("map_file") and path.is_file() else None
@@ -363,7 +372,7 @@ class AnalysisView(QWidget):
             if plan and Path(plan).is_file():
                 image = load_floorplan_image(plan)
                 lines, curves = drawing_geometry(self.app.session.metadata)
-                image = render_plan_drawing(image, lines, drawing_labels(self.app.session.metadata), curves, drawing_annotations(self.app.session.metadata))
+                image = render_plan_drawing(image, lines, drawing_labels(self.app.session.metadata), curves, drawing_annotations(self.app.session.metadata), layers=visible_layers(self.app.session.metadata))
             # A modal file dialog can process survey events: validate again.
             if self.report.fingerprint != self.fingerprint(self.context()):
                 self.inputs_changed()

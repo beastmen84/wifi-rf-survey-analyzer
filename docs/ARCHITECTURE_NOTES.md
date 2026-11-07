@@ -22,6 +22,47 @@ interpolated colors.
 
 Current status:
 
+- Drawing layers are implemented in survey/plan_layers.py (optional JSON v1
+  plan_layers). Stable IDs, up to32 layers, unique display names, base0 always
+  visible/nondeletable, visible/locked flags, active ID and bottom-to-top geometry
+  form a validated document. Whole-document limits retain40k structural pieces,
+  500 labels,5k curves,1k annotations and bounded path totals. Old metadata is
+  interpreted as Layer0 without rewriting on read; legacy drawing keys always
+  mirror0, never the active layer. New/transfer operations preserve hidden content.
+- qt_layers owns the separate right Survey column, collapsed44/expanded290spx;
+  it reserves layout space and remains available outside Design Mode. Native tree
+  signals defer rebuilding their items to a child single-shot timer. Layer flags,
+  order, names, creation/deletion and transfer join drawing undo/redo; header
+  history controls work with Design Mode closed. Activation
+  is persisted without creating a history entry. Locked layers cannot be deleted;
+  nonempty deletion asks for confirmation. Hidden/locked active layers are read
+  only and Design Mode still consumes RF capture clicks. Modal results are rejected
+  if the session, scene, metadata or transfer selection changed during the dialog.
+- Controller geometry/picking/normalization/room closure are active-layer local.
+  Passive visible layers use input-transparent native paths in bounded z bands,
+  below measurement/AP/transient overlays. Structural snaps use the active layer;
+  free annotations use a visible-structure reference snapper and furniture uses a
+  combined clearance index. Reference room centers are computed per layer, never
+  from a cross-layer union. Hosted openings use their own layer's walls; transfer
+  includes supported openings and rejects stranded/overlapping ones. Explicit
+  Boundaries Fill uses active geometry; masks and RF data remain independent.
+- VectorPlanSource.from_layers and survey/plan_layer_rendering share stack order
+  across clean vector output, raster/PNG, Live worker snapshots and both HTML
+  exports. Generated backgrounds are rebuilt white before painting visible layers;
+  imported backgrounds retain original pixels and are not materialized as blank
+  sheets. Even an empty base0 clears stale baked generated ink on reopen. Renderer
+  invalidation includes layer changes; RF analysis context excludes layer name,
+  visibility, lock, order and active ID. The controller caches parsed documents
+  by metadata, so pointer movement does not repeatedly normalize all layers.
+- Layer verification:1837 full-suite tests +479 subtests passed188.02s; after
+  final header-history/base0-mirror refinements,157 targeted tests +434 subtests
+  passed50.57s, plus16 blank-sheet tests passed6.48s.31 layer regressions cover
+  topology, limits, permissions, history, stale dialogs, saved/imported backgrounds
+  and render snapshots. The reproducible tools/benchmark_planimetry.py includes four-layer
+  cases with40/200/600 walls and the same number of furniture objects:600-case
+  hover median3.29ms and redraw104.5ms locally. Native Qt
+  visual QA covers EN/IT/FR/ES, both themes and100/125/175 UI scales. Physical
+  pointer/printing and packaged-EXE validation remain outside source checks.
 - Short-clearance labels no longer disappear when the gap's device-space length
   is too short. qt_plan_dimensions selects an external device-size callout with a
   scene-space leader, minimizing overlap with the object, other labels and fixed
@@ -1587,26 +1628,6 @@ Implemented:
   Survey Quality before AP Groups.
 
 ## Remaining Work
-
-### Proposed drawing layers (discussion, not implemented)
-
-- User proposes renameable always-visible Layer0, addable/reorderable optional
-  layers, active-layer editing and a right-hand collapsible Survey panel available
-  outside Design Mode. Visible layers should feed Live Map and clean print/export
-  in the same order; measurement points remain independent.
-- Recommended additions:lock per layer; prevent edits to hidden/locked layers;
-  move selection to a layer; preserve existing drawings entirely on Layer0. Names
-  must not be persistent identities. Keep geometry normalization/intersection/
-  joining/room closure within each layer; this needs real model/persistence/undo
-  isolation, not just item visibility. Layer changes must invalidate render caches.
-- Distinguish non-destructive reference snaps from topology edits:structure tools
-  use the active layer, while furniture may reference visible walls for placement
-  and clearance. Hosted doors/windows should stay with their supporting layer.
-  Panning, capture points, AP operational data and RF masks/results stay outside
-  ordinary drawing-layer editing; visibility must not alter RF statistics.
-- Drawing background stays below all layers; clean Print Plan/JPEG retain their
-  RF-point/AP exclusion, while Live exports retain the map's own content. The panel
-  should reserve layout space when expanded rather than cover drawing controls.
 
 The historical feature closeout below describes the 1.0 workflow. For the
 current 1.1.0 decision, the precision audit takes precedence: R1-R11 software

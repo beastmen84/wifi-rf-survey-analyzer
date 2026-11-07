@@ -2,7 +2,6 @@
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPainter, QPainterPath
 
-from survey.plan_drawing import drawing_geometry
 from survey.curved_regions import closed_drawing_regions
 
 
@@ -39,7 +38,7 @@ def fill_closed_boundaries(owner, point=None):
     if not tools or not tools.available() or not owner.floorplan_view.boundaries_edit_active:
         return False
     try:
-        lines, curves = drawing_geometry(owner.session.metadata)
+        lines, curves = tools.controller.segments(), tools.controller.curves()
         regions = closed_drawing_regions(lines or [], curves)
         if regions.limited:
             raise ValueError("Closed-area detection limited")

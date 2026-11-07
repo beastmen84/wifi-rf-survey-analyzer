@@ -171,7 +171,8 @@ def build_help_sections(parent, tr):
             tr("help_controls_subtitle"),
             build_controls_body(parent, tr) + tr("help_controls_body")
             + "<h2>" + escape(tr("print_plan")) + "</h2><p>" + escape(tr("print_plan_help")) + "</p>"
-            + "<h2>" + escape(tr("save_plan_jpeg")) + "</h2><p>" + escape(tr("plan_jpeg_help")) + "</p>",
+            + "<h2>" + escape(tr("save_plan_jpeg")) + "</h2><p>" + escape(tr("plan_jpeg_help")) + "</p>"
+            + "<h2>" + escape(tr("layers_title")) + "</h2><p>" + escape(tr("layers_help")) + "</p>",
         ),
         build_help_section(
             "survey",

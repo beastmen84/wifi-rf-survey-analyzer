@@ -6,11 +6,15 @@ from survey.plan_annotations import visible_wall_segments
 from survey.plan_annotation_rendering import annotation_parts, annotation_pen, annotation_brush
 from survey.plan_curve_rendering import curve_path
 from survey.plan_label_rendering import glyph_path, label_pen
+from survey.plan_labels import labels_geometry
+from survey.plan_curves import curve_bounds
+from survey.plan_annotation_rendering import annotation_fits
 
 
 class VectorPlanSource:
     def __init__(self, size, lines, curves, labels, annotations):
         self._width, self._height = size.width(), size.height()
+        self._background = None
         commands = []
         for line in visible_wall_segments(lines, annotations):
             path = QPainterPath()
@@ -29,6 +33,31 @@ class VectorPlanSource:
             commands.append((path, QPen(Qt.PenStyle.NoPen), QBrush(QColor(label["color"]))))
         self._commands = tuple(commands)
 
+    @classmethod
+    def from_layers(cls, size, layers, background=None):
+        from survey.plan_layers import validate_state
+        result = cls(size, [], [], [], [])
+        result._background = background
+        commands = []
+        bounds = QRectF(0, 0, size.width(), size.height())
+        for layer in layers:
+            state = validate_state(layer["drawing"])
+            for line in (state["segments"] or []) + labels_geometry(state["labels"]):
+                if any(line[key] < -1e-6 or line[key] > extent + 1e-6 for keys, extent in
+                       ((('x1', 'x2'), size.width()), (('y1', 'y2'), size.height())) for key in keys):
+                    raise ValueError("Layer geometry is outside the sheet")
+            for curve in state["curves"]:
+                left, top, right, bottom = curve_bounds(curve)
+                if min(left, top) < -1e-7 or right > size.width() + 1e-7 or bottom > size.height() + 1e-7:
+                    raise ValueError("Layer curve is outside the sheet")
+            if any(not annotation_fits(a, bounds) for a in state["annotations"]):
+                raise ValueError("Layer annotation is outside the sheet")
+            source = cls(size, state["segments"] or [], state["curves"], state["labels"], state["annotations"])
+            if layer.get("visible", True):
+                commands.extend(source._commands)
+        result._commands = tuple(commands)
+        return result
+
     def width(self):
         return self._width
 
@@ -45,7 +74,10 @@ class VectorPlanSource:
             painter.scale(target.width() / self._width, target.height() / self._height)
             bounds = QRectF(0, 0, self._width, self._height)
             painter.setClipRect(bounds)
-            painter.fillRect(bounds, Qt.GlobalColor.white)
+            if self._background is None:
+                painter.fillRect(bounds, Qt.GlobalColor.white)
+            else:
+                painter.drawImage(0, 0, self._background)
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
             for path, pen, brush in self._commands:
                 painter.setPen(pen)

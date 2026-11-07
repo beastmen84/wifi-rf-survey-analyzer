@@ -87,6 +87,7 @@ class LiveMapRenderWorker(QObject):
         plan_labels=None,
         plan_curves=None,
         plan_annotations=None,
+        plan_layers=None,
     ):
         super().__init__()
         self.rows = deepcopy(list(rows or []))
@@ -102,6 +103,7 @@ class LiveMapRenderWorker(QObject):
         self.plan_labels = deepcopy(plan_labels)
         self.plan_curves = deepcopy(plan_curves)
         self.plan_annotations = deepcopy(plan_annotations)
+        self.plan_layers = deepcopy(plan_layers)
 
     @Slot()
     def run(self):
@@ -111,7 +113,7 @@ class LiveMapRenderWorker(QObject):
                 logger_name="live_map",
             )
             bg_image = load_floorplan_image(self.map_file)
-            bg_image = render_plan_drawing(bg_image, self.plan_segments, self.plan_labels, self.plan_curves, self.plan_annotations)
+            bg_image = render_plan_drawing(bg_image, self.plan_segments, self.plan_labels, self.plan_curves, self.plan_annotations, layers=self.plan_layers)
             df = pd.DataFrame(self.rows, columns=SURVEY_FIELDNAMES)
             payload = render_live_map_payload(
                 df=df,

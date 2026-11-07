@@ -200,7 +200,7 @@ def test_live_export_escapes_names_and_passes_the_boundary_mask_to_shared_render
     assert all(resource.startswith("data:") for resource in ReportDOM(html).resources)
 
 
-@pytest.mark.parametrize("operation", ["draw", "erase", "move", "line", "oblique", "text", "curves", "annotations"])
+@pytest.mark.parametrize("operation", ["draw", "erase", "move", "line", "oblique", "text", "curves", "annotations", "layers"])
 def test_both_workspace_html_exports_include_current_editable_shapes(analysis_window, tmp_path, operation):
     window = analysis_window
     image = tmp_path / "drawing.png"
@@ -216,6 +216,19 @@ def test_both_workspace_html_exports_include_current_editable_shapes(analysis_wi
     window.refresh_session_labels()
     text_pixel = None
     curve_pixels = []
+    if operation == "layers":
+        from copy import deepcopy
+        from survey.plan_layers import add_layer, active_layer
+        from survey.plan_objects import object_default
+        d = window.plan_tools.controller
+        d.change_layers(add_layer(d.layer_document(), "Hidden alternative"))
+        d.store([dict(x1=100, y1=100, x2=220, y2=100, color="#0000ff")])
+        doc = deepcopy(d.layer_document())
+        active_layer(doc)["visible"] = False
+        d.change_layers(add_layer(doc, "Furniture"))
+        d.store([], annotations=[dict(object_default("desk", 50), id="layerdesk", cx=300, cy=200,
+                                      width=60, height=30, fill="#0000ff")])
+        curve_pixels.append(((300, 200), (0, 0, 255)))
     if operation == "annotations":
         from tests.test_plan_annotations import aperture, marker
         from survey.plan_objects import object_default
