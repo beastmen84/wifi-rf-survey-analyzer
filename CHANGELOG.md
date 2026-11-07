@@ -7,6 +7,14 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Hold **Shift** while dragging a line or the initial arc chord to constrain it
+  horizontally/vertically, with immediate key press/release preview updates.
+  Axis-compatible drawing/grid snaps remain active; Alt bypasses snaps while
+  Shift keeps the axis constraint. Bending, circles and exact placement are unchanged.
+- Fixed door/window centering on short host walls: snapping now considers the
+  cursor's intended target across corners and midpoints, so nearby jambs no longer
+  override a center match. End/jamb anchoring and Alt bypass retain wall support,
+  exact opening width and the existing wall/room geometry. Updated EN/IT/FR/ES Help.
 - New Survey now offers **Draw Plan / Load Plan**. Draw Plan retains sheet/grid
   dimensions, automatic scale, Design Mode and Layers. Load Plan selects an image
   or PDF during setup and requires calibration, with drawing controls/layer column

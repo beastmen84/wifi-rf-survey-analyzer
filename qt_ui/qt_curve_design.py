@@ -209,10 +209,18 @@ class CurveDesignController:
             self.update_pending(self.last_pointer)
         elif self.chord is not None and self.last_pointer is not None:
             self.pull(self.last_pointer)
+        elif self.origin is not None and self.dragged and self.last_pointer is not None:
+            curve = self.drag_geometry(self.last_pointer)
+            if curve is not None:
+                if curve["kind"] == "circle":
+                    self.show_preview(curve, self.last_pointer)
+                else:
+                    self.show_chord(curve, self.last_pointer)
 
     def drag_geometry(self, position, bypass=False):
         point = self.point(position)
-        result = self.drawing.snap_position(point, bypass=bypass)
+        result = (self.drawing.snap_endpoint(point, self.origin, bypass=bypass)
+                  if self.drawing.tools.active_tool == "arc" else self.drawing.snap_position(point, bypass=bypass))
         self.drawing.snap_guides = result.guides
         point = QPointF(result.x, result.y)
         color = self.drawing.tools.stroke_color.name()
@@ -287,6 +295,7 @@ class CurveDesignController:
         return True
 
     def move(self, event):
+        self.drawing.axis_lock = bool(event.modifiers() & Qt.KeyboardModifier.ShiftModifier)
         self.last_pointer = event.position()
         bypass = bool(event.modifiers() & Qt.KeyboardModifier.AltModifier)
         if self.pending is not None:
@@ -309,6 +318,7 @@ class CurveDesignController:
         return False
 
     def release(self, event):
+        self.drawing.axis_lock = bool(event.modifiers() & Qt.KeyboardModifier.ShiftModifier)
         if self.consume_release:
             self.consume_release = False
             return True

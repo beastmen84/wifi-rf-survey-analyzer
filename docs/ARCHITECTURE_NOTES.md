@@ -22,6 +22,27 @@ interpolated colors.
 
 Current status:
 
+- Shift constrains only dragged lines and initial arc chords to the dominant
+  horizontal/vertical axis through the snapped origin. RectangleDesignController
+  shares snap_endpoint with Line/Curve controllers and reuses PlanSnapper.snap_line
+  for compatible target/grid snaps. Alt bypasses magnets while preserving Shift's
+  constraint; off-axis corners cannot pull the endpoint off-axis. Shift key events
+  refresh stationary drafts without intercepting text/modal input or wheel/pan.
+  Arc pulling, circles and exact rotated placement are unchanged.
+- align_aperture now ranks valid corner/midpoint/room-center candidates together,
+  using cursor-to-target distance before translation distance and deterministic
+  ties. This preserves center intent on short hosts, where old unconditional
+  corner-first priority snapped a jamb to the host end. The caller supplies its
+  original intended point, including jamb fallback; support, exact width and sheet
+  bounds remain mandatory. Alt still bypasses magnets. No drawing schema change.
+- Axis/opening regressions include54 new cases and114 targeted tests passed28.05s.
+  Source-only native QA48 cases covers Line/Arc hint layout in4 languages, both
+  themes and100/175 scales, plus centered door/window previews on0/35-degree walls.
+  A direct comparison against prior source reproduces center455 instead of450;
+  the updated matcher returns450. QA source images retain0.10m jamb clearances
+  on both sides of the centered short-wall opening. Full native suite:1908 tests
+  +479 subtests passed219.22s, exit0. Essential Ruff, compileall and diff checks
+  pass. No symbols/AP-binding/legend implementation is included.
 - New Survey chooses Draw Plan or Load Plan, alongside units/receiver. The former
   owns configurable sheet/grid dimensions, automatic scale, Design Mode and the
   separate Layers column; the latter owns initial image/PDF selection followed by
@@ -1658,6 +1679,27 @@ Implemented:
   Survey Quality before AP Groups.
 
 ## Remaining Work
+
+### Network Symbols And Automatic Legend (Proposal)
+
+- User proposes Rack/Wi-Fi AP apparatus symbols, numbered circle/square/diamond/
+  triangle markers, and a Project Legend button with automatic per-shape tables
+  (readonly number and editable description). Print/JPEG should add legend pages.
+  Current eight generic symbols remain the implemented palette; the changes
+  below are proposed and have not been implemented.
+- Suggested Draw Plan behavior: bind one placed Wi-Fi AP symbol to one physical
+  AP group, enforce the reverse uniqueness too, display an assigned fill/status,
+  and derive operational AP position from its center. Move/delete/undo, group
+  merge/reset, AP Memory, legacy drawn-plan AP positions and duplicate marker
+  rendering require coordinated handling. Hidden layer visibility must not remove
+  RF evidence or AP coordinates. Load Plan retains its current map-picking workflow.
+- Number scope is pending clarification: suggested per-shape sequences, unique
+  across every layer including hidden ones; retain stable numbers through deletion
+  and keep descriptions attached to object identity. Fit upright text to the
+  inscribed shape area and keep a readable lower size; a leader-linked external
+  badge can handle tiny symbols without silently changing geometry. Legend export
+  should match visible layers, paginate long tables, and create separate JPEG
+  images with the chosen paper/DPI. No RF measurement-point renumbering is proposed.
 
 The historical feature closeout below describes the 1.0 workflow. For the
 current 1.1.0 decision, the precision audit takes precedence: R1-R11 software

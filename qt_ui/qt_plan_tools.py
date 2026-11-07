@@ -245,7 +245,8 @@ class PlanToolsOverlay(QFrame):
         template = self.controller.annotation.templates.get(self.active_tool)
         if self.active_tool in FREE_ANNOTATIONS and template and object_is_round(template):
             key = "object_round_note"
-        self.note.setText(self.owner.tr(key))
+        self.note.setText(self.owner.tr(key) + (" " + self.owner.tr("axis_lock_hint")
+                                              if self.active_tool in ("line", "arc") else ""))
         self.update_tool_icons()
         if self.owner.session is not None and not self.controller.editable():
             for button in (self.rectangle_button, self.line_button, self.circle_button, self.arc_button,

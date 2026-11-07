@@ -133,8 +133,14 @@ from these software checks.
 - Intersections split editable strokes into individual fragments, including T
   joints and overlapping endpoints. Erase deletes only the chosen fragment.
   Line draws in any direction, including diagonals, by right-drag, or asks only for a length
-  before cursor-following placement. Older plans with microscopic rounding
-  residues remain editable when adding diagonals. **R** rotates both Line and Rectangle
+  before cursor-following placement.
+  Hold **Shift** during a line or initial arc-chord drag to constrain it
+  horizontally or vertically from its fixed start. Press/release Shift also
+  updates a stationary preview. Magnets remain active on that axis; **Alt+Shift**
+  releases magnets while retaining the axis constraint. Arc bending, circle
+  sizing and rotated numeric placement retain their existing behavior.
+  Older plans with microscopic rounding residues remain editable when adding
+  diagonals. **R** rotates both Line and Rectangle
   placement previews by 90 degrees while preserving their dimensions.
   Select Structure uses right-click for one fragment or a right-drag box for all touched
   fragments. **R** rotates the selection around its bounding-box center; **M**
@@ -167,8 +173,11 @@ from these software checks.
   dashed freehand or grid-following paths with its own color and graphical width.
   **Door** supports single, double, sliding and frame-only variants; **Window** uses a simple
   window symbol. Choose width before placement, then right-click on a straight
-  wall, including oblique walls. Doors have independent hinge and opening-side
-  choices shown as eight configuration icons (four single, two double, sliding,
+  wall, including oblique walls.
+  Point near the wall midpoint to center a door/window, including when the wall
+  is only slightly wider than the opening; point near a wall end to anchor a jamb.
+  Doors have independent hinge and opening-side choices shown as eight
+  configuration icons (four single, two double, sliding,
   frame only). **Frame only** shows the jambs without a leaf or swing arc.
   Only swing arcs are dashed; door leaves remain solid.
   **Desks** offer square, rectangular, L, equal-sided L and round variants, with

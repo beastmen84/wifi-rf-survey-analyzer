@@ -106,6 +106,7 @@ class RectangleDesignController(QObject):
         self.snap_items = []
         self.snap_guides = ()
         self.snap_bypass = False
+        self.axis_lock = False
         self.last_pointer = None
         self.undo_stack, self.redo_stack = [], []
         self.preview = None
@@ -144,6 +145,13 @@ class RectangleDesignController(QObject):
             if not event.isAutoRepeat():
                 self.rotation.finish()
             return True
+        if (self.tools.open and event.type() in (QEvent.Type.KeyPress, QEvent.Type.KeyRelease)
+                and event.key() == Qt.Key.Key_Shift and QApplication.activeModalWidget() is None
+                and not isinstance(QApplication.focusWidget(), (QLineEdit, QTextEdit, QPlainTextEdit, QAbstractSpinBox, QComboBox))):
+            if not event.isAutoRepeat():
+                self.axis_lock = event.type() == QEvent.Type.KeyPress
+                if self.tools.active_tool in ("line", "arc"):
+                    self.refresh_snap()
         if (self.tools.open and event.type() in (QEvent.Type.KeyPress, QEvent.Type.KeyRelease)
                 and event.key() == Qt.Key.Key_Alt):
             self.snap_bypass = event.type() == QEvent.Type.KeyPress
@@ -361,6 +369,7 @@ class RectangleDesignController(QObject):
         self.dragged = self.consume_release = False
         self.last_pointer = None
         self.snap_bypass = False
+        self.axis_lock = False
         self.clear_snap_guides()
         self.measurement.hide()
         return existed
@@ -396,6 +405,19 @@ class RectangleDesignController(QObject):
         return self.snapper.snap(point.x(), point.y(), width, height,
                                  (bounds.left(), bounds.top(), bounds.right(), bounds.bottom()),
                                  widget_px(self.owner, 10) / zoom, grid)
+
+    def snap_endpoint(self, point, origin, bypass=False):
+        if not self.axis_lock:
+            return self.snap_position(point, bypass=bypass)
+        horizontal = abs(point.x() - origin.x()) >= abs(point.y() - origin.y())
+        bounds = self.view.scene.sceneRect()
+        if bypass or self.snap_bypass:
+            return SnapResult(min(max(point.x(), bounds.left()), bounds.right()) if horizontal else origin.x(),
+                              origin.y() if horizontal else min(max(point.y(), bounds.top()), bounds.bottom()))
+        zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
+        return self.snapper.snap_line(point.x(), point.y(), (origin.x(), origin.y()), horizontal,
+            (bounds.left(), bounds.top(), bounds.right(), bounds.bottom()), widget_px(self.owner, 10) / zoom,
+            self.view.grid_spacing_pixels() if self.tools.snap_button.isChecked() else None)
 
     def pointer_rect(self, point, bypass=False):
         if self.pending_size:

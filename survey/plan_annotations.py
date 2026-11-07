@@ -214,7 +214,7 @@ def place_aperture(point, width, lines, tolerance, template):
     return min(choices, key=lambda choice: choice[0])[1] if choices else None
 
 
-def align_aperture(item, lines, snapper, bounds, tolerance, grid=None):
+def align_aperture(item, lines, snapper, bounds, tolerance, grid=None, *, cursor=None):
     """Align jambs or the opening center without losing geometric wall support."""
     from survey.plan_snapping import SnapGuide, nearest_grid
     a, b = annotation_points(item)
@@ -228,18 +228,23 @@ def align_aperture(item, lines, snapper, bounds, tolerance, grid=None):
             return moved
         return None
 
-    for kind, points, xs in snapper.target_groups():
-        choices = []
+    choices = []
+    for priority, (kind, points, xs) in enumerate(snapper.target_groups()):
         for anchor in anchors:
             for target in snapper.nearby(points, xs, anchor[0], tolerance):
                 distance = math.dist(anchor, target)
                 if distance <= tolerance:
                     moved = candidate(anchor, target)
                     if moved is not None:
-                        choices.append((distance, tuple(target), moved))
-        if choices:
-            _distance, target, moved = min(choices, key=lambda c: c[:2])
-            return moved, (SnapGuide(kind, target),)
+                        # A short host puts both jambs close to its ends. Compare
+                        # cursor intent across all magnets instead of always
+                        # taking an incidental jamb/corner match before center.
+                        score = (math.dist(cursor, target) if cursor is not None else distance,
+                                 distance, priority, tuple(target))
+                        choices.append((score, kind, target, moved))
+    if choices:
+        _score, kind, target, moved = min(choices, key=lambda c: c[0])
+        return moved, (SnapGuide(kind, tuple(target)),)
     if grid and grid > 0:
         axis = 0 if abs(b[0] - a[0]) >= abs(b[1] - a[1]) else 1
         choices = []

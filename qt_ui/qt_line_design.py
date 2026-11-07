@@ -99,7 +99,7 @@ class LineDesignController:
             self.drawing.snap_guides = result.guides
             anchor = QPointF(result.x - min(0, dx), result.y - min(0, dy))
             return QLineF(anchor, anchor + QPointF(dx, dy))
-        result = self.drawing.snap_position(point, bypass=bypass)
+        result = self.drawing.snap_endpoint(point, self.origin, bypass=bypass)
         self.drawing.snap_guides = result.guides
         return QLineF(self.origin, QPointF(result.x, result.y))
 
@@ -166,6 +166,7 @@ class LineDesignController:
         return True
 
     def move(self, event):
+        self.drawing.axis_lock = bool(event.modifiers() & Qt.KeyboardModifier.ShiftModifier)
         self.last_pointer = event.position()
         point = self.view.mapToScene(event.position().toPoint())
         bypass = bool(event.modifiers() & Qt.KeyboardModifier.AltModifier)
@@ -182,6 +183,7 @@ class LineDesignController:
         return False
 
     def release(self, event):
+        self.drawing.axis_lock = bool(event.modifiers() & Qt.KeyboardModifier.ShiftModifier)
         if self.consume_release:
             self.consume_release = False
             return True

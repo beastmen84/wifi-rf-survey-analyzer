@@ -38,6 +38,7 @@ for _language, _dictionary in TRANSLATIONS.items():
     _dictionary.update(plan_source_dictionary(_language))
     _dictionary["blank_plan_help"] += " " + _dictionary["annotation_help"]
     _dictionary["blank_plan_help"] += " " + _dictionary["drawing_precision_help"]
+    _dictionary["blank_plan_help"] += " " + _dictionary["axis_opening_help"]
     _dictionary["blank_plan_help"] += " " + _dictionary["objects_help"]
     _dictionary["blank_plan_help"] += " " + _dictionary["plan_precision_help"]
     _dictionary["print_plan_help"] += " " + _dictionary["print_scale_help"]

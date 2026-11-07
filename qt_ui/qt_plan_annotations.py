@@ -411,7 +411,7 @@ class AnnotationController:
             bounds = self.view.scene.sceneRect()
             item, self.drawing.snap_guides = align_aperture(item, lines, self.drawing.snapper,
                 (bounds.left(), bounds.top(), bounds.right(), bounds.bottom()), self.tolerance(),
-                self.view.grid_spacing_pixels() if self.drawing.tools.snap_button.isChecked() else None)
+                self.view.grid_spacing_pixels() if self.drawing.tools.snap_button.isChecked() else None, cursor=point)
         return item
 
     def refresh_snap(self):
