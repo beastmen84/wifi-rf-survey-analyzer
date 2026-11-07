@@ -5,13 +5,16 @@ from pathlib import Path
 from PySide6.QtCore import QIODevice, QSaveFile, QSize, Qt
 from PySide6.QtGui import QImage, QImageWriter, QPageSize, QPainter, QPixmap
 from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QDialogButtonBox,
-    QFormLayout, QLabel, QMessageBox, QVBoxLayout)
+    QFormLayout, QLabel, QMessageBox, QVBoxLayout, QCheckBox)
 
 from app_core.logging import log_exception
 from app_core.settings import get_last_survey_directory
 from qt_ui.qt_plan_printing import clean_plan_source, draw_plan_page
 from qt_ui.qt_windowing import get_centered_save_file_name
 from qt_ui.scaling import widget_px
+from qt_ui.qt_plan_legend import export_legend_tables
+from qt_ui.qt_legend_pages import legend_pages, paint_legend_page
+from app_core.file_io import SurveyFileTransaction, file_digest
 
 PAPER_SIZES = ("A5", "A4", "A3", "A2", "A1", "A0", "Letter", "Legal")
 RESOLUTIONS = (150, 300, 600)
@@ -70,6 +73,32 @@ def write_plan_jpeg(path, image):
             device.cancelWriting()
 
 
+def legend_page_layout(tables, paper, landscape, tr):
+    width, height = paper_mm(paper, landscape)
+    return legend_pages(tables, (width-20)*72/25.4, (height-20)*72/25.4, tr)
+
+
+def render_legend_image(blocks, paper, landscape, dpi, index, total, tr):
+    size = page_pixels(paper, landscape, dpi)
+    if size.width()*size.height() > MAX_PAGE_PIXELS:
+        raise ValueError("The selected page exceeds the raster export size limit")
+    canvas = QImage(size, QImage.Format.Format_RGB32)
+    if canvas.isNull():
+        raise MemoryError("Cannot allocate the legend image")
+    canvas.setDotsPerMeterX(round(dpi/.0254))
+    canvas.setDotsPerMeterY(round(dpi/.0254))
+    canvas.fill(Qt.GlobalColor.white)
+    painter = QPainter(canvas)
+    try:
+        margin = 10*dpi/25.4
+        painter.translate(margin, margin)
+        width, height = paper_mm(paper, landscape)
+        paint_legend_page(painter, blocks, (width-20)*72/25.4, (height-20)*72/25.4, dpi, index, total, tr)
+    finally:
+        painter.end()
+    return canvas
+
+
 class PlanJpegDialog(QDialog):
     def __init__(self, owner, image, density, units):
         super().__init__(owner)
@@ -97,6 +126,16 @@ class PlanJpegDialog(QDialog):
         form.addRow(owner.tr("plan_jpeg_orientation"), self.orientation)
         form.addRow(owner.tr("plan_jpeg_resolution"), self.resolution)
         layout.addLayout(form)
+        self.legend_tables = export_legend_tables(owner.session)
+        self.include_legend = QCheckBox(owner.tr("legend_include"))
+        self.include_legend.setChecked(bool(self.legend_tables))
+        self.include_legend.setVisible(bool(self.legend_tables))
+        layout.addWidget(self.include_legend)
+        self.page_choice = QComboBox()
+        self.page_label = QLabel(owner.tr("legend_preview_page"))
+        form.addRow(self.page_label, self.page_choice)
+        self.page_choice.setVisible(bool(self.legend_tables))
+        self.page_label.setVisible(bool(self.legend_tables))
         self.dimensions = QLabel()
         self.dimensions.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.dimensions)
@@ -121,6 +160,8 @@ class PlanJpegDialog(QDialog):
         layout.addWidget(buttons)
         for combo in (self.paper, self.orientation, self.resolution):
             combo.currentIndexChanged.connect(self.refresh_preview)
+        self.include_legend.toggled.connect(self.refresh_preview)
+        self.page_choice.currentIndexChanged.connect(self.refresh_preview)
         self.refresh_preview()
         self.ensurePolished()
         self.note.setMinimumHeight(self.note.heightForWidth(widget_px(owner, 420)))
@@ -145,7 +186,19 @@ class PlanJpegDialog(QDialog):
         available = self.preview.size() - QSize(widget_px(self.owner, 12), widget_px(self.owner, 12))
         target = QSize(round(available.width() * ratio), round(available.height() * ratio))
         preview_dpi = min(300, max(target.width(), target.height()) * 25.4 / max(paper_mm(paper, landscape)))
-        canvas = render_plan_page(self.image, paper, landscape, preview_dpi, self.density, self.units, self.owner.tr)
+        pages = legend_page_layout(self.legend_tables, paper, landscape, self.owner.tr) if self.include_legend.isChecked() else []
+        selected = max(0, min(self.page_choice.currentIndex(), len(pages)))
+        self.page_choice.blockSignals(True)
+        self.page_choice.clear()
+        self.page_choice.addItem(self.owner.tr("legend_plan_page"))
+        for index in range(len(pages)):
+            self.page_choice.addItem(self.owner.tr("legend_page_number").format(number=index+1))
+        self.page_choice.setCurrentIndex(selected)
+        self.page_choice.blockSignals(False)
+        if selected:
+            canvas = render_legend_image(pages[selected-1], paper, landscape, preview_dpi, selected, len(pages), self.owner.tr)
+        else:
+            canvas = render_plan_page(self.image, paper, landscape, preview_dpi, self.density, self.units, self.owner.tr)
         pixmap = QPixmap.fromImage(canvas).scaled(target,
             Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         pixmap.setDevicePixelRatio(ratio)
@@ -167,6 +220,8 @@ def export_plan_jpeg(owner):
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return False
         options = dialog.options()
+        tables = dialog.legend_tables if getattr(dialog, "include_legend", None) and dialog.include_legend.isChecked() else []
+        pages = legend_page_layout(tables, options[0], options[1], owner.tr)
         if survey_file:
             survey = Path(survey_file)
             initial = survey.with_name(survey.stem + "-plan.jpg")
@@ -186,11 +241,37 @@ def export_plan_jpeg(owner):
                 return False
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         try:
-            canvas = render_plan_page(image, *options, density, units, owner.tr)
-            write_plan_jpeg(target, canvas)
+            if not pages:
+                canvas = render_plan_page(image, *options, density, units, owner.tr)
+                write_plan_jpeg(target, canvas)
+            else:
+                targets = [target] + [target.with_name(f"{target.stem}-legend-{i:02d}.jpg") for i in range(1, len(pages)+1)]
+                with SurveyFileTransaction(target) as transaction:
+                    # Recovery completes before choosing replacements or hashing.
+                    existing = [path.name for path in targets[1:] if path.exists()]
+                    if existing:
+                        QApplication.restoreOverrideCursor()
+                        try:
+                            if QMessageBox.question(owner, owner.tr("save_plan_jpeg"),
+                                    owner.tr("legend_replace_files").format(files="\n".join(existing)),
+                                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+                                    QMessageBox.StandardButton.Cancel) != QMessageBox.StandardButton.Yes:
+                                return False
+                        finally:
+                            QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+                    before = {path: file_digest(path) for path in targets}
+                    stages = [transaction.stage_file(path) for path in targets]
+                    write_plan_jpeg(stages[0], render_plan_page(image, *options, density, units, owner.tr))
+                    for i, blocks in enumerate(pages, 1):
+                        canvas = render_legend_image(blocks, *options, i, len(pages), owner.tr)
+                        write_plan_jpeg(stages[i], canvas)
+                    if any(file_digest(path) != digest for path, digest in before.items()):
+                        raise OSError("An export target changed while pages were rendered")
+                    transaction.commit()
         finally:
             QApplication.restoreOverrideCursor()
-        owner.status.showMessage(owner.tr("plan_jpeg_saved").format(path=str(target)))
+        owner.status.showMessage((owner.tr("legend_jpeg_saved").format(path=str(target), count=len(pages))
+                                 if pages else owner.tr("plan_jpeg_saved").format(path=str(target))))
         return True
     except Exception as error:
         log_exception("qt clean plan JPEG export failed", error, logger_name="main")

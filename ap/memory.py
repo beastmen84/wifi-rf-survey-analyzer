@@ -185,6 +185,8 @@ def update_ap_memory_from_groups(groups, rows=None, map_file="", path=None):
             record["metadata"] = metadata
 
         position = normalize_ap_position(group.get("position"))
+        if position:
+            position.pop("symbol_id", None)  # Drawing identities belong to the survey.
         map_key = build_map_memory_key(map_file)
         if position and map_key:
             positions = record.setdefault("map_positions", {})
@@ -266,7 +268,7 @@ def apply_memory_record_to_group(group, record, map_file=""):
     if current_metadata:
         group["metadata"] = current_metadata
 
-    if not normalize_ap_position(group.get("position")):
+    if not normalize_ap_position(group.get("position")) and not group.get("position_cleared"):
         map_position = find_memory_position_for_map(record, map_file)
         if map_position:
             group["position"] = map_position
@@ -301,7 +303,8 @@ def get_group_memory_update_fields(group, map_file="", path=None, records=None):
         fields.append("metadata")
 
     map_position = find_memory_position_for_map(record, map_file)
-    if map_position and normalize_ap_position(group.get("position")) != map_position:
+    if (map_position and not (group.get("position") or {}).get("symbol_id") and not group.get("position_cleared")
+            and normalize_ap_position(group.get("position")) != map_position):
         fields.append("position")
 
     return fields
@@ -337,7 +340,8 @@ def apply_group_memory_update(group, map_file="", path=None, records=None):
         group["metadata"] = current_metadata
 
     map_position = find_memory_position_for_map(record, map_file)
-    if map_position and normalize_ap_position(group.get("position")) != map_position:
+    if (map_position and not (group.get("position") or {}).get("symbol_id") and not group.get("position_cleared")
+            and normalize_ap_position(group.get("position")) != map_position):
         group["position"] = map_position
         changed = True
 

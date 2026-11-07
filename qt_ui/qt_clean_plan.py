@@ -9,6 +9,7 @@ from survey.plan_label_rendering import glyph_path, label_pen
 from survey.plan_labels import labels_geometry
 from survey.plan_curves import curve_bounds
 from survey.plan_annotation_rendering import annotation_fits
+from survey.plan_symbol_rendering import SymbolNumber, paint_number
 
 
 class VectorPlanSource:
@@ -26,6 +27,8 @@ class VectorPlanSource:
         for item in annotations:
             for path, dashed in annotation_parts(item):
                 commands.append((path, annotation_pen(item, dashed=dashed), annotation_brush(item)))
+            if item.get("number") or item.get("ap_label"):
+                commands.append((SymbolNumber(item), None, None))
         for label in labels:
             path = glyph_path(label)
             if label["outline_width"]:
@@ -80,6 +83,9 @@ class VectorPlanSource:
                 painter.drawImage(0, 0, self._background)
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
             for path, pen, brush in self._commands:
+                if isinstance(path, SymbolNumber):
+                    paint_number(painter, path.item, bounds)
+                    continue
                 painter.setPen(pen)
                 painter.setBrush(brush)
                 painter.drawPath(path)

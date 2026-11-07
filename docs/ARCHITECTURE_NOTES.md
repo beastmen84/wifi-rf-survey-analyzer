@@ -22,6 +22,46 @@ interpolated colors.
 
 Current status:
 
+- Draw Plan network symbols and Legend are implemented. plan_symbols validates
+  global numbered/AP symbol identity, per-shape number and AP binding uniqueness;
+  optional version1 plan_symbol_sequences records monotonic high-water counters.
+  Counters are not rolled back by undo. Legacy symbols remain unnumbered unless
+  explicitly converted. Optional number/description/ap_group/ap_label fields
+  survive annotation/layer serialization without changing existing kinds.
+- Wi-Fi AP annotation geometry is canonical: reconciliation derives exact float
+  AP positions plus symbol_id, retains unrelated group metadata, follows group
+  replacements with the same symbol position and unlinks removed groups. Deletion
+  records position_cleared so memory cannot resurrect the old coordinate. Memory
+  strips project-local symbol IDs and cannot overwrite bound/cleared positions.
+  Undo restores affected AP coordinates while preserving later alias edits.
+  Hidden layers retain operational positions; Survey/Live omit duplicate AP
+  overlays for bound symbols. Load Plan keeps its existing integer map placement.
+- SymbolNumber specifications share upright glyph paths between native items,
+  passive layers and raster/vector clean-plan output. Glyphs fit the actual
+  silhouette; unreadable interior numbers use a leader badge with a minimum
+  display/print size. Native badges update on zoom and are pickable. AP alias
+  labels use the same renderer; label footprints do not alter RF/room geometry.
+- qt_plan_legend edits descriptions by layer/object identity, uses one undoable
+  commit and rejects stale modal state. Visible unlocked legacy markers can be
+  explicitly numbered. Draw-only Project Legend and AP assignment coexist with
+  unchanged Load Plan workflows. Legend snapshots contain only visible layers.
+- qt_legend_pages wraps plain Unicode (UTF-16-aware QTextLayout indexing), splits
+  long rows and repeats table headers in canonical point-sized pagination.
+  Print preview supports plan/legend navigation, optional legends and page ranges.
+  JPEG uses the same pages at selected paper/DPI with separate numbered filenames;
+  recoverable SurveyFileTransaction staging protects the complete output set.
+  Both output paths retain the existing clean plan/scale rendering pipeline.
+- Final sequential native suite:1950 tests +479 subtests passed235.40s, exit0.
+  New integration tests cover sequence/history/visibility/legacy handling, exact
+  AP positions/memory/group replacement, Unicode pagination, actual multipage
+  QPrinter PDF/page ranges, JPEG dimensions/density and cancellation/failure
+  preservation.120 native dialog cases passed (4languages x2themes x3scales x5
+  dialogs); source screenshots and exported plan/legend pages were inspected.
+  Essential Ruff, new source F checks, compileall and diff checks pass. No physical
+  printer, packaged EXE, version/tag/push or RF hardware validation was performed.
+  Number-label zoom reuses cached fits/three child paths: at600 numbered symbols
+  on4layers, median zoom35.56ms (previous132.17), hover2.24ms and pagination16.93ms
+  on this workstation. tools/benchmark_planimetry.py reproduces the workload.
 - Shift constrains only dragged lines and initial arc chords to the dominant
   horizontal/vertical axis through the snapped origin. RectangleDesignController
   shares snap_endpoint with Line/Curve controllers and reuses PlanSnapper.snap_line
@@ -42,7 +82,7 @@ Current status:
   the updated matcher returns450. QA source images retain0.10m jamb clearances
   on both sides of the centered short-wall opening. Full native suite:1908 tests
   +479 subtests passed219.22s, exit0. Essential Ruff, compileall and diff checks
-  pass. No symbols/AP-binding/legend implementation is included.
+  pass. These figures predate the subsequent network-symbol/legend implementation.
 - New Survey chooses Draw Plan or Load Plan, alongside units/receiver. The former
   owns configurable sheet/grid dimensions, automatic scale, Design Mode and the
   separate Layers column; the latter owns initial image/PDF selection followed by
@@ -192,8 +232,8 @@ Current status:
   installed versions match the lockfile;pip check and essential Ruff pass.
 - Annotation kinds desk/symbol add parametric centered width/height/angle, RGB
   outline/stroke and nullable RGB fill within the existing optional JSON v1.
-  L desks store arm depth; symmetric desks and symbols enforce equal frame
-  dimensions. plan_objects owns five desk/eight symbol variants and actual
+  L desks store arm depth; symmetric desks and symbols except Rack enforce equal
+  frame dimensions. plan_objects now owns five desk/ten symbol variants and actual
   corners/cardinal source points. Round objects have no orientation; group
   rotations move their centers without assigning an angle. Coordinate checks
   use annotation_fits' 1e-7 tolerance for parametric boundary roundoff, preserving
@@ -201,7 +241,8 @@ Current status:
 - Hosted and free annotation kinds are explicit. Only door/window mask wall ink,
   require collinear support, check aperture overlap and follow moved/deleted
   hosts. Desks/symbols are independent and may overlap; they never enter room
-  topology, areas, Fill or RF analysis. Shared paths/brushes serve scene, previews,
+  topology, areas or Fill. Bound Wi-Fi AP symbols additionally supply operational
+  AP positions; other symbols do not affect RF analysis. Shared paths/brushes serve scene, previews,
   picking, raster exports and printing, with brush reset on every legacy path.
   Interior picking/marquee follows the true silhouette, including empty L notches.
 - ObjectAnnotationDialog separates variants, unit dimensions and outline/fill
@@ -1680,26 +1721,11 @@ Implemented:
 
 ## Remaining Work
 
-### Network Symbols And Automatic Legend (Proposal)
+### Network Symbols And Automatic Legend
 
-- User proposes Rack/Wi-Fi AP apparatus symbols, numbered circle/square/diamond/
-  triangle markers, and a Project Legend button with automatic per-shape tables
-  (readonly number and editable description). Print/JPEG should add legend pages.
-  Current eight generic symbols remain the implemented palette; the changes
-  below are proposed and have not been implemented.
-- Suggested Draw Plan behavior: bind one placed Wi-Fi AP symbol to one physical
-  AP group, enforce the reverse uniqueness too, display an assigned fill/status,
-  and derive operational AP position from its center. Move/delete/undo, group
-  merge/reset, AP Memory, legacy drawn-plan AP positions and duplicate marker
-  rendering require coordinated handling. Hidden layer visibility must not remove
-  RF evidence or AP coordinates. Load Plan retains its current map-picking workflow.
-- Number scope is pending clarification: suggested per-shape sequences, unique
-  across every layer including hidden ones; retain stable numbers through deletion
-  and keep descriptions attached to object identity. Fit upright text to the
-  inscribed shape area and keep a readable lower size; a leader-linked external
-  badge can handle tiny symbols without silently changing geometry. Legend export
-  should match visible layers, paginate long tables, and create separate JPEG
-  images with the chosen paper/DPI. No RF measurement-point renumbering is proposed.
+Implemented for Draw Plan; see current status above. Physical printer output,
+additional dense-plan label arrangements and packaged EXE validation remain
+user field checks. RF measurement-point numbering is independent of drawing markers.
 
 The historical feature closeout below describes the 1.0 workflow. For the
 current 1.1.0 decision, the precision audit takes precedence: R1-R11 software

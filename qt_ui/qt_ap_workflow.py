@@ -10,6 +10,7 @@ from qt_ui.qt_ap_groups import open_qt_ap_group_manager
 from qt_ui.qt_floorplan import format_ap_tooltip
 from ap.memory import clear_group_memory_flag
 from ap.groups import invalidate_ap_group_confirmation
+from survey.plan_mode import is_drawn_plan
 
 
 class ApWorkflowMixin:
@@ -33,6 +34,13 @@ class ApWorkflowMixin:
             return False
 
         label = self.get_ap_group_display_name(group_id)
+        if is_drawn_plan(self.session.metadata):
+            if not self.get_px_per_meter():
+                QMessageBox.warning(self, self.tr("warning"), self.tr("ap_position_no_scale"))
+                return False
+            from qt_ui.qt_ap_symbol_binding import assign_ap_symbol
+            self.tabs.setCurrentIndex(0)
+            return assign_ap_symbol(self, str(group_id))
         started = self.floorplan_view.start_ap_position_pick(group_id, label)
         if started:
             self.tabs.setCurrentIndex(0)

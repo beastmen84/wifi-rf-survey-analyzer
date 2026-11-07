@@ -31,7 +31,7 @@ from qt_ui.qt_windowing import get_centered_open_file_name, get_centered_save_fi
 from qt_ui.qt_survey_setup import SurveySetupDialog
 from qt_ui.qt_floorplan import load_floorplan_pixmap
 from qt_ui.default_floorplan import blank_floorplan_geometry, ensure_default_floorplan
-from survey.plan_mode import DRAW_PLAN, LOAD_PLAN
+from survey.plan_mode import DRAW_PLAN, LOAD_PLAN, is_drawn_plan
 from survey.plan_drawing import PLAN_DRAWING_KEY
 from survey.plan_layers import PLAN_LAYERS_KEY
 from wifi.adapters import adapter_name
@@ -439,6 +439,8 @@ class SurveySessionWorkflowMixin:
         self.open_workspace_button.setEnabled(not self.scan_in_progress)
         can_use_session = self.session is not None and not self.scan_in_progress
         self.save_workspace_button.setEnabled(can_use_session)
+        self.legend_button.setVisible(self.session is not None and is_drawn_plan(self.session.metadata))
+        self.legend_button.setEnabled(can_use_session)
         self.ap_groups_button.setEnabled(can_use_session)
         self.quality_button.setEnabled(can_use_session)
         self.help_button.setEnabled(True)

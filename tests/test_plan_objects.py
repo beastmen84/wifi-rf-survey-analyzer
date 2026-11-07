@@ -68,7 +68,7 @@ def test_object_dialog_variants_dimensions_and_independent_colors(editor, kind, 
     app.measurement_system = system
     dialog = ObjectAnnotationDialog(d.annotation, obj(kind, variant))
     try:
-        assert len(dialog.variant_buttons) == (5 if kind == "desk" else 8)
+        assert len(dialog.variant_buttons) == (len(DESK_VARIANTS) if kind == "desk" else len(SYMBOL_VARIANTS))
         assert dialog.variant_buttons[variant].isChecked()
         assert all(not button.icon().isNull() and button.accessibleName() for button in dialog.variant_buttons.values())
         dialog.width_spin.setValue(2)
@@ -84,7 +84,7 @@ def test_object_dialog_variants_dimensions_and_independent_colors(editor, kind, 
         assert result["width"] == pytest.approx(display_units_to_meters(2, system) * app.get_px_per_meter())
         assert result["color"] == "#123456" and result["fill"] == "#abcdef" and result["stroke"] == 3.5
         assert result["variant"] == variant and result["cx"] == 450 and result["cy"] == 320
-        if kind == "symbol" or variant in ("square", "l_equal", "round"):
+        if (kind == "symbol" and variant != "rack") or variant in ("square", "l_equal", "round"):
             assert result["height"] == result["width"]
         if variant in ("l", "l_equal"):
             assert 0 < result["arm"] < min(result["width"], result["height"])

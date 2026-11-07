@@ -223,6 +223,9 @@ LAYOUT_SENSITIVE_KEYS = (
 )
 
 ALLOWED_IDENTICAL_TRANSLATION_KEYS = frozenset({
+    "symbol_position",  # Position, description and plan are also French nouns.
+    "legend_description",
+    "legend_plan_page",
     "object_symbol_triangle",  # Triangle is also the correct French noun.
     "annotation_structure",  # These three labels are also correct French nouns.
     "annotation_group",

@@ -73,14 +73,16 @@ def validate_document(document):
     if (any(n > maximum for n, maximum in zip(totals, (40000, 500, 5000, 1000)))
             or totals[0] + totals[2] > 40000 or points > 100000 or commands > 250000):
         raise ValueError("Layer document exceeds drawing limits")
+    from survey.plan_symbols import validate_symbols
+    validate_symbols(dict(layers=result))
     return dict(version=1, active=document["active"], layers=result)
 
 
 def read_layers(metadata):
     if PLAN_LAYERS_KEY in metadata:
         return validate_document(json.loads(metadata[PLAN_LAYERS_KEY]))
-    return dict(version=1, active="0", layers=[dict(id="0", name="Layer 0", visible=True,
-                locked=False, drawing=legacy_state(metadata))])
+    return validate_document(dict(version=1, active="0", layers=[dict(id="0", name="Layer 0", visible=True,
+                locked=False, drawing=legacy_state(metadata))]))
 
 
 def active_layer(document):

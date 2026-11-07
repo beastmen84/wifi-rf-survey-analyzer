@@ -45,7 +45,8 @@ from these software checks.
 - PDF/image floor-plan loading with scale calibration.
 - **Print Plan**, at the right of **Project**, opens a print preview of the clean
   plan with committed drawing/text/door/window/marker edits, including unsaved
-  changes. Survey points, AP symbols, grid, masks and heatmaps are excluded.
+  changes. Survey points, operational AP overlays, grid, masks and heatmaps are excluded;
+  Wi-Fi AP drawing symbols are part of the clean plan.
   The whole plan fits one page with its proportions preserved; select paper and
   printer in the preview. Printing does not require saving the survey.
   A graphical reference in m/ft uses the calibrated plan scale and follows paper
@@ -61,6 +62,9 @@ from these software checks.
   small text and fine lines; A3 at 600 DPI is **7016 × 9921 px**. Imported bitmap
   detail depends on the source image. A 150-megapixel page limit supports 600 DPI
   through A2; A1/A0 use up to 300 DPI, with the limit explained in the dialog.
+  In Draw Plan, **Include legend pages** adds automatic symbol tables to printing
+  and exports separate `-legend-01.jpg`, `-legend-02.jpg`, … images at the same
+  paper size, orientation and resolution. Preview each page before exporting.
 - New Survey asks for **Draw Plan** or **Load Plan**, metric/imperial units and
   the Wi-Fi adapter. **Draw Plan** creates a gridded sheet with configurable
   dimensions and an automatic scale; Design Mode and Layers are available.
@@ -181,8 +185,9 @@ from these software checks.
   frame only). **Frame only** shows the jambs without a leaf or swing arc.
   Only swing arcs are dashed; door leaves remain solid.
   **Desks** offer square, rectangular, L, equal-sided L and round variants, with
-  editable dimensions and L desktop depth. **Symbols** include circle, X, plus,
-  square, triangle, diamond, star and arrow. Both have independent outline color,
+  editable dimensions and L desktop depth. **Symbols** separates numbered
+  circle/square/diamond/triangle markers, **Rack / Wi-Fi AP** apparatus and generic
+  X/plus/star/arrow signs. Both have independent outline color,
   outline width and optional fill color. Icon menus choose their variant; the
   centered preview follows the cursor and right-click places it. **R** rotates
   non-round objects by 90° before placement or in selection/move. Use annotation
@@ -196,6 +201,22 @@ from these software checks.
   These temporary guides are excluded from saved plans and exports.
   Short distances remain labeled: when a number cannot fit between the object
   and the wall, it is placed outside the object with a leader line.
+  Numbered markers use a separate sequence for each shape, unique across all
+  layers. Numbers stay attached to their objects and are not reused after deletion.
+  Numbers remain upright, fitting inside the shape where readable or using an
+  external badge. Disable **Automatic number** for an unnumbered marker.
+  **Project → Legend** creates automatic per-shape tables with editable
+  descriptions; hidden/locked layers can be inspected but not edited there.
+  Existing unnumbered markers remain unchanged until explicitly numbered in
+  Legend. Printed/exported tables include only visible layers.
+  In Draw Plan, **Assign AP symbol…** in AP management binds a physical AP group
+  to a previously placed Wi-Fi AP symbol. One symbol belongs to one AP and vice
+  versa; an assigned symbol has a blue fill and AP label. Its center supplies
+  the AP position for analysis, including after movement. Unassigning/deleting it
+  clears that position; undo restores it. Existing coordinate placements can be
+  converted explicitly without moving them. Hiding a layer hides its artwork,
+  while retaining AP positions for RF analysis. Load Plan keeps direct AP map
+  placement and has no drawing symbols or Project Legend.
   Apertures hide only the covered wall ink: room closure, internal area
   and Boundaries Fill/Auto Fill retain the complete structural geometry.
   Select annotations to move with **M**, delete with **Del**, or edit by right

@@ -1,10 +1,10 @@
-"""Clean floor-plan snapshots and a single-page native print preview."""
+"""Clean floor-plan snapshots and native preview with optional legend pages."""
 from PIL import Image
 import math
 from PySide6.QtCore import QLocale, QMarginsF, QPointF, QRectF
 from PySide6.QtGui import QColor, QImage, QPageLayout, QPageSize, QPainter, QPen
 from PySide6.QtPrintSupport import QPrinter, QPrintPreviewWidget, QPrintDialog, QPageSetupDialog
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QMessageBox, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import QDialog, QHBoxLayout, QMessageBox, QPushButton, QVBoxLayout, QCheckBox, QLabel
 
 from app_core.logging import log_exception
 from survey.plan_drawing import drawing_geometry, render_plan_drawing
@@ -14,6 +14,8 @@ from app_core.units import meters_to_display_units, display_units_to_meters, dis
 from translations.i18n import translate
 from qt_ui.qt_clean_plan import VectorPlanSource
 from survey.plan_layers import visible_layers
+from qt_ui.qt_plan_legend import export_legend_tables
+from qt_ui.qt_legend_pages import legend_pages, paint_legend_page
 
 
 def clean_plan_image(view, metadata):
@@ -113,14 +115,28 @@ def draw_plan_page(painter, image, width, height, dpi, px_per_meter=None, measur
         painter.restore()
 
 
-def paint_plan_page(printer, image, px_per_meter=None, measurement_system="metric", tr=None):
+def paint_plan_page(printer, image, px_per_meter=None, measurement_system="metric", tr=None, legend=None):
+    tr = tr or (lambda key: translate("en", key))
     painter = QPainter()
     if not painter.begin(printer):
         raise PrintDeviceNotStarted("Cannot start the print device")
     try:
         # fullPage=False makes the printable area's corner the device origin.
-        draw_plan_page(painter, image, printer.width(), printer.height(), printer.resolution(),
-                       px_per_meter, measurement_system, tr)
+        dpi = printer.resolution()
+        width, height = printer.width()*72/dpi, printer.height()*72/dpi
+        pages = legend_pages(legend, width, height, tr) if legend else []
+        chosen = list(range(1, len(pages)+2))
+        if printer.printRange() == QPrinter.PrintRange.PageRange:
+            chosen = [p for p in chosen if printer.fromPage() <= p <= printer.toPage()]
+        for output_index, page in enumerate(chosen):
+            if output_index and not printer.newPage():
+                if printer.printerState() == QPrinter.PrinterState.Aborted:
+                    return False
+                raise RuntimeError("Cannot start the next legend page")
+            if page == 1:
+                draw_plan_page(painter, image, printer.width(), printer.height(), dpi, px_per_meter, measurement_system, tr)
+            else:
+                paint_legend_page(painter, pages[page-2], width, height, dpi, page-1, len(pages), tr)
     finally:
         if not painter.end() and printer.printerState() != QPrinter.PrinterState.Aborted:
             raise RuntimeError("Cannot finish the print page")
@@ -132,6 +148,7 @@ class PlanPrintPreviewDialog(QDialog):
         super().__init__(owner)
         self.device = printer
         self.printing = False
+        self.legend_tables = []
         self.setWindowTitle(owner.tr("print_plan"))
         available = owner.screen().availableGeometry()
         self.resize(min(owner.spx(1000), available.width()), min(owner.spx(760), available.height()))
@@ -148,6 +165,16 @@ class PlanPrintPreviewDialog(QDialog):
             button.clicked.connect(lambda _checked=False, action=callback: action())
             controls.addWidget(button)
         controls.addStretch()
+        self.previous_page = QPushButton("‹")
+        self.next_page = QPushButton("›")
+        self.page_count = QLabel()
+        for button, delta in ((self.previous_page, -1), (self.next_page, 1)):
+            button.setObjectName("compactButton")
+            button.setAutoDefault(False)
+            button.clicked.connect(lambda _checked=False, step=delta: self.turn_page(step))
+            controls.addWidget(button)
+        controls.addWidget(self.page_count)
+        self.preview.previewChanged.connect(self.update_page_controls)
         self.print_button = QPushButton(owner.tr("print_plan_send"))
         self.print_button.setObjectName("compactButton")
         self.print_button.setAutoDefault(False)
@@ -159,6 +186,21 @@ class PlanPrintPreviewDialog(QDialog):
         close.clicked.connect(self.reject)
         controls.addWidget(close)
         layout.addWidget(self.preview, 1)
+        self.include_legend = QCheckBox(owner.tr("legend_include"))
+        self.include_legend.setChecked(True)
+        self.include_legend.hide()
+        self.include_legend.toggled.connect(self.preview.updatePreview)
+        layout.addWidget(self.include_legend)
+
+    def update_page_controls(self):
+        current, total = self.preview.currentPage(), self.preview.pageCount()
+        self.page_count.setText(f"{current} / {total}")
+        self.previous_page.setEnabled(current > 1)
+        self.next_page.setEnabled(current < total)
+
+    def turn_page(self, step):
+        self.preview.setCurrentPage(self.preview.currentPage()+step)
+        self.update_page_controls()
 
     def page_setup(self):
         dialog = QPageSetupDialog(self.device, self)
@@ -170,9 +212,7 @@ class PlanPrintPreviewDialog(QDialog):
 
     def choose_printer(self):
         dialog = QPrintDialog(self.device, self)
-        # A clean plan is exactly one page; unsupported range/selection modes
-        # must not imply that parts of the drawing will be printed separately.
-        dialog.setMinMax(1, 1)
+        dialog.setMinMax(1, max(1, self.preview.pageCount()))
         try:
             if dialog.exec() == QDialog.DialogCode.Accepted:
                 self.printing = True
@@ -180,6 +220,7 @@ class PlanPrintPreviewDialog(QDialog):
                     self.preview.print()
                 finally:
                     self.printing = False
+                self.device.setPrintRange(QPrinter.PrintRange.AllPages)
                 self.preview.updatePreview()
         finally:
             dialog.deleteLater()
@@ -196,6 +237,7 @@ class PlanPrintingMixin:
         dialog = None
         try:
             image = clean_plan_source(self.floorplan_view, dict(self.session.metadata))
+            tables = export_legend_tables(self.session)
             density, units = self.get_px_per_meter(), self.measurement_system
             printer = QPrinter(QPrinter.PrinterMode.HighResolution)
             printer.setDocName(self.session_display_name())
@@ -205,11 +247,17 @@ class PlanPrintingMixin:
             printer.setPageMargins(QMarginsF(10, 10, 10, 10), QPageLayout.Unit.Millimeter)
             printer.setFullPage(False)
             dialog = PlanPrintPreviewDialog(printer, self)
+            dialog.legend_tables = tables
+            if hasattr(dialog, "include_legend"):
+                dialog.include_legend.setVisible(bool(tables))
             errors = []
 
             def paint(device):
                 try:
-                    if not paint_plan_page(device, image, density, units, self.tr):
+                    selected = tables if getattr(dialog, "include_legend", None) and dialog.include_legend.isChecked() else []
+                    done = (paint_plan_page(device, image, density, units, self.tr, legend=selected)
+                            if selected else paint_plan_page(device, image, density, units, self.tr))
+                    if not done:
                         self.status.showMessage(self.tr("print_plan_not_started"))
                 except PrintDeviceNotStarted as error:
                     if dialog.printing:

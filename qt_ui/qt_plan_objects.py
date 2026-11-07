@@ -4,13 +4,14 @@ from copy import deepcopy
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QDialog,
-    QDialogButtonBox, QDoubleSpinBox, QFormLayout, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget)
+    QDialogButtonBox, QDoubleSpinBox, QFormLayout, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget, QPlainTextEdit)
 
 from app_core.units import distance_unit_label, display_units_to_meters, meters_to_display_units
 from qt_ui.qt_theme import QT_THEMES
 from qt_ui.scaling import widget_px
 from survey.plan_annotation_rendering import annotation_path
-from survey.plan_objects import DESK_VARIANTS, SYMBOL_VARIANTS, object_default, object_is_round
+from survey.plan_objects import (DESK_VARIANTS, SYMBOL_VARIANTS, NUMBERED_SYMBOLS, NETWORK_SYMBOLS,
+    GENERIC_SYMBOLS, object_default, object_is_round)
 from qt_ui.qt_plan_colors import choose_plan_color
 
 
@@ -25,11 +26,21 @@ class ObjectAnnotationDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setSpacing(widget_px(self.owner, 10))
         self.variant_group, self.variant_buttons = QButtonGroup(self), {}
-        choices = QWidget()
-        row = QHBoxLayout(choices)
-        row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(widget_px(self.owner, 4))
         self.variants = DESK_VARIANTS if self.kind == "desk" else SYMBOL_VARIANTS
+        rows = {}
+        categories = (("annotation_type", DESK_VARIANTS),) if self.kind == "desk" else (
+            ("symbol_numbered_group", NUMBERED_SYMBOLS), ("symbol_network_group", NETWORK_SYMBOLS),
+            ("symbol_generic_group", GENERIC_SYMBOLS))
+        for title, variants in categories:
+            layout.addWidget(QLabel(self.owner.tr(title)))
+            choices = QWidget()
+            row = QHBoxLayout(choices)
+            row.setContentsMargins(0, 0, 0, 0)
+            row.setSpacing(widget_px(self.owner, 4))
+            for variant in variants:
+                rows[variant] = row
+            row.addStretch()
+            layout.addWidget(choices)
         for index, variant in enumerate(self.variants):
             key = "object_" + self.kind + "_" + variant
             button = self.owner.create_boundaries_text_button("", key)
@@ -39,10 +50,7 @@ class ObjectAnnotationDialog(QDialog):
             button.setAccessibleName(self.owner.tr(key))
             self.variant_group.addButton(button, index)
             self.variant_buttons[variant] = button
-            row.addWidget(button)
-        row.addStretch()
-        layout.addWidget(QLabel(self.owner.tr("annotation_type")))
-        layout.addWidget(choices)
+            rows[variant].insertWidget(rows[variant].count() - 1, button)
         self.form = QFormLayout()
         layout.addLayout(self.form)
         self.outline = self.color_button("color")
@@ -81,6 +89,14 @@ class ObjectAnnotationDialog(QDialog):
         self.form.addRow(self.width_label, self.width_spin)
         self.form.addRow(self.height_label, self.height_spin)
         self.form.addRow(self.arm_label, self.arm_spin)
+        self.numbered = QCheckBox(self.owner.tr("symbol_numbered"))
+        self.numbered.setChecked(item.get("_numbered", "number" in item or item["id"] == "template"))
+        self.form.addRow(self.numbered)
+        self.description = QPlainTextEdit(item.get("description", ""))
+        self.description.setMaximumHeight(widget_px(self.owner, 65))
+        self.description.setPlaceholderText(self.owner.tr("legend_description"))
+        self.description_label = QLabel(self.owner.tr("legend_description"))
+        self.form.addRow(self.description_label, self.description)
         self.width_spin.valueChanged.connect(self.update_dimensions)
         self.height_spin.valueChanged.connect(self.update_dimensions)
         self.variant_group.idClicked.connect(lambda index: self.choose_variant(self.variants[index]))
@@ -123,12 +139,16 @@ class ObjectAnnotationDialog(QDialog):
         self.update_icons()
 
     def update_dimensions(self):
-        square = self.kind == "symbol" or self.variant in ("square", "l_equal", "round")
+        square = (self.kind == "symbol" and self.variant != "rack") or self.variant in ("square", "l_equal", "round")
         elbow = self.kind == "desk" and self.variant in ("l", "l_equal")
-        self.width_label.setText(self.owner.tr("object_diameter" if self.variant in ("circle", "round") else
+        self.width_label.setText(self.owner.tr("blank_plan_width" if self.variant == "rack" else
+                                              "object_diameter" if self.variant in ("circle", "round", "wifi_ap") else
                                               "object_symbol_size" if self.kind == "symbol" else
                                               "object_size" if square else "object_side_a" if elbow else "blank_plan_width"))
         self.height_label.setText(self.owner.tr("object_side_b" if elbow else "object_depth"))
+        self.numbered.setVisible(self.kind == "symbol" and self.variant in NUMBERED_SYMBOLS)
+        self.description.setVisible(self.kind == "symbol")
+        self.description_label.setVisible(self.kind == "symbol")
         self.height_spin.setVisible(not square)
         self.height_label.setVisible(not square)
         self.arm_spin.setVisible(elbow)
@@ -164,7 +184,7 @@ class ObjectAnnotationDialog(QDialog):
     def properties(self):
         result = deepcopy(self.value)
         width = display_units_to_meters(self.width_spin.value(), self.owner.measurement_system) * self.density
-        square = self.kind == "symbol" or self.variant in ("square", "l_equal", "round")
+        square = (self.kind == "symbol" and self.variant != "rack") or self.variant in ("square", "l_equal", "round")
         height = width if square else display_units_to_meters(self.height_spin.value(), self.owner.measurement_system) * self.density
         result.update(variant=self.variant, width=width, height=height, stroke=self.stroke.value(),
                       fill=self.value["fill"] if self.fill_enabled.isChecked() else None)
@@ -174,4 +194,7 @@ class ObjectAnnotationDialog(QDialog):
             result.pop("arm", None)
         if object_is_round(result):
             result["angle"] = 0
+        if self.kind == "symbol":
+            result["_numbered"] = self.numbered.isChecked() and self.variant in NUMBERED_SYMBOLS
+            result["description"] = self.description.toPlainText()[:2000]
         return result

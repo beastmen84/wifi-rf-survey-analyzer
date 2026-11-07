@@ -44,6 +44,8 @@ def main():
         from survey.plan_clearances import ClearanceIndex
         from survey.plan_drawing import rectangle_segments
         from survey.plan_layers import read_layers, add_layer, active_layer
+        from survey.plan_symbols import legend_tables
+        from qt_ui.qt_legend_pages import legend_pages
         from tests.test_rectangle_design import move
 
         app = QApplication.instance() or QApplication([])
@@ -119,6 +121,34 @@ def main():
             assert active_layer(drawing.layer_document())["id"] == document["active"]
             results["layer_cases"][str(count)] = case
             print(f"4 layers/{count}: " + json.dumps(case), flush=True)
+        results["numbered_symbol_cases"] = {}
+        for count in (40, 200, 600):
+            document = read_layers({"_generated_floorplan": "1"})
+            for number in range(1, 4):
+                document = add_layer(document, f"Symbols {number}")
+            for number, layer in enumerate(document["layers"]):
+                layer["drawing"]["annotations"] = [dict(object_default("symbol", 50, "square"),
+                    id=f"s{i}", number=i+1, cx=250+i % 20*60, cy=100+i//20*40,
+                    description=f"Network outlet {i+1}") for i in range(number, count, 4)]
+            drawing.change_layers(document)
+            with patch.object(drawing.annotation, "configure", return_value=True):
+                tools.select_tool("symbol")
+            drawing.annotation.templates["symbol"] = object_default("symbol", 50, "square")
+            positions = [view.mapFromScene(QPointF(650+i % 8, 700+i//8)) for i in range(30)]
+            cursor = iter(positions)
+            factor = abs(view.transform().m11())
+            def zoom_labels():
+                view.scale(1.01, 1.01)
+                drawing.update_symbol_numbers()
+            tables = legend_tables(drawing.layer_document())
+            case = {"symbol_hover": measure(hover, 25),
+                    "zoom_number_labels": measure(zoom_labels, 10),
+                    "legend_pagination": measure(lambda: legend_pages(tables, 780, 540, window.tr), 5)}
+            view.scale(factor/abs(view.transform().m11()), factor/abs(view.transform().m11()))
+            drawing.update_symbol_numbers()
+            assert sum(len(table["rows"]) for table in tables) == count
+            results["numbered_symbol_cases"][str(count)] = case
+            print(f"Numbered/{count}: " + json.dumps(case), flush=True)
         before = len(window.findChildren(PlanTextDialog))
         with patch.object(PlanTextDialog, "exec", return_value=QDialog.DialogCode.Rejected):
             for _ in range(6):

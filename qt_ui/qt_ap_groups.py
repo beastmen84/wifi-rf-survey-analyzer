@@ -317,6 +317,9 @@ class APGroupManagerDialog(QDialog):
         self.role_button = QPushButton(self.tr("ap_group_set_role"))
         self.metadata_button = QPushButton(self.tr("ap_group_metadata"))
         self.position_button = QPushButton(self.tr("ap_group_set_position"))
+        from survey.plan_mode import is_drawn_plan
+        if self.session is not None and is_drawn_plan(self.session.metadata):
+            self.position_button.setText(self.tr("ap_symbol_assign"))
         self.conflict_button = QPushButton(self.tr("ap_group_conflict_details"))
         self.reset_button = QPushButton(self.tr("ap_groups_reset_auto"))
         self.save_button = QPushButton(self.tr("save"))
@@ -1079,6 +1082,7 @@ class APGroupManagerDialog(QDialog):
                 "alias": group.get("alias", ""),
                 "role": normalize_ap_role(group.get("role")),
                 "position": group.get("position"),
+                "position_cleared": group.get("position_cleared", False),
                 "metadata": normalize_ap_metadata(group.get("metadata")),
                 AP_MEMORY_APPLIED_KEY: group.get(AP_MEMORY_APPLIED_KEY),
             }
@@ -1091,6 +1095,8 @@ class APGroupManagerDialog(QDialog):
             group["role"] = saved_state.get("role", AP_ROLE_INTERNAL)
             if saved_state.get("position"):
                 group["position"] = saved_state["position"]
+            elif saved_state.get("position_cleared"):
+                group["position_cleared"] = True
             if saved_state.get("metadata"):
                 group["metadata"] = saved_state["metadata"]
             if saved_state.get(AP_MEMORY_APPLIED_KEY):

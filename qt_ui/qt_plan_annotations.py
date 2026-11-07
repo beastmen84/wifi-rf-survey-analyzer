@@ -2,6 +2,7 @@
 from copy import deepcopy
 import math
 from uuid import uuid4
+from html import escape
 
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QPainterPath, QPainterPathStroker, QPainter, QPen, QPixmap, QIcon
@@ -23,6 +24,8 @@ from qt_ui.scaling import widget_px
 from qt_ui.qt_plan_objects import ObjectAnnotationDialog
 from survey.plan_objects import (FREE_ANNOTATIONS, HOSTED_ANNOTATIONS, object_default,
                                  object_geometry, object_is_round)
+from survey.plan_symbols import prepare_symbol
+from survey.plan_symbol_rendering import SymbolNumberItem
 
 ANNOTATION_TOOLS = ("marker", *HOSTED_ANNOTATIONS, *FREE_ANNOTATIONS, "annotation_select", "annotation_eraser")
 DOOR_CHOICES = (("single", 0, 1), ("single", 1, 1), ("single", 0, -1), ("single", 1, -1),
@@ -194,6 +197,11 @@ class AnnotationController:
         self.model = items
         for annotation in items:
             item = annotation_item(annotation)
+            if annotation.get("ap_group"):
+                item.setToolTip(escape(self.owner.get_ap_group_display_name(annotation["ap_group"]))
+                                + "<br>" + escape(annotation.get("description", "")))
+            elif annotation.get("number"):
+                item.setToolTip(str(annotation["number"]) + "<br>" + escape(annotation.get("description", "")))
             self.view.scene.addItem(item)
             self.items.append(item)
 
@@ -247,6 +255,7 @@ class AnnotationController:
             self.preview.append(annotation_item(annotation, "#0284c7" if valid else "#ef4444"))
         for label in labels:
             self.preview.append(label_item(label if valid else dict(label, color="#ef4444"), selected=True))
+        self.drawing.update_symbol_numbers(items=self.preview)
         if rectangle is not None:
             from PySide6.QtWidgets import QGraphicsRectItem
             from PySide6.QtGui import QPen
@@ -285,10 +294,17 @@ class AnnotationController:
         for index in reversed(range(len(items))):
             stroker.setWidth(self.tolerance() * 2 + items[index]["stroke"])
             path = self.items[index].path()
+            number_hit = False
+            for child in self.items[index].childItems():
+                if isinstance(child, SymbolNumberItem):
+                    inverse, valid = child.deviceTransform(self.view.viewportTransform()).inverted()
+                    local = inverse.map(self.view.mapFromScene(QPointF(*point)))
+                    if valid and any(part.path().contains(local) for part in child.childItems()):
+                        number_hit = True
             margin = self.tolerance() + items[index]["stroke"] / 2
-            if not path.boundingRect().adjusted(-margin, -margin, margin, margin).contains(QPointF(*point)):
+            if not number_hit and not path.boundingRect().adjusted(-margin, -margin, margin, margin).contains(QPointF(*point)):
                 continue
-            if ((items[index]["kind"] in FREE_ANNOTATIONS and path.contains(QPointF(*point)))
+            if (number_hit or (items[index]["kind"] in FREE_ANNOTATIONS and path.contains(QPointF(*point)))
                     or stroker.createStroke(path).contains(QPointF(*point))):
                 if hit is not None and items[index]["kind"] in FREE_ANNOTATIONS:
                     return (), (hit,)
@@ -329,6 +345,9 @@ class AnnotationController:
             self.update_object(event.position())
             if self.pending and self.valid([self.pending]):
                 item = dict(self.pending, id=uuid4().hex)
+                if item["kind"] == "symbol":
+                    item["_numbered"] = self.templates["symbol"].get("_numbered", True)
+                item = prepare_symbol(self.owner.session.metadata, self.drawing.layer_document(), item)
                 self.drawing.apply_edit(self.drawing.segments() or [], annotations=self.drawing.annotations() + [item])
             else:
                 self.owner.status.showMessage(self.owner.tr("object_invalid"))
@@ -366,6 +385,14 @@ class AnnotationController:
             self.drawing.measurement.hide()
             return
         item = dict(template, id="preview", cx=point.x(), cy=point.y())
+        if item["kind"] == "symbol":
+            try:
+                item = prepare_symbol(self.owner.session.metadata, self.drawing.layer_document(), item)
+            except ValueError:
+                self.pending = None
+                self.clear_preview()
+                self.owner.status.showMessage(self.owner.tr("design_edit_limit"))
+                return
         geometry = object_geometry(item)
         snapped = self.drawing.snap_shape(geometry, centers=[(item["cx"], item["cy"])])
         self.pending = transform_annotations([item], dx=snapped[0]["x1"] - geometry[0]["x1"],
@@ -614,8 +641,14 @@ class AnnotationController:
             return self.drawing.text.edit(self.selected_labels[0])
         if len(self.selected) != 1 or self.selected_labels:
             return False
-        item = self.dialog(self.selected_items()[0])
+        previous = self.selected_items()[0]
+        item = self.dialog(previous)
         if item is not None:
+            try:
+                item = prepare_symbol(self.owner.session.metadata, self.drawing.layer_document(), item, previous)
+            except ValueError:
+                self.owner.status.showMessage(self.owner.tr("design_edit_limit"))
+                return False
             if self.valid([item], exclude=[item["id"]]):
                 changed = self.commit_selection([item], [])
                 if changed:

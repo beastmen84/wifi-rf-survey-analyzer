@@ -1,6 +1,7 @@
 """AP grouping, aliasing, role, and metadata helpers."""
 
 import re
+import math
 
 import pandas as pd
 
@@ -155,12 +156,17 @@ def normalize_ap_position(value):
         return None
 
     try:
-        x = int(round(float(value.get("x"))))
-        y = int(round(float(value.get("y"))))
+        x = float(value.get("x"))
+        y = float(value.get("y"))
     except (TypeError, ValueError, OverflowError):
         return None
 
-    return {"x": x, "y": y}
+    if not math.isfinite(x) or not math.isfinite(y):
+        return None
+    symbol_id = value.get("symbol_id")
+    if isinstance(symbol_id, str) and 0 < len(symbol_id) <= 80:
+        return {"x": x, "y": y, "symbol_id": symbol_id}
+    return {"x": int(round(x)), "y": int(round(y))}
 
 
 def normalize_ap_role(value):
@@ -254,6 +260,7 @@ def build_manual_ap_group(
     memory_match_bssids=None,
     physical_confirmed=None,
     physical_confirmation_revoked=False,
+    position_cleared=False,
 ):
     clean_bssids = sorted({
         normalize_bssid(bssid)
@@ -277,6 +284,8 @@ def build_manual_ap_group(
     clean_position = normalize_ap_position(position)
     if clean_position:
         group["position"] = clean_position
+    elif position_cleared:
+        group["position_cleared"] = True
 
     clean_metadata = normalize_ap_metadata(metadata)
     if clean_metadata:
@@ -358,6 +367,7 @@ def merge_new_bssids_into_manual_groups(manual_groups, rows):
             memory_match_bssids=group.get(AP_MEMORY_MATCH_BSSIDS_KEY, []),
             physical_confirmed=is_ap_group_confirmed(group),
             physical_confirmation_revoked=group.get("physical_confirmation_revoked", False),
+            position_cleared=group.get("position_cleared", False),
         )
         for group in manual_groups
     ]
@@ -484,6 +494,7 @@ def merge_compatible_ap_group_fragments(group_id, groups):
         alias=alias or "",
         locked=any(group.get("locked") for group in groups),
         position=position,
+        position_cleared=any(group.get("position_cleared") for group in groups),
         role=role,
         metadata=metadata,
         memory_applied=memory_applied,

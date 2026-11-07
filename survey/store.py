@@ -345,6 +345,8 @@ class SurveySession:
             }
             if group.get("physical_confirmation_revoked"):
                 clean_group["physical_confirmation_revoked"] = True
+            if group.get("position_cleared") and not group.get("position"):
+                clean_group["position_cleared"] = True
             position = normalize_ap_position(group.get("position"))
             if position:
                 clean_group["position"] = position

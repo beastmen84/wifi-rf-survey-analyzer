@@ -4,20 +4,25 @@ import math
 FREE_ANNOTATIONS = ("desk", "symbol")
 HOSTED_ANNOTATIONS = ("door", "window")
 DESK_VARIANTS = ("square", "rectangle", "l", "l_equal", "round")
-SYMBOL_VARIANTS = ("circle", "x", "plus", "square", "triangle", "diamond", "star", "arrow")
+NUMBERED_SYMBOLS = ("circle", "square", "diamond", "triangle")
+NETWORK_SYMBOLS = ("rack", "wifi_ap")
+GENERIC_SYMBOLS = ("x", "plus", "star", "arrow")
+SYMBOL_VARIANTS = (*NUMBERED_SYMBOLS, *NETWORK_SYMBOLS, *GENERIC_SYMBOLS)
 
 
 def object_default(kind, density, variant=None):
     variant = variant or ("rectangle" if kind == "desk" else "circle")
     width, height = {"square": (1, 1), "rectangle": (1.6, .8), "l": (1.8, 1.4),
                      "l_equal": (1.6, 1.6), "round": (1.2, 1.2)}[variant] if kind == "desk" else (.4, .4)
+    if kind == "symbol" and variant == "rack":
+        width, height = .6, 1.0
     return dict(id="template", kind=kind, variant=variant, cx=width * density / 2, cy=height * density / 2,
                 width=width * density, height=height * density, arm=min(.6, min(width, height) / 2) * density,
                 angle=0, color="#475569", stroke=2, fill="#e8dbc2" if kind == "desk" else None)
 
 
 def object_is_round(item):
-    return (item["kind"], item["variant"]) in (("desk", "round"), ("symbol", "circle"))
+    return (item["kind"], item["variant"]) in (("desk", "round"), ("symbol", "circle"), ("symbol", "wifi_ap"))
 
 
 def object_local_vertices(item):
@@ -28,7 +33,7 @@ def object_local_vertices(item):
     elif kind == "desk" and variant in ("l", "l_equal"):
         x, y = item["arm"] / item["width"], item["arm"] / item["height"]
         points = [(0, 0), (1, 0), (1, y), (x, y), (x, 1), (0, 1)]
-    elif variant in ("square", "rectangle"):
+    elif variant in ("square", "rectangle", "rack"):
         points = [(0, 0), (1, 0), (1, 1), (0, 1)]
     elif variant == "triangle":
         points = [(.5, 0), (1, 1), (0, 1)]

@@ -7,6 +7,22 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Draw Plan Symbols now separates numbered circle/square/diamond/triangle
+  markers, Rack/Wi-Fi AP apparatus and generic signs. Stable per-shape numbering
+  spans all layers, with fitted upright numbers and readable external badges
+  for tiny symbols. Existing unnumbered drawings remain unchanged.
+- Added Draw Plan **Project → Legend** with automatic symbol tables and editable
+  descriptions. Hidden/locked layers are read-only; print/JPEG tables follow
+  visible layers. Optional paginated legend output includes page previews,
+  printer page ranges and separate JPEGs at the selected paper/orientation/DPI.
+  JPEG page sets use recoverable staged writes and preserve existing files if
+  rendering fails or the user cancels.
+- Draw Plan AP placement now assigns existing Wi-Fi AP symbols one-to-one to
+  physical AP groups, with assigned fill/label and exact center coordinates.
+  Move/delete/unassign/undo and save/reopen keep the link and operational position
+  aligned. AP Memory cannot overwrite bound positions or restore deleted ones;
+  hiding a layer preserves RF positions. Old placements can be converted explicitly.
+  Load Plan retains direct AP map picking and has no drawing Legend.
 - Hold **Shift** while dragging a line or the initial arc chord to constrain it
   horizontally/vertically, with immediate key press/release preview updates.
   Axis-compatible drawing/grid snaps remain active; Alt bypasses snaps while

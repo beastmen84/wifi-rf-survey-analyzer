@@ -782,6 +782,8 @@ def build_ap_position_marker_infos(ap_groups, aliases, translations, selected_gr
             continue
 
         position = group.get("position") or {}
+        if position.get("symbol_id"):
+            continue  # Bound APs are painted in their visible drawing layer.
         try:
             x = int(position.get("x"))
             y = int(position.get("y"))

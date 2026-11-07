@@ -1037,6 +1037,8 @@ class FloorplanView(QGraphicsView):
 
         for group in groups or []:
             position = group.get("position") or {}
+            if position.get("symbol_id"):
+                continue  # The visible drawing layer already paints this AP.
             try:
                 x = int(position.get("x"))
                 y = int(position.get("y"))

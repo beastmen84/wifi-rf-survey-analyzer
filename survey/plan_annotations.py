@@ -7,7 +7,7 @@ import re
 from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
 from survey.planar_geometry import point_projection
 from survey.plan_objects import (FREE_ANNOTATIONS, HOSTED_ANNOTATIONS, DESK_VARIANTS,
-                                 SYMBOL_VARIANTS, object_vertices, object_is_round)
+                                 SYMBOL_VARIANTS, NUMBERED_SYMBOLS, object_vertices, object_is_round)
 
 PLAN_ANNOTATIONS_KEY = "plan_annotations"
 EPS = 1e-5
@@ -40,7 +40,7 @@ def validate_annotations(items):
             if any(not math.isfinite(v) for v in numbers.values()) or not all(EPS < numbers[k] <= 100000 for k in ("width", "height")):
                 raise ValueError("Invalid object dimensions")
             item.update(numbers, variant=variant, fill=fill)
-            if kind == "symbol" or variant in ("square", "l_equal", "round"):
+            if (kind == "symbol" and variant != "rack") or variant in ("square", "l_equal", "round"):
                 if abs(item["width"] - item["height"]) > EPS:
                     raise ValueError("Object sides must be equal")
                 item["height"] = item["width"]
@@ -50,6 +50,27 @@ def validate_annotations(items):
                     raise ValueError("Invalid desk arm depth")
                 item["arm"] = arm
             item["angle"] = 0 if object_is_round(item) else item["angle"] % 360
+            if kind == "symbol":
+                if "number" in source:
+                    number = source["number"]
+                    if variant not in NUMBERED_SYMBOLS or type(number) is not int or not 1 <= number <= 999999:
+                        raise ValueError("Invalid symbol number")
+                    item["number"] = number
+                if "description" in source:
+                    description = source["description"]
+                    if not isinstance(description, str) or len(description) > 2000 or "\0" in description:
+                        raise ValueError("Invalid symbol description")
+                    item["description"] = description
+                if "ap_group" in source:
+                    group = source["ap_group"]
+                    if variant != "wifi_ap" or not isinstance(group, str) or not group.strip() or len(group) > 256:
+                        raise ValueError("Invalid symbol AP association")
+                    item["ap_group"] = group
+                if "ap_label" in source and item.get("ap_group"):
+                    label = source["ap_label"]
+                    if not isinstance(label, str) or len(label) > 256 or "\0" in label:
+                        raise ValueError("Invalid AP symbol label")
+                    item["ap_label"] = label
         elif kind == "marker":
             points = source["points"]
             if not isinstance(points, list) or not 2 <= len(points) <= 10000:

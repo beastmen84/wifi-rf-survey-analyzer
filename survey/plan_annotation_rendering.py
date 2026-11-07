@@ -20,6 +20,18 @@ def annotation_parts(item):
             for point in points[1:]:
                 path.lineTo(*point)
             path.closeSubpath()
+        if item.get("variant") == "rack":
+            for y in (-.3, 0, .3):
+                path.addRect(-item["width"] * .34, item["height"] * (y - .08),
+                             item["width"] * .68, item["height"] * .16)
+        elif item.get("variant") == "wifi_ap":
+            for factor in (.18, .34):
+                radius = item["width"] * factor
+                box = (-radius, item["height"] * .22 - radius, 2 * radius, 2 * radius)
+                path.arcMoveTo(*box, 45)
+                path.arcTo(*box, 45, 90)
+            radius = item["width"] * .035
+            path.addEllipse(-radius, item["height"] * .22 - radius, 2 * radius, 2 * radius)
         transform = QTransform()
         transform.translate(item["cx"], item["cy"])
         transform.rotate(0 if object_is_round(item) else item["angle"])
@@ -101,11 +113,16 @@ def annotation_item(annotation, color=None):
         child.setBrush(annotation_brush(annotation))
         child.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
     item.setZValue(6)
+    if annotation.get("number") or annotation.get("ap_label"):
+        from survey.plan_symbol_rendering import SymbolNumberItem
+        SymbolNumberItem(annotation, item)
     item.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
     return item
 
 
 def annotation_brush(item):
+    if item.get("variant") == "wifi_ap" and item.get("ap_group"):
+        return QBrush(QColor("#bfdbfe"))
     return QBrush(QColor(item["fill"])) if item["kind"] in FREE_ANNOTATIONS and item.get("fill") else QBrush(Qt.BrushStyle.NoBrush)
 
 
@@ -119,6 +136,10 @@ def render_annotations(image, annotations):
             painter.setPen(annotation_pen(item, dashed=dashed))
             painter.setBrush(annotation_brush(item))
             painter.drawPath(path)
+        if item.get("number") or item.get("ap_label"):
+            from survey.plan_symbol_rendering import paint_number
+            from PySide6.QtCore import QRectF
+            paint_number(painter, item, QRectF(0, 0, image.width, image.height))
     painter.end()
     raw = native.convertToFormat(QImage.Format.Format_RGBA8888)
     return Image.frombytes("RGBA", (raw.width(), raw.height()), bytes(raw.constBits()),
