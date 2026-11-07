@@ -9,12 +9,14 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QDialogButtonBo
 
 from app_core.logging import log_exception
 from app_core.settings import get_last_survey_directory
-from qt_ui.qt_plan_printing import clean_plan_image, draw_plan_page
+from qt_ui.qt_plan_printing import clean_plan_source, draw_plan_page
 from qt_ui.qt_windowing import get_centered_save_file_name
 from qt_ui.scaling import widget_px
 
 PAPER_SIZES = ("A5", "A4", "A3", "A2", "A1", "A0", "Letter", "Legal")
-RESOLUTIONS = (150, 300)
+RESOLUTIONS = (150, 300, 600)
+# One RGB32 output page, including the existing A0/300 preset, stays below 600MB.
+MAX_PAGE_PIXELS = 150_000_000
 
 
 def paper_mm(paper, landscape=False):
@@ -25,13 +27,15 @@ def paper_mm(paper, landscape=False):
 
 
 def page_pixels(paper, landscape, dpi):
-    if not math.isfinite(dpi) or dpi <= 0 or dpi > 300:
+    if not math.isfinite(dpi) or dpi <= 0 or dpi > 600:
         raise ValueError("Unsupported resolution")
     return QSize(*(max(1, round(mm * dpi / 25.4)) for mm in paper_mm(paper, landscape)))
 
 
 def render_plan_page(image, paper, landscape, dpi, density=None, units="metric", tr=None):
     size = page_pixels(paper, landscape, dpi)
+    if size.width() * size.height() > MAX_PAGE_PIXELS:
+        raise ValueError("The selected page exceeds the raster export size limit")
     canvas = QImage(size, QImage.Format.Format_RGB32)
     if canvas.isNull():
         raise MemoryError("Cannot allocate the JPEG page")
@@ -86,8 +90,8 @@ class PlanJpegDialog(QDialog):
         self.orientation.addItem(owner.tr("plan_jpeg_landscape"), True)
         self.orientation.setCurrentIndex(int(image.width() > image.height()))
         self.resolution = QComboBox()
-        for dpi in RESOLUTIONS:
-            self.resolution.addItem(str(dpi) + " DPI", dpi)
+        for dpi, key in zip(RESOLUTIONS, ("plan_jpeg_draft", "plan_jpeg_quality", "plan_jpeg_detail")):
+            self.resolution.addItem(str(dpi) + " DPI · " + owner.tr(key), dpi)
         self.resolution.setCurrentIndex(1)
         form.addRow(owner.tr("plan_jpeg_paper"), self.paper)
         form.addRow(owner.tr("plan_jpeg_orientation"), self.orientation)
@@ -96,6 +100,10 @@ class PlanJpegDialog(QDialog):
         self.dimensions = QLabel()
         self.dimensions.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.dimensions)
+        self.size_limit = QLabel(owner.tr("plan_jpeg_size_limit"), self)
+        self.size_limit.setWordWrap(True)
+        self.size_limit.hide()
+        layout.addWidget(self.size_limit)
         self.preview = QLabel()
         self.preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.preview.setFixedSize(widget_px(owner, 420), widget_px(owner, 300))
@@ -106,6 +114,7 @@ class PlanJpegDialog(QDialog):
         layout.addWidget(self.note)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         buttons.button(QDialogButtonBox.StandardButton.Save).setText(owner.tr("save"))
+        self.save_button = buttons.button(QDialogButtonBox.StandardButton.Save)
         buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(owner.tr("cancel"))
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
@@ -127,6 +136,10 @@ class PlanJpegDialog(QDialog):
         paper, landscape, dpi = self.options()
         pixels = page_pixels(paper, landscape, dpi)
         self.dimensions.setText(f"{pixels.width():,} × {pixels.height():,} px · {dpi} DPI".replace(",", " "))
+        too_large = pixels.width() * pixels.height() > MAX_PAGE_PIXELS
+        self.save_button.setEnabled(not too_large)
+        self.size_limit.setVisible(too_large)
+        self.size_limit.setMinimumHeight(self.size_limit.heightForWidth(widget_px(self.owner, 420)))
         # Preview allocation stays bounded, even for A0 at full export resolution.
         ratio = self.preview.devicePixelRatioF()
         available = self.preview.size() - QSize(widget_px(self.owner, 12), widget_px(self.owner, 12))
@@ -137,6 +150,9 @@ class PlanJpegDialog(QDialog):
             Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         pixmap.setDevicePixelRatio(ratio)
         self.preview.setPixmap(pixmap)
+        self.layout().activate()
+        self.setMinimumHeight(self.sizeHint().height())
+        self.adjustSize()
 
 
 def export_plan_jpeg(owner):
@@ -144,7 +160,7 @@ def export_plan_jpeg(owner):
         return False
     dialog = None
     try:
-        image = clean_plan_image(owner.floorplan_view, dict(owner.session.metadata))
+        image = clean_plan_source(owner.floorplan_view, dict(owner.session.metadata))
         density, units = owner.get_px_per_meter(), owner.measurement_system
         survey_file = owner.session.csv_file
         dialog = PlanJpegDialog(owner, image, density, units)

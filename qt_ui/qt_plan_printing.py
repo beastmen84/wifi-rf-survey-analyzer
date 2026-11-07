@@ -12,6 +12,7 @@ from survey.plan_labels import drawing_labels
 from survey.plan_annotations import drawing_annotations
 from app_core.units import meters_to_display_units, display_units_to_meters, distance_unit_label
 from translations.i18n import translate
+from qt_ui.qt_clean_plan import VectorPlanSource
 
 
 def clean_plan_image(view, metadata):
@@ -27,6 +28,16 @@ def clean_plan_image(view, metadata):
     rendered = render_plan_drawing(source, lines, labels, curves, annotations)
     return QImage(rendered.tobytes("raw", "RGB"), rendered.width, rendered.height,
                   rendered.width * 3, QImage.Format.Format_RGB888).copy()
+
+
+def clean_plan_source(view, metadata):
+    # Reuse the established full-document validation before building portable
+    # path/pen/brush snapshots. Loaded bitmap plans keep their original pixels.
+    image = clean_plan_image(view, metadata)
+    lines, curves = drawing_geometry(metadata)
+    if lines is None:
+        return image
+    return VectorPlanSource(image.size(), lines, curves, drawing_labels(metadata), drawing_annotations(metadata))
 
 
 def print_scale_reference(image_width, px_per_meter, measurement_system="metric"):
@@ -67,7 +78,10 @@ def draw_plan_page(painter, image, width, height, dpi, px_per_meter=None, measur
                         (body_height - image.height() * factor) / 2,
                         image.width() * factor, image.height() * factor)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-        painter.drawImage(target, image)
+        if isinstance(image, VectorPlanSource):
+            image.paint_plan(painter, target)
+        else:
+            painter.drawImage(target, image)
         font = painter.font()
         font.setPointSizeF(8.5)
         font.setBold(False)
@@ -174,7 +188,7 @@ class PlanPrintingMixin:
             return False
         dialog = None
         try:
-            image = clean_plan_image(self.floorplan_view, dict(self.session.metadata))
+            image = clean_plan_source(self.floorplan_view, dict(self.session.metadata))
             density, units = self.get_px_per_meter(), self.measurement_system
             printer = QPrinter(QPrinter.PrinterMode.HighResolution)
             printer.setDocName(self.session_display_name())

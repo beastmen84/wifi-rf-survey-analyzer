@@ -4,11 +4,11 @@ from unittest.mock import patch
 
 from PIL import Image
 import pytest
-from PySide6.QtGui import QColor, QImage
+from PySide6.QtGui import QColor, QImage, QPainter
 from PySide6.QtWidgets import QDialog, QMessageBox
 
-from qt_ui.qt_plan_jpeg import PlanJpegDialog, page_pixels, write_plan_jpeg
-from qt_ui.qt_plan_printing import PlanPrintPreviewDialog, PrintDeviceNotStarted
+from qt_ui.qt_plan_jpeg import PlanJpegDialog, page_pixels, render_plan_page, write_plan_jpeg
+from qt_ui.qt_plan_printing import PlanPrintPreviewDialog, PrintDeviceNotStarted, clean_plan_source, clean_plan_image
 from survey.plan_drawing import rectangle_segments
 from tests.test_blank_plan import create_survey
 from tests.test_rectangle_design import editor
@@ -18,7 +18,7 @@ from tests.test_capture_adapter import window, qt_app
 @pytest.mark.parametrize("paper,mm", [("A5", (148, 210)), ("A4", (210, 297)), ("A3", (297, 420)),
     ("A2", (420, 594)), ("A1", (594, 841)), ("A0", (841, 1189)),
     ("Letter", (215.9, 279.4)), ("Legal", (215.9, 355.6))])
-@pytest.mark.parametrize("dpi", [150, 300])
+@pytest.mark.parametrize("dpi", [150, 300, 600])
 @pytest.mark.parametrize("landscape", [False, True])
 def test_paper_pixels_match_physical_dimensions(paper, mm, dpi, landscape):
     size = page_pixels(paper, landscape, dpi)
@@ -163,3 +163,68 @@ def test_genuine_preview_failure_is_still_reported(editor):
           patch("qt_ui.qt_plan_printing.QMessageBox.warning") as warning):
         assert not app.print_plan()
         assert warning.call_count == 1
+
+
+def test_drawn_paths_render_directly_and_remain_an_immutable_snapshot(editor):
+    from tests.test_plan_text_fill import label
+    from tests.test_plan_objects import obj
+    from tests.test_plan_annotations import aperture, marker
+    app, d = editor
+    d.store(rectangle_segments(100, 200, 500, 250, "#123456"), labels=[label()],
+            curves=[dict(kind="circle", cx=720, cy=300, radius=50, color="#ff0000")],
+            annotations=[aperture(), marker(), obj(fill="#abcdef")])
+    source = clean_plan_source(d.view, app.session.metadata)
+    before = deepcopy(app.session.metadata)
+    with patch.object(QPainter, "drawImage") as raster:
+        first = render_plan_page(source, "A4", True, 150, app.get_px_per_meter())
+        raster.assert_not_called()  # Paths, not an enlarged low-resolution plan.
+    d.store([])
+    second = render_plan_page(source, "A4", True, 150, app.get_px_per_meter())
+    assert first == second and app.session.metadata != before
+    imported = QImage(200, 100, QImage.Format.Format_RGB32)
+    imported.fill(QColor("#123456"))
+    with patch.object(QPainter, "drawImage") as raster:
+        render_plan_page(imported, "A4", True, 150)
+        assert raster.call_count == 1  # Imported bitmap detail cannot be invented.
+
+
+def test_a3_600dpi_has_actual_fine_edges_and_correct_jpeg_density(editor, tmp_path):
+    app, d = editor
+    d.store([dict(x1=123.37, y1=100, x2=123.37, y2=500, color="#000000")])
+    density = app.get_px_per_meter()
+    size = page_pixels("A3", False, 600)
+    margin, footer = 10 * 600 / 25.4, 17 * 600 / 25.4
+    factor = min((size.width() - 2 * margin) / 900, (size.height() - 2 * margin - footer) / 600)
+    x = round(margin + 123.37 * factor)
+    y = round(margin + (size.height() - 2 * margin - footer - 600 * factor) / 2 + 300 * factor)
+    def partial_edges(page):
+        return sum(15 < page.pixelColor(i, y).red() < 240 for i in range(x - 30, x + 31))
+    old = render_plan_page(clean_plan_image(d.view, app.session.metadata), "A3", False, 600, density)
+    blurred = partial_edges(old)
+    del old
+    page = render_plan_page(clean_plan_source(d.view, app.session.metadata), "A3", False, 600, density)
+    assert partial_edges(page) <= 4 and blurred > partial_edges(page) + 4
+    output = tmp_path / "a3-600.jpg"
+    write_plan_jpeg(output, page)
+    with Image.open(output) as image:
+        assert image.size == (7016, 9921) and image.info["dpi"] == pytest.approx((600, 600), abs=1)
+        assert image.crop((x - 30, y - 2, x + 31, y + 3)).convert("L").getextrema()[0] < 20
+
+
+@pytest.mark.parametrize("paper", ["A1", "A0"])
+def test_extreme_page_limit_is_visible_and_checked_before_allocation(editor, paper):
+    app, d = editor
+    source = clean_plan_source(d.view, app.session.metadata)
+    dialog = PlanJpegDialog(app, source, app.get_px_per_meter(), "metric")
+    try:
+        dialog.paper.setCurrentIndex(dialog.paper.findData(paper))
+        dialog.resolution.setCurrentIndex(dialog.resolution.findData(600))
+        assert not dialog.save_button.isEnabled() and not dialog.size_limit.isHidden()
+        with patch("qt_ui.qt_plan_jpeg.QImage") as allocate:
+            with pytest.raises(ValueError, match="size limit"):
+                render_plan_page(source, paper, False, 600)
+            allocate.assert_not_called()
+        dialog.resolution.setCurrentIndex(dialog.resolution.findData(300))
+        assert dialog.save_button.isEnabled() and dialog.size_limit.isHidden()
+    finally:
+        dialog.deleteLater()

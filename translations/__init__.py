@@ -37,6 +37,7 @@ for _language, _dictionary in TRANSLATIONS.items():
     _dictionary["blank_plan_help"] += " " + _dictionary["objects_help"]
     _dictionary["blank_plan_help"] += " " + _dictionary["plan_precision_help"]
     _dictionary["print_plan_help"] += " " + _dictionary["print_scale_help"]
+    _dictionary["plan_jpeg_help"] += " " + _dictionary["plan_jpeg_detail_help"]
     _dictionary["help_ap_groups_body"] += _dictionary["advisor_group_confirmation_help"]
     _dictionary["help_ap_groups_body"] += _dictionary["ap_confirmation_priority_help"]
 

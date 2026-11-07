@@ -7,8 +7,14 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Added **600 DPI · Fine detail** to clean plan JPEG export, retaining 300 DPI as
+  the default. Drawn plans now paint their paths directly at the destination
+  resolution for JPEG and Print Plan, preserving fine geometry and glyphs instead
+  of enlarging a source-sized raster. Imported bitmaps retain source detail.
+  Oversized A1/A0 at 600 DPI are explained inline and cannot be saved beyond the
+  150-megapixel page limit; A3/A2 support 600 DPI. Updated EN/IT/FR/ES Help.
 - Added **Save as JPEG** beside Print Plan: clean-plan snapshot, graphical scale,
-  A5–A0/Letter/Legal, portrait/landscape, 150/300 DPI, live page preview and pixel
+  A5–A0/Letter/Legal, portrait/landscape, 150/300/600 DPI, live page preview and pixel
   dimensions. Stores print resolution and writes the JPEG atomically. Canceling
   export creates no file. Updated EN/IT/FR/ES Help.
 - Canceling Windows print-to-file no longer reports "Cannot start the print

@@ -1,6 +1,6 @@
 # Wi-Fi RF Survey Analyzer - Architecture Notes
 
-Last updated: 2026-11-06
+Last updated: 2026-11-07
 
 This document is the forward-looking product roadmap. Completed items are kept
 only as context; the actionable backlog is in the "Remaining Work" section.
@@ -22,9 +22,24 @@ interpolated colors.
 
 Current status:
 
+- Higher-quality plan output:qt_clean_plan.VectorPlanSource snapshots portable
+  QPainterPaths/pens/brushes after the existing full drawing validation. It paints
+  visible wall segments, analytic curve paths, annotation parts and glyphs at the
+  final transform, preserving masks, dashes, fills and text-above-furniture order.
+  No QPicture DPI replay scaling or enlarged intermediate raster is involved.
+  clean_plan_source returns original pixels for imported plans and paths for
+  generated ones. Print Plan and JPEG share this source and the existing page
+  layout/scale painter; clean_plan_image remains available to old raster callers.
+  JPEG adds150/300/600DPI labels, keeps300 default and explains a150MP allocation
+  limit inline. A3/600 is7016x9921, A2/600 also fits; A1/A0/600 exceed the limit.
+  The limit is checked before allocation; previews remain bounded at all choices.
+  Verification:109 focused tests +434 subtests passed35.35s; final sequential suite
+  1789 tests +479 subtests passed196.40s. Native UI24 language/theme/scale cases
+  passed; actual A3/600 JPEG dimensions/density and subpixel edge sharpness are
+  tested against the prior enlarged raster. Essential Ruff/compile/diff checks pass.
 - Save as JPEG is adjacent to Print Plan in Project's title row and shares its
   session/map/scan availability. qt_plan_jpeg.py owns paper choices A5–A0/Letter/
-  Legal, orientation,150/300DPI, bounded thumbnail preview and exact mm-to-pixel
+  Legal, orientation,150/300/600DPI, bounded thumbnail preview and exact mm-to-pixel
   conversion. The shared draw_plan_page painter now serves both QPrinter and
   white RGB JPEG pages with10mm margins and the same calibrated footer. QImage
   dots-per-meter metadata preserves print resolution; QImageWriter quality95

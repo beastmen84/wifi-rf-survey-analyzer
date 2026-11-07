@@ -52,10 +52,15 @@ from these software checks.
   fitting, so its length stays meaningful after changing page size/orientation.
   Uncalibrated plans explicitly report that their scale is unavailable.
 - **Save as JPEG**, beside **Print Plan**, exports the same clean plan and scale
-  reference. Choose A5–A0, Letter or Legal, portrait/landscape and 150/300 DPI;
+  reference. Choose A5–A0, Letter or Legal, portrait/landscape and 150/300/600 DPI;
   preview the page and exact pixel dimensions before choosing the file. The JPEG
   stores its print resolution and includes unsaved drawing edits. Use actual-size
   printing in your image application to retain the selected paper dimensions.
+  Drawn plans render their lines, curves, annotations and text directly at the
+  output resolution, including in Print Plan. Use **600 DPI · Fine detail** for
+  small text and fine lines; A3 at 600 DPI is **7016 × 9921 px**. Imported bitmap
+  detail depends on the source image. A 150-megapixel page limit supports 600 DPI
+  through A2; A1/A0 use up to 300 DPI, with the limit explained in the dialog.
 - New surveys start with a generated, pre-scaled blank plan and grid for
   use when no real floor plan is available. Starting from the app start
   page asks for metric or imperial units, the Wi-Fi adapter and blank-sheet width
