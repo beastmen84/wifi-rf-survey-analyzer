@@ -478,13 +478,11 @@ class WifiHeatmapQtApp(
         self.new_workspace_button = self.create_app_bar_button(self.new_survey)
         self.open_workspace_button = self.create_app_bar_button(lambda: self.open_survey())
         self.save_workspace_button = self.create_app_bar_button(self.save_survey)
-        self.load_plan_button = self.create_app_bar_button(self.load_plan)
         self.save_tool_button = self.save_workspace_button
         for button in (
             self.new_workspace_button,
             self.open_workspace_button,
             self.save_workspace_button,
-            self.load_plan_button,
         ):
             project_row.addWidget(button)
         layout.addWidget(project_section, 1)
@@ -2002,7 +2000,6 @@ class WifiHeatmapQtApp(
         self.new_workspace_button.setText(self.tr("new_survey"))
         self.open_workspace_button.setText(self.tr("open_existing_survey"))
         self.save_workspace_button.setText(self.tr("save"))
-        self.load_plan_button.setText(self.tr("load_plan"))
         self.print_plan_button.setText(self.tr("print_plan"))
         self.print_plan_button.setToolTip(self.tr("print_plan_hint"))
         self.print_plan_button.setAccessibleName(self.tr("print_plan"))

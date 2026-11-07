@@ -155,9 +155,9 @@ class FloorplanView(QGraphicsView):
         self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorViewCenter)
         self.setBackgroundBrush(QBrush(Qt.GlobalColor.darkGray))
 
-    def load_floorplan(self, file_path):
+    def load_floorplan(self, file_path, *, pixmap=None):
         self.hide_point_tooltip()
-        pixmap = load_floorplan_pixmap(file_path)
+        pixmap = load_floorplan_pixmap(file_path) if pixmap is None else QPixmap(pixmap)
         if pixmap.isNull():
             raise ValueError(f"Cannot load floor plan: {file_path}")
 

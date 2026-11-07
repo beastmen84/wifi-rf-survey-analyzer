@@ -258,7 +258,12 @@ def test_imported_bitmap_survives_layer_changes_save_and_reopen(editor, tmp_path
     original = tmp_path / "imported.png"
     Image.new("RGB", (600, 400), "#abcdef").save(original)
     app.load_plan_file(str(original), save_metadata=True)
+    # Old imported projects can contain layer metadata; preserve it read-only.
+    write_layers(app.session.metadata, add_layer(d.layer_document(), "Legacy overlay"))
+    app.refresh_session_labels()
+    before = deepcopy(app.session.metadata)
     app.layers_panel.add()
+    assert app.session.metadata == before and app.layers_panel.isHidden()
     assert d.view.pixmap_item.pixmap().toImage().pixelColor(100, 100).name() == "#abcdef"
     assert clean_plan_image(d.view, app.session.metadata).pixelColor(100, 100).name() == "#abcdef"
     csv = tmp_path / "bitmap-layers.csv"

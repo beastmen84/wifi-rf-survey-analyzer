@@ -12,7 +12,7 @@ TRANSLATIONS = {
     "loading_app_error": "Error while loading the app.",
     "start_subtitle": "Real Surveys, Live Maps, and RF Diagnostics",
     "start_workflow_title": "Workflow",
-    "start_workflow_1": "1. Create or open a survey and load the environment floor plan.",
+    "start_workflow_1": "1. Create a survey with Draw Plan or Load Plan, or open a saved survey.",
     "start_workflow_2": "2. Record points with multi-sample scans and relevant networks.",
     "start_workflow_3": "3. Analyze coverage, interference, roaming, AP groups, and quality.",
     "start_loading_title": "Application Startup",
@@ -664,7 +664,7 @@ TRANSLATIONS = {
                 <td class="workflow-card">
                     <div class="step-label">1. Setup</div>
                     <div class="step-title">Prepare the survey</div>
-                    <p>Create or open the survey, load the plan when available, choose the measurement system if needed, calibrate scale and choose relevant SSIDs.</p>
+                    <p>Create a survey with Draw Plan or Load Plan, or reopen a saved survey. Choose units and receiver during setup, calibrate imported plans and choose relevant SSIDs.</p>
                     <div class="step-gate"><b>Move forward when:</b> the floor plan, scale and networks to judge are correct.</div>
                 </td>
                 <td class="workflow-gap"></td>
@@ -757,7 +757,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="survey-card"><span class="survey-card-title">CSV</span><br>The saved survey file with metadata comments and aggregated rows.<br><span class="survey-card-use">Save before HTML export or moving between machines.</span></td>
                 <td class="survey-gap"></td>
-                <td class="survey-card"><span class="survey-card-title">Map</span><br>The floor-plan file linked to the survey. New surveys start with a scaled blank plan and grid.<br><span class="survey-card-use">If you save without replacing it, a same-name PNG is written next to the CSV.</span></td>
+                <td class="survey-card"><span class="survey-card-title">Map</span><br>The floor-plan file linked to the survey. New Survey offers Draw Plan or Load Plan; the source is fixed at creation.<br><span class="survey-card-use">Draw Plan saves a same-name PNG beside the CSV. Load Plan keeps its selected source file.</span></td>
                 <td class="survey-gap"></td>
                 <td class="survey-card"><span class="survey-card-title">Points</span><br>Measurement locations collected on the floor plan.<br><span class="survey-card-use">Add points where clients work, roam or report problems.</span></td>
             </tr>
@@ -1337,7 +1337,7 @@ TRANSLATIONS = {
     "help_workflow": "Workflow",
     "help_workflow_title": "How to Use the Program",
     "help_workflow_steps": (
-        "1-a. Create a new survey and load the floor plan.\n"
+        "1-a. Create a survey: choose Draw Plan or select an image/PDF with Load Plan.\n"
         "1-b. Or open a saved survey: the floor plan will be loaded automatically.\n"
         "2. Physically move through the area and use right click on the map to record measurement points.\n"
         "3. Use AP Groups to assign aliases, fix groups, and place physical AP positions on the map when known.\n"

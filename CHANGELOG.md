@@ -7,6 +7,14 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- New Survey now offers **Draw Plan / Load Plan**. Draw Plan retains sheet/grid
+  dimensions, automatic scale, Design Mode and Layers. Load Plan selects an image
+  or PDF during setup and requires calibration, with drawing controls/layer column
+  hidden. Removed the Project Load Plan action: plan origin is fixed at creation.
+  Source decoding happens before replacing the current survey or changing unit
+  preferences. Cancel/error retains the current project; old surveys infer their
+  origin from generated-sheet flags. Manual Boundaries and clean print/export
+  remain available in both modes. Updated EN/IT/FR/ES workflow and Help.
 - Added a collapsible **Layers** column beside Survey, independent of Design
   Mode, with renameable permanent Layer 0, new layers, visibility, locks,
   drag/Up/Down stacking and **Move selection to layer…**. Only the active visible,

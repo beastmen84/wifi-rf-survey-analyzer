@@ -12,7 +12,7 @@ TRANSLATIONS = {
     "loading_app_error": "Errore durante il caricamento dell'app.",
     "start_subtitle": "Rilievi Reali, Mappe Live e Diagnostica RF",
     "start_workflow_title": "Flusso Operativo",
-    "start_workflow_1": "1. Crea o apri un rilievo e carica la pianta dell'ambiente.",
+    "start_workflow_1": "1. Crea un rilievo con Disegna pianta o Carica Pianta, oppure apri un rilievo salvato.",
     "start_workflow_2": "2. Registra i punti con scansioni multi-campione e reti rilevanti.",
     "start_workflow_3": "3. Analizza copertura, interferenze, roaming, gruppi AP e qualità.",
     "start_loading_title": "Avvio Applicazione",
@@ -664,7 +664,7 @@ TRANSLATIONS = {
                 <td class="workflow-card">
                     <div class="step-label">1. Setup</div>
                     <div class="step-title">Prepara il rilievo</div>
-                    <p>Crea o apri il rilievo, carica la pianta quando disponibile, scegli il sistema di misura se serve, calibra la scala e scegli gli SSID rilevanti.</p>
+                    <p>Crea un rilievo con Disegna pianta o Carica Pianta, oppure riaprine uno salvato. Scegli unità e scheda nella creazione, calibra le piante caricate e scegli gli SSID rilevanti.</p>
                     <div class="step-gate"><b>Vai avanti quando:</b> pianta, scala e reti da giudicare sono corrette.</div>
                 </td>
                 <td class="workflow-gap"></td>
@@ -757,7 +757,7 @@ TRANSLATIONS = {
             <tr>
                 <td class="survey-card"><span class="survey-card-title">CSV</span><br>Il file rilievo salvato, con commenti metadati e righe aggregate.<br><span class="survey-card-use">Salva prima di esportare HTML o spostare il rilievo su un altro PC.</span></td>
                 <td class="survey-gap"></td>
-                <td class="survey-card"><span class="survey-card-title">Mappa</span><br>Il file pianta collegato al rilievo. I nuovi rilievi partono con una pianta bianca già scalata e griglia attiva.<br><span class="survey-card-use">Se salvi senza sostituirla, viene scritto un PNG con lo stesso nome del CSV.</span></td>
+                <td class="survey-card"><span class="survey-card-title">Mappa</span><br>Il file pianta collegato al rilievo. Nuovo Rilievo offre Disegna pianta o Carica Pianta; l'origine resta fissa dalla creazione.<br><span class="survey-card-use">Disegna pianta salva un PNG accanto al CSV. Carica Pianta mantiene il file scelto.</span></td>
                 <td class="survey-gap"></td>
                 <td class="survey-card"><span class="survey-card-title">Punti</span><br>Posizioni di misura raccolte sulla pianta.<br><span class="survey-card-use">Aggiungi punti dove i client lavorano, fanno roaming o segnalano problemi.</span></td>
             </tr>
@@ -1337,7 +1337,7 @@ TRANSLATIONS = {
     "help_workflow": "Flusso",
     "help_workflow_title": "Come Usare il Programma",
     "help_workflow_steps": (
-        "1-a. Crea un nuovo rilievo e carica la pianta dell'ambiente.\n"
+        "1-a. Crea un rilievo: scegli Disegna pianta o seleziona immagine/PDF con Carica Pianta.\n"
         "1-b. Oppure apri un rilievo già salvato: la pianta verrà caricata automaticamente.\n"
         "2. Spostati fisicamente nell'area e usa il tasto destro sulla mappa per registrare i punti di misura.\n"
         "3. Usa Gruppi AP per assegnare alias, correggere i gruppi e, se conosci la posizione fisica degli AP, posizionarli sulla mappa.\n"

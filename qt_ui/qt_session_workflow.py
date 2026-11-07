@@ -29,6 +29,9 @@ from app_core.survey_grid import GRID_SPACING_KEY, default_grid_spacing_m, norma
 from ap.memory import count_memory_applied_groups, get_ap_memory_summary
 from qt_ui.qt_windowing import get_centered_open_file_name, get_centered_save_file_name
 from qt_ui.qt_survey_setup import SurveySetupDialog
+from qt_ui.qt_floorplan import load_floorplan_pixmap
+from qt_ui.default_floorplan import blank_floorplan_geometry, ensure_default_floorplan
+from survey.plan_mode import DRAW_PLAN, LOAD_PLAN
 from survey.plan_drawing import PLAN_DRAWING_KEY
 from survey.plan_layers import PLAN_LAYERS_KEY
 from wifi.adapters import adapter_name
@@ -55,6 +58,22 @@ class SurveySessionWorkflowMixin:
         options = self.choose_new_survey_options()
         if options is None:
             return False
+        # Decode before publishing the new session or changing unit preferences.
+        try:
+            mode = options.get("plan_mode", DRAW_PLAN)
+            if mode == DRAW_PLAN:
+                width, height, _density = blank_floorplan_geometry(options["measurement_system"], **options.get("blank_plan", {}))
+                plan_path = str(ensure_default_floorplan(width, height))
+            elif mode == LOAD_PLAN and options.get("plan_file"):
+                plan_path = os.path.abspath(options["plan_file"])
+            else:
+                raise ValueError(self.tr("survey_plan_choose_file"))
+            prepared_pixmap = load_floorplan_pixmap(plan_path)
+            if prepared_pixmap.isNull():
+                raise ValueError(self.tr("survey_plan_invalid"))
+        except Exception as exc:
+            QMessageBox.warning(self, self.tr("warning"), self.tr("survey_plan_error", error=str(exc)))
+            return False
         if not self.set_new_survey_measurement_system(options["measurement_system"]):
             log_event("qt new survey cancelled by measurement-system selection", logger_name="main")
             return False
@@ -70,8 +89,11 @@ class SurveySessionWorkflowMixin:
         self.boundaries_files_pending_delete = set()
         self.load_session_ssid_state()
         self.reset_live_option_memory()
-        if not self.load_default_floorplan(**options.get("blank_plan", {})):
-            self.floorplan_view.clear_floorplan()
+        if mode == DRAW_PLAN:
+            self.load_default_floorplan(**options.get("blank_plan", {}), prepared=(plan_path, prepared_pixmap))
+        else:
+            self.load_plan_file(plan_path, save_metadata=True, prepared_pixmap=prepared_pixmap)
+            self.session.dirty = False
         self.live_view.clear()
         self.show_workspace_page()
         log_event(f"qt new survey done measurement_system={self.measurement_system}", logger_name="main")
@@ -417,7 +439,6 @@ class SurveySessionWorkflowMixin:
         self.open_workspace_button.setEnabled(not self.scan_in_progress)
         can_use_session = self.session is not None and not self.scan_in_progress
         self.save_workspace_button.setEnabled(can_use_session)
-        self.load_plan_button.setEnabled(can_use_session)
         self.ap_groups_button.setEnabled(can_use_session)
         self.quality_button.setEnabled(can_use_session)
         self.help_button.setEnabled(True)

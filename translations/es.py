@@ -14,7 +14,7 @@ TRANSLATIONS.update({
     "loading_app_error": "Error al cargar la aplicación.",
     "start_subtitle": "Estudios reales, mapas Live y diagnósticos RF",
     "start_workflow_title": "Workflow",
-    "start_workflow_1": "1. Cree o abra un estudio y cargue el plano.",
+    "start_workflow_1": "1. Cree un estudio con Dibujar plano o Cargar plano, o abra un estudio guardado.",
     "start_workflow_2": "2. Registre puntos con escaneos multi-muestra y redes relevantes.",
     "start_workflow_3": "3. Analice cobertura, interferencias, roaming, grupos AP y calidad.",
     "start_loading_title": "Inicio",
@@ -789,7 +789,7 @@ TRANSLATIONS.update({
     "help_workflow": "Flujo de trabajo",
     "help_heatmap": "Mapa de calor",
     "help_workflow_steps": (
-        "1-a. Cree un estudio nuevo y cargue el plano.\n"
+        "1-a. Cree un estudio: Dibujar plano o elegir imagen/PDF con Cargar plano.\n"
         "1-b. O abra un estudio guardado: el plano se cargará automáticamente.\n"
         "2. Desplácese físicamente por el área y use clic derecho en el mapa para registrar puntos de medición.\n"
         "3. Use Grupos AP para asignar alias, corregir grupos y colocar posiciones físicas de AP cuando se conozcan.\n"
@@ -835,7 +835,7 @@ TRANSLATIONS.update({
         <table class="callout-table"><tr><td class="callout-accent-good"></td><td class="callout-content"><span class="callout-label">Regla principal</span><br>El mapa es la salida final del estudio, no la primera prueba. Antes de usarlo para decidir, confirme que los puntos, los escaneos brutos y el modelo AP describen correctamente el sitio.</td></tr></table>
         <h2>Secuencia operativa</h2>
         <table class="workflow-grid" width="100%" cellspacing="0" cellpadding="0">
-            <tr><td class="workflow-card"><div class="step-label">1. Preparar</div><div class="step-title">Definir el alcance</div><p>Cree o abra el estudio, elija métrico o imperial, cargue el plano si existe, calibre la escala y seleccione los SSID relevantes.</p><div class="step-gate"><b>Avance cuando:</b> plano, escala y redes a evaluar sean correctos.</div></td><td class="workflow-gap"></td><td class="workflow-card"><div class="step-label">2. Medir</div><div class="step-title">Recoger evidencia RF</div><p>Coloque puntos en salas, pasillos, áreas de transición, puertas y zonas donde los usuarios reportan problemas.</p><div class="step-gate"><b>Avance cuando:</b> las áreas importantes tengan suficientes puntos y los escaneos sospechosos se hayan repetido.</div></td></tr>
+            <tr><td class="workflow-card"><div class="step-label">1. Preparar</div><div class="step-title">Definir el alcance</div><p>Cree un estudio con Dibujar plano o Cargar plano, o abra uno guardado. Elija unidades y adaptador al crear, calibre los planos importados y seleccione los SSID relevantes.</p><div class="step-gate"><b>Avance cuando:</b> plano, escala y redes a evaluar sean correctos.</div></td><td class="workflow-gap"></td><td class="workflow-card"><div class="step-label">2. Medir</div><div class="step-title">Recoger evidencia RF</div><p>Coloque puntos en salas, pasillos, áreas de transición, puertas y zonas donde los usuarios reportan problemas.</p><div class="step-gate"><b>Avance cuando:</b> las áreas importantes tengan suficientes puntos y los escaneos sospechosos se hayan repetido.</div></td></tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
             <tr><td class="workflow-card"><div class="step-label">3. Validar</div><div class="step-title">Leer Calidad estudio</div><p>Separe problemas de punto a reescanear de diagnósticos de configuración AP. Una advertencia es una hipótesis que revisar, no un error automático.</p><div class="step-gate"><b>Avance cuando:</b> la calidad de puntos sea aceptable y los hallazgos restantes estén entendidos.</div></td><td class="workflow-gap"></td><td class="workflow-card"><div class="step-label">4. Modelar AP</div><div class="step-title">Hacer creíble el modelo</div><p>Revise grupos AP, alias, roles, BSSID, metadatos, posiciones físicas, canales de análisis forzados y estados de Memoria AP.</p><div class="step-gate"><b>Avance cuando:</b> el modelo AP coincida con el despliegue o las incógnitas queden documentadas.</div></td></tr>
             <tr><td class="workflow-vertical-gap" colspan="3"></td></tr>
@@ -870,7 +870,7 @@ TRANSLATIONS.update({
     "help_survey_body": """
         <h2>Bloques de la pantalla Estudio</h2>
         <table class="survey-grid">
-            <tr><td class="survey-card"><span class="survey-card-title">CSV</span><br>Archivo principal con filas agregadas y comentarios de metadatos.<br><span class="survey-card-use">Guárdelo antes de exportar HTML o mover el estudio entre equipos.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Plano</span><br>PDF/imagen vinculado al estudio. Un estudio nuevo puede empezar con un blanco ya escalado.<br><span class="survey-card-use">Si no se carga un plano real, se escribe un PNG con el mismo nombre junto al CSV.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Puntos</span><br>Posiciones de medición colocadas sobre el plano.<br><span class="survey-card-use">Añádalas donde los clientes trabajan, hacen roaming o reportan problemas.</span></td></tr>
+            <tr><td class="survey-card"><span class="survey-card-title">CSV</span><br>Archivo principal con filas agregadas y comentarios de metadatos.<br><span class="survey-card-use">Guárdelo antes de exportar HTML o mover el estudio entre equipos.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Plano</span><br>PDF/imagen vinculado al estudio. Nuevo estudio ofrece Dibujar plano o Cargar plano; el origen queda fijo.<br><span class="survey-card-use">Dibujar guarda un PNG junto al CSV; Cargar conserva el archivo elegido.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Puntos</span><br>Posiciones de medición colocadas sobre el plano.<br><span class="survey-card-use">Añádalas donde los clientes trabajan, hacen roaming o reportan problemas.</span></td></tr>
             <tr><td class="survey-vertical-gap" colspan="5"></td></tr>
             <tr><td class="survey-card"><span class="survey-card-title">Escaneos brutos</span><br>Muestras repetidas conservadas en el sidecar <code>.scan</code>.<br><span class="survey-card-use">Más evidencia bruta mejora confianza y diagnósticos.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">Grupos AP</span><br>Modelo de AP físicos usado por mapas y calidad.<br><span class="survey-card-use">Revíselo antes de AP dominante, Interferencia o Canales AP.</span></td><td class="survey-gap"></td><td class="survey-card"><span class="survey-card-title">SSID relevantes</span><br>Redes consideradas importantes por controles de calidad.<br><span class="survey-card-use">Gestionar añade o quita SSID; Limpiar borra la selección.</span></td></tr>
         </table>

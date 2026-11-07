@@ -1,17 +1,20 @@
 """Survey units and explicit receiver selection, with asynchronous discovery."""
 
 import math
+from pathlib import Path
 
 from PySide6.QtCore import QThread, QTimer, Qt, Signal, Slot
 from PySide6.QtWidgets import (
     QComboBox, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout,
-    QLabel, QPushButton, QVBoxLayout, QDoubleSpinBox, QWidget,
+    QLabel, QPushButton, QVBoxLayout, QDoubleSpinBox, QWidget, QButtonGroup, QLineEdit,
 )
 
 from app_core.units import (MEASUREMENT_SYSTEM_IMPERIAL, MEASUREMENT_SYSTEM_METRIC,
     meters_to_display_units, display_units_to_meters, distance_unit_label)
 from qt_ui.default_floorplan import (default_blank_dimensions_m, BLANK_PLAN_MIN_METERS, BLANK_PLAN_MAX_METERS)
 from qt_ui.scaling import widget_px
+from qt_ui.qt_windowing import get_centered_open_file_name
+from survey.plan_mode import DRAW_PLAN, LOAD_PLAN
 from app_core.survey_grid import default_grid_spacing_m, grid_input_decimals, normalize_grid_spacing
 from wifi.adapters import adapter_identity, adapter_name, list_wifi_adapters
 
@@ -31,6 +34,7 @@ class SurveySetupDialog(QDialog):
         super().__init__(app)
         self.setFont(app.font())
         self.app = app
+        self.theme, self.ui_scale = app.theme, app.ui_scale
         self.adapter_only = adapter_only
         self.preferred_id = preferred_id
         self.thread = None
@@ -79,6 +83,44 @@ class SurveySetupDialog(QDialog):
         hint = QLabel(app.tr("capture_adapter_fixed_hint"))
         hint.setWordWrap(True)
         layout.addWidget(hint)
+        self.plan_source_group = QWidget()
+        source_layout = QVBoxLayout(self.plan_source_group)
+        source_layout.setContentsMargins(0, 0, 0, 0)
+        source_layout.setSpacing(widget_px(app, 10))
+        source_layout.addWidget(QLabel(app.tr("survey_plan_source")))
+        choices = QHBoxLayout()
+        self.plan_choice = QButtonGroup(self)
+        self.draw_plan_button = QPushButton(app.tr("draw_plan"))
+        self.load_plan_button = QPushButton(app.tr("load_plan"))
+        for button, identity in ((self.draw_plan_button, 0), (self.load_plan_button, 1)):
+            button.setObjectName("appBarToggleButton")
+            button.setCheckable(True)
+            button.setAutoDefault(False)
+            button.setMinimumHeight(widget_px(app, 40))
+            self.plan_choice.addButton(button, identity)
+            choices.addWidget(button, 1)
+        self.draw_plan_button.setChecked(True)
+        source_layout.addLayout(choices)
+        self.plan_source_hint = QLabel()
+        self.plan_source_hint.setWordWrap(True)
+        source_layout.addWidget(self.plan_source_hint)
+        self.plan_file_group = QWidget()
+        file_layout = QHBoxLayout(self.plan_file_group)
+        file_layout.setContentsMargins(0, 0, 0, 0)
+        self.plan_file_edit = QLineEdit()
+        self.plan_file_edit.setReadOnly(True)
+        self.plan_file_edit.setPlaceholderText(app.tr("survey_plan_choose_file"))
+        self.plan_file_edit.setAccessibleName(app.tr("survey_plan_file"))
+        self.plan_file_edit.textChanged.connect(self.update_selection)
+        self.browse_plan_button = QPushButton(app.tr("survey_plan_browse"))
+        self.browse_plan_button.setObjectName("compactButton")
+        self.browse_plan_button.setAutoDefault(False)
+        self.browse_plan_button.clicked.connect(self.browse_plan)
+        file_layout.addWidget(self.plan_file_edit, 1)
+        file_layout.addWidget(self.browse_plan_button)
+        source_layout.addWidget(self.plan_file_group)
+        self.plan_source_group.setVisible(not adapter_only)
+        layout.addWidget(self.plan_source_group)
         self.blank_plan_group = QWidget()
         self.blank_plan_group.setObjectName("blankPlanGroup")
         blank_layout = QVBoxLayout(self.blank_plan_group)
@@ -139,7 +181,25 @@ class SurveySetupDialog(QDialog):
         self.buttons.rejected.connect(self.reject)
         layout.addWidget(self.buttons)
         self.ok_button.setEnabled(False)
+        self.plan_choice.idClicked.connect(self.update_plan_choice)
+        self.update_plan_choice()
         QTimer.singleShot(0, self.refresh_adapters)
+
+    def update_plan_choice(self):
+        drawing = self.draw_plan_button.isChecked()
+        self.blank_plan_group.setVisible(not self.adapter_only and drawing)
+        self.plan_file_group.setVisible(not self.adapter_only and not drawing)
+        self.plan_source_hint.setText(self.app.tr("survey_draw_hint" if drawing else "survey_load_hint"))
+        self.update_selection()
+        self.adjustSize()
+
+    def browse_plan(self):
+        path, _filter = get_centered_open_file_name(self, self.app.tr("select_plan_title"),
+            str(Path(self.plan_file_edit.text()).parent) if self.plan_file_edit.text() else "",
+            self.app.tr("qt_plan_file_filter"))
+        if path:
+            self.plan_file_edit.setText(str(Path(path).absolute()))
+            self.plan_file_edit.setToolTip(self.plan_file_edit.text())
 
     def refresh_adapters(self):
         if self.thread is not None:
@@ -179,7 +239,8 @@ class SurveySetupDialog(QDialog):
         adapter = self.selected_adapter()
         if not hasattr(self, "ok_button"):
             return
-        self.ok_button.setEnabled(bool(adapter and adapter["ready"]))
+        has_source = self.adapter_only or self.draw_plan_button.isChecked() or bool(self.plan_file_edit.text())
+        self.ok_button.setEnabled(bool(adapter and adapter["ready"] and has_source))
         if adapter:
             state = "not_ready" if not adapter["ready"] else "connected" if adapter["connected"] else "disconnected"
             self.details_label.setText(adapter_name(adapter) + " — " + self.app.tr("capture_adapter_" + state)
@@ -231,14 +292,18 @@ class SurveySetupDialog(QDialog):
         result = {"measurement_system": self.units_combo.currentData(),
                   "adapter": {key: adapter.get(key, "") for key in ("id", "name", "description")}}
         if not self.adapter_only:
-            result["grid_spacing_m"] = self.grid_spacing_m
-            result["blank_plan"] = {
-                "width_m": self.blank_dimensions_m[0], "height_m": self.blank_dimensions_m[1]}
+            result["plan_mode"] = DRAW_PLAN if self.draw_plan_button.isChecked() else LOAD_PLAN
+            if result["plan_mode"] == DRAW_PLAN:
+                result["grid_spacing_m"] = self.grid_spacing_m
+                result["blank_plan"] = {
+                    "width_m": self.blank_dimensions_m[0], "height_m": self.blank_dimensions_m[1]}
+            else:
+                result["plan_file"] = self.plan_file_edit.text()
         return result
 
     def accept(self):
         adapter = self.selected_adapter()
-        if adapter and adapter["ready"]:
+        if adapter and adapter["ready"] and self.ok_button.isEnabled():
             self.done(QDialog.DialogCode.Accepted)
 
     def reject(self):

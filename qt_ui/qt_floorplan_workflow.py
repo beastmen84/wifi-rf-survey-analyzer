@@ -30,41 +30,28 @@ from qt_ui.qt_floorplan import (
     format_grid_interval,
 )
 from qt_ui.qt_theme import QT_THEMES
-from qt_ui.qt_windowing import get_centered_open_file_name
 from survey.store import build_boundaries_file_path
 from survey.plan_drawing import PLAN_DRAWING_KEY, encode_drawing, drawing_geometry
 from survey.plan_labels import PLAN_LABELS_KEY, drawing_labels, encode_labels
 from survey.plan_annotations import PLAN_ANNOTATIONS_KEY, drawing_annotations, encode_annotations
 from survey.plan_curves import PLAN_CURVES_KEY, encode_curves
 from survey.plan_layers import PLAN_LAYERS_KEY, visible_layers, read_layers, write_layers
+from survey.plan_mode import PLAN_MODE_KEY, DRAW_PLAN, LOAD_PLAN
 
 
 class FloorplanWorkflowMixin:
-    def load_plan(self):
-        if self.session is None:
-            self.new_survey()
-            if self.session is None:
-                return
-
-        file_path, _selected_filter = get_centered_open_file_name(
-            self,
-            self.tr("select_plan_title"),
-            "",
-            self.tr("qt_plan_file_filter"),
-        )
-        if not file_path:
-            return
-
-        self.load_plan_file(file_path, save_metadata=True)
-
-    def load_default_floorplan(self, width_m=None, height_m=None):
+    def load_default_floorplan(self, width_m=None, height_m=None, *, prepared=None):
         if self.session is None:
             return False
 
         try:
             width_px, height_px, density = blank_floorplan_geometry(self.measurement_system, width_m, height_m)
-            file_path = ensure_default_floorplan(width_px, height_px)
-            self.floorplan_view.load_floorplan(str(file_path))
+            if prepared is None:
+                file_path = ensure_default_floorplan(width_px, height_px)
+                self.floorplan_view.load_floorplan(str(file_path))
+            else:
+                file_path, pixmap = prepared
+                self.floorplan_view.load_floorplan(str(file_path), pixmap=pixmap)
         except Exception as exc:
             QMessageBox.warning(
                 self,
@@ -77,6 +64,7 @@ class FloorplanWorkflowMixin:
         self.session.metadata["map_file"] = os.path.abspath(file_path)
         self.session.metadata[MEASUREMENT_SYSTEM_METADATA_KEY] = self.measurement_system
         self.session.metadata[DEFAULT_FLOORPLAN_METADATA_KEY] = "1"
+        self.session.metadata[PLAN_MODE_KEY] = DRAW_PLAN
         self.session.metadata["px_per_meter"] = f"{density:.12g}"
         self.session.metadata[BLANK_PLAN_WIDTH_KEY] = f"{width_m if width_m is not None else width_px / density:.12g}"
         self.session.metadata[BLANK_PLAN_HEIGHT_KEY] = f"{height_m if height_m is not None else height_px / density:.12g}"
@@ -154,7 +142,7 @@ class FloorplanWorkflowMixin:
             self.tr("map_not_found", path=map_file),
         )
 
-    def load_plan_file(self, file_path, save_metadata=False):
+    def load_plan_file(self, file_path, save_metadata=False, *, prepared_pixmap=None):
         if self.session is None:
             return
 
@@ -162,7 +150,7 @@ class FloorplanWorkflowMixin:
         previous_generated_floorplan = self.current_generated_floorplan_file()
         force_grid_off = False
         try:
-            self.floorplan_view.load_floorplan(file_path)
+            self.floorplan_view.load_floorplan(file_path, pixmap=prepared_pixmap)
         except Exception as exc:
             QMessageBox.warning(
                 self,
@@ -188,6 +176,7 @@ class FloorplanWorkflowMixin:
                 or self.session.metadata.pop(GENERATED_FLOORPLAN_METADATA_KEY, None) is not None
             )
             self.session.update_metadata({"map_file": os.path.abspath(file_path)})
+            self.session.metadata[PLAN_MODE_KEY] = LOAD_PLAN
             if was_generated_floorplan:
                 self.session.metadata.pop("px_per_meter", None)
                 self.session.dirty = True

@@ -4,7 +4,7 @@ from PySide6.QtCore import QEvent, QPoint, QRect, QSize, Qt, QTimer
 from PySide6.QtGui import QColor, QIcon, QPixmap, QShortcut, QKeySequence, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
-from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
+from survey.plan_mode import is_drawn_plan
 from qt_ui.qt_theme import QT_THEMES
 from qt_ui.qt_rectangle_design import RectangleDesignController
 from survey.plan_objects import FREE_ANNOTATIONS, object_is_round
@@ -121,8 +121,7 @@ class PlanToolsOverlay(QFrame):
         session = self.owner.session
         return bool(session and not self.drawing_error and self.owner.get_px_per_meter()
                     and self.owner.floorplan_view.has_floorplan() and
-                    any(session.metadata.get(key) == "1" for key in
-                        (DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY)))
+                    is_drawn_plan(session.metadata))
 
     def sync(self):
         self.drawing_error = False

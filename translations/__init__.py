@@ -25,6 +25,7 @@ from translations.blank_plan import dictionary as blank_plan_dictionary
 from translations.annotations import dictionary as annotation_dictionary
 from translations.objects import dictionary as objects_dictionary
 from translations.layers import dictionary as layers_dictionary
+from translations.plan_source import dictionary as plan_source_dictionary
 for _language, _dictionary in TRANSLATIONS.items():
     _dictionary.update(advisor_dictionary(_language))
     _dictionary.update(report_dictionary(_language))
@@ -34,6 +35,7 @@ for _language, _dictionary in TRANSLATIONS.items():
     _dictionary.update(annotation_dictionary(_language))
     _dictionary.update(objects_dictionary(_language))
     _dictionary.update(layers_dictionary(_language))
+    _dictionary.update(plan_source_dictionary(_language))
     _dictionary["blank_plan_help"] += " " + _dictionary["annotation_help"]
     _dictionary["blank_plan_help"] += " " + _dictionary["drawing_precision_help"]
     _dictionary["blank_plan_help"] += " " + _dictionary["objects_help"]

@@ -22,6 +22,36 @@ interpolated colors.
 
 Current status:
 
+- New Survey chooses Draw Plan or Load Plan, alongside units/receiver. The former
+  owns configurable sheet/grid dimensions, automatic scale, Design Mode and the
+  separate Layers column; the latter owns initial image/PDF selection followed by
+  calibration. Loaded plans hide both editor controls and Layers, including the
+  collapsed gutter. Manual Boundaries, RF capture/analysis and print/export stay
+  common; Fill/Auto Fill from drawing geometry remains Draw Plan only. Project's
+  Load Plan button and its interactive workflow were removed: changing plan origin
+  requires another survey. Low-level loading remains for session restoration.
+- Optional plan_mode=draw/load records origin. is_drawn_plan also requires the
+  existing generated-sheet flags; old files infer origin from those flags without
+  rewriting on read. Native controller and layer mutation guards enforce read-only
+  imported plans, not just hidden buttons. Imported surveys with legacy layer
+  metadata retain that content for rendering/roundtrip but expose no editor.
+- New-survey setup decodes image/PDF once before publishing a session or changing
+  unit preferences. The validated QPixmap is handed to FloorplanView rather than
+  decoded again after replacement. Missing/corrupt/empty input and invalid blank
+  dimensions preserve current session, scene, units and history; failed settings
+  saves preserve them too. Setup toggles retain unfinished dimensions/file choice;
+  Load Plan cannot be created without a source. Adapter-only legacy prompts never
+  ask for plan origin. Nested file pickers inherit setup theme/UI scale. Source
+  QA covers both choices in48 EN/IT/FR/ES x light/dark x100/125/175 combinations,
+  including workspace gutter removal and returning to Draw Plan. Help/start
+  workflow and README describe the initial-only choice. No dependency/version or
+  executable change is implied.
+- Source-origin validation:1854 full-suite tests +479 subtests passed215.82s,
+  exit0.15 new origin regressions cover initial image/PDF decoding, fixed menu,
+  hidden controls/gutter, manual masks, invalid/cancelled setup, unit-save failure,
+  nested picker theme and modern/legacy calibrated save/reopen. Essential Ruff,
+  compileall and diff whitespace checks pass. Physical-device printing, cursor
+  interaction and packaged EXE are outside these source checks.
 - Drawing layers are implemented in survey/plan_layers.py (optional JSON v1
   plan_layers). Stable IDs, up to32 layers, unique display names, base0 always
   visible/nondeletable, visible/locked flags, active ID and bottom-to-top geometry
@@ -29,7 +59,7 @@ Current status:
   500 labels,5k curves,1k annotations and bounded path totals. Old metadata is
   interpreted as Layer0 without rewriting on read; legacy drawing keys always
   mirror0, never the active layer. New/transfer operations preserve hidden content.
-- qt_layers owns the separate right Survey column, collapsed44/expanded290spx;
+- qt_layers owns the separate right Draw Plan Survey column, collapsed44/expanded290spx;
   it reserves layout space and remains available outside Design Mode. Native tree
   signals defer rebuilding their items to a child single-shot timer. Layer flags,
   order, names, creation/deletion and transfer join drawing undo/redo; header

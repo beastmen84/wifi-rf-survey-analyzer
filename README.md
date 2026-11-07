@@ -61,17 +61,23 @@ from these software checks.
   small text and fine lines; A3 at 600 DPI is **7016 × 9921 px**. Imported bitmap
   detail depends on the source image. A 150-megapixel page limit supports 600 DPI
   through A2; A1/A0 use up to 300 DPI, with the limit explained in the dialog.
-- New surveys start with a generated, pre-scaled blank plan and grid for
-  use when no real floor plan is available. Starting from the app start
-  page asks for metric or imperial units, the Wi-Fi adapter and blank-sheet width
-  and height before creating the scale. Starting a new survey while another is
+- New Survey asks for **Draw Plan** or **Load Plan**, metric/imperial units and
+  the Wi-Fi adapter. **Draw Plan** creates a gridded sheet with configurable
+  dimensions and an automatic scale; Design Mode and Layers are available.
+  **Load Plan** uses an image/PDF selected during setup and requires scale
+  calibration; Design Mode and Layers are hidden and leave the full map width.
+  Manual Boundaries, measurements, Live Map, Analysis and clean print/export
+  remain available in both modes. The plan source is fixed for the survey:
+  Project has no Load Plan action; create another survey to use a different plan.
+  Canceling setup/file selection or failing to decode a file preserves the current
+  survey. Existing projects retain their source on reopening.
+  Starting a new survey while another is
   open first asks to save the current survey, discard changes, or cancel.
   The grid overlay shows the current square size directly on the map.
 - Blank sheets start at **35 × 25 m** or **115 × 81 ft**, depending on the units.
   After customizing the dimensions, switching m/ft converts the same physical size.
   Blank-sheet dimensions are preserved with
-  the generated PNG on save/reopen. Loading an external floor plan replaces the
-  sheet and uses that plan's calibration. The blank sheet has a bottom-left
+  the generated PNG on save/reopen. The blank sheet has a bottom-left
   Design Mode toolbar for rectangles: right-drag shows live m/ft
   dimensions; a right-click opens exact dimensions, followed by another
   right-click to place the preview. Left-drag pans even when the whole sheet is
@@ -98,7 +104,7 @@ from these software checks.
   the eraser restores its normal grid; undo restores the closed appearance.
   This grid styling stays in the survey view and is not baked into exported maps.
   The shapes are visual plan geometry; RF findings still use measured data.
-- **Layers** is a collapsible column at the right of Survey, available even with
+- **Layers** is a collapsible column at the right of a Draw Plan Survey, available even with
   Design Mode closed. It reserves its own space beside the plan. Existing drawings
   belong to **Layer 0**, which can be renamed and locked but stays visible and
   cannot be deleted. Add up to 32 layers, rename them, toggle visibility/locking,
@@ -290,11 +296,10 @@ from these software checks.
 ## Main Workflow
 
 1. Start a new survey or open an existing survey CSV.
-2. Choose metric or imperial units, a Wi-Fi adapter and the blank-sheet dimensions
-   in the New Survey dialog,
-   then load a floor plan image/PDF or keep the
-   generated scaled blank plan.
-3. Calibrate scale when real-world distances matter.
+2. Choose units, Wi-Fi adapter and **Draw Plan / Load Plan** in New Survey.
+   Draw Plan asks for sheet/grid dimensions; Load Plan asks for an image/PDF.
+3. Calibrate the imported plan before using real-world distances. Draw Plan
+   already has its scale from the sheet dimensions.
 4. Place measurement points on the floor plan, roughly every 2-3 m for
    precise surveys when the space allows.
 5. Hold the device still during the short preparation and five guided scans.

@@ -36,6 +36,7 @@ from survey.plan_layers import (PLAN_LAYERS_KEY, STATE_KEYS, read_layers, active
 from qt_ui.qt_clean_plan import VectorPlanSource
 from qt_ui.qt_plan_region_selection import RegionPicker
 from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
+from survey.plan_mode import is_drawn_plan
 
 
 class RectanglePreview(QGraphicsPathItem):
@@ -221,7 +222,8 @@ class RectangleDesignController(QObject):
 
     def editable(self):
         try:
-            return self.owner.session is not None and editable_layer(self.layer_document())
+            return (self.owner.session is not None and is_drawn_plan(self.owner.session.metadata)
+                    and editable_layer(self.layer_document()))
         except (ValueError, TypeError, KeyError):
             return False
 
