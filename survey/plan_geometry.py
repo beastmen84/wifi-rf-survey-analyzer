@@ -3,6 +3,7 @@ from bisect import bisect_left, bisect_right, insort
 from collections import defaultdict
 import math
 from survey.planar_geometry import cross, EPSILON, split_general_segments
+from survey.wall_properties import wall_style
 
 
 def split_segments(segments, with_sources=False, limit=40000):
@@ -94,7 +95,7 @@ def split_segments(segments, with_sources=False, limit=40000):
         horizontal, coordinate, _, _ = key
         values = sorted(cuts[key], reverse=(line["x1"] > line["x2"] if horizontal else line["y1"] > line["y2"]))
         for low, high in zip(values, values[1:]):
-            result.append(dict(x1=low if horizontal else coordinate, y1=coordinate if horizontal else low,
+            result.append(dict(line, x1=low if horizontal else coordinate, y1=coordinate if horizontal else low,
                                x2=high if horizontal else coordinate, y2=coordinate if horizontal else high,
                                color=line["color"]))
             sources.append(origins[index])
@@ -111,14 +112,28 @@ def join_segments(segments, with_sources=False, protected=()):
     unique, origins, by_stroke = [], [], {}
     for index, line in enumerate(segments):
         start, end = (line["x1"], line["y1"]), (line["x2"], line["y2"])
-        key = (*sorted((start, end)), line["color"])
+        key = (*sorted((start, end)), line["color"], wall_style(line))
         if key in by_stroke:
             origins[by_stroke[key]].add(index)
         else:
             by_stroke[key] = len(unique)
             unique.append(line)
             origins.append({index})
-    segments = unique
+    # A newly drawn unstyled duplicate must not erase a physical face. Absorb
+    # it only if exactly one physical style exists on that same colored edge.
+    geometry_groups = defaultdict(list)
+    for index, line in enumerate(unique):
+        geometry_groups[(*sorted(((line["x1"], line["y1"]), (line["x2"], line["y2"]))), line["color"])].append(index)
+    removed = set()
+    for indices in geometry_groups.values():
+        styled = [i for i in indices if unique[i].get("wall")]
+        thin = [i for i in indices if not unique[i].get("wall")]
+        if len(styled) == 1:
+            for index in thin:
+                origins[styled[0]].update(origins[index])
+                removed.add(index)
+    segments = [line for i, line in enumerate(unique) if i not in removed]
+    origins = [source for i, source in enumerate(origins) if i not in removed]
     endpoints = defaultdict(list)
     parents = list(range(len(segments)))
     for index, line in enumerate(segments):
@@ -136,7 +151,7 @@ def join_segments(segments, with_sources=False, protected=()):
             continue
         first, second = incident
         a, b = segments[first], segments[second]
-        if a["color"] != b["color"]:
+        if a["color"] != b["color"] or wall_style(a) != wall_style(b):
             continue
         vectors = []
         for item in (a, b):
@@ -170,8 +185,18 @@ def join_segments(segments, with_sources=False, protected=()):
 def normalize_segments(segments, with_sources=False, limit=40000):
     """Rebuild current cuts, then join straight continuations without branches."""
     pieces, origins = split_segments(segments, with_sources=True, limit=limit)
-    joined, groups = join_segments(pieces, with_sources=True)
-    sources = [frozenset(origins[index] for index in group) for group in groups]
+    origins = [frozenset((i,)) for i in origins]
+    if any(p.get("wall") for p in pieces):
+        # Remove obsolete paired-face cuts before rebuilding actual wall joints.
+        pieces, groups = join_segments(pieces, with_sources=True)
+        origins = [frozenset().union(*(origins[i] for i in group)) for group in groups]
+    from survey.wall_editing import split_faces
+    pieces, parents, protected = split_faces(pieces)
+    origins = [origins[i] for i in parents]
+    if len(pieces) > limit:
+        raise ValueError("wall_complexity")
+    joined, groups = join_segments(pieces, with_sources=True, protected=protected)
+    sources = [frozenset().union(*(origins[index] for index in group)) for group in groups]
     return (joined, sources) if with_sources else joined
 
 

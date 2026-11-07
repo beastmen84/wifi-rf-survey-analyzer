@@ -23,7 +23,11 @@ def validate_segments(segments):
         color = str(segment["color"])
         if not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
             raise ValueError("Invalid plan stroke color")
-        result.append(dict(coordinates, color=color.lower()))
+        item = dict(coordinates, color=color.lower())
+        if "wall" in segment:
+            from survey.wall_properties import validated_wall
+            item["wall"] = validated_wall(segment["wall"])
+        result.append(item)
     return result
 
 
@@ -37,7 +41,7 @@ def drawing_geometry(metadata):
     if not generated or PLAN_DRAWING_KEY not in metadata:
         return None, []
     document = json.loads(metadata[PLAN_DRAWING_KEY])
-    if not isinstance(document, dict) or document.get("version") != 1:
+    if not isinstance(document, dict) or document.get("version") not in (1, 2):
         raise ValueError("Unsupported plan drawing")
     from survey.plan_curves import drawing_curves
     from survey.plan_curve_geometry import normalize_plan
@@ -47,7 +51,7 @@ def drawing_geometry(metadata):
 def encode_drawing(segments, curves=None):
     from survey.plan_curve_geometry import normalize_plan
     lines, _ = normalize_plan(validate_segments(segments), curves or [])
-    return json.dumps(dict(version=1, segments=lines), separators=(",", ":"))
+    return json.dumps(dict(version=2 if any(line.get("wall") for line in lines) else 1, segments=lines), separators=(",", ":"))
 
 
 def rectangle_segments(x, y, width, height, color):
@@ -62,6 +66,10 @@ def render_plan_drawing(image, segments, labels=None, curves=None, annotations=N
     if layers is not None:
         from survey.plan_layer_rendering import render_layers
         return render_layers(image, layers)
+    if any(shape.get("wall") for shape in [*(segments or []), *(curves or [])]):
+        from survey.plan_layer_rendering import render_layers
+        return render_layers(image, dict(generated=True, layers=[dict(drawing=dict(
+            segments=segments or [], curves=curves or [], labels=labels or [], annotations=annotations or []))]))
     if segments is None and not labels and not curves and not annotations:
         return image
     # Generated PNGs may contain an older baked drawing. Rebuild from vectors,

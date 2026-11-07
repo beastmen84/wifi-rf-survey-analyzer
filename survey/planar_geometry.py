@@ -108,7 +108,7 @@ def split_general_segments(segments, with_sources=False, limit=40000):
         dx, dy = end[0] - start[0], end[1] - start[1]
         points = sorted(cuts[key], key=lambda point: (point[0] - start[0]) * dx + (point[1] - start[1]) * dy)
         for a, b in zip(points, points[1:]):
-            result.append(dict(x1=a[0], y1=a[1], x2=b[0], y2=b[1], color=line["color"]))
+            result.append(dict(line, x1=a[0], y1=a[1], x2=b[0], y2=b[1]))
             sources.append(index)
     return (result, sources) if with_sources else result
 

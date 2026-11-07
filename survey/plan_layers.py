@@ -42,7 +42,7 @@ def validate_state(state):
 
 
 def validate_document(document):
-    if not isinstance(document, dict) or document.get("version") != 1:
+    if not isinstance(document, dict) or document.get("version") not in (1, 2):
         raise ValueError("Unsupported layer document")
     layers = document.get("layers")
     if not isinstance(layers, list) or not 1 <= len(layers) <= MAX_LAYERS:
@@ -75,7 +75,8 @@ def validate_document(document):
         raise ValueError("Layer document exceeds drawing limits")
     from survey.plan_symbols import validate_symbols
     validate_symbols(dict(layers=result))
-    return dict(version=1, active=document["active"], layers=result)
+    physical = any(s.get("wall") for layer in result for s in [*(layer["drawing"]["segments"] or []), *layer["drawing"]["curves"]])
+    return dict(version=2 if physical else 1, active=document["active"], layers=result)
 
 
 def read_layers(metadata):

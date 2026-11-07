@@ -6,6 +6,7 @@ from survey.plan_curves import (EPS, TAU, curve_bounds, curve_info, parameter_at
                                 subcurve, arc_sagitta)
 from survey.plan_geometry import join_segments, normalize_segments
 from survey.planar_geometry import PointRegistry, point_projection
+from survey.wall_properties import wall_style, copy_wall
 
 
 def line_curve_intersections(line, curve):
@@ -139,7 +140,8 @@ def join_curves(curves, lines, origins):
         if len(items) != 2 or any(kind != "curve" for kind, _index in items):
             continue
         first, second = (item[1] for item in items)
-        if first == second or curves[first]["color"] != curves[second]["color"] or not same_circle(curves[first], curves[second]):
+        if (first == second or curves[first]["color"] != curves[second]["color"]
+                or wall_style(curves[first]) != wall_style(curves[second]) or not same_circle(curves[first], curves[second])):
             continue
         vectors = []
         for index in (first, second):
@@ -168,8 +170,8 @@ def join_curves(curves, lines, origins):
             boundary = [point for point, count in counts.items() if count == 1]
             if abs(total - TAU) < 1e-7:
                 anchor = next((point for point in counts if len(incidence[point]) != 2), endpoints[indices[0]][0])
-                result.append(dict(kind="circle", cx=cx, cy=cy, radius=radius,
-                                   phase=math.degrees(math.atan2(anchor[1] - cy, anchor[0] - cx)) % 360, color=reference["color"]))
+                result.append(copy_wall(reference, dict(kind="circle", cx=cx, cy=cy, radius=radius,
+                    phase=math.degrees(math.atan2(anchor[1] - cy, anchor[0] - cx)) % 360, color=reference["color"]), direction < 0))
             elif len(boundary) == 2 and total < TAU:
                 a, b = boundary
                 angle_a, angle_b = math.atan2(a[1] - cy, a[0] - cx), math.atan2(b[1] - cy, b[0] - cx)
@@ -177,8 +179,8 @@ def join_curves(curves, lines, origins):
                 if abs(span - total) > 1e-7:
                     a, b = b, a
                 signed = math.copysign(total, direction)
-                result.append(dict(kind="arc", x1=a[0], y1=a[1], x2=b[0], y2=b[1],
-                                   height=arc_sagitta(a, b, radius, signed), color=reference["color"]))
+                result.append(copy_wall(reference, dict(kind="arc", x1=a[0], y1=a[1], x2=b[0], y2=b[1],
+                                   height=arc_sagitta(a, b, radius, signed), color=reference["color"])))
             else:
                 for index in indices:
                     result.append(curves[index])
@@ -248,7 +250,7 @@ def normalize_plan(lines, curves, with_sources=False):
         ordered = sorted(mapping.items())
         for (_t, a), (_u, b) in zip(ordered, ordered[1:]):
             if math.dist(a, b) > EPS:
-                split_lines.append(dict(x1=a[0], y1=a[1], x2=b[0], y2=b[1], color=lines[index]["color"]))
+                split_lines.append(dict(lines[index], x1=a[0], y1=a[1], x2=b[0], y2=b[1]))
                 split_origins.append(line_origins[index])
     pieces, origins = [], []
     for index, (curve, mapping) in enumerate(zip(curves, curve_cuts)):
@@ -265,6 +267,13 @@ def normalize_plan(lines, curves, with_sources=False):
                 pieces.append(subcurve(curve, low, high, a, b))
                 origins.append(frozenset((index,)))
     protected = {registry(point_at(curve, t)) for curve in pieces for t in (0, 1)}
+    from survey.wall_editing import split_faces
+    if any(line.get("wall") for line in split_lines):
+        split_lines, groups = join_segments(split_lines, with_sources=True, protected=protected)
+        split_origins = [frozenset().union(*(split_origins[i] for i in group)) for group in groups]
+    split_lines, parents, wall_protected = split_faces(split_lines)
+    split_origins = [split_origins[i] for i in parents]
+    protected.update(wall_protected)
     result_lines, joins = join_segments(split_lines, with_sources=True, protected=protected)
     line_sources = [frozenset().union(*(split_origins[index] for index in group)) for group in joins]
     result_curves, curve_sources = join_curves(pieces, result_lines, origins)

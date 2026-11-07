@@ -67,7 +67,8 @@ class PlanEraserController:
         # A constant screen-space margin plus the visible stroke's half width.
         index = nearest_segment(self.lines, point.x(), point.y(),
                                 widget_px(self.owner, 6) / zoom + 1)
-        return () if index is None else (index,)
+        from survey.wall_editing import paired_lines
+        return () if index is None else paired_lines(self.lines, index)
 
     def pick_curves(self, point):
         zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
@@ -85,6 +86,12 @@ class PlanEraserController:
             self.highlights = []
             self.targets = targets
             path = QPainterPath()
+            if targets:
+                from survey.wall_geometry import wall_solids
+                chosen_lines = [self.lines[i] for i in targets if i < len(self.lines)]
+                chosen_curves = [self.drawing.curves()[i-len(self.lines)] for i in targets if i >= len(self.lines)]
+                for _color, body in wall_solids(chosen_lines, chosen_curves):
+                    path.addPath(body)
             for index in targets:
                 if index >= len(self.lines):
                     path.addPath(curve_path(self.drawing.curves()[index - len(self.lines)]))
@@ -165,6 +172,7 @@ class PlanEraserController:
         curves = self.drawing.curves()
         self.cancel()
         if targets:
-            self.drawing.apply_edit([line for index, line in enumerate(lines) if index not in targets],
+            from survey.wall_editing import remove_wall_faces
+            self.drawing.apply_edit(remove_wall_faces(lines, targets),
                 curves=[curve for index, curve in enumerate(curves) if len(lines) + index not in targets])
         return True

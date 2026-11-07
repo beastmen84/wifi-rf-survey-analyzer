@@ -114,7 +114,19 @@ def curve_gaps(item, vertices, curve):
 
 class ClearanceIndex:
     """Committed primitive boxes; at most one nearest quote per principal axis."""
-    def __init__(self, lines=(), curves=()):
+    def __init__(self, lines=(), curves=(), annotations=()):
+        self.wall_bodies = []
+        if any(s.get("wall") for s in [*lines, *curves]):
+            from survey.wall_geometry import wall_solids
+            self.wall_bodies = [p for _c, p in wall_solids(lines, curves, annotations)]
+            outlines = []
+            for path in self.wall_bodies:
+                for poly in path.toSubpathPolygons():
+                    points = [(p.x(), p.y()) for p in poly]
+                    outlines.extend(dict(x1=a[0], y1=a[1], x2=b[0], y2=b[1])
+                        for a, b in zip(points, points[1:]+points[:1]) if math.dist(a, b) > EPS)
+            lines = [l for l in lines if not l.get("wall")] + outlines
+            curves = [c for c in curves if not c.get("wall")]
         self.records = [(False, line, (min(line["x1"], line["x2"]), min(line["y1"], line["y2"]),
                         max(line["x1"], line["x2"]), max(line["y1"], line["y2"]))) for line in lines]
         self.records += [(True, curve, curve_bounds(curve)) for curve in curves]
@@ -127,6 +139,12 @@ class ClearanceIndex:
         vertices = object_vertices(item)
         box = (min(p[0] for p in vertices), min(p[1] for p in vertices), max(p[0] for p in vertices), max(p[1] for p in vertices))
         center = (item["cx"], item["cy"])
+        if self.wall_bodies:
+            from PySide6.QtCore import QPointF
+            if any(path.contains(QPointF(*center)) for path in self.wall_bodies):
+                result = (Clearance("left", 0, center, center, True),)
+                self.last_key, self.last_result = key, result
+                return result
         radius = max(math.dist(center, p) for p in vertices)
         candidates = []
         for index, (curved, primitive, bounds) in enumerate(self.records):

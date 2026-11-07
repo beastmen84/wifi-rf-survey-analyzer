@@ -123,6 +123,27 @@ from these software checks.
   Structural intersections, joins and closed rooms are calculated separately for
   each layer. Desks, symbols, markers and text can use visible walls in other
   layers as reference snap targets; desk/symbol distances also use those walls.
+- **Wall thickness** is available in Draw Plan: select structural segments/curves,
+  then use the wall icon in Design Mode. It adds physical geometry outside the
+  internal measurement faces. Review the focused preview, fixed room and room
+  translations before applying. Shared straight dividers separate room interiors
+  without resizing them; contained annotations and AP symbols follow their room.
+  Numbers in this preview identify rooms only and are not added to the plan.
+  Open segments require an explicit left/right side. Zero removes thickness and
+  closes a recognized divider gap when the room constraints allow it.
+  Compatible shared faces are cut/picked together; deleting a divider rebuilds
+  its jambs or continuing perimeter. Physical bounds, apertures, move/rotation,
+  undo/redo, layers, saved plans and print/JPEG/HTML rendering share the same solids.
+  Object clearances use physical faces. Existing depth is preserved exactly when
+  merely reviewing properties, including when feet are rounded for display.
+  Room separation must precede RF captures/manual masks; coordinate-only AP
+  placements must first be converted to drawing symbols. Conflicting loops,
+  shared curved dividers, ambiguous contents, collisions and sheet overflow are
+  explained and rejected. Individual circles/arcs and concave perimeters support
+  outward thickness. The reported area remains the closed internal-boundary area,
+  rather than a net furniture/open-partition calculation. Thickness does not
+  assign a material or RF attenuation. Plans using thickness require a reader
+  supporting drawing/layer format 2; legacy unthickened drawings retain format 1.
   These references do not join or edit the other layer's structure. Explicit
   Boundaries Fill/Auto Fill uses the active layer's closed rooms; the resulting
   RF mask remains independent of layer visibility. Survey points and operational
@@ -724,8 +745,7 @@ Historical beta ZIPs may still use the older artifact stem:
 
 Possible future product areas:
 
-- Physical wall thickness/materials, subject to a room model preserving internal
-  dimensions and shared-wall relationships.
+- Physical wall materials and RF modeling, subject to validated physical properties.
 - Broader recommendation rules validated against additional real surveys.
 - Combined survey report across multiple live-map views.
 - Deeper AP metadata diagnostics where rules are clear.

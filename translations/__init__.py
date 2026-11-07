@@ -27,6 +27,7 @@ from translations.objects import dictionary as objects_dictionary
 from translations.layers import dictionary as layers_dictionary
 from translations.plan_source import dictionary as plan_source_dictionary
 from translations.network_symbols import dictionary as network_symbols_dictionary
+from translations.walls import dictionary as walls_dictionary
 for _language, _dictionary in TRANSLATIONS.items():
     _dictionary.update(advisor_dictionary(_language))
     _dictionary.update(report_dictionary(_language))
@@ -38,10 +39,12 @@ for _language, _dictionary in TRANSLATIONS.items():
     _dictionary.update(layers_dictionary(_language))
     _dictionary.update(plan_source_dictionary(_language))
     _dictionary.update(network_symbols_dictionary(_language))
+    _dictionary.update(walls_dictionary(_language))
     _dictionary["blank_plan_help"] += " " + _dictionary["annotation_help"]
     _dictionary["blank_plan_help"] += " " + _dictionary["drawing_precision_help"]
     _dictionary["blank_plan_help"] += " " + _dictionary["axis_opening_help"]
     _dictionary["blank_plan_help"] += " " + _dictionary["network_symbols_help"]
+    _dictionary["blank_plan_help"] += " " + _dictionary["wall_help"]
     _dictionary["blank_plan_help"] += " " + _dictionary["objects_help"]
     _dictionary["blank_plan_help"] += " " + _dictionary["plan_precision_help"]
     _dictionary["print_plan_help"] += " " + _dictionary["print_scale_help"]

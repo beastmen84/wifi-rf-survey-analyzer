@@ -64,6 +64,9 @@ def validate_curves(curves):
         if not re.fullmatch(r"#[0-9a-fA-F]{6}", color) or any(not math.isfinite(curve[key]) for key in keys):
             raise ValueError("Invalid curve data")
         curve["color"] = color.lower()
+        if "wall" in source:
+            from survey.wall_properties import validated_wall
+            curve["wall"] = validated_wall(source["wall"])
         if kind == "circle":
             phase = float(source.get("phase", 0))
             if not math.isfinite(phase) or not 0 < curve["radius"] <= 100000:
@@ -89,13 +92,14 @@ def drawing_curves(metadata):
     if PLAN_CURVES_KEY not in metadata:
         return []
     document = json.loads(metadata[PLAN_CURVES_KEY])
-    if not isinstance(document, dict) or document.get("version") != 1:
+    if not isinstance(document, dict) or document.get("version") not in (1, 2):
         raise ValueError("Unsupported curve document")
     return validate_curves(document.get("curves"))
 
 
 def encode_curves(curves):
-    return json.dumps(dict(version=1, curves=validate_curves(curves)), separators=(",", ":"))
+    curves = validate_curves(curves)
+    return json.dumps(dict(version=2 if any(c.get("wall") for c in curves) else 1, curves=curves), separators=(",", ":"))
 
 
 def point_at(curve, fraction):
@@ -201,9 +205,12 @@ def subcurve(curve, low, high, first=None, last=None):
     a, b = first or point_at(curve, low), last or point_at(curve, high)
     span = sweep * (high - low)
     if abs(abs(span) - TAU) < 1e-9:
-        return dict(kind="circle", cx=cx, cy=cy, radius=radius, phase=math.degrees(start + sweep * low) % 360, color=curve["color"])
+        from survey.wall_properties import copy_wall
+        return copy_wall(curve, dict(kind="circle", cx=cx, cy=cy, radius=radius,
+            phase=math.degrees(start + sweep * low) % 360, color=curve["color"]), sweep < 0)
     height = arc_sagitta(a, b, radius, span)
-    return dict(kind="arc", x1=a[0], y1=a[1], x2=b[0], y2=b[1], height=height, color=curve["color"])
+    from survey.wall_properties import copy_wall
+    return copy_wall(curve, dict(kind="arc", x1=a[0], y1=a[1], x2=b[0], y2=b[1], height=height, color=curve["color"]))
 
 
 def arc_sagitta(a, b, radius, sweep):

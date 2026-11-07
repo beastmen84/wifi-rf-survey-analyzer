@@ -102,6 +102,7 @@ class RectangleDesignController(QObject):
         self.session = self.pixmap = None
         self.document = None
         self.items = []
+        self.wall_items = []
         self.passive_items = []
         self._layer_cache_key, self._layer_cache = None, None
         self.snapper = PlanSnapper()
@@ -111,6 +112,7 @@ class RectangleDesignController(QObject):
         self.snap_bypass = False
         self.axis_lock = False
         self.last_pointer = None
+        self.wall_dialog_open = False
         self.undo_stack, self.redo_stack = [], []
         self.preview = None
         self.pending_angle = 0
@@ -143,7 +145,7 @@ class RectangleDesignController(QObject):
         if source is self.view.viewport() and event.type() == QEvent.Type.Resize:
             self.position_measurement()
         if source is self.owner and event.type() == QEvent.Type.WindowDeactivate and not (
-                self.text.dialog_open or self.curve.dialog_open or self.annotation.dialog_open or getattr(self.owner, "grid_dialog_open", False)):
+                self.text.dialog_open or self.curve.dialog_open or self.annotation.dialog_open or self.wall_dialog_open or getattr(self.owner, "grid_dialog_open", False)):
             self.cancel()
         if event.type() == QEvent.Type.KeyRelease and event.key() == Qt.Key.Key_R and self.rotation.active:
             if not event.isAutoRepeat():
@@ -198,6 +200,7 @@ class RectangleDesignController(QObject):
                 # scene.clear() has already destroyed these C++ graphics items.
                 self.preview = None
                 self.items = []
+                self.wall_items = []
                 self.passive_items = []
                 self.snap_items = []
                 self.rotation.reset_scene()
@@ -273,8 +276,9 @@ class RectangleDesignController(QObject):
         self.curve.cancel()
         self.selection.cancel()
         self.annotation.cancel()
-        for item in self.items:
+        for item in self.items + self.wall_items:
             self.view.scene.removeItem(item)
+        self.wall_items = []
         for item in self.passive_items:
             self.view.scene.removeItem(item)
         self.passive_items = []
@@ -283,6 +287,17 @@ class RectangleDesignController(QObject):
         labels = self.labels()
         curves = self.curves()
         annotations = self.annotations()
+        if any(s.get("wall") for s in [*(lines or []), *curves]):
+            from survey.wall_geometry import wall_commands, validate_wall_bounds
+            validate_wall_bounds(lines or [], curves, self.view.scene.sceneRect())
+            for path, pen, brush in wall_commands(lines or [], curves, annotations):
+                item = QGraphicsPathItem(path)
+                item.setPen(pen)
+                item.setBrush(brush)
+                item.setZValue(4.9)
+                item.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
+                self.view.scene.addItem(item)
+                self.wall_items.append(item)
         bounds = self.view.scene.sceneRect()
         if any(line[key] > extent + 1e-7 for line in lines or []
                for keys, extent in ((('x1', 'x2'), bounds.width()), (('y1', 'y2'), bounds.height())) for key in keys):
@@ -295,7 +310,7 @@ class RectangleDesignController(QObject):
             raise ValueError("Saved annotations have invalid placement")
         self.eraser.set_segments(lines or [])
         self.selection.set_segments(lines or [])
-        self.clearance_index = ClearanceIndex(lines or [], curves)
+        self.clearance_index = ClearanceIndex(lines or [], curves, annotations)
         self.snapper = PlanSnapper(lines or [], curves, region_centers=lambda: self.selection.regions().centers())
         self.regions = closed_drawing_regions(lines or [], curves)
         self.view.set_grid_regions(self.regions.faces)
@@ -337,7 +352,7 @@ class RectangleDesignController(QObject):
                 state = layer["drawing"]
                 z = 7 + rank * .02
                 if layer["id"] == document["active"]:
-                    for group, offset in ((self.items, .001), (self.curve.items, .002),
+                    for group, offset in ((self.wall_items, .0005), (self.items, .001), (self.curve.items, .002),
                                           (self.annotation.items, .006), (self.text.items, .009)):
                         for item in group:
                             item.setZValue(z + offset)
@@ -360,7 +375,8 @@ class RectangleDesignController(QObject):
                     regions = closed_drawing_regions(state["segments"] or [], state["curves"])
                     faces.extend(regions.faces)
                     centers.extend(RegionPicker(state["segments"] or [], state["curves"]).centers())
-            self.clearance_index = ClearanceIndex(reference_lines, reference_curves)
+            self.clearance_index = ClearanceIndex(reference_lines, reference_curves,
+                [a for layer in visible for a in layer["drawing"]["annotations"]])
             self.reference_snapper = PlanSnapper(reference_lines, reference_curves, region_centers=lambda: centers)
             self.view.set_grid_regions(faces)
         self.update_symbol_numbers()
@@ -792,8 +808,9 @@ class RectangleDesignController(QObject):
             document = validate_document(document)
             sequences(self.owner.session.metadata, document)
             VectorPlanSource.from_layers(self.view.pixmap_item.pixmap().size(), document["layers"])
-        except ValueError:
-            self.owner.status.showMessage(self.owner.tr("design_edit_limit"))
+        except ValueError as error:
+            key = str(error)
+            self.owner.status.showMessage(self.owner.tr(key if key.startswith("wall_") else "design_edit_limit"))
             return False
         if dict(segments=segments, labels=labels, curves=curves, annotations=annotations) == {k: previous[k] for k in STATE_KEYS}:
             return False

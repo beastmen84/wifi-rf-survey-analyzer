@@ -66,6 +66,9 @@ class PlanRotationController:
             self.curve_base = transform_curves(s.move_curve_preview if s.moving else s.selected_curve_shapes())
             self.base = self.line_base + labels_geometry(self.label_base) + curves_geometry(self.curve_base)
             position, hide = s.last_pointer, list(s.highlights) + list(d.text.preview_items)
+            for item in d.wall_items:
+                self.dimmed.append((item, item.opacity()))
+                item.setOpacity(.25)
             for index in s.selected:
                 item = d.items[index]
                 self.dimmed.append((item, item.opacity()))
@@ -133,6 +136,14 @@ class PlanRotationController:
         self.clear_items()
         path = QPainterPath()
         visible_lines = rotate_degrees(self.line_base, self.angle, self.pivot) if self.curve_base else self.rotated
+        if any(s.get("wall") for s in [*visible_lines, *rotated_curves]):
+            from survey.wall_geometry import wall_solids, validate_wall_bounds
+            try:
+                validate_wall_bounds(visible_lines, rotated_curves, self.view.scene.sceneRect())
+            except ValueError:
+                self.valid = False
+            for _color, body in wall_solids(visible_lines, rotated_curves):
+                path.addPath(body)
         for line in visible_lines:
             path.moveTo(line["x1"], line["y1"])
             path.lineTo(line["x2"], line["y2"])

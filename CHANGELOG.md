@@ -7,6 +7,22 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Added Draw Plan **Wall thickness** for structural selections, with a focused
+  preview, identified/fixed room, physical m/ft depth and explicit sides for open
+  segments. Internal faces, lengths and analytic room areas are preserved;
+  straight shared dividers can separate connected rooms by rigid translation.
+  Contained annotations/AP symbols follow, while captured RF data/manual masks
+  and unconverted AP positions block coordinate-changing layouts.
+- Physical wall solids share aperture cuts, selection/erasing, move/rotation,
+  layer/export rendering and persistence. Shared faces split at corresponding
+  junctions; deletion removes the physical divider and rebuilds jambs/continuing
+  perimeters. Obsolete cuts rejoin. Existing imperial depths survive unchanged
+  property review. New drawing/curve/layer format 2 protects physical properties
+  from unsupported readers; unthickened legacy plans retain format 1.
+- Wall previews reject incompatible constraints, shared curved dividers, interior
+  collisions, ambiguous spanning annotations, radius collapse, excessive complexity
+  and sheet overflow. Isolated curved walls use stable one-sided offsets, with
+  bounded bevels at acute joins. Thickness does not imply a material or RF loss.
 - Draw Plan Symbols now separates numbered circle/square/diamond/triangle
   markers, Rack/Wi-Fi AP apparatus and generic signs. Stable per-shape numbering
   spans all layers, with fitted upright numbers and readable external badges

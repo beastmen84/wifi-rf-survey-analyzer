@@ -1,0 +1,92 @@
+{
+  "1": {
+    "layout": {
+      "median_ms": 0.9236000187229365,
+      "maximum_ms": 1.0455000156071037
+    },
+    "resize": {
+      "median_ms": 1.1759999906644225,
+      "maximum_ms": 1.2895999825559556
+    },
+    "render_paths": {
+      "median_ms": 0.0990999978967011,
+      "maximum_ms": 1.3861999905202538
+    },
+    "clearance_hover": {
+      "median_ms": 0.20540000696200877,
+      "maximum_ms": 0.4063999804202467
+    }
+  },
+  "4": {
+    "layout": {
+      "median_ms": 4.160500015132129,
+      "maximum_ms": 4.225400014547631
+    },
+    "resize": {
+      "median_ms": 5.538899975363165,
+      "maximum_ms": 5.899300012970343
+    },
+    "render_paths": {
+      "median_ms": 0.40809999336488545,
+      "maximum_ms": 0.4917999904137105
+    },
+    "clearance_hover": {
+      "median_ms": 0.22459999308921397,
+      "maximum_ms": 0.7445999945048243
+    }
+  },
+  "16": {
+    "layout": {
+      "median_ms": 27.71790002589114,
+      "maximum_ms": 31.483200000366196
+    },
+    "resize": {
+      "median_ms": 31.980899977497756,
+      "maximum_ms": 34.37519998988137
+    },
+    "render_paths": {
+      "median_ms": 1.9324999884702265,
+      "maximum_ms": 2.0674999977927655
+    },
+    "clearance_hover": {
+      "median_ms": 0.20704999042209238,
+      "maximum_ms": 0.3349000180605799
+    }
+  },
+  "49": {
+    "layout": {
+      "median_ms": 201.08410000102594,
+      "maximum_ms": 209.95469999616034
+    },
+    "resize": {
+      "median_ms": 252.75089999195188,
+      "maximum_ms": 255.1769999845419
+    },
+    "render_paths": {
+      "median_ms": 8.041499997489154,
+      "maximum_ms": 8.180400007404387
+    },
+    "clearance_hover": {
+      "median_ms": 0.397550014895387,
+      "maximum_ms": 0.6457999988924712
+    }
+  },
+  "100": {
+    "layout": {
+      "median_ms": 629.7432999999728,
+      "maximum_ms": 644.6142000204418
+    },
+    "resize": {
+      "median_ms": 862.2622000111733,
+      "maximum_ms": 871.2368000124115
+    },
+    "render_paths": {
+      "median_ms": 14.922100002877414,
+      "maximum_ms": 16.51259997743182
+    },
+    "clearance_hover": {
+      "median_ms": 0.42970001231878996,
+      "maximum_ms": 0.8598000276833773
+    }
+  }
+}

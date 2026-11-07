@@ -66,7 +66,7 @@ class PlanSelectionController:
         self.drawing.text.clear_preview()
         for item in self.drawing.text.items:
             item.setOpacity(1)
-        for item in self.drawing.items:
+        for item in self.drawing.items + self.drawing.wall_items:
             item.setOpacity(1)
         for item in self.drawing.curve.items:
             item.setOpacity(1)
@@ -99,12 +99,23 @@ class PlanSelectionController:
         if not lines and not labels and not curves:
             return
         path = QPainterPath()
+        physical_valid = True
+        if any(s.get("wall") for s in [*lines, *curves]):
+            from survey.wall_geometry import wall_solids, validate_wall_bounds
+            try:
+                validate_wall_bounds(lines, curves, self.view.scene.sceneRect())
+            except ValueError:
+                physical_valid = False
+            for _color, body in wall_solids(lines, curves):
+                path.addPath(body)
         for line in list(lines) + labels_geometry(labels):
             path.moveTo(line["x1"], line["y1"])
             path.lineTo(line["x2"], line["y2"])
         for curve in curves:
             path.addPath(curve_path(curve))
-        for color, width in ((QColor(14, 165, 233, 85), 8), (QColor("#0284c7"), 2)):
+        colors = ((QColor(14, 165, 233, 85), 8), (QColor("#0284c7"), 2)) if physical_valid else (
+            (QColor(239, 68, 68, 85), 8), (QColor("#ef4444"), 2))
+        for color, width in colors:
             item = QGraphicsPathItem(path)
             pen = QPen(color, widget_px(self.owner, width))
             pen.setCosmetic(True)
@@ -165,12 +176,16 @@ class PlanSelectionController:
             elif count == 1 and self.selected:
                 line = (self.move_preview[0] if self.moving and self.move_preview else self.lines[self.selected[0]])
                 rows.append(self.measure("line_length", math.hypot(line["x2"] - line["x1"], line["y2"] - line["y1"])))
+                if line.get("wall"):
+                    rows.append(self.measure("wall_depth", line["wall"]["width"]))
             elif count == 1 and self.selected_curves:
                 curve = self.move_curve_preview[0] if self.moving and self.move_curve_preview else self.selected_curve_shapes()[0]
                 _cx, _cy, radius, _start, sweep = curve_info(curve)
                 if curve["kind"] == "arc":
                     rows.append(self.measure("selection_arc_length", radius * abs(sweep)))
                 rows.append(self.measure("curve_radius", radius))
+                if curve.get("wall"):
+                    rows.append(self.measure("wall_depth", curve["wall"]["width"]))
                 if curve["kind"] == "arc":
                     rows.append(self.measure("curve_chord", math.hypot(curve["x2"] - curve["x1"], curve["y2"] - curve["y1"])))
                     rows.append(self.measure("curve_sagitta", curve["height"]))
@@ -218,7 +233,10 @@ class PlanSelectionController:
         if not choices:
             return (), ()
         _distance, kind, index = min(choices)
-        return ((index,), ()) if kind else ((), (index,))
+        if kind:
+            from survey.wall_editing import paired_lines
+            return paired_lines(self.lines, index), ()
+        return (), (index,)
 
     def press(self, event):
         self.last_pointer = event.position()
@@ -349,7 +367,8 @@ class PlanSelectionController:
     def delete_selected(self):
         if not self.has_selection() or self.drawing.rotation.active:
             return False
-        segments = [line for index, line in enumerate(self.lines) if index not in self.selected]
+        from survey.wall_editing import remove_wall_faces
+        segments = remove_wall_faces(self.lines, self.selected)
         labels = [label for index, label in enumerate(self.drawing.text.labels) if index not in self.selected_labels]
         curves = [curve for index, curve in enumerate(self.drawing.curves()) if index not in self.selected_curves]
         self.cancel()
@@ -410,6 +429,8 @@ class PlanSelectionController:
                                       [curve for index, curve in enumerate(self.drawing.curves()) if index not in self.selected_curves])
         self.move_snapper.region_centers = lambda: RegionPicker(self.move_snapper.segments, self.move_snapper.curves).centers()
         self.clear_items()
+        for item in self.drawing.wall_items:
+            item.setOpacity(.25)
         for index in self.selected:
             self.drawing.items[index].setOpacity(.25)
         for index in self.selected_labels:

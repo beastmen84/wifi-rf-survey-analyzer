@@ -41,12 +41,16 @@ class PlanToolsOverlay(QFrame):
         self.text_button = owner.create_boundaries_text_button("", "blank_tool_text")
         self.eraser_button = owner.create_boundaries_tool_button("eraser.png", "blank_tool_eraser")
         self.select_button = owner.create_boundaries_text_button("", "blank_tool_select")
+        self.wall_button = owner.create_boundaries_text_button("", "wall_title")
+        from qt_ui.qt_wall_properties import open_wall_properties
+        self.wall_button.clicked.connect(lambda: open_wall_properties(owner))
         self.undo_button = owner.create_boundaries_text_button("", "blank_tool_undo")
         self.redo_button = owner.create_boundaries_text_button("", "blank_tool_redo")
         for button in (self.rectangle_button, self.line_button, self.circle_button, self.arc_button, self.eraser_button, self.select_button):
             button.setEnabled(False)
             row.addWidget(button)
         layout.addLayout(row)
+        row.insertWidget(row.count(), self.wall_button)
         self.annotation_heading = QLabel()
         layout.addWidget(self.annotation_heading)
         annotation_row = QHBoxLayout()
@@ -224,6 +228,11 @@ class PlanToolsOverlay(QFrame):
         self.snap_button.setToolTip(self.owner.tr("drawing_snap_help"))
         self.color_button.setEnabled(self.open and self.active_tool in ("rectangle", "line", "circle", "arc"))
         selection = self.controller.selection
+        self.wall_button.setEnabled(self.open and self.controller.editable() and self.active_tool == "select"
+                                    and not selection.moving and not self.controller.rotation.active
+                                    and bool(selection.selected or selection.selected_curves))
+        self.wall_button.setToolTip(self.owner.tr("wall_title"))
+        self.wall_button.setAccessibleName(self.owner.tr("wall_title"))
         curve_edit = len(selection.selected_curves) == 1 and not (selection.selected or selection.selected_labels)
         self.edit_text_button.setEnabled(self.open and self.active_tool == "select"
                                          and (len(selection.selected_labels) == 1 or curve_edit)
@@ -260,6 +269,7 @@ class PlanToolsOverlay(QFrame):
     def update_tool_icons(self):
         size = self.owner.spx(20)
         for tool, button in (("line", self.line_button), ("select", self.select_button),
+                             ("wall", self.wall_button),
                              ("rectangle", self.rectangle_button), ("eraser", self.eraser_button),
                              ("circle", self.circle_button), ("arc", self.arc_button),
                              ("text", self.text_button), ("edit", self.edit_text_button), *self.annotation_buttons.items()):
@@ -272,7 +282,15 @@ class PlanToolsOverlay(QFrame):
             pen = QPen(color, 1.8)
             pen.setCapStyle(Qt.PenCapStyle.RoundCap)
             painter.setPen(pen)
-            if tool == "rectangle":
+            if tool == "wall":
+                painter.fillRect(4, 4, 16, 16, QColor(QT_THEMES[self.owner.theme]["muted"]))
+                painter.drawRect(4, 4, 16, 16)
+                painter.drawLine(4, 10, 20, 10)
+                painter.drawLine(4, 16, 20, 16)
+                painter.drawLine(12, 4, 12, 10)
+                painter.drawLine(8, 10, 8, 16)
+                painter.drawLine(16, 16, 16, 20)
+            elif tool == "rectangle":
                 painter.drawRect(3, 4, 18, 16)
             elif tool in ("eraser", "annotation_eraser"):
                 path = QPainterPath()

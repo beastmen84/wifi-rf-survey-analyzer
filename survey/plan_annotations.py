@@ -170,6 +170,9 @@ def overlaps(item, others):
 def visible_wall_segments(lines, annotations, with_sources=False):
     """Mask wall ink only; the structural model is never modified."""
     apertures = [a for a in annotations if a["kind"] in HOSTED_ANNOTATIONS]
+    if apertures and any(line.get("wall") for line in lines):
+        from survey.wall_geometry import projected_apertures
+        apertures += projected_apertures(lines, apertures)
     result, sources = [], []
     hosts = [{k: item[k] for k in ("x1", "y1", "x2", "y2")} for item in apertures]
     for index, line in enumerate(lines):

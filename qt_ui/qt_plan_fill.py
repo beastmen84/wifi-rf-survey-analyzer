@@ -43,6 +43,12 @@ def fill_closed_boundaries(owner, point=None):
         if regions.limited:
             raise ValueError("Closed-area detection limited")
         paths = closed_fill_paths(regions.faces)
+        if any(s.get("wall") for s in [*(lines or []), *curves]):
+            from survey.wall_geometry import wall_solids, united
+            # Fill only usable interiors, excluding physical wall islands/gaps.
+            body = united(p for _c, p in wall_solids(lines or [], curves))
+            paths = [path.subtracted(body) for path in paths]
+            paths = [path for path in paths if not path.simplified().isEmpty()]
     except (ValueError, TypeError, KeyError):
         owner.status.showMessage(owner.tr("design_regions_limited"))
         return False

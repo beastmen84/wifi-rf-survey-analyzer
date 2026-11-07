@@ -22,6 +22,50 @@ interpolated colors.
 
 Current status:
 
+- Physical wall thickness is implemented for Draw Plan selections. Optional
+  wall={width:pixel_depth,side:+1/-1} is distinct from decorative pen width.
+  drawing/curves/layers emit format2 only when physical fields are present, accept
+  old format1 and restore it when all thickness is removed. Older unsupported
+  readers cannot silently normalize away the new fields. No dependencies added.
+- wall_layout derives analytic room boundaries from the shared survey.plan_faces
+  RegionPicker (Qt import remains a compatibility shim). Rooms move rigidly;
+  normal-gap equations are hard constraints, fixed anchors remove component
+  gauges, and null-space least squares minimizes tangential drift. Every output
+  room is matched against its translated original path and exact analytic area.
+  Opposite parallel faces at their physical depth identify an existing divider;
+  selected depth propagates across corresponding fragments without mutable IDs.
+- wall_geometry builds one-sided line/circular bands, bounded miter/bevel joins,
+  balanced path unions and full-depth aperture channels. Shallow arc offsets use
+  chord-relative endpoints/tangents. Internal geometry remains analytic; derived
+  cubic/polygon collision comparisons exclude a0.01px display-edge margin only.
+  Closed interiors are never resized to make an inconsistent layout fit.
+- wall_editing rebuilds paired-face cuts after discarding obsolete continuations,
+  preserving source sets through normalization. Stroke selection/eraser recognize
+  the common divider. Removing paired faces adds cross-section jambs or continues
+  compatible collinear outer walls. Thin duplicates cannot erase an existing
+  physical face; incompatible widths/sides/colors do not fuse. Rotation/translation
+  preserve side in the primitive's oriented frame, including negative-sweep arcs.
+- qt_wall_properties snapshots session/document, previews current physical geometry,
+  identifies rooms/fixed anchor and lists exact area/movement in survey units.
+  Accept rechecks spatial-data protection and stale metadata before one history
+  commit. Unedited imperial display rounding never changes stored depth. RF
+  capture/manual masks or coordinate-only AP placements block room separation;
+  zero-motion external offsets remain allowed. Contents with conflicting room
+  motion fail explicitly; bound AP centers reconcile through normal edit history.
+- Native/passive-layer, PNG, Live/HTML, Print/JPEG use the same physical solids.
+  Full-depth door/window channels clear both inner faces; furniture clearances
+  use actual solid boundaries. Fill masks subtract physical material and bounded
+  wall-only faces are excluded from room picking. Limits:200 rooms,2000 thick
+  pieces,4000 input primitives per layout. Shared curved dividers, inconsistent
+  loops, interior collisions, collapsing offsets and sheet overflow are rejected.
+  Material/style and RF attenuation remain deferred. See WALL_THICKNESS_AUDIT_2026_11_07.html.
+- Final wall validation:2068 tests +479 subtests passed160.10s, exit0;118 dedicated
+  cases include54 rotated-grid/width configurations, physical-divider deletion,
+  T fragments, aperture variants, exact imperial review and saved hidden layers.
+  Native wall preview48 configurations passed (4languages x2themes x3scales x2
+  units). Screenshots/export image inspected; report includes synthetic examples.
+  tools/benchmark_walls.py at100 rooms: initial629.7ms, resize862.3ms, render14.9ms,
+  clearance hover0.43ms medians. All performance numbers are local source timings.
 - Draw Plan network symbols and Legend are implemented. plan_symbols validates
   global numbered/AP symbol identity, per-shape number and AP binding uniqueness;
   optional version1 plan_symbol_sequences records monotonic high-water counters.
@@ -378,7 +422,7 @@ Current status:
   opening-side properties are editable; doors support single/double/sliding/frame.
   Marker has independent dashed color/graphical stroke and free/grid gestures.
   Markers/text rotate by quarter-turns in annotation selection; R flips a swing
-  door. Physical wall thickness and RF material modeling stay deferred.
+  door. Physical thickness was added subsequently; RF material modeling stays deferred.
 - Logical segments remain complete for regions/snapping/areas/Fill. Only visible
   collinear wall ink is subtracted at aperture intervals; crossing walls, grid
   and background are untouched. Scene paths retain one item per logical line so
@@ -1735,28 +1779,25 @@ Keep the intermittent native Qt/COM diagnostic open until explained. Package
 validation belongs to an explicitly requested release build; no version bump,
 tag or new executable is implied by the corrections.
 
-### Drawing: Annotations And Deferred Wall Thickness
+### Drawing: Annotations And Physical Walls
 
-Status: marker/door/window annotations and isolated selections implemented;
-physical wall modeling remains deferred.
-The user explicitly deferred physical wall thickness/material modeling pending
-more careful geometric design. Existing editable Text now shares the annotation
-selection with marker/door/window tools.
+Status: annotations and physical thickness implemented. Material/RF attenuation
+remains deferred. Existing editable Text shares annotation selection.
 
-Deferred physical walls:
+Physical wall model:
 
 - Existing room boundary segments represent internal room dimensions, not wall
   centerlines. Thickness must grow outside the internal perimeter while retaining
   each room's shape, dimensions and internal area.
-- Two touching room perimeters currently share a normalized segment. Giving that
+- Two touching room perimeters initially share a normalized segment. Giving that
   wall physical thickness cannot preserve both room positions and internal sizes:
   two 4 m interiors plus a 0.20 m divider occupy 8.20 m, excluding outer walls.
-- A future design must distinguish rooms, their internal boundary faces, and a
-  shared wall with thickness/material. Relative room placement, a chosen fixed
-  room, connected neighbors, loops and conflicting constraints need explicit
-  handling and a preview. Merely widening the drawing stroke or moving individual
-  opposite segments would corrupt the meaning of the existing measurements.
-- Keep physical thickness, material and visual style distinct. Future fusion
+- The implemented preview separates the internal boundary faces of shared
+  straight walls by rigid room translations. The fixed room, connected neighbors,
+  tangential alignment, contents and conflicting loops are handled explicitly.
+  Incompatible shared curves require another geometric design and are refused.
+- Keep physical thickness, material and visual style distinct. Current fusion
+  respects width/physical side/color. Future fusion
   must also respect material/thickness, not just color. Do not infer RF losses
   from these properties as part of the annotation work.
 
@@ -1785,8 +1826,8 @@ Implemented non-structural annotation tools:
   persist on save/reopen and render consistently in PNG, Live Map and HTML.
   Door/window movement stays attached to a valid wall. Markers remain independent.
 - Implemented with common annotation storage/rendering and wall-ink masking.
-  Physical walls remain deferred independently. Curved aperture hosts, physical
-  materials and detailed architectural wall offsets are outside this step.
+  Physical wall offsets were added subsequently. Curved aperture hosts and
+  physical materials remain separate future work.
 
 ### 1. AP Group Manager UX Monitoring
 
@@ -2143,8 +2184,9 @@ Future expansion:
     custom dimensions, rectangles, lines, circles/arcs, text, snapping, fragment
     erasing, selection/transforms, closed-area grid fading and boundary fills.
     Validate the implemented marker/door/window annotations and isolated tool
-    selections in real plans. Physical wall thickness/materials are explicitly
-    deferred pending a room/shared-wall model preserving internal dimensions.
+    selections and physical thickness on real plans. Exercise room separation,
+    fixed anchors, existing RF/mask protection and rejected constraint cases.
+    Physical material/attenuation modeling remains deferred.
     Keep the editor focused on survey-ready plans.
 16. Add richer deployment/reporting outputs.
 

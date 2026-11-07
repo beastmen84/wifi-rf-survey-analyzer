@@ -17,6 +17,12 @@ class VectorPlanSource:
         self._width, self._height = size.width(), size.height()
         self._background = None
         commands = []
+        if any(shape.get("wall") for shape in [*lines, *curves]):
+            from survey.wall_geometry import wall_commands
+            commands.extend(wall_commands(lines, curves, annotations))
+            bounds = QRectF(0, 0, size.width(), size.height()).adjusted(-1e-6, -1e-6, 1e-6, 1e-6)
+            if any(not bounds.contains(path.boundingRect()) for path, _pen, _brush in commands):
+                raise ValueError("wall_outside")
         for line in visible_wall_segments(lines, annotations):
             path = QPainterPath()
             path.moveTo(line["x1"], line["y1"])
