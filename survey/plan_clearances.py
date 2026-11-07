@@ -36,15 +36,15 @@ def segment_pairs(a, b, c, d):
     if not hits:
         pairs = [(p, point_projection(p, c, d)) for p in (a, b)]
         pairs += [(point_projection(p, a, b), p) for p in (c, d)]
-        ux, uy = b[0] - a[0], b[1] - a[1]
-        length = math.hypot(ux, uy)
-        if abs(ux * (d[1] - c[1]) - uy * (d[0] - c[0])) <= EPS * length * math.dist(c, d):
-            ux, uy = ux / length, uy / length
-            low, high = sorted((p[0] - a[0]) * ux + (p[1] - a[1]) * uy for p in (c, d))
-            low, high = max(0, low), min(length, high)
-            if low <= high:
-                p = (a[0] + (low + high) / 2 * ux, a[1] + (low + high) / 2 * uy)
-                pairs.append((p, point_projection(p, c, d)))
+    ux, uy = b[0] - a[0], b[1] - a[1]
+    length = math.hypot(ux, uy)
+    if abs(ux * (d[1] - c[1]) - uy * (d[0] - c[0])) <= EPS * length * math.dist(c, d):
+        ux, uy = ux / length, uy / length
+        low, high = sorted((p[0] - a[0]) * ux + (p[1] - a[1]) * uy for p in (c, d))
+        low, high = max(0, low), min(length, high)
+        if low <= high:
+            p = (a[0] + (low + high) / 2 * ux, a[1] + (low + high) / 2 * uy)
+            pairs.append((p, point_projection(p, c, d)))
     return pairs, hits
 
 
@@ -150,6 +150,13 @@ class ClearanceIndex:
             for a, b in pairs:
                 distance = math.dist(a, b)
                 dx, dy = ((b[i] - a[i]) if distance > EPS else (b[i] - center[i]) for i in (0, 1))
+                if distance <= EPS and not curved and not intersecting:
+                    # A corner contact may be the first equally near point on
+                    # two walls. Classify each by its wall normal, not by that
+                    # shared corner, so both touching directions stay visible.
+                    vx, vy = primitive["x2"] - primitive["x1"], primitive["y2"] - primitive["y1"]
+                    side = (b[0] - center[0]) * -vy + (b[1] - center[1]) * vx
+                    dx, dy = (-vy, vx) if side >= 0 else (vy, -vx)
                 axes = (0, 1) if abs(abs(dx) - abs(dy)) <= EPS else (0,) if abs(dx) > abs(dy) else (1,)
                 for axis in axes:
                     direction = ("right" if dx >= 0 else "left") if axis == 0 else ("below" if dy >= 0 else "above")

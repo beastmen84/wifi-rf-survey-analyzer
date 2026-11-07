@@ -5,7 +5,7 @@ import random
 from unittest.mock import patch
 
 import pytest
-from PySide6.QtCore import QEvent, Qt
+from PySide6.QtCore import QEvent, QPointF, QRectF, Qt
 from PySide6.QtGui import QMouseEvent
 from PySide6.QtTest import QTest
 
@@ -170,3 +170,35 @@ def test_clearance_overlay_placement_move_rotation_zoom_leave_and_history(editor
     d.store([])
     move(d.view, at(app, 500, 350))
     assert not d.dimensions.badge.isVisible()
+
+
+@pytest.mark.parametrize("system", ["metric", "imperial"])
+@pytest.mark.parametrize("zoom", [.5, 1, 2])
+@pytest.mark.parametrize("distance", [0, .01, .39])
+def test_short_clearances_always_have_readable_external_labels(editor, qt_app, system, zoom, distance):
+    app, d = editor
+    app.measurement_system = system
+    d.store(rectangle_segments(200, 150, 500, 350, "#334455"))
+    before, history = deepcopy(app.session.metadata), len(d.undo_stack)
+    d.view.set_zoom(zoom)
+    d.view.centerOn(450, 320)
+    qt_app.processEvents()
+    gap = distance * app.get_px_per_meter()
+    item = obj(cx=200 + gap + 50, cy=150 + gap + 40, width=100, height=80)
+    d.dimensions.update_object(item)
+    quotes = d.dimensions.values["quotes"]
+    assert len(quotes) == 2 and all(q.distance == pytest.approx(gap) for q in quotes)
+    points = [d.view.viewportTransform().map(QPointF(*p)) for p in object_vertices(item)]
+    box = QRectF(QPointF(min(p.x() for p in points), min(p.y() for p in points)),
+                 QPointF(max(p.x() for p in points), max(p.y() for p in points)))
+    labels = []
+    for text in d.dimensions.text_items:
+        assert text.isVisible() and text.toPlainText() == d.dimensions.number(gap)
+        actual = text.deviceTransform(d.view.viewportTransform()).mapRect(text.boundingRect())
+        assert not actual.intersects(box)
+        assert d.view.viewport().rect().contains(actual.toAlignedRect())
+        assert not any(actual.intersects(other) for other in labels)
+        labels.append(actual)
+    assert app.session.metadata == before and len(d.undo_stack) == history
+    d.dimensions.hide()
+    assert all(not text.isVisible() for text in d.dimensions.text_items)

@@ -22,6 +22,17 @@ interpolated colors.
 
 Current status:
 
+- Short-clearance labels no longer disappear when the gap's device-space length
+  is too short. qt_plan_dimensions selects an external device-size callout with a
+  scene-space leader, minimizing overlap with the object, other labels and fixed
+  viewport controls. Contact/zero also remains labeled. Existing paths/text pools,
+  analytic distances, metadata/history and clean export exclusion are unchanged.
+  Clearance contact anchors include collinear overlap midpoints; zero-distance
+  straight-wall directions use wall normals so shared corners do not hide a
+  second flush contact. Verification:154 targeted clearance/precision/object tests
+  passed22.43s, including18 new cases (0/1/39cm x3 zoom levels x m/ft). Native light/
+  dark100/175 snapshots inspected with0.01m/0.39m quotes. No full-suite rerun for
+  this focused visual/contact correction; prior high-detail full run remains1789.
 - Higher-quality plan output:qt_clean_plan.VectorPlanSource snapshots portable
   QPainterPaths/pens/brushes after the existing full drawing validation. It paints
   visible wall segments, analytic curve paths, annotation parts and glyphs at the
@@ -1576,6 +1587,26 @@ Implemented:
   Survey Quality before AP Groups.
 
 ## Remaining Work
+
+### Proposed drawing layers (discussion, not implemented)
+
+- User proposes renameable always-visible Layer0, addable/reorderable optional
+  layers, active-layer editing and a right-hand collapsible Survey panel available
+  outside Design Mode. Visible layers should feed Live Map and clean print/export
+  in the same order; measurement points remain independent.
+- Recommended additions:lock per layer; prevent edits to hidden/locked layers;
+  move selection to a layer; preserve existing drawings entirely on Layer0. Names
+  must not be persistent identities. Keep geometry normalization/intersection/
+  joining/room closure within each layer; this needs real model/persistence/undo
+  isolation, not just item visibility. Layer changes must invalidate render caches.
+- Distinguish non-destructive reference snaps from topology edits:structure tools
+  use the active layer, while furniture may reference visible walls for placement
+  and clearance. Hosted doors/windows should stay with their supporting layer.
+  Panning, capture points, AP operational data and RF masks/results stay outside
+  ordinary drawing-layer editing; visibility must not alter RF statistics.
+- Drawing background stays below all layers; clean Print Plan/JPEG retain their
+  RF-point/AP exclusion, while Live exports retain the map's own content. The panel
+  should reserve layout space when expanded rather than cover drawing controls.
 
 The historical feature closeout below describes the 1.0 workflow. For the
 current 1.1.0 decision, the precision audit takes precedence: R1-R11 software

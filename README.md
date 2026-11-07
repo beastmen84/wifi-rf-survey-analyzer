@@ -158,6 +158,8 @@ from these software checks.
   rather than its center. Dashed guides and m/ft values support rotated/L/round
   objects and curved walls; a red indicator identifies structural intersections.
   These temporary guides are excluded from saved plans and exports.
+  Short distances remain labeled: when a number cannot fit between the object
+  and the wall, it is placed outside the object with a leader line.
   Apertures hide only the covered wall ink: room closure, internal area
   and Boundaries Fill/Auto Fill retain the complete structural geometry.
   Select annotations to move with **M**, delete with **Del**, or edit by right

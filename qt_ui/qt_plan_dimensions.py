@@ -2,14 +2,14 @@
 import math
 from html import escape
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QPainterPath, QPen, QTransform
-from PySide6.QtWidgets import QGraphicsItem, QGraphicsPathItem, QGraphicsTextItem, QLabel
+from PySide6.QtWidgets import QGraphicsItem, QGraphicsPathItem, QGraphicsTextItem, QLabel, QWidget
 
 from app_core.units import distance_unit_label, meters_to_display_units
 from qt_ui.scaling import widget_px
 from survey.plan_annotations import annotation_points
-from survey.plan_objects import HOSTED_ANNOTATIONS, FREE_ANNOTATIONS
+from survey.plan_objects import HOSTED_ANNOTATIONS, FREE_ANNOTATIONS, object_vertices
 from survey.plan_erasing import nearest_segment
 from survey.planar_geometry import point_projection
 
@@ -67,6 +67,13 @@ class SegmentDimensions:
         rows = [self.owner.tr("object_clearances")]
         zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
         tick = widget_px(self.owner, 4) / zoom
+        transform = self.view.viewportTransform()
+        inverse, _valid = transform.inverted()
+        points = [transform.map(QPointF(*point)) for point in object_vertices(item)]
+        object_box = QRectF(QPointF(min(p.x() for p in points), min(p.y() for p in points)),
+                            QPointF(max(p.x() for p in points), max(p.y() for p in points)))
+        occupied = [child.geometry() for child in self.view.viewport().children()
+                    if isinstance(child, QWidget) and child.isVisible() and child.property("fixedViewportOverlay")]
         for text in self.text_items:
             text.hide()
         for index, quote in enumerate(quotes):
@@ -89,7 +96,6 @@ class SegmentDimensions:
                 path.lineTo(a[0] + tick, a[1] + tick)
                 path.moveTo(a[0] - tick, a[1] + tick)
                 path.lineTo(a[0] + tick, a[1] - tick)
-            self.path_item(index, path, color, True)
             while len(self.text_items) <= index:
                 text = QGraphicsTextItem()
                 text.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations)
@@ -106,16 +112,48 @@ class SegmentDimensions:
             bounds = text.boundingRect()
             projection = ((abs(b[0] - a[0]) * bounds.width() + abs(b[1] - a[1]) * bounds.height()) / quote.distance
                           if quote.distance > 1e-7 else math.inf)
-            if quote.distance * zoom > projection + widget_px(self.owner, 6):
-                text.setPos((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
-                text.setTransform(QTransform.fromTranslate(-bounds.width() / 2, -bounds.height() / 2))
-                text.show()
+            middle = QPointF((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+            screen_middle = transform.map(middle)
+            rect = QRectF(screen_middle.x() - bounds.width() / 2, screen_middle.y() - bounds.height() / 2,
+                          bounds.width(), bounds.height())
+            if (quote.distance * zoom <= projection + widget_px(self.owner, 6)
+                    or not self.view.viewport().rect().contains(rect.toAlignedRect())
+                    or any(rect.intersects(QRectF(other)) for other in occupied)):
+                rect = self.callout_rect(bounds, screen_middle, object_box, occupied)
+                # End the leader at the nearest label edge, in scene coordinates.
+                end = QPointF(min(max(screen_middle.x(), rect.left()), rect.right()),
+                              min(max(screen_middle.y(), rect.top()), rect.bottom()))
+                path.moveTo(middle)
+                path.lineTo(inverse.map(end))
+            text.setPos(inverse.map(rect.center()))
+            text.setTransform(QTransform.fromTranslate(-bounds.width() / 2, -bounds.height() / 2))
+            text.show()
+            occupied.append(rect)
+            self.path_item(index, path, color, True)
         for unused in self.items[len(quotes):]:
             unused.hide()
         self.badge.setText("<br>".join(rows))
         self.position()
         self.badge.show()
         self.badge.raise_()
+
+    def callout_rect(self, bounds, middle, object_box, occupied):
+        """Place short-gap numbers outside the object at a readable device size."""
+        gap = widget_px(self.owner, 8)
+        w, h = bounds.width(), bounds.height()
+        viewport = QRectF(self.view.viewport().rect()).adjusted(gap, gap, -gap, -gap)
+        candidates = [QRectF(middle.x() - w / 2, object_box.top() - h - gap, w, h),
+                      QRectF(middle.x() - w / 2, object_box.bottom() + gap, w, h),
+                      QRectF(object_box.left() - w - gap, middle.y() - h / 2, w, h),
+                      QRectF(object_box.right() + gap, middle.y() - h / 2, w, h)]
+        for rect in candidates:
+            rect.moveLeft(max(viewport.left(), min(rect.left(), viewport.right() - w)))
+            rect.moveTop(max(viewport.top(), min(rect.top(), viewport.bottom() - h)))
+        def score(rect):
+            overlaps = [rect.intersected(QRectF(other)) for other in [object_box, *occupied]]
+            area = sum(max(0, hit.width()) * max(0, hit.height()) for hit in overlaps)
+            return area, math.hypot(rect.center().x() - middle.x(), rect.center().y() - middle.y())
+        return min(candidates, key=score)
 
     def position(self):
         margin = widget_px(self.owner, 12)

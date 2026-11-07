@@ -7,6 +7,10 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Fixed object-to-wall distance labels disappearing at small clearances or low
+  zoom. Short quotes now use external labels with leader lines, including contact
+  at zero, avoiding the object and neighboring labels while retaining m/ft units.
+  Two flush wall contacts retain their own directions and centered anchors.
 - Added **600 DPI · Fine detail** to clean plan JPEG export, retaining 300 DPI as
   the default. Drawn plans now paint their paths directly at the destination
   resolution for JPEG and Print Plan, preserving fine geometry and glyphs instead
