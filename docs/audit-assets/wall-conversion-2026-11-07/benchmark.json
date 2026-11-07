@@ -1,0 +1,112 @@
+{
+  "1": {
+    "layout": {
+      "median_ms": 1.6966999974101782,
+      "maximum_ms": 1.9176999921910465
+    },
+    "resize": {
+      "median_ms": 1.7647999920882285,
+      "maximum_ms": 1.870700012659654
+    },
+    "render_paths": {
+      "median_ms": 0.2623000182211399,
+      "maximum_ms": 2.674200019100681
+    },
+    "clearance_hover": {
+      "median_ms": 0.299000006634742,
+      "maximum_ms": 0.9108000085689127
+    },
+    "fixed_reference_conversion": {
+      "median_ms": 1.2547000078484416,
+      "maximum_ms": 1.4390999858733267
+    }
+  },
+  "4": {
+    "layout": {
+      "median_ms": 6.5716000099200755,
+      "maximum_ms": 6.765099999029189
+    },
+    "resize": {
+      "median_ms": 8.28810001257807,
+      "maximum_ms": 8.31179998931475
+    },
+    "render_paths": {
+      "median_ms": 0.6965000065974891,
+      "maximum_ms": 0.7869000255595893
+    },
+    "clearance_hover": {
+      "median_ms": 0.31869998201727867,
+      "maximum_ms": 0.4833000130020082
+    },
+    "fixed_reference_conversion": {
+      "median_ms": 3.9286999963223934,
+      "maximum_ms": 4.013099998701364
+    }
+  },
+  "16": {
+    "layout": {
+      "median_ms": 38.163400022313,
+      "maximum_ms": 38.237999979173765
+    },
+    "resize": {
+      "median_ms": 51.643299986608326,
+      "maximum_ms": 52.3451000044588
+    },
+    "render_paths": {
+      "median_ms": 3.2344000064767897,
+      "maximum_ms": 3.274199989391491
+    },
+    "clearance_hover": {
+      "median_ms": 0.3497500001685694,
+      "maximum_ms": 0.4886999959126115
+    },
+    "fixed_reference_conversion": {
+      "median_ms": 15.686800004914403,
+      "maximum_ms": 15.868400019826367
+    }
+  },
+  "49": {
+    "layout": {
+      "median_ms": 240.043700003298,
+      "maximum_ms": 241.32910001208074
+    },
+    "resize": {
+      "median_ms": 367.74039998999797,
+      "maximum_ms": 384.4118000124581
+    },
+    "render_paths": {
+      "median_ms": 11.675799993099645,
+      "maximum_ms": 12.105700006941333
+    },
+    "clearance_hover": {
+      "median_ms": 0.4359500017017126,
+      "maximum_ms": 0.6399999838322401
+    },
+    "fixed_reference_conversion": {
+      "median_ms": 67.73880001856014,
+      "maximum_ms": 72.58209999417886
+    }
+  },
+  "100": {
+    "layout": {
+      "median_ms": 1031.590700004017,
+      "maximum_ms": 1031.7804999940563
+    },
+    "resize": {
+      "median_ms": 1489.8518999980297,
+      "maximum_ms": 1616.2696999963373
+    },
+    "render_paths": {
+      "median_ms": 34.17129997978918,
+      "maximum_ms": 35.04009998869151
+    },
+    "clearance_hover": {
+      "median_ms": 0.9649000130593777,
+      "maximum_ms": 1.2503000034485012
+    },
+    "fixed_reference_conversion": {
+      "median_ms": 231.4358000003267,
+      "maximum_ms": 253.38069998542778
+    }
+  }
+}

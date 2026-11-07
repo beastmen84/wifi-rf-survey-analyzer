@@ -22,8 +22,27 @@ interpolated colors.
 
 Current status:
 
+- Existing-plan conversion supplements rigid separation. wall_conversion works
+  on immutable reference coordinates: axis profiles use side=0/reference="axis";
+  room-exterior profiles use side=+1/-1/reference="face". Keep edits preserve
+  profile/side. No RF coordinates, annotations or labels move in these modes.
+  Reference regions strip wall properties for stable room IDs; analytic gross
+  areas remain available alongside derived usable floor areas (structural solid
+  subtraction before aperture cuts, no furniture subtraction). Curved net areas
+  are marked approximate. Fully absorbed regions remain editable reference geometry.
+  A protected room rejects physical interior invasion, with 0.06px derived-edge
+  tolerance for the region sampler's 0.05px chord error. Sheet limits still apply.
+  Axis geometry is a filled polygon/circular band, not cosmetic stroke width;
+  1e-8px rounding of derived polygon vertices stabilizes Qt boolean clipping.
+- Generated Draw Plan recovery validates all layers with VectorPlanSource before
+  allocating a missing white raster. Exact initial/save pixel extents are stored;
+  legacy extents use original blank dimensions/default density, never recalibrated
+  density or inferred vector bounds. Recovery changes only the in-memory image
+  path and dirty flag until Save. Load Plan and incomplete/unbounded data retain
+  the missing-image warning. Scene reset avoids stale design C++ item references.
 - Physical wall thickness is implemented for Draw Plan selections. Optional
-  wall={width:pixel_depth,side:+1/-1} is distinct from decorative pen width.
+  wall={width:pixel_depth,side:+1/-1[,reference:"face"]} or an explicit centered
+  wall={width:pixel_depth,side:0,reference:"axis"} is distinct from decorative width.
   drawing/curves/layers emit format2 only when physical fields are present, accept
   old format1 and restore it when all thickness is removed. Older unsupported
   readers cannot silently normalize away the new fields. No dependencies added.
@@ -38,7 +57,8 @@ Current status:
   balanced path unions and full-depth aperture channels. Shallow arc offsets use
   chord-relative endpoints/tangents. Internal geometry remains analytic; derived
   cubic/polygon collision comparisons exclude a0.01px display-edge margin only.
-  Closed interiors are never resized to make an inconsistent layout fit.
+  Rigid mode never resizes interiors; conversion explicitly reports usable-area
+  changes while preserving the original reference graph and analytic gross areas.
 - wall_editing rebuilds paired-face cuts after discarding obsolete continuations,
   preserving source sets through normalization. Stroke selection/eraser recognize
   the common divider. Removing paired faces adds cross-section jambs or continues
@@ -1795,7 +1815,9 @@ Physical wall model:
 - The implemented preview separates the internal boundary faces of shared
   straight walls by rigid room translations. The fixed room, connected neighbors,
   tangential alignment, contents and conflicting loops are handled explicitly.
-  Incompatible shared curves require another geometric design and are refused.
+  Incompatible shared curves are refused in this preservation mode. Existing-plan
+  conversion instead permits a deliberate centered reference interpretation, or
+  exterior growth around one protected room, with explicit usable-area changes.
 - Keep physical thickness, material and visual style distinct. Current fusion
   respects width/physical side/color. Future fusion
   must also respect material/thickness, not just color. Do not infer RF losses

@@ -1,4 +1,4 @@
-"""One-sided physical wall solids and aperture cuts, independent of room topology."""
+"""Physical face/axis wall solids and aperture cuts, independent of room topology."""
 import math
 from collections import defaultdict
 
@@ -15,6 +15,9 @@ MAX_WALLS = 2000
 def polygon(points):
     result = QPainterPath()
     if points:
+        # Boolean clipping is unstable with nearly coincident offset vertices
+        # separated only by floating-point roundoff (notably thin rotated walls).
+        points = [(round(x, 8), round(y, 8)) for x, y in points]
         result.moveTo(*points[0])
         for point in points[1:]:
             result.lineTo(*point)
@@ -65,6 +68,21 @@ def solid(shape):
     if not wall:
         return QPainterPath()
     width = wall["width"]
+    if wall["side"] == 0:
+        if "kind" not in shape:
+            nx, ny = normal(shape)
+            a, b = (shape["x1"], shape["y1"]), (shape["x2"], shape["y2"])
+            return polygon([(p[0]+nx*d, p[1]+ny*d) for p,d in
+                            ((a,-width/2), (b,-width/2), (b,width/2), (a,width/2))])
+        inner = offset_curve(dict(shape, wall=dict(wall, side=1)), width/2)
+        outer = offset_curve(dict(shape, wall=dict(wall, side=-1)), width/2)
+        if shape["kind"] == "circle":
+            inner.addPath(outer)
+            inner.setFillRule(Qt.FillRule.OddEvenFill)
+        else:
+            inner.connectPath(outer.toReversed())
+            inner.closeSubpath()
+        return inner
     if "kind" not in shape:
         nx, ny = normal(shape, wall["side"])
         a, b = (shape["x1"], shape["y1"]), (shape["x2"], shape["y2"])
@@ -111,8 +129,11 @@ def aperture_channels(lines, annotations):
             along = sorted((line["x"+s]-item["x1"])*ux+(line["y"+s]-item["y1"])*uy for s in ("1", "2"))
             if abs(off) > EPS or along[1] < -EPS or along[0] > length+EPS:
                 continue
-            wx, wy = normal(line, line["wall"]["side"])
-            offsets.append((wx*nx+wy*ny)*line["wall"]["width"])
+            if line["wall"]["side"] == 0:
+                offsets.extend((-line["wall"]["width"]/2, line["wall"]["width"]/2))
+            else:
+                wx, wy = normal(line, line["wall"]["side"])
+                offsets.append((wx*nx+wy*ny)*line["wall"]["width"])
         if len(offsets) == 1:
             continue
         low, high = min(offsets)-EPS, max(offsets)+EPS
@@ -129,8 +150,11 @@ def wall_solids(lines, curves=(), annotations=()):
     groups, endpoints = defaultdict(list), defaultdict(list)
     for shape in shapes:
         groups[shape["color"]].append(solid(shape))
-        for point, n in endpoint_data(shape):
-            endpoints[tuple(round(v, 6) for v in point)].append((point, n, shape))
+        joints = [shape] if shape["wall"]["side"] else [dict(shape, wall=dict(shape["wall"],
+            width=shape["wall"]["width"]/2, side=side)) for side in (-1, 1)]
+        for joint in joints:
+            for point, n in endpoint_data(joint):
+                endpoints[tuple(round(v, 6) for v in point)].append((point, n, joint))
     for incident in endpoints.values():
         if len(incident) > 12:
             raise ValueError("wall_complexity")
@@ -190,6 +214,18 @@ def path_area(path):
 
 def hit_solid(shape, x, y):
     return shape.get("wall") and solid(shape).contains(QPointF(x, y))
+
+
+def usable_floor(reference, analytic_area, material):
+    """Preserve analytic reference areas and expose the derived usable area."""
+    removed = path_area(reference.intersected(material))
+    if removed <= max(1e-6, analytic_area*1e-8):
+        return reference, analytic_area, False
+    floor = reference.subtracted(material)
+    usable = max(0.0, analytic_area-removed)
+    if floor.simplified().isEmpty():
+        usable = 0.0
+    return floor, usable, True
 
 
 def box_hits_solid(shape, left, top, right, bottom):

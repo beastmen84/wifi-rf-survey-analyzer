@@ -13,6 +13,8 @@ class PickedRegion:
     lines: tuple
     curves: tuple
     area: float
+    usable_area: float | None = None
+    approximate: bool = False
 
 
 class RegionPicker:
@@ -23,6 +25,8 @@ class RegionPicker:
         if self.limited:
             return
         material = None
+        converted = any(s.get("wall", {}).get("reference") for s in [*lines, *curves])
+        curved = bool(curves)
         if any(s.get("wall") for s in [*lines, *curves]):
             from survey.wall_geometry import wall_solids, united
             material = united(p for _c, p in wall_solids(lines, curves))
@@ -55,16 +59,26 @@ class RegionPicker:
             if area > 1e-8 and not shape.isEmpty():
                 if material is not None and shape.subtracted(material).simplified().isEmpty():
                     continue  # A bounded wall junction is not a room.
-                self.records.append((shape, PickedRegion(tuple(sorted(lines)), tuple(sorted(curves)), area)))
+                usable, approximate = None, False
+                if material is not None and converted:
+                    from survey.wall_geometry import usable_floor
+                    shape, value, changed = usable_floor(shape, area, material)
+                    if changed:
+                        usable, approximate = value, curved
+                self.records.append((shape, PickedRegion(tuple(sorted(lines)), tuple(sorted(curves)), area, usable, approximate)))
 
     def pick(self, point):
         hits = [region for path, region in self.records if path.contains(point)]
         return min(hits, key=lambda region: region.area) if hits else None
 
     def matching_area(self, lines, curves):
+        region = self.matching_region(lines, curves)
+        return region.area if region else None
+
+    def matching_region(self, lines, curves):
         lines, curves = tuple(sorted(lines)), tuple(sorted(curves))
-        matches = [region.area for _path, region in self.records if region.lines == lines and region.curves == curves]
-        return min(matches) if matches else None
+        matches = [region for _path, region in self.records if region.lines == lines and region.curves == curves]
+        return min(matches, key=lambda r: r.area) if matches else None
 
     def centers(self):
         """Interior centroids, with an interior fallback for concave/holed rooms."""

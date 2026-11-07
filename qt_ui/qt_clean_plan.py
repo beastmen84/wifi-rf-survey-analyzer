@@ -24,11 +24,15 @@ class VectorPlanSource:
             if any(not bounds.contains(path.boundingRect()) for path, _pen, _brush in commands):
                 raise ValueError("wall_outside")
         for line in visible_wall_segments(lines, annotations):
+            if line.get("wall", {}).get("side") == 0:
+                continue
             path = QPainterPath()
             path.moveTo(line["x1"], line["y1"])
             path.lineTo(line["x2"], line["y2"])
             commands.append((path, QPen(QColor(line["color"]), 2), QBrush(Qt.BrushStyle.NoBrush)))
         for curve in curves:
+            if curve.get("wall", {}).get("side") == 0:
+                continue
             commands.append((curve_path(curve), QPen(QColor(curve["color"]), 2), QBrush(Qt.BrushStyle.NoBrush)))
         for item in annotations:
             for path, dashed in annotation_parts(item):

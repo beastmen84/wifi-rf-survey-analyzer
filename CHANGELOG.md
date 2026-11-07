@@ -7,6 +7,18 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Added explicit existing-plan wall conversion: centered wall axes or thickness
+  outside one protected room, with fixed reference/RF coordinates and a preview
+  comparing reference and usable areas. Nested corridor/island layouts can gain
+  thickness without rigid room separation. Fully occupied tiny regions are listed
+  without deleting their boundaries; curved usable areas are approximate.
+  Existing converted profiles are retained when reviewing/editing thickness.
+- Conflicting rigid room constraints now identify the involved rooms in the preview.
+  Thin rotated wall joins are stabilized against floating-point clipping artifacts.
+- Missing generated plan PNGs can be recovered from validated saved vectors and
+  original canvas extents, preserving calibration. New saves retain exact pixel
+  extents; imported images and unverifiable/incomplete drawings are never guessed.
+  Scene clearing now resets design previews before reusing graphics references.
 - Added Draw Plan **Wall thickness** for structural selections, with a focused
   preview, identified/fixed room, physical m/ft depth and explicit sides for open
   segments. Internal faces, lengths and analytic room areas are preserved;

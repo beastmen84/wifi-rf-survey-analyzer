@@ -19,12 +19,20 @@ EPS = 1e-5
 MAX_ROOMS = 200
 
 
+class WallLayoutError(ValueError):
+    def __init__(self, key, rooms=()):
+        super().__init__(key)
+        self.rooms = tuple(sorted(set(rooms)))
+
+
 @dataclass
 class WallLayout:
     state: dict
     moves: tuple
     areas: tuple
     changed_positions: bool
+    usable_areas: tuple = ()
+    approximate_areas: bool = False
 
 
 def room_side(shape, path):
@@ -78,7 +86,23 @@ def solve_moves(count, constraints, anchor):
     matrix, target = np.array(matrix), np.array(target)
     solution = np.linalg.lstsq(matrix, target, rcond=1e-12)[0]
     if not np.all(np.isfinite(solution)) or np.max(np.abs(matrix@solution-target)) > EPS:
-        raise ValueError("wall_constraints_conflict")
+        pairs, involved = {}, set()
+        for a, b, n, gap in constraints:
+            if a > b:
+                a, b, n = b, a, (-n[0], -n[1])
+            pairs.setdefault((a, b), []).append((n, gap))
+        for pair, equations in pairs.items():
+            normals = np.array([n for n, _g in equations])
+            gaps = np.array([g for _n, g in equations])
+            relative = np.linalg.lstsq(normals, gaps, rcond=1e-12)[0]
+            if np.max(np.abs(normals@relative-gaps)) > EPS:
+                involved.update(pair)
+        if not involved:
+            residuals = np.abs(matrix@solution-target)
+            for i, (a, b, _n, _gap) in enumerate(constraints):
+                if residuals[i] > EPS:
+                    involved.update((a, b))
+        raise WallLayoutError("wall_constraints_conflict", involved)
     # Normal gaps are hard constraints. Within their null space, preserve the
     # original tangential alignment instead of arbitrarily staggering a grid.
     from scipy.linalg import null_space
@@ -100,6 +124,8 @@ def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, o
     if not math.isfinite(width) or not 0 <= width <= 10000 or open_side not in (-1, 0, 1):
         raise ValueError("wall_invalid_width")
     lines, curves = state["segments"] or [], state["curves"]
+    if any(s.get("wall", {}).get("reference") for s in [*lines, *curves]):
+        raise ValueError("wall_reference_mode")
     if not (selected_lines or selected_curves) or any(i not in range(len(lines)) for i in selected_lines) or any(i not in range(len(curves)) for i in selected_curves):
         raise ValueError("wall_no_selection")
     picker = RegionPicker(lines, curves)
@@ -168,9 +194,9 @@ def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, o
     moves = solve_moves(len(rooms), constraints, anchor) if rooms else []
     moved_paths = [QTransform.fromTranslate(*move).map(path) for (path, _room), move in zip(rooms, moves)]
     for i, path in enumerate(moved_paths):
-        for other in moved_paths[i+1:]:
+        for other_index, other in enumerate(moved_paths[i+1:], i+1):
             if path.boundingRect().intersects(other.boundingRect()) and path_area(path.intersected(other)) > EPS:
-                raise ValueError("wall_room_collision")
+                raise WallLayoutError("wall_room_collision", (i, other_index))
     def owner_at(point):
         return [i for i, (path, _room) in enumerate(rooms) if path.contains(QPointF(*point))]
     def displacement(points, hosted=None):
@@ -183,7 +209,7 @@ def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, o
                 return moves[min(hits, key=lambda i: (math.hypot(*moves[i]), i))]
         values = {moves[i] for i in hits}
         if len(values) > 1:
-            raise ValueError("wall_content_conflict")
+            raise WallLayoutError("wall_content_conflict", hits)
         return next(iter(values), (0.0, 0.0))
     output_lines, output_curves = [], []
     closed_lines, closed_curves = [], []
@@ -212,10 +238,10 @@ def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, o
     display_margin = QPainterPathStroker()
     display_margin.setWidth(.02)  # Derived cubic/polygon display tolerance only.
     for _color, body in wall_solids(closed_lines, closed_curves):
-        for path in moved_paths:
+        for room_index, path in enumerate(moved_paths):
             interior = path.subtracted(display_margin.createStroke(path))
             if body.boundingRect().intersects(path.boundingRect()) and path_area(body.intersected(interior)) > EPS:
-                raise ValueError("wall_room_collision")
+                raise WallLayoutError("wall_room_collision", (room_index,))
     result = deepcopy(state)
     result.update(segments=output_lines, curves=output_curves)
     result["annotations"] = []

@@ -22,6 +22,7 @@ from qt_ui.default_floorplan import (
     ensure_default_floorplan,
     write_default_floorplan,
     blank_floorplan_geometry, BLANK_PLAN_WIDTH_KEY, BLANK_PLAN_HEIGHT_KEY,
+    BLANK_PLAN_PIXEL_WIDTH_KEY, BLANK_PLAN_PIXEL_HEIGHT_KEY, saved_blank_pixel_size,
 )
 from qt_ui.qt_floorplan import (
     BOUNDARIES_BRUSH_SIZE_MAX_PX,
@@ -36,7 +37,7 @@ from survey.plan_labels import PLAN_LABELS_KEY, drawing_labels, encode_labels
 from survey.plan_annotations import PLAN_ANNOTATIONS_KEY, drawing_annotations, encode_annotations
 from survey.plan_curves import PLAN_CURVES_KEY, encode_curves
 from survey.plan_layers import PLAN_LAYERS_KEY, visible_layers, read_layers, write_layers
-from survey.plan_mode import PLAN_MODE_KEY, DRAW_PLAN, LOAD_PLAN
+from survey.plan_mode import PLAN_MODE_KEY, DRAW_PLAN, LOAD_PLAN, is_drawn_plan
 
 
 class FloorplanWorkflowMixin:
@@ -68,6 +69,8 @@ class FloorplanWorkflowMixin:
         self.session.metadata["px_per_meter"] = f"{density:.12g}"
         self.session.metadata[BLANK_PLAN_WIDTH_KEY] = f"{width_m if width_m is not None else width_px / density:.12g}"
         self.session.metadata[BLANK_PLAN_HEIGHT_KEY] = f"{height_m if height_m is not None else height_px / density:.12g}"
+        self.session.metadata[BLANK_PLAN_PIXEL_WIDTH_KEY] = str(width_px)
+        self.session.metadata[BLANK_PLAN_PIXEL_HEIGHT_KEY] = str(height_px)
         self.session.dirty = was_dirty
         self.floorplan_view.set_points(self.session.get_point_summaries())
         self.floorplan_view.set_ap_groups(self.session.get_ap_groups())
@@ -118,6 +121,8 @@ class FloorplanWorkflowMixin:
             if annotations or PLAN_ANNOTATIONS_KEY in self.session.metadata:
                 self.session.metadata[PLAN_ANNOTATIONS_KEY] = encode_annotations(annotations)
         self.session.metadata["map_file"] = os.path.abspath(image_file)
+        self.session.metadata[BLANK_PLAN_PIXEL_WIDTH_KEY] = str(pixmap.width())
+        self.session.metadata[BLANK_PLAN_PIXEL_HEIGHT_KEY] = str(pixmap.height())
         self.session.metadata.pop(DEFAULT_FLOORPLAN_METADATA_KEY, None)
         self.session.metadata[GENERATED_FLOORPLAN_METADATA_KEY] = "1"
         return True
@@ -126,7 +131,12 @@ class FloorplanWorkflowMixin:
         if self.session is None:
             return
 
+        # Finish previews before scene.clear() invalidates their Qt items.
+        if self.plan_tools.controller.pixmap is not self.floorplan_view.pixmap_item:
+            self.plan_tools.sync()
+        self.plan_tools.set_open(False)
         self.floorplan_view.clear_floorplan()
+        self.plan_tools.sync()
         self.live_view.clear()
         map_file = self.session.metadata.get("map_file", "")
         if not map_file:
@@ -135,6 +145,26 @@ class FloorplanWorkflowMixin:
         if os.path.exists(map_file):
             self.load_plan_file(map_file, save_metadata=False)
             return
+
+        if is_drawn_plan(self.session.metadata) and any(key in self.session.metadata for key in (PLAN_DRAWING_KEY, PLAN_LAYERS_KEY)):
+            try:
+                from PySide6.QtCore import QSize
+                from qt_ui.qt_clean_plan import VectorPlanSource
+                width, height = saved_blank_pixel_size(self.session.metadata, self.measurement_system)
+                document = read_layers(self.session.metadata)
+                # Validate every vector/layer before allocating a replacement or
+                # changing the path. Imported images are never replaced by white.
+                VectorPlanSource.from_layers(QSize(width, height), document["layers"])
+                recovered = str(ensure_default_floorplan(width, height))
+                self.load_plan_file(recovered, save_metadata=False)
+                if not self.floorplan_view.has_floorplan() or self.plan_tools.drawing_error:
+                    raise ValueError("Cannot restore generated plan")
+                self.session.metadata["map_file"] = os.path.abspath(recovered)
+                self.session.recovered_floorplan = True
+                self.session.dirty = True
+                return
+            except (ValueError, TypeError, KeyError, OSError):
+                pass  # Retain the original missing-image warning and metadata.
 
         QMessageBox.warning(
             self,
@@ -163,6 +193,8 @@ class FloorplanWorkflowMixin:
             self.clear_saved_boundaries_metadata(mark_dirty=False)
             self.session.metadata.pop(BLANK_PLAN_WIDTH_KEY, None)
             self.session.metadata.pop(BLANK_PLAN_HEIGHT_KEY, None)
+            self.session.metadata.pop(BLANK_PLAN_PIXEL_WIDTH_KEY, None)
+            self.session.metadata.pop(BLANK_PLAN_PIXEL_HEIGHT_KEY, None)
             self.session.metadata.pop(PLAN_DRAWING_KEY, None)
             self.session.metadata.pop(PLAN_LABELS_KEY, None)
             self.session.metadata.pop(PLAN_CURVES_KEY, None)

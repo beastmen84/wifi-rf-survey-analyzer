@@ -1,16 +1,22 @@
-"""Physical one-sided offsets from immutable internal measurement faces (pixels)."""
+"""Validated physical profiles on internal faces or explicit reference axes."""
 import math
 
 
 def validated_wall(value):
-    if not isinstance(value, dict) or set(value) != {"width", "side"}:
+    if not isinstance(value, dict) or not {"width", "side"} <= set(value) <= {"width", "side", "reference"}:
         raise ValueError("Invalid wall properties")
     width, side = value["width"], value["side"]
     if isinstance(width, bool) or not isinstance(width, (int, float)) or not math.isfinite(width) or not 0 < width <= 10000:
         raise ValueError("Invalid physical wall thickness")
-    if type(side) is not int or side not in (-1, 1):
+    reference = value.get("reference")
+    if reference not in (None, "axis", "face"):
+        raise ValueError("Invalid wall reference")
+    if type(side) is not int or side not in (-1, 0, 1) or (side == 0) != (reference == "axis"):
         raise ValueError("Invalid wall side")
-    return dict(width=float(width), side=side)
+    result = dict(width=float(width), side=side)
+    if reference is not None:
+        result["reference"] = reference
+    return result
 
 
 def wall_style(shape):
@@ -24,8 +30,8 @@ def wall_style(shape):
     else:
         dx, dy = shape["x2"]-shape["x1"], shape["y2"]-shape["y1"]
         length = math.hypot(dx, dy)
-        return wall["width"], round(-dy/length*wall["side"], 8), round(dx/length*wall["side"], 8)
-    return wall["width"], wall["side"] * direction
+        return wall["width"], round(-dy/length*wall["side"], 8), round(dx/length*wall["side"], 8), wall.get("reference")
+    return wall["width"], wall["side"] * direction, wall.get("reference")
 
 
 def copy_wall(source, target, reversed_direction=False):

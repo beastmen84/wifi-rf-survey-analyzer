@@ -27,7 +27,7 @@ def curve_path(curve):
 
 def curve_item(curve):
     item = QGraphicsPathItem(curve_path(curve))
-    item.setPen(QPen(QColor(curve["color"]), 2))
+    item.setPen(QPen(Qt.PenStyle.NoPen) if curve.get("wall", {}).get("side") == 0 else QPen(QColor(curve["color"]), 2))
     item.setZValue(5)
     item.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
     return item

@@ -217,6 +217,8 @@ class RectangleDesignController(QObject):
             self.last_size = None
             self.session, self.pixmap = session, self.view.pixmap_item
             self.document = None
+        if not self.view.has_floorplan():
+            return  # Scene references are reset; do not redraw into empty bounds.
         if session and is_drawn_plan(session.metadata):
             self.sync_symbol_positions()
         document = tuple(session.metadata.get(key) for key in (PLAN_DRAWING_KEY, PLAN_LABELS_KEY, PLAN_CURVES_KEY, PLAN_ANNOTATIONS_KEY, PLAN_LAYERS_KEY, AP_GROUPS_METADATA_KEY)) if session else None
@@ -326,6 +328,8 @@ class RectangleDesignController(QObject):
         paths = [QPainterPath() for line in lines or []]
         visible, sources = visible_wall_segments(lines or [], annotations, with_sources=True)
         for part, index in zip(visible, sources):
+            if (lines or [])[index].get("wall", {}).get("side") == 0:
+                continue
             paths[index].moveTo(part["x1"], part["y1"])
             paths[index].lineTo(part["x2"], part["y2"])
         for line, path in zip(lines or [], paths):

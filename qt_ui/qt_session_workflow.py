@@ -241,7 +241,8 @@ class SurveySessionWorkflowMixin:
         self.live_view.clear()
         self.load_saved_plan()
         self.show_workspace_page()
-        self.status.showMessage(self.tr("active_survey", name=self.session_display_name()))
+        self.status.showMessage(self.tr("draw_plan_recovered") if getattr(session, "recovered_floorplan", False)
+                                else self.tr("active_survey", name=self.session_display_name()))
         log_event(
             (
                 f"qt open survey done path={csv_file} rows={len(self.session.rows)} "

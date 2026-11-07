@@ -21,6 +21,8 @@ from app_core.units import (FEET_PER_METER, MEASUREMENT_SYSTEM_IMPERIAL,
 DEFAULT_FLOORPLAN_FILENAME = "blank_a4_floorplan.png"
 BLANK_PLAN_WIDTH_KEY = "blank_plan_width_m"
 BLANK_PLAN_HEIGHT_KEY = "blank_plan_height_m"
+BLANK_PLAN_PIXEL_WIDTH_KEY = "blank_plan_width_px"
+BLANK_PLAN_PIXEL_HEIGHT_KEY = "blank_plan_height_px"
 BLANK_PLAN_MIN_METERS = 1.0
 BLANK_PLAN_MAX_METERS = 500.0
 BLANK_PLAN_MAX_PIXELS = 4096
@@ -50,6 +52,26 @@ def blank_floorplan_geometry(measurement_system, width_m=None, height_m=None):
 
 def default_floorplan_temp_path():
     return Path(tempfile.gettempdir()) / APP_ID / DEFAULT_FLOORPLAN_FILENAME
+
+
+def saved_blank_pixel_size(metadata, measurement_system):
+    """Recover the canvas extent without reinterpreting its calibrated scale."""
+    if any(key in metadata for key in (BLANK_PLAN_PIXEL_WIDTH_KEY, BLANK_PLAN_PIXEL_HEIGHT_KEY)):
+        values = []
+        for key in (BLANK_PLAN_PIXEL_WIDTH_KEY, BLANK_PLAN_PIXEL_HEIGHT_KEY):
+            raw = metadata.get(key, "")
+            if not isinstance(raw, str) or not raw.isascii() or not raw.isdecimal():
+                raise ValueError("Invalid saved canvas dimensions")
+            value = int(raw)
+            if not 1 <= value <= BLANK_PLAN_MAX_PIXELS:
+                raise ValueError("Saved canvas dimensions exceed limits")
+            values.append(value)
+        return tuple(values)
+    # Legacy generated plans retain their initial physical sheet dimensions.
+    # Their original default density, rather than a later calibration, defines
+    # the raster extent. New saves store exact pixel dimensions explicitly.
+    return blank_floorplan_geometry(measurement_system, metadata[BLANK_PLAN_WIDTH_KEY],
+                                    metadata[BLANK_PLAN_HEIGHT_KEY])[:2]
 
 
 def write_default_floorplan(path, width_px=DEFAULT_FLOORPLAN_WIDTH_PX, height_px=DEFAULT_FLOORPLAN_HEIGHT_PX, segments=None, labels=None, curves=None, annotations=None, layers=None):

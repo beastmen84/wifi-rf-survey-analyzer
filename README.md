@@ -123,33 +123,46 @@ from these software checks.
   Structural intersections, joins and closed rooms are calculated separately for
   each layer. Desks, symbols, markers and text can use visible walls in other
   layers as reference snap targets; desk/symbol distances also use those walls.
-- **Wall thickness** is available in Draw Plan: select structural segments/curves,
-  then use the wall icon in Design Mode. It adds physical geometry outside the
-  internal measurement faces. Review the focused preview, fixed room and room
-  translations before applying. Shared straight dividers separate room interiors
-  without resizing them; contained annotations and AP symbols follow their room.
-  Numbers in this preview identify rooms only and are not added to the plan.
-  Open segments require an explicit left/right side. Zero removes thickness and
-  closes a recognized divider gap when the room constraints allow it.
-  Compatible shared faces are cut/picked together; deleting a divider rebuilds
-  its jambs or continuing perimeter. Physical bounds, apertures, move/rotation,
-  undo/redo, layers, saved plans and print/JPEG/HTML rendering share the same solids.
-  Object clearances use physical faces. Existing depth is preserved exactly when
-  merely reviewing properties, including when feet are rounded for display.
-  Room separation must precede RF captures/manual masks; coordinate-only AP
-  placements must first be converted to drawing symbols. Conflicting loops,
-  shared curved dividers, ambiguous contents, collisions and sheet overflow are
-  explained and rejected. Individual circles/arcs and concave perimeters support
-  outward thickness. The reported area remains the closed internal-boundary area,
-  rather than a net furniture/open-partition calculation. Thickness does not
-  assign a material or RF attenuation. Plans using thickness require a reader
-  supporting drawing/layer format 2; legacy unthickened drawings retain format 1.
   These references do not join or edit the other layer's structure. Explicit
   Boundaries Fill/Auto Fill uses the active layer's closed rooms; the resulting
   RF mask remains independent of layer visibility. Survey points and operational
   AP markers remain independent too. Live Map, saved generated PNGs, HTML reports,
   Print Plan and Save as JPEG use the visible drawing layers in the same order.
   Clean print/JPEG retain their exclusion of measurement/AP/heatmap overlays.
+- **Wall thickness** is available in Draw Plan: select structural segments/curves,
+  then use the wall icon in Design Mode. Choose the meaning of the existing lines
+  before applying. **Preserve internal dimensions** grows outside internal faces;
+  shared straight dividers can translate connected rooms without resizing them,
+  with contained annotations and AP symbols following their room.
+  **Existing drawing: wall axes** keeps every reference coordinate fixed and
+  distributes thickness equally on both sides. This also works for nested rooms
+  and corridors where rigid separation is impossible. **Outside the chosen room**
+  preserves one selected room's interior while its neighbors may lose usable area.
+  **Keep current references** edits existing depth without changing its profile.
+  Conversion previews compare reference area, usable area and change for each room;
+  tiny regions fully occupied by material are explicitly identified, with their
+  source boundaries retained. Usable areas involving curves are approximate.
+  Numbers in this preview identify rooms only and are not added to the plan.
+  In the internal-dimensions method, open segments require an explicit side and
+  zero closes a recognized divider gap when compatible. Fixed-reference conversion
+  also accepts open segments; zero removes material without moving references.
+  Compatible shared faces are cut/picked together; deleting a divider rebuilds
+  its jambs or continuing perimeter. Physical bounds, apertures, move/rotation,
+  undo/redo, layers, saved plans and print/JPEG/HTML rendering share the same solids.
+  Object clearances use physical faces. Existing depth is preserved exactly when
+  merely reviewing properties, including when feet are rounded for display.
+  Room separation must precede RF captures/manual masks; coordinate-only AP
+  placements must first be converted to drawing symbols. Fixed-reference conversion
+  is also available after RF capture because survey coordinates stay fixed.
+  Incompatible rigid layouts identify the affected rooms and suggest conversion.
+  Collisions in the protected interior, invalid radii and sheet overflow are rejected.
+  Original reference areas remain analytic; derived usable areas subtract structural
+  wall material before aperture cutouts, without subtracting furniture. Thickness does not
+  assign a material or RF attenuation. Plans using thickness require a reader
+  supporting drawing/layer format 2; legacy unthickened drawings retain format 1.
+- Missing generated Draw Plan images can be recovered from validated saved vectors
+  and canvas extents. Calibration and coordinates are preserved; saving recreates
+  the PNG. Imported Load Plan images require their original image file.
 - **Grid square size** is configurable in New Survey: default **1 m** or
   **3 ft**, with **0.1 m** steps or **whole feet**. The physical size is saved in
   the survey and used by the visible grid and every snap tool. Right-click the

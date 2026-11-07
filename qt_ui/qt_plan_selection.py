@@ -173,9 +173,13 @@ class PlanSelectionController:
             rows = []
             if self.selected_region_area is not None:
                 rows.append(self.measure("selection_area", self.selected_region_area, power=2))
+                region = self.regions().matching_region(self.selected, self.selected_curves)
+                if region and region.usable_area is not None:
+                    rows.append(("≈ " if region.approximate else "")+self.measure("wall_usable_area", region.usable_area, power=2))
             elif count == 1 and self.selected:
                 line = (self.move_preview[0] if self.moving and self.move_preview else self.lines[self.selected[0]])
-                rows.append(self.measure("line_length", math.hypot(line["x2"] - line["x1"], line["y2"] - line["y1"])))
+                rows.append(self.measure("wall_reference_length" if line.get("wall", {}).get("reference") else "line_length",
+                    math.hypot(line["x2"] - line["x1"], line["y2"] - line["y1"])))
                 if line.get("wall"):
                     rows.append(self.measure("wall_depth", line["wall"]["width"]))
             elif count == 1 and self.selected_curves:

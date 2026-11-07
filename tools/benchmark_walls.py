@@ -28,6 +28,7 @@ def main():
     from survey.plan_drawing import rectangle_segments
     from survey.plan_curve_geometry import normalize_plan
     from survey.wall_layout import plan_wall_layout
+    from survey.wall_conversion import convert_wall_reference
     from survey.wall_geometry import wall_commands
     from survey.plan_clearances import ClearanceIndex
     from survey.plan_objects import object_default
@@ -49,7 +50,8 @@ def main():
             item["cx"] += .01
             return index.query(item)
         case = dict(layout=measure(build), resize=measure(lambda: plan_wall_layout(result.state, range(len(thick)), (), 15, bounds)),
-                    render_paths=measure(lambda: wall_commands(thick)), clearance_hover=measure(hover, 20))
+                    render_paths=measure(lambda: wall_commands(thick)), clearance_hover=measure(hover, 20),
+                    fixed_reference_conversion=measure(lambda: convert_wall_reference(state, range(len(lines)), (), 10, bounds)))
         results[str(side*side)] = case
         print(side*side, json.dumps(case), flush=True)
     options.output.parent.mkdir(parents=True, exist_ok=True)

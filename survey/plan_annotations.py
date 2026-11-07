@@ -182,7 +182,7 @@ def visible_wall_segments(lines, annotations, with_sources=False):
         for low, high in support_intervals(a, b, hosts) + [(length, length)]:
             if low - cursor > EPS:
                 values = [a[i] + (b[i] - a[i]) * t / length for t in (cursor, low) for i in (0, 1)]
-                result.append(dict(zip(("x1", "y1", "x2", "y2"), values), color=line["color"]))
+                result.append(dict(line, **dict(zip(("x1", "y1", "x2", "y2"), values))))
                 sources.append(index)
             cursor = max(cursor, high)
     return (result, sources) if with_sources else result
