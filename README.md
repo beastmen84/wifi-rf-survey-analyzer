@@ -280,7 +280,7 @@ from these software checks.
   layers. Numbers stay attached to their objects and are not reused after deletion.
   Numbers remain upright, fitting inside the shape where readable or using an
   external badge. Disable **Automatic number** for an unnumbered marker.
-  **Analysis → Legend** (in the toolbar heading) creates automatic per-shape tables with editable
+  **Recommendations → Legend** (in the toolbar heading) creates automatic per-shape tables with editable
   descriptions; hidden/locked layers can be inspected but not edited there.
   Existing unnumbered markers remain unchanged until explicitly numbered in
   Legend. Printed/exported tables include only visible layers.
@@ -304,7 +304,7 @@ from these software checks.
   for annotation erasing. Undo restores the same objects and their wall ink.
 - **Rack inventory** is optional in Draw Plan: select a Rack symbol and set
   **No. switches**, then open **Rack details** to name the rack and set each
-  switch's **No. ports**. Zero means unspecified. **Analysis → Legend → Switches
+  switch's **No. ports**. Zero means unspecified. **Recommendations → Legend → Switches
   and ports** lists racks and switches; port numbers are automatic and each port
   has a free description. Retained ports keep their descriptions when counts
   change; accepting a reduction removes descriptions for the removed ports.
@@ -385,7 +385,7 @@ from these software checks.
 - Survey Quality Dashboard with point-rescan findings, AP model diagnostics,
   clickable KPI point lists, and prioritized "what to fix next" guidance.
 - Live Coverage, Interference, AP Channels, and Dominant AP maps.
-- A final Analysis and recommendations tab with local rules for channel plans,
+- A final Recommendations tab with local rules for channel plans,
   coverage, AP dominance, client roaming and missing survey evidence. Findings
   explain their confidence and link back to measured points.
   Physical-group confirmation is requested once per group transmitting a relevant
@@ -402,9 +402,10 @@ from these software checks.
 - Complete HTML analysis reports with a concise summary, prioritized actions,
   visible evidence limits and expandable measurement/parameter sections.
   Both report types work offline as one file and support printing from the browser.
-- Compact Analysis controls: coverage target and report actions remain visible;
+- Compact Recommendations controls: coverage target and report actions remain visible;
   evidence thresholds and channel candidates sit in expandable Analysis settings,
-  with active values and applicable missing-channel warnings always visible.
+  with confidence/point thresholds summarized and applicable missing-channel
+  warnings visible. The full channel lists remain in settings and their tooltip.
 - English, Italian, French and Spanish UI, Help Center and report wording,
   covering the operating workflow and detailed option behavior.
 
@@ -426,9 +427,9 @@ from these software checks.
 8. Review AP groups, metadata, channel overrides, and AP positions. Confirm the
    groups transmitting relevant networks using the first-column circles, then Save.
 9. Use Live Map views to inspect coverage, interference, channels, and roaming.
-10. Open Analysis and recommendations, set the coverage target and evidence
+10. Open Recommendations, set the coverage target and evidence
     requirements, and review the suggested actions and their supporting points.
-11. Use **Export Map** in Live Map or **Export report** in Analysis to save
+11. Use **Export Map** in Live Map or **Export report** in Recommendations to save
     standalone HTML. Open the
     report in a browser to inspect details, follow point links or print it.
 
@@ -510,7 +511,7 @@ The review and saved-point details separate three questions:
   flagged. This does not detect device movement or certify receiver calibration.
 - **Observed coverage:** the strongest median RSSI per relevant SSID against an
   explicit -70 dBm reference across detected bands. A missing SSID does not
-  prove absent coverage. Channel and roaming recommendations remain in Analysis.
+  prove absent coverage. Channel and roaming advice remains in Recommendations.
 
 The point table labels acquisition reliability explicitly and shows the three
 axes for the selected point and in its tooltip. Offline HTML exports retain the
@@ -619,12 +620,21 @@ floor plan independently of viewport zoom/pan, and embeds the image and legend.
 Numbered points open their evidence. A summary highlights weak measured signals,
 interference risk or dominant-AP warnings; unknown RF geometry stays explicit.
 
-## Survey Analysis And Recommendations
+## Recommendations
 
 The final tab analyzes the whole current survey using deterministic local rules.
 Select the relevant SSIDs and confirm AP grouping, roles and positions first.
-Live Map filters do not restrict the analysis. The category filter helps browse
-findings; exports include the complete report.
+Live Map filters do not restrict the analysis. The default list focuses on
+operational recommendations: a specific joint channel plan first, then controlled
+trials and on-site checks. This is a reading order by concreteness, not a computed
+urgency or business-impact score. Each item states its type and confidence.
+
+The section selector also opens **Prerequisites to review**, **Technical
+observations**, or the complete findings. Data/model checks such as AP confirmation,
+missing positions or measurements remain prerequisites; they do not become AP
+configuration instructions. A compact summary links to the full **Survey Quality**
+audit. When no operational advice is supported, the view explicitly requests the
+prerequisite checks instead of declaring the network healthy.
 
 Set the coverage target, minimum scan confidence, minimum supporting points,
 and candidate channels usable by your APs. The default 2.4 GHz candidates are
@@ -639,13 +649,18 @@ guidance instead of an unsupported precise change. Dominance and roaming
 findings recommend controlled checks, with a power-balance trial only when
 repeated measurements and alternative coverage support it.
 
-Every finding includes an action, evidence and its limits. These are advisory
+Every finding includes an action and its limits. **Show supporting data** expands
+the metrics and measured readings; point links return to Survey. Limits stay
+visible when the readings are collapsed. These are advisory
 results: the app applies no AP configuration changes and uses no AI or remote
 service. Signal overlap is a modeled risk rather than a throughput/airtime
 measurement. Placement checks do not predict an exact new location or power
 level. Verify changes on site and repeat the referenced measurements.
 
-HTML reports preserve the current analysis snapshot. Export is blocked while scanning,
+HTML reports use the same ordering and retain all findings regardless of the
+section selected in the app. Prerequisites, technical observations and supporting
+readings are expandable; the quality summary and recommendation limits remain
+visible. HTML reports preserve the current analysis snapshot. Export is blocked while scanning,
 analyzing or after relevant data/objectives change until the report is current.
 
 ## Help Center

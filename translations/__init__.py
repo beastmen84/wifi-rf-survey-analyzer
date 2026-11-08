@@ -31,6 +31,7 @@ from translations.walls import dictionary as walls_dictionary
 from translations.plan_resize import dictionary as resize_dictionary
 from translations.wall_materials import dictionary as wall_material_dictionary
 from translations.rack_inventory import dictionary as rack_dictionary
+from translations.recommendations import dictionary as recommendation_dictionary
 for _language, _dictionary in TRANSLATIONS.items():
     _dictionary.update(advisor_dictionary(_language))
     _dictionary.update(report_dictionary(_language))
@@ -46,6 +47,7 @@ for _language, _dictionary in TRANSLATIONS.items():
     _dictionary.update(resize_dictionary(_language))
     _dictionary.update(wall_material_dictionary(_language))
     _dictionary.update(rack_dictionary(_language))
+    _dictionary.update(recommendation_dictionary(_language))
     _dictionary['network_symbols_help'] += ' ' + _dictionary['rack_help']
     _dictionary['wall_help'] += ' ' + _dictionary['wall_material_help']
     _dictionary['annotation_help'] += ' ' + _dictionary['selection_shared_help']

@@ -67,7 +67,7 @@ def test_data_constraints_and_limits_are_outside_collapsed_measurements():
     report = analyze_survey(**context)
     html = report_html(report, "it")
     assert 'class="callout"' in html and 'class="card data"' in html
-    assert "Le evidenze attuali non supportano" in html
+    assert translate("it", "advisor_none_limited") in html
     assert "Rischio" not in html or "throughput" in html
     assert translate("it", "advisor_general_limit") in html
 

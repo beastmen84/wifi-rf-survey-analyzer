@@ -39,10 +39,38 @@ Current status:
   snapshot edits commit as one undoable change with stale-state protection.
   Print/JPEG use dedicated per-switch tables and repeat wrapped rack/switch
   titles on subsequent pages. Rack inventory is documentation, not RF evidence.
-- Analysis/Survey Quality overlap was reviewed at user request. Proposed direction
-  (not implemented): recommendations first, ranked actions with expandable evidence,
-  one quality/uncertainty summary linking to Survey Quality, and supplementary
-  technical observations. Existing confidence gates must remain in the engine.
+- The final tab is now Recommendations. advisor/recommendations.py is a read-only
+  presentation partition: channel changes/width trials, weak coverage, dominance
+  and roaming lead the list. Data-category findings plus missing positions,
+  missing/empty captures, channel instability and overrides are prerequisites;
+  remaining/future findings stay technical observations. Every finding is retained
+  exactly once. Channel proposals retain engine step order; trials and checks
+  follow by concreteness. The rank is not an invented urgency/impact score.
+- qt_analysis keeps action/target/confidence/limits visible; readings and metric
+  tables build only on expansion. Quality opens the existing Survey Quality
+  dialog. Section filters do not affect report exports. Stale/scanning results
+  disable their controls and point links; negative point indices are rejected.
+  The advanced settings area is height-limited with scrolling at large UI scales;
+  coverage/confidence/point-count fields reserve room for digits, units and arrows.
+- Browser exports share the partition and order. Each recommendation has a
+  supporting-data disclosure; prerequisites and technical observations have their
+  own folded sections, while the quality summary and operational limits remain
+  visible. Deep links open nested disclosures and printing restores reading state.
+  RF engine rules, ENGINE_VERSION3, confidence gates, profile defaults, fingerprints
+  and persisted schemas are unchanged. Legacy programmatic PDF remains supported.
+- Recommendation validation: full native suite2354 tests +479 subtests passed
+  in493.78s. Native UI96 states cover4languages x4themes x3scales xadvanced open/
+  closed; font/suffix widths and available recommendation space were checked.
+  Chromium24 layouts cover supported/limited/weak-coverage snapshots at1280 and
+  390CSS pixels, disclosure controls, deep links and print-state restoration.
+  Its12-page printed PDF retains evidence; isolated headless Edge additionally
+  verifies exact desktop/mobile CSS widths, full-page rendering and PDF output.
+  No RF engine change, scanner field campaign, frozen build or physical printer
+  test is implied. Known Qt/COM diagnostic can still appear in native logs.
+  Final text/selector polish:67 related tests +434 translation subtests passed
+  in32.57s, including the added review-only channel case. All96 native UI states
+  passed again with the final wording. Ruff essential/core F, compile and whitespace
+  checks pass; the3 original test_data hashes remain unchanged.
 - Validation for this change: initial full native run2336 passed +479 subtests,
   with one obsolete test expecting layer format3 rejection. Updated that invalid
   fixture to4; the final related-module run185 passed50.97s, including the corrected

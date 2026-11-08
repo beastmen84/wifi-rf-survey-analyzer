@@ -6,11 +6,12 @@ from pathlib import Path
 from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot, Qt
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel,
     QPushButton, QDoubleSpinBox, QSpinBox, QLineEdit, QComboBox, QSplitter,
-    QListWidget, QListWidgetItem, QTextBrowser, QMessageBox, QToolButton, QFrame)
+    QListWidget, QListWidgetItem, QTextBrowser, QMessageBox, QToolButton, QFrame, QScrollArea, QSizePolicy)
 
 from advisor.engine import analyze_survey
 from advisor.models import AnalysisProfile, analysis_fingerprint
 from advisor.presentation import wording, finding_html, wrap_html
+from advisor.recommendations import sections, recommendation_kind, empty_recommendation_key
 from exporting.analysis_report import export_analysis_report
 from qt_ui.qt_live_map import load_floorplan_image
 from survey.plan_drawing import drawing_geometry, render_plan_drawing
@@ -74,19 +75,23 @@ class AnalysisView(QWidget):
         self.target.setDecimals(0)
         self.target.setSuffix(" dBm")
         self.target.setValue(-70)
+        self.target.setMinimumWidth(app.spx(150))
         self.confidence = QDoubleSpinBox()
         self.confidence.setRange(10, 100)
         self.confidence.setSingleStep(5)
         self.confidence.setDecimals(0)
         self.confidence.setSuffix("%")
         self.confidence.setValue(60)
+        self.confidence.setMinimumWidth(app.spx(130))
         self.minimum = QSpinBox()
         self.minimum.setRange(2, 20)
         self.minimum.setValue(3)
+        self.minimum.setMinimumWidth(app.spx(130))
         target_row.addWidget(self.target_label)
         target_row.addWidget(self.target)
         self.target_hint = QLabel()
         self.target_hint.setObjectName("mutedText")
+        self.target_hint.setWordWrap(True)
         target_row.addWidget(self.target_hint, 1)
         self.settings_button = QToolButton()
         self.settings_button.setCheckable(True)
@@ -129,14 +134,42 @@ class AnalysisView(QWidget):
         self.policy_hint.setWordWrap(True)
         self.policy_hint.setObjectName("mutedText")
         advanced.addWidget(self.policy_hint)
-        layout.addWidget(self.settings_panel)
+        self.settings_scroll = QScrollArea()
+        self.settings_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.settings_scroll.setWidgetResizable(True)
+        self.settings_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.settings_scroll.setMaximumHeight(app.spx(170))
+        self.settings_scroll.setWidget(self.settings_panel)
+        layout.addWidget(self.settings_scroll)
         self.settings_panel.hide()
+        self.settings_scroll.hide()
         self.summary = QLabel()
         self.summary.setWordWrap(True)
         layout.addWidget(self.summary)
+        self.quality_panel = QFrame()
+        self.quality_panel.setObjectName("recommendationQuality")
+        quality_row = QHBoxLayout(self.quality_panel)
+        self.quality_summary = QLabel()
+        self.quality_summary.setTextFormat(Qt.TextFormat.PlainText)
+        self.quality_summary.setWordWrap(True)
+        quality_row.addWidget(self.quality_summary, 1)
+        quality_actions = QHBoxLayout()
+        self.quality_button, self.prerequisites_button = QPushButton(), QPushButton()
+        self.quality_button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+        self.prerequisites_button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+        self.quality_button.clicked.connect(app.open_quality_dashboard)
+        self.prerequisites_button.clicked.connect(lambda: self.filter.setCurrentIndex(self.filter.findData("prerequisites")))
+        quality_actions.addWidget(self.quality_button)
+        quality_actions.addWidget(self.prerequisites_button)
+        quality_row.addLayout(quality_actions)
+        layout.addWidget(self.quality_panel)
         self.filter = QComboBox()
         self.filter.currentIndexChanged.connect(self.render_findings)
         layout.addWidget(self.filter)
+        self.order_hint = QLabel()
+        self.order_hint.setWordWrap(True)
+        self.order_hint.setObjectName("mutedText")
+        layout.addWidget(self.order_hint)
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.setChildrenCollapsible(False)
         self.findings = QListWidget()
@@ -149,7 +182,16 @@ class AnalysisView(QWidget):
         self.detail.setOpenLinks(False)
         self.detail.setOpenExternalLinks(False)
         self.detail.anchorClicked.connect(self.focus_evidence)
-        splitter.addWidget(self.detail)
+        detail_panel = QWidget()
+        detail_layout = QVBoxLayout(detail_panel)
+        detail_layout.setContentsMargins(0, 0, 0, 0)
+        detail_layout.addWidget(self.detail, 1)
+        self.evidence_button = QToolButton()
+        self.evidence_button.setCheckable(True)
+        self.evidence_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.evidence_button.toggled.connect(self.toggle_evidence)
+        detail_layout.addWidget(self.evidence_button)
+        splitter.addWidget(detail_panel)
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 2)
         layout.addWidget(splitter, 1)
@@ -163,14 +205,25 @@ class AnalysisView(QWidget):
         return self.app.tr("advisor_" + key, **kwargs)
 
     def toggle_settings(self, expanded):
+        self.size_settings()
         self.settings_panel.setVisible(expanded)
+        self.settings_scroll.setVisible(expanded)
         self.settings_button.setArrowType(Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow)
+
+    def size_settings(self):
+        self.settings_scroll.setMaximumHeight(max(self.app.spx(85), min(self.app.spx(170), int(self.height() * .22))))
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, "settings_scroll"):
+            self.size_settings()
 
     def refresh_settings_summary(self):
         channels = " · ".join(band + " GHz: " + (edit.text().strip() or self.text("review_only"))
             for band, edit in self.channel_edits.items())
         self.settings_summary.setText(self.app.tr("report_settings_summary",
-            confidence=f"{self.confidence.value():g}", points=self.minimum.value()) + " · " + channels)
+            confidence=f"{self.confidence.value():g}", points=self.minimum.value()))
+        self.settings_summary.setToolTip(channels)
         observed = {get_row_band(row) for row in self.app.session.rows} if self.app.session else set()
         missing = [band for band in ("5", "6") if band in observed and not self.channel_edits[band].text().strip()]
         self.policy_notice.setText(self.app.tr("report_channel_missing", bands=" / ".join(missing)) if missing else "")
@@ -217,6 +270,9 @@ class AnalysisView(QWidget):
         self.refresh_settings_summary()
         self.export_button.setEnabled(False)
         self.summary.setText(self.text("stale"))
+        self.findings.setEnabled(False)
+        self.evidence_button.setEnabled(False)
+        self.quality_summary.setText(self.text("stale"))
         self.pending = True
         if self.app.tabs.currentIndex() == 2:
             self.timer.start()
@@ -225,6 +281,11 @@ class AnalysisView(QWidget):
         self.refresh_settings_summary()
         enabled = self.app.session is not None and not self.app.scan_in_progress
         self.run_button.setEnabled(enabled and not self.busy)
+        self.quality_button.setEnabled(enabled)
+        current = enabled and self.report_is_current()
+        self.findings.setEnabled(current)
+        self.evidence_button.setEnabled(current and self.findings.currentItem() is not None)
+        self.quality_panel.setVisible(self.report is not None and self.app.session is not None)
         if not enabled:
             self.export_button.setEnabled(False)
         if self.app.session is None:
@@ -232,6 +293,7 @@ class AnalysisView(QWidget):
             self.findings.clear()
             self.detail.clear()
             self.summary.setText(self.text("empty"))
+            self.evidence_button.setEnabled(False)
         elif self.app.tabs.currentIndex() == 2 and enabled:
             self.export_button.setEnabled(False)
             self.summary.setText(self.text("stale") if self.report else self.text("busy"))
@@ -250,6 +312,7 @@ class AnalysisView(QWidget):
             if self.report is not None and self.report.fingerprint == self.fingerprint(context):
                 self.pending = False
                 self.render_summary()
+                self.toggle_evidence(self.evidence_button.isChecked())
                 self.export_button.setEnabled(True)
                 return
         except ValueError:
@@ -258,6 +321,9 @@ class AnalysisView(QWidget):
             return
         self.pending = False
         self.summary.setText(self.text("busy"))
+        self.quality_summary.setText(self.text("busy"))
+        self.findings.setEnabled(False)
+        self.evidence_button.setEnabled(False)
         self.export_button.setEnabled(False)
         self.run_button.setEnabled(False)
         self.thread = QThread(self)
@@ -300,8 +366,22 @@ class AnalysisView(QWidget):
 
     def render_summary(self):
         if self.report:
+            self.hint.hide()
+            grouped = sections(self.report)
+            current = self.report_is_current() and not self.app.scan_in_progress
+            self.findings.setEnabled(current)
+            self.evidence_button.setEnabled(current and self.findings.currentItem() is not None)
             self.summary.setText(self.text("summary", points=len(self.report.points),
-                findings=len(self.report.findings), actions=sum(f.rule == "channel_change" for f in self.report.findings)))
+                checks=len(grouped.prerequisites), observations=len(grouped.observations), actions=len(grouped.recommendations)))
+            self.quality_panel.show()
+            self.quality_summary.setText(self.text("quality_summary", checks=len(grouped.prerequisites),
+                points=grouped.affected_points) if grouped.prerequisites else self.text("quality_ready"))
+            if not current:
+                self.quality_summary.setText(self.text("stale"))
+            self.prerequisites_button.setVisible(bool(grouped.prerequisites))
+            palette = QT_THEMES[self.app.theme]
+            border = palette["metric_warning"] if grouped.prerequisites else palette["border"]
+            self.quality_panel.setStyleSheet(f"QFrame#recommendationQuality {{background:{palette['panel_alt']};border:1px solid {border};border-radius:6px;}}")
 
     def report_is_current(self):
         try:
@@ -311,38 +391,79 @@ class AnalysisView(QWidget):
             return False
 
     def render_findings(self, *_args):
+        current = self.findings.currentItem()
+        previous = current.data(Qt.ItemDataRole.UserRole).finding_id if current else None
         self.findings.clear()
         if self.report is None:
+            self.quality_panel.hide()
+            self.order_hint.hide()
+            self.hint.show()
             return
-        category = self.filter.currentData()
-        for finding in self.report.findings:
-            if category and finding.category != category:
-                continue
+        grouped = sections(self.report)
+        current_report = self.report_is_current() and not self.app.scan_in_progress
+        self.findings.setEnabled(current_report)
+        mode = self.filter.currentData() or "recommendations"
+        counts = {"recommendations": len(grouped.recommendations), "prerequisites": len(grouped.prerequisites),
+                  "observations": len(grouped.observations), "everything": len(self.report.findings)}
+        for index in range(self.filter.count()):
+            key = self.filter.itemData(index)
+            self.filter.setItemText(index, self.text(key) + f" ({counts[key]})")
+        ordered = (*grouped.recommendations, *grouped.prerequisites, *grouped.observations)
+        selected = ordered if mode == "everything" else getattr(grouped, mode)
+        ranks = {finding.finding_id: rank for rank, finding in enumerate(grouped.recommendations, 1)}
+        prerequisite_ids = {finding.finding_id for finding in grouped.prerequisites}
+        for finding in selected:
             text = wording(finding, self.report, self.app.language)
-            item = QListWidgetItem(self.text(finding.severity) + " · " + text)
+            rank = ranks.get(finding.finding_id)
+            prefix = f"{rank}. " if rank else ""
+            classification = self.text(recommendation_kind(finding)) if rank else self.text("prerequisites" if finding.finding_id in prerequisite_ids else "observations")
+            item = QListWidgetItem(prefix + text + "\n" + classification + " · " + self.text("confidence") + ": " + self.text(finding.confidence))
             item.setToolTip(text)
             item.setData(Qt.ItemDataRole.UserRole, finding)
             self.findings.addItem(item)
+        self.order_hint.setVisible(mode in ("recommendations", "everything"))
+        if not current_report:
+            self.detail.setHtml(wrap_html(self.text("stale"), QT_THEMES[self.app.theme]))
+            self.evidence_button.setEnabled(False)
+            return
         if self.findings.count():
-            self.findings.setCurrentRow(0)
+            row = next((i for i in range(self.findings.count()) if self.findings.item(i).data(Qt.ItemDataRole.UserRole).finding_id == previous), 0)
+            self.findings.setCurrentRow(row)
         else:
-            self.detail.setHtml(wrap_html(self.text("no_category" if category else "clear"), QT_THEMES[self.app.theme]))
+            message = empty_recommendation_key(grouped) if mode == "recommendations" else "section_empty"
+            self.detail.setHtml(wrap_html(self.text(message), QT_THEMES[self.app.theme]))
 
     def render_selected(self, _row=None):
+        self.evidence_button.blockSignals(True)
+        self.evidence_button.setChecked(False)
+        self.evidence_button.blockSignals(False)
+        self.toggle_evidence(False)
+
+    def toggle_evidence(self, expanded):
+        self.evidence_button.setArrowType(Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow)
+        self.evidence_button.setText(self.text("hide_support" if expanded else "show_support"))
         item = self.findings.currentItem()
-        if item and self.report:
+        current = item is not None and self.report_is_current() and not self.app.scan_in_progress
+        self.evidence_button.setEnabled(current)
+        if current:
             finding = item.data(Qt.ItemDataRole.UserRole)
-            self.detail.setHtml(wrap_html(finding_html(finding, self.report, self.app.language, True),
+            self.detail.setHtml(wrap_html(finding_html(finding, self.report, self.app.language, True,
+                                         expanded=expanded, compact=True),
                                          QT_THEMES[self.app.theme]))
+        elif item and self.report:
+            self.detail.setHtml(wrap_html(self.text("stale"), QT_THEMES[self.app.theme]))
 
     def focus_evidence(self, url):
-        if url.scheme() != "point" or self.report is None:
+        if url.scheme() != "point" or self.report is None or self.app.scan_in_progress:
             return
         if not self.report_is_current():
             self.inputs_changed()
             return
         try:
-            point = self.report.points[int(url.path())]
+            index = int(url.path())
+            if not 0 <= index < len(self.report.points):
+                return
+            point = self.report.points[index]
         except (ValueError, IndexError):
             return
         if not self.app.floorplan_view.has_floorplan():
@@ -386,6 +507,10 @@ class AnalysisView(QWidget):
             return False
 
     def retranslate(self):
+        self.quality_button.setText(self.text("quality_open"))
+        self.prerequisites_button.setText(self.text("show_prerequisites"))
+        self.order_hint.setText(self.text("order_hint"))
+        self.heading.setToolTip(self.text("hint"))
         self.settings_button.setText(self.app.tr("report_settings"))
         self.target_hint.setText(self.app.tr("report_target_hint"))
         self.refresh_settings_summary()
@@ -397,9 +522,8 @@ class AnalysisView(QWidget):
         previous = self.filter.currentData()
         self.filter.blockSignals(True)
         self.filter.clear()
-        for key, data in (("all", ""), ("data", "data"), ("channels", "channels"),
-                ("coverage", "coverage"), ("position", "position"), ("roaming_category", "roaming")):
-            self.filter.addItem(self.text(key), data)
+        for key in ("recommendations", "prerequisites", "observations", "everything"):
+            self.filter.addItem(self.text(key), key)
         self.filter.setCurrentIndex(max(0, self.filter.findData(previous)))
         self.filter.blockSignals(False)
         self.render_findings()
@@ -407,4 +531,5 @@ class AnalysisView(QWidget):
             self.render_summary()
         else:
             self.summary.setText(self.text("empty"))
+        self.toggle_evidence(self.evidence_button.isChecked())
         self.export_button.setEnabled(self.report_is_current() and not self.busy and not self.app.scan_in_progress)

@@ -7,6 +7,13 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Reworked the final tab as **Recommendations**: specific channel plans,
+  controlled trials and on-site checks lead the list, with confidence, target APs
+  and visible limits. Metrics/readings expand on request. Data/model prerequisites
+  and technical observations are separate sections; a compact summary opens Survey
+  Quality. HTML exports use the same organization and retain all findings.
+  Existing RF rules, confidence gates, objectives and joint channel-plan order
+  remain intact; stale results are disabled until refreshed.
 - JPEG centers the clean plan on both axes and fits it proportionally to the
   selected paper. Draw Plan uses visible drawing extents, excluding unused sheet
   space; Load Plan retains the whole imported image. Calibration is preserved.

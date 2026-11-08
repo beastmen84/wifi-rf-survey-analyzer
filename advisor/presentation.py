@@ -2,6 +2,7 @@
 
 from html import escape
 from translations.i18n import translate
+from advisor.recommendations import sections, recommendation_kind, RECOMMENDATION_RULES
 
 
 def wording(finding, report, language):
@@ -10,18 +11,31 @@ def wording(finding, report, language):
     return translate(language, "advisor_rule_" + finding.rule, **values)
 
 
-def finding_html(finding, report, language, interactive=False, browser=False):
+def finding_html(finding, report, language, interactive=False, browser=False, *, expanded=True, compact=False):
     tr = lambda key, **kwargs: translate(language, "advisor_" + key, **kwargs)
     safe = lambda text: escape(str(text))
     title = wording(finding, report, language)
-    body = [f"<h2>{safe(title)}</h2>",
-        f"<p>{safe(tr(finding.severity))} · {safe(tr('confidence'))}: {safe(tr(finding.confidence))}",
-        f"{' · ' + safe(finding.band) + ' GHz' if finding.band else ''}</p>",
-        f"<h3>{safe(tr('action'))}</h3><p>{safe(tr('action_' + finding.action))}</p>",
-        f"<h3>{safe(tr('evidence'))}</h3><table width='100%' cellspacing='0' cellpadding='5'>"]
-    if browser:
-        body[1:3] = [f'<p class="muted">{safe(tr(finding.severity))}'
-            f'{" · " + safe(finding.band) + " GHz" if finding.band else ""}</p>']
+    status = safe(tr(finding.severity))
+    if not browser:
+        status += f" · {safe(tr('confidence'))}: {safe(tr(finding.confidence))}"
+    if compact and finding.rule in RECOMMENDATION_RULES:
+        status += " · " + safe(tr(recommendation_kind(finding)))
+    if finding.band:
+        status += " · " + safe(finding.band) + " GHz"
+    body = [f"<h2>{safe(title)}</h2>", f"<p>{status}</p>"]
+    if compact:
+        targets = []
+        if finding.group_ids:
+            targets.append(tr('ap') + ': ' + ', '.join(report.ap_labels.get(g, g) for g in finding.group_ids))
+        if finding.ssid:
+            targets.append('SSID: ' + finding.ssid)
+        targets.append(f"{tr('metric_points')}: {len(finding.point_ids)}")
+        body.append('<p><b>' + safe(' · '.join(targets)) + '</b></p>')
+    body.extend((f"<h3>{safe(tr('action'))}</h3><p>{safe(tr('action_' + finding.action))}</p>",))
+    if compact and not expanded and not browser:
+        return _finish_finding(body, finding, tr, compact, interactive)
+    support_start = len(body)
+    body.append(f"<h3>{safe(tr('evidence'))}</h3><table width='100%' cellspacing='0' cellpadding='5'>")
     for metric, value in finding.metrics.items():
         if metric in {"neighbor_ids", "evidence_group_ids"}:
             continue
@@ -30,7 +44,6 @@ def finding_html(finding, report, language, interactive=False, browser=False):
         body.append(f"<tr><td>{safe(tr('metric_' + metric))}</td><td><b>{safe(value)}</b></td></tr>")
     body.append("</table>")
     if finding.point_ids:
-        evidence_start = len(body)
         body.append("<p>")
         index = {p.point_id: i + 1 for i, p in enumerate(report.points)}
         for point_id in finding.point_ids:
@@ -64,14 +77,19 @@ def finding_html(finding, report, language, interactive=False, browser=False):
                 f"{safe(r.backend or '?')}<br>{safe(r.adapter_id or '?')}<br>{safe(tr('freshness_' + r.freshness))}</td><td>{r.channel if r.channel is not None else '-'} / "
                 f"{r.width if r.width is not None else '-'}</td><td>{r.confidence:.0%}</td></tr>")
         body.append("</tbody></table>")
-        if browser:
-            from exporting.html_report import disclosure
-            label = translate(language, "report_measurements") + f" · {len(finding.point_ids)} " + tr("metric_points")
-            body[evidence_start:] = [disclosure(label, "".join(body[evidence_start:]), "evidence-" + finding.finding_id)]
+    if browser:
+        from exporting.html_report import disclosure
+        body[support_start:] = [disclosure(tr('support'), ''.join(body[support_start:]), 'evidence-' + finding.finding_id)]
+    return _finish_finding(body, finding, tr, compact, interactive)
+
+
+def _finish_finding(body, finding, tr, compact, interactive):
+    safe = lambda text: escape(str(text))
     if finding.limitations:
         body.append(f"<h3>{safe(tr('limits'))}</h3><ul>" + "".join(
             f"<li>{safe(tr(limit))}</li>" for limit in finding.limitations) + "</ul>")
-    body.append(f"<h3>{safe(tr('check'))}</h3><p>{safe(tr('check_text'))}</p>")
+    if not compact or finding.rule in RECOMMENDATION_RULES:
+        body.append(f"<h3>{safe(tr('check'))}</h3><p>{safe(tr('check_text'))}</p>")
     html = "".join(body)
     # Leave room for QTextBrowser's document margins at native Windows DPI.
     return html.replace("width='100%'", "width='98%'") if interactive else html
@@ -85,15 +103,16 @@ def report_html(report, language="en", overview_data="", palette=None, browser=T
     safe = lambda text: escape(str(text))
     palette = palette or dict(text="#25313D", panel="#FFFFFF", border="#D5DEE8", title="#1F2A36")
     channels = lambda band: ", ".join(map(str, report.profile.channels(band))) or tr("review_only")
+    grouped = sections(report)
     body = [f"<h1>{safe(tr('title'))}</h1><p><b>{safe(report.survey_name)}</b></p>",
-        f"<p>{safe(tr('hint'))}</p><p>{safe(tr('summary', points=len(report.points), findings=len(report.findings), actions=sum(f.rule == 'channel_change' for f in report.findings)))}</p>",
+        f"<p>{safe(tr('hint'))}</p><p>{safe(tr('summary', points=len(report.points), checks=len(grouped.prerequisites), observations=len(grouped.observations), actions=len(grouped.recommendations)))}</p>",
         f"<p>{safe(tr('target'))}: {report.profile.coverage_dbm:g} dBm · "
         f"{safe(tr('min_confidence'))}: {report.profile.minimum_confidence:.0%} · "
         f"{safe(tr('minimum'))}: {report.profile.minimum_points}</p>",
         "<p>SSID: " + safe(", ".join(report.relevant_ssids)) + "</p>",
         f"<p>{safe(tr('policy'))}: 2.4 GHz {safe(channels('2.4'))}; "
         f"5 GHz {safe(channels('5'))}; 6 GHz {safe(channels('6'))}</p>"]
-    changes = [f for f in report.findings if f.rule == "channel_change"]
+    changes = grouped.recommendations
     if changes:
         body.append(f"<h2>{safe(tr('action'))}</h2><ul>" + "".join(
             f"<li>{safe(wording(f, report, language))} ({safe(f.band)} GHz)</li>" for f in changes) + "</ul>")
@@ -101,7 +120,7 @@ def report_html(report, language="en", overview_data="", palette=None, browser=T
         body.append(f"<p style='line-height:100%'><img src='{overview_data}'></p>")
     if not report.findings:
         body.append(f"<p>{safe(tr('clear'))}</p>")
-    for finding in report.findings:
+    for finding in (*grouped.recommendations, *grouped.prerequisites, *grouped.observations):
         body.append(finding_html(finding, report, language))
         body.append("<hr>")
     body.extend((f"<h2>{safe(tr('limits'))}</h2><p>{safe(tr('general_limit'))}</p>",
