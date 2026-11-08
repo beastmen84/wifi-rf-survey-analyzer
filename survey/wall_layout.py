@@ -120,7 +120,7 @@ def solve_moves(count, constraints, anchor):
              0 if abs(solution[2*i+1]) < EPS else float(solution[2*i+1])) for i in range(count)]
 
 
-def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, open_side=0, anchor=0):
+def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, open_side=0, anchor=0, widths=None, open_sides=None):
     if not math.isfinite(width) or not 0 <= width <= 10000 or open_side not in (-1, 0, 1):
         raise ValueError("wall_invalid_width")
     lines, curves = state["segments"] or [], state["curves"]
@@ -143,6 +143,13 @@ def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, o
     shapes = [*lines, *curves]
     chosen = set(selected_lines) | {len(lines)+i for i in selected_curves}
     requested = {i: width for i in chosen}
+    if widths is not None:
+        if set(widths) != chosen or any(isinstance(w, bool) or not isinstance(w, (int, float)) or not math.isfinite(w) or not 0 <= w <= 10000 for w in widths.values()):
+            raise ValueError("wall_invalid_width")
+        requested = dict(widths)
+    open_sides = open_sides or {}
+    if any(i not in chosen or type(s) is not int or s not in (-1, 1) for i, s in open_sides.items()):
+        raise ValueError("wall_open_side")
     sides = {(i, owner): room_side(shape, rooms[owner][0]) for i, shape in enumerate(shapes) for owner in owners[i]}
     constraints, links = [], []
     for i, own in enumerate(owners):
@@ -185,9 +192,11 @@ def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, o
         changed = False
         for i, j, _n, _gap in links:
             if i in requested or j in requested:
+                if i in requested and j in requested and abs(requested[i]-requested[j]) > EPS:
+                    raise ValueError("wall_shared_width_conflict")
                 for index in (i, j):
                     if index not in requested:
-                        requested[index] = width
+                        requested[index] = requested[j if index == i else i]
                         changed = True
     for i, j, n, gap in links:
         constraints.append((owners[i][0], owners[j][0], n, requested.get(i, gap)-gap))
@@ -216,7 +225,7 @@ def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, o
     for i, shape in enumerate(shapes):
         own = owners[i]
         w = requested.get(i, shape.get("wall", {}).get("width", 0))
-        if w and not own and not (open_side or shape.get("wall")):
+        if w and not own and not (open_sides.get(i) or open_side or shape.get("wall")):
             raise ValueError("wall_open_side")
         for owner in own or [None]:
             if owner is None:
@@ -228,7 +237,7 @@ def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, o
                     else translate_segments([shape], *move))[0]
             item.pop("wall", None)
             if w:
-                side = sides[i, owner] if owner is not None else open_side or shape["wall"]["side"]
+                side = sides[i, owner] if owner is not None else open_sides.get(i) or open_side or shape["wall"]["side"]
                 item["wall"] = dict(width=w, side=side)
             (output_curves if "kind" in shape else output_lines).append(item)
             if own:

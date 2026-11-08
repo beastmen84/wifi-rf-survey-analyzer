@@ -212,4 +212,5 @@ class LineDesignController:
         if line.length() > 0:
             segment = dict(x1=line.x1(), y1=line.y1(), x2=line.x2(), y2=line.y2(),
                            color=self.drawing.tools.stroke_color.name())
-            self.drawing.apply_edit(list(self.drawing.segments() or []) + [segment])
+            from qt_ui.qt_wall_sides import place_structure
+            return place_structure(self.drawing, lines=[segment])

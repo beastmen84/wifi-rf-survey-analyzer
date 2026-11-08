@@ -42,8 +42,8 @@ class PlanToolsOverlay(QFrame):
         self.eraser_button = owner.create_boundaries_tool_button("eraser.png", "blank_tool_eraser")
         self.select_button = owner.create_boundaries_text_button("", "blank_tool_select")
         self.wall_button = owner.create_boundaries_text_button("", "wall_title")
-        from qt_ui.qt_wall_properties import open_wall_properties
-        self.wall_button.clicked.connect(lambda: open_wall_properties(owner))
+        from qt_ui.qt_wall_sides import edit_wall_sides
+        self.wall_button.clicked.connect(lambda: edit_wall_sides(owner))
         self.undo_button = owner.create_boundaries_text_button("", "blank_tool_undo")
         self.redo_button = owner.create_boundaries_text_button("", "blank_tool_redo")
         for button in (self.rectangle_button, self.line_button, self.circle_button, self.arc_button, self.eraser_button, self.select_button):

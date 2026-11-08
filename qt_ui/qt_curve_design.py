@@ -358,7 +358,8 @@ class CurveDesignController:
             curve = validate_curves([curve])[0]
         except ValueError:
             return False
-        changed = self.drawing.apply_edit(self.drawing.segments() or [], curves=self.drawing.curves() + [curve])
+        from qt_ui.qt_wall_sides import place_structure
+        changed = place_structure(self.drawing, curves=[curve])
         if changed:
             self.last_dimensions[curve["kind"]] = (curve["radius"],) if curve["kind"] == "circle" else (
                 math.hypot(curve["x2"] - curve["x1"], curve["y2"] - curve["y1"]), curve["height"])

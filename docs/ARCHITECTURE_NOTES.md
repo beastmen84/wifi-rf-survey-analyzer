@@ -1,6 +1,6 @@
 # Wi-Fi RF Survey Analyzer - Architecture Notes
 
-Last updated: 2026-11-07
+Last updated: 2026-11-08
 
 This document is the forward-looking product roadmap. Completed items are kept
 only as context; the actionable backlog is in the "Remaining Work" section.
@@ -22,6 +22,28 @@ interpolated colors.
 
 Current status:
 
+- The primary thickness workflow is now construction-time per-side review, replacing
+  the previous method-selector dialog in the visible UI. Rectangle/line/curve final
+  commits stage geometry in wall_sides, normalize with source maps, inherit support
+  widths (same-line or opposite physical face), then open qt_wall_sides. Per-side
+  width requests go through a single rigid solve and one apply_edit history entry.
+  Shared edits require acknowledgment; Cancel stores nothing. Co-located shared
+  supports retain their existing color/profile, including differently colored new
+  strokes. A second source remap handles inherited duplicates that normalize away.
+  Inherited outer faces are recognized geometrically; existing rooms are anchored.
+  Interior double-click with structural Select reopens the region's sides; stroke
+  hit-testing has precedence for curve editing. Both mouse buttons are accepted.
+  The preview is a local schematic of the proposed piece, with outward profiles,
+  clickable paths/bodies and a table of exact depths in m/ft. Open pieces expose
+  side direction. Geometry validation, stale checks and RF/mask/AP protections
+  remain in effect. Converted documents preserve prior references, not silently
+  reinterpreted internal faces; incompatible paired reference layouts are rejected.
+- plan_wall_layout accepts a per-index width map and per-index open sides. Existing
+  uniform-width callers remain supported. Shared separated-face requests propagate
+  their actual per-side value; conflicting requested paired widths are rejected.
+- Test window fixtures auto-accept zero-depth review for unrelated gesture tests;
+  dedicated tests exercise real modal QDialog.exec via queued responses, clickable
+  sides, acknowledgment, Cancel, history, inherited supports and both double clicks.
 - Existing-plan conversion supplements rigid separation. wall_conversion works
   on immutable reference coordinates: axis profiles use side=0/reference="axis";
   room-exterior profiles use side=+1/-1/reference="face". Keep edits preserve

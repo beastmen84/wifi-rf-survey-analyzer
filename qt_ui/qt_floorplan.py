@@ -1431,6 +1431,11 @@ class FloorplanView(QGraphicsView):
             self.update_boundaries_brush_preview(self.mapToScene(event.position().toPoint()))
 
     def mouseDoubleClickEvent(self, event):
+        if self.design_mode_active and event.button() == Qt.MouseButton.LeftButton:
+            controller = getattr(self, "rectangle_design", None)
+            if controller is not None and controller.double_click(event):
+                event.accept()
+                return
         if self.design_mode_active and event.button() == Qt.MouseButton.RightButton:
             controller = getattr(self, "rectangle_design", None)
             if controller is not None:

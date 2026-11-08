@@ -7,21 +7,26 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
-- Added explicit existing-plan wall conversion: centered wall axes or thickness
-  outside one protected room, with fixed reference/RF coordinates and a preview
-  comparing reference and usable areas. Nested corridor/island layouts can gain
-  thickness without rigid room separation. Fully occupied tiny regions are listed
-  without deleting their boundaries; curved usable areas are approximate.
-  Existing converted profiles are retained when reviewing/editing thickness.
-- Conflicting rigid room constraints now identify the involved rooms in the preview.
+- Reworked Draw Plan thickness around construction: every structural piece opens
+  a numbered clickable per-side diagram at final placement. Each side has its own
+  depth; shared walls inherit existing values, including outer-face attachments,
+  partial overlaps and different stroke colors. Changing an inherited/shared side
+  requires explicit acknowledgment of the existing wall update. Placement and
+  thickness are one undo step; Cancel discards the proposed piece.
+- Structural Select now opens an area's side editor on an interior double click
+  with either button. Stroke hits retain curve editing. The wall button opens the
+  same side editor. Existing converted references remain compatible.
+- Previously converted existing-plan profiles retain their coordinate meaning and
+  their separate reference/usable area calculations; curved net areas are approximate.
+  Their source boundaries remain editable even when fully occupied by material.
+- Incompatible room constraints are reported without partial application.
   Thin rotated wall joins are stabilized against floating-point clipping artifacts.
 - Missing generated plan PNGs can be recovered from validated saved vectors and
   original canvas extents, preserving calibration. New saves retain exact pixel
   extents; imported images and unverifiable/incomplete drawings are never guessed.
   Scene clearing now resets design previews before reusing graphics references.
-- Added Draw Plan **Wall thickness** for structural selections, with a focused
-  preview, identified/fixed room, physical m/ft depth and explicit sides for open
-  segments. Internal faces, lengths and analytic room areas are preserved;
+- Added physical m/ft wall depth and explicit sides for open segments.
+  Internal faces, lengths and analytic room areas are preserved;
   straight shared dividers can separate connected rooms by rigid translation.
   Contained annotations/AP symbols follow, while captured RF data/manual masks
   and unconverted AP positions block coordinate-changing layouts.

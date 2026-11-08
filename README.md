@@ -129,35 +129,33 @@ from these software checks.
   AP markers remain independent too. Live Map, saved generated PNGs, HTML reports,
   Print Plan and Save as JPEG use the visible drawing layers in the same order.
   Clean print/JPEG retain their exclusion of measurement/AP/heatmap overlays.
-- **Wall thickness** is available in Draw Plan: select structural segments/curves,
-  then use the wall icon in Design Mode. Choose the meaning of the existing lines
-  before applying. **Preserve internal dimensions** grows outside internal faces;
-  shared straight dividers can translate connected rooms without resizing them,
-  with contained annotations and AP symbols following their room.
-  **Existing drawing: wall axes** keeps every reference coordinate fixed and
-  distributes thickness equally on both sides. This also works for nested rooms
-  and corridors where rigid separation is impossible. **Outside the chosen room**
-  preserves one selected room's interior while its neighbors may lose usable area.
-  **Keep current references** edits existing depth without changing its profile.
-  Conversion previews compare reference area, usable area and change for each room;
-  tiny regions fully occupied by material are explicitly identified, with their
-  source boundaries retained. Usable areas involving curves are approximate.
-  Numbers in this preview identify rooms only and are not added to the plan.
-  In the internal-dimensions method, open segments require an explicit side and
-  zero closes a recognized divider gap when compatible. Fixed-reference conversion
-  also accepts open segments; zero removes material without moving references.
+- **Wall thickness** is reviewed during Draw Plan construction. After drawing a
+  rectangle, line, circle or arc, a diagram shows its numbered, clickable sides
+  with individual thickness fields in survey units. This happens on final
+  right-drag release or the final placement click after entering dimensions.
+  Select a side in the diagram or table; zero keeps a thin reference line.
+  Closed-room dimensions remain internal and thickness grows outwards. Open
+  lines/arcs offer an explicit left/right choice. Shared sides inherit the already
+  placed wall depth, including attachment at its outer physical face. Orange ↔
+  identifies shared sides. Changing their depth requires acknowledging that the
+  existing shared wall will also change; connected rooms may translate while
+  preserving internal dimensions. Differently colored/partially overlapping
+  supports also inherit the common wall. Incompatible layouts are rejected.
+  Cancel discards the proposed piece. Placement and thickness are one undo step.
+  With structural **Select**, double-click inside a closed area (left or right
+  button) to reopen its sides. Stroke hits retain curve editing. The wall icon
+  edits selected structural sides. Diagram numbers are temporary editor labels.
   Compatible shared faces are cut/picked together; deleting a divider rebuilds
   its jambs or continuing perimeter. Physical bounds, apertures, move/rotation,
   undo/redo, layers, saved plans and print/JPEG/HTML rendering share the same solids.
   Object clearances use physical faces. Existing depth is preserved exactly when
   merely reviewing properties, including when feet are rounded for display.
   Room separation must precede RF captures/manual masks; coordinate-only AP
-  placements must first be converted to drawing symbols. Fixed-reference conversion
-  is also available after RF capture because survey coordinates stay fixed.
-  Incompatible rigid layouts identify the affected rooms and suggest conversion.
-  Collisions in the protected interior, invalid radii and sheet overflow are rejected.
-  Original reference areas remain analytic; derived usable areas subtract structural
-  wall material before aperture cutouts, without subtracting furniture. Thickness does not
+  placements must first be converted to drawing symbols. Previously converted
+  reference profiles retain their coordinate meaning when reopened. Their derived
+  usable areas remain separate from analytic reference areas; curves are approximate.
+  Invalid radii, incompatible room constraints and sheet overflow are rejected.
+  Thickness does not
   assign a material or RF attenuation. Plans using thickness require a reader
   supporting drawing/layer format 2; legacy unthickened drawings retain format 1.
 - Missing generated Draw Plan images can be recovered from validated saved vectors

@@ -629,8 +629,17 @@ class RectangleDesignController(QObject):
             self.annotation.select(*self.annotation.pick(self.annotation.point(event.position())))
             self.annotation.edit()
             return True
-        if (self.tools.active_tool == "select" and not self.rotation.active and not self.selection.moving
-                and event.button() == Qt.MouseButton.RightButton):
+        if (self.tools.active_tool == "select" and self.editable() and not self.rotation.active and not self.selection.moving
+                and event.button() in (Qt.MouseButton.RightButton, Qt.MouseButton.LeftButton)):
+            point = self.view.mapToScene(event.position().toPoint())
+            if not any(self.selection.pick_stroke(point)):
+                region = self.selection.regions().pick(point)
+                if region is not None:
+                    from qt_ui.qt_wall_sides import edit_wall_sides
+                    edit_wall_sides(self.owner, region)
+                    return True
+            if event.button() != Qt.MouseButton.RightButton:
+                return False
             hits = self.eraser.pick_curves(self.view.mapToScene(event.position().toPoint()))
             if hits:
                 self.selection.cancel()
@@ -730,9 +739,9 @@ class RectangleDesignController(QObject):
     def commit(self, rect):
         if rect.width() <= 0 or rect.height() <= 0 or not self.view.scene.sceneRect().contains(rect):
             raise ValueError("Rectangle is outside the sheet")
-        previous = list(self.segments() or [])
         lines = self.rectangle_geometry(rect)
-        self.apply_edit(previous + lines)
+        from qt_ui.qt_wall_sides import place_structure
+        return place_structure(self, lines=lines)
 
     def rectangle_geometry(self, rect):
         if rect.width() == 0 or rect.height() == 0:
