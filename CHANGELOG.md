@@ -7,6 +7,12 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Added per-side material and appearance to Wall Edit, with twelve material
+  families plus Unspecified, automatic visual styles, editable schematic hatches
+  and immediate samples. Shared faces inherit and confirm material/style changes.
+  Metadata survives drawing operations and save/reopen; vector patterns render
+  consistently across editor, layers, Live Map, HTML, print and JPEG. Legacy walls
+  remain neutral. Material choices do not infer RF attenuation.
 - Main Draw Plan Select now includes annotations by default. Room/box selection
   can move, rotate, delete or transfer structure, text, furniture, markers and AP
   symbols as one group on the active layer. The Include annotations checkbox and

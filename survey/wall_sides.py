@@ -10,6 +10,7 @@ from survey.wall_layout import plan_wall_layout, room_side, WallLayout
 from survey.wall_geometry import validate_wall_bounds
 from survey.planar_geometry import point_projection
 from survey.wall_properties import copy_wall
+from survey.wall_materials import appearance, validated_appearance
 
 
 @dataclass(frozen=True)
@@ -68,6 +69,8 @@ def stage_structure(state, new_lines=(), new_curves=()):
             old = coincident[0]
             if len({s['wall']['width'] for s in coincident}) > 1:
                 raise ValueError('wall_shared_width_conflict')
+            if len({appearance(s['wall']) for s in coincident}) > 1:
+                raise ValueError('wall_shared_material_conflict')
             reverse = (line['x2']-line['x1'])*(old['x2']-old['x1'])+(line['y2']-line['y1'])*(old['y2']-old['y1']) < 0
             copy_wall(old,line,reverse)
             line['color'] = old['color']  # A shared physical wall retains its existing style.
@@ -81,12 +84,14 @@ def stage_structure(state, new_lines=(), new_curves=()):
         for old in old_lines:
             if not old.get('wall') or old['wall'].get('reference'):
                 continue
-            candidate = dict(line, wall=dict(width=old['wall']['width'], side=side))
+            candidate = dict(line, wall=dict(old['wall'], side=side))
             if relation(candidate, old):
                 matches.append(candidate['wall'])
         if matches:
             if len({m['width'] for m in matches}) != 1:
                 raise ValueError('wall_shared_width_conflict')
+            if len({appearance(m) for m in matches}) != 1:
+                raise ValueError('wall_shared_material_conflict')
             line['wall'] = matches[0]
             inherited.add(index)
     # Inheritance can make differently colored duplicates one physical face.
@@ -112,13 +117,47 @@ def stage_structure(state, new_lines=(), new_curves=()):
     return staged, wall_sides(staged, indices, inherited), anchor
 
 
-def apply_side_widths(state, sides, values, bounds, *, anchor=0):
+def same_wall_faces(a, b):
+    """Physical association ignores decorative material/style differences."""
+    if 'kind' in a or 'kind' in b or not a.get('wall') or not b.get('wall'):
+        return False
+    if relation(a,b):
+        return True
+    from survey.wall_properties import wall_style
+    def profile(shape):
+        return dict(shape,wall={k:v for k,v in shape['wall'].items() if k not in ('material','pattern')})
+    if wall_style(profile(a)) != wall_style(profile(b)):
+        return False
+    return all(math.dist(p,point_projection(p,(b['x1'],b['y1']),(b['x2'],b['y2']))) < 1e-6
+               for p in ((a['x1'],a['y1']),(a['x2'],a['y2'])))
+
+
+def side_appearances(state, sides, requested):
+    if set(requested) != {s.index for s in sides}:
+        raise ValueError('wall_invalid_material')
+    shapes = [*(state['segments'] or []), *state['curves']]
+    requests = {i:validated_appearance(v) for i,v in requested.items()}
+    changed = {i:v for i,v in requests.items() if appearance(v) != appearance(shapes[i].get('wall',{}))}
+    # A material-only edit must update the other face of a shared physical wall.
+    # Staged drawings are already split at overlap limits, so unrelated spans stay.
+    propagated = {}
+    for i,value in changed.items():
+        for j,other in enumerate(shapes):
+            if j == i or same_wall_faces(shapes[i],other):
+                if j in propagated and appearance(propagated[j]) != appearance(value):
+                    raise ValueError('wall_shared_material_conflict')
+                propagated[j] = value
+    return {**requests, **propagated}
+
+
+def apply_side_widths(state, sides, values, bounds, *, anchor=0, appearances=None):
     count = len(state['segments'] or [])
     indices = [s.index for s in sides]
     if set(values) != set(indices):
         raise ValueError('wall_invalid_width')
     if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or not 0 <= v <= 10000 for v in values.values()):
         raise ValueError('wall_invalid_width')
+    decorations = side_appearances(state,sides,appearances) if appearances is not None else {}
     if any(s.get('wall', {}).get('reference') for s in [*(state['segments'] or []), *state['curves']]):
         # Existing converted documents retain their explicit reference profiles.
         from survey.wall_properties import validated_wall
@@ -131,9 +170,12 @@ def apply_side_widths(state, sides, values, bounds, *, anchor=0):
             profile = shape.pop('wall', None)
             if value:
                 shape['wall'] = validated_wall(dict(profile or dict(side=side.side, reference='face'), width=value))
-            elif isinstance(value, bool) or value != 0:
-                raise ValueError('wall_invalid_width')
+        for index,decoration in decorations.items():
+            if shapes[index].get('wall'):
+                for key in ('material','pattern'):
+                    shapes[index]['wall'].pop(key,None)
+                shapes[index]['wall'].update(decoration)
         validate_wall_bounds(result['segments'] or [], result['curves'], bounds)
         return WallLayout(result, (), (), False)
     return plan_wall_layout(state, [i for i in indices if i < count], [i-count for i in indices if i >= count],
-        0, bounds, anchor=anchor, widths=values, open_sides={s.index:s.side for s in sides})
+        0, bounds, anchor=anchor, widths=values, open_sides={s.index:s.side for s in sides}, appearances=decorations)

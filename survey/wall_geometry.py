@@ -143,13 +143,16 @@ def aperture_channels(lines, annotations):
     return channels
 
 
-def wall_solids(lines, curves=(), annotations=()):
+def wall_solids(lines, curves=(), annotations=(), *, styled=False):
+    from survey.wall_materials import appearance
+    def key(shape):
+        return (shape['color'], *appearance(shape['wall'])) if styled else shape['color']
     shapes = [s for s in [*lines, *curves] if s.get("wall")]
     if len(shapes) > MAX_WALLS:
         raise ValueError("wall_complexity")
     groups, endpoints = defaultdict(list), defaultdict(list)
     for shape in shapes:
-        groups[shape["color"]].append(solid(shape))
+        groups[key(shape)].append(solid(shape))
         joints = [shape] if shape["wall"]["side"] else [dict(shape, wall=dict(shape["wall"],
             width=shape["wall"]["width"]/2, side=side)) for side in (-1, 1)]
         for joint in joints:
@@ -171,14 +174,38 @@ def wall_solids(lines, curves=(), annotations=()):
                 if math.hypot(vx, vy) <= 4*max(a, b):
                     points.append((p[0]+vx, p[1]+vy))
                 points.append((q[0]+m[0]*b, q[1]+m[1]*b))
-                groups[first["color"]].append(polygon(points))
+                groups[key(first)].append(polygon(points))
     cuts = united(aperture_channels(lines, annotations))
     return [(color, united(paths).subtracted(cuts)) for color, paths in groups.items()]
 
 
 def wall_commands(lines, curves=(), annotations=()):
-    return [(path, QPen(QColor(color), 1), QBrush(QColor("#d1d5db")))
-            for color, path in wall_solids(lines, curves, annotations) if not path.isEmpty()]
+    from survey.wall_rendering import MaterialPath, split_contours
+    result = []
+    for (color, material, pattern), path in wall_solids(lines, curves, annotations, styled=True):
+        if not path.isEmpty():
+            if material != 'unspecified' or pattern != 'auto':
+                # Separate disconnected bodies before hatching. A material may
+                # occur in many remote rooms: do not hatch the empty bounding
+                # rectangle of the whole building on every paint.
+                paths = []
+                contours = [(c,c.boundingRect()) for c in split_contours(path)]
+                for poly in path.toFillPolygons():
+                    part = QPainterPath()
+                    # Polygons identify disconnected groups only. Rebuild from
+                    # original contours to retain cubic curves and avoid drawing
+                    # the artificial bridges inserted by the rewinding algorithm.
+                    bounds = poly.boundingRect().adjusted(-.5,-.5,.5,.5)
+                    for contour, box in contours:
+                        if bounds.contains(box):
+                            part.addPath(contour)
+                    part.setFillRule(path.fillRule())
+                    if not part.isEmpty():
+                        paths.append(MaterialPath(part, material, pattern))
+            else:
+                paths = [path]
+            result.extend((part, QPen(QColor(color), 1), QBrush(QColor('#d1d5db'))) for part in paths)
+    return result
 
 
 def validate_wall_bounds(lines, curves, bounds):

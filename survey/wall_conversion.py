@@ -40,9 +40,11 @@ def convert_wall_reference(state, selected_lines, selected_curves, width, bounds
         if mode == "keep" and old:
             item["wall"] = dict(old, width=float(width), reference=old.get("reference", "face"))
         elif mode == "face":
-            item["wall"] = dict(width=float(width), side=room_side(item, protected), reference="face")
+            item["wall"] = dict(width=float(width), side=room_side(item, protected), reference="face",
+                                **{k:v for k,v in (old or {}).items() if k in ('material','pattern')})
         else:
-            item["wall"] = dict(width=float(width), side=0, reference="axis")
+            item["wall"] = dict(width=float(width), side=0, reference="axis",
+                                **{k:v for k,v in (old or {}).items() if k in ('material','pattern')})
     validate_wall_bounds(lines, curves, bounds)
     material = united(path for _c, path in wall_solids(lines, curves))
     areas, usable = [], []

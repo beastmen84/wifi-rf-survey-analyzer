@@ -158,9 +158,24 @@ from these software checks.
   reference profiles retain their coordinate meaning when reopened. Their derived
   usable areas remain separate from analytic reference areas; curves are approximate.
   Invalid radii, incompatible room constraints and sheet overflow are rejected.
-  Thickness does not
-  assign a material or RF attenuation. Plans using thickness require a reader
+  Plans using thickness require a reader
   supporting drawing/layer format 2; legacy unthickened drawings retain format 1.
+- **Wall materials** are selected per side in the same Wall Edit dialog. Select a
+  numbered side or table row, set a positive thickness, then choose **Material**
+  and **Appearance** below the table. The catalog includes wood, hollow clay blocks,
+  solid bricks, concrete blocks, aerated concrete, plasterboard, concrete,
+  reinforced concrete, stone, glass, metal and insulating panels, plus Unspecified.
+  Automatic appearance supplies a light material color and schematic hatch;
+  override it with solid, diagonal, cross, stipple, staggered blocks, grid or paired
+  diagonal lines. Swatches and the side diagram preview the choice immediately.
+  Shared faces inherit the material/style too; changing either requires confirming
+  the update to the existing wall. Material edits preserve dimensions and RF
+  coordinates, survive save/reopen and drawing operations, and form one undo step.
+  The editor, visible layers, Live Map, HTML, Print Plan and JPEG use the same
+  vector patterns, clipped to wall bodies and door/window openings. Existing
+  walls retain their neutral appearance until assigned a material. These are
+  descriptive drawing properties and schematic patterns, without automatic RF
+  attenuation or a claim of standardized construction symbols.
 - Missing generated Draw Plan images can be recovered from validated saved vectors
   and canvas extents. Calibration and coordinates are preserved; saving recreates
   the PNG. Imported Load Plan images require their original image file.
@@ -773,7 +788,7 @@ Historical beta ZIPs may still use the older artifact stem:
 
 Possible future product areas:
 
-- Physical wall materials and RF modeling, subject to validated physical properties.
+- RF wall modeling, subject to validated material and assembly properties.
 - Broader recommendation rules validated against additional real surveys.
 - Combined survey report across multiple live-map views.
 - Deeper AP metadata diagnostics where rules are clear.

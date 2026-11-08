@@ -10,6 +10,7 @@ from survey.plan_labels import labels_geometry
 from survey.plan_curves import curve_bounds
 from survey.plan_annotation_rendering import annotation_fits
 from survey.plan_symbol_rendering import SymbolNumber, paint_number
+from survey.wall_rendering import MaterialPath, paint_material
 
 
 class VectorPlanSource:
@@ -95,6 +96,9 @@ class VectorPlanSource:
             for path, pen, brush in self._commands:
                 if isinstance(path, SymbolNumber):
                     paint_number(painter, path.item, bounds)
+                    continue
+                if isinstance(path, MaterialPath):
+                    paint_material(painter, path, pen)
                     continue
                 painter.setPen(pen)
                 painter.setBrush(brush)

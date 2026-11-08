@@ -22,6 +22,23 @@ interpolated colors.
 
 Current status:
 
+- Wall profiles accept optional stable material/pattern IDs. Twelve descriptive
+  families plus Unspecified are defined in survey/wall_materials.py. Per-side
+  WallSidesDialog controls below the table use samples and a material-auto hatch,
+  with explicit override. Positive thickness is required; old profiles omit these
+  fields and remain visually identical. Material/style form part of normalization
+  compatibility, survive width/reference conversions and transforms, and propagate
+  to matching shared faces with an acknowledgment reset for either property change.
+  Material-only edits keep room/RF positions fixed and reuse atomic apply_edit.
+- Rendering keeps physical wall_solids independent of decorative grouping.
+  Styled wall_commands use clipped MaterialPath vector hatches; disconnected bodies
+  are split before generating hatches, preventing whole-building empty-area work.
+  MaterialItem uses device-coordinate caching for editor pan; print/JPEG/Live/HTML
+  use the same logical vector patterns at destination resolution. Aperture cuts
+  precede decoration. Pattern complexity is bounded even for imported large extents.
+  No new dependencies, RF coefficients or construction-standard claims are added.
+  Catalog references: [YourHome masonry](https://www.yourhome.gov.au/materials/brickwork-and-blockwork)
+  and [Gypsum Association panels](https://gypsum.org/ga-216-application-and-finishing-of-gypsum-panel-products/).
 - Main Select defaults to Include annotations, with explicit structure-only and
   annotation-only alternatives. Closed-region pickup uses complete object/marker
   footprints (respecting holes) plus text anchors and hosted apertures. Drag pickup
@@ -130,7 +147,8 @@ Current status:
   wall-only faces are excluded from room picking. Limits:200 rooms,2000 thick
   pieces,4000 input primitives per layout. Shared curved dividers, inconsistent
   loops, interior collisions, collapsing offsets and sheet overflow are rejected.
-  Material/style and RF attenuation remain deferred. See WALL_THICKNESS_AUDIT_2026_11_07.html.
+  Descriptive material/style was added subsequently; RF attenuation remains
+  deferred. See WALL_THICKNESS_AUDIT_2026_11_07.html for the thickness audit.
 - Final wall validation:2068 tests +479 subtests passed160.10s, exit0;118 dedicated
   cases include54 rotated-grid/width configurations, physical-divider deletion,
   T fragments, aperture variants, exact imperial review and saved hidden layers.
@@ -1853,8 +1871,8 @@ tag or new executable is implied by the corrections.
 
 ### Drawing: Annotations And Physical Walls
 
-Status: annotations and physical thickness implemented. Material/RF attenuation
-remains deferred. Existing editable Text shares annotation selection.
+Status: annotations, physical thickness and descriptive materials/styles implemented.
+RF attenuation remains deferred. Existing editable Text shares annotation selection.
 
 Physical wall model:
 
@@ -1871,8 +1889,7 @@ Physical wall model:
   conversion instead permits a deliberate centered reference interpretation, or
   exterior growth around one protected room, with explicit usable-area changes.
 - Keep physical thickness, material and visual style distinct. Current fusion
-  respects width/physical side/color. Future fusion
-  must also respect material/thickness, not just color. Do not infer RF losses
+  respects width, physical side, color, material and pattern. Do not infer RF losses
   from these properties as part of the annotation work.
 
 Implemented non-structural annotation tools:
@@ -1900,8 +1917,8 @@ Implemented non-structural annotation tools:
   persist on save/reopen and render consistently in PNG, Live Map and HTML.
   Door/window movement stays attached to a valid wall. Markers remain independent.
 - Implemented with common annotation storage/rendering and wall-ink masking.
-  Physical wall offsets were added subsequently. Curved aperture hosts and
-  physical materials remain separate future work.
+  Physical wall offsets and descriptive materials/styles were added subsequently.
+  Curved aperture hosts and RF material modeling remain future work.
 
 ### 1. AP Group Manager UX Monitoring
 
@@ -2260,7 +2277,7 @@ Future expansion:
     Validate the implemented marker/door/window annotations and isolated tool
     selections and physical thickness on real plans. Exercise room separation,
     fixed anchors, existing RF/mask protection and rejected constraint cases.
-    Physical material/attenuation modeling remains deferred.
+    Descriptive materials/styles are available; RF attenuation modeling remains deferred.
     Keep the editor focused on survey-ready plans.
 16. Add richer deployment/reporting outputs.
 

@@ -3,21 +3,38 @@ from copy import deepcopy
 from dataclasses import replace
 import math
 
-from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import QColor, QPainter, QPainterPath, QPainterPathStroker, QPen, QBrush
+from PySide6.QtCore import QPointF, QRectF, QSize, Qt
+from PySide6.QtGui import QColor, QPainter, QPainterPath, QPainterPathStroker, QPen, QPixmap, QIcon
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog,
     QDialogButtonBox, QDoubleSpinBox, QGraphicsScene, QGraphicsView, QHBoxLayout,
-    QHeaderView, QLabel, QTableWidget, QTableWidgetItem, QVBoxLayout)
+    QHeaderView, QLabel, QTableWidget, QTableWidgetItem, QVBoxLayout, QFormLayout, QSizePolicy)
 from app_core.units import distance_unit_label, display_units_to_meters, meters_to_display_units, format_distance_meters
 from survey.plan_curves import curve_info, point_at
 from survey.plan_curve_rendering import curve_path
 from survey.plan_layers import active_layer, validate_document
-from survey.wall_sides import stage_structure, wall_sides, apply_side_widths
+from survey.wall_sides import stage_structure, wall_sides, apply_side_widths, same_wall_faces
 from survey.wall_conversion import reference_regions
 from survey.wall_geometry import solid
 from survey.wall_editing import relation
 from qt_ui.qt_clean_plan import VectorPlanSource
 from qt_ui.qt_wall_properties import validate_survey_layout
+from survey.wall_materials import MATERIALS, PATTERNS, appearance, validated_appearance
+from survey.wall_rendering import MaterialPath, paint_material, wall_item
+
+
+def appearance_icon(owner, material, pattern='auto'):
+    size = QSize(owner.spx(52),owner.spx(22))
+    pixmap = QPixmap(size)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(pixmap)
+    try:
+        painter.scale(size.width()/52,size.height()/22)
+        path = QPainterPath()
+        path.addRect(QRectF(1,1,50,20))
+        paint_material(painter,MaterialPath(path,material,pattern),QPen(QColor('#475569'),.8))
+    finally:
+        painter.end()
+    return QIcon(pixmap)
 
 
 def side_path(shape):
@@ -71,6 +88,8 @@ class WallSidesDialog(QDialog):
         self.density, self.system = owner.get_px_per_meter(), owner.measurement_system
         self.values = {s.index:s.shape.get('wall', {}).get('width', 0.0) for s in sides}
         self.original_values = dict(self.values)
+        self.appearances = {s.index:validated_appearance({k:v for k,v in s.shape.get('wall',{}).items() if k in ('material','pattern')}) for s in sides}
+        self.original_appearances = deepcopy(self.appearances)
         self.shared_signature = ()
         self.spins, self.initial_display = [], []
         self.setWindowTitle(owner.tr('wall_sides_place' if placing else 'wall_sides_edit'))
@@ -125,6 +144,29 @@ class WallSidesDialog(QDialog):
         for row, spin in enumerate(self.spins):
             self.table.setRowHeight(row, max(self.table.rowHeight(row), spin.minimumHeight()+owner.spx(8)))
         panel.addWidget(self.table, 1)
+        properties = QFormLayout()
+        self.material = QComboBox()
+        self.pattern = QComboBox()
+        for key in MATERIALS:
+            self.material.addItem(appearance_icon(owner,key),owner.tr('wall_material_'+key),key)
+        for key in PATTERNS:
+            self.pattern.addItem(owner.tr('wall_pattern_'+key),key)
+        for combo in (self.material,self.pattern):
+            combo.setIconSize(QSize(owner.spx(52),owner.spx(22)))
+            combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+            combo.setMinimumContentsLength(16)
+            combo.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Fixed)
+            combo.setMinimumHeight(owner.spx(34))
+        self.material.setAccessibleName(owner.tr('wall_material'))
+        self.pattern.setAccessibleName(owner.tr('wall_pattern'))
+        properties.addRow(owner.tr('wall_material'),self.material)
+        properties.addRow(owner.tr('wall_pattern'),self.pattern)
+        self.material.currentIndexChanged.connect(self.change_appearance)
+        self.pattern.currentIndexChanged.connect(self.change_appearance)
+        panel.addLayout(properties)
+        material_hint = QLabel(owner.tr('wall_material_hint'))
+        material_hint.setWordWrap(True)
+        panel.addWidget(material_hint)
         self.direction = QComboBox()
         self.direction.addItem(owner.tr('wall_side_left'), 1)
         self.direction.addItem(owner.tr('wall_side_right'), -1)
@@ -171,11 +213,34 @@ class WallSidesDialog(QDialog):
         if row < 0:
             return
         side = self.sides[row]
+        material,pattern = appearance(self.appearances[side.index])
+        for combo,value in ((self.material,material),(self.pattern,pattern)):
+            combo.blockSignals(True)
+            combo.setCurrentIndex(combo.findData(value))
+            combo.setEnabled(self.values[side.index] > 0)
+            combo.blockSignals(False)
+        for i,key in enumerate(PATTERNS):
+            self.pattern.setItemIcon(i,appearance_icon(self.owner,material,key))
+        for i,s in enumerate(self.sides):
+            m,p = appearance(self.appearances[s.index])
+            self.table.item(i,1).setToolTip(self.owner.tr('wall_material_'+m)+' · '+self.owner.tr('wall_pattern_'+p))
         self.direction.blockSignals(True)
         self.direction.setCurrentIndex(self.direction.findData(side.side))
         self.direction.blockSignals(False)
         self.direction.setVisible(side.open and side.shape.get('wall', {}).get('reference') != 'axis')
         self.draw_preview()
+
+    def change_appearance(self):
+        row = self.table.currentRow()
+        if row < 0:
+            return
+        side = self.sides[row]
+        value = validated_appearance(dict(material=self.material.currentData(),pattern=self.pattern.currentData()))
+        self.appearances[side.index] = value
+        for other in self.sides:
+            if same_wall_faces(side.shape,other.shape):
+                self.appearances[other.index] = dict(value)
+        self.refresh()
 
     def change_direction(self):
         row = self.table.currentRow()
@@ -187,7 +252,7 @@ class WallSidesDialog(QDialog):
         self.result = self.candidate = None
         self.error = None
         try:
-            self.result = apply_side_widths(self.state, self.sides, self.values, self.owner.floorplan_view.scene.sceneRect(), anchor=self.anchor)
+            self.result = apply_side_widths(self.state, self.sides, self.values, self.owner.floorplan_view.scene.sceneRect(), anchor=self.anchor, appearances=self.appearances)
             validate_survey_layout(self.owner, self.result)
             document = deepcopy(self.owner.plan_tools.controller.layer_document())
             active_layer(document)['drawing'] = self.result.state
@@ -201,14 +266,15 @@ class WallSidesDialog(QDialog):
             self.candidate = None
             self.status.setText(self.owner.tr(self.error if self.error.startswith('wall_') else 'rectangle_invalid_drawing'))
             self.status.setStyleSheet('color:#ef4444')
-        signature = tuple((s.index, self.values[s.index]) for s in self.sides if s.shared and self.values[s.index] != self.original_values[s.index])
+        signature = tuple((s.index, self.values[s.index], appearance(self.appearances[s.index])) for s in self.sides
+                          if s.shared and (self.values[s.index] != self.original_values[s.index] or self.appearances[s.index] != self.original_appearances[s.index]))
         if signature != self.shared_signature:
             self.confirm_shared.setChecked(False)
         self.shared_signature = signature
         self.confirm_shared.setVisible(bool(signature))
         self.notice.setText(self.owner.tr('wall_shared_changed') if signature else '')
         self.notice.setVisible(bool(signature))
-        self.draw_preview()
+        self.select_side()
         self.update_apply()
 
     def update_apply(self):
@@ -237,7 +303,9 @@ class WallSidesDialog(QDialog):
                 try:
                     body = solid(shape)
                     focus = focus.united(body.boundingRect())
-                    scene.addPath(body, QPen(QColor('#64748b'), 0), QBrush(QColor('#d1d5db')))
+                    material,pattern = appearance(self.appearances[side.index])
+                    item = wall_item(MaterialPath(body,material,pattern),QPen(QColor('#64748b'),0),None)
+                    scene.addItem(item)
                     hit = QPainterPath(path)
                     hit.addPath(body)
                     self.preview.paths[-1] = hit

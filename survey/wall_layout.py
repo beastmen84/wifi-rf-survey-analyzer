@@ -120,7 +120,7 @@ def solve_moves(count, constraints, anchor):
              0 if abs(solution[2*i+1]) < EPS else float(solution[2*i+1])) for i in range(count)]
 
 
-def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, open_side=0, anchor=0, widths=None, open_sides=None):
+def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, open_side=0, anchor=0, widths=None, open_sides=None, appearances=None):
     if not math.isfinite(width) or not 0 <= width <= 10000 or open_side not in (-1, 0, 1):
         raise ValueError("wall_invalid_width")
     lines, curves = state["segments"] or [], state["curves"]
@@ -141,6 +141,11 @@ def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, o
         for ci in room.curves:
             owners[len(lines)+ci].append(index)
     shapes = [*lines, *curves]
+    from survey.wall_materials import validated_appearance
+    appearances = appearances or {}
+    if any(type(i) is not int or i not in range(len(shapes)) for i in appearances):
+        raise ValueError('wall_invalid_material')
+    appearances = {i:validated_appearance(v) for i,v in appearances.items()}
     chosen = set(selected_lines) | {len(lines)+i for i in selected_curves}
     requested = {i: width for i in chosen}
     if widths is not None:
@@ -238,7 +243,8 @@ def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, o
             item.pop("wall", None)
             if w:
                 side = sides[i, owner] if owner is not None else open_sides.get(i) or open_side or shape["wall"]["side"]
-                item["wall"] = dict(width=w, side=side)
+                decoration = {k:v for k,v in shape.get('wall',{}).items() if k in ('material','pattern')}
+                item["wall"] = dict(width=w, side=side, **appearances.get(i,decoration))
             (output_curves if "kind" in shape else output_lines).append(item)
             if own:
                 (closed_curves if "kind" in shape else closed_lines).append(item)

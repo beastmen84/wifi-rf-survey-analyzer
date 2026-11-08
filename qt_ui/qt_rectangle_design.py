@@ -291,11 +291,10 @@ class RectangleDesignController(QObject):
         annotations = self.annotations()
         if any(s.get("wall") for s in [*(lines or []), *curves]):
             from survey.wall_geometry import wall_commands, validate_wall_bounds
+            from survey.wall_rendering import wall_item
             validate_wall_bounds(lines or [], curves, self.view.scene.sceneRect())
             for path, pen, brush in wall_commands(lines or [], curves, annotations):
-                item = QGraphicsPathItem(path)
-                item.setPen(pen)
-                item.setBrush(brush)
+                item = wall_item(path, pen, brush)
                 item.setZValue(4.9)
                 item.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
                 self.view.scene.addItem(item)

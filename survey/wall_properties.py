@@ -1,9 +1,10 @@
 """Validated physical profiles on internal faces or explicit reference axes."""
 import math
+from survey.wall_materials import validated_appearance, appearance
 
 
 def validated_wall(value):
-    if not isinstance(value, dict) or not {"width", "side"} <= set(value) <= {"width", "side", "reference"}:
+    if not isinstance(value, dict) or not {"width", "side"} <= set(value) <= {"width", "side", "reference", "material", "pattern"}:
         raise ValueError("Invalid wall properties")
     width, side = value["width"], value["side"]
     if isinstance(width, bool) or not isinstance(width, (int, float)) or not math.isfinite(width) or not 0 < width <= 10000:
@@ -14,6 +15,7 @@ def validated_wall(value):
     if type(side) is not int or side not in (-1, 0, 1) or (side == 0) != (reference == "axis"):
         raise ValueError("Invalid wall side")
     result = dict(width=float(width), side=side)
+    result.update(validated_appearance({k:v for k,v in value.items() if k in ('material','pattern')}))
     if reference is not None:
         result["reference"] = reference
     return result
@@ -30,8 +32,8 @@ def wall_style(shape):
     else:
         dx, dy = shape["x2"]-shape["x1"], shape["y2"]-shape["y1"]
         length = math.hypot(dx, dy)
-        return wall["width"], round(-dy/length*wall["side"], 8), round(dx/length*wall["side"], 8), wall.get("reference")
-    return wall["width"], wall["side"] * direction, wall.get("reference")
+        return wall["width"], round(-dy/length*wall["side"], 8), round(dx/length*wall["side"], 8), wall.get("reference"), appearance(wall)
+    return wall["width"], wall["side"] * direction, wall.get("reference"), appearance(wall)
 
 
 def copy_wall(source, target, reversed_direction=False):
