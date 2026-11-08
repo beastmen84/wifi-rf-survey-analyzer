@@ -12,6 +12,9 @@ from survey.plan_labels import label_geometry, labels_geometry, transform_labels
 from survey.plan_label_rendering import label_item
 from survey.plan_curves import curves_geometry, transform_curves
 from survey.plan_curve_rendering import curve_item
+from survey.plan_annotations import transform_annotations
+from survey.selection_geometry import annotation_geometry
+from survey.plan_annotation_rendering import annotation_item
 
 
 def angle_readout(angle):
@@ -40,6 +43,7 @@ class PlanRotationController:
         self.hidden, self.dimmed = [], []
         self.label_base, self.line_base = [], []
         self.curve_base = []
+        self.annotation_base = []
         if tool == "rectangle" and d.pending_size and d.preview is not None:
             self.target, self.base = "rectangle", d.rectangle_geometry(d.preview.rect())
             position, hide = d.last_pointer, [d.preview]
@@ -64,8 +68,9 @@ class PlanRotationController:
             self.line_base = [dict(line) for line in (s.move_preview if s.moving else [s.lines[index] for index in s.selected])]
             self.label_base = deepcopy(s.move_label_preview if s.moving else s.selected_texts())
             self.curve_base = transform_curves(s.move_curve_preview if s.moving else s.selected_curve_shapes())
-            self.base = self.line_base + labels_geometry(self.label_base) + curves_geometry(self.curve_base)
-            position, hide = s.last_pointer, list(s.highlights) + list(d.text.preview_items)
+            self.annotation_base = transform_annotations(s.move_annotation_preview if s.moving else s.selected_items())
+            self.base = self.line_base + labels_geometry(self.label_base) + curves_geometry(self.curve_base) + annotation_geometry(self.annotation_base)
+            position, hide = s.last_pointer, list(s.highlights) + list(d.text.preview_items) + list(d.annotation.preview)
             for item in d.wall_items:
                 self.dimmed.append((item, item.opacity()))
                 item.setOpacity(.25)
@@ -80,6 +85,10 @@ class PlanRotationController:
             for index in s.selected_curves:
                 item = d.curve.items[index]
                 self.dimmed.append((item, item.opacity()))
+                item.setOpacity(.25)
+            for index in s.selected_annotations:
+                item = d.annotation.items[index]
+                self.dimmed.append((item,item.opacity()))
                 item.setOpacity(.25)
         else:
             return False
@@ -129,13 +138,14 @@ class PlanRotationController:
     def render(self):
         self.rotated = rotate_degrees(self.base, self.angle, self.pivot)
         rotated_curves = transform_curves(self.curve_base, self.angle, self.pivot)
+        rotated_annotations = transform_annotations(self.annotation_base,self.angle,self.pivot)
         geometry = (rotate_degrees(self.line_base, self.angle, self.pivot)
                     + labels_geometry(transform_labels(self.label_base, self.angle, self.pivot))
-                    + curves_geometry(rotated_curves)) if self.curve_base else self.rotated
+                    + curves_geometry(rotated_curves) + annotation_geometry(rotated_annotations)) if self.target in ('move','selection') or self.curve_base else self.rotated
         self.valid = self.drawing.selection.fits(geometry)
         self.clear_items()
         path = QPainterPath()
-        visible_lines = rotate_degrees(self.line_base, self.angle, self.pivot) if self.curve_base else self.rotated
+        visible_lines = rotate_degrees(self.line_base, self.angle, self.pivot) if self.curve_base or self.target in ('move','selection') else self.rotated
         if any(s.get("wall") for s in [*visible_lines, *rotated_curves]):
             from survey.wall_geometry import wall_solids, validate_wall_bounds
             try:
@@ -159,6 +169,8 @@ class PlanRotationController:
             curved_item = curve_item(curve)
             curved_item.setPen(pen)
             self.items.append(curved_item)
+        for annotation in rotated_annotations:
+            self.items.append(annotation_item(annotation,'#0284c7' if self.valid else '#ef4444'))
         zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
         radius = widget_px(self.owner, 5) / zoom
         cx, cy = self.pivot
@@ -176,6 +188,7 @@ class PlanRotationController:
             item.setZValue(12)
             item.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
             self.view.scene.addItem(item)
+        self.drawing.update_symbol_numbers(items=self.items)
         text = self.owner.tr("rotation_angle") + "\n" + angle_readout(self.angle)
         if not self.valid:
             text += "\n" + self.owner.tr("rotation_outside_hint")
@@ -232,11 +245,13 @@ class PlanRotationController:
             lines = rotate_degrees(self.line_base, angle, self.pivot)
             labels = transform_labels(self.label_base, angle, self.pivot)
             curves = transform_curves(self.curve_base, angle, self.pivot)
+            annotations = transform_annotations(self.annotation_base,angle,self.pivot)
             s.move_source, s.move_preview, s.move_turns = lines, lines, 0
             s.move_label_source, s.move_label_preview = labels, labels
             s.move_curve_source, s.move_curve_preview = curves, curves
+            s.move_annotation_source, s.move_annotation_preview = annotations,annotations
             s.move_anchor, s.last_pointer = pointer, position
-            s.show_lines(lines, moving=True, labels=labels, curves=curves)
+            s.show_lines(lines, moving=True, labels=labels, curves=curves,annotations=annotations)
             s.show_count(position)
         elif target == "text":
             label = transform_labels(self.label_base, angle, self.pivot)[0]

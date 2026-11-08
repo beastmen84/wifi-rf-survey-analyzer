@@ -21,6 +21,9 @@ from survey.planar_geometry import point_projection
 from survey.plan_curves import project_curve, curve_info
 from app_core.units import meters_to_display_units, distance_unit_label
 from qt_ui.qt_plan_region_selection import RegionPicker
+from survey.plan_annotations import transform_annotations, follow_hosts, HOSTED_ANNOTATIONS, supported
+from survey.selection_geometry import annotation_geometry, region_contents, annotation_intersects
+from survey.plan_objects import object_is_round
 
 
 class PlanSelectionController:
@@ -29,6 +32,8 @@ class PlanSelectionController:
         self.lines, self.selected, self.highlights = [], (), []
         self.selected_labels, self.area_labels = (), ()
         self.selected_curves, self.area_curves = (), ()
+        self.selected_annotations, self.area_annotations = (), ()
+        self.move_annotation_source, self.move_annotation_preview = [], []
         self.move_curve_source, self.move_curve_preview = [], []
         self.move_label_source, self.move_label_preview = [], []
         self.origin = self.press_position = self.last_pointer = self.area = None
@@ -59,11 +64,16 @@ class PlanSelectionController:
         self.selected = ()
         self.selected_labels = ()
         self.selected_curves = ()
+        self.selected_annotations = ()
+        self.move_annotation_source, self.move_annotation_preview = [], []
         self.selected_region_area = None
         self.move_label_source, self.move_label_preview = [], []
         self.move_curve_source, self.move_curve_preview = [], []
         self.clear_items()
         self.drawing.text.clear_preview()
+        self.drawing.annotation.clear_preview()
+        for item in self.drawing.annotation.items:
+            item.setOpacity(1)
         for item in self.drawing.text.items:
             item.setOpacity(1)
         for item in self.drawing.items + self.drawing.wall_items:
@@ -88,15 +98,17 @@ class PlanSelectionController:
             for item in self.highlights:
                 item.hide()
 
-    def show_lines(self, lines, moving=False, labels=None, curves=None):
+    def show_lines(self, lines, moving=False, labels=None, curves=None, annotations=None):
         for item in self.highlights:
             self.view.scene.removeItem(item)
         self.highlights = []
         labels = labels or []
         curves = curves or []
+        annotations = self.selected_items() if annotations is None else annotations
+        self.drawing.annotation.show(annotations, labels if not moving else [])
         if moving:
             self.drawing.text.show_labels(labels)
-        if not lines and not labels and not curves:
+        if not lines and not labels and not curves and not annotations:
             return
         path = QPainterPath()
         physical_valid = True
@@ -128,12 +140,34 @@ class PlanSelectionController:
             self.highlights.append(item)
 
     def has_selection(self):
-        return bool(self.selected or self.selected_labels or self.selected_curves)
+        return bool(self.selected or self.selected_labels or self.selected_curves or self.selected_annotations)
+
+    def selected_items(self):
+        return [self.drawing.annotation.model[i] for i in self.selected_annotations]
+
+    def shared(self):
+        return self.drawing.tools.include_annotations.isChecked()
+
+    def edit_annotations(self,indices=(),labels=()):
+        a = self.drawing.annotation
+        ids = {a.model[i]['id'] for i in indices}
+        text_ids = {self.drawing.labels()[i]['id'] for i in labels}
+        session = self.owner.session
+        self.cancel()
+        a.select(indices,labels)
+        a.edit()
+        a.cancel()
+        if self.owner.session is session and self.drawing.editable():
+            self.set_selected((),[i for i,t in enumerate(self.drawing.labels()) if t['id'] in text_ids],
+                annotation_indices=[i for i,item in enumerate(self.drawing.annotations()) if item['id'] in ids])
+        return True
 
     def can_rotate(self):
         # A single complete circle has no orientation. In a larger selection
         # its center participates in the group's rigid positional transform.
-        return self.has_selection() and bool(self.selected or self.selected_labels
+        if not (self.selected or self.selected_labels or self.selected_curves) and len(self.selected_annotations) == 1 and object_is_round(self.selected_items()[0]):
+            return False
+        return self.has_selection() and bool(self.selected or self.selected_labels or self.selected_annotations
             or len(self.selected_curves) > 1 or self.selected_curve_shapes()[0]["kind"] != "circle")
 
     def selected_texts(self):
@@ -143,19 +177,24 @@ class PlanSelectionController:
         curves = self.drawing.curves()
         return [curves[index] for index in self.selected_curves]
 
-    def geometry(self, lines=None, labels=None, curves=None):
+    def geometry(self, lines=None, labels=None, curves=None, annotations=None):
         if lines is None:
             lines = [self.lines[index] for index in self.selected]
         if labels is None:
             labels = self.selected_texts()
         if curves is None:
             curves = self.selected_curve_shapes()
-        return list(lines) + labels_geometry(labels) + curves_geometry(curves)
+        return list(lines) + labels_geometry(labels) + curves_geometry(curves) + annotation_geometry(self.selected_items() if annotations is None else annotations)
 
-    def set_selected(self, indices, label_indices=(), curve_indices=(), *, region_area=None):
+    def set_selected(self, indices, label_indices=(), curve_indices=(), *, region_area=None, annotation_indices=()):
         self.selected = tuple(sorted(indices))
         self.selected_labels = tuple(sorted(label_indices))
         self.selected_curves = tuple(sorted(curve_indices))
+        self.selected_annotations = tuple(sorted(annotation_indices))
+        if self.shared():
+            hosts = [self.lines[i] for i in self.selected]
+            self.selected_annotations = tuple(sorted(set(self.selected_annotations) | {i for i,a in enumerate(self.drawing.annotations())
+                if a['kind'] in HOSTED_ANNOTATIONS and supported(a,hosts)}))
         self.selected_region_area = (self.regions().matching_area(self.selected, self.selected_curves)
                                      if region_area is not None else None)
         self.show_lines([self.lines[index] for index in self.selected], labels=self.selected_texts(), curves=self.selected_curve_shapes())
@@ -169,7 +208,7 @@ class PlanSelectionController:
 
     def show_count(self, position):
         if self.has_selection():
-            count = len(self.selected) + len(self.selected_labels) + len(self.selected_curves)
+            count = len(self.selected) + len(self.selected_labels) + len(self.selected_curves) + len(self.selected_annotations)
             rows = []
             if self.selected_region_area is not None:
                 rows.append(self.measure("selection_area", self.selected_region_area, power=2))
@@ -248,7 +287,7 @@ class PlanSelectionController:
             if self.view.scene.sceneRect().contains(self.view.mapToScene(event.position().toPoint())):
                 self.update_move(event.position(), bool(event.modifiers() & Qt.KeyboardModifier.AltModifier))
                 transformed = self.move_preview
-                self.apply_transformed(transformed, self.move_label_preview, self.move_curve_preview)
+                self.apply_transformed(transformed, self.move_label_preview, self.move_curve_preview,self.move_annotation_preview)
             self.consume_release = True
             return True
         if self.view.scene.sceneRect().contains(self.view.mapToScene(event.position().toPoint())):
@@ -275,11 +314,14 @@ class PlanSelectionController:
     def show_area(self, position):
         rect = QRectF(self.origin, self.point(position)).normalized()
         indices = intersecting_segments(self.lines, rect.left(), rect.top(), rect.right(), rect.bottom())
-        self.area_labels = ()
+        self.area_labels = self.drawing.text.intersecting(rect) if self.shared() else ()
+        self.area_annotations = tuple(i for i,a in enumerate(self.drawing.annotations()) if self.shared() and
+            annotation_intersects(a,rect))
         self.area_curves = intersecting_curves(self.drawing.curves(), rect.left(), rect.top(), rect.right(), rect.bottom())
         self.show_lines([self.lines[index] for index in indices],
                         labels=[self.drawing.text.labels[index] for index in self.area_labels],
-                        curves=[self.drawing.curves()[index] for index in self.area_curves])
+                        curves=[self.drawing.curves()[index] for index in self.area_curves],
+                        annotations=[self.drawing.annotation.model[i] for i in self.area_annotations])
         if self.area is None:
             self.area = QGraphicsRectItem()
             pen = QPen(QColor("#0284c7"), 1, Qt.PenStyle.DashLine)
@@ -290,7 +332,7 @@ class PlanSelectionController:
             self.area.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
             self.view.scene.addItem(self.area)
         self.area.setRect(rect)
-        text = self.owner.tr("selection_items_count").format(count=len(indices) + len(self.area_labels) + len(self.area_curves))
+        text = self.owner.tr("selection_items_count").format(count=len(indices) + len(self.area_labels) + len(self.area_curves)+len(self.area_annotations))
         self.drawing.show_measurement(text, position)
         return indices
 
@@ -301,14 +343,16 @@ class PlanSelectionController:
         if self.origin is None:
             return True
         region_area = None
+        annotation_indices = ()
         if self.dragged or (event.position() - self.press_position).manhattanLength() >= QApplication.startDragDistance():
             indices = self.show_area(event.position())
             label_indices = self.area_labels
             curve_indices = self.area_curves
+            annotation_indices = self.area_annotations
         else:
-            label_indices = ()
-            indices, curve_indices = ((), ()) if label_indices else self.pick_stroke(self.origin)
-            if not (label_indices or indices or curve_indices):
+            annotation_indices,label_indices = self.drawing.annotation.pick((self.origin.x(),self.origin.y())) if self.shared() else ((),())
+            indices, curve_indices = ((), ()) if (label_indices or annotation_indices) else self.pick_stroke(self.origin)
+            if not (label_indices or indices or curve_indices or annotation_indices):
                 region = self.regions().pick(self.origin)
                 if region is None:
                     self.origin = self.press_position = None
@@ -316,10 +360,13 @@ class PlanSelectionController:
                     self.show_count(event.position())
                     return True  # Open space does not change the current selection.
                 indices, curve_indices, region_area = region.lines, region.curves, region.area
+                if self.shared():
+                    path = next(path for path,r in self.regions().records if r == region)
+                    annotation_indices,label_indices = region_contents(path,self.drawing.annotations(),self.drawing.labels(),[self.lines[i] for i in indices])
         self.origin = self.press_position = None
         self.dragged = False
         self.clear_items()
-        self.set_selected(indices, label_indices, curve_indices, region_area=region_area)
+        self.set_selected(indices, label_indices, curve_indices, region_area=region_area,annotation_indices=annotation_indices)
         self.show_count(event.position())
         return True
 
@@ -330,18 +377,27 @@ class PlanSelectionController:
         bounds = self.view.scene.sceneRect()
         return left >= bounds.left() - 1e-7 and top >= bounds.top() - 1e-7 and right <= bounds.right() + 1e-7 and bottom <= bounds.bottom() + 1e-7
 
-    def apply_transformed(self, transformed, transformed_labels=None, transformed_curves=None):
+    def apply_transformed(self, transformed, transformed_labels=None, transformed_curves=None, transformed_annotations=None):
         region_area = self.selected_region_area
         transformed_labels = self.selected_texts() if transformed_labels is None else transformed_labels
         transformed_curves = self.selected_curve_shapes() if transformed_curves is None else transformed_curves
-        if not self.fits(self.geometry(transformed, transformed_labels, transformed_curves)):
+        if transformed_annotations is None:
+            # Preserve the original API for structural rigid transforms.
+            before = [self.lines[i] for i in self.selected]
+            if before and len(before) == len(transformed):
+                a,b = before[0],transformed[0]
+                angle = math.degrees(math.atan2(b['y2']-b['y1'],b['x2']-b['x1'])-math.atan2(a['y2']-a['y1'],a['x2']-a['x1']))
+                transformed_annotations = transform_annotations(self.selected_items(),angle,(a['x1'],a['y1']),b['x1']-a['x1'],b['y1']-a['y1'])
+            else:
+                transformed_annotations = self.selected_items()
+        if not self.fits(self.geometry(transformed, transformed_labels, transformed_curves,transformed_annotations)):
             self.owner.status.showMessage(self.owner.tr("design_rotation_outside"))
             return False
         current = [self.lines[index] for index in self.selected]
-        if transformed == current and transformed_labels == self.selected_texts() and transformed_curves == self.selected_curve_shapes():
-            previous, previous_labels, previous_curves = self.selected, self.selected_labels, self.selected_curves
+        if transformed == current and transformed_labels == self.selected_texts() and transformed_curves == self.selected_curve_shapes() and transformed_annotations == self.selected_items():
+            previous, previous_labels, previous_curves,previous_annotations = self.selected, self.selected_labels, self.selected_curves,self.selected_annotations
             self.cancel()
-            self.set_selected(previous, previous_labels, previous_curves, region_area=region_area)
+            self.set_selected(previous, previous_labels, previous_curves, region_area=region_area,annotation_indices=previous_annotations)
             return False
         selected_indices = set(self.selected)
         others = [line for index, line in enumerate(self.lines) if index not in selected_indices]
@@ -357,15 +413,23 @@ class PlanSelectionController:
         selected = tuple(index for index, source in enumerate(sources) if all(origin >= len(others) for origin in source))
         selected_curves = tuple(index for index, source in enumerate(curve_sources) if all(origin >= len(other_curves) for origin in source))
         other_labels = [label for index, label in enumerate(self.drawing.text.labels) if index not in self.selected_labels]
+        others_a = [a for i,a in enumerate(self.drawing.annotations()) if i not in self.selected_annotations]
+        replacements = {a['id']:a for a in follow_hosts(others_a,current,transformed)+list(transformed_annotations)}
+        annotations = [replacements[a['id']] for a in self.drawing.annotations()]
+        if any(not supported(a,normalized) for a in annotations):
+            self.owner.status.showMessage(self.owner.tr('selection_opening_support'))
+            return False
+        ids = {a['id'] for a in transformed_annotations}
         changed = self.drawing.apply_edit(normalized, other_labels + list(transformed_labels), curves,
-                                          annotation_move=(current, transformed))
+                                          annotations=annotations)
         if changed:
-            self.set_selected(selected, range(len(other_labels), len(other_labels) + len(transformed_labels)), selected_curves, region_area=region_area)
+            self.set_selected(selected, range(len(other_labels), len(other_labels) + len(transformed_labels)), selected_curves, region_area=region_area,
+                annotation_indices=[i for i,a in enumerate(self.drawing.annotations()) if a['id'] in ids])
         elif self.moving:
             # A zero-offset placement finishes the preview without a history edit.
-            previous, previous_labels, previous_curves = self.selected, self.selected_labels, self.selected_curves
+            previous, previous_labels, previous_curves,previous_annotations = self.selected, self.selected_labels, self.selected_curves,self.selected_annotations
             self.cancel()
-            self.set_selected(previous, previous_labels, previous_curves, region_area=region_area)
+            self.set_selected(previous, previous_labels, previous_curves, region_area=region_area,annotation_indices=previous_annotations)
         return changed
 
     def delete_selected(self):
@@ -375,8 +439,9 @@ class PlanSelectionController:
         segments = remove_wall_faces(self.lines, self.selected)
         labels = [label for index, label in enumerate(self.drawing.text.labels) if index not in self.selected_labels]
         curves = [curve for index, curve in enumerate(self.drawing.curves()) if index not in self.selected_curves]
+        annotations = [a for i,a in enumerate(self.drawing.annotations()) if i not in self.selected_annotations and supported(a,segments)]
         self.cancel()
-        return self.drawing.apply_edit(segments, labels, curves)
+        return self.drawing.apply_edit(segments, labels, curves,annotations=annotations)
 
     def apply_rotation(self, angle, pivot=None):
         if not self.can_rotate():
@@ -386,15 +451,21 @@ class PlanSelectionController:
         pivot = pivot or ((left + right) / 2, (top + bottom) / 2)
         return self.apply_transformed(rotate_degrees([self.lines[index] for index in self.selected], angle, pivot),
                                       transform_labels(self.selected_texts(), angle, pivot),
-                                      transform_curves(self.selected_curve_shapes(), angle, pivot))
+                                      transform_curves(self.selected_curve_shapes(), angle, pivot),
+                                      transform_annotations(self.selected_items(),angle,pivot))
 
     def rotated_move(self, turns=None):
         turns = self.move_turns if turns is None else turns
-        left, top, right, bottom = segment_bounds(self.geometry(self.move_source, self.move_label_source, self.move_curve_source))
+        left, top, right, bottom = segment_bounds(self.geometry(self.move_source, self.move_label_source, self.move_curve_source,self.move_annotation_source))
         pivot = ((left + right) / 2, (top + bottom) / 2)
         return (rotate_degrees(self.move_source, turns * 90, pivot),
                 transform_labels(self.move_label_source, turns * 90, pivot),
                 transform_curves(self.move_curve_source, turns * 90, pivot))
+
+    def rotated_annotations(self,turns=None):
+        turns = self.move_turns if turns is None else turns
+        l,t,r,b = segment_bounds(self.geometry(self.move_source,self.move_label_source,self.move_curve_source,self.move_annotation_source))
+        return transform_annotations(self.move_annotation_source,turns*90,((l+r)/2,(t+b)/2))
 
     def rotate(self):
         if not self.can_rotate() or self.origin is not None:
@@ -402,7 +473,7 @@ class PlanSelectionController:
         if self.moving:
             turns = (self.move_turns + 1) % 4
             rotated, labels, curves = self.rotated_move(turns)
-            left, top, right, bottom = segment_bounds(self.geometry(rotated, labels, curves))
+            left, top, right, bottom = segment_bounds(self.geometry(rotated, labels, curves,self.rotated_annotations(turns)))
             bounds = self.view.scene.sceneRect()
             if right - left > bounds.width() or bottom - top > bounds.height():
                 self.owner.status.showMessage(self.owner.tr("design_rotation_outside"))
@@ -422,8 +493,9 @@ class PlanSelectionController:
         self.move_source = [dict(self.lines[index]) for index in self.selected]
         self.move_label_source = transform_labels(self.selected_texts())
         self.move_curve_source = transform_curves(self.selected_curve_shapes())
+        self.move_annotation_source = transform_annotations(self.selected_items())
         self.move_turns = 0
-        left, top, right, bottom = segment_bounds(self.geometry(self.move_source, self.move_label_source, self.move_curve_source))
+        left, top, right, bottom = segment_bounds(self.geometry(self.move_source, self.move_label_source, self.move_curve_source,self.move_annotation_source))
         self.move_anchor = (self.point(self.last_pointer) if self.last_pointer is not None
                             else QPointF((left + right) / 2, (top + bottom) / 2))
         if self.last_pointer is None:
@@ -441,12 +513,15 @@ class PlanSelectionController:
             self.drawing.text.items[index].setOpacity(.25)
         for index in self.selected_curves:
             self.drawing.curve.items[index].setOpacity(.25)
+        for index in self.selected_annotations:
+            self.drawing.annotation.items[index].setOpacity(.25)
         self.refresh_snap()
         return True
 
     def update_move(self, position, bypass=False):
         source, labels, curves = self.rotated_move()
-        geometry = self.geometry(source, labels, curves)
+        annotations = self.rotated_annotations()
+        geometry = self.geometry(source, labels, curves,annotations)
         left, top, right, bottom = segment_bounds(geometry)
         point = self.point(position)
         x, y = left + point.x() - self.move_anchor.x(), top + point.y() - self.move_anchor.y()
@@ -466,20 +541,22 @@ class PlanSelectionController:
         self.move_preview = translate_segments(source, x - left, y - top)
         self.move_label_preview = transform_labels(labels, dx=x - left, dy=y - top)
         self.move_curve_preview = transform_curves(curves, dx=x - left, dy=y - top)
-        combined = self.geometry(self.move_preview, self.move_label_preview, self.move_curve_preview)
+        self.move_annotation_preview = transform_annotations(annotations,dx=x-left,dy=y-top)
+        combined = self.geometry(self.move_preview, self.move_label_preview, self.move_curve_preview,self.move_annotation_preview)
         if any(line["x1"] != line["x2"] and line["y1"] != line["y2"] for line in combined):
             snapped = self.drawing.snap_shape(combined, bypass, self.move_snapper)
             dx, dy = snapped[0]["x1"] - combined[0]["x1"], snapped[0]["y1"] - combined[0]["y1"]
             self.move_preview = translate_segments(self.move_preview, dx, dy)
             self.move_label_preview = transform_labels(self.move_label_preview, dx=dx, dy=dy)
             self.move_curve_preview = transform_curves(self.move_curve_preview, dx=dx, dy=dy)
+            self.move_annotation_preview = transform_annotations(self.move_annotation_preview,dx=dx,dy=dy)
             left, top, right, bottom = segment_bounds(snapped)
             x, y = left, top
-            self.show_lines(self.move_preview, moving=True, labels=self.move_label_preview, curves=self.move_curve_preview)
+            self.show_lines(self.move_preview, moving=True, labels=self.move_label_preview, curves=self.move_curve_preview,annotations=self.move_annotation_preview)
             self.drawing.show_snap_guides(QRectF(left, top, right - left, bottom - top))
             self.show_count(position)
             return
-        self.show_lines(self.move_preview, moving=True, labels=self.move_label_preview, curves=self.move_curve_preview)
+        self.show_lines(self.move_preview, moving=True, labels=self.move_label_preview, curves=self.move_curve_preview,annotations=self.move_annotation_preview)
         self.drawing.show_snap_guides(QRectF(x, y, right - left, bottom - top))
         self.show_count(position)
 

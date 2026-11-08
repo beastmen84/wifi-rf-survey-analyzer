@@ -114,6 +114,7 @@ def test_toolbar_states_color_cancel_and_boundaries_exclusion(window, qt_app):
                (tools.undo_button, tools.redo_button))
     tools.snap_button.click()
     assert tools.snap_button.isChecked() and window.floorplan_view.grid_visible
+    tools.select_tool('rectangle')
     with patch("qt_ui.qt_plan_colors.QColorDialog.getColor", return_value=QColor("#d84315")):
         tools.color_button.click()
     assert tools.stroke_color.name() == "#d84315"

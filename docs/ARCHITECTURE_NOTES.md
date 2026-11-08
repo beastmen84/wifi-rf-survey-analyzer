@@ -22,6 +22,21 @@ interpolated colors.
 
 Current status:
 
+- Main Select defaults to Include annotations, with explicit structure-only and
+  annotation-only alternatives. Closed-region pickup uses complete object/marker
+  footprints (respecting holes) plus text anchors and hosted apertures. Drag pickup
+  combines touched content. PlanSelectionController tracks annotation indices and
+  source/preview lists through rigid move, quarter/held rotation, cancel/delete,
+  ID-stable reselection and layer transfer. Explicit annotation commit preserves
+  source order and rejects unsupported openings; automatic following applies only
+  to unselected hosted openings, avoiding double transforms. AP reconciliation
+  and history reuse the existing atomic apply_edit path; RF rows never move.
+- Neutral Design Mode has active_tool=None. Right gestures are consumed without
+  rectangle fallback or RF capture; left pan stays available. Esc deselects the tool
+  and cancels its draft, leaving mode open; a neutral Esc closes mode. Held rotation
+  still has its first-Esc rollback. Opening the points table also resets the tool
+  before the next Design Mode opening. Annotation scene reset precedes selection reset
+  so stale C++ item references are not touched while restoring preview opacity.
 - Draw-only Project Resize edits canvas extents, not RF coordinates. qt_plan_resize
   validates all layers (including hidden physical solids), measurements/ledger/APs
   and nontransparent mask bounds before allocating a white base at fixed density.
@@ -45,8 +60,9 @@ Current status:
   supports retain their existing color/profile, including differently colored new
   strokes. A second source remap handles inherited duplicates that normalize away.
   Inherited outer faces are recognized geometrically; existing rooms are anchored.
-  Interior double-click with structural Select reopens the region's sides; stroke
-  hit-testing has precedence for curve editing. Both mouse buttons are accepted.
+  Empty-interior double-click with Select reopens the region's sides; annotation
+  and text hits open their properties, while stroke hits retain curve editing.
+  Both mouse buttons are accepted.
   The preview is a local schematic of the proposed piece, with outward profiles,
   clickable paths/bodies and a table of exact depths in m/ft. Open pieces expose
   side direction. Geometry validation, stale checks and RF/mask/AP protections

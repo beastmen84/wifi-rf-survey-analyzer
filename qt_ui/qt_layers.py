@@ -199,7 +199,7 @@ class LayersPanel(QFrame):
 
     def update_selection(self):
         d = self.drawing
-        has_selection = bool(d.selection.selected or d.selection.selected_curves or d.annotation.selected or d.annotation.selected_labels)
+        has_selection = d.selection.has_selection() or bool(d.annotation.selected or d.annotation.selected_labels)
         self.move_button.setEnabled(self.owner.session is not None and is_drawn_plan(self.owner.session.metadata) and not self.owner.scan_in_progress
             and has_selection and d.editable() and len(d.layer_document()["layers"]) > 1)
 
@@ -306,7 +306,8 @@ class LayersPanel(QFrame):
         targets = [layer for layer in document["layers"] if layer["id"] != document["active"]
                    and layer["visible"] and not layer["locked"]]
         selected = deepcopy(dict(segments=self.drawing.selection.selected, curves=self.drawing.selection.selected_curves,
-                        labels=self.drawing.annotation.selected_labels, annotations=self.drawing.annotation.selected))
+                        labels=tuple(sorted(set(self.drawing.annotation.selected_labels) | set(self.drawing.selection.selected_labels))),
+                        annotations=tuple(sorted(set(self.drawing.annotation.selected) | set(self.drawing.selection.selected_annotations)))))
         if not targets or not any(selected.values()):
             self.owner.status.showMessage(self.owner.tr("layer_select_first"))
             return
@@ -314,7 +315,8 @@ class LayersPanel(QFrame):
         name, accepted = QInputDialog.getItem(self.owner, self.owner.tr("layer_move_selection"),
             self.owner.tr("layer_name"), [layer["name"] for layer in targets], 0, False)
         current = dict(segments=self.drawing.selection.selected, curves=self.drawing.selection.selected_curves,
-                       labels=self.drawing.annotation.selected_labels, annotations=self.drawing.annotation.selected)
+                       labels=tuple(sorted(set(self.drawing.annotation.selected_labels) | set(self.drawing.selection.selected_labels))),
+                       annotations=tuple(sorted(set(self.drawing.annotation.selected) | set(self.drawing.selection.selected_annotations))))
         if accepted and self.context_matches(context) and current == selected:
             try:
                 result = move_selection(document, next(layer["id"] for layer in targets if layer["name"] == name), selected)

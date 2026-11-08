@@ -7,6 +7,14 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Main Draw Plan Select now includes annotations by default. Room/box selection
+  can move, rotate, delete or transfer structure, text, furniture, markers and AP
+  symbols as one group on the active layer. The Include annotations checkbox and
+  annotation-only selector preserve explicit isolated editing. Partial host moves
+  that orphan an opening are rejected instead of silently removing it.
+- Design Mode starts neutral; Esc cancels the current action and deselects the tool
+  without closing the panel. A neutral Esc closes it. Held-R rotation retains its
+  first-Esc orientation rollback. Neutral right-clicks never capture measurements.
 - Moved drawing Legend to the Analysis toolbar heading. Its former Project slot
   now contains Draw Plan-only Resize, with fixed top-left origin and unchanged
   calibration, RF/AP coordinates and grid spacing. Shrinking protects all layers,

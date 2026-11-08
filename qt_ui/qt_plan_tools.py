@@ -2,7 +2,7 @@
 
 from PySide6.QtCore import QEvent, QPoint, QRect, QSize, Qt, QTimer
 from PySide6.QtGui import QColor, QIcon, QPixmap, QShortcut, QKeySequence, QPainter, QPainterPath, QPen
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QCheckBox
 
 from survey.plan_mode import is_drawn_plan
 from qt_ui.qt_theme import QT_THEMES
@@ -19,7 +19,7 @@ class PlanToolsOverlay(QFrame):
         self.setFont(owner.font())
         self.owner = owner
         self.open = False
-        self.active_tool = "rectangle"
+        self.active_tool = None
         self.stroke_color = QColor(tool_colors("structure").get("color", "#263238"))
         self.setObjectName("boundariesToolbar")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -87,6 +87,10 @@ class PlanToolsOverlay(QFrame):
         row.addStretch()
         actions.addStretch()
         layout.addLayout(actions)
+        self.include_annotations = QCheckBox(owner.tr('selection_include_annotations'))
+        self.include_annotations.setChecked(True)
+        self.include_annotations.toggled.connect(self.selection_scope_changed)
+        layout.addWidget(self.include_annotations)
         self.note = QLabel()
         self.note.setWordWrap(True)
         layout.addWidget(self.note)
@@ -176,6 +180,7 @@ class PlanToolsOverlay(QFrame):
             self.owner.floorplan_view.cancel_ap_position_pick()
         else:
             self.controller.cancel()
+            self.active_tool = None
         self.toggle_button.setChecked(self.open)
         self.owner.floorplan_view.design_mode_active = self.open
         self.owner.floorplan_view.viewport().setCursor(Qt.CursorShape.CrossCursor if self.open else Qt.CursorShape.ArrowCursor)
@@ -190,14 +195,21 @@ class PlanToolsOverlay(QFrame):
         if self.controller.rotation.active:
             self.controller.rotation.cancel()
             return
-        if not self.controller.cancel():
+        if self.active_tool is not None:
+            self.select_tool(None)
+        else:
             self.set_open(False)
+
+    def selection_scope_changed(self):
+        self.controller.cancel()
+        self.update_tool_state()
+        self.position_controls()
 
     def select_rectangle(self):
         self.select_tool("rectangle")
 
     def select_tool(self, tool):
-        if not self.controller.editable():
+        if tool is not None and not self.controller.editable():
             return
         self.controller.cancel()
         if tool in ("marker", "door", "window", *FREE_ANNOTATIONS) and not self.controller.annotation.configure(tool):
@@ -208,10 +220,13 @@ class PlanToolsOverlay(QFrame):
         self.position_controls()
 
     def update_tool_state(self):
+        shared = self.include_annotations.isChecked()
+        self.include_annotations.setText(self.owner.tr('selection_include_annotations'))
+        self.include_annotations.setVisible(self.open and self.active_tool == 'select')
         self.eraser_button.setToolTip(self.owner.tr("structure_eraser"))
         self.eraser_button.setAccessibleName(self.owner.tr("structure_eraser"))
-        self.select_button.setToolTip(self.owner.tr("annotation_select_structure"))
-        self.select_button.setAccessibleName(self.owner.tr("annotation_select_structure"))
+        self.select_button.setToolTip(self.owner.tr('selection_shared' if shared else 'annotation_select_structure'))
+        self.select_button.setAccessibleName(self.owner.tr('selection_shared' if shared else 'annotation_select_structure'))
         for tool, button in self.annotation_buttons.items():
             button.setEnabled(self.open)
             button.setChecked(self.open and self.active_tool == tool)
@@ -233,14 +248,15 @@ class PlanToolsOverlay(QFrame):
                                     and bool(selection.selected or selection.selected_curves))
         self.wall_button.setToolTip(self.owner.tr("wall_title"))
         self.wall_button.setAccessibleName(self.owner.tr("wall_title"))
-        curve_edit = len(selection.selected_curves) == 1 and not (selection.selected or selection.selected_labels)
+        curve_edit = len(selection.selected_curves) == 1 and not (selection.selected or selection.selected_labels or selection.selected_annotations)
+        annotation_edit = len(selection.selected_annotations) == 1 and not (selection.selected or selection.selected_labels or selection.selected_curves)
         self.edit_text_button.setEnabled(self.open and self.active_tool == "select"
-                                         and (len(selection.selected_labels) == 1 or curve_edit)
+                                         and (len(selection.selected_labels) == 1 or curve_edit or annotation_edit)
                                          and not selection.moving)
         if self.active_tool in ("marker", "door", "window", *FREE_ANNOTATIONS, "annotation_select"):
             a = self.controller.annotation
             self.edit_text_button.setEnabled(self.open and not a.moving and (self.active_tool != "annotation_select" or len(a.selected) + len(a.selected_labels) == 1))
-        edit_text = self.owner.tr("curve_edit" if curve_edit else "plan_text_edit")
+        edit_text = self.owner.tr('annotation_properties' if annotation_edit else "curve_edit" if curve_edit else "plan_text_edit")
         if self.active_tool in ("marker", "door", "window", *FREE_ANNOTATIONS, "annotation_select"):
             edit_text = self.owner.tr("annotation_properties")
         self.edit_text_button.setToolTip(edit_text)
@@ -250,13 +266,17 @@ class PlanToolsOverlay(QFrame):
                "eraser": "eraser_tools_note", "select": "selection_tools_note", "text": "text_tools_note",
                "marker": "annotation_marker_note", "door": "annotation_place_note", "window": "annotation_place_note",
                "desk": "object_place_note", "symbol": "object_place_note",
-               "annotation_select": "annotation_selection_note", "annotation_eraser": "annotation_eraser_note"}[self.active_tool]
+               "annotation_select": "annotation_selection_note", "annotation_eraser": "annotation_eraser_note",None:'design_choose_tool'}[self.active_tool]
+        if self.active_tool == 'select' and shared:
+            key = 'selection_shared_note'
         template = self.controller.annotation.templates.get(self.active_tool)
         if self.active_tool in FREE_ANNOTATIONS and template and object_is_round(template):
             key = "object_round_note"
         self.note.setText(self.owner.tr(key) + (" " + self.owner.tr("axis_lock_hint")
                                               if self.active_tool in ("line", "arc") else ""))
         self.update_tool_icons()
+        if self.open:
+            self.owner.floorplan_view.viewport().setCursor(Qt.CursorShape.CrossCursor if self.active_tool is not None else Qt.CursorShape.ArrowCursor)
         if self.owner.session is not None and not self.controller.editable():
             for button in (self.rectangle_button, self.line_button, self.circle_button, self.arc_button,
                            self.text_button, self.eraser_button, self.select_button, self.snap_button,
@@ -379,6 +399,10 @@ class PlanToolsOverlay(QFrame):
         if self.active_tool == "annotation_select":
             self.controller.annotation.edit()
             return
+        s = self.controller.selection
+        if self.active_tool == 'select' and len(s.selected_annotations) == 1 and not(s.selected or s.selected_labels or s.selected_curves):
+            s.edit_annotations(s.selected_annotations)
+            return
         if self.active_tool in ("marker", "door", "window", *FREE_ANNOTATIONS):
             self.controller.annotation.configure(self.active_tool)
             return
@@ -463,6 +487,7 @@ class PlanToolsOverlay(QFrame):
         if points is not None and self.owner.points_panel_expanded and not points.isHidden():
             if self.open:
                 self.open = False
+                self.active_tool = None
                 self.snap_button.setEnabled(False)
                 self.controller.cancel()
                 self.owner.floorplan_view.design_mode_active = False
@@ -470,6 +495,7 @@ class PlanToolsOverlay(QFrame):
                 self.toggle_button.setChecked(False)
                 self.escape_shortcut.setEnabled(False)
                 self.hide()
+                self.update_tool_state()
             top = viewport.mapFromGlobal(points.mapToGlobal(QPoint(0, 0))).y()
             bottom = min(bottom, top - margin)
         self.toggle_button.setGeometry(margin, max(margin, bottom - size.height()), size.width(), size.height())

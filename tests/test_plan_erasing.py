@@ -230,6 +230,7 @@ def test_erase_to_empty_survives_save_reopen_and_removes_baked_pixels(eraser_edi
     with Image.open(tmp_path / "erase.png") as image:
         assert image.getpixel((200, 100)) != (255, 255, 255)
     app.plan_tools.set_open(True)
+    app.plan_tools.select_tool('eraser')
     drag(app.floorplan_view, scene_point(app, 90, 90), scene_point(app, 310, 210))
     app.plan_tools.set_open(False)
     assert app.save_survey()
@@ -274,6 +275,7 @@ def test_erase_save_failure_restores_old_files_and_keeps_unsaved_vector_edit(era
     old_csv = (tmp_path / "failure.csv").read_bytes()
     old_png = (tmp_path / "failure.png").read_bytes()
     app.plan_tools.set_open(True)
+    app.plan_tools.select_tool('eraser')
     QTest.mouseClick(app.floorplan_view.viewport(), Qt.MouseButton.RightButton, pos=scene_point(app, 200, 100))
     erased = drawing.segments()
     assert len(erased) == 3

@@ -128,6 +128,7 @@ def test_marker_and_apertures_leave_room_topology_and_area_untouched(editor, var
 
 
 def test_structure_and_annotation_selections_and_deletions_are_isolated(editor):
+    editor[0].plan_tools.include_annotations.setChecked(False)
     app, d = editor
     d.store([line()], [label()], annotations=[aperture(), marker()])
     before = deepcopy(d.segments())
@@ -234,6 +235,7 @@ def test_annotation_move_rotation_and_cancel_never_edit_the_wall(editor):
     assert d.snapshot() == before and d.annotation.moving
     QTest.keyClick(app, Qt.Key.Key_Escape)
     assert d.snapshot() == before and not d.annotation.moving
+    app.plan_tools.select_tool('annotation_select')
     d.annotation.select((1,))
     QTest.keyClick(app, Qt.Key.Key_R)
     assert d.annotations()[1]["points"] != marker()["points"] and d.segments() == [line()]

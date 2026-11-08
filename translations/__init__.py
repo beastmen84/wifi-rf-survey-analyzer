@@ -42,6 +42,7 @@ for _language, _dictionary in TRANSLATIONS.items():
     _dictionary.update(network_symbols_dictionary(_language))
     _dictionary.update(walls_dictionary(_language))
     _dictionary.update(resize_dictionary(_language))
+    _dictionary['annotation_help'] += ' ' + _dictionary['selection_shared_help']
     _dictionary['blank_plan_help'] += ' ' + _dictionary['resize_help']
     _dictionary["blank_plan_help"] += " " + _dictionary["annotation_help"]
     _dictionary["blank_plan_help"] += " " + _dictionary["drawing_precision_help"]

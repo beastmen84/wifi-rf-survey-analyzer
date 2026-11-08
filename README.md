@@ -100,8 +100,10 @@ from these software checks.
   Select Eraser to right-click one highlighted side, or right-drag an area to
   erase every whole segment it touches on release. Red previews show the affected
   sides and their count. Each deletion can be undone/redone as one action.
-  Esc cancels a draft
-  before exiting the mode. Right-click capture resumes after leaving Design Mode.
+  Design Mode opens with no tool selected. Esc cancels the current operation and
+  deselects its tool while leaving the panel open; Esc in the neutral state closes
+  it. During held-R rotation, Esc first restores the previous orientation.
+  Right-click capture resumes only after leaving Design Mode.
   Drawings remain editable after save/reopen and appear in PNG/Live/HTML maps.
   The survey grid fades inside perimeters closed by the current segments,
   including joined, concave and overlapping shapes. Opening a perimeter with
@@ -142,8 +144,9 @@ from these software checks.
   preserving internal dimensions. Differently colored/partially overlapping
   supports also inherit the common wall. Incompatible layouts are rejected.
   Cancel discards the proposed piece. Placement and thickness are one undo step.
-  With structural **Select**, double-click inside a closed area (left or right
-  button) to reopen its sides. Stroke hits retain curve editing. The wall icon
+  With **Select**, double-click in the empty interior of a closed area (left or
+  right button) to reopen its sides. Annotation/text hits open their properties;
+  stroke hits retain curve editing. The wall icon
   edits selected structural sides. Diagram numbers are temporary editor labels.
   Compatible shared faces are cut/picked together; deleting a divider rebuilds
   its jambs or continuing perimeter. Physical bounds, apertures, move/rotation,
@@ -210,9 +213,16 @@ from these software checks.
   and are rejected. Rotated oblique strokes retain real intersections, snapping,
   partial erasing, closed-area detection and saved/exported geometry.
 - Design Mode separates **Structure** from **Annotations**, with independent
-  selection tools. Its palette, toggle and measurement panels stay anchored to
-  the viewport during zoom and pan. Structure selection and the eraser affect walls and curves;
-  annotation selection affects markers, doors, windows and text. **Marker** draws
+  erasers and an annotation-only selection shortcut. The main **Select** defaults
+  to **Include annotations**: a closed-room click selects its boundary, contained
+  objects/text and hosted openings; a drag box combines touched structure and
+  annotations. M/R/Del act on the group in one undo step, including exact bound
+  AP-symbol positions. Objects crossing a room boundary/hole are not implicitly
+  added by an interior click. Turn off Include annotations for structure-only
+  selection; hosted doors/windows still follow their supporting walls. All these
+  operations stay on the active layer. Hidden/locked layers and RF measurement
+  points remain independent. The palette, toggle and measurement panels stay
+  anchored to the viewport during zoom and pan. **Marker** draws
   dashed freehand or grid-following paths with its own color and graphical width.
   **Door** supports single, double, sliding and frame-only variants; **Window** uses a simple
   window symbol. Choose width before placement, then right-click on a straight

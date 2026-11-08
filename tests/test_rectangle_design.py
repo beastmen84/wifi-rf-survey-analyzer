@@ -23,6 +23,7 @@ def editor(window, qt_app):
     window.show()
     qt_app.processEvents()
     window.plan_tools.set_open(True)
+    window.plan_tools.select_tool('rectangle')
     yield window, window.plan_tools.controller
     window.session.dirty = False
     window.hide()
@@ -86,6 +87,7 @@ def test_esc_cancels_draft_first_then_exits_and_restores_point_capture(editor, q
     controller.begin_placement(150, 100)
     QTest.keyClick(window, Qt.Key.Key_Escape)
     assert controller.pending_size is None and window.plan_tools.open
+    assert window.plan_tools.active_tool is None
     assert drawing_segments(window.session.metadata) is None and not window.session.dirty
     QTest.keyClick(window, Qt.Key.Key_Escape)
     assert not window.floorplan_view.design_mode_active

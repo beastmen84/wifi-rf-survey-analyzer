@@ -139,7 +139,7 @@ class RectangleDesignController(QObject):
         self.view.viewport().installEventFilter(self)
 
     def eventFilter(self, source, event):
-        if (self.tools.open and not self.editable() and event.type() in (QEvent.Type.KeyPress, QEvent.Type.KeyRelease)
+        if (self.tools.open and (not self.editable() or self.tools.active_tool is None) and event.type() in (QEvent.Type.KeyPress, QEvent.Type.KeyRelease)
                 and event.key() in (Qt.Key.Key_R, Qt.Key.Key_M, Qt.Key.Key_Delete)):
             return False if QApplication.activeModalWidget() else True
         if source is self.view.viewport() and event.type() == QEvent.Type.Resize:
@@ -208,8 +208,8 @@ class RectangleDesignController(QObject):
                 self.line.reset_scene()
                 self.text.reset_scene()
                 self.curve.reset_scene()
-                self.selection.reset_scene()
                 self.annotation.reset_scene()
+                self.selection.reset_scene()
                 self.dimensions.reset_scene()
             self.cancel()
             self.undo_stack.clear()
@@ -589,6 +589,8 @@ class RectangleDesignController(QObject):
         self.dimensions.position()
 
     def press(self, event):
+        if self.tools.active_tool is None:
+            return event.button() == Qt.MouseButton.RightButton
         if not self.editable():
             return event.button() == Qt.MouseButton.RightButton
         if self.rotation.active:
@@ -632,6 +634,10 @@ class RectangleDesignController(QObject):
         if (self.tools.active_tool == "select" and self.editable() and not self.rotation.active and not self.selection.moving
                 and event.button() in (Qt.MouseButton.RightButton, Qt.MouseButton.LeftButton)):
             point = self.view.mapToScene(event.position().toPoint())
+            if self.selection.shared():
+                items,labels = self.annotation.pick((point.x(),point.y()))
+                if items or labels:
+                    return self.selection.edit_annotations(items,labels)
             if not any(self.selection.pick_stroke(point)):
                 region = self.selection.regions().pick(point)
                 if region is not None:
@@ -647,6 +653,8 @@ class RectangleDesignController(QObject):
         return False
 
     def move(self, event):
+        if self.tools.active_tool is None:
+            return False
         if not self.editable():
             return bool(event.buttons() & Qt.MouseButton.RightButton)
         consumed = self._move(event)
@@ -685,6 +693,8 @@ class RectangleDesignController(QObject):
         return False
 
     def release(self, event):
+        if self.tools.active_tool is None:
+            return event.button() == Qt.MouseButton.RightButton
         if not self.editable():
             return event.button() == Qt.MouseButton.RightButton
         if self.rotation.active:
