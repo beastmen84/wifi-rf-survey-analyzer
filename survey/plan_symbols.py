@@ -81,6 +81,8 @@ def prepare_symbol(metadata, document, item, previous=None):
 
 def legend_tables(document, groups=(), visible_only=True):
     records = {}
+    from survey.rack_inventory import rack_records
+    rack_indices={(layer['id'],item['id']):i for i,(layer,item) in enumerate(rack_records(document),1)}
     aliases = {str(g["group_id"]): str(g.get("alias") or g["group_id"])[:256] for g in groups}
     for layer, item in symbols(document, visible_only):
         if "number" not in item and item["variant"] not in ("rack", "wifi_ap"):
@@ -88,9 +90,13 @@ def legend_tables(document, groups=(), visible_only=True):
         record = dict(id=item["id"], layer=layer["id"], layer_name=layer["name"],
                       number=item.get("number"), description=item.get("description", ""),
                       item=deepcopy(item), ap=aliases.get(item.get("ap_group"), ""))
+        if item['variant']=='rack':
+            record.update(rack_index=rack_indices[layer['id'],item['id']],rack_name=item.get('rack',{}).get('name',''))
         records.setdefault(item["variant"], []).append(record)
-    return [dict(kind=kind, rows=sorted(records[kind], key=lambda row: (row["number"] or 0, row["layer_name"], row["id"])))
-            for kind in (*NUMBERED_SYMBOLS, "rack", "wifi_ap") if kind in records]
+    tables = [dict(kind=kind, rows=sorted(records[kind], key=lambda row: (row["number"] or 0, row["layer_name"], row["id"])))
+              for kind in (*NUMBERED_SYMBOLS, "rack", "wifi_ap") if kind in records]
+    from survey.rack_inventory import inventory_tables
+    return tables + inventory_tables(document,visible_only)
 
 
 def bind_ap(document, symbol_id, group_id):

@@ -22,6 +22,38 @@ interpolated colors.
 
 Current status:
 
+- Post-1.3.0 source: JPEG uses an export-only vector viewport around visible ink
+  (paths, physical walls, text and symbol badges); imported backgrounds retain
+  full extents. Symmetric footer reservations center the plan on both axes.
+  Survey coordinates/calibration and Print Plan's full-sheet layout are retained.
+- Optional rack inventory is validated in survey/rack_inventory.py. Symbols own
+  optional name/switches/ports lists; port numbers/counts are derived. Limits are
+  32 switches/512 ports per switch/4096 ports per rack and 512 switches/16384 ports/
+  1M description characters per document. Data survive geometry transforms and
+  history. Configured racks promote annotations to format2 and layers to format3;
+  older plans retain formats1/2. CSV/raw schema2 is unchanged. Older readers must
+  reject the new formats instead of silently discarding inventory.
+- RackConfigurationDialog edits per-switch counts; Legend uses a rack/switch
+  tree and lazily builds one port table. Delegate edits are committed before
+  switching/rebuilding/saving. Hidden/locked data remain read-only. Legend
+  snapshot edits commit as one undoable change with stale-state protection.
+  Print/JPEG use dedicated per-switch tables and repeat wrapped rack/switch
+  titles on subsequent pages. Rack inventory is documentation, not RF evidence.
+- Analysis/Survey Quality overlap was reviewed at user request. Proposed direction
+  (not implemented): recommendations first, ranked actions with expandable evidence,
+  one quality/uncertainty summary linking to Survey Quality, and supplementary
+  technical observations. Existing confidence gates must remain in the engine.
+- Validation for this change: initial full native run2336 passed +479 subtests,
+  with one obsolete test expecting layer format3 rejection. Updated that invalid
+  fixture to4; the final related-module run185 passed50.97s, including the corrected
+  case and all56 new tests. Rack/JPEG UI campaign24 configurations /96 dialogs
+  passed (4languages x2themes x3scales); screenshots and plan/legend pages inspected.
+  Ruff essential/core F, compile and diff checks pass. Original test_data hashes
+  match. The known intermittent Qt/COM0x8001010d diagnostic at show() appeared in
+  native test logs without stopping execution. No frozen rebuild or physical
+  printer validation was performed. Local max-rack validation0.485ms / inventory
+  totals8192ports0.350ms medians are source timings, not a general RF benchmark.
+
 - Stable release1.3.0 packages the completed Draw/Load Plan and layered editor
   work. Runtime pandas is3.1.1; other pins and CSV/raw schema2 are unchanged.
   Release audit found and fixed symbol-number traversal during scene replacement:

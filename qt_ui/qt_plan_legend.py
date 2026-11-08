@@ -4,11 +4,12 @@ from copy import deepcopy
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QDialog, QDialogButtonBox,
     QHeaderView, QLabel, QMessageBox, QPushButton, QTableWidget, QTableWidgetItem, QTabWidget, QVBoxLayout,
-    QStyledItemDelegate, QLineEdit)
+    QStyledItemDelegate, QLineEdit, QAbstractItemDelegate)
 from survey.plan_layers import read_layers
 from survey.plan_mode import is_drawn_plan
 from survey.plan_symbols import legend_tables, symbols, sequences
 from survey.plan_objects import NUMBERED_SYMBOLS
+from survey.rack_inventory import rack_label
 
 
 class DescriptionDelegate(QStyledItemDelegate):
@@ -16,6 +17,13 @@ class DescriptionDelegate(QStyledItemDelegate):
         editor = QLineEdit(parent)
         editor.setMaxLength(2000)
         return editor
+
+
+def finish_table_edit(table):
+    editor = table.focusWidget()
+    if isinstance(editor, QLineEdit):
+        table.commitData(editor)
+        table.closeEditor(editor, QAbstractItemDelegate.EndEditHint.NoHint)
 
 
 def export_legend_tables(session):
@@ -31,6 +39,7 @@ class PlanLegendDialog(QDialog):
         self.token = deepcopy(self.session.metadata)
         self.document = deepcopy(read_layers(self.token))
         self.tables = []
+        self.inventory = None
         self.setWindowTitle(owner.tr("plan_legend"))
         self.resize(owner.spx(780), owner.spx(600))
         layout = QVBoxLayout(self)
@@ -58,7 +67,10 @@ class PlanLegendDialog(QDialog):
         self.rebuild()
 
     def collect(self):
+        if self.inventory is not None:
+            self.inventory.finish_edit()
         for table, records in self.tables:
+            finish_table_edit(table)
             for row, record in enumerate(records):
                 layer = next(layer for layer in self.document["layers"] if layer["id"] == record["layer"])
                 if layer["visible"] and not layer["locked"]:
@@ -75,6 +87,8 @@ class PlanLegendDialog(QDialog):
             self.tabs.removeTab(0)
             page.deleteLater()
         entries = legend_tables(self.document, self.session.get_ap_groups(), visible_only=not self.show_hidden.isChecked())
+        inventory=[e for e in entries if e['kind']=='rack_ports']
+        entries=[e for e in entries if e['kind']!='rack_ports']
         for index, entry in enumerate(entries, 1):
             table = QTableWidget(len(entry["rows"]), 2)
             table.setHorizontalHeaderLabels([self.owner.tr("legend_number" if entry["kind"] in NUMBERED_SYMBOLS else "annotation_symbol"),
@@ -86,7 +100,7 @@ class PlanLegendDialog(QDialog):
             table.setItemDelegateForColumn(1, DescriptionDelegate(table))
             table.verticalHeader().hide()
             for row, record in enumerate(entry["rows"]):
-                name = str(record["number"]) if record["number"] else record["ap"] or self.owner.tr("object_symbol_" + entry["kind"])
+                name = rack_label(record,self.owner.tr) if entry['kind']=='rack' else str(record["number"]) if record["number"] else record["ap"] or self.owner.tr("object_symbol_" + entry["kind"])
                 reference = QTableWidgetItem(name)
                 reference.setFlags(reference.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 reference.setToolTip(name + "\n" + record["layer_name"])
@@ -100,7 +114,12 @@ class PlanLegendDialog(QDialog):
             title = self.owner.tr("legend_table").format(number=index, symbol=self.owner.tr("object_symbol_" + entry["kind"]))
             self.tabs.addTab(table, title)
             self.tables.append((table, entry["rows"]))
-        self.empty.setVisible(not entries)
+        self.inventory=None
+        if inventory:
+            from qt_ui.qt_rack_inventory import RackInventoryPanel
+            self.inventory=RackInventoryPanel(self.owner,self.document,inventory)
+            self.tabs.addTab(self.inventory,self.owner.tr('rack_inventory'))
+        self.empty.setVisible(not (entries or inventory))
         self.number_existing.setEnabled(any(layer["visible"] and not layer["locked"] and item["variant"] in NUMBERED_SYMBOLS
                                            and "number" not in item for layer, item in symbols(self.document)))
 
@@ -119,7 +138,7 @@ class PlanLegendDialog(QDialog):
             from survey.plan_layers import validate_document
             candidate = validate_document(candidate)
         except (ValueError, TypeError, KeyError) as error:
-            QMessageBox.warning(self, self.owner.tr("plan_legend"), str(error))
+            QMessageBox.warning(self, self.owner.tr("plan_legend"), self.owner.tr(str(error)))
             return
         self.document = candidate
         self.rebuild()
@@ -133,7 +152,7 @@ class PlanLegendDialog(QDialog):
             self.owner.plan_tools.controller.change_layers(self.document)
             self.accept()
         except (ValueError, TypeError, KeyError) as error:
-            QMessageBox.warning(self, self.owner.tr("plan_legend"), str(error))
+            QMessageBox.warning(self, self.owner.tr("plan_legend"), self.owner.tr(str(error)))
 
 
 def open_plan_legend(owner):

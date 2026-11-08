@@ -61,7 +61,11 @@ from these software checks.
 - **Save as JPEG**, beside **Print Plan**, exports the same clean plan and scale
   reference. Choose A5–A0, Letter or Legal, portrait/landscape and 150/300/600 DPI;
   preview the page and exact pixel dimensions before choosing the file. The JPEG
-  stores its print resolution and includes unsaved drawing edits. Use actual-size
+  centers the plan horizontally and vertically, preserving proportions. Draw Plan
+  fits the visible drawing and removes unused white sheet space; Load Plan fits
+  the whole imported image. This changes only the exported view, preserving
+  survey coordinates and calibration. Space is reserved for the scale reference.
+  The file stores its print resolution and includes unsaved drawing edits. Use actual-size
   printing in your image application to retain the selected paper dimensions.
   Drawn plans render their lines, curves, annotations and text directly at the
   output resolution, including in Print Plan. Use **600 DPI · Fine detail** for
@@ -164,8 +168,9 @@ from these software checks.
   reference profiles retain their coordinate meaning when reopened. Their derived
   usable areas remain separate from analytic reference areas; curves are approximate.
   Invalid radii, incompatible room constraints and sheet overflow are rejected.
-  Plans using thickness require a reader
-  supporting drawing/layer format 2; legacy unthickened drawings retain format 1.
+  Plans using thickness require drawing/layer format 2 support; rack inventories
+  additionally require annotation format 2 / layer format 3. Legacy drawings
+  retain their earlier formats until these features are used.
 - **Wall materials** are selected per side in the same Wall Edit dialog. Select a
   numbered side or table row, set a positive thickness, then choose **Material**
   and **Appearance** below the table. The catalog includes wood, hollow clay blocks,
@@ -297,6 +302,16 @@ from these software checks.
   Structure and Annotations also have their own **eraser**: right-click removes
   one item and right-drag removes the touched items in that layer, including text
   for annotation erasing. Undo restores the same objects and their wall ink.
+- **Rack inventory** is optional in Draw Plan: select a Rack symbol and set
+  **No. switches**, then open **Rack details** to name the rack and set each
+  switch's **No. ports**. Zero means unspecified. **Analysis → Legend → Switches
+  and ports** lists racks and switches; port numbers are automatic and each port
+  has a free description. Retained ports keep their descriptions when counts
+  change; accepting a reduction removes descriptions for the removed ports.
+  Inventory follows the symbol through moves, rotations, layer changes,
+  save/reopen and undo/redo. Hidden or locked rack data is read-only in Legend;
+  printing/JPEG adds dedicated tables for switches in visible racks. These data
+  document the installation and do not change RF calculations.
 - With a drawing tool active, hovering over a segment shows the distances from
   endpoint **A** to the cursor and from the cursor to **B**, with matching colored
   dimension lines. Door/window previews separately report the free space before

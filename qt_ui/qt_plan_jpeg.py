@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QDialogButtonBo
 from app_core.logging import log_exception
 from app_core.settings import get_last_survey_directory
 from qt_ui.qt_plan_printing import clean_plan_source, draw_plan_page
+from qt_ui.qt_clean_plan import VectorPlanSource
 from qt_ui.qt_windowing import get_centered_save_file_name
 from qt_ui.scaling import widget_px
 from qt_ui.qt_plan_legend import export_legend_tables
@@ -36,6 +37,8 @@ def page_pixels(paper, landscape, dpi):
 
 
 def render_plan_page(image, paper, landscape, dpi, density=None, units="metric", tr=None):
+    if isinstance(image,VectorPlanSource):
+        image=image.fitted_content()
     size = page_pixels(paper, landscape, dpi)
     if size.width() * size.height() > MAX_PAGE_PIXELS:
         raise ValueError("The selected page exceeds the raster export size limit")
@@ -50,7 +53,7 @@ def render_plan_page(image, paper, landscape, dpi, density=None, units="metric",
         margin = 10 * dpi / 25.4
         painter.translate(margin, margin)
         draw_plan_page(painter, image, size.width() - 2 * margin, size.height() - 2 * margin,
-                       dpi, density, units, tr)
+                       dpi, density, units, tr,centered=True)
     finally:
         painter.end()
     return canvas
@@ -102,6 +105,8 @@ def render_legend_image(blocks, paper, landscape, dpi, index, total, tr):
 class PlanJpegDialog(QDialog):
     def __init__(self, owner, image, density, units):
         super().__init__(owner)
+        if isinstance(image,VectorPlanSource):
+            image=image.fitted_content()
         self.owner, self.image, self.density, self.units = owner, image, density, units
         self.setWindowTitle(owner.tr("save_plan_jpeg"))
         self.setMinimumWidth(widget_px(owner, 450))

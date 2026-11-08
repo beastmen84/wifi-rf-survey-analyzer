@@ -3,6 +3,7 @@ from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QFont, QFontMetricsF, QPen, QTextLayout, QTextOption
 from survey.plan_objects import object_default, NUMBERED_SYMBOLS
 from survey.plan_annotation_rendering import annotation_parts
+from survey.rack_inventory import rack_label,table_title
 
 
 def font(size=10, bold=False):
@@ -12,10 +13,10 @@ def font(size=10, bold=False):
     return result
 
 
-def wrap(text, width, size=10):
+def wrap(text, width, size=10, bold=False):
     lines = []
     for paragraph in str(text).split("\n"):
-        layout = QTextLayout(paragraph or " ", font(size))
+        layout = QTextLayout(paragraph or " ", font(size,bold))
         option = QTextOption()
         option.setWrapMode(QTextOption.WrapMode.WrapAtWordBoundaryOrAnywhere)
         layout.setTextOption(option)
@@ -41,17 +42,26 @@ def legend_pages(tables, width, height, tr):
     line_height = QFontMetricsF(font()).height() + 2
     for index, table in enumerate(tables, 1):
         kind = table["kind"]
-        reference_width = 60 if kind in NUMBERED_SYMBOLS else min(155, width * .35)
+        reference_width = 60 if kind in (*NUMBERED_SYMBOLS,'rack_ports') else min(155, width * .35)
+        title=table_title(table,tr) if kind=='rack_ports' else tr('legend_table').format(number=index,symbol=tr('object_symbol_'+kind))
+        title_lines=wrap(title,width-28,11,True)
+        maximum=max(1,int((height-43-22-33-line_height-12)/14))
+        if len(title_lines)>maximum:
+            title_lines=title_lines[:maximum-1]+[QFontMetricsF(font(11,True)).elidedText(
+                ' '.join(title_lines[maximum-1:]),Qt.TextElideMode.ElideRight,width-28)]
+        header_height=max(47,len(title_lines)*14+33)
         def header():
             nonlocal y
-            blocks.append(dict(type="header", y=y, kind=kind, index=index, reference_width=reference_width))
-            y += 47
-        if y + 70 > height - 22:
+            blocks.append(dict(type="header", y=y, kind=kind, index=index, reference_width=reference_width,
+                               title_lines=title_lines,title_height=header_height-24))
+            y += header_height
+        if y + header_height+23 > height - 22:
             pages.append(blocks)
             blocks, y = [], 43.0
         header()
-        for row in table["rows"]:
-            reference = str(row["number"]) if row["number"] else row["ap"] or tr("object_symbol_" + kind)
+        rows=table['rows'] or ([dict(number='',ap='',description=tr('rack_no_ports'))] if kind=='rack_ports' else [])
+        for row in rows:
+            reference = rack_label(row,tr) if kind=='rack' else str(row["number"]) if row["number"] else row["ap"] or ('' if kind=='rack_ports' else tr("object_symbol_" + kind))
             references = wrap(reference, reference_width - 14)
             descriptions = wrap(row["description"] or "—", width - reference_width - 14)
             lines = max(len(references), len(descriptions))
@@ -63,6 +73,8 @@ def legend_pages(tables, width, height, tr):
                     blocks, y = [], 43.0
                     header()
                     room = int((height - 22 - y - 12) / line_height)
+                    if room<1:
+                        raise ValueError('The legend page is too small for a header and row')
                 count = min(room, lines - start)
                 blocks.append(dict(type="row", y=y, height=count*line_height+12,
                     reference_width=reference_width, reference=references[start:start+count],
@@ -91,18 +103,19 @@ def paint_legend_page(painter, blocks, width, height, dpi, page_index, page_coun
             if block["type"] == "header":
                 painter.setPen(QColor("#111827"))
                 painter.setFont(font(11, True))
-                title = tr("legend_table").format(number=block["index"], symbol=tr("object_symbol_" + block["kind"]))
-                painter.drawText(QPointF(24, y + 15), title)
-                item = object_default("symbol", 20, block["kind"])
+                for i,title in enumerate(block['title_lines']):
+                    painter.drawText(QPointF(24,y+15+i*14),title)
+                item = object_default("symbol", 20, 'rack' if block['kind']=='rack_ports' else block["kind"])
                 item.update(cx=9, cy=y+10, width=14, height=14)
                 painter.setPen(QPen(QColor("#334155"), 1))
                 painter.setBrush(Qt.BrushStyle.NoBrush)
                 for path, _dashed in annotation_parts(item):
                     painter.drawPath(path)
-                painter.fillRect(QRectF(0, y+23, width, 24), QColor("#e2e8f0"))
+                title_height=block['title_height']
+                painter.fillRect(QRectF(0, y+title_height, width, 24), QColor("#e2e8f0"))
                 painter.setFont(font(10, True))
-                painter.drawText(QPointF(7, y+39), tr("legend_number" if block["kind"] in NUMBERED_SYMBOLS else "annotation_symbol"))
-                painter.drawText(QPointF(first+7, y+39), tr("legend_description"))
+                painter.drawText(QPointF(7, y+title_height+16), tr('rack_port_number' if block['kind']=='rack_ports' else "legend_number" if block["kind"] in NUMBERED_SYMBOLS else "annotation_symbol"))
+                painter.drawText(QPointF(first+7, y+title_height+16), tr("legend_description"))
             else:
                 painter.setPen(QPen(QColor("#cbd5e1"), .5))
                 painter.setBrush(Qt.BrushStyle.NoBrush)

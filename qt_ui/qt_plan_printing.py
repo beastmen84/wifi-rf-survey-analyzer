@@ -71,7 +71,7 @@ class PrintDeviceNotStarted(RuntimeError):
     """A native job can fail to start when its print-to-file prompt is cancelled."""
 
 
-def draw_plan_page(painter, image, width, height, dpi, px_per_meter=None, measurement_system="metric", tr=None):
+def draw_plan_page(painter, image, width, height, dpi, px_per_meter=None, measurement_system="metric", tr=None, *, centered=False):
     tr = tr or (lambda key: translate("en", key))
     painter.save()
     try:
@@ -79,12 +79,12 @@ def draw_plan_page(painter, image, width, height, dpi, px_per_meter=None, measur
             raise ValueError("The plan or printable page is empty")
         millimeter = dpi / 25.4
         footer = 17 * millimeter
-        body_height = height - footer
+        body_height = height - footer*(2 if centered else 1)
         if body_height <= 0:
             raise ValueError("The printable page is too small")
         factor = min(width / image.width(), body_height / image.height())
         target = QRectF((width - image.width() * factor) / 2,
-                        (body_height - image.height() * factor) / 2,
+                        (footer if centered else 0)+(body_height - image.height() * factor) / 2,
                         image.width() * factor, image.height() * factor)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         if isinstance(image, VectorPlanSource):

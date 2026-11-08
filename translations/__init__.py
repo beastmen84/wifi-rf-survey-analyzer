@@ -30,6 +30,7 @@ from translations.network_symbols import dictionary as network_symbols_dictionar
 from translations.walls import dictionary as walls_dictionary
 from translations.plan_resize import dictionary as resize_dictionary
 from translations.wall_materials import dictionary as wall_material_dictionary
+from translations.rack_inventory import dictionary as rack_dictionary
 for _language, _dictionary in TRANSLATIONS.items():
     _dictionary.update(advisor_dictionary(_language))
     _dictionary.update(report_dictionary(_language))
@@ -44,6 +45,8 @@ for _language, _dictionary in TRANSLATIONS.items():
     _dictionary.update(walls_dictionary(_language))
     _dictionary.update(resize_dictionary(_language))
     _dictionary.update(wall_material_dictionary(_language))
+    _dictionary.update(rack_dictionary(_language))
+    _dictionary['network_symbols_help'] += ' ' + _dictionary['rack_help']
     _dictionary['wall_help'] += ' ' + _dictionary['wall_material_help']
     _dictionary['annotation_help'] += ' ' + _dictionary['selection_shared_help']
     _dictionary['blank_plan_help'] += ' ' + _dictionary['resize_help']
@@ -55,7 +58,7 @@ for _language, _dictionary in TRANSLATIONS.items():
     _dictionary["blank_plan_help"] += " " + _dictionary["objects_help"]
     _dictionary["blank_plan_help"] += " " + _dictionary["plan_precision_help"]
     _dictionary["print_plan_help"] += " " + _dictionary["print_scale_help"]
-    _dictionary["plan_jpeg_help"] += " " + _dictionary["plan_jpeg_detail_help"]
+    _dictionary["plan_jpeg_help"] += " " + _dictionary["plan_jpeg_detail_help"] + " " + _dictionary["jpeg_fit_help"]
     _dictionary["help_ap_groups_body"] += _dictionary["advisor_group_confirmation_help"]
     _dictionary["help_ap_groups_body"] += _dictionary["ap_confirmation_priority_help"]
 

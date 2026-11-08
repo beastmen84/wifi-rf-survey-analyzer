@@ -1,6 +1,7 @@
 """Immutable clean plan paths, painted at the destination's actual resolution."""
 from PySide6.QtCore import QRectF, Qt
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QBrush
+from copy import copy
 
 from survey.plan_annotations import visible_wall_segments
 from survey.plan_annotation_rendering import annotation_parts, annotation_pen, annotation_brush
@@ -9,13 +10,14 @@ from survey.plan_label_rendering import glyph_path, label_pen
 from survey.plan_labels import labels_geometry
 from survey.plan_curves import curve_bounds
 from survey.plan_annotation_rendering import annotation_fits
-from survey.plan_symbol_rendering import SymbolNumber, paint_number
+from survey.plan_symbol_rendering import SymbolNumber, paint_number, number_commands
 from survey.wall_rendering import MaterialPath, paint_material
 
 
 class VectorPlanSource:
     def __init__(self, size, lines, curves, labels, annotations):
         self._width, self._height = size.width(), size.height()
+        self._viewport = QRectF(0,0,self._width,self._height)
         self._background = None
         commands = []
         if any(shape.get("wall") for shape in [*lines, *curves]):
@@ -73,21 +75,46 @@ class VectorPlanSource:
         return result
 
     def width(self):
-        return self._width
+        return self._width if self._viewport.width() == self._width else self._viewport.width()
 
     def height(self):
-        return self._height
+        return self._height if self._viewport.height() == self._height else self._viewport.height()
 
     def isNull(self):
         return self._width <= 0 or self._height <= 0
+
+    def fitted_content(self):
+        """An export-only viewport: imported backgrounds and model coordinates stay."""
+        if self._background is not None:
+            return self
+        bounds=QRectF()
+        full=QRectF(0,0,self._width,self._height)
+        for path,pen,_brush in self._commands:
+            parts=number_commands(path.item,11,full) if isinstance(path,SymbolNumber) else [(path,pen,None)]
+            for shape,stroke,_fill in parts:
+                box=shape.boundingRect()
+                margin=stroke.widthF()/2 if stroke is not None and stroke.style()!=Qt.PenStyle.NoPen else 0
+                box=box.adjusted(-margin,-margin,margin,margin)
+                # QRectF.united ignores null line boxes. A minimum ink margin
+                # also makes horizontal/vertical-only drawings fit safely.
+                bounds=bounds.united(box.adjusted(-.5,-.5,.5,.5))
+        if bounds.isEmpty():
+            return self
+        padding=max(2,max(bounds.width(),bounds.height())*.015)
+        result=copy(self)
+        # Keep symmetric whitespace even when ink touches an original sheet edge.
+        # The export can extend over white; the survey canvas never changes.
+        result._viewport=bounds.adjusted(-padding,-padding,padding,padding)
+        return result
 
     def paint_plan(self, painter, target):
         painter.save()
         try:
             painter.translate(target.topLeft())
-            painter.scale(target.width() / self._width, target.height() / self._height)
-            bounds = QRectF(0, 0, self._width, self._height)
-            painter.setClipRect(bounds)
+            bounds=self._viewport
+            painter.scale(target.width() / bounds.width(), target.height() / bounds.height())
+            painter.translate(-bounds.left(),-bounds.top())
+            painter.setClipRect(bounds,Qt.ClipOperation.IntersectClip)
             if self._background is None:
                 painter.fillRect(bounds, Qt.GlobalColor.white)
             else:

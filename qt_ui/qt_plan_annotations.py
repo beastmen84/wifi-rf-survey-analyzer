@@ -6,7 +6,7 @@ from html import escape
 
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QPainterPath, QPainterPathStroker, QPainter, QPen, QPixmap, QIcon
-from PySide6.QtWidgets import (QApplication, QCheckBox, QDialog,
+from PySide6.QtWidgets import (QCheckBox, QDialog,
     QButtonGroup, QHBoxLayout, QWidget, QDialogButtonBox, QDoubleSpinBox, QFormLayout, QLabel, QPushButton, QVBoxLayout)
 
 from app_core.units import distance_unit_label, display_units_to_meters, meters_to_display_units
@@ -202,6 +202,8 @@ class AnnotationController:
                                 + "<br>" + escape(annotation.get("description", "")))
             elif annotation.get("number"):
                 item.setToolTip(str(annotation["number"]) + "<br>" + escape(annotation.get("description", "")))
+            elif annotation.get('rack'):
+                item.setToolTip(escape(annotation['rack'].get('name',''))+'<br>'+escape(annotation.get('description','')))
             self.view.scene.addItem(item)
             self.items.append(item)
 

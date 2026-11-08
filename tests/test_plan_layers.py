@@ -56,7 +56,7 @@ def test_invalid_layer_documents_are_rejected_without_modifying_metadata(bad):
     elif bad == "unsupported_opening":
         document["layers"][1]["drawing"]["annotations"] = [aperture()]
     else:
-        document["version"] = 3  # v2 protects physical wall properties from older readers.
+        document["version"] = 4  # v2 preserves walls; v3 preserves rack inventories.
     metadata = {"keep": "value"}
     with pytest.raises((ValueError, KeyError, TypeError)):
         write_layers(metadata, document)

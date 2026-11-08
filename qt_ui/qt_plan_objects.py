@@ -4,7 +4,7 @@ from copy import deepcopy
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QDialog,
-    QDialogButtonBox, QDoubleSpinBox, QFormLayout, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget, QPlainTextEdit)
+    QDialogButtonBox, QDoubleSpinBox, QFormLayout, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget, QPlainTextEdit, QSpinBox)
 
 from app_core.units import distance_unit_label, display_units_to_meters, meters_to_display_units
 from qt_ui.qt_theme import QT_THEMES
@@ -97,6 +97,18 @@ class ObjectAnnotationDialog(QDialog):
         self.description.setPlaceholderText(self.owner.tr("legend_description"))
         self.description_label = QLabel(self.owner.tr("legend_description"))
         self.form.addRow(self.description_label, self.description)
+        from survey.rack_inventory import MAX_SWITCHES
+        self.rack_value=deepcopy(item.get('rack',{}))
+        self.rack_label=QLabel(self.owner.tr('rack_switch_count'))
+        self.rack_row=QWidget();rack_row=QHBoxLayout(self.rack_row);rack_row.setContentsMargins(0,0,0,0)
+        self.rack_count=QSpinBox();self.rack_count.setRange(0,MAX_SWITCHES)
+        self.rack_count.setMinimumWidth(widget_px(self.owner,130))
+        self.rack_count.setValue(len(self.rack_value.get('switches',[])))
+        self.rack_details=QPushButton(self.owner.tr('rack_configure'))
+        self.rack_details.setObjectName('compactButton')
+        self.rack_details.clicked.connect(self.configure_rack)
+        rack_row.addWidget(self.rack_count);rack_row.addWidget(self.rack_details,1)
+        self.form.addRow(self.rack_label,self.rack_row)
         self.width_spin.valueChanged.connect(self.update_dimensions)
         self.height_spin.valueChanged.connect(self.update_dimensions)
         self.variant_group.idClicked.connect(lambda index: self.choose_variant(self.variants[index]))
@@ -128,6 +140,17 @@ class ObjectAnnotationDialog(QDialog):
     def set_length(self, spin, pixels):
         spin.setValue(meters_to_display_units(pixels / self.density, self.owner.measurement_system))
 
+    def configure_rack(self):
+        from survey.rack_inventory import resize_switches
+        from qt_ui.qt_rack_inventory import RackConfigurationDialog
+        dialog=RackConfigurationDialog(self.owner,resize_switches(self.rack_value,self.rack_count.value()))
+        try:
+            if dialog.exec()==QDialog.DialogCode.Accepted:
+                self.rack_value=dialog.properties()
+                self.rack_count.setValue(len(self.rack_value.get('switches',[])))
+        finally:
+            dialog.deleteLater()
+
     def choose_variant(self, variant):
         if variant != self.variant:
             defaults = object_default(self.kind, self.density, variant)
@@ -149,6 +172,8 @@ class ObjectAnnotationDialog(QDialog):
         self.numbered.setVisible(self.kind == "symbol" and self.variant in NUMBERED_SYMBOLS)
         self.description.setVisible(self.kind == "symbol")
         self.description_label.setVisible(self.kind == "symbol")
+        self.rack_label.setVisible(self.kind=='symbol' and self.variant=='rack')
+        self.rack_row.setVisible(self.kind=='symbol' and self.variant=='rack')
         self.height_spin.setVisible(not square)
         self.height_label.setVisible(not square)
         self.arm_spin.setVisible(elbow)
@@ -197,4 +222,10 @@ class ObjectAnnotationDialog(QDialog):
         if self.kind == "symbol":
             result["_numbered"] = self.numbered.isChecked() and self.variant in NUMBERED_SYMBOLS
             result["description"] = self.description.toPlainText()[:2000]
+        result.pop('rack',None)
+        if self.kind=='symbol' and self.variant=='rack':
+            from survey.rack_inventory import resize_switches,validate_rack
+            rack=validate_rack(resize_switches(self.rack_value,self.rack_count.value()))
+            if rack:
+                result['rack']=rack
         return result

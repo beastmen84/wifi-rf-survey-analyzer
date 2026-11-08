@@ -22,6 +22,8 @@ def validate_annotations(items):
         if not identity or len(identity) > 80 or identity in identities or kind not in ("marker", *HOSTED_ANNOTATIONS, *FREE_ANNOTATIONS):
             raise ValueError("Invalid annotation identity/type")
         identities.add(identity)
+        if 'rack' in source and (kind!='symbol' or source.get('variant')!='rack'):
+            raise ValueError('Inventory requires a rack symbol')
         color = str(source["color"]).lower()
         width = float(source.get("stroke", 2))
         if not re.fullmatch(r"#[0-9a-f]{6}", color) or not math.isfinite(width) or not .5 <= width <= 20:
@@ -61,6 +63,13 @@ def validate_annotations(items):
                     if not isinstance(description, str) or len(description) > 2000 or "\0" in description:
                         raise ValueError("Invalid symbol description")
                     item["description"] = description
+                if 'rack' in source:
+                    from survey.rack_inventory import validate_rack
+                    if variant != 'rack':
+                        raise ValueError('Inventory requires a rack symbol')
+                    rack = validate_rack(source['rack'])
+                    if rack:
+                        item['rack'] = rack
                 if "ap_group" in source:
                     group = source["ap_group"]
                     if variant != "wifi_ap" or not isinstance(group, str) or not group.strip() or len(group) > 256:
@@ -100,6 +109,8 @@ def validate_annotations(items):
         if total > 100000 or any(not math.isfinite(v) or not -precision <= v <= 100000 + precision for p in points for v in p):
             raise ValueError("Annotation coordinate limits exceeded")
         result.append(item)
+    from survey.rack_inventory import validate_inventory_totals
+    validate_inventory_totals(result)
     return result
 
 
@@ -115,13 +126,14 @@ def drawing_annotations(metadata):
     if PLAN_ANNOTATIONS_KEY not in metadata:
         return []
     document = json.loads(metadata[PLAN_ANNOTATIONS_KEY])
-    if not isinstance(document, dict) or document.get("version") != 1:
+    if not isinstance(document, dict) or document.get("version") not in (1,2):
         raise ValueError("Unsupported annotation format")
     return validate_annotations(document.get("items"))
 
 
 def encode_annotations(items):
-    return json.dumps(dict(version=1, items=validate_annotations(items)), separators=(",", ":"))
+    items=validate_annotations(items)
+    return json.dumps(dict(version=2 if any(a.get('rack') for a in items) else 1, items=items), separators=(",", ":"))
 
 
 def support_intervals(a, b, lines):

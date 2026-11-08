@@ -7,7 +7,15 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
-No changes recorded yet.
+- JPEG centers the clean plan on both axes and fits it proportionally to the
+  selected paper. Draw Plan uses visible drawing extents, excluding unused sheet
+  space; Load Plan retains the whole imported image. Calibration is preserved.
+- Rack symbols optionally store a name, switch count and port counts per switch.
+  Legend adds a Rack → Switch tree, automatic port numbers and editable port
+  descriptions, with dedicated paginated print/JPEG tables for visible racks.
+  Inventory follows the symbol through edits, layers, save/reopen and undo/redo.
+  Plans with configured racks require annotation format 2 / layer format 3;
+  existing plans remain readable and keep their earlier format until configured.
 
 ## v1.3.0 - 2026-11-08
 

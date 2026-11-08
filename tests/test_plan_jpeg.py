@@ -194,16 +194,17 @@ def test_a3_600dpi_has_actual_fine_edges_and_correct_jpeg_density(editor, tmp_pa
     density = app.get_px_per_meter()
     size = page_pixels("A3", False, 600)
     margin, footer = 10 * 600 / 25.4, 17 * 600 / 25.4
-    factor = min((size.width() - 2 * margin) / 900, (size.height() - 2 * margin - footer) / 600)
-    x = round(margin + 123.37 * factor)
-    y = round(margin + (size.height() - 2 * margin - footer - 600 * factor) / 2 + 300 * factor)
-    def partial_edges(page):
+    factor = min((size.width() - 2 * margin) / 900, (size.height() - 2 * margin - 2 * footer) / 600)
+    x = round((size.width()-900*factor)/2 + 123.37 * factor)
+    y = round(size.height()/2)
+    def partial_edges(page, x):
         return sum(15 < page.pixelColor(i, y).red() < 240 for i in range(x - 30, x + 31))
     old = render_plan_page(clean_plan_image(d.view, app.session.metadata), "A3", False, 600, density)
-    blurred = partial_edges(old)
+    blurred = partial_edges(old, x)
     del old
     page = render_plan_page(clean_plan_source(d.view, app.session.metadata), "A3", False, 600, density)
-    assert partial_edges(page) <= 4 and blurred > partial_edges(page) + 4
+    x = round(size.width()/2)  # Cropped Draw Plan is centered on the actual ink.
+    assert partial_edges(page, x) <= 4 and blurred > partial_edges(page, x) + 4
     output = tmp_path / "a3-600.jpg"
     write_plan_jpeg(output, page)
     with Image.open(output) as image:
