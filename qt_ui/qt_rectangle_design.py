@@ -385,6 +385,10 @@ class RectangleDesignController(QObject):
         self.update_symbol_numbers()
 
     def update_symbol_numbers(self, _zoom=None, items=None):
+        # load_floorplan emits zoomChanged before sync adopts its new pixmap.
+        # Old scene items have already been destroyed at that point.
+        if items is None and (self.pixmap is None or self.pixmap is not self.view.pixmap_item):
+            return
         scale = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
         def visit(item):
             if isinstance(item, SymbolNumberItem):

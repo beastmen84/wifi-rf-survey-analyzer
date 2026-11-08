@@ -2,7 +2,7 @@
 # Use requirements-dev.txt for test/build tooling and requirements-lock.txt for
 # the fully pinned release-validation environment.
 Pillow==13.0.0
-pandas==3.1.0
+pandas==3.1.1
 numpy==2.5.4
 matplotlib==3.11.2
 scipy==1.18.1

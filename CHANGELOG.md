@@ -7,6 +7,17 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+No changes recorded yet.
+
+## v1.3.0 - 2026-11-08
+
+- Fixed a scene-lifetime error when starting a new survey after a layered drawing:
+  zoom notifications no longer visit destroyed active/passive symbol graphics.
+- Added Windows EXE product/file version metadata and included the release audit
+  in the portable package. Clarified AP Memory hashes as stable non-security IDs
+  without changing existing identities.
+- Updated pandas from 3.1.0 to the 3.1.1 bug-fix release, with the runtime lock
+  aligned and the complete application regression suite checked against it.
 - Added per-side material and appearance to Wall Edit, with twelve material
   families plus Unspecified, automatic visual styles, editable schematic hatches
   and immediate samples. Shared faces inherit and confirm material/style changes.
@@ -63,7 +74,7 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
   markers, Rack/Wi-Fi AP apparatus and generic signs. Stable per-shape numbering
   spans all layers, with fitted upright numbers and readable external badges
   for tiny symbols. Existing unnumbered drawings remain unchanged.
-- Added Draw Plan **Project → Legend** with automatic symbol tables and editable
+- Added Draw Plan **Analysis → Legend** with automatic symbol tables and editable
   descriptions. Hidden/locked layers are read-only; print/JPEG tables follow
   visible layers. Optional paginated legend output includes page previews,
   printer page ranges and separate JPEGs at the selected paper/orientation/DPI.

@@ -21,7 +21,7 @@ physical APs, review survey quality, and export explainable RF maps.
 
 ## Release Status
 
-- Current source version: `v1.2.0`
+- Current source version: `v1.3.0`
 - Release type: stable public source release
 - Active UI: PySide6
 - Main entry point: `main.py`
@@ -30,7 +30,13 @@ physical APs, review survey quality, and export explainable RF maps.
   tag. Public builds use `WiFiRFSurveyAnalyzer-v<version>-win64.zip`.
 - Project license: MPL 2.0 (`MPL-2.0`)
 
-`v1.2.0` adds a fixed Wi-Fi receiver per survey, guided measurement capture and
+`v1.3.0` adds Draw Plan / Load Plan setup, a layered plan editor with straight and
+curved structure, physical wall thickness/materials, annotations and AP symbols,
+shared selection, legends, fixed-origin resizing and clean print/JPEG exports.
+Wall materials are descriptive and do not infer RF attenuation. See the
+[1.3.0 release audit](docs/AUDIT_1_3_0.md) for validation and its limits.
+
+`v1.2.0` added a fixed Wi-Fi receiver per survey, guided measurement capture and
 separate acquisition reliability, signal stability and observed coverage.
 Relevant networks are chosen before reviewing a capture; compact review cards
 and immediate point popups make the results easier to read. `v1.1.0` introduced
@@ -774,11 +780,11 @@ between official release builds.
 
 Current source release:
 
-- `v1.2.0`
+- `v1.3.0`
 
 Expected Windows ZIP name:
 
-- `WiFiRFSurveyAnalyzer-v1.2.0-win64.zip`
+- `WiFiRFSurveyAnalyzer-v1.3.0-win64.zip`
 
 Historical beta ZIPs may still use the older artifact stem:
 

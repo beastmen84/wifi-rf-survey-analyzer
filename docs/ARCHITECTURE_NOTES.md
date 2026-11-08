@@ -22,6 +22,15 @@ interpolated colors.
 
 Current status:
 
+- Stable release1.3.0 packages the completed Draw/Load Plan and layered editor
+  work. Runtime pandas is3.1.1; other pins and CSV/raw schema2 are unchanged.
+  Release audit found and fixed symbol-number traversal during scene replacement:
+  zoom callbacks skip graphics from a superseded pixmap until sync adopts the new
+  scene. New regression reproduced the error before the fix. Final2281tests and
+  479subtests pass; native UI campaigns and the actual frozen EXE's map/Analysis
+  HTML, Wall Edit/Esc, print preview and A3/600 JPEG+legend were checked. Windows
+  version resources match1.3.0 and all161frozen application modules match source.
+  See AUDIT_1_3_0.md for security, package validation and field-test limits.
 - Wall profiles accept optional stable material/pattern IDs. Twelve descriptive
   families plus Unspecified are defined in survey/wall_materials.py. Per-side
   WallSidesDialog controls below the table use samples and a material-auto hatch,

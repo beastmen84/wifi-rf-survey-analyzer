@@ -413,7 +413,8 @@ def build_empty_memory_record(bssids):
 
 def build_memory_id(bssids):
     text = "|".join(clean_bssids(bssids))
-    digest = hashlib.sha1(text.encode("utf-8")).hexdigest()[:12] if text else "empty"
+    # Stable record identity only; retain existing IDs without implying security.
+    digest = hashlib.sha1(text.encode("utf-8"), usedforsecurity=False).hexdigest()[:12] if text else "empty"
     return f"ap_{digest}"
 
 
