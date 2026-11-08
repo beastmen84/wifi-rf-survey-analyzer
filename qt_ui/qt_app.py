@@ -480,12 +480,14 @@ class WifiHeatmapQtApp(
         self.save_workspace_button = self.create_app_bar_button(self.save_survey)
         from qt_ui.qt_plan_legend import open_plan_legend
         self.legend_button = self.create_app_bar_button(lambda: open_plan_legend(self))
+        from qt_ui.qt_plan_resize import open_plan_resize
+        self.resize_plan_button = self.create_app_bar_button(lambda: open_plan_resize(self))
         self.save_tool_button = self.save_workspace_button
         for button in (
             self.new_workspace_button,
             self.open_workspace_button,
             self.save_workspace_button,
-            self.legend_button,
+            self.resize_plan_button,
         ):
             project_row.addWidget(button)
         layout.addWidget(project_section, 1)
@@ -518,6 +520,9 @@ class WifiHeatmapQtApp(
         layout.addWidget(view_section)
 
         analysis_section, self.analysis_section_label, analysis_row = self.build_app_bar_section()
+        self.legend_button.setObjectName('appBarTitleButton')
+        self.legend_button.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        analysis_section.title_row.addWidget(self.legend_button)
         self.quality_button = self.create_app_bar_button(self.open_quality_dashboard)
         self.ap_groups_button = self.create_app_bar_button(self.open_ap_group_manager)
         self.help_button = self.create_app_bar_button(self.open_help_dialog)
@@ -577,12 +582,22 @@ class WifiHeatmapQtApp(
             (self.delete_scale_button, 0),
             (self.print_plan_button, 0),
             (self.save_plan_jpeg_button, 0),
+            (self.legend_button, 0),
+            (self.resize_plan_button, 0),
             (self.manage_relevant_button, 0),
             (self.clear_relevant_button, 0),
             (self.live_report_export_button, 118),
             (self.live_update_button, 132),
         ):
             self.fit_text_button_width(button, min_width)
+        # Keep the two text groups readable at larger UI scales, with compact
+        # padding rather than squeezing the Analysis captions to make room.
+        for button in (self.new_workspace_button,self.open_workspace_button,self.save_workspace_button,self.resize_plan_button,
+                       self.quality_button,self.ap_groups_button,self.help_button):
+            button.ensurePolished()
+            rule = f"min-width: {button.fontMetrics().horizontalAdvance(button.text())+self.spx(2)}px; padding: {self.spx(6)}px {self.spx(6)}px;"
+            if button.styleSheet() != rule:
+                button.setStyleSheet(rule)
 
     def create_summary_card(self, title_key, compact=False, action_widget=None):
         card = QFrame()
@@ -2004,6 +2019,9 @@ class WifiHeatmapQtApp(
         self.open_workspace_button.setText(self.tr("open_existing_survey"))
         self.save_workspace_button.setText(self.tr("save"))
         self.legend_button.setText(self.tr("plan_legend"))
+        self.resize_plan_button.setText(self.tr('resize_plan'))
+        self.resize_plan_button.setToolTip(self.tr('resize_hint'))
+        self.resize_plan_button.setAccessibleName(self.tr('resize_title'))
         self.print_plan_button.setText(self.tr("print_plan"))
         self.print_plan_button.setToolTip(self.tr("print_plan_hint"))
         self.print_plan_button.setAccessibleName(self.tr("print_plan"))

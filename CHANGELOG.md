@@ -7,6 +7,11 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Moved drawing Legend to the Analysis toolbar heading. Its former Project slot
+  now contains Draw Plan-only Resize, with fixed top-left origin and unchanged
+  calibration, RF/AP coordinates and grid spacing. Shrinking protects all layers,
+  physical walls, points/APs and Boundaries pixels. Undo/redo and save/reopen retain
+  the page dimensions; restoring older sizes checks measurements added later.
 - Reworked Draw Plan thickness around construction: every structural piece opens
   a numbered clickable per-side diagram at final placement. Each side has its own
   depth; shared walls inherit existing values, including outer-face attachments,

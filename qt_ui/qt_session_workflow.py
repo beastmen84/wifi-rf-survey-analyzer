@@ -292,6 +292,8 @@ class SurveySessionWorkflowMixin:
             return False
 
         self.cleanup_replaced_generated_floorplans()
+        if hasattr(self.session,'canvas_source_file'):
+            del self.session.canvas_source_file
         self.cleanup_removed_boundaries_files()
         save_last_survey_path(csv_file)
         self.refresh_session_labels()
@@ -442,6 +444,9 @@ class SurveySessionWorkflowMixin:
         self.save_workspace_button.setEnabled(can_use_session)
         self.legend_button.setVisible(self.session is not None and is_drawn_plan(self.session.metadata))
         self.legend_button.setEnabled(can_use_session)
+        self.resize_plan_button.setVisible(self.session is not None and is_drawn_plan(self.session.metadata))
+        self.resize_plan_button.setEnabled(can_use_session and self.floorplan_view.has_floorplan() and self.get_px_per_meter() is not None)
+        self.resize_plan_button.setToolTip(self.tr('resize_hint' if self.get_px_per_meter() is not None else 'resize_scale'))
         self.ap_groups_button.setEnabled(can_use_session)
         self.quality_button.setEnabled(can_use_session)
         self.help_button.setEnabled(True)

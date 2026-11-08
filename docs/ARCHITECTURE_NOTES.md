@@ -22,6 +22,20 @@ interpolated colors.
 
 Current status:
 
+- Draw-only Project Resize edits canvas extents, not RF coordinates. qt_plan_resize
+  validates all layers (including hidden physical solids), measurements/ledger/APs
+  and nontransparent mask bounds before allocating a white base at fixed density.
+  Origin stays(0,0), only right/bottom edges change. Exact pixel extents and physical
+  dimensions update; grid interval/density, rows/raw samples and positions do not.
+  The existing pixmap item remains alive; cached renderer requests are invalidated.
+  A temporary base image supplies correct dimensions to Live/Analysis before Save;
+  session.canvas_source_file preserves legitimate overwrite checks until successful
+  save. Resize never overwrites the saved PNG before the transaction commits.
+  Drawing snapshots include canvas size; undo/redo restore before changing history,
+  rejecting shrink if newer RF evidence/mask content would be lost. Drawing Legend
+  is in the Analysis title row so the main Analysis row does not widen. Resize is
+  hidden for Load Plan and disabled without calibration/during capture. Rendering
+  limits:4096px/side and at most100000 grid lines implied by the current spacing.
 - The primary thickness workflow is now construction-time per-side review, replacing
   the previous method-selector dialog in the visible UI. Rectangle/line/curve final
   commits stage geometry in wall_sides, normalize with source maps, inherit support
@@ -129,7 +143,7 @@ Current status:
   labels use the same renderer; label footprints do not alter RF/room geometry.
 - qt_plan_legend edits descriptions by layer/object identity, uses one undoable
   commit and rejects stale modal state. Visible unlocked legacy markers can be
-  explicitly numbered. Draw-only Project Legend and AP assignment coexist with
+  explicitly numbered. Draw-only Analysis Legend and AP assignment coexist with
   unchanged Load Plan workflows. Legend snapshots contain only visible layers.
 - qt_legend_pages wraps plain Unicode (UTF-16-aware QTextLayout indexing), splits
   long rows and repeats table headers in canonical point-sized pagination.

@@ -93,7 +93,7 @@ class FloorplanWorkflowMixin:
             return True
 
         image_file = default_floorplan_save_path(csv_file)
-        current_file = self.session.metadata.get("map_file", "")
+        current_file = getattr(self.session,'canvas_source_file',self.session.metadata.get("map_file", ""))
         if image_file.exists() and (is_default or os.path.abspath(image_file) != os.path.abspath(current_file)):
             response = QMessageBox.question(
                 self,

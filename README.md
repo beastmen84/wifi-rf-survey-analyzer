@@ -161,6 +161,13 @@ from these software checks.
 - Missing generated Draw Plan images can be recovered from validated saved vectors
   and canvas extents. Calibration and coordinates are preserved; saving recreates
   the PNG. Imported Load Plan images require their original image file.
+- **Project → Resize** changes a Draw Plan page from its fixed top-left origin.
+  Width changes only at the right; height changes only at the bottom. Calibration,
+  RF/AP coordinates and grid spacing remain unchanged. Shrinking cannot cut any
+  drawing layer (including hidden layers), physical wall, measurement, AP or
+  Boundaries mask. Resize shares drawing undo/redo; restoring an older size also
+  protects points/masks added later. Save updates the generated plan PNG. A valid
+  calibration is required; Load Plan images cannot be resized with this action.
 - **Grid square size** is configurable in New Survey: default **1 m** or
   **3 ft**, with **0.1 m** steps or **whole feet**. The physical size is saved in
   the survey and used by the visible grid and every snap tool. Right-click the
@@ -237,7 +244,7 @@ from these software checks.
   layers. Numbers stay attached to their objects and are not reused after deletion.
   Numbers remain upright, fitting inside the shape where readable or using an
   external badge. Disable **Automatic number** for an unnumbered marker.
-  **Project → Legend** creates automatic per-shape tables with editable
+  **Analysis → Legend** (in the toolbar heading) creates automatic per-shape tables with editable
   descriptions; hidden/locked layers can be inspected but not edited there.
   Existing unnumbered markers remain unchanged until explicitly numbered in
   Legend. Printed/exported tables include only visible layers.
@@ -248,7 +255,7 @@ from these software checks.
   clears that position; undo restores it. Existing coordinate placements can be
   converted explicitly without moving them. Hiding a layer hides its artwork,
   while retaining AP positions for RF analysis. Load Plan keeps direct AP map
-  placement and has no drawing symbols or Project Legend.
+  placement and has no drawing symbols or drawing Legend.
   Apertures hide only the covered wall ink: room closure, internal area
   and Boundaries Fill/Auto Fill retain the complete structural geometry.
   Select annotations to move with **M**, delete with **Del**, or edit by right

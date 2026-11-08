@@ -791,6 +791,9 @@ class RectangleDesignController(QObject):
 
     def snapshot(self):
         state = dict(segments=list(self.segments() or []), labels=self.labels(), curves=self.curves(), annotations=self.annotations())
+        if self.view.has_floorplan():
+            from qt_ui.qt_plan_resize import canvas_size
+            state['canvas'] = canvas_size(self.owner)
         if self.owner.session and PLAN_LAYERS_KEY in self.owner.session.metadata:
             state["layers"] = deepcopy(self.layer_document())
         if self.owner.session and (any(item["variant"] == "wifi_ap" for _layer, item in symbols(self.layer_document()))
@@ -899,6 +902,10 @@ class RectangleDesignController(QObject):
         return True
 
     def restore_state(self, state):
+        if 'canvas' in state:
+            from qt_ui.qt_plan_resize import resize_canvas
+            document = state.get('layers') or dict(layers=[dict(drawing={k:state.get(k,[]) for k in STATE_KEYS},visible=True)])
+            resize_canvas(self.owner,state['canvas'],history=False,document=document)
         current = self.layer_document()
         target = state.get("layers") or dict(layers=[dict(drawing=dict(annotations=state.get("annotations", [])))])
         affected = {item["ap_group"] for doc in (current, target) for _layer, item in symbols(doc) if item.get("ap_group")}
@@ -926,13 +933,27 @@ class RectangleDesignController(QObject):
     def undo(self):
         if self.undo_stack:
             self.cancel()
-            self.redo_stack.append(self.snapshot())
-            state = self.undo_stack.pop()
-            self.restore_state(state)
+            previous = self.snapshot()
+            try:
+                self.restore_state(self.undo_stack[-1])
+            except (ValueError,OSError) as error:
+                self.owner.status.showMessage(self.owner.tr(str(error)))
+                return False
+            self.redo_stack.append(previous)
+            self.undo_stack.pop()
+            self.owner.refresh_session_labels()
+            return True
 
     def redo(self):
         if self.redo_stack:
             self.cancel()
-            self.undo_stack.append(self.snapshot())
-            state = self.redo_stack.pop()
-            self.restore_state(state)
+            previous = self.snapshot()
+            try:
+                self.restore_state(self.redo_stack[-1])
+            except (ValueError,OSError) as error:
+                self.owner.status.showMessage(self.owner.tr(str(error)))
+                return False
+            self.undo_stack.append(previous)
+            self.redo_stack.pop()
+            self.owner.refresh_session_labels()
+            return True
