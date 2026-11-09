@@ -7,7 +7,7 @@ from PySide6.QtCore import QPointF, QRectF, QSize, Qt
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPainterPathStroker, QPen, QPixmap, QIcon
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog,
     QDialogButtonBox, QDoubleSpinBox, QGraphicsScene, QGraphicsView, QHBoxLayout,
-    QHeaderView, QLabel, QTableWidget, QTableWidgetItem, QVBoxLayout, QFormLayout, QSizePolicy)
+    QHeaderView, QLabel, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QFormLayout, QSizePolicy)
 from app_core.units import distance_unit_label, display_units_to_meters, meters_to_display_units, format_distance_meters
 from survey.plan_curves import curve_info, point_at
 from survey.plan_curve_rendering import curve_path
@@ -78,7 +78,7 @@ class SidePreview(QGraphicsView):
 
 
 class WallSidesDialog(QDialog):
-    def __init__(self, owner, state, sides, anchor=0, *, placing=False):
+    def __init__(self, owner, state, sides, anchor=0, *, placing=False, form_indices=None):
         super().__init__(owner)
         self.owner, self.state, self.sides, self.anchor = owner, deepcopy(state), list(sides), anchor
         self.placing = placing
@@ -90,10 +90,18 @@ class WallSidesDialog(QDialog):
         self.original_values = dict(self.values)
         self.appearances = {s.index:validated_appearance({k:v for k,v in s.shape.get('wall',{}).items() if k in ('material','pattern')}) for s in sides}
         self.original_appearances = deepcopy(self.appearances)
+        selected = {side.index for side in self.sides}
+        if placing or form_indices is not None:
+            self.material_forms = [selected if placing else set(form_indices) & selected]
+        else:
+            line_count = len(state['segments'] or [])
+            boundaries = [set(region.lines) | {line_count+i for i in region.curves}
+                          for _path, region in reference_regions(state).records]
+            self.material_forms = [boundary for boundary in boundaries if boundary <= selected]
         self.shared_signature = ()
         self.spins, self.initial_display = [], []
         self.setWindowTitle(owner.tr('wall_sides_place' if placing else 'wall_sides_edit'))
-        self.resize(owner.spx(940), owner.spx(620))
+        self.resize(owner.spx(940), owner.spx(660))
         layout = QVBoxLayout(self)
         hint = QLabel(owner.tr('wall_sides_hint')+(' '+owner.tr('wall_sides_existing_references') if self.converted else ''))
         hint.setWordWrap(True)
@@ -160,6 +168,13 @@ class WallSidesDialog(QDialog):
         self.material.setAccessibleName(owner.tr('wall_material'))
         self.pattern.setAccessibleName(owner.tr('wall_pattern'))
         properties.addRow(owner.tr('wall_material'),self.material)
+        self.apply_all_material_button = QPushButton(owner.tr('wall_material_apply_all'))
+        self.apply_all_material_button.setObjectName('compactButton')
+        self.apply_all_material_button.setAutoDefault(False)
+        self.apply_all_material_button.setMinimumHeight(owner.spx(34))
+        self.apply_all_material_button.setAccessibleName(owner.tr('wall_material_apply_all'))
+        self.apply_all_material_button.clicked.connect(self.apply_material_to_form)
+        properties.addRow(self.apply_all_material_button)
         properties.addRow(owner.tr('wall_pattern'),self.pattern)
         self.material.currentIndexChanged.connect(self.change_appearance)
         self.pattern.currentIndexChanged.connect(self.change_appearance)
@@ -224,6 +239,10 @@ class WallSidesDialog(QDialog):
         for i,s in enumerate(self.sides):
             m,p = appearance(self.appearances[s.index])
             self.table.item(i,1).setToolTip(self.owner.tr('wall_material_'+m)+' · '+self.owner.tr('wall_pattern_'+p))
+        targets = self.material_targets()
+        self.apply_all_material_button.setEnabled(len(targets) > 1)
+        self.apply_all_material_button.setToolTip(self.owner.tr(
+            'wall_material_apply_all_hint' if targets else 'wall_material_apply_all_scope'))
         self.direction.blockSignals(True)
         self.direction.setCurrentIndex(self.direction.findData(side.side))
         self.direction.blockSignals(False)
@@ -240,6 +259,30 @@ class WallSidesDialog(QDialog):
         for other in self.sides:
             if same_wall_faces(side.shape,other.shape):
                 self.appearances[other.index] = dict(value)
+        self.refresh()
+
+    def material_targets(self):
+        row = self.table.currentRow()
+        if row < 0 or self.values[self.sides[row].index] <= 0:
+            return []
+        forms = [indices for indices in self.material_forms if self.sides[row].index in indices]
+        # A shared side alone cannot choose between two selected shapes.
+        if len(forms) != 1:
+            return []
+        return [side for side in self.sides if side.index in forms[0] and self.values[side.index] > 0]
+
+    def apply_material_to_form(self):
+        targets = self.material_targets()
+        if len(targets) < 2:
+            return
+        material = self.material.currentData()
+        for side in targets:
+            _previous, pattern = appearance(self.appearances[side.index])
+            value = validated_appearance(dict(material=material, pattern=pattern))
+            self.appearances[side.index] = value
+            for other in self.sides:
+                if same_wall_faces(side.shape, other.shape):
+                    self.appearances[other.index] = dict(value)
         self.refresh()
 
     def change_direction(self):
@@ -326,7 +369,7 @@ class WallSidesDialog(QDialog):
         self.preview.fit()
 
 
-def _review(owner, state, sides, anchor=0, *, placing=False):
+def _review(owner, state, sides, anchor=0, *, placing=False, form_indices=None):
     drawing = owner.plan_tools.controller
     if not sides or not drawing.tools.structure_available() or not drawing.editable() or owner.scan_in_progress or drawing.wall_dialog_open:
         return False
@@ -335,7 +378,7 @@ def _review(owner, state, sides, anchor=0, *, placing=False):
     dialog = None
     try:
         drawing.cancel()
-        dialog = WallSidesDialog(owner, state, sides, anchor, placing=placing)
+        dialog = WallSidesDialog(owner, state, sides, anchor, placing=placing, form_indices=form_indices)
         if dialog.exec() != QDialog.DialogCode.Accepted or not dialog.apply_button.isEnabled():
             return False
         if owner.session is not session or owner.floorplan_view.pixmap_item is not pixmap or owner.session.metadata != token or owner.scan_in_progress:
@@ -374,4 +417,5 @@ def edit_wall_sides(owner, region=None):
     indices = [*lines, *(len(state['segments'] or [])+i for i in curves)]
     rooms = reference_regions(state).records
     anchor = next((i for i,(_p,r) in enumerate(rooms) if set(r.lines) == set(lines) and set(r.curves) == set(curves)), 0)
-    return _review(owner, state, wall_sides(state, indices), anchor)
+    return _review(owner, state, wall_sides(state, indices), anchor,
+                   form_indices=indices if region is not None else None)

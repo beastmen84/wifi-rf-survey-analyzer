@@ -7,6 +7,12 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Wall Edit adds **Apply to all sides** below Material. It copies the selected
+  material to walls with positive thickness in the current shape, keeping each
+  side's depth and appearance. Other shapes retain their materials, except the
+  paired face of a shared physical wall, which still requires acknowledgment.
+  Placement, cancellation and one-step undo/redo retain their existing behavior.
+
 ## v1.4.0 - 2026-11-09
 
 - Follow-up checks on Load Plan fixed direct placement of APs bound to symbols:

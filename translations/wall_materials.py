@@ -4,6 +4,17 @@ TEXT = {
     'wall_shared_changed': ('Changing shared thickness, material or appearance also updates the existing wall. Thickness changes may move connected rooms. Review before confirming.','Cambiare spessore, materiale o aspetto condivisi aggiorna anche la parete già posata. Lo spessore può spostare gli ambienti collegati. Controlla prima di confermare.','Changer l’épaisseur, le matériau ou l’aspect communs modifie aussi le mur existant. L’épaisseur peut déplacer les pièces voisines. Vérifiez avant de confirmer.','Cambiar espesor, material o aspecto compartidos actualiza también el muro existente. El espesor puede mover habitaciones conectadas. Revisa antes de confirmar.'),
     'wall_side_shared_hint': ('Shared wall: inherits existing thickness, material and appearance.','Parete condivisa: eredita spessore, materiale e aspetto esistenti.','Mur commun : reprend épaisseur, matériau et aspect existants.','Muro compartido: hereda espesor, material y aspecto existentes.'),
     'wall_material': ('Material','Materiale','Matériau','Material del muro'),
+    'wall_material_apply_all': ('Apply to all sides','Applica a tutti i lati','Appliquer à tous les côtés','Aplicar a todos los lados'),
+    'wall_material_apply_all_hint': (
+        "Copy this side's material to all walls of this shape with positive thickness. Each side keeps its thickness and appearance. Shared walls still require confirmation.",
+        'Copia il materiale di questo lato su tutti i muri della forma con spessore positivo. Ogni lato mantiene spessore e aspetto grafico. I muri condivisi richiedono comunque conferma.',
+        'Copiez le matériau de ce côté sur tous les murs de cette forme ayant une épaisseur positive. Chaque côté conserve son épaisseur et son aspect. Les murs communs exigent toujours une confirmation.',
+        'Copia el material de este lado a todos los muros de esta forma con espesor positivo. Cada lado conserva su espesor y representación. Los muros compartidos siguen requiriendo confirmación.'),
+    'wall_material_apply_all_scope': (
+        'Select a side with positive thickness in one complete shape. For multiple selected shapes, choose a side belonging to only one shape or open that shape by double-clicking inside it.',
+        'Seleziona un lato con spessore positivo di una forma completa. Se sono selezionate più forme, scegli un lato che appartiene a una sola forma oppure aprila con un doppio clic al suo interno.',
+        'Sélectionnez un côté avec une épaisseur positive dans une forme complète. Pour plusieurs formes sélectionnées, choisissez un côté appartenant à une seule forme ou ouvrez-la par un double clic à l’intérieur.',
+        'Selecciona un lado con espesor positivo de una forma completa. Si hay varias formas seleccionadas, elige un lado que pertenezca a una sola forma o ábrela con doble clic en su interior.'),
     'wall_pattern': ('Appearance','Aspetto grafico','Aspect graphique','Representación'),
     'wall_material_hint': (
         'Choose a side, then its material and appearance. A thickness greater than zero is required. Patterns are schematic; materials do not change RF analysis.',

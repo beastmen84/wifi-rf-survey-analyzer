@@ -195,6 +195,10 @@ from these software checks.
   Automatic appearance supplies a light material color and schematic hatch;
   override it with solid, diagonal, cross, stipple, staggered blocks, grid or paired
   diagonal lines. Swatches and the side diagram preview the choice immediately.
+  **Apply to all sides**, below Material, copies that material to the walls of
+  the current shape with positive thickness. Each side keeps its depth and
+  appearance. In a multi-shape selection, choose a side belonging to one complete
+  shape; an ambiguous shared side requires opening that shape individually.
   Shared faces inherit the material/style too; changing either requires confirming
   the update to the existing wall. Material edits preserve dimensions and RF
   coordinates, survive save/reopen and drawing operations, and form one undo step.
