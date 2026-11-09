@@ -90,7 +90,9 @@ def test_simple_click_numeric_dialog_then_preview_rotation_and_placement(editor,
     placed = dict(d.curve.pending)
     click(app, 450, 300)
     assert d.curves() == [placed] and d.curve.pending is None
-    assert d.curve.last_dimensions[kind] == dimensions
+    # Placement maps through viewport coordinates: an equivalent stored length
+    # can differ at floating-point roundoff after a layout/zoom change.
+    assert d.curve.last_dimensions[kind] == pytest.approx(dimensions, rel=0, abs=1e-9)
 
 
 @pytest.mark.parametrize("kind,dimensions", [("arc", (160, 45))])

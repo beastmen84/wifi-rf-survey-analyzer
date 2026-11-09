@@ -146,6 +146,15 @@ class SegmentDimensions:
                       QRectF(middle.x() - w / 2, object_box.bottom() + gap, w, h),
                       QRectF(object_box.left() - w - gap, middle.y() - h / 2, w, h),
                       QRectF(object_box.right() + gap, middle.y() - h / 2, w, h)]
+        # A drawing palette can occupy all four immediate positions. Include
+        # obstacle edges so labels can escape it and one another without hiding
+        # a number under the panel or choosing the same fallback twice.
+        xs, ys = [middle.x() - w / 2], [middle.y() - h / 2]
+        for obstacle in [object_box, *occupied]:
+            obstacle = QRectF(obstacle)
+            xs.extend((obstacle.left() - w - gap, obstacle.right() + gap))
+            ys.extend((obstacle.top() - h - gap, obstacle.bottom() + gap))
+        candidates.extend(QRectF(x, y, w, h) for x in xs for y in ys)
         for rect in candidates:
             rect.moveLeft(max(viewport.left(), min(rect.left(), viewport.right() - w)))
             rect.moveTop(max(viewport.top(), min(rect.top(), viewport.bottom() - h)))

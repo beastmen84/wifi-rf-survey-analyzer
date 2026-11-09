@@ -231,6 +231,9 @@ ALLOWED_IDENTICAL_TRANSLATION_KEYS = frozenset({
     "annotation_group",
     "annotation_type",
     "blank_tool_rectangle",  # Rectangle is also the French noun.
+    "design_caption_rectangle",  # Rectangle and arc are also French nouns.
+    "design_caption_arc",
+    "design_caption_color",  # Color is also the Spanish noun.
     "app_title",
     "copyright",
     "qt_csv",

@@ -61,6 +61,7 @@ class WorkspaceSettingsMixin:
         log_event(f"workspace theme changed theme={theme}", logger_name="ui")
         self.apply_styles()
         self.plan_tools.sync()
+        self.layers_panel.retranslate()
         if hasattr(self, "analysis_view"):
             self.analysis_view.retranslate()
         if getattr(self.floorplan_view, "grid_visible", False):

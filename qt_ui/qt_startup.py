@@ -278,7 +278,7 @@ class StartWindow(QMainWindow):
                 color: {palette["muted"]};
             }}
             QPushButton#primaryStartButton {{
-                background: {palette["metric_info"]};
+                background: {palette["action_bg"]};
                 color: #ffffff;
                 border: 1px solid {palette["metric_info"]};
                 border-radius: {s(7)}px;
@@ -286,8 +286,14 @@ class StartWindow(QMainWindow):
                 font-weight: 700;
                 padding: {s(10)}px {s(14)}px;
             }}
+            QPushButton:focus {{
+                border: 1px dashed {palette["metric_info"]};
+            }}
+            QPushButton#primaryStartButton:focus, QPushButton#startSettingsButton:focus {{
+                border: 1px dashed #FFFFFF;
+            }}
             QPushButton#primaryStartButton:hover {{
-                background: {palette["metric_info"]};
+                background: {palette["action_bg"]};
             }}
             QPushButton#primaryStartButton:disabled {{
                 background: {palette["button_hover"]};
@@ -319,7 +325,7 @@ class StartWindow(QMainWindow):
                 min-width: {s(72)}px;
             }}
             QComboBox#languageCombo {{
-                background: {palette["metric_info"]};
+                background: {palette["action_bg"]};
                 color: #ffffff;
                 border: 1px solid {palette["metric_info"]};
                 border-radius: {s(7)}px;
@@ -328,14 +334,14 @@ class StartWindow(QMainWindow):
                 font-weight: 700;
             }}
             QComboBox#languageCombo:hover {{
-                background: {palette["metric_info"]};
+                background: {palette["action_bg"]};
                 border-color: {palette["metric_info"]};
             }}
             QComboBox#scaleCombo {{
                 min-width: {s(108)}px;
             }}
             QPushButton#startSettingsButton {{
-                background: {palette["metric_info"]};
+                background: {palette["action_bg"]};
                 color: #ffffff;
                 border: 1px solid {palette["metric_info"]};
                 border-radius: {s(7)}px;
@@ -398,7 +404,7 @@ class StartWindow(QMainWindow):
                 border-left: 1px solid {palette["metric_info"]};
                 border-top-right-radius: {s(6)}px;
                 border-bottom-right-radius: {s(6)}px;
-                background: {palette["metric_info"]};
+                background: {palette["action_bg"]};
             }}
             QComboBox::down-arrow {{
                 image: url("{combo_arrow_icon}");
@@ -418,7 +424,7 @@ class StartWindow(QMainWindow):
                 border-radius: {s(4)}px;
             }}
             QProgressBar::chunk {{
-                background: {palette["metric_info"]};
+                background: {palette["action_bg"]};
                 border-radius: {s(4)}px;
             }}
             {build_scrollbar_stylesheet(palette, s)}

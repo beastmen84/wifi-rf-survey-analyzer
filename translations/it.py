@@ -442,7 +442,7 @@ TRANSLATIONS = {
     "ap_groups_saved": "Gruppi AP salvati.",
     "yes": "Sì",
     "help": "Help",
-    "fit": "Fit",
+    "fit": "Adatta",
     "map": "Mappa",
     "saved_network": "Reti Rilevanti",
     "relevant_networks_none": "Nessuna Rete Rilevante Definita",

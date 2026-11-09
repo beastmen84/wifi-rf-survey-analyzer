@@ -1,0 +1,775 @@
+{
+  "cases": [
+    {
+      "language": "en",
+      "theme": "light",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed",
+      "viewport": [
+        1360,
+        640
+      ],
+      "palette": [
+        455,
+        354
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "en",
+      "theme": "soft",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed",
+      "viewport": [
+        1360,
+        640
+      ],
+      "palette": [
+        455,
+        354
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed",
+      "viewport": [
+        1360,
+        640
+      ],
+      "palette": [
+        455,
+        354
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "en",
+      "theme": "contrast",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed",
+      "viewport": [
+        1360,
+        640
+      ],
+      "palette": [
+        455,
+        354
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "it",
+      "theme": "light",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed",
+      "viewport": [
+        1360,
+        640
+      ],
+      "palette": [
+        462,
+        354
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "it",
+      "theme": "soft",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed",
+      "viewport": [
+        1360,
+        640
+      ],
+      "palette": [
+        462,
+        354
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "it",
+      "theme": "dark",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed",
+      "viewport": [
+        1360,
+        640
+      ],
+      "palette": [
+        462,
+        354
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "it",
+      "theme": "contrast",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed",
+      "viewport": [
+        1360,
+        640
+      ],
+      "palette": [
+        462,
+        354
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "fr",
+      "theme": "light",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed",
+      "viewport": [
+        1360,
+        640
+      ],
+      "palette": [
+        463,
+        354
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "fr",
+      "theme": "soft",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed",
+      "viewport": [
+        1360,
+        640
+      ],
+      "palette": [
+        463,
+        354
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed",
+      "viewport": [
+        1360,
+        640
+      ],
+      "palette": [
+        463,
+        354
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "fr",
+      "theme": "contrast",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed",
+      "viewport": [
+        1360,
+        640
+      ],
+      "palette": [
+        463,
+        354
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "es",
+      "theme": "light",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed",
+      "viewport": [
+        1360,
+        640
+      ],
+      "palette": [
+        471,
+        354
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "es",
+      "theme": "soft",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed",
+      "viewport": [
+        1360,
+        640
+      ],
+      "palette": [
+        471,
+        354
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "es",
+      "theme": "dark",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed",
+      "viewport": [
+        1360,
+        640
+      ],
+      "palette": [
+        471,
+        354
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "es",
+      "theme": "contrast",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed",
+      "viewport": [
+        1360,
+        640
+      ],
+      "palette": [
+        471,
+        354
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed",
+      "viewport": [
+        1341,
+        584
+      ],
+      "palette": [
+        557,
+        422
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "en",
+      "theme": "soft",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed",
+      "viewport": [
+        1341,
+        584
+      ],
+      "palette": [
+        557,
+        422
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed",
+      "viewport": [
+        1341,
+        584
+      ],
+      "palette": [
+        557,
+        422
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "en",
+      "theme": "contrast",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed",
+      "viewport": [
+        1341,
+        584
+      ],
+      "palette": [
+        557,
+        422
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "it",
+      "theme": "light",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed",
+      "viewport": [
+        1341,
+        584
+      ],
+      "palette": [
+        565,
+        422
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "it",
+      "theme": "soft",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed",
+      "viewport": [
+        1341,
+        584
+      ],
+      "palette": [
+        565,
+        422
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "it",
+      "theme": "dark",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed",
+      "viewport": [
+        1341,
+        584
+      ],
+      "palette": [
+        565,
+        422
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "it",
+      "theme": "contrast",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed",
+      "viewport": [
+        1341,
+        584
+      ],
+      "palette": [
+        565,
+        422
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "fr",
+      "theme": "light",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed",
+      "viewport": [
+        1341,
+        584
+      ],
+      "palette": [
+        568,
+        422
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "fr",
+      "theme": "soft",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed",
+      "viewport": [
+        1341,
+        584
+      ],
+      "palette": [
+        568,
+        422
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed",
+      "viewport": [
+        1341,
+        584
+      ],
+      "palette": [
+        568,
+        422
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "fr",
+      "theme": "contrast",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed",
+      "viewport": [
+        1341,
+        584
+      ],
+      "palette": [
+        568,
+        422
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "es",
+      "theme": "light",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed",
+      "viewport": [
+        1341,
+        584
+      ],
+      "palette": [
+        577,
+        422
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "es",
+      "theme": "soft",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed",
+      "viewport": [
+        1341,
+        584
+      ],
+      "palette": [
+        577,
+        422
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "es",
+      "theme": "dark",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed",
+      "viewport": [
+        1341,
+        584
+      ],
+      "palette": [
+        577,
+        422
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "es",
+      "theme": "contrast",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed",
+      "viewport": [
+        1341,
+        584
+      ],
+      "palette": [
+        577,
+        422
+      ],
+      "scrollable": false
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed",
+      "viewport": [
+        1304,
+        350
+      ],
+      "palette": [
+        762,
+        255
+      ],
+      "scrollable": true
+    },
+    {
+      "language": "en",
+      "theme": "soft",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed",
+      "viewport": [
+        1304,
+        350
+      ],
+      "palette": [
+        762,
+        255
+      ],
+      "scrollable": true
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed",
+      "viewport": [
+        1304,
+        350
+      ],
+      "palette": [
+        762,
+        255
+      ],
+      "scrollable": true
+    },
+    {
+      "language": "en",
+      "theme": "contrast",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed",
+      "viewport": [
+        1304,
+        350
+      ],
+      "palette": [
+        762,
+        255
+      ],
+      "scrollable": true
+    },
+    {
+      "language": "it",
+      "theme": "light",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed",
+      "viewport": [
+        1304,
+        350
+      ],
+      "palette": [
+        765,
+        255
+      ],
+      "scrollable": true
+    },
+    {
+      "language": "it",
+      "theme": "soft",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed",
+      "viewport": [
+        1304,
+        350
+      ],
+      "palette": [
+        765,
+        255
+      ],
+      "scrollable": true
+    },
+    {
+      "language": "it",
+      "theme": "dark",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed",
+      "viewport": [
+        1304,
+        350
+      ],
+      "palette": [
+        765,
+        255
+      ],
+      "scrollable": true
+    },
+    {
+      "language": "it",
+      "theme": "contrast",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed",
+      "viewport": [
+        1304,
+        350
+      ],
+      "palette": [
+        765,
+        255
+      ],
+      "scrollable": true
+    },
+    {
+      "language": "fr",
+      "theme": "light",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed",
+      "viewport": [
+        1304,
+        350
+      ],
+      "palette": [
+        766,
+        255
+      ],
+      "scrollable": true
+    },
+    {
+      "language": "fr",
+      "theme": "soft",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed",
+      "viewport": [
+        1304,
+        350
+      ],
+      "palette": [
+        766,
+        255
+      ],
+      "scrollable": true
+    },
+    {
+      "language": "fr",
+      "theme": "dark",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed",
+      "viewport": [
+        1304,
+        350
+      ],
+      "palette": [
+        766,
+        255
+      ],
+      "scrollable": true
+    },
+    {
+      "language": "fr",
+      "theme": "contrast",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed",
+      "viewport": [
+        1304,
+        350
+      ],
+      "palette": [
+        766,
+        255
+      ],
+      "scrollable": true
+    },
+    {
+      "language": "es",
+      "theme": "light",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed",
+      "viewport": [
+        1304,
+        350
+      ],
+      "palette": [
+        773,
+        255
+      ],
+      "scrollable": true
+    },
+    {
+      "language": "es",
+      "theme": "soft",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed",
+      "viewport": [
+        1304,
+        350
+      ],
+      "palette": [
+        773,
+        255
+      ],
+      "scrollable": true
+    },
+    {
+      "language": "es",
+      "theme": "dark",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed",
+      "viewport": [
+        1304,
+        350
+      ],
+      "palette": [
+        773,
+        255
+      ],
+      "scrollable": true
+    },
+    {
+      "language": "es",
+      "theme": "contrast",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed",
+      "viewport": [
+        1304,
+        350
+      ],
+      "palette": [
+        773,
+        255
+      ],
+      "scrollable": true
+    }
+  ],
+  "native_qt": true,
+  "physical_mouse": false,
+  "rf_scanning": false
+}

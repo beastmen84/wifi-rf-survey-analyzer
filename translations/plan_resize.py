@@ -1,7 +1,7 @@
 """Origin-anchored Draw Plan page controls."""
 LANGUAGES = ('en','it','fr','es')
 TEXT = {
-    'resize_plan': ('Resize','Resize','Redimensionner','Redimensionar'),
+    'resize_plan': ('Resize','Dimensioni','Redimensionner','Redimensionar'),
     'resize_scale': ('Calibrate the plan before resizing in physical units.','Calibra la pianta prima di ridimensionarla in unità fisiche.','Étalonnez le plan avant de modifier ses dimensions physiques.','Calibra el plano antes de cambiar sus dimensiones físicas.'),
     'resize_grid_limit': ('The grid is too dense for this page size. Increase grid square size first.','La griglia è troppo fitta per questa pagina. Aumenta prima la misura del quadrato.','La grille est trop dense pour cette page. Augmentez la taille des carreaux.','La cuadrícula es demasiado densa. Aumenta primero el tamaño del cuadrado.'),
     'resize_title': ('Resize drawn plan','Ridimensiona la pianta','Redimensionner le plan','Redimensionar plano'),

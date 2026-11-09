@@ -87,6 +87,55 @@ from qt_ui.scaling import (
 )
 
 
+class AppBarLayout(QHBoxLayout):
+    """Keep sections on one row when possible; wrap them as two balanced pairs."""
+    def _sizes(self):
+        return [self.itemAt(index).sizeHint() for index in range(self.count())]
+
+    def _wraps(self, width):
+        margins = self.contentsMargins()
+        return self.count() == 4 and width < (sum(size.width() for size in self._sizes())
+            + self.spacing() * 3 + margins.left() + margins.right())
+
+    def hasHeightForWidth(self):
+        return True
+
+    def heightForWidth(self, width):
+        sizes = self._sizes()
+        if not sizes:
+            return 0
+        margins = self.contentsMargins()
+        height = max(size.height() for size in sizes)
+        if self._wraps(width):
+            height = max(size.height() for size in sizes[:2]) + self.spacing() + max(size.height() for size in sizes[2:])
+        return height + margins.top() + margins.bottom()
+
+    def minimumSize(self):
+        size = super().minimumSize()
+        if self.count() == 4:
+            sizes = self._sizes()
+            margins = self.contentsMargins()
+            size.setWidth(max(sum(s.width() for s in sizes[:2]), sum(s.width() for s in sizes[2:]))
+                          + self.spacing() + margins.left() + margins.right())
+        return size
+
+    def setGeometry(self, rect):
+        super().setGeometry(rect)
+        if not self._wraps(rect.width()):
+            return
+        margins = self.contentsMargins()
+        area = rect.adjusted(margins.left(), margins.top(), -margins.right(), -margins.bottom())
+        sizes = self._sizes()
+        y = area.y()
+        for start in (0, 2):
+            height = max(size.height() for size in sizes[start:start + 2])
+            trailing_width = sizes[start + 1].width()
+            leading_width = area.width() - self.spacing() - trailing_width
+            self.itemAt(start).setGeometry(QRect(area.x(), y, leading_width, height))
+            self.itemAt(start + 1).setGeometry(QRect(area.x() + leading_width + self.spacing(), y, trailing_width, height))
+            y += height + self.spacing()
+
+
 class VerticalTabButton(QPushButton):
     def sizeHint(self):
         hint = super().sizeHint()
@@ -460,7 +509,7 @@ class WifiHeatmapQtApp(
     def build_app_bar(self):
         bar = QFrame()
         bar.setObjectName("appBar")
-        layout = QHBoxLayout(bar)
+        layout = AppBarLayout(bar)
         layout.setContentsMargins(self.spx(14), self.spx(10), self.spx(14), self.spx(10))
         layout.setSpacing(self.spx(10))
 
@@ -593,6 +642,8 @@ class WifiHeatmapQtApp(
         # Keep the two text groups readable at larger UI scales, with compact
         # padding rather than squeezing the Analysis captions to make room.
         for button in (self.new_workspace_button,self.open_workspace_button,self.save_workspace_button,self.resize_plan_button,
+                       self.zoom_out_button,self.zoom_in_button,self.fit_view_button,self.calibrate_button,
+                       self.grid_button,self.boundaries_button,self.settings_menu_button,
                        self.quality_button,self.ap_groups_button,self.help_button):
             button.ensurePolished()
             rule = f"min-width: {button.fontMetrics().horizontalAdvance(button.text())+self.spx(2)}px; padding: {self.spx(6)}px {self.spx(6)}px;"
@@ -1319,6 +1370,8 @@ class WifiHeatmapQtApp(
 
     def apply_styles(self):
         palette = QT_THEMES.get(self.theme, QT_THEMES["light"])
+        self.floorplan_view.setBackgroundBrush(QColor(palette["live_bg"]))
+        self.live_view.setBackgroundBrush(QColor(palette["live_bg"]))
         self.tabs.tabBar().setProperty("workspaceUnderlineColor", palette["metric_info"])
         self.tabs.tabBar().setProperty("workspaceUnderlineHeight", self.spx(3))
         self.tabs.tabBar().update()
@@ -1337,7 +1390,7 @@ class WifiHeatmapQtApp(
             QMainWindow, QWidget {{
                 background: {palette["bg"]};
                 color: {palette["text"]};
-                font-family: Segoe UI;
+                font-family: "Segoe UI";
                 font-size: {font(10.5)}pt;
             }}
             QLabel, QCheckBox {{
@@ -1390,6 +1443,77 @@ class WifiHeatmapQtApp(
                 border: 1px solid {palette["border"]};
                 border-radius: {s(8)}px;
             }}
+            QFrame#designTools {{
+                background: {palette["panel"]};
+                border: 1px solid {palette["badge_border"]};
+                border-radius: {s(10)}px;
+            }}
+            QScrollArea#designToolsScroll, QWidget#designToolsContent {{
+                background: transparent;
+                border: 0;
+            }}
+            QFrame#designTools QLabel, QFrame#designTools QCheckBox {{
+                font-family: "Segoe UI";
+                font-size: {font(9)}pt;
+            }}
+            QLabel#designTitle {{
+                font-weight: 700;
+                color: {palette["title"]};
+            }}
+            QLabel#designSection {{
+                font-weight: 600;
+                color: {palette["muted"]};
+            }}
+            QLabel#designActiveTool {{
+                color: {palette["badge_text"]};
+                background: {palette["badge_bg"]};
+                border-radius: {s(4)}px;
+                padding: {s(4)}px {s(7)}px;
+                font-weight: 600;
+            }}
+            QLabel#designHint {{
+                color: {palette["muted"]};
+            }}
+            QToolButton#designToolButton {{
+                font-family: "Segoe UI";
+                font-size: {font(8)}pt;
+                min-width: {s(46)}px;
+                min-height: {s(42)}px;
+                padding: {s(4)}px {s(5)}px;
+                border: 1px solid transparent;
+                border-radius: {s(6)}px;
+                background: {palette["panel_alt"]};
+                color: {palette["text"]};
+            }}
+            QToolButton#designToolButton:enabled:hover, QToolButton#designClose:enabled:hover {{
+                background: {palette["button_hover"]};
+                border-color: {palette["metric_info"]};
+            }}
+            QToolButton#designToolButton:checked,
+            QToolButton#designToolButton:checked:enabled:hover {{
+                background: {palette["action_bg"]};
+                border-color: {palette["action_bg"]};
+                color: #FFFFFF;
+            }}
+            QToolButton#designToolButton:disabled {{
+                background: {palette["panel"]};
+                color: {palette["muted"]};
+            }}
+            QPushButton:focus, QToolButton:focus {{
+                border: 1px solid {palette["metric_info"]};
+            }}
+            QToolButton#designToolButton:focus, QToolButton#designClose:focus {{
+                border: 1px dashed {palette["metric_info"]};
+            }}
+            QToolButton#designToolButton:checked:focus {{
+                border: 1px dashed #FFFFFF;
+            }}
+            QToolButton#designClose {{
+                padding: 0;
+                border: 1px solid transparent;
+                border-radius: {s(5)}px;
+                background: transparent;
+            }}
             QDoubleSpinBox#blankPlanDimension {{
                 background: {palette["panel"]};
                 border: 1px solid {palette["border"]};
@@ -1423,11 +1547,11 @@ class WifiHeatmapQtApp(
             }}
             QDoubleSpinBox#blankPlanDimension::up-button:hover,
             QDoubleSpinBox#blankPlanDimension::down-button:hover {{
-                background: {palette["metric_info"]};
+                background: {palette["action_bg"]};
             }}
             QDoubleSpinBox#blankPlanDimension::up-button:pressed,
             QDoubleSpinBox#blankPlanDimension::down-button:pressed {{
-                background: {palette["metric_info"]};
+                background: {palette["action_bg"]};
             }}
             QDoubleSpinBox#blankPlanDimension::up-arrow {{
                 image: url("{spin_up}");
@@ -1469,7 +1593,7 @@ class WifiHeatmapQtApp(
                 border: 1px solid {palette["metric_info"]};
             }}
             QPushButton#boundariesToolButton:checked {{
-                background: {palette["metric_info"]};
+                background: {palette["action_bg"]};
                 border: 1px solid {palette["metric_info"]};
             }}
             QPushButton#boundariesToolButton[danger="true"]:enabled:hover {{
@@ -1566,7 +1690,7 @@ class WifiHeatmapQtApp(
                 min-height: {s(30)}px;
                 padding: {s(6)}px {s(18)}px;
                 border-radius: {s(15)}px;
-                background: {palette["metric_info"]};
+                background: {palette["action_bg"]};
                 color: #FFFFFF;
                 border: 1px solid {palette["metric_info"]};
                 font-weight: 700;
@@ -1578,7 +1702,7 @@ class WifiHeatmapQtApp(
                 max-height: {s(90)}px;
                 padding: {s(3)}px {s(1)}px;
                 border-radius: {s(5)}px;
-                background: {palette["metric_info"]};
+                background: {palette["action_bg"]};
                 color: #FFFFFF;
                 border: 1px solid {palette["metric_info"]};
                 font-weight: 700;
@@ -1767,7 +1891,7 @@ class WifiHeatmapQtApp(
                 font-size: {font(12)}pt;
             }}
             QPushButton#appBarToggleButton:checked {{
-                background: {palette["metric_info"]};
+                background: {palette["action_bg"]};
                 color: #FFFFFF;
                 border: 1px solid {palette["metric_info"]};
             }}
@@ -1777,7 +1901,7 @@ class WifiHeatmapQtApp(
                 border: 1px solid {palette["border"]};
             }}
             QPushButton#primaryAppBarButton {{
-                background: {palette["metric_info"]};
+                background: {palette["action_bg"]};
                 color: #FFFFFF;
                 border: 1px solid {palette["metric_info"]};
             }}
@@ -1822,7 +1946,7 @@ class WifiHeatmapQtApp(
                 border-left: 1px solid {palette["metric_info"]};
                 border-top-right-radius: {s(4)}px;
                 border-bottom-right-radius: {s(4)}px;
-                background: {palette["metric_info"]};
+                background: {palette["action_bg"]};
             }}
             QComboBox::down-arrow {{
                 image: url("{combo_arrow_icon}");
@@ -1850,7 +1974,7 @@ class WifiHeatmapQtApp(
                 border: 1px solid {palette["metric_info"]};
             }}
             QCheckBox::indicator:checked {{
-                background: {palette["metric_info"]};
+                background: {palette["action_bg"]};
                 border: 1px solid {palette["metric_info"]};
             }}
             QTabWidget#workspaceTabs::pane {{
@@ -1957,7 +2081,7 @@ class WifiHeatmapQtApp(
             }}
             QTableWidget#measurementPointsTable::item:selected,
             QTableWidget#qualityDashboardTable::item:selected {{
-                background: {palette["metric_info"]};
+                background: {palette["action_bg"]};
                 color: #FFFFFF;
                 border-bottom: 1px solid {palette["metric_info"]};
             }}

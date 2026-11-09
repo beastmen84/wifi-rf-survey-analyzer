@@ -7,6 +7,14 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Refined Design Mode with a consistent, display-density-aware vector icon set,
+  visible localized tool captions, an active-tool indicator, direct close control
+  and clearer selected/disabled/keyboard-focus states. The palette scrolls on
+  short viewports; the application toolbar wraps into two rows when needed,
+  preserving readable captions at larger UI scales. Plan and Live Map canvas
+  backgrounds follow the theme, and filled controls retain readable white text.
+  Short object-clearance labels can move around panels and other labels.
+  Italian Fit/Resize captions now read Adatta/Dimensioni.
 - Reworked the final tab as **Recommendations**: specific channel plans,
   controlled trials and on-site checks lead the list, with confidence, target APs
   and visible limits. Metrics/readings expand on request. Data/model prerequisites
