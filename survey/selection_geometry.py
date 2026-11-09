@@ -5,18 +5,18 @@ from survey.plan_annotation_rendering import annotation_path
 from survey.plan_annotations import annotation_points, HOSTED_ANNOTATIONS, supported
 
 
-def annotation_geometry(items):
+def annotation_geometry(items, lines=()):
     result = []
     for item in items:
-        b = annotation_path(item).boundingRect()
+        b = annotation_path(item, lines).boundingRect()
         points = [(b.left(),b.top()),(b.right(),b.top()),(b.right(),b.bottom()),(b.left(),b.bottom())]
         result.extend(dict(x1=a[0],y1=a[1],x2=c[0],y2=c[1],color=item['color'])
                       for a,c in zip(points,points[1:]+points[:1]))
     return result
 
 
-def annotation_intersects(item,rect):
-    path = annotation_path(item)
+def annotation_intersects(item,rect,lines=()):
+    path = annotation_path(item, lines)
     stroke = QPainterPathStroker()
     stroke.setWidth(max(2,item['stroke']))
     return path.intersects(rect) or stroke.createStroke(path).intersects(rect)

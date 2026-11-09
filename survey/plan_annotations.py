@@ -237,17 +237,62 @@ def place_aperture(point, width, lines, tolerance, template):
     choices = []
     for line in lines:
         a, b = (line["x1"], line["y1"]), (line["x2"], line["y2"])
-        p = point_projection(point, a, b)
+        p, distance, axis_distance = aperture_projection(point, line)
         length = math.dist(a, b)
         # Extend over normalization cuts, but stop at real collinear gaps.
         ux, uy = (b[0] - a[0]) / length, (b[1] - a[1]) / length
         start = (p[0] - width / 2 * ux, p[1] - width / 2 * uy)
         end = (p[0] + width / 2 * ux, p[1] + width / 2 * uy)
         item = dict(template, x1=start[0], y1=start[1], x2=end[0], y2=end[1])
-        distance = math.dist(point, p)
         if distance <= tolerance and supported(item, lines):
-            choices.append((distance, item))
-    return min(choices, key=lambda choice: choice[0])[1] if choices else None
+            choices.append((distance, axis_distance, item))
+    return min(choices, key=lambda choice: choice[:2])[2] if choices else None
+
+
+def aperture_projection(point, line):
+    """Reference-face grip, distance to the physical wall, distance to its axis."""
+    a, b = (line['x1'], line['y1']), (line['x2'], line['y2'])
+    p = point_projection(point, a, b)
+    wall = line.get('wall')
+    if not wall:
+        distance = math.dist(point, p)
+        return p, distance, distance
+    length = math.dist(a, b)
+    ux, uy = (b[0]-a[0])/length, (b[1]-a[1])/length
+    along = (point[0]-a[0])*ux+(point[1]-a[1])*uy
+    across = -(point[0]-a[0])*uy+(point[1]-a[1])*ux
+    low, high = ((-wall['width']/2, wall['width']/2) if wall['side'] == 0
+                 else sorted((0, wall['side']*wall['width'])))
+    distance = math.hypot(max(0, -along, along-length), max(0, low-across, across-high))
+    return p, distance, math.hypot(max(0, -along, along-length), across-(low+high)/2)
+
+
+def aperture_host_span(item, lines):
+    """Use the containing segment, joining fragments only for a straddling opening."""
+    a, b = annotation_points(item)
+    length = math.dist(a, b)
+    ux, uy = (b[0]-a[0])/length, (b[1]-a[1])/length
+    intervals = []
+    for index, line in enumerate(lines):
+        points = [(line['x1'], line['y1']), (line['x2'], line['y2'])]
+        if any(abs((p[0]-a[0])*uy-(p[1]-a[1])*ux) > EPS for p in points):
+            continue
+        low, high = sorted((p[0]-a[0])*ux+(p[1]-a[1])*uy for p in points)
+        intervals.append((low, high, index))
+    containing = [record for record in intervals if record[0] <= EPS and record[1] >= length-EPS]
+    if containing:
+        low, high, index = min(containing, key=lambda record: (record[1]-record[0], record[2]))
+        return index, (a[0]+low*ux, a[1]+low*uy), (a[0]+high*ux, a[1]+high*uy)
+    merged = []
+    for low, high, index in sorted(intervals):
+        if merged and low <= merged[-1][1]+EPS:
+            merged[-1] = (merged[-1][0], max(high, merged[-1][1]), merged[-1][2])
+        else:
+            merged.append((low, high, index))
+    for low, high, index in merged:
+        if low <= EPS and high >= length-EPS:
+            return index, (a[0]+low*ux, a[1]+low*uy), (a[0]+high*ux, a[1]+high*uy)
+    return None
 
 
 def align_aperture(item, lines, snapper, bounds, tolerance, grid=None, *, cursor=None):

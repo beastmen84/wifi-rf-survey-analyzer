@@ -107,9 +107,9 @@ def render_plan_drawing(image, segments, labels=None, curves=None, annotations=N
         from survey.plan_annotation_rendering import render_annotations, annotation_fits
         from PySide6.QtCore import QRectF
         bounds = QRectF(0, 0, image.width, image.height)
-        if any(not annotation_fits(a, bounds) for a in annotations):
+        if any(not annotation_fits(a, bounds, lines) for a in annotations):
             raise ValueError("Annotation is outside the sheet")
-        output = render_annotations(output, annotations)
+        output = render_annotations(output, annotations, lines)
     if labels:
         from survey.plan_label_rendering import render_labels
         output = render_labels(output, labels)

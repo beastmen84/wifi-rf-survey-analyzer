@@ -105,7 +105,8 @@ class PlanSelectionController:
         labels = labels or []
         curves = curves or []
         annotations = self.selected_items() if annotations is None else annotations
-        self.drawing.annotation.show(annotations, labels if not moving else [])
+        hosts = [line for i,line in enumerate(self.lines) if i not in self.selected] + list(lines) if moving else self.lines
+        self.drawing.annotation.show(annotations, labels if not moving else [], lines=hosts)
         if moving:
             self.drawing.text.show_labels(labels)
         if not lines and not labels and not curves and not annotations:
@@ -184,7 +185,8 @@ class PlanSelectionController:
             labels = self.selected_texts()
         if curves is None:
             curves = self.selected_curve_shapes()
-        return list(lines) + labels_geometry(labels) + curves_geometry(curves) + annotation_geometry(self.selected_items() if annotations is None else annotations)
+        hosts = [line for i,line in enumerate(self.lines) if i not in self.selected] + list(lines)
+        return list(lines) + labels_geometry(labels) + curves_geometry(curves) + annotation_geometry(self.selected_items() if annotations is None else annotations, hosts)
 
     def set_selected(self, indices, label_indices=(), curve_indices=(), *, region_area=None, annotation_indices=()):
         self.selected = tuple(sorted(indices))
@@ -316,7 +318,7 @@ class PlanSelectionController:
         indices = intersecting_segments(self.lines, rect.left(), rect.top(), rect.right(), rect.bottom())
         self.area_labels = self.drawing.text.intersecting(rect) if self.shared() else ()
         self.area_annotations = tuple(i for i,a in enumerate(self.drawing.annotations()) if self.shared() and
-            annotation_intersects(a,rect))
+            annotation_intersects(a,rect,self.lines))
         self.area_curves = intersecting_curves(self.drawing.curves(), rect.left(), rect.top(), rect.right(), rect.bottom())
         self.show_lines([self.lines[index] for index in indices],
                         labels=[self.drawing.text.labels[index] for index in self.area_labels],

@@ -156,7 +156,7 @@ def test_opening_can_anchor_either_jamb_to_a_wall_corner(editor):
     move(app.floorplan_view, at(app, 103, 200))
     assert d.annotation.pending and min(p[0] for p in annotation_points(d.annotation.pending)) == 100
     assert d.snap_guides[0].kind == "corner"
-    assert d.dimensions.values["before"] < 10  # Actual cursor stays near the jamb.
+    assert d.dimensions.values["before"] == pytest.approx(0)  # Quote starts at the jamb, not the pointer.
     assert d.dimensions.values["clearance_before"] == pytest.approx(0)
 
 
@@ -194,16 +194,18 @@ def test_grid_off_keeps_marker_corner_snapping_and_alt_disables_it(editor):
 
 
 @pytest.mark.parametrize("system", ["metric", "imperial"])
-def test_overlay_reports_cursor_splits_and_separate_opening_clearance(editor, system):
+def test_overlay_reports_only_opening_edge_clearances(editor, system):
     app, d = editor
     app.measurement_system = system
     d.store([line()])
     choose(app, "door", aperture(x1=145, x2=195))
     move(app.floorplan_view, at(app, 170, 200))
     values = d.dimensions.values
-    assert values and values["before"] + values["after"] == pytest.approx(500)
+    assert values and values["before"] + values["after"] == pytest.approx(450)
     assert values["clearance_before"] / app.get_px_per_meter() == pytest.approx(.9, abs=.02)
-    assert values["before_m"] == pytest.approx(1.4, abs=.02)
+    assert values["before_m"] == pytest.approx(.9, abs=.02)
+    assert app.tr('segment_before') not in d.dimensions.badge.text()
+    assert app.tr('segment_after') not in d.dimensions.badge.text()
     assert ("ft" if system == "imperial" else "m") in d.dimensions.badge.text()
     assert d.dimensions.badge.y() > d.measurement.geometry().bottom()
     assert len(d.dimensions.items) == 2 and d.segments() == [line()]

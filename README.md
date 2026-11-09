@@ -278,6 +278,10 @@ from these software checks.
   Doors have independent hinge and opening-side choices shown as eight
   configuration icons (four single, two double, sliding,
   frame only). **Frame only** shows the jambs without a leaf or swing arc.
+  On walls with physical thickness, frames span both faces and sit on the wall
+  centerline; windows and sliding frames adapt to the same depth. Click anywhere
+  across the wall body to position them. Existing openings adapt when thickness
+  changes, retaining their saved reference coordinates and width.
   Only swing arcs are dashed; door leaves remain solid.
   **Desks** offer square, rectangular, L, equal-sided L and round variants, with
   editable dimensions and L desktop depth. **Symbols** separates numbered
@@ -336,8 +340,12 @@ from these software checks.
   document the installation and do not change RF calculations.
 - With a drawing tool active, hovering over a segment shows the distances from
   endpoint **A** to the cursor and from the cursor to **B**, with matching colored
-  dimension lines. Door/window previews separately report the free space before
-  and after the opening, so cursor distance is not confused with jamb clearance.
+  dimension lines. For door/window placement and movement, A/B instead show only
+  the free gaps from the opening's two jambs to the host ends. Their dimension
+  strokes stop at the jambs, so a 20 cm corner clearance is measured at the edge
+  of the opening. Quotes use the containing segment's ends, including room
+  junctions; collinear fragments are joined only when the opening spans a
+  normalization cut. Genuine wall gaps remain separate.
   Quotes use survey m/ft units and stay out of saved/exported geometry.
   **Segment midpoints** and **room centers** are snap targets alongside corners
   and edges. Shapes, text and openings can also snap from their own center; for

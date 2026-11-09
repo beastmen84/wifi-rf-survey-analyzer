@@ -7,6 +7,15 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Doors and windows adapt their frames to the full physical wall thickness,
+  centered between its faces, including shared walls. Placement accepts the
+  wall body; saved host coordinates remain compatible. Preview, picking,
+  selection, vector print/JPEG and Live/HTML rendering use the same geometry.
+  During opening placement/movement, A/B dimensions measure the two free gaps
+  from the jambs to the host ends, without cursor-distance rows. Continuous
+  fragments are joined only when the opening spans a normalization cut;
+  otherwise quotes retain the containing segment's ends, including room junctions.
+
 - Wall Edit adds **Apply to all sides** below Material. It copies the selected
   material to walls with positive thickness in the current shape, keeping each
   side's depth and appearance. Other shapes retain their materials, except the

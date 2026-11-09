@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (QCheckBox, QDialog,
     QButtonGroup, QHBoxLayout, QWidget, QDialogButtonBox, QDoubleSpinBox, QFormLayout, QLabel, QPushButton, QVBoxLayout)
 
 from app_core.units import distance_unit_label, display_units_to_meters, meters_to_display_units
-from survey.plan_annotations import (annotation_points, overlaps, place_aperture, supported, align_aperture,
+from survey.plan_annotations import (annotation_points, overlaps, place_aperture, supported, align_aperture, aperture_projection,
                                      transform_annotations, validate_annotations)
 from survey.plan_annotation_rendering import annotation_item, annotation_path, annotation_fits, annotation_parts
 from qt_ui.qt_theme import QT_THEMES
@@ -196,7 +196,7 @@ class AnnotationController:
         self.items = []
         self.model = items
         for annotation in items:
-            item = annotation_item(annotation)
+            item = annotation_item(annotation, lines=self.drawing.segments() or [])
             if annotation.get("ap_group"):
                 item.setToolTip(escape(self.owner.get_ap_group_display_name(annotation["ap_group"]))
                                 + "<br>" + escape(annotation.get("description", "")))
@@ -246,17 +246,19 @@ class AnnotationController:
         others = [a for a in (self.model if existing is None else existing) if a["id"] not in exclude]
         bounds = self.view.scene.sceneRect()
         for item in items:
-            if not annotation_fits(item, bounds):
+            if not annotation_fits(item, bounds, self.drawing.selection.lines if lines is None else lines):
                 return False
             if not supported(item, self.drawing.selection.lines if lines is None else lines) or overlaps(item, others):
                 return False
             others.append(item)
         return self.drawing.selection.fits(labels_geometry(labels)) if labels else True
 
-    def show(self, items=(), labels=(), valid=True, rectangle=None):
+    def show(self, items=(), labels=(), valid=True, rectangle=None, lines=None):
         self.clear_preview()
+        lines = self.drawing.selection.lines if lines is None else lines
         for annotation in items:
-            self.preview.append(annotation_item(annotation, "#0284c7" if valid else "#ef4444"))
+            self.preview.append(annotation_item(annotation, "#0284c7" if valid else "#ef4444",
+                                                lines))
         for label in labels:
             self.preview.append(label_item(label if valid else dict(label, color="#ef4444"), selected=True))
         self.drawing.update_symbol_numbers(items=self.preview)
@@ -402,7 +404,7 @@ class AnnotationController:
         self.pending = transform_annotations([item], dx=snapped[0]["x1"] - geometry[0]["x1"],
                                             dy=snapped[0]["y1"] - geometry[0]["y1"])[0]
         self.show([self.pending], valid=self.valid([self.pending]))
-        self.drawing.show_snap_guides(annotation_path(self.pending).boundingRect())
+        self.drawing.show_snap_guides(annotation_path(self.pending, self.drawing.selection.lines).boundingRect())
         note = "object_round_note" if object_is_round(item) else "object_place_note"
         self.drawing.show_measurement(self.object_measurement(item) + "\n" + self.owner.tr(note), position)
 
@@ -416,7 +418,7 @@ class AnnotationController:
         valid = self.pending is not None and self.valid([self.pending])
         self.show([self.pending] if self.pending else [], valid=valid)
         if self.pending:
-            self.drawing.show_snap_guides(annotation_path(self.pending).boundingRect())
+            self.drawing.show_snap_guides(annotation_path(self.pending, self.drawing.selection.lines).boundingRect())
         self.drawing.show_measurement(self.owner.tr("annotation_place_note" if valid else "annotation_invalid"), position)
 
     def hosted(self, point, width, template):
@@ -428,13 +430,14 @@ class AnnotationController:
             choices = []
             for line in lines:
                 a, b = (line["x1"], line["y1"]), (line["x2"], line["y2"])
-                if math.dist(point, point_projection(point, a, b)) > self.tolerance():
+                projected, distance, _axis_distance = aperture_projection(point, line)
+                if distance > self.tolerance():
                     continue
                 length = math.dist(a, b)
                 for sign in (-1, 1):
-                    center = [point[i] + sign * width / 2 * (b[i] - a[i]) / length for i in (0, 1)]
+                    center = [projected[i] + sign * width / 2 * (b[i] - a[i]) / length for i in (0, 1)]
                     placed = place_aperture(center, width, lines, self.tolerance(), template)
-                    if placed and min(math.dist(point, p) for p in annotation_points(placed)) <= self.tolerance():
+                    if placed and min(math.dist(projected, p) for p in annotation_points(placed)) <= self.tolerance():
                         choices.append(placed)
             item = choices[0] if choices else None
         self.drawing.snap_guides = ()
@@ -504,7 +507,7 @@ class AnnotationController:
             stroker.setWidth(2)
             self.selected = tuple(i for i, a in enumerate(self.model)
                                   if (a["kind"] in FREE_ANNOTATIONS and annotation_path(a).intersects(area))
-                                  or stroker.createStroke(annotation_path(a)).intersects(area))
+                                  or stroker.createStroke(annotation_path(a, self.drawing.selection.lines)).intersects(area))
             self.selected_labels = self.drawing.text.intersecting(rect)
             self.show(self.selected_items(), self.selected_texts(), valid=tool != "annotation_eraser", rectangle=rect)
         return True
@@ -588,7 +591,7 @@ class AnnotationController:
                 self.draft_labels = transform_labels(self.draft_labels, dx=dx, dy=dy)
         self.show(self.draft, self.draft_labels, valid=self.valid(self.draft, self.draft_labels, exclude=[a["id"] for a in self.move_source]))
         if self.draft:
-            self.drawing.show_snap_guides(annotation_path(self.draft[0]).boundingRect())
+            self.drawing.show_snap_guides(annotation_path(self.draft[0], self.drawing.selection.lines).boundingRect())
 
     def commit_selection(self, items, labels):
         ids, label_ids = [a["id"] for a in items], [a["id"] for a in labels]

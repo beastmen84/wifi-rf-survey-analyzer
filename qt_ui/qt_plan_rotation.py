@@ -69,7 +69,7 @@ class PlanRotationController:
             self.label_base = deepcopy(s.move_label_preview if s.moving else s.selected_texts())
             self.curve_base = transform_curves(s.move_curve_preview if s.moving else s.selected_curve_shapes())
             self.annotation_base = transform_annotations(s.move_annotation_preview if s.moving else s.selected_items())
-            self.base = self.line_base + labels_geometry(self.label_base) + curves_geometry(self.curve_base) + annotation_geometry(self.annotation_base)
+            self.base = self.line_base + labels_geometry(self.label_base) + curves_geometry(self.curve_base) + annotation_geometry(self.annotation_base, self.line_base)
             position, hide = s.last_pointer, list(s.highlights) + list(d.text.preview_items) + list(d.annotation.preview)
             for item in d.wall_items:
                 self.dimmed.append((item, item.opacity()))
@@ -170,7 +170,7 @@ class PlanRotationController:
             curved_item.setPen(pen)
             self.items.append(curved_item)
         for annotation in rotated_annotations:
-            self.items.append(annotation_item(annotation,'#0284c7' if self.valid else '#ef4444'))
+            self.items.append(annotation_item(annotation,'#0284c7' if self.valid else '#ef4444', visible_lines))
         zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
         radius = widget_px(self.owner, 5) / zoom
         cx, cy = self.pivot

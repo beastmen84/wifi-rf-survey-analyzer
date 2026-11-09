@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QGraphicsItem, QGraphicsPathItem, QGraphicsTextIte
 
 from app_core.units import distance_unit_label, meters_to_display_units
 from qt_ui.scaling import widget_px
-from survey.plan_annotations import annotation_points
+from survey.plan_annotations import annotation_points, aperture_host_span
 from survey.plan_objects import HOSTED_ANNOTATIONS, FREE_ANNOTATIONS, object_vertices
 from survey.plan_erasing import nearest_segment
 from survey.planar_geometry import point_projection
@@ -202,37 +202,53 @@ class SegmentDimensions:
             aperture = d.annotation.pending
         elif d.tools.active_tool == "annotation_select" and d.annotation.moving and len(d.annotation.draft) == 1:
             aperture = d.annotation.draft[0] if d.annotation.draft[0]["kind"] in HOSTED_ANNOTATIONS else None
-        # Cursor quotes refer to the actual pointer projection. Jamb snapping
-        # may put an opening's center elsewhere; its clearances are separate.
         lines = d.selection.lines  # Current displayed model; do not renormalize on every mouse event.
         zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
-        index = nearest_segment(lines, point.x(), point.y(), widget_px(self.owner, 8) / zoom + 1)
-        if index is None:
+        if d.tools.active_tool in HOSTED_ANNOTATIONS and aperture is None:
             self.hide()
             return
-        line = lines[index]
-        a, b = (line["x1"], line["y1"]), (line["x2"], line["y2"])
-        p = point_projection((point.x(), point.y()), a, b)
-        length, before = math.dist(a, b), math.dist(a, p)
-        self.values = dict(index=index, before=before, after=length - before, projection=p,
-                           before_m=before / self.owner.get_px_per_meter(), after_m=(length - before) / self.owner.get_px_per_meter())
+        profile = None
+        if aperture is not None:
+            span = aperture_host_span(aperture, lines)
+            if span is None:
+                self.hide()
+                return
+            index, a, b = span
+            first, last = map(tuple, annotation_points(aperture))
+            before, after = math.dist(a, first), math.dist(last, b)
+            p = tuple((first[i]+last[i])/2 for i in (0, 1))
+            labels = ('segment_opening_before', 'segment_opening_after')
+            runs = ((a, first, '#0284c7'), (last, b, '#a855f7'))
+            from survey.wall_geometry import aperture_profile
+            profile = aperture_profile(aperture, lines)
+        else:
+            index = nearest_segment(lines, point.x(), point.y(), widget_px(self.owner, 8) / zoom + 1)
+            if index is None:
+                self.hide()
+                return
+            line = lines[index]
+            a, b = (line['x1'], line['y1']), (line['x2'], line['y2'])
+            p = point_projection((point.x(), point.y()), a, b)
+            before, after = math.dist(a, p), math.dist(p, b)
+            labels = ('segment_before', 'segment_after')
+            runs = ((a, p, '#0284c7'), (p, b, '#a855f7'))
+        length = math.dist(a, b)
+        self.values = dict(index=index, before=before, after=after, projection=p,
+                           before_m=before / self.owner.get_px_per_meter(), after_m=after / self.owner.get_px_per_meter())
+        if aperture is not None:
+            self.values.update(kind='aperture', clearance_before=before, clearance_after=after)
         rows = [self.owner.tr("segment_dimensions_title"),
-                "<span style='color:#67caff'>A</span> · " + self.owner.tr("segment_before") + ": " + self.number(before),
-                "<span style='color:#d8b4fe'>B</span> · " + self.owner.tr("segment_after") + ": " + self.number(length - before)]
-        if aperture:
-            ux, uy = (b[0] - a[0]) / length, (b[1] - a[1]) / length
-            if all(math.dist(q, point_projection(q, a, b)) <= 1e-5 for q in annotation_points(aperture)):
-                low, high = sorted((q[0] - a[0]) * ux + (q[1] - a[1]) * uy for q in annotation_points(aperture))
-                self.values.update(clearance_before=low, clearance_after=length - high)
-                rows.extend((self.owner.tr("segment_opening_before") + ": " + self.number(low),
-                             self.owner.tr("segment_opening_after") + ": " + self.number(length - high)))
+                "<span style='color:#67caff'>A</span> · " + self.owner.tr(labels[0]) + ": " + self.number(before),
+                "<span style='color:#d8b4fe'>B</span> · " + self.owner.tr(labels[1]) + ": " + self.number(after)]
         self.badge.setText("<br>".join(rows))
         self.position()
         self.badge.show()
         self.badge.raise_()
         normal = (-(b[1] - a[1]) / length, (b[0] - a[0]) / length)
         offset, tick = widget_px(self.owner, 12) / zoom, widget_px(self.owner, 4) / zoom
-        for index, (start, end, color) in enumerate(((a, p, "#0284c7"), (p, b, "#a855f7"))):
+        if profile is not None:
+            offset += profile[1]
+        for index, (start, end, color) in enumerate(runs):
             path = QPainterPath()
             path.moveTo(start[0] + normal[0] * offset, start[1] + normal[1] * offset)
             path.lineTo(end[0] + normal[0] * offset, end[1] + normal[1] * offset)

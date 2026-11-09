@@ -109,6 +109,30 @@ def endpoint_data(shape):
     return [(point_at(shape, t), (math.cos(start+sweep*t)*sign, math.sin(start+sweep*t)*sign)) for t in (0, 1)]
 
 
+def aperture_profile(item, lines):
+    """Physical depth relative to the opening's stable supporting reference face."""
+    dx, dy = item['x2']-item['x1'], item['y2']-item['y1']
+    length = math.hypot(dx, dy)
+    ux, uy, nx, ny = dx/length, dy/length, -dy/length, dx/length
+    offsets = [0.0]
+    for line in lines:
+        if not line.get('wall'):
+            continue
+        vx, vy = line['x2']-line['x1'], line['y2']-line['y1']
+        if abs(vx*uy-vy*ux) > EPS*math.hypot(vx, vy):
+            continue
+        off = (line['x1']-item['x1'])*nx+(line['y1']-item['y1'])*ny
+        along = sorted((line['x'+s]-item['x1'])*ux+(line['y'+s]-item['y1'])*uy for s in ('1', '2'))
+        if abs(off) > EPS or along[1] <= EPS or along[0] >= length-EPS:
+            continue
+        if line['wall']['side'] == 0:
+            offsets.extend((-line['wall']['width']/2, line['wall']['width']/2))
+        else:
+            wx, wy = normal(line, line['wall']['side'])
+            offsets.append((wx*nx+wy*ny)*line['wall']['width'])
+    return (min(offsets), max(offsets)) if len(offsets) > 1 else None
+
+
 def aperture_channels(lines, annotations):
     """Cut the complete physical depth, including an opposite shared wall face."""
     channels = []
@@ -118,25 +142,10 @@ def aperture_channels(lines, annotations):
         dx, dy = item["x2"]-item["x1"], item["y2"]-item["y1"]
         length = math.hypot(dx, dy)
         ux, uy, nx, ny = dx/length, dy/length, -dy/length, dx/length
-        offsets = [0.0]
-        for line in lines:
-            if not line.get("wall"):
-                continue
-            vx, vy = line["x2"]-line["x1"], line["y2"]-line["y1"]
-            if abs(vx*uy-vy*ux) > EPS*math.hypot(vx, vy):
-                continue
-            off = (line["x1"]-item["x1"])*nx+(line["y1"]-item["y1"])*ny
-            along = sorted((line["x"+s]-item["x1"])*ux+(line["y"+s]-item["y1"])*uy for s in ("1", "2"))
-            if abs(off) > EPS or along[1] < -EPS or along[0] > length+EPS:
-                continue
-            if line["wall"]["side"] == 0:
-                offsets.extend((-line["wall"]["width"]/2, line["wall"]["width"]/2))
-            else:
-                wx, wy = normal(line, line["wall"]["side"])
-                offsets.append((wx*nx+wy*ny)*line["wall"]["width"])
-        if len(offsets) == 1:
+        profile = aperture_profile(item, lines)
+        if profile is None:
             continue
-        low, high = min(offsets)-EPS, max(offsets)+EPS
+        low, high = profile[0]-EPS, profile[1]+EPS
         points = [(item["x1"]+ux*t+nx*d, item["y1"]+uy*t+ny*d)
                   for t, d in ((0, low), (length, low), (length, high), (0, high))]
         channels.append(polygon(points))

@@ -38,7 +38,7 @@ class VectorPlanSource:
                 continue
             commands.append((curve_path(curve), QPen(QColor(curve["color"]), 2), QBrush(Qt.BrushStyle.NoBrush)))
         for item in annotations:
-            for path, dashed in annotation_parts(item):
+            for path, dashed in annotation_parts(item, lines):
                 commands.append((path, annotation_pen(item, dashed=dashed), annotation_brush(item)))
             if item.get("number") or item.get("ap_label"):
                 commands.append((SymbolNumber(item), None, None))
@@ -66,7 +66,7 @@ class VectorPlanSource:
                 left, top, right, bottom = curve_bounds(curve)
                 if min(left, top) < -1e-7 or right > size.width() + 1e-7 or bottom > size.height() + 1e-7:
                     raise ValueError("Layer curve is outside the sheet")
-            if any(not annotation_fits(a, bounds) for a in state["annotations"]):
+            if any(not annotation_fits(a, bounds, state["segments"] or []) for a in state["annotations"]):
                 raise ValueError("Layer annotation is outside the sheet")
             source = cls(size, state["segments"] or [], state["curves"], state["labels"], state["annotations"])
             if layer.get("visible", True):

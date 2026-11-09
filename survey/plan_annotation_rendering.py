@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QGraphicsPathItem
 from survey.plan_objects import FREE_ANNOTATIONS, object_local_vertices, object_is_round
 
 
-def annotation_parts(item):
+def annotation_parts(item, lines=()):
     path = QPainterPath()
     arcs = QPainterPath()
     if item["kind"] in FREE_ANNOTATIONS:
@@ -43,28 +43,40 @@ def annotation_parts(item):
         return [(path, True)]
     length = math.hypot(item["x2"] - item["x1"], item["y2"] - item["y1"])
     side = item.get("side", 1)
-    if item["kind"] == "window":
-        depth = max(3, length * .04)
-        path.addRect(0, -depth, length, depth * 2)
-        path.moveTo(0, 0)
-        path.lineTo(length, 0)
-    elif item.get("variant") == "frame":
-        depth = max(3, length * .04)
+    from survey.wall_geometry import aperture_profile
+    profile = aperture_profile(item, lines)
+    depth = max(3, length * .04)
+    low, high = profile if profile is not None else (-depth, depth)
+    center = (low + high) / 2
+    if profile is not None:
+        path.setFillRule(Qt.FillRule.WindingFill)
+
+    def jambs():
         jamb = min(length / 4, max(1, length * .02))
-        path.addRect(0, -depth, jamb, depth * 2)
-        path.addRect(length - jamb, -depth, jamb, depth * 2)
+        path.addRect(0, low, jamb, high-low)
+        path.addRect(length-jamb, low, jamb, high-low)
+
+    if item["kind"] == "window":
+        path.addRect(0, low, length, high-low)
+        path.moveTo(0, center)
+        path.lineTo(length, center)
+    elif item.get("variant") == "frame":
+        jambs()
     elif item.get("variant") == "sliding":
-        depth = max(3, length * .04)
-        path.addRect(0, -depth, length * .6, depth)
-        path.addRect(length * .4, 0, length * .6, depth)
+        if profile is not None:
+            jambs()
+        path.addRect(0, low, length * .6, center-low)
+        path.addRect(length * .4, center, length * .6, high-center)
     else:
+        if profile is not None:
+            jambs()
         def leaf(origin, radius, direction):
-            path.moveTo(origin, 0)
-            path.lineTo(origin, side * radius)
-            arcs.moveTo(origin + direction * radius, 0)
+            path.moveTo(origin, center)
+            path.lineTo(origin, center + side * radius)
+            arcs.moveTo(origin + direction * radius, center)
             k = .5522847498307936
-            arcs.cubicTo(origin + direction * radius, side * radius * k,
-                         origin + direction * radius * k, side * radius, origin, side * radius)
+            arcs.cubicTo(origin + direction * radius, center + side * radius * k,
+                         origin + direction * radius * k, center + side * radius, origin, center + side * radius)
         if item.get("variant") == "double":
             leaf(0, length / 2, 1)
             leaf(length, length / 2, -1)
@@ -79,9 +91,12 @@ def annotation_parts(item):
     return parts
 
 
-def annotation_path(item):
+def annotation_path(item, lines=()):
     path = QPainterPath()
-    for part, _dashed in annotation_parts(item):
+    parts = annotation_parts(item, lines)
+    if parts:
+        path.setFillRule(parts[0][0].fillRule())
+    for part, _dashed in parts:
         path.addPath(part)
     return path
 
@@ -96,18 +111,18 @@ def annotation_pen(item, color=None, dashed=None):
     return pen
 
 
-def annotation_fits(item, bounds):
+def annotation_fits(item, bounds, lines=()):
     # Horizontal/vertical marker paths have a zero-height/width bounding rect.
     # QRectF.contains(rect) rejects these even when all points are on the sheet.
-    rect = annotation_path(item).boundingRect()
+    rect = annotation_path(item, lines).boundingRect()
     return (rect.left() >= bounds.left() - 1e-7 and rect.top() >= bounds.top() - 1e-7
             and rect.right() <= bounds.right() + 1e-7 and rect.bottom() <= bounds.bottom() + 1e-7)
 
 
-def annotation_item(annotation, color=None):
-    item = QGraphicsPathItem(annotation_path(annotation))
+def annotation_item(annotation, color=None, lines=()):
+    item = QGraphicsPathItem(annotation_path(annotation, lines))
     item.setPen(QPen(Qt.PenStyle.NoPen))
-    for path, dashed in annotation_parts(annotation):
+    for path, dashed in annotation_parts(annotation, lines):
         child = QGraphicsPathItem(path, item)
         child.setPen(annotation_pen(annotation, color, dashed))
         child.setBrush(annotation_brush(annotation))
@@ -126,13 +141,13 @@ def annotation_brush(item):
     return QBrush(QColor(item["fill"])) if item["kind"] in FREE_ANNOTATIONS and item.get("fill") else QBrush(Qt.BrushStyle.NoBrush)
 
 
-def render_annotations(image, annotations):
+def render_annotations(image, annotations, lines=()):
     native = QImage(image.tobytes("raw", "RGB"), image.width, image.height,
                     image.width * 3, QImage.Format.Format_RGB888).copy()
     painter = QPainter(native)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
     for item in annotations:
-        for path, dashed in annotation_parts(item):
+        for path, dashed in annotation_parts(item, lines):
             painter.setPen(annotation_pen(item, dashed=dashed))
             painter.setBrush(annotation_brush(item))
             painter.drawPath(path)
