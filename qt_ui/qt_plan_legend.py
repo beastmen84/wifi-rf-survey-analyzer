@@ -1,4 +1,4 @@
-"""Automatic symbol tables: editable descriptions and Draw Plan-only history."""
+"""Automatic symbol tables and editable descriptions for drawn/imported plans."""
 from copy import deepcopy
 
 from PySide6.QtCore import Qt
@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QDialog, QDialogBut
     QHeaderView, QLabel, QMessageBox, QPushButton, QTableWidget, QTableWidgetItem, QTabWidget, QVBoxLayout,
     QStyledItemDelegate, QLineEdit, QAbstractItemDelegate)
 from survey.plan_layers import read_layers
-from survey.plan_mode import is_drawn_plan
+from survey.plan_mode import supports_plan_annotations
 from survey.plan_symbols import legend_tables, symbols, sequences
 from survey.plan_objects import NUMBERED_SYMBOLS
 from survey.rack_inventory import rack_label
@@ -27,7 +27,7 @@ def finish_table_edit(table):
 
 
 def export_legend_tables(session):
-    if session is None or not is_drawn_plan(session.metadata):
+    if session is None or not supports_plan_annotations(session.metadata):
         return []
     return legend_tables(read_layers(session.metadata), session.get_ap_groups(), visible_only=True)
 
@@ -156,7 +156,7 @@ class PlanLegendDialog(QDialog):
 
 
 def open_plan_legend(owner):
-    if owner.session is None or not is_drawn_plan(owner.session.metadata) or owner.scan_in_progress:
+    if owner.session is None or not supports_plan_annotations(owner.session.metadata) or owner.scan_in_progress:
         return False
     dialog = None
     try:

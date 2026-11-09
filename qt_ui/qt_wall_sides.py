@@ -328,7 +328,7 @@ class WallSidesDialog(QDialog):
 
 def _review(owner, state, sides, anchor=0, *, placing=False):
     drawing = owner.plan_tools.controller
-    if not sides or not drawing.editable() or owner.scan_in_progress or drawing.wall_dialog_open:
+    if not sides or not drawing.tools.structure_available() or not drawing.editable() or owner.scan_in_progress or drawing.wall_dialog_open:
         return False
     token, session, pixmap = deepcopy(owner.session.metadata), owner.session, owner.floorplan_view.pixmap_item
     drawing.wall_dialog_open = True
@@ -366,7 +366,7 @@ def place_structure(drawing, lines=(), curves=()):
 
 def edit_wall_sides(owner, region=None):
     drawing = owner.plan_tools.controller
-    if not drawing.editable() or drawing.selection.moving or drawing.rotation.active:
+    if not drawing.tools.structure_available() or not drawing.editable() or drawing.selection.moving or drawing.rotation.active:
         return False
     state = active_layer(drawing.layer_document())['drawing']
     lines = region.lines if region else drawing.selection.selected

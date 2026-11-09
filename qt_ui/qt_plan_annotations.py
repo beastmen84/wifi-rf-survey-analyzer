@@ -208,6 +208,8 @@ class AnnotationController:
             self.items.append(item)
 
     def configure(self, kind):
+        if not self.drawing.tools.tool_allowed(kind) or not self.owner.get_px_per_meter():
+            return False
         density = self.owner.get_px_per_meter()
         template = self.templates.get(kind) or (object_default(kind, density) if kind in FREE_ANNOTATIONS else dict(id="template", kind=kind, color="#d97706" if kind == "marker" else "#334155",
             stroke=3 if kind == "marker" else 2, points=[[0, 0], [1, 1]], x1=0, y1=0, x2=density * (.9 if kind == "door" else 1.2), y2=0,

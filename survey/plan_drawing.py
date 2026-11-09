@@ -5,7 +5,7 @@ import re
 from hashlib import sha256
 
 from PIL import Image, ImageDraw
-from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
+from survey.plan_mode import is_drawn_plan
 
 PLAN_DRAWING_KEY = "plan_drawing"
 
@@ -36,8 +36,7 @@ def drawing_segments(metadata):
 
 
 def drawing_geometry(metadata):
-    generated = any(metadata.get(key) == "1" for key in
-                    (DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY))
+    generated = is_drawn_plan(metadata)
     if not generated or PLAN_DRAWING_KEY not in metadata:
         return None, []
     document = json.loads(metadata[PLAN_DRAWING_KEY])

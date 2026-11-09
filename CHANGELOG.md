@@ -7,6 +7,14 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Load Plan now offers an **Annotations** palette, editable layers and symbol/rack
+  legends after scale calibration. Text, markers, desks, numbered symbols, racks
+  and Wi-Fi AP symbols stay above the fixed source image/PDF; structure, walls,
+  doors/windows, resizing and structural fills remain Draw Plan-only. Overlays
+  survive save/reopen and undo/redo, with visible layers included in clean
+  print/JPEG and Live/HTML maps. The imported file is never rewritten or baked
+  into a generated PNG. AP Groups retains free positioning and adds explicit
+  symbol assignment in its position menu.
 - Refined Design Mode with a consistent, display-density-aware vector icon set,
   visible localized tool captions, an active-tool indicator, direct close control
   and clearer selected/disabled/keyboard-focus states. The palette scrolls on

@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QFrame, QHBoxLayout, QHeaderVi
     QLabel, QMessageBox, QPushButton, QTreeWidget, QTreeWidgetItem, QVBoxLayout)
 from app_core.settings import load_app_settings, save_app_settings
 from survey.plan_layers import PLAN_LAYERS_KEY, MAX_LAYERS, active_layer, add_layer, move_selection
-from survey.plan_mode import is_drawn_plan
+from survey.plan_mode import supports_plan_annotations
 from qt_ui.qt_theme import QT_THEMES
 
 
@@ -153,9 +153,9 @@ class LayersPanel(QFrame):
             # Never delete QTreeWidgetItems inside their native change/drop signal.
             self.refresh_timer.start(0)
             return
-        available = self.owner.session is not None and is_drawn_plan(self.owner.session.metadata)
+        available = self.owner.session is not None and supports_plan_annotations(self.owner.session.metadata)
         self.setVisible(available)
-        enabled = available and not self.owner.scan_in_progress
+        enabled = available and self.owner.floorplan_view.has_floorplan() and not self.owner.scan_in_progress
         self.body.setEnabled(enabled)
         for action, button in self.history_buttons.items():
             button.setEnabled(enabled and bool(getattr(self.drawing, action + "_stack")))
@@ -200,11 +200,11 @@ class LayersPanel(QFrame):
     def update_selection(self):
         d = self.drawing
         has_selection = d.selection.has_selection() or bool(d.annotation.selected or d.annotation.selected_labels)
-        self.move_button.setEnabled(self.owner.session is not None and is_drawn_plan(self.owner.session.metadata) and not self.owner.scan_in_progress
+        self.move_button.setEnabled(self.owner.session is not None and supports_plan_annotations(self.owner.session.metadata) and not self.owner.scan_in_progress
             and has_selection and d.editable() and len(d.layer_document()["layers"]) > 1)
 
     def commit(self, document, history=True, defer=False):
-        if self.owner.session is None or not is_drawn_plan(self.owner.session.metadata) or self.owner.scan_in_progress:
+        if self.owner.session is None or not supports_plan_annotations(self.owner.session.metadata) or self.owner.scan_in_progress:
             return False
         self.in_tree_signal = defer
         try:

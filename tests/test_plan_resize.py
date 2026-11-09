@@ -161,14 +161,14 @@ def test_invalid_dimensions_cannot_change_plan(editor,size):
         resize_canvas(owner,size)
 
 
-def test_controls_draw_only_and_legend_in_analysis_header(editor):
+def test_resize_draw_only_and_shared_legend_in_analysis_header(editor):
     owner,_drawing = editor
     assert not owner.resize_plan_button.isHidden()
     assert owner.legend_button.parentWidget() == owner.analysis_section_label.parentWidget()
     assert owner.resize_plan_button.parentWidget() == owner.project_section_label.parentWidget()
     owner.session.metadata[PLAN_MODE_KEY] = LOAD_PLAN
     owner.refresh_session_labels()
-    assert owner.resize_plan_button.isHidden() and owner.legend_button.isHidden()
+    assert owner.resize_plan_button.isHidden() and not owner.legend_button.isHidden()
     assert not open_plan_resize(owner)
 
 

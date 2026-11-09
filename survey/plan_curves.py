@@ -4,7 +4,7 @@ import math
 import re
 from copy import deepcopy
 
-from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
+from survey.plan_mode import is_drawn_plan
 
 PLAN_CURVES_KEY = "plan_curves"
 TAU = 2 * math.pi
@@ -87,7 +87,7 @@ def validate_curves(curves):
 
 
 def drawing_curves(metadata):
-    if not any(metadata.get(key) == "1" for key in (DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY)):
+    if not is_drawn_plan(metadata):
         return None
     if PLAN_CURVES_KEY not in metadata:
         return []

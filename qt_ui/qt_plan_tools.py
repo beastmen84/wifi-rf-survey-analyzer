@@ -5,7 +5,7 @@ from PySide6.QtGui import QColor, QShortcut, QKeySequence
 from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout,
                               QCheckBox, QToolButton, QSizePolicy, QScrollArea, QWidget)
 
-from survey.plan_mode import is_drawn_plan
+from survey.plan_mode import is_drawn_plan, is_loaded_plan, supports_plan_annotations
 from qt_ui.qt_rectangle_design import RectangleDesignController
 from survey.plan_objects import FREE_ANNOTATIONS, object_is_round
 from app_core.plan_preferences import tool_colors, save_tool_colors
@@ -166,7 +166,17 @@ class PlanToolsOverlay(QFrame):
         session = self.owner.session
         return bool(session and not self.drawing_error and self.owner.get_px_per_meter()
                     and self.owner.floorplan_view.has_floorplan() and
-                    is_drawn_plan(session.metadata))
+                    supports_plan_annotations(session.metadata))
+
+    def structure_available(self):
+        return self.available() and is_drawn_plan(self.owner.session.metadata)
+
+    def tool_allowed(self, tool):
+        if self.owner.session is None:
+            return False
+        return (is_drawn_plan(self.owner.session.metadata)
+                or tool in (None, "text", "marker", *FREE_ANNOTATIONS,
+                            "annotation_eraser", "annotation_select"))
 
     def sync(self):
         self.drawing_error = False
@@ -176,16 +186,19 @@ class PlanToolsOverlay(QFrame):
             self.drawing_error = True
             self.owner.status.showMessage(self.owner.tr("rectangle_invalid_drawing"))
         tr = self.owner.tr
-        self.toggle_button.setText(tr("blank_tools"))
-        self.toggle_button.setToolTip(tr("blank_tools_hint"))
-        self.header.setText(tr("blank_tools"))
+        loaded = self.owner.session is not None and is_loaded_plan(self.owner.session.metadata)
+        title = tr("annotation_group" if loaded else "blank_tools")
+        self.toggle_button.setText(title)
+        self.toggle_button.setToolTip(tr("loaded_plan_scale_hint" if loaded and not self.owner.get_px_per_meter()
+                                       else "loaded_plan_annotations_hint" if loaded else "blank_tools_hint"))
+        self.header.setText(title)
         self.close_button.setToolTip(tr("close"))
         self.close_button.setAccessibleName(tr("close"))
         self.close_button.setIcon(self.icon("close", 16))
         self.close_button.setIconSize(QSize(self.owner.spx(16), self.owner.spx(16)))
         self.toggle_button.setIcon(self.icon("edit", 18))
         self.toggle_button.setIconSize(QSize(self.owner.spx(18), self.owner.spx(18)))
-        self.scroll.setAccessibleName(tr("blank_tools"))
+        self.scroll.setAccessibleName(title)
         self.structure_heading.setText(tr("annotation_structure"))
         self.annotation_heading.setText(tr("annotation_group"))
         self.actions_heading.setText(tr("annotation_controls"))
@@ -208,7 +221,7 @@ class PlanToolsOverlay(QFrame):
         available = self.available()
         if not available or self.owner.scan_in_progress or self.owner.tabs.currentIndex() != 0:
             self.set_open(False)
-        self.toggle_button.setVisible(available)
+        self.toggle_button.setVisible(available or (loaded and self.owner.floorplan_view.has_floorplan()))
         self.toggle_button.setEnabled(available and not self.owner.scan_in_progress)
         self.update_tool_state()
         self.position_controls()
@@ -253,7 +266,7 @@ class PlanToolsOverlay(QFrame):
         self.select_tool("rectangle")
 
     def select_tool(self, tool):
-        if tool is not None and not self.controller.editable():
+        if not self.tool_allowed(tool) or (tool is not None and (not self.available() or not self.controller.editable())):
             return
         self.controller.cancel()
         if tool in ("marker", "door", "window", *FREE_ANNOTATIONS) and not self.controller.annotation.configure(tool):
@@ -264,6 +277,15 @@ class PlanToolsOverlay(QFrame):
         self.position_controls()
 
     def update_tool_state(self):
+        drawn = self.owner.session is not None and is_drawn_plan(self.owner.session.metadata)
+        self.structure_heading.setVisible(drawn)
+        self.annotation_heading.setVisible(drawn)
+        for button in (self.rectangle_button, self.line_button, self.circle_button, self.arc_button,
+                       self.eraser_button, self.select_button, self.wall_button, self.color_button):
+            button.setVisible(drawn)
+        if self.active_tool is not None and not self.tool_allowed(self.active_tool):
+            self.controller.cancel()
+            self.active_tool = None
         shared = self.include_annotations.isChecked()
         self.include_annotations.setText(self.owner.tr('selection_include_annotations'))
         self.include_annotations.setVisible(self.open and self.active_tool == 'select')
@@ -272,7 +294,8 @@ class PlanToolsOverlay(QFrame):
         self.select_button.setToolTip(self.owner.tr('selection_shared' if shared else 'annotation_select_structure'))
         self.select_button.setAccessibleName(self.owner.tr('selection_shared' if shared else 'annotation_select_structure'))
         for tool, button in self.annotation_buttons.items():
-            button.setEnabled(self.open)
+            button.setVisible(self.tool_allowed(tool))
+            button.setEnabled(self.open and self.tool_allowed(tool))
             button.setChecked(self.open and self.active_tool == tool)
             text = self.owner.tr("annotation_" + {"annotation_select": "select", "annotation_eraser": "eraser"}.get(tool, tool))
             button.setToolTip(text)
@@ -281,7 +304,7 @@ class PlanToolsOverlay(QFrame):
                              ("circle", self.circle_button), ("arc", self.arc_button),
                              ("text", self.text_button),
                              ("eraser", self.eraser_button), ("select", self.select_button)):
-            button.setEnabled(self.open)
+            button.setEnabled(self.open and self.tool_allowed(tool))
             button.setChecked(self.open and self.active_tool == tool)
         self.snap_button.setEnabled(self.open and self.active_tool not in ("eraser", "annotation_eraser"))
         self.snap_button.setToolTip(self.owner.tr("drawing_snap_help"))
@@ -314,6 +337,8 @@ class PlanToolsOverlay(QFrame):
                "annotation_select": "annotation_selection_note", "annotation_eraser": "annotation_eraser_note",None:'design_choose_tool'}[self.active_tool]
         if self.active_tool == 'select' and shared:
             key = 'selection_shared_note'
+        if not drawn and self.active_tool is None:
+            key = "loaded_plan_choose_annotation"
         template = self.controller.annotation.templates.get(self.active_tool)
         if self.active_tool in FREE_ANNOTATIONS and template and object_is_round(template):
             key = "object_round_note"

@@ -4,7 +4,7 @@ import math
 import re
 from copy import deepcopy
 
-from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
+from survey.plan_mode import supports_plan_annotations
 from survey.plan_geometry import rotate_degrees, segment_bounds
 
 PLAN_LABELS_KEY = "plan_labels"
@@ -59,7 +59,7 @@ def validate_labels(labels):
 
 
 def drawing_labels(metadata):
-    if not any(metadata.get(key) == "1" for key in (DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY)):
+    if not supports_plan_annotations(metadata):
         return None
     if PLAN_LABELS_KEY not in metadata:
         return []

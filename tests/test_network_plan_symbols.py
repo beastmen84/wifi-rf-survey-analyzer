@@ -77,7 +77,7 @@ def test_legend_numbering_exhaustion_is_atomic(editor):
     dialog.deleteLater()
 
 
-def test_ap_symbol_entry_point_rejects_loaded_plans(window):
+def test_ap_symbol_entry_point_rejects_missing_background_and_scale(window):
     from qt_ui.qt_ap_symbol_binding import assign_ap_symbol
     from survey.store import SurveySession
     window.session = SurveySession()
@@ -251,14 +251,16 @@ def test_draw_ap_action_uses_symbol_dialog_and_can_convert_old_coordinates(edito
             assert app.session.get_ap_groups()[0]["position"] == dict(x=400, y=300)
 
 
-def test_load_plan_keeps_direct_ap_picking_and_has_no_legend(editor, tmp_path):
+def test_load_plan_keeps_direct_ap_picking_and_offers_legend(editor, tmp_path):
     app, d = editor
     source = tmp_path / "loaded.png"
     Image.new("RGB", (900, 600), "white").save(source)
     app.load_plan_file(str(source), save_metadata=True)
     app.session.set_ap_groups([ap()], update_memory=False)
     app.refresh_session_labels()
-    assert app.legend_button.isHidden() and not open_plan_legend(app) and not export_legend_tables(app.session)
+    assert not app.legend_button.isHidden() and not export_legend_tables(app.session)
+    with patch("qt_ui.qt_plan_legend.PlanLegendDialog.exec", return_value=QDialog.DialogCode.Rejected):
+        assert not open_plan_legend(app)
     with patch.object(app.floorplan_view, "start_ap_position_pick", return_value=True) as pick:
         assert app.start_ap_positioning("ap-a")
     pick.assert_called_once()

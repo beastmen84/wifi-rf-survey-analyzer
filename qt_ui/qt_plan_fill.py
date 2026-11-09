@@ -35,7 +35,7 @@ def closed_fill_paths(faces):
 
 def fill_closed_boundaries(owner, point=None):
     tools = getattr(owner, "plan_tools", None)
-    if not tools or not tools.available() or not owner.floorplan_view.boundaries_edit_active:
+    if not tools or not tools.structure_available() or not owner.floorplan_view.boundaries_edit_active:
         return False
     try:
         lines, curves = tools.controller.segments(), tools.controller.curves()

@@ -1,4 +1,4 @@
-"""Draw Plan AP assignment: choose existing apparatus, with source-plan preview."""
+"""Plan AP assignment: choose existing apparatus, with source-plan preview."""
 from copy import deepcopy
 from uuid import uuid4
 
@@ -99,8 +99,9 @@ class ApSymbolDialog(QDialog):
 
 
 def assign_ap_symbol(owner, group_id):
-    from survey.plan_mode import is_drawn_plan
-    if owner.session is None or not is_drawn_plan(owner.session.metadata) or owner.scan_in_progress:
+    from survey.plan_mode import supports_plan_annotations
+    if (owner.session is None or not supports_plan_annotations(owner.session.metadata)
+            or not owner.floorplan_view.has_floorplan() or not owner.get_px_per_meter() or owner.scan_in_progress):
         return False
     drawing = owner.plan_tools.controller
     dialog = None

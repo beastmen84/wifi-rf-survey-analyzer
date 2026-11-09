@@ -320,6 +320,18 @@ class APGroupManagerDialog(QDialog):
         from survey.plan_mode import is_drawn_plan
         if self.session is not None and is_drawn_plan(self.session.metadata):
             self.position_button.setText(self.tr("ap_symbol_assign"))
+        from survey.plan_mode import is_loaded_plan
+        self.assign_symbol_action = None
+        if self.session is not None and is_loaded_plan(self.session.metadata):
+            # Imported plans retain free AP positioning, with an explicit
+            # alternative for linking an editable symbol to a physical AP.
+            menu = QMenu(self.position_button)
+            menu.addAction(self.tr("ap_group_set_position"), self.start_positioning_for_selected_group)
+            self.assign_symbol_action = menu.addAction(self.tr("ap_symbol_assign"))
+            self.assign_symbol_action.triggered.connect(
+                lambda _checked=False: self.start_positioning_for_selected_group(use_symbol=True))
+            self.assign_symbol_action.setEnabled(bool(self.app.get_px_per_meter()))
+            self.position_button.setMenu(menu)
         self.conflict_button = QPushButton(self.tr("ap_group_conflict_details"))
         self.reset_button = QPushButton(self.tr("ap_groups_reset_auto"))
         self.save_button = QPushButton(self.tr("save"))
@@ -339,7 +351,8 @@ class APGroupManagerDialog(QDialog):
         self.delete_alias_action.triggered.connect(lambda _checked=False: self.delete_alias_for_selected_group())
         self.role_button.clicked.connect(self.prompt_role_for_selected_group)
         self.metadata_button.clicked.connect(self.open_metadata_dialog_for_selected_group)
-        self.position_button.clicked.connect(self.start_positioning_for_selected_group)
+        if self.position_button.menu() is None:
+            self.position_button.clicked.connect(self.start_positioning_for_selected_group)
         self.save_button.clicked.connect(self.save_groups)
         self.cancel_button.clicked.connect(self.reject)
 
@@ -927,6 +940,8 @@ class APGroupManagerDialog(QDialog):
         self.role_button.setEnabled(has_group)
         self.metadata_button.setEnabled(has_group)
         self.position_button.setEnabled(has_group)
+        if self.assign_symbol_action is not None:
+            self.assign_symbol_action.setEnabled(has_group and bool(self.app.get_px_per_meter()))
         self.delete_alias_action.setEnabled(bool(group and group.get("alias")))
         self.conflict_button.setEnabled(bool(group and self.group_conflicts_by_id.get(group["group_id"])))
 
@@ -1054,7 +1069,7 @@ class APGroupManagerDialog(QDialog):
             self.refresh_all_group_details()
             self.render_rows()
 
-    def start_positioning_for_selected_group(self):
+    def start_positioning_for_selected_group(self, *, use_symbol=False):
         group = self.require_selected_group()
         if group is None:
             return
@@ -1066,7 +1081,12 @@ class APGroupManagerDialog(QDialog):
         group_id = group["group_id"]
         self.persist_groups()
         self.accept()
-        self.app.start_ap_positioning(group_id)
+        if use_symbol:
+            from qt_ui.qt_ap_symbol_binding import assign_ap_symbol
+            self.app.tabs.setCurrentIndex(0)
+            assign_ap_symbol(self.app, str(group_id))
+        else:
+            self.app.start_ap_positioning(group_id)
 
     def reset_groups_to_auto(self):
         response = QMessageBox.question(

@@ -4,7 +4,7 @@ import json
 import math
 import re
 
-from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
+from survey.plan_mode import supports_plan_annotations
 from survey.planar_geometry import point_projection
 from survey.plan_objects import (FREE_ANNOTATIONS, HOSTED_ANNOTATIONS, DESK_VARIANTS,
                                  SYMBOL_VARIANTS, NUMBERED_SYMBOLS, object_vertices, object_is_round)
@@ -121,7 +121,7 @@ def annotation_points(item):
 
 
 def drawing_annotations(metadata):
-    if not any(metadata.get(k) == "1" for k in (DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY)):
+    if not supports_plan_annotations(metadata):
         return []
     if PLAN_ANNOTATIONS_KEY not in metadata:
         return []

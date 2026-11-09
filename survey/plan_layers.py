@@ -9,6 +9,7 @@ from survey.plan_labels import PLAN_LABELS_KEY, drawing_labels, validate_labels,
 from survey.plan_annotations import (PLAN_ANNOTATIONS_KEY, drawing_annotations, validate_annotations,
     encode_annotations, supported, overlaps)
 from survey.plan_curve_geometry import normalize_plan
+from survey.plan_mode import is_drawn_plan, is_loaded_plan
 
 PLAN_LAYERS_KEY = "plan_layers"
 STATE_KEYS = ("segments", "labels", "curves", "annotations")
@@ -82,10 +83,22 @@ def validate_document(document):
     return dict(version=3 if inventory else 2 if physical else 1, active=document["active"], layers=result)
 
 
+def validate_plan_document(metadata, document):
+    """Imported backgrounds accept free annotations, never editable structure."""
+    document = validate_document(document)
+    if is_loaded_plan(metadata):
+        for layer in document["layers"]:
+            state = layer["drawing"]
+            if state["segments"] or state["curves"] or any(
+                    item["kind"] in ("door", "window") for item in state["annotations"]):
+                raise ValueError("loaded_plan_annotations_only")
+    return document
+
+
 def read_layers(metadata):
     if PLAN_LAYERS_KEY in metadata:
-        return validate_document(json.loads(metadata[PLAN_LAYERS_KEY]))
-    return validate_document(dict(version=1, active="0", layers=[dict(id="0", name="Layer 0", visible=True,
+        return validate_plan_document(metadata, json.loads(metadata[PLAN_LAYERS_KEY]))
+    return validate_plan_document(metadata, dict(version=1, active="0", layers=[dict(id="0", name="Layer 0", visible=True,
                 locked=False, drawing=legacy_state(metadata))]))
 
 
@@ -100,15 +113,15 @@ def editable_layer(document):
 
 def visible_layers(metadata):
     if PLAN_LAYERS_KEY not in metadata:
-        return None
-    from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
-    return dict(generated=any(metadata.get(k) == "1" for k in
-                    (DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY)),
+        # Also composite legacy imported overlays on their original background.
+        if not is_loaded_plan(metadata) or not any(metadata.get(key) for key in (PLAN_LABELS_KEY, PLAN_ANNOTATIONS_KEY)):
+            return None
+    return dict(generated=is_drawn_plan(metadata),
                 layers=[layer for layer in read_layers(metadata)["layers"] if layer["visible"]])
 
 
 def write_layers(metadata, document):
-    document = validate_document(document)
+    document = validate_plan_document(metadata, document)
     encoded = {PLAN_LAYERS_KEY: json.dumps(document, ensure_ascii=False, separators=(",", ":"))}
     # Legacy fields always describe Layer 0, never the currently active layer.
     state = next(layer["drawing"] for layer in document["layers"] if layer["id"] == "0")

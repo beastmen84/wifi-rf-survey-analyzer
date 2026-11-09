@@ -79,7 +79,15 @@ from these software checks.
   the Wi-Fi adapter. **Draw Plan** creates a gridded sheet with configurable
   dimensions and an automatic scale; Design Mode and Layers are available.
   **Load Plan** uses an image/PDF selected during setup and requires scale
-  calibration; Design Mode and Layers are hidden and leave the full map width.
+  calibration before editing overlays. **Annotations**, **Layers** and **Legend**
+  are available above the fixed imported background: text, markers, desks,
+  numbered symbols, racks and Wi-Fi AP symbols. Structural drawing, wall editing,
+  doors/windows, Resize and structural Fill/Auto Fill remain Draw Plan-only.
+  Annotation layers keep their visibility, order, locks and undo/redo; clean
+  print/JPEG and Live/HTML maps composite visible overlays on the original plan.
+  The source image/PDF is never overwritten or replaced with a generated PNG.
+  AP Groups retains direct AP positioning and adds Assign AP symbol in its
+  position menu; the legend and rack port tables are available in both modes.
   Manual Boundaries, measurements, Live Map, Analysis and clean print/export
   remain available in both modes. The plan source is fixed for the survey:
   Project has no Load Plan action; create another survey to use a different plan.
@@ -120,7 +128,7 @@ from these software checks.
   the eraser restores its normal grid; undo restores the closed appearance.
   This grid styling stays in the survey view and is not baked into exported maps.
   The shapes are visual plan geometry; RF findings still use measured data.
-- **Layers** is a collapsible column at the right of a Draw Plan Survey, available even with
+- **Layers** is a collapsible column at the right of a Draw Plan or Load Plan Survey, available even with
   Design Mode closed. It reserves its own space beside the plan. Existing drawings
   belong to **Layer 0**, which can be renamed and locked but stays visible and
   cannot be deleted. Add up to 32 layers, rename them, toggle visibility/locking,

@@ -98,7 +98,8 @@ def test_custom_sheet_survives_save_reopen_and_plan_replacement(window, qt_app, 
     external = tmp_path / "external.png"
     Image.new("RGB", (400, 300), "white").save(external)
     window.load_plan_file(str(external), save_metadata=True)
-    assert window.plan_tools.toggle_button.isHidden() and not window.plan_tools.open
+    assert not window.plan_tools.toggle_button.isHidden() and not window.plan_tools.open
+    assert not window.plan_tools.toggle_button.isEnabled()
     assert BLANK_PLAN_WIDTH_KEY not in window.session.metadata
     assert BLANK_PLAN_HEIGHT_KEY not in window.session.metadata
 

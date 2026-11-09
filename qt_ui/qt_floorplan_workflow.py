@@ -37,7 +37,7 @@ from survey.plan_labels import PLAN_LABELS_KEY, drawing_labels, encode_labels
 from survey.plan_annotations import PLAN_ANNOTATIONS_KEY, drawing_annotations, encode_annotations
 from survey.plan_curves import PLAN_CURVES_KEY, encode_curves
 from survey.plan_layers import PLAN_LAYERS_KEY, visible_layers, read_layers, write_layers
-from survey.plan_mode import PLAN_MODE_KEY, DRAW_PLAN, LOAD_PLAN, is_drawn_plan
+from survey.plan_mode import PLAN_MODE_KEY, DRAW_PLAN, LOAD_PLAN, is_drawn_plan, is_loaded_plan
 
 
 class FloorplanWorkflowMixin:
@@ -80,6 +80,12 @@ class FloorplanWorkflowMixin:
 
     def materialize_default_floorplan(self, csv_file, transaction=None):
         if self.session is None:
+            return True
+
+        if is_loaded_plan(self.session.metadata):
+            # Imported pixels/PDF remain the source. Editable overlays stay in
+            # the survey metadata and must never be baked into a generated PNG.
+            read_layers(self.session.metadata)
             return True
 
         is_default = self.session.metadata.get(DEFAULT_FLOORPLAN_METADATA_KEY) == "1"
@@ -339,7 +345,7 @@ class FloorplanWorkflowMixin:
         if self.session is None:
             return ""
 
-        if self.session.metadata.get(GENERATED_FLOORPLAN_METADATA_KEY) != "1":
+        if not is_drawn_plan(self.session.metadata) or self.session.metadata.get(GENERATED_FLOORPLAN_METADATA_KEY) != "1":
             return ""
 
         map_file = self.session.metadata.get("map_file", "")
@@ -550,7 +556,7 @@ class FloorplanWorkflowMixin:
             )
 
     def set_boundaries_tool(self, tool):
-        if tool == "fill" and not self.plan_tools.available():
+        if tool == "fill" and not self.plan_tools.structure_available():
             return
         self.boundaries_tool = tool if tool in ("eraser", "fill") else "draw"
         self.floorplan_view.set_boundaries_tool_state(self.boundaries_tool, self.boundaries_shape)
@@ -624,7 +630,7 @@ class FloorplanWorkflowMixin:
             return
 
         active = bool(getattr(self.floorplan_view, "boundaries_edit_active", False))
-        fill_available = bool(getattr(self, "plan_tools", None) and self.plan_tools.available())
+        fill_available = bool(getattr(self, "plan_tools", None) and self.plan_tools.structure_available())
         if not fill_available and self.boundaries_tool == "fill":
             self.boundaries_tool = "draw"
             self.floorplan_view.set_boundaries_tool_state("draw", self.boundaries_shape)

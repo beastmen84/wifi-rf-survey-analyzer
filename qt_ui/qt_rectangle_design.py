@@ -32,11 +32,10 @@ from survey.plan_annotations import (PLAN_ANNOTATIONS_KEY, drawing_annotations, 
 from survey.plan_objects import FREE_ANNOTATIONS
 from survey.plan_clearances import ClearanceIndex
 from survey.plan_layers import (PLAN_LAYERS_KEY, STATE_KEYS, read_layers, active_layer, editable_layer,
-    validate_document, write_layers)
+    validate_plan_document, write_layers)
 from qt_ui.qt_clean_plan import VectorPlanSource
 from qt_ui.qt_plan_region_selection import RegionPicker
-from app_core.constants import DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY
-from survey.plan_mode import is_drawn_plan
+from survey.plan_mode import is_drawn_plan, is_loaded_plan, supports_plan_annotations
 from survey.plan_symbols import retain_sequences, reconcile_ap_positions, symbols, sequences
 from ap.groups import AP_GROUPS_METADATA_KEY, invalidate_ap_group_confirmation
 from survey.plan_symbol_rendering import SymbolNumber, SymbolNumberItem
@@ -219,7 +218,7 @@ class RectangleDesignController(QObject):
             self.document = None
         if not self.view.has_floorplan():
             return  # Scene references are reset; do not redraw into empty bounds.
-        if session and is_drawn_plan(session.metadata):
+        if session and supports_plan_annotations(session.metadata):
             self.sync_symbol_positions()
         document = tuple(session.metadata.get(key) for key in (PLAN_DRAWING_KEY, PLAN_LABELS_KEY, PLAN_CURVES_KEY, PLAN_ANNOTATIONS_KEY, PLAN_LAYERS_KEY, AP_GROUPS_METADATA_KEY)) if session else None
         if changed_scene or document != self.document:
@@ -232,7 +231,7 @@ class RectangleDesignController(QObject):
         if self.owner.session is None:
             return None
         metadata = self.owner.session.metadata
-        key = (self.owner.session, tuple(metadata.get(k) for k in
+        key = (self.owner.session, is_drawn_plan(metadata), is_loaded_plan(metadata), tuple(metadata.get(k) for k in
                (PLAN_LAYERS_KEY, PLAN_DRAWING_KEY, PLAN_LABELS_KEY, PLAN_CURVES_KEY, PLAN_ANNOTATIONS_KEY)))
         if key != self._layer_cache_key:
             self._layer_cache = read_layers(metadata)
@@ -241,7 +240,8 @@ class RectangleDesignController(QObject):
 
     def editable(self):
         try:
-            return (self.owner.session is not None and is_drawn_plan(self.owner.session.metadata)
+            return (self.owner.session is not None and supports_plan_annotations(self.owner.session.metadata)
+                    and (is_drawn_plan(self.owner.session.metadata) or self.owner.get_px_per_meter() is not None)
                     and editable_layer(self.layer_document()))
         except (ValueError, TypeError, KeyError):
             return False
@@ -317,8 +317,7 @@ class RectangleDesignController(QObject):
         self.view.set_grid_regions(self.regions.faces)
         if self.regions.limited:
             self.owner.status.showMessage(self.owner.tr("design_regions_limited"))
-        generated = self.owner.session and any(self.owner.session.metadata.get(key) == "1" for key in
-                    (DEFAULT_FLOORPLAN_METADATA_KEY, GENERATED_FLOORPLAN_METADATA_KEY))
+        generated = self.owner.session and is_drawn_plan(self.owner.session.metadata)
         layered = self.owner.session and PLAN_LAYERS_KEY in self.owner.session.metadata
         if (lines is not None or layered) and self.view.pixmap_item is not None and generated:
             white = QPixmap(self.view.pixmap_item.pixmap().size())
@@ -804,7 +803,7 @@ class RectangleDesignController(QObject):
 
     def snapshot(self):
         state = dict(segments=list(self.segments() or []), labels=self.labels(), curves=self.curves(), annotations=self.annotations())
-        if self.view.has_floorplan():
+        if self.view.has_floorplan() and is_drawn_plan(self.owner.session.metadata):
             from qt_ui.qt_plan_resize import canvas_size
             state['canvas'] = canvas_size(self.owner)
         if self.owner.session and PLAN_LAYERS_KEY in self.owner.session.metadata:
@@ -834,7 +833,7 @@ class RectangleDesignController(QObject):
                 raise ValueError("Invalid annotation placement")
             document = deepcopy(self.layer_document())
             active_layer(document)["drawing"] = dict(segments=segments, labels=labels, curves=curves, annotations=annotations)
-            document = validate_document(document)
+            document = validate_plan_document(self.owner.session.metadata, document)
             sequences(self.owner.session.metadata, document)
             VectorPlanSource.from_layers(self.view.pixmap_item.pixmap().size(), document["layers"])
         except ValueError as error:
@@ -859,7 +858,7 @@ class RectangleDesignController(QObject):
         encoded_annotations = encode_annotations(annotations)
         encoded_labels = encode_labels(labels)
         encoded_curves = encode_curves(curves)
-        if PLAN_LAYERS_KEY in self.owner.session.metadata:
+        if PLAN_LAYERS_KEY in self.owner.session.metadata or is_loaded_plan(self.owner.session.metadata):
             document = deepcopy(self.layer_document())
             active_layer(document)["drawing"] = dict(segments=segments, curves=curves, labels=labels, annotations=annotations)
             write_layers(self.owner.session.metadata, document)
@@ -897,9 +896,10 @@ class RectangleDesignController(QObject):
         self.owner.refresh_session_labels()
 
     def change_layers(self, document, history=True):
-        if self.owner.session is None or not is_drawn_plan(self.owner.session.metadata) or self.owner.scan_in_progress:
+        if (self.owner.session is None or not supports_plan_annotations(self.owner.session.metadata)
+                or not self.view.has_floorplan() or self.owner.scan_in_progress):
             return False
-        document = validate_document(document)
+        document = validate_plan_document(self.owner.session.metadata, document)
         sequences(self.owner.session.metadata, document)
         VectorPlanSource.from_layers(self.view.pixmap_item.pixmap().size(), document["layers"])
         previous = self.snapshot()

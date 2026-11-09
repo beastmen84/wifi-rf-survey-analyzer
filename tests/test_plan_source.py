@@ -78,7 +78,7 @@ def test_nested_plan_picker_keeps_theme_and_cancel_keeps_selection(window, qt_ap
 
 
 @pytest.mark.parametrize("source", ["png", "pdf"])
-def test_load_plan_initial_creation_is_uncalibrated_readonly_and_keeps_manual_boundaries(window, tmp_path, source):
+def test_load_plan_initial_creation_needs_annotation_scale_and_keeps_manual_boundaries(window, tmp_path, source):
     path = tmp_path / ("source." + source)
     if source == "png":
         Image.new("RGB", (400, 300), "#abcdef").save(path)
@@ -98,10 +98,12 @@ def test_load_plan_initial_creation_is_uncalibrated_readonly_and_keeps_manual_bo
     assert "px_per_meter" not in window.session.metadata and not window.session.dirty
     assert window.session.capture_adapter() == RECEIVER
     assert window.floorplan_view.has_floorplan()
-    assert window.plan_tools.toggle_button.isHidden() and window.layers_panel.isHidden()
+    assert not window.plan_tools.toggle_button.isHidden() and not window.layers_panel.isHidden()
+    assert not window.plan_tools.toggle_button.isEnabled()
+    assert window.plan_tools.toggle_button.toolTip() == window.tr("loaded_plan_scale_hint")
+    assert not window.legend_button.isHidden()
     assert not window.plan_tools.controller.editable()
     before = deepcopy(window.session.metadata)
-    window.layers_panel.add()
     window.plan_tools.set_open(True)
     assert not window.plan_tools.open and window.session.metadata == before
     window.set_boundaries_mode_enabled(True, show_status=False)
@@ -163,9 +165,10 @@ def test_source_and_calibration_survive_save_reopen_without_prompting(window, tm
     choose.assert_not_called()
     assert window.session.metadata["px_per_meter"] == scale
     assert is_drawn_plan(window.session.metadata) == (mode == "draw")
-    assert window.layers_panel.isHidden() == (mode == "load")
-    assert window.plan_tools.toggle_button.isHidden() == (mode == "load")
+    assert not window.layers_panel.isHidden()
+    assert not window.plan_tools.toggle_button.isHidden()
     if mode == "load":
+        assert window.plan_tools.toggle_button.text() == window.tr("annotation_group")
         assert not path.with_suffix(".png").exists()
         assert window.floorplan_view.pixmap_item.pixmap().toImage().pixelColor(100, 100).name() == "#abcdef"
 
