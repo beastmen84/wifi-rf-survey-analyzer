@@ -172,7 +172,9 @@ class PlanEraserController:
         curves = self.drawing.curves()
         self.cancel()
         if targets:
-            from survey.wall_editing import remove_wall_faces
-            self.drawing.apply_edit(remove_wall_faces(lines, targets),
-                curves=[curve for index, curve in enumerate(curves) if len(lines) + index not in targets])
+            from survey.wall_editing import remove_wall_faces, retained_wall_annotations
+            kept_curves = [curve for index, curve in enumerate(curves) if len(lines) + index not in targets]
+            segments = remove_wall_faces(lines, targets, curves=curves, remaining_curves=kept_curves)
+            self.drawing.apply_edit(segments, curves=kept_curves,
+                annotations=retained_wall_annotations(self.drawing.annotations(), lines, segments))
         return True

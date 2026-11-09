@@ -437,11 +437,13 @@ class PlanSelectionController:
     def delete_selected(self):
         if not self.has_selection() or self.drawing.rotation.active:
             return False
-        from survey.wall_editing import remove_wall_faces
-        segments = remove_wall_faces(self.lines, self.selected)
+        from survey.wall_editing import remove_wall_faces, retained_wall_annotations
         labels = [label for index, label in enumerate(self.drawing.text.labels) if index not in self.selected_labels]
-        curves = [curve for index, curve in enumerate(self.drawing.curves()) if index not in self.selected_curves]
-        annotations = [a for i,a in enumerate(self.drawing.annotations()) if i not in self.selected_annotations and supported(a,segments)]
+        previous_curves = self.drawing.curves()
+        curves = [curve for index, curve in enumerate(previous_curves) if index not in self.selected_curves]
+        segments = remove_wall_faces(self.lines, self.selected, curves=previous_curves, remaining_curves=curves)
+        annotations = retained_wall_annotations(
+            [a for i,a in enumerate(self.drawing.annotations()) if i not in self.selected_annotations], self.lines, segments)
         self.cancel()
         return self.drawing.apply_edit(segments, labels, curves,annotations=annotations)
 

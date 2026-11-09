@@ -76,7 +76,52 @@ def paired_lines(lines, index):
     return tuple(sorted(result))
 
 
-def remove_wall_faces(lines, selected):
+def unused_room_faces(before, after, curves=(), remaining_curves=None):
+    """Discard a former room face only when its retained twin still bounds a room."""
+    pairs = {i: paired_lines(after, i) for i, line in enumerate(after) if line.get("wall")}
+    pairs = {i: pair for i, pair in pairs.items() if len(pair) > 1}
+    if not pairs:
+        return after
+    from survey.plan_faces import RegionPicker
+    old = RegionPicker(before, curves)
+    current = RegionPicker(after, curves if remaining_curves is None else remaining_curves)
+    if old.limited or current.limited:
+        return after
+    formerly_owned = {id(before[i]) for _path, room in old.records for i in room.lines}
+    owned = {i for _path, room in current.records for i in room.lines}
+    obsolete = {i for i, pair in pairs.items() if i not in owned and id(after[i]) in formerly_owned
+                and any(j in owned for j in pair)}
+    return [line for i, line in enumerate(after) if i not in obsolete]
+
+
+def retained_wall_annotations(items, before, after):
+    """Rehost surviving openings from a discarded face onto its physical twin."""
+    from survey.plan_annotations import annotation_points, support_intervals, supported
+    result = []
+    for item in items:
+        if supported(item, after):
+            result.append(item)
+            continue
+        a, b = annotation_points(item)
+        length = math.dist(a, b)
+        nx, ny = -(b[1]-a[1])/length, (b[0]-a[0])/length
+        hosts = [line for line in before if any(hi-lo > EPS for lo, hi in support_intervals(a, b, [line]))]
+        replacement = None
+        for line in after:
+            if not any(relation(host, line) for host in hosts):
+                continue
+            offset = (line["x1"]-a[0])*nx+(line["y1"]-a[1])*ny
+            candidate = dict(item, x1=a[0]+nx*offset, y1=a[1]+ny*offset,
+                             x2=b[0]+nx*offset, y2=b[1]+ny*offset)
+            if supported(candidate, after):
+                replacement = candidate
+                break
+        if replacement is not None:
+            result.append(replacement)
+    return result
+
+
+def remove_wall_faces(lines, selected, *, curves=(), remaining_curves=None):
     if not any(line.get("wall") for line in lines):
         return [line for i, line in enumerate(lines) if i not in selected]
     pieces, sources, _protected = split_faces(lines)
@@ -112,4 +157,4 @@ def remove_wall_faces(lines, selected):
                     cap["color"] = template["color"]
                     copy_wall(template, cap, reverse)
                 caps.append(cap)
-    return remaining+caps
+    return unused_room_faces(pieces, remaining+caps, curves, remaining_curves)

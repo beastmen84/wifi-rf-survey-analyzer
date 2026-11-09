@@ -1,0 +1,16 @@
+{
+  "before": {
+    "segments": 7,
+    "orphan_face_present": true,
+    "room_areas": [
+      40000.0
+    ]
+  },
+  "after": {
+    "segments": 4,
+    "orphan_face_present": false,
+    "room_areas": [
+      40000.0
+    ]
+  }
+}

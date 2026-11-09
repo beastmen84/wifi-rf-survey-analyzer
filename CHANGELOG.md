@@ -7,6 +7,12 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Deleting an adjacent room removes its unused internal reference face from the
+  shared wall when the opposite face still bounds the retained room. The wall's
+  thickness and material remain intact. Doors/windows on that wall retain their
+  physical position through face reassignment; selection deletion, erasing,
+  undo/redo and saved plans use the same cleanup.
+
 - Exact Line placement measures useful length beyond physical attachment walls:
   the hidden end portion is added internally while preserving the snapped
   reference and direction. A 1.30 m line behind a 0.10 m wall therefore stores

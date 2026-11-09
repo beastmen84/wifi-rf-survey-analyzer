@@ -152,7 +152,12 @@ def test_move_away_rejoins_old_and_moved_lines_with_one_undo_action(editor):
     assert drawing.segments() == original  # Rejoining is committed with the move.
     QTest.mouseClick(app.floorplan_view.viewport(), Qt.MouseButton.RightButton, pos=target)
     result = drawing.segments()
-    assert len(result) == 2 and line(100, 200, 500, 200) in result
+    assert len(result) == 2
+    reference = next(item for item in result if item["x1"] == 100 and item["x2"] == 500)
+    assert reference["color"] == "#123456"
+    # Mapping native mouse coordinates can introduce subpixel floating-point
+    # noise at different display scales; a visible displacement must still fail.
+    assert (reference["y1"], reference["y2"]) == pytest.approx((200, 200), rel=0, abs=1e-7)
     assert len(selection.selected) == 1 and not captures
     assert (300, 200) not in drawing.snapper.vertices
     assert len(drawing.undo_stack) == count + 1
@@ -164,7 +169,7 @@ def test_move_away_rejoins_old_and_moved_lines_with_one_undo_action(editor):
     app.plan_tools.eraser_button.click()
     move(app.floorplan_view, point(app, 200, 200))
     assert len(drawing.eraser.targets) == 1
-    assert drawing.eraser.lines[drawing.eraser.targets[0]] == line(100, 200, 500, 200)
+    assert drawing.eraser.lines[drawing.eraser.targets[0]] == reference
 
 
 def test_rotating_branch_away_rejoins_straight_line(editor):
