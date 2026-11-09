@@ -1,0 +1,7 @@
+{
+  "command": ".venv315/Scripts/python.exe -m pytest -q --tb=short --show-capture=no",
+  "exit_code": 0,
+  "started": "2026-11-09T09:04:20.4815098+03:00",
+  "wall_seconds": 280.26,
+  "finished": "2026-11-09T09:09:00.7408639+03:00"
+}

@@ -7,6 +7,11 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Follow-up checks on Load Plan fixed direct placement of APs bound to symbols:
+  the symbol and its AP now move together in one undoable operation, respecting
+  locked/hidden layers and active capture. Free AP positioning closes annotation
+  tools before accepting the click. JPEG export rejects source-file collisions,
+  including generated legend filenames, and unpainted PDF margins render white.
 - Load Plan now offers an **Annotations** palette, editable layers and symbol/rack
   legends after scale calibration. Text, markers, desks, numbered symbols, racks
   and Wi-Fi AP symbols stay above the fixed source image/PDF; structure, walls,

@@ -65,6 +65,10 @@ le scritte inglesi grigie appartengono allo sfondo importato, non all'editor.
 
 ## Verifica e limiti
 
+Il successivo [audit di controllo](CONTROL_AUDIT_2026_11_09.md) documenta le
+correzioni aggiuntive a posizione AP, protezione della sorgente durante l'export
+e margini PDF, oltre ai nuovi risultati di verifica.
+
 - Suite completa finale su Windows/Qt nativo: **2.393 test e 479 subtest passati**,
   186,22 s. `git diff --check` e controllo sintattico dei file Python passati.
 - **96 configurazioni UI passate**: PNG/PDF × EN/IT/FR/ES × quattro temi ×

@@ -1,0 +1,24 @@
+{
+  "python": "3.15.2",
+  "python_files_parsed": 236,
+  "spec_syntax": "passed",
+  "spec_resource_paths": [
+    "main.py",
+    "app_core/version.py",
+    "images",
+    "images/app_icon.ico",
+    "LICENSE",
+    "THIRD_PARTY_LICENSES",
+    "README.md",
+    "CHANGELOG.md",
+    "docs/AUDIT_1_3_0.md",
+    "docs/AUDIT_1_1_0.md",
+    "docs/assets/readme_start.png",
+    "requirements.txt",
+    "requirements-dev.txt",
+    "requirements-lock.txt"
+  ],
+  "resources_exist": true,
+  "pip_check": "No broken requirements found.",
+  "exe_built": false
+}

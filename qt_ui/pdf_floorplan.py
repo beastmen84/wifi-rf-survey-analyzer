@@ -3,8 +3,8 @@
 from io import BytesIO
 
 from PIL import Image
-from PySide6.QtCore import QBuffer, QIODevice, QSize
-from PySide6.QtGui import QImage
+from PySide6.QtCore import QBuffer, QIODevice, QSize, Qt
+from PySide6.QtGui import QImage, QPainter
 from PySide6.QtPdf import QPdfDocument
 
 
@@ -28,7 +28,16 @@ def render_pdf_page_to_qimage(file_path, page_index=0, scale=PDF_RENDER_SCALE):
         image = document.render(page_index, target_size)
         if image.isNull():
             raise ValueError(f"Unable to render PDF floor plan: {file_path}")
-        return image.convertToFormat(QImage.Format.Format_RGB888).copy()
+        # QtPdf leaves unpainted areas transparent. Dropping their alpha would
+        # turn paper margins black in both the editor and Live/HTML exports.
+        paper = QImage(image.size(), QImage.Format.Format_RGB888)
+        paper.fill(Qt.GlobalColor.white)
+        painter = QPainter(paper)
+        try:
+            painter.drawImage(0, 0, image)
+        finally:
+            painter.end()
+        return paper
     finally:
         document.close()
 

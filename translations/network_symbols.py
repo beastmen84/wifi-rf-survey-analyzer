@@ -1,6 +1,11 @@
 """Draw Plan network apparatus, stable references and automatic legends."""
 LANGUAGES = ("en", "it", "fr", "es")
 TEXT = {
+    "ap_symbol_layer_readonly": (
+        "The AP symbol is on a hidden or locked layer. Show and unlock its layer before moving it.",
+        "Il simbolo AP è su un livello nascosto o bloccato. Mostra e sblocca il livello prima di spostarlo.",
+        "Le symbole AP est sur un calque masqué ou verrouillé. Affichez et déverrouillez ce calque avant de le déplacer.",
+        "El símbolo AP está en una capa oculta o bloqueada. Muestra y desbloquea la capa antes de moverlo."),
     "plan_legend": ("Legend", "Legenda", "Légende", "Leyenda"),
     "symbol_numbered_group": ("Numbered markers", "Marcatori numerati", "Repères numérotés", "Marcadores numerados"),
     "symbol_network_group": ("Network equipment", "Apparati di rete", "Équipements réseau", "Equipos de red"),
@@ -40,10 +45,10 @@ TEXT = {
     "ap_symbol_unassign": ("Unassign symbol", "Scollega simbolo", "Dissocier le symbole", "Desvincular símbolo"),
     "ap_symbol_convert": ("Convert existing placement", "Converti posizione esistente", "Convertir le placement existant", "Convertir posición existente"),
     "ap_symbol_hint": (
-        "Choose a Wi-Fi AP symbol on a visible, unlocked layer. Each symbol belongs to one physical AP; each AP uses one symbol. Place a Wi-Fi AP symbol in Design Mode if the list is empty. Its center supplies the analysis position.",
-        "Scegli un simbolo Wi-Fi AP su un livello visibile e sbloccato. Ogni simbolo appartiene a un AP fisico e ogni AP usa un simbolo. Se la lista è vuota, posiziona un Wi-Fi AP in Design Mode. Il centro fornisce la posizione all'analisi.",
-        "Choisissez un symbole Wi-Fi AP sur un calque visible et déverrouillé. Un symbole correspond à un AP physique et chaque AP utilise un symbole. Si la liste est vide, placez un symbole en mode conception. Son centre fournit la position à l'analyse.",
-        "Elige un símbolo AP Wi-Fi en una capa visible y desbloqueada. Cada símbolo corresponde a un AP físico y cada AP usa un símbolo. Si la lista está vacía, coloca un símbolo en modo diseño. Su centro aporta la posición al análisis."),
+        "Choose a Wi-Fi AP symbol on a visible, unlocked layer. Each symbol belongs to one physical AP; each AP uses one symbol. Place a Wi-Fi AP symbol in Design Mode or Annotations if the list is empty. Its center supplies the analysis position.",
+        "Scegli un simbolo Wi-Fi AP su un livello visibile e sbloccato. Ogni simbolo appartiene a un AP fisico e ogni AP usa un simbolo. Se la lista è vuota, posiziona un Wi-Fi AP in Design Mode o Annotazioni. Il centro fornisce la posizione all'analisi.",
+        "Choisissez un symbole Wi-Fi AP sur un calque visible et déverrouillé. Un symbole correspond à un AP physique et chaque AP utilise un symbole. Si la liste est vide, placez un symbole en mode conception ou dans Annotations. Son centre fournit la position à l'analyse.",
+        "Elige un símbolo AP Wi-Fi en una capa visible y desbloqueada. Cada símbolo corresponde a un AP físico y cada AP usa un símbolo. Si la lista está vacía, coloca un símbolo en modo diseño o en Anotaciones. Su centro aporta la posición al análisis."),
     "ap_symbol_error": ("Cannot change AP assignment: {error}", "Impossibile modificare l'assegnazione AP: {error}",
         "Impossible de modifier l'association AP : {error}", "No se pudo cambiar la asignación AP: {error}"),
     "network_symbols_help": (

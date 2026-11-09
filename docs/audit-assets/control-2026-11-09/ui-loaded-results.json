@@ -1,0 +1,776 @@
+{
+  "cases": [
+    {
+      "source": "png",
+      "language": "en",
+      "theme": "light",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "en",
+      "theme": "soft",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "en",
+      "theme": "dark",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "en",
+      "theme": "contrast",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "it",
+      "theme": "light",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "it",
+      "theme": "soft",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "it",
+      "theme": "dark",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "it",
+      "theme": "contrast",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "fr",
+      "theme": "light",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "fr",
+      "theme": "soft",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "fr",
+      "theme": "dark",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "fr",
+      "theme": "contrast",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "es",
+      "theme": "light",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "es",
+      "theme": "soft",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "es",
+      "theme": "dark",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "es",
+      "theme": "contrast",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "en",
+      "theme": "light",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "en",
+      "theme": "soft",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "en",
+      "theme": "dark",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "en",
+      "theme": "contrast",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "it",
+      "theme": "light",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "it",
+      "theme": "soft",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "it",
+      "theme": "dark",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "it",
+      "theme": "contrast",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "fr",
+      "theme": "light",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "fr",
+      "theme": "soft",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "fr",
+      "theme": "dark",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "fr",
+      "theme": "contrast",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "es",
+      "theme": "light",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "es",
+      "theme": "soft",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "es",
+      "theme": "dark",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "es",
+      "theme": "contrast",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "en",
+      "theme": "light",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "en",
+      "theme": "soft",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "en",
+      "theme": "dark",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "en",
+      "theme": "contrast",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "it",
+      "theme": "light",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "it",
+      "theme": "soft",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "it",
+      "theme": "dark",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "it",
+      "theme": "contrast",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "fr",
+      "theme": "light",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "fr",
+      "theme": "soft",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "fr",
+      "theme": "dark",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "fr",
+      "theme": "contrast",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "es",
+      "theme": "light",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "es",
+      "theme": "soft",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "es",
+      "theme": "dark",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "png",
+      "language": "es",
+      "theme": "contrast",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "en",
+      "theme": "light",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "en",
+      "theme": "soft",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "en",
+      "theme": "dark",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "en",
+      "theme": "contrast",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "it",
+      "theme": "light",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "it",
+      "theme": "soft",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "it",
+      "theme": "dark",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "it",
+      "theme": "contrast",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "fr",
+      "theme": "light",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "fr",
+      "theme": "soft",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "fr",
+      "theme": "dark",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "fr",
+      "theme": "contrast",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "es",
+      "theme": "light",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "es",
+      "theme": "soft",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "es",
+      "theme": "dark",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "es",
+      "theme": "contrast",
+      "scale": 100,
+      "effective_scale": 0.8,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "en",
+      "theme": "light",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "en",
+      "theme": "soft",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "en",
+      "theme": "dark",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "en",
+      "theme": "contrast",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "it",
+      "theme": "light",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "it",
+      "theme": "soft",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "it",
+      "theme": "dark",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "it",
+      "theme": "contrast",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "fr",
+      "theme": "light",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "fr",
+      "theme": "soft",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "fr",
+      "theme": "dark",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "fr",
+      "theme": "contrast",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "es",
+      "theme": "light",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "es",
+      "theme": "soft",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "es",
+      "theme": "dark",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "es",
+      "theme": "contrast",
+      "scale": 125,
+      "effective_scale": 1.0,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "en",
+      "theme": "light",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "en",
+      "theme": "soft",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "en",
+      "theme": "dark",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "en",
+      "theme": "contrast",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "it",
+      "theme": "light",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "it",
+      "theme": "soft",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "it",
+      "theme": "dark",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "it",
+      "theme": "contrast",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "fr",
+      "theme": "light",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "fr",
+      "theme": "soft",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "fr",
+      "theme": "dark",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "fr",
+      "theme": "contrast",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "es",
+      "theme": "light",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "es",
+      "theme": "soft",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "es",
+      "theme": "dark",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    },
+    {
+      "source": "pdf",
+      "language": "es",
+      "theme": "contrast",
+      "scale": 175,
+      "effective_scale": 1.4,
+      "status": "passed"
+    }
+  ],
+  "native_qt": true,
+  "physical_mouse": false,
+  "source_files_unchanged": true,
+  "rf_scanning": false
+}

@@ -252,7 +252,7 @@ def test_position_changes_outside_manager_invalidate_approval(manager):
     from qt_ui.qt_ap_workflow import ApWorkflowMixin
     group = approve(manager)
     manager.persist_groups()
-    driver = SimpleNamespace(session=manager.session, refresh_session_labels=Mock(),
+    driver = SimpleNamespace(session=manager.session, scan_in_progress=False, refresh_session_labels=Mock(),
         refresh_points_table=Mock(), status=Mock(), tr=manager.tr,
         get_ap_group_display_name=lambda _id: "AP", maybe_update_live_preview=Mock())
     ApWorkflowMixin.save_ap_position(driver, "a", group["position"]["x"], group["position"]["y"])

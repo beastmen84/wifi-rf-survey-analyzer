@@ -1,0 +1,54 @@
+{
+  "cases": [
+    {
+      "run": 1,
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 11.44
+    },
+    {
+      "run": 2,
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 11.48
+    },
+    {
+      "run": 3,
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 9.58
+    },
+    {
+      "run": 4,
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 10.86
+    },
+    {
+      "run": 5,
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 10.7
+    },
+    {
+      "run": 6,
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 10.56
+    },
+    {
+      "run": 7,
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 11.48
+    },
+    {
+      "run": 8,
+      "exit_code": 0,
+      "status": "passed",
+      "seconds": 10.9
+    }
+  ],
+  "mocked_scanning": true,
+  "real_rf_scans": false
+}

@@ -142,3 +142,29 @@ def assign_ap_symbol(owner, group_id):
     finally:
         if dialog is not None:
             dialog.deleteLater()
+
+
+def move_bound_ap_symbol(owner, group_id, x, y):
+    """Direct AP picking moves its source symbol as one undoable operation.
+
+    None means the AP is unbound and the ordinary marker workflow should run.
+    """
+    drawing = owner.plan_tools.controller
+    try:
+        document = deepcopy(drawing.layer_document())
+        match = next(((layer, item) for layer, item in symbols(document)
+                      if item.get("ap_group") == group_id), None)
+        if match is None:
+            return None
+        layer, item = match
+        if layer["locked"] or not layer["visible"]:
+            raise ValueError("ap_symbol_layer_readonly")
+        item.update(cx=x, cy=y)
+        # change_layers validates bounds before modifying data or history and
+        # reconciles the AP coordinates from this symbol, preserving its link.
+        changed = drawing.change_layers(document)
+        return changed or document == drawing.layer_document()
+    except (ValueError, TypeError, KeyError) as error:
+        QMessageBox.warning(owner, owner.tr("ap_symbol_assign"),
+                            owner.tr("ap_symbol_error").format(error=owner.tr(str(error))))
+        return False

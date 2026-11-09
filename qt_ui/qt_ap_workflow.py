@@ -10,7 +10,7 @@ from qt_ui.qt_ap_groups import open_qt_ap_group_manager
 from qt_ui.qt_floorplan import format_ap_tooltip
 from ap.memory import clear_group_memory_flag
 from ap.groups import invalidate_ap_group_confirmation
-from survey.plan_mode import is_drawn_plan
+from survey.plan_mode import is_drawn_plan, is_loaded_plan
 
 
 class ApWorkflowMixin:
@@ -26,7 +26,7 @@ class ApWorkflowMixin:
             self.maybe_update_live_preview()
 
     def start_ap_positioning(self, group_id):
-        if self.session is None:
+        if self.session is None or self.scan_in_progress:
             return False
 
         if not self.floorplan_view.has_floorplan():
@@ -41,6 +41,8 @@ class ApWorkflowMixin:
             from qt_ui.qt_ap_symbol_binding import assign_ap_symbol
             self.tabs.setCurrentIndex(0)
             return assign_ap_symbol(self, str(group_id))
+        self.plan_tools.set_open(False)
+        self.set_boundaries_mode_enabled(False, show_status=False)
         started = self.floorplan_view.start_ap_position_pick(group_id, label)
         if started:
             self.tabs.setCurrentIndex(0)
@@ -48,8 +50,19 @@ class ApWorkflowMixin:
         return started
 
     def save_ap_position(self, group_id, x, y):
-        if self.session is None:
+        if self.session is None or self.scan_in_progress:
             return
+
+        if is_loaded_plan(self.session.metadata):
+            from qt_ui.qt_ap_symbol_binding import move_bound_ap_symbol
+            moved = move_bound_ap_symbol(self, str(group_id), int(x), int(y))
+            if moved is not None:
+                if moved:
+                    self.refresh_points_table()
+                    self.status.showMessage(self.tr("ap_position_saved",
+                        group=self.get_ap_group_display_name(group_id), x=x, y=y))
+                    self.maybe_update_live_preview()
+                return
 
         groups = self.session.get_ap_groups()
         updated = False

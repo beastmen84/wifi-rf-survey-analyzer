@@ -1,0 +1,188 @@
+[
+  {
+    "package": "altgraph",
+    "expected": "0.17.5",
+    "installed": "0.17.5",
+    "match": true
+  },
+  {
+    "package": "colorama",
+    "expected": "0.4.6",
+    "installed": "0.4.6",
+    "match": true
+  },
+  {
+    "package": "contourpy",
+    "expected": "1.4.0",
+    "installed": "1.4.0",
+    "match": true
+  },
+  {
+    "package": "cycler",
+    "expected": "0.12.1",
+    "installed": "0.12.1",
+    "match": true
+  },
+  {
+    "package": "fonttools",
+    "expected": "4.68.0",
+    "installed": "4.68.0",
+    "match": true
+  },
+  {
+    "package": "iniconfig",
+    "expected": "2.3.1",
+    "installed": "2.3.1",
+    "match": true
+  },
+  {
+    "package": "kiwisolver",
+    "expected": "1.5.1",
+    "installed": "1.5.1",
+    "match": true
+  },
+  {
+    "package": "lswifi",
+    "expected": "0.5.0",
+    "installed": "0.5.0",
+    "match": true
+  },
+  {
+    "package": "matplotlib",
+    "expected": "3.11.2",
+    "installed": "3.11.2",
+    "match": true
+  },
+  {
+    "package": "numpy",
+    "expected": "2.5.4",
+    "installed": "2.5.4",
+    "match": true
+  },
+  {
+    "package": "packaging",
+    "expected": "26.3",
+    "installed": "26.3",
+    "match": true
+  },
+  {
+    "package": "pandas",
+    "expected": "3.1.1",
+    "installed": "3.1.1",
+    "match": true
+  },
+  {
+    "package": "pefile",
+    "expected": "2024.8.26",
+    "installed": "2024.8.26",
+    "match": true
+  },
+  {
+    "package": "pillow",
+    "expected": "13.0.0",
+    "installed": "13.0.0",
+    "match": true
+  },
+  {
+    "package": "pluggy",
+    "expected": "1.7.0",
+    "installed": "1.7.0",
+    "match": true
+  },
+  {
+    "package": "Pygments",
+    "expected": "2.21.0",
+    "installed": "2.21.0",
+    "match": true
+  },
+  {
+    "package": "pyinstaller",
+    "expected": "6.22.3",
+    "installed": "6.22.3",
+    "match": true
+  },
+  {
+    "package": "pyinstaller-hooks-contrib",
+    "expected": "2026.9",
+    "installed": "2026.9",
+    "match": true
+  },
+  {
+    "package": "pyparsing",
+    "expected": "3.3.3",
+    "installed": "3.3.3",
+    "match": true
+  },
+  {
+    "package": "PySide6",
+    "expected": "6.12.0",
+    "installed": "6.12.0",
+    "match": true
+  },
+  {
+    "package": "PySide6_Addons",
+    "expected": "6.12.0",
+    "installed": "6.12.0",
+    "match": true
+  },
+  {
+    "package": "PySide6_Essentials",
+    "expected": "6.12.0",
+    "installed": "6.12.0",
+    "match": true
+  },
+  {
+    "package": "PySide6_Pdf",
+    "expected": "6.12.0.140",
+    "installed": "6.12.0.140",
+    "match": true
+  },
+  {
+    "package": "PySide6_WebEngine",
+    "expected": "6.12.0.140",
+    "installed": "6.12.0.140",
+    "match": true
+  },
+  {
+    "package": "pytest",
+    "expected": "9.2.0",
+    "installed": "9.2.0",
+    "match": true
+  },
+  {
+    "package": "python-dateutil",
+    "expected": "4.0.0",
+    "installed": "4.0.0",
+    "match": true
+  },
+  {
+    "package": "pywin32-ctypes",
+    "expected": "0.2.3",
+    "installed": "0.2.3",
+    "match": true
+  },
+  {
+    "package": "scipy",
+    "expected": "1.18.1",
+    "installed": "1.18.1",
+    "match": true
+  },
+  {
+    "package": "setuptools",
+    "expected": "84.2.1",
+    "installed": "84.2.1",
+    "match": true
+  },
+  {
+    "package": "shiboken6",
+    "expected": "6.12.0",
+    "installed": "6.12.0",
+    "match": true
+  },
+  {
+    "package": "tzdata",
+    "expected": "2026.6",
+    "installed": "2026.6",
+    "match": true
+  }
+]

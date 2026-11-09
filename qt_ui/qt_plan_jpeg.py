@@ -1,5 +1,6 @@
 """Paper-sized JPEG exports of clean plans, sharing the calibrated print layout."""
 import math
+import os
 from pathlib import Path
 
 from PySide6.QtCore import QIODevice, QSaveFile, QSize, Qt
@@ -221,6 +222,7 @@ def export_plan_jpeg(owner):
         image = clean_plan_source(owner.floorplan_view, dict(owner.session.metadata))
         density, units = owner.get_px_per_meter(), owner.measurement_system
         survey_file = owner.session.csv_file
+        source_file = owner.session.metadata.get("map_file", "")
         dialog = PlanJpegDialog(owner, image, density, units)
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return False
@@ -244,13 +246,21 @@ def export_plan_jpeg(owner):
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                     QMessageBox.StandardButton.No) != QMessageBox.StandardButton.Yes:
                 return False
+        targets = [target] + [target.with_name(f"{target.stem}-legend-{i:02d}.jpg") for i in range(1, len(pages)+1)]
+        for path in targets:
+            for source in (source_file, owner.session.metadata.get("map_file", "")):
+                if not source:
+                    continue
+                source = Path(source)
+                if (os.path.normcase(str(path.resolve())) == os.path.normcase(str(source.resolve()))
+                        or (path.exists() and source.exists() and os.path.samefile(path, source))):
+                    raise ValueError(owner.tr("plan_jpeg_source_conflict"))
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         try:
             if not pages:
                 canvas = render_plan_page(image, *options, density, units, owner.tr)
                 write_plan_jpeg(target, canvas)
             else:
-                targets = [target] + [target.with_name(f"{target.stem}-legend-{i:02d}.jpg") for i in range(1, len(pages)+1)]
                 with SurveyFileTransaction(target) as transaction:
                     # Recovery completes before choosing replacements or hashing.
                     existing = [path.name for path in targets[1:] if path.exists()]
