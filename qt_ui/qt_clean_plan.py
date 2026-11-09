@@ -11,7 +11,7 @@ from survey.plan_labels import labels_geometry
 from survey.plan_curves import curve_bounds
 from survey.plan_annotation_rendering import annotation_fits
 from survey.plan_symbol_rendering import SymbolNumber, paint_number, number_commands
-from survey.wall_rendering import MaterialPath, paint_material
+from survey.wall_rendering import MaterialPath, paint_material, WallReferenceInk
 
 
 class VectorPlanSource:
@@ -26,17 +26,18 @@ class VectorPlanSource:
             bounds = QRectF(0, 0, size.width(), size.height()).adjusted(-1e-6, -1e-6, 1e-6, 1e-6)
             if any(not bounds.contains(path.boundingRect()) for path, _pen, _brush in commands):
                 raise ValueError("wall_outside")
+        ink = WallReferenceInk(lines, curves)
         for line in visible_wall_segments(lines, annotations):
             if line.get("wall", {}).get("side") == 0:
                 continue
             path = QPainterPath()
             path.moveTo(line["x1"], line["y1"])
             path.lineTo(line["x2"], line["y2"])
-            commands.append((path, QPen(QColor(line["color"]), 2), QBrush(Qt.BrushStyle.NoBrush)))
+            commands.append(ink.command(line, path, QPen(QColor(line["color"]), 2)))
         for curve in curves:
             if curve.get("wall", {}).get("side") == 0:
                 continue
-            commands.append((curve_path(curve), QPen(QColor(curve["color"]), 2), QBrush(Qt.BrushStyle.NoBrush)))
+            commands.append(ink.command(curve, curve_path(curve), QPen(QColor(curve["color"]), 2)))
         for item in annotations:
             for path, dashed in annotation_parts(item, lines):
                 commands.append((path, annotation_pen(item, dashed=dashed), annotation_brush(item)))

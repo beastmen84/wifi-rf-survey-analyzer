@@ -7,6 +7,18 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Wall Edit adds a **Priority** checkbox for each side with positive thickness.
+  A checked wall keeps its material at overlapping joints on the same layer;
+  equal priority favors the thicker wall. Preview, contours, editor, Live/HTML,
+  print and JPEG share this rule, including curved walls and opening cuts.
+  Shared faces keep the same priority; the setting survives undo/redo and saves.
+  The action button now reads **Apply changes**.
+- Covered corner extensions of an attached room join their continuous side,
+  avoiding separately selectable chips over an existing wall. Useful room
+  dimensions and physical wall coverage remain intact. True T dividers stay
+  independently editable; deleting a common wall preserves the outer perimeter,
+  and deleting the adjacent room removes its obsolete covered corner pieces.
+
 - Deleting an adjacent room removes its unused internal reference face from the
   shared wall when the opposite face still bounds the retained room. The wall's
   thickness and material remain intact. Doors/windows on that wall retain their

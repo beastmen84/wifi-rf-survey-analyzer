@@ -1,0 +1,15 @@
+{
+  "before_segments": 10,
+  "after_segments": 8,
+  "physical_area_before": 32000.0,
+  "physical_area_after": 32000.0,
+  "room_areas_before": [
+    40000.0,
+    48000.0
+  ],
+  "room_areas_after": [
+    40000.0,
+    48000.0
+  ],
+  "rooms_after_common_wall_deletion": 1
+}

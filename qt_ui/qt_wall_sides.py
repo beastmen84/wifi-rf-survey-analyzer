@@ -7,19 +7,20 @@ from PySide6.QtCore import QPointF, QRectF, QSize, Qt
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPainterPathStroker, QPen, QPixmap, QIcon
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog,
     QDialogButtonBox, QDoubleSpinBox, QGraphicsScene, QGraphicsView, QHBoxLayout,
-    QHeaderView, QLabel, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QFormLayout, QSizePolicy)
+    QHeaderView, QLabel, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QFormLayout, QSizePolicy, QWidget,
+    QStyle, QStyleOptionButton)
 from app_core.units import distance_unit_label, display_units_to_meters, meters_to_display_units, format_distance_meters
 from survey.plan_curves import curve_info, point_at
 from survey.plan_curve_rendering import curve_path
 from survey.plan_layers import active_layer, validate_document
 from survey.wall_sides import stage_structure, wall_sides, apply_side_widths, same_wall_faces
 from survey.wall_conversion import reference_regions
-from survey.wall_geometry import solid
+from survey.wall_geometry import solid, wall_commands
 from survey.wall_editing import relation
 from qt_ui.qt_clean_plan import VectorPlanSource
 from qt_ui.qt_wall_properties import validate_survey_layout
 from survey.wall_materials import MATERIALS, PATTERNS, appearance, validated_appearance
-from survey.wall_rendering import MaterialPath, paint_material, wall_item
+from survey.wall_rendering import MaterialPath, paint_material, wall_item, WallReferenceInk
 from survey.wall_attachments import WallAttachmentIndex
 
 
@@ -44,6 +45,27 @@ def side_path(shape):
     path = QPainterPath(QPointF(shape['x1'], shape['y1']))
     path.lineTo(shape['x2'], shape['y2'])
     return path
+
+
+class PriorityCheckBox(QCheckBox):
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if self.isChecked():
+            option = QStyleOptionButton()
+            self.initStyleOption(option)
+            box = self.style().subElementRect(QStyle.SubElement.SE_CheckBoxIndicator, option, self)
+            path = QPainterPath(QPointF(box.left()+box.width()*.24, box.top()+box.height()*.52))
+            path.lineTo(box.left()+box.width()*.43, box.top()+box.height()*.72)
+            path.lineTo(box.left()+box.width()*.78, box.top()+box.height()*.28)
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            pen = QPen(QColor('white'), max(1.5,box.width()*.1))
+            pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+            pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+            painter.setPen(pen)
+            painter.setOpacity(1 if self.isEnabled() else .5)
+            painter.drawPath(path)
+            painter.end()
 
 
 class SidePreview(QGraphicsView):
@@ -89,6 +111,9 @@ class WallSidesDialog(QDialog):
         self.density, self.system = owner.get_px_per_meter(), owner.measurement_system
         self.values = {s.index:s.shape.get('wall', {}).get('width', 0.0) for s in sides}
         self.original_values = dict(self.values)
+        self.priorities = {s.index:s.shape.get('wall', {}).get('priority', False) for s in sides}
+        self.original_priorities = dict(self.priorities)
+        self.priority_checks = []
         self.appearances = {s.index:validated_appearance({k:v for k,v in s.shape.get('wall',{}).items() if k in ('material','pattern')}) for s in sides}
         self.original_appearances = deepcopy(self.appearances)
         selected = {side.index for side in self.sides}
@@ -103,7 +128,7 @@ class WallSidesDialog(QDialog):
         self.spins, self.initial_display = [], []
         attachment_lengths = WallAttachmentIndex([state])
         self.setWindowTitle(owner.tr('wall_sides_place' if placing else 'wall_sides_edit'))
-        self.resize(owner.spx(940), owner.spx(660))
+        self.resize(owner.spx(1040), owner.spx(660))
         layout = QVBoxLayout(self)
         hint = QLabel(owner.tr('wall_sides_hint')+(' '+owner.tr('wall_sides_existing_references') if self.converted else ''))
         hint.setWordWrap(True)
@@ -120,10 +145,12 @@ class WallSidesDialog(QDialog):
             legend = QLabel(owner.tr('wall_sides_shared_legend'))
             legend.setWordWrap(True)
             panel.addWidget(legend)
-        self.table = QTableWidget(len(sides), 3)
-        self.table.setMinimumWidth(owner.spx(370))
-        self.table.setHorizontalHeaderLabels([owner.tr('wall_side'), owner.tr('wall_side_length'), owner.tr('wall_side_depth')])
+        self.table = QTableWidget(len(sides), 4)
+        self.table.setMinimumWidth(owner.spx(440))
+        self.table.setHorizontalHeaderLabels([owner.tr('wall_side'), owner.tr('wall_side_length'), owner.tr('wall_side_depth'), owner.tr('wall_priority')])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        self.table.horizontalHeaderItem(3).setToolTip(owner.tr('wall_priority_hint'))
         self.table.verticalHeader().hide()
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
@@ -151,6 +178,18 @@ class WallSidesDialog(QDialog):
             self.initial_display.append(spin.value())
             self.spins.append(spin)
             self.table.setCellWidget(row, 2, spin)
+            check = PriorityCheckBox()
+            check.setAccessibleName(owner.tr('wall_priority')+' '+str(row+1))
+            check.setToolTip(owner.tr('wall_priority_hint'))
+            check.setChecked(self.priorities[side.index])
+            check.setEnabled(self.values[side.index] > 0)
+            check.toggled.connect(lambda value, r=row:self.change_priority(r, value))
+            self.priority_checks.append(check)
+            cell = QWidget()
+            cell_layout = QHBoxLayout(cell)
+            cell_layout.setContentsMargins(4, 2, 4, 2)
+            cell_layout.addWidget(check, 0, Qt.AlignmentFlag.AlignCenter)
+            self.table.setCellWidget(row, 3, cell)
         self.table.resizeRowsToContents()
         for row, spin in enumerate(self.spins):
             self.table.setRowHeight(row, max(self.table.rowHeight(row), spin.minimumHeight()+owner.spx(8)))
@@ -185,6 +224,9 @@ class WallSidesDialog(QDialog):
         material_hint = QLabel(owner.tr('wall_material_hint'))
         material_hint.setWordWrap(True)
         panel.addWidget(material_hint)
+        priority_hint = QLabel(owner.tr('wall_priority_hint'))
+        priority_hint.setWordWrap(True)
+        panel.addWidget(priority_hint)
         self.direction = QComboBox()
         self.direction.addItem(owner.tr('wall_side_left'), 1)
         self.direction.addItem(owner.tr('wall_side_right'), -1)
@@ -203,7 +245,7 @@ class WallSidesDialog(QDialog):
         layout.addWidget(self.status)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Apply | QDialogButtonBox.StandardButton.Cancel)
         self.apply_button = buttons.button(QDialogButtonBox.StandardButton.Apply)
-        self.apply_button.setText(owner.tr('wall_sides_place' if placing else 'wall_apply'))
+        self.apply_button.setText(owner.tr('wall_sides_place' if placing else 'wall_sides_apply'))
         buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(owner.tr('cancel'))
         self.apply_button.clicked.connect(self.try_accept)
         buttons.rejected.connect(self.reject)
@@ -224,6 +266,15 @@ class WallSidesDialog(QDialog):
                 self.spins[other].blockSignals(True)
                 self.spins[other].setValue(meters_to_display_units(value/self.density, self.system))
                 self.spins[other].blockSignals(False)
+        self.refresh()
+
+    def change_priority(self, row, value):
+        side = self.sides[row]
+        self.priorities[side.index] = value
+        for other in self.sides:
+            if same_wall_faces(side.shape, other.shape):
+                self.priorities[other.index] = value
+        self.table.selectRow(row)
         self.refresh()
 
     def select_side(self):
@@ -298,7 +349,7 @@ class WallSidesDialog(QDialog):
         self.result = self.candidate = None
         self.error = None
         try:
-            self.result = apply_side_widths(self.state, self.sides, self.values, self.owner.floorplan_view.scene.sceneRect(), anchor=self.anchor, appearances=self.appearances)
+            self.result = apply_side_widths(self.state, self.sides, self.values, self.owner.floorplan_view.scene.sceneRect(), anchor=self.anchor, appearances=self.appearances, priorities=self.priorities)
             validate_survey_layout(self.owner, self.result)
             document = deepcopy(self.owner.plan_tools.controller.layer_document())
             active_layer(document)['drawing'] = self.result.state
@@ -312,8 +363,14 @@ class WallSidesDialog(QDialog):
             self.candidate = None
             self.status.setText(self.owner.tr(self.error if self.error.startswith('wall_') else 'rectangle_invalid_drawing'))
             self.status.setStyleSheet('color:#ef4444')
-        signature = tuple((s.index, self.values[s.index], appearance(self.appearances[s.index])) for s in self.sides
-                          if s.shared and (self.values[s.index] != self.original_values[s.index] or self.appearances[s.index] != self.original_appearances[s.index]))
+        for i, side in enumerate(self.sides):
+            check = self.priority_checks[i]
+            check.blockSignals(True)
+            check.setChecked(self.priorities[side.index])
+            check.setEnabled(self.values[side.index] > 0)
+            check.blockSignals(False)
+        signature = tuple((s.index, self.values[s.index], appearance(self.appearances[s.index]), self.priorities[s.index]) for s in self.sides
+                          if s.shared and (self.values[s.index] != self.original_values[s.index] or self.appearances[s.index] != self.original_appearances[s.index] or self.priorities[s.index] != self.original_priorities[s.index]))
         if signature != self.shared_signature:
             self.confirm_shared.setChecked(False)
         self.shared_signature = signature
@@ -337,6 +394,35 @@ class WallSidesDialog(QDialog):
         self.preview.paths = []
         focus = QRectF()
         row = self.table.currentRow()
+        preview_lines, preview_curves = deepcopy(self.state['segments'] or []), deepcopy(self.state['curves'])
+        shapes = [*preview_lines, *preview_curves]
+        originals = [*(self.state['segments'] or []), *self.state['curves']]
+        selected = {side.index for side in self.sides}
+        for side in self.sides:
+            targets = {side.index} | {i for i,other in enumerate(originals)
+                                     if i not in selected and same_wall_faces(side.shape, other)}
+            for index in targets:
+                shape = shapes[index]
+                if not self.values[side.index]:
+                    shape.pop('wall', None)
+                    continue
+                directed = shape['wall']['side'] if shape.get('wall', {}).get('reference') or index != side.index else side.side
+                profile = dict(shape.get('wall', {}), width=self.values[side.index], side=directed)
+                for key in ('material', 'pattern', 'priority'):
+                    profile.pop(key, None)
+                profile.update(self.appearances[side.index])
+                if self.priorities[side.index]:
+                    profile['priority'] = True
+                shape['wall'] = profile
+        try:
+            for path, pen, brush in wall_commands(preview_lines, preview_curves, self.state['annotations']):
+                scene.addItem(wall_item(path, pen, brush))
+        except ValueError:
+            pass  # Invalid geometry is reported by refresh and cannot be applied.
+        try:
+            ink = WallReferenceInk(preview_lines, preview_curves)
+        except ValueError:
+            ink = WallReferenceInk()
         for i, side in enumerate(self.sides):
             path = side_path(side.shape)
             self.preview.paths.append(path)
@@ -349,9 +435,6 @@ class WallSidesDialog(QDialog):
                 try:
                     body = solid(shape)
                     focus = focus.united(body.boundingRect())
-                    material,pattern = appearance(self.appearances[side.index])
-                    item = wall_item(MaterialPath(body,material,pattern),QPen(QColor('#64748b'),0),None)
-                    scene.addItem(item)
                     hit = QPainterPath(path)
                     hit.addPath(body)
                     self.preview.paths[-1] = hit
@@ -360,7 +443,10 @@ class WallSidesDialog(QDialog):
             color = '#2563eb' if i == row else '#c07412' if side.shared else '#374151'
             pen = QPen(QColor(color), 4 if i == row else 2)
             pen.setCosmetic(True)
-            scene.addPath(path, pen)
+            visible, line_pen, brush = (path, pen, None) if i == row else ink.command(shapes[side.index], path, pen)
+            item = scene.addPath(visible, line_pen)
+            if brush is not None:
+                item.setBrush(brush)
             middle = point_at(side.shape, .5) if 'kind' in side.shape else ((side.shape['x1']+side.shape['x2'])/2, (side.shape['y1']+side.shape['y2'])/2)
             text = scene.addSimpleText(str(i+1))
             text.setBrush(QColor(color))

@@ -190,8 +190,9 @@ def normalize_segments(segments, with_sources=False, limit=40000):
         # Remove obsolete paired-face cuts before rebuilding actual wall joints.
         pieces, groups = join_segments(pieces, with_sources=True)
         origins = [frozenset().union(*(origins[i] for i in group)) for group in groups]
-    from survey.wall_editing import split_faces
+    from survey.wall_editing import split_faces, face_join_protection
     pieces, parents, protected = split_faces(pieces)
+    protected = face_join_protection(pieces, protected)
     origins = [origins[i] for i in parents]
     if len(pieces) > limit:
         raise ValueError("wall_complexity")

@@ -202,6 +202,13 @@ from these software checks.
   Shared faces inherit the material/style too; changing either requires confirming
   the update to the existing wall. Material edits preserve dimensions and RF
   coordinates, survive save/reopen and drawing operations, and form one undo step.
+  The **Priority** column lets a wall keep its material at overlapping joints
+  on the same layer. Checked walls win over unchecked walls; equal priority
+  favors the thicker wall, with a stable style order for exact ties. Priority
+  follows both shared faces and is saved with the wall. **Apply changes** commits
+  thickness, material, appearance and priority together. This visual setting does
+  not change room dimensions or RF calculations. Covered end fragments at shared
+  corners join their continuous side, while real T dividers remain separate.
   The editor, visible layers, Live Map, HTML, Print Plan and JPEG use the same
   vector patterns, clipped to wall bodies and door/window openings. Existing
   walls retain their neutral appearance until assigned a material. These are

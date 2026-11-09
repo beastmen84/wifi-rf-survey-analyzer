@@ -67,8 +67,8 @@ class PlanEraserController:
         # A constant screen-space margin plus the visible stroke's half width.
         index = nearest_segment(self.lines, point.x(), point.y(),
                                 widget_px(self.owner, 6) / zoom + 1)
-        from survey.wall_editing import paired_lines
-        return () if index is None else paired_lines(self.lines, index)
+        from survey.wall_editing import physical_faces
+        return () if index is None else physical_faces(self.lines, index)
 
     def pick_curves(self, point):
         zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))

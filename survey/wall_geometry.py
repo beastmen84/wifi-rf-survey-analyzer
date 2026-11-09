@@ -7,6 +7,7 @@ from PySide6.QtGui import QBrush, QColor, QPainterPath, QPen
 
 from survey.plan_curves import curve_info, point_at
 from survey.plan_curve_rendering import curve_path
+from survey.wall_properties import wall_rank
 
 EPS = 1e-6
 MAX_WALLS = 2000
@@ -29,7 +30,10 @@ def united(paths):
     paths = [p for p in paths if not p.isEmpty()]
     while len(paths) > 1:
         paths = [paths[i].united(paths[i+1]) if i+1 < len(paths) else paths[i] for i in range(0, len(paths), 2)]
-    return paths[0] if paths else QPainterPath()
+    result = paths[0] if paths else QPainterPath()
+    # Qt may retain touching polygon contours with their shared edge. Welding
+    # linear contours removes false seams; retain original cubics on curves.
+    return result if any(result.elementAt(i).isCurveTo() for i in range(result.elementCount())) else result.simplified()
 
 
 def normal(line, side=1):
@@ -152,16 +156,13 @@ def aperture_channels(lines, annotations):
     return channels
 
 
-def wall_solids(lines, curves=(), annotations=(), *, styled=False):
-    from survey.wall_materials import appearance
-    def key(shape):
-        return (shape['color'], *appearance(shape['wall'])) if styled else shape['color']
+def ranked_wall_bodies(lines, curves=()):
     shapes = [s for s in [*lines, *curves] if s.get("wall")]
     if len(shapes) > MAX_WALLS:
         raise ValueError("wall_complexity")
     groups, endpoints = defaultdict(list), defaultdict(list)
     for shape in shapes:
-        groups[key(shape)].append(solid(shape))
+        groups[wall_rank(shape)].append(solid(shape))
         joints = [shape] if shape["wall"]["side"] else [dict(shape, wall=dict(shape["wall"],
             width=shape["wall"]["width"]/2, side=side)) for side in (-1, 1)]
         for joint in joints:
@@ -183,9 +184,25 @@ def wall_solids(lines, curves=(), annotations=(), *, styled=False):
                 if math.hypot(vx, vy) <= 4*max(a, b):
                     points.append((p[0]+vx, p[1]+vy))
                 points.append((q[0]+m[0]*b, q[1]+m[1]*b))
-                groups[key(first)].append(polygon(points))
+                owner = max((first, second), key=wall_rank)
+                groups[wall_rank(owner)].append(polygon(points))
+    return [(rank, united(paths)) for rank, paths in sorted(groups.items(), reverse=True)]
+
+
+def wall_solids(lines, curves=(), annotations=(), *, styled=False):
+    groups = defaultdict(list)
+    claimed = QPainterPath()
+    for rank, body in ranked_wall_bodies(lines, curves):
+        _priority, _width, material, pattern, color = rank
+        if styled:
+            overlaps = body.boundingRect().intersects(claimed.boundingRect()) and not body.intersected(claimed).simplified().isEmpty()
+            visible = body.subtracted(claimed) if overlaps else body
+            claimed = claimed.united(body)
+            groups[(color, material, pattern)].append(visible)
+        else:
+            groups[color].append(body)
     cuts = united(aperture_channels(lines, annotations))
-    return [(color, united(paths).subtracted(cuts)) for color, paths in groups.items()]
+    return [(key, united(paths).subtracted(cuts)) for key, paths in groups.items()]
 
 
 def wall_commands(lines, curves=(), annotations=()):

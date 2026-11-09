@@ -1,5 +1,6 @@
 """Aligned shared-face fragments and reversible physical-divider removal."""
 import math
+from collections import defaultdict
 
 from survey.wall_properties import copy_wall, wall_style
 
@@ -65,15 +66,97 @@ def split_faces(lines):
     return result, sources, protected
 
 
-def paired_lines(lines, index):
+def paired_lines(lines, index, *, exact=False):
     result = {index}
     for j, other in enumerate(lines):
         if index == j:
             continue
         match = relation(lines[index], other)
-        if match and abs(match[1][0]) <= EPS and abs(match[1][1]-match[0]) <= EPS:
+        if match and (not exact or (abs(match[1][0]) <= EPS and abs(match[1][1]-match[0]) <= EPS)):
             result.add(j)
     return tuple(sorted(result))
+
+
+def physical_faces(lines, index):
+    """Pick the physical divider, including its merged hidden corner extensions."""
+    return paired_lines(lines, index)
+
+
+class _WallCoverage:
+    """Local coverage queries include every possible bounded miter at the cap."""
+    def __init__(self, lines, curves=()):
+        from PySide6.QtCore import QRectF
+        from survey.plan_curves import curve_bounds
+        self.line_count = len(lines)
+        shapes = [*lines, *curves]
+        margin = 4*max((s['wall']['width'] for s in shapes if s.get('wall')), default=0)
+        self.rows = []
+        for i, shape in enumerate(shapes):
+            if not shape.get('wall'):
+                continue
+            left, top, right, bottom = curve_bounds(shape) if 'kind' in shape else (
+                min(shape['x1'],shape['x2']), min(shape['y1'],shape['y2']),
+                max(shape['x1'],shape['x2']), max(shape['y1'],shape['y2']))
+            box = QRectF(left-margin,top-margin,right-left+2*margin,bottom-top+2*margin)
+            self.rows.append((i,shape,box))
+        self.shapes = shapes
+
+    def covers(self, index, excluded=()):
+        from survey.wall_geometry import solid, wall_solids, united, path_area
+        body = solid(self.shapes[index])
+        box, skipped = body.boundingRect(), {index, *excluded}
+        nearby = [(i,shape) for i,shape,bounds in self.rows if i not in skipped and bounds.intersects(box)]
+        rest = united(path for _color,path in wall_solids(
+            [shape for i,shape in nearby if i < self.line_count],
+            [shape for i,shape in nearby if i >= self.line_count]))
+        return path_area(body.subtracted(rest)) <= EPS
+
+
+def face_join_protection(lines, protected, curves=()):
+    """Join hidden end caps back to their side, preserving real shared boundaries."""
+    if not protected:
+        return protected
+    coverage = _WallCoverage(lines, curves)
+    incidence = defaultdict(list)
+    endpoints = defaultdict(list)
+    for i, line in enumerate(lines):
+        for suffix in ('1', '2'):
+            point = line['x'+suffix], line['y'+suffix]
+            endpoints[point].append(i)
+            if point in protected:
+                incidence[point].append(i)
+    removable, covered = set(), {}
+    for point, indices in incidence.items():
+        if len(indices) != 2:
+            continue
+        a, b = (lines[i] for i in indices)
+        if not a.get('wall') or a['color'] != b['color'] or wall_style(a) != wall_style(b):
+            continue
+        vectors = []
+        for line in (a, b):
+            other = next((line['x'+s], line['y'+s]) for s in ('1', '2')
+                         if (line['x'+s], line['y'+s]) != point)
+            vectors.append((other[0]-point[0], other[1]-point[1]))
+        u, v = vectors
+        if abs(u[0]*v[1]-u[1]*v[0]) > EPS*math.hypot(*u)*math.hypot(*v) or u[0]*v[0]+u[1]*v[1] >= 0:
+            continue
+        for i in indices:
+            if len(paired_lines(lines, i, exact=True)) > 1:
+                continue
+            # A covered bridge between two paired spans is a real T junction,
+            # not an end cap: its two dividers must remain independently editable.
+            continuations = sum(any(j != i and lines[j]['color'] == lines[i]['color']
+                                    and wall_style(lines[j]) == wall_style(lines[i])
+                                    for j in endpoints[(lines[i]['x'+s], lines[i]['y'+s])])
+                                for s in ('1', '2'))
+            if continuations == 2:
+                continue
+            if i not in covered:
+                covered[i] = coverage.covers(i)
+            if covered[i]:
+                removable.add(point)
+                break
+    return protected-removable
 
 
 def unused_room_faces(before, after, curves=(), remaining_curves=None):
@@ -91,6 +174,12 @@ def unused_room_faces(before, after, curves=(), remaining_curves=None):
     owned = {i for _path, room in current.records for i in room.lines}
     obsolete = {i for i, pair in pairs.items() if i not in owned and id(after[i]) in formerly_owned
                 and any(j in owned for j in pair)}
+    coverage = _WallCoverage(after, curves if remaining_curves is None else remaining_curves)
+    for i, line in enumerate(after):
+        if i in obsolete or i in owned or id(line) not in formerly_owned or not line.get('wall'):
+            continue
+        if coverage.covers(i, obsolete):
+            obsolete.add(i)
     return [line for i, line in enumerate(after) if i not in obsolete]
 
 
@@ -126,12 +215,20 @@ def remove_wall_faces(lines, selected, *, curves=(), remaining_curves=None):
         return [line for i, line in enumerate(lines) if i not in selected]
     pieces, sources, _protected = split_faces(lines)
     targets = {i for i, source in enumerate(sources) if source in selected}
+    paired_sources = {sources[i] for i in targets if len(paired_lines(pieces, i, exact=True)) > 1}
+    # Normalized shared sides may include covered corner extensions. Preserve
+    # those needed by a retained perimeter when removing only the divider.
+    caps_to_keep = {i for i in targets if sources[i] in paired_sources and len(paired_lines(pieces, i, exact=True)) == 1
+                    and any(math.dist((pieces[i]['x'+s], pieces[i]['y'+s]),
+                                      (other['x'+t], other['y'+t])) <= EPS
+                            for j,other in enumerate(pieces) if j not in targets for s in ('1','2') for t in ('1','2'))}
+    targets.difference_update(caps_to_keep)
     for i in tuple(targets):
-        targets.update(paired_lines(pieces, i))
+        targets.update(paired_lines(pieces, i, exact=True))
     remaining = [line for i, line in enumerate(pieces) if i not in targets]
     caps = []
     for i in sorted(targets):
-        for j in paired_lines(pieces, i):
+        for j in paired_lines(pieces, i, exact=True):
             if j <= i or j not in targets:
                 continue
             a, b = pieces[i], pieces[j]

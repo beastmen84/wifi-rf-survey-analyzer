@@ -95,12 +95,17 @@ class CurveDesignController:
         if self.preview is not None:
             self.preview.hide()
 
-    def redraw(self, curves):
+    def redraw(self, curves, *, ink=None):
         for item in self.items:
             self.view.scene.removeItem(item)
         self.items = []
         for curve in curves:
             item = curve_item(curve)
+            if ink is not None:
+                path, pen, brush = ink.command(curve, item.path(), item.pen())
+                item.setPath(path)
+                item.setPen(pen)
+                item.setBrush(brush)
             self.view.scene.addItem(item)
             self.items.append(item)
 

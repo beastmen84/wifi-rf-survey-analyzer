@@ -1,6 +1,14 @@
 """Wall material catalog and schematic rendering controls."""
 LANGUAGES = ('en','it','fr','es')
 TEXT = {
+    'wall_priority': ('Priority', 'Priorità', 'Priorité', 'Prioridad'),
+    'wall_sides_apply': ('Apply changes', 'Applica modifiche', 'Appliquer les modifications', 'Aplicar cambios'),
+    'wall_priority_hint': (
+        'Priority walls keep their material at overlapping joints on the same layer. At equal priority, the thicker wall wins. This changes the drawing only.',
+        'I muri con priorità mantengono il proprio materiale nelle giunzioni sullo stesso livello. A parità di priorità prevale il muro più spesso. Cambia solo il disegno.',
+        'Les murs prioritaires conservent leur matériau aux jonctions du même calque. À priorité égale, le mur le plus épais prévaut. Seul le dessin change.',
+        'Los muros prioritarios conservan su material en las uniones de la misma capa. A igual prioridad prevalece el muro más grueso. Solo cambia el dibujo.'),
+    'wall_invalid_priority': ('Invalid wall priority.', 'Priorità del muro non valida.', 'Priorité de mur non valide.', 'Prioridad de muro no válida.'),
     'wall_shared_changed': ('Changing shared thickness, material or appearance also updates the existing wall. Thickness changes may move connected rooms. Review before confirming.','Cambiare spessore, materiale o aspetto condivisi aggiorna anche la parete già posata. Lo spessore può spostare gli ambienti collegati. Controlla prima di confermare.','Changer l’épaisseur, le matériau ou l’aspect communs modifie aussi le mur existant. L’épaisseur peut déplacer les pièces voisines. Vérifiez avant de confirmer.','Cambiar espesor, material o aspecto compartidos actualiza también el muro existente. El espesor puede mover habitaciones conectadas. Revisa antes de confirmar.'),
     'wall_side_shared_hint': ('Shared wall: inherits existing thickness, material and appearance.','Parete condivisa: eredita spessore, materiale e aspetto esistenti.','Mur commun : reprend épaisseur, matériau et aspect existants.','Muro compartido: hereda espesor, material y aspecto existentes.'),
     'wall_material': ('Material','Materiale','Matériau','Material del muro'),

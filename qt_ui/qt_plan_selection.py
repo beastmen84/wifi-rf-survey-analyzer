@@ -279,8 +279,8 @@ class PlanSelectionController:
             return (), ()
         _distance, kind, index = min(choices)
         if kind:
-            from survey.wall_editing import paired_lines
-            return paired_lines(self.lines, index), ()
+            from survey.wall_editing import physical_faces
+            return physical_faces(self.lines, index), ()
         return (), (index,)
 
     def press(self, event):

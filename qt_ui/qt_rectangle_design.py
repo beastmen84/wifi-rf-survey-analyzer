@@ -325,6 +325,8 @@ class RectangleDesignController(QObject):
             white.fill(Qt.GlobalColor.white)
             self.view.pixmap_item.setPixmap(white)
         paths = [QPainterPath() for line in lines or []]
+        from survey.wall_rendering import WallReferenceInk
+        ink = WallReferenceInk(lines or [], curves)
         visible, sources = visible_wall_segments(lines or [], annotations, with_sources=True)
         for part, index in zip(visible, sources):
             if (lines or [])[index].get("wall", {}).get("side") == 0:
@@ -332,14 +334,16 @@ class RectangleDesignController(QObject):
             paths[index].moveTo(part["x1"], part["y1"])
             paths[index].lineTo(part["x2"], part["y2"])
         for line, path in zip(lines or [], paths):
+            path, pen, brush = ink.command(line, path, QPen(QColor(line["color"]), 2))
             item = QGraphicsPathItem(path)
-            item.setPen(QPen(QColor(line["color"]), 2))
+            item.setPen(pen)
+            item.setBrush(brush)
             item.setZValue(5)
             item.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
             self.view.scene.addItem(item)
             self.items.append(item)
         self.text.redraw(labels)
-        self.curve.redraw(curves)
+        self.curve.redraw(curves, ink=ink)
         self.annotation.redraw(annotations)
         self.reference_snapper = self.snapper
         if self.owner.session and PLAN_LAYERS_KEY in self.owner.session.metadata:

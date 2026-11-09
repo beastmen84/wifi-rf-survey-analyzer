@@ -267,11 +267,12 @@ def normalize_plan(lines, curves, with_sources=False):
                 pieces.append(subcurve(curve, low, high, a, b))
                 origins.append(frozenset((index,)))
     protected = {registry(point_at(curve, t)) for curve in pieces for t in (0, 1)}
-    from survey.wall_editing import split_faces
+    from survey.wall_editing import split_faces, face_join_protection
     if any(line.get("wall") for line in split_lines):
         split_lines, groups = join_segments(split_lines, with_sources=True, protected=protected)
         split_origins = [frozenset().union(*(split_origins[i] for i in group)) for group in groups]
     split_lines, parents, wall_protected = split_faces(split_lines)
+    wall_protected = face_join_protection(split_lines, wall_protected, pieces)
     split_origins = [split_origins[i] for i in parents]
     protected.update(wall_protected)
     result_lines, joins = join_segments(split_lines, with_sources=True, protected=protected)

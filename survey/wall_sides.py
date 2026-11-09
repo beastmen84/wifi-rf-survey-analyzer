@@ -125,7 +125,7 @@ def same_wall_faces(a, b):
         return True
     from survey.wall_properties import wall_style
     def profile(shape):
-        return dict(shape,wall={k:v for k,v in shape['wall'].items() if k not in ('material','pattern')})
+        return dict(shape,wall={k:v for k,v in shape['wall'].items() if k not in ('material','pattern','priority')})
     if wall_style(profile(a)) != wall_style(profile(b)):
         return False
     return all(math.dist(p,point_projection(p,(b['x1'],b['y1']),(b['x2'],b['y2']))) < 1e-6
@@ -150,7 +150,23 @@ def side_appearances(state, sides, requested):
     return {**requests, **propagated}
 
 
-def apply_side_widths(state, sides, values, bounds, *, anchor=0, appearances=None):
+def side_priorities(state, sides, requested):
+    if set(requested) != {s.index for s in sides} or any(type(v) is not bool for v in requested.values()):
+        raise ValueError('wall_invalid_priority')
+    shapes = [*(state['segments'] or []), *state['curves']]
+    propagated = {}
+    for i,value in requested.items():
+        if value == shapes[i].get('wall', {}).get('priority', False):
+            continue
+        for j,other in enumerate(shapes):
+            if j == i or same_wall_faces(shapes[i], other):
+                if j in propagated and propagated[j] != value:
+                    raise ValueError('wall_invalid_priority')
+                propagated[j] = value
+    return {**requested, **propagated}
+
+
+def apply_side_widths(state, sides, values, bounds, *, anchor=0, appearances=None, priorities=None):
     count = len(state['segments'] or [])
     indices = [s.index for s in sides]
     if set(values) != set(indices):
@@ -158,6 +174,7 @@ def apply_side_widths(state, sides, values, bounds, *, anchor=0, appearances=Non
     if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or not 0 <= v <= 10000 for v in values.values()):
         raise ValueError('wall_invalid_width')
     decorations = side_appearances(state,sides,appearances) if appearances is not None else {}
+    priorities = side_priorities(state,sides,priorities) if priorities is not None else {}
     if any(s.get('wall', {}).get('reference') for s in [*(state['segments'] or []), *state['curves']]):
         # Existing converted documents retain their explicit reference profiles.
         from survey.wall_properties import validated_wall
@@ -175,7 +192,12 @@ def apply_side_widths(state, sides, values, bounds, *, anchor=0, appearances=Non
                 for key in ('material','pattern'):
                     shapes[index]['wall'].pop(key,None)
                 shapes[index]['wall'].update(decoration)
+        for index,priority in priorities.items():
+            if shapes[index].get('wall'):
+                shapes[index]['wall'].pop('priority', None)
+                if priority:
+                    shapes[index]['wall']['priority'] = True
         validate_wall_bounds(result['segments'] or [], result['curves'], bounds)
         return WallLayout(result, (), (), False)
     return plan_wall_layout(state, [i for i in indices if i < count], [i-count for i in indices if i >= count],
-        0, bounds, anchor=anchor, widths=values, open_sides={s.index:s.side for s in sides}, appearances=decorations)
+        0, bounds, anchor=anchor, widths=values, open_sides={s.index:s.side for s in sides}, appearances=decorations, priorities=priorities)

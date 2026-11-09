@@ -2,9 +2,10 @@
 import math
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QPainterPath, QPen
+from PySide6.QtGui import QBrush, QColor, QPainterPath, QPainterPathStroker, QPen
 from PySide6.QtWidgets import QGraphicsPathItem
 from survey.wall_materials import MATERIALS
+from survey.wall_properties import wall_rank
 
 
 def split_contours(path):
@@ -93,6 +94,33 @@ def paint_material(painter, path, outline):
     painter.setPen(outline)
     painter.setBrush(Qt.BrushStyle.NoBrush)
     painter.drawPath(path)
+
+
+class WallReferenceInk:
+    """Hide lower-priority reference ink beneath the winning physical material."""
+    def __init__(self, lines=(), curves=()):
+        from survey.wall_geometry import ranked_wall_bodies
+        self.bodies = ranked_wall_bodies(lines, curves)
+        self.masks = {}
+
+    def command(self, shape, path, pen):
+        if not shape.get('wall') or pen.style() == Qt.PenStyle.NoPen:
+            return path, pen, QBrush(Qt.BrushStyle.NoBrush)
+        from survey.wall_geometry import united
+        rank = wall_rank(shape)
+        if rank not in self.masks:
+            self.masks[rank] = united(body for other,body in self.bodies if other > rank)
+        mask = self.masks[rank]
+        if mask.isEmpty() or not mask.boundingRect().intersects(path.boundingRect().adjusted(-1,-1,1,1)):
+            return path, pen, QBrush(Qt.BrushStyle.NoBrush)
+        stroke = QPainterPathStroker()
+        stroke.setWidth(pen.widthF())
+        stroke.setCapStyle(pen.capStyle())
+        stroke.setJoinStyle(pen.joinStyle())
+        ink = stroke.createStroke(path)
+        if ink.intersected(mask).simplified().isEmpty():
+            return path, pen, QBrush(Qt.BrushStyle.NoBrush)
+        return ink.subtracted(mask), QPen(Qt.PenStyle.NoPen), QBrush(pen.color())
 
 
 class MaterialItem(QGraphicsPathItem):
