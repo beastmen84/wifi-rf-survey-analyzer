@@ -7,6 +7,8 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+## v1.4.0 - 2026-11-09
+
 - Follow-up checks on Load Plan fixed direct placement of APs bound to symbols:
   the symbol and its AP now move together in one undoable operation, respecting
   locked/hidden layers and active capture. Free AP positioning closes annotation

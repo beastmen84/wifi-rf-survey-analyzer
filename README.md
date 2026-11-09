@@ -21,7 +21,7 @@ physical APs, review survey quality, and export explainable RF maps.
 
 ## Release Status
 
-- Current source version: `v1.3.0`
+- Current source version: `v1.4.0`
 - Release type: stable public source release
 - Active UI: PySide6
 - Main entry point: `main.py`
@@ -30,7 +30,15 @@ physical APs, review survey quality, and export explainable RF maps.
   tag. Public builds use `WiFiRFSurveyAnalyzer-v<version>-win64.zip`.
 - Project license: MPL 2.0 (`MPL-2.0`)
 
-`v1.3.0` adds Draw Plan / Load Plan setup, a layered plan editor with straight and
+`v1.4.0` adds annotation layers, symbols and legends to imported plans, with the
+original image/PDF fixed underneath. Doors, windows and structural editing stay
+exclusive to Draw Plan. It also adds rack/switch/port inventory, a clearer Design
+Mode palette, responsive controls, centered JPEG exports and a Recommendations
+tab that leads with practical actions. Direct AP placement retains symbol links;
+JPEG export protects the imported source and PDF margins render white. See the
+[1.4.0 release audit](docs/AUDIT_1_4_0.md) for validation and its limits.
+
+`v1.3.0` added Draw Plan / Load Plan setup, a layered plan editor with straight and
 curved structure, physical wall thickness/materials, annotations and AP symbols,
 shared selection, legends, fixed-origin resizing and clean print/JPEG exports.
 Wall materials are descriptive and do not infer RF attenuation. See the
@@ -72,7 +80,7 @@ from these software checks.
   small text and fine lines; A3 at 600 DPI is **7016 × 9921 px**. Imported bitmap
   detail depends on the source image. A 150-megapixel page limit supports 600 DPI
   through A2; A1/A0 use up to 300 DPI, with the limit explained in the dialog.
-  In Draw Plan, **Include legend pages** adds automatic symbol tables to printing
+  In either plan mode, **Include legend pages** adds automatic symbol tables to printing
   and exports separate `-legend-01.jpg`, `-legend-02.jpg`, … images at the same
   paper size, orientation and resolution. Preview each page before exporting.
 - New Survey asks for **Draw Plan** or **Load Plan**, metric/imperial units and
@@ -288,18 +296,20 @@ from these software checks.
   layers. Numbers stay attached to their objects and are not reused after deletion.
   Numbers remain upright, fitting inside the shape where readable or using an
   external badge. Disable **Automatic number** for an unnumbered marker.
-  **Recommendations → Legend** (in the toolbar heading) creates automatic per-shape tables with editable
+  **Analysis toolbar → Legend** creates automatic per-shape tables with editable
   descriptions; hidden/locked layers can be inspected but not edited there.
   Existing unnumbered markers remain unchanged until explicitly numbered in
   Legend. Printed/exported tables include only visible layers.
-  In Draw Plan, **Assign AP symbol…** in AP management binds a physical AP group
+  In either plan mode, **Assign AP symbol…** in AP management binds a physical AP group
   to a previously placed Wi-Fi AP symbol. One symbol belongs to one AP and vice
   versa; an assigned symbol has a blue fill and AP label. Its center supplies
   the AP position for analysis, including after movement. Unassigning/deleting it
   clears that position; undo restores it. Existing coordinate placements can be
   converted explicitly without moving them. Hiding a layer hides its artwork,
-  while retaining AP positions for RF analysis. Load Plan keeps direct AP map
-  placement and has no drawing symbols or drawing Legend.
+  while retaining AP positions for RF analysis. Load Plan also keeps direct AP
+  map placement. If an AP already has a symbol, a direct placement moves both in
+  one undoable operation; hidden or locked symbol layers must first be made
+  visible and unlocked.
   Apertures hide only the covered wall ink: room closure, internal area
   and Boundaries Fill/Auto Fill retain the complete structural geometry.
   Select annotations to move with **M**, delete with **Del**, or edit by right
@@ -310,9 +320,9 @@ from these software checks.
   Structure and Annotations also have their own **eraser**: right-click removes
   one item and right-drag removes the touched items in that layer, including text
   for annotation erasing. Undo restores the same objects and their wall ink.
-- **Rack inventory** is optional in Draw Plan: select a Rack symbol and set
+- **Rack inventory** is optional in either plan mode: select a Rack symbol and set
   **No. switches**, then open **Rack details** to name the rack and set each
-  switch's **No. ports**. Zero means unspecified. **Recommendations → Legend → Switches
+  switch's **No. ports**. Zero means unspecified. **Analysis toolbar → Legend → Switches
   and ports** lists racks and switches; port numbers are automatic and each port
   has a free description. Retained ports keep their descriptions when counts
   change; accepting a reduction removes descriptions for the removed ports.
@@ -818,11 +828,11 @@ between official release builds.
 
 Current source release:
 
-- `v1.3.0`
+- `v1.4.0`
 
 Expected Windows ZIP name:
 
-- `WiFiRFSurveyAnalyzer-v1.3.0-win64.zip`
+- `WiFiRFSurveyAnalyzer-v1.4.0-win64.zip`
 
 Historical beta ZIPs may still use the older artifact stem:
 
