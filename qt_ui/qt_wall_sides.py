@@ -20,6 +20,7 @@ from qt_ui.qt_clean_plan import VectorPlanSource
 from qt_ui.qt_wall_properties import validate_survey_layout
 from survey.wall_materials import MATERIALS, PATTERNS, appearance, validated_appearance
 from survey.wall_rendering import MaterialPath, paint_material, wall_item
+from survey.wall_attachments import WallAttachmentIndex
 
 
 def appearance_icon(owner, material, pattern='auto'):
@@ -100,6 +101,7 @@ class WallSidesDialog(QDialog):
             self.material_forms = [boundary for boundary in boundaries if boundary <= selected]
         self.shared_signature = ()
         self.spins, self.initial_display = [], []
+        attachment_lengths = WallAttachmentIndex([state])
         self.setWindowTitle(owner.tr('wall_sides_place' if placing else 'wall_sides_edit'))
         self.resize(owner.spx(940), owner.spx(660))
         layout = QVBoxLayout(self)
@@ -134,7 +136,8 @@ class WallSidesDialog(QDialog):
                 cell.setForeground(QColor('#c07412'))
             self.table.setItem(row, 0, cell)
             shape = side.shape
-            length = abs(curve_info(shape)[2]*curve_info(shape)[4]) if 'kind' in shape else math.hypot(shape['x2']-shape['x1'], shape['y2']-shape['y1'])
+            length = abs(curve_info(shape)[2]*curve_info(shape)[4]) if 'kind' in shape else attachment_lengths.clear_length(
+                (shape['x1'],shape['y1']),(shape['x2'],shape['y2']))
             self.table.setItem(row, 1, QTableWidgetItem(format_distance_meters(length/self.density, self.system)))
             spin = QDoubleSpinBox()
             spin.setDecimals(2)

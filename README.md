@@ -226,6 +226,13 @@ from these software checks.
   joints and overlapping endpoints. Erase deletes only the chosen fragment.
   Line draws in any direction, including diagonals, by right-drag, or asks only for a length
   before cursor-following placement.
+  Exact Line lengths are useful lengths beyond a physical attachment wall. The
+  covered end portion is added internally while the snapped reference stays
+  fixed: 1.30 m beyond a 0.10 m wall stores a 1.40 m reference segment and exposes
+  1.30 m. Preview, drag readout, hover quotes and straight side lengths show the
+  useful span. Already exposed ends and collinear/shared walls are not counted
+  again. Alt retains literal placement; an exact useful length that cannot fit
+  the sheet or the other wall is rejected without a partial edit.
   Hold **Shift** during a line or initial arc-chord drag to constrain it
   horizontally or vertically from its fixed start. Press/release Shift also
   updates a stationary preview. Magnets remain active on that axis; **Alt+Shift**

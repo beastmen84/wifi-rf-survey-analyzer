@@ -228,6 +228,14 @@ class SegmentDimensions:
                 return
             line = lines[index]
             a, b = (line['x1'], line['y1']), (line['x2'], line['y2'])
+            before_wall,after_wall = d.line.attachments().clear_ends(a,b)
+            length = math.dist(a,b)
+            if before_wall+after_wall >= length-1e-6:
+                self.hide()
+                return
+            ux,uy = (b[0]-a[0])/length,(b[1]-a[1])/length
+            a,b = ((a[0]+ux*before_wall,a[1]+uy*before_wall),
+                   (b[0]-ux*after_wall,b[1]-uy*after_wall))
             p = point_projection((point.x(), point.y()), a, b)
             before, after = math.dist(a, p), math.dist(p, b)
             labels = ('segment_before', 'segment_after')

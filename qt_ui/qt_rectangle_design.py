@@ -286,6 +286,7 @@ class RectangleDesignController(QObject):
         self.passive_items = []
         self.items = []
         lines = self.segments()
+        self.line.wall_index = None
         labels = self.labels()
         curves = self.curves()
         annotations = self.annotations()

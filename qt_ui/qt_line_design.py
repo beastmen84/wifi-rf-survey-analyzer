@@ -2,7 +2,7 @@
 import math
 
 from PySide6.QtCore import QLineF, QPointF, QRectF, Qt
-from PySide6.QtGui import QPen
+from PySide6.QtGui import QColor, QPen
 from PySide6.QtWidgets import (QApplication, QDialog, QDialogButtonBox, QDoubleSpinBox,
                               QFormLayout, QGraphicsLineItem, QLabel, QVBoxLayout)
 
@@ -53,9 +53,12 @@ class LineDesignController:
         self.placement_offset = QPointF()
         self.preview = None
         self.dragged = self.consume_release = False
+        self.wall_index = None
+        self.raw_placement = False
 
     def reset_scene(self):
         self.preview = None
+        self.wall_index = None
         self.cancel()
         self.last_length = None
 
@@ -85,6 +88,7 @@ class LineDesignController:
             self.preview.hide()
 
     def geometry(self, point, bypass=False):
+        self.raw_placement = bypass or self.drawing.snap_bypass
         if self.pending_length is not None:
             point = point + self.placement_offset
             local = rotate_degrees([dict(x1=0, y1=0, x2=self.pending_length, y2=0, color="#000000")], self.angle, (0, 0))[0]
@@ -93,15 +97,43 @@ class LineDesignController:
                 lines = self.drawing.snap_shape([dict(local, x1=point.x(), y1=point.y(),
                     x2=point.x() + dx, y2=point.y() + dy)], bypass)
                 line = lines[0]
-                return QLineF(line["x1"], line["y1"], line["x2"], line["y2"])
+                return self.compensate(QLineF(line["x1"], line["y1"], line["x2"], line["y2"]))
             result = self.drawing.snap_position(QPointF(point.x() + min(0, dx), point.y() + min(0, dy)),
                                                  abs(dx), abs(dy), bypass)
             self.drawing.snap_guides = result.guides
             anchor = QPointF(result.x - min(0, dx), result.y - min(0, dy))
-            return QLineF(anchor, anchor + QPointF(dx, dy))
+            return self.compensate(QLineF(anchor, anchor + QPointF(dx, dy)))
         result = self.drawing.snap_endpoint(point, self.origin, bypass=bypass)
         self.drawing.snap_guides = result.guides
         return QLineF(self.origin, QPointF(result.x, result.y))
+
+    def attachments(self):
+        if self.wall_index is None:
+            from survey.wall_attachments import WallAttachmentIndex
+            self.wall_index = WallAttachmentIndex(layer['drawing'] for layer in
+                self.drawing.layer_document()['layers'] if layer['visible'])
+        return self.wall_index
+
+    def compensate(self, line):
+        if self.raw_placement or line.length() == 0:
+            return line
+        before,after = self.attachments().clear_ends((line.x1(),line.y1()),(line.x2(),line.y2()))
+        direction = (line.p2()-line.p1())/line.length()
+        # Keep the snapped reference endpoint, extending only the free end.
+        if before:
+            return QLineF(line.p1(),line.p2()+direction*before)
+        if after:
+            return QLineF(line.p1()-direction*after,line.p2())
+        return line
+
+    def measured_line(self, line):
+        if self.raw_placement or line.length() == 0:
+            return line
+        before,after = self.attachments().clear_ends((line.x1(),line.y1()),(line.x2(),line.y2()))
+        direction = (line.p2()-line.p1())/line.length()
+        start = min(before,line.length())
+        end = max(start,line.length()-after)
+        return QLineF(line.p1()+direction*start,line.p1()+direction*end)
 
     def show_preview(self, line, position):
         if self.preview is None:
@@ -109,14 +141,20 @@ class LineDesignController:
             self.preview.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
             self.preview.setZValue(8)
             self.view.scene.addItem(self.preview)
-        self.preview.setLine(line)
-        self.preview.setPen(QPen(self.drawing.tools.stroke_color, 2, Qt.PenStyle.DashLine))
+        measured = self.measured_line(line)
+        self.preview.setLine(measured)
+        bounds = self.view.scene.sceneRect()
+        valid = (bounds.contains(line.p1()) and bounds.contains(line.p2())
+                 and (self.pending_length is None or abs(measured.length()-self.pending_length)<=1e-5))
+        self.preview.setPen(QPen(self.drawing.tools.stroke_color if valid else QColor('#ef4444'), 2, Qt.PenStyle.DashLine))
         self.preview.show()
         self.drawing.show_snap_guides(QRectF(line.p1(), line.p2()).normalized())
-        length = meters_to_display_units(line.length() / self.owner.get_px_per_meter(), self.owner.measurement_system)
+        length = meters_to_display_units(measured.length() / self.owner.get_px_per_meter(), self.owner.measurement_system)
         text = self.drawing.measurement.locale().toString(length, "f", 2) + " " + distance_unit_label(self.owner.measurement_system)
         if self.pending_length is not None:
             text += "\n" + self.owner.tr("design_rotate_hint")
+            if not valid:
+                text += '\n'+self.owner.tr('line_clear_length_invalid')
         self.drawing.show_measurement(text, position)
 
     def begin_placement(self, length, anchor=None):
@@ -208,8 +246,14 @@ class LineDesignController:
         bounds = self.view.scene.sceneRect()
         if (not all(math.isfinite(value) for value in (line.x1(), line.y1(), line.x2(), line.y2()))
                 or not bounds.contains(line.p1()) or not bounds.contains(line.p2())):
+            if self.pending_length is not None:
+                self.owner.status.showMessage(self.owner.tr('line_clear_length_invalid'))
+                return False
             raise ValueError("Line is outside the sheet")
         if line.length() > 0:
+            if self.pending_length is not None and abs(self.measured_line(line).length()-self.pending_length)>1e-5:
+                self.owner.status.showMessage(self.owner.tr('line_clear_length_invalid'))
+                return False
             segment = dict(x1=line.x1(), y1=line.y1(), x2=line.x2(), y2=line.y2(),
                            color=self.drawing.tools.stroke_color.name())
             from qt_ui.qt_wall_sides import place_structure

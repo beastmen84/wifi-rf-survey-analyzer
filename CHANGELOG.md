@@ -7,6 +7,14 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Exact Line placement measures useful length beyond physical attachment walls:
+  the hidden end portion is added internally while preserving the snapped
+  reference and direction. A 1.30 m line behind a 0.10 m wall therefore stores
+  1.40 m and exposes 1.30 m. Preview, drag readout, hover dimensions and straight
+  side lengths use the useful span. Shared faces are counted once; openings,
+  Alt bypass, cancellation and one-step history remain respected. A placement
+  that cannot preserve its useful length or fit the sheet is rejected.
+
 - Doors and windows adapt their frames to the full physical wall thickness,
   centered between its faces, including shared walls. Placement accepts the
   wall body; saved host coordinates remain compatible. Preview, picking,

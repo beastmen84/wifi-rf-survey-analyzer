@@ -1,6 +1,11 @@
 """Additional segment editing controls and help in the four UI languages."""
 LANGUAGES = ("en", "it", "fr", "es")
 TEXT = {
+    'line_clear_length_invalid': (
+        'The useful length does not fit here. Move the line or reduce its length.',
+        'La lunghezza utile non entra in questa posizione. Sposta il segmento o riduci la lunghezza.',
+        'La longueur utile ne tient pas ici. Déplacez le segment ou réduisez sa longueur.',
+        'La longitud útil no cabe aquí. Mueve el segmento o reduce su longitud.'),
     "axis_lock_hint": ("Hold Shift: horizontal/vertical drag.", "Tieni Shift: trascinamento orizzontale/verticale.",
         "Maintenez Maj : tracé horizontal/vertical.", "Mantén Mayús: trazo horizontal/vertical."),
     "axis_opening_help": (
@@ -23,13 +28,13 @@ TEXT = {
         "Los trazos sobre la misma recta y del mismo color se unen automáticamente, incluidos solapamientos parciales y duplicados. Mover, girar o borrar una unión elimina sus cortes obsoletos. Las uniones en T o cruz, contactos con curvas, esquinas, huecos y trazos de colores diferentes permanecen separados. Deshacer restaura la geometría anterior. Si un fragmento movido se une a geometría que quedó fija, el segmento combinado no se selecciona automáticamente para otro movimiento."),
     "blank_tool_line": ("Line", "Linea", "Ligne", "Línea"),
     "blank_tool_select": ("Select", "Seleziona", "Sélectionner", "Seleccionar"),
-    "line_length": ("Length", "Lunghezza", "Longueur", "Longitud"),
+    "line_length": ("Useful length", "Lunghezza utile", "Longueur utile", "Longitud útil"),
     "line_size_title": ("Line length", "Lunghezza della linea", "Longueur de la ligne", "Longitud de la línea"),
     "line_size_hint": (
-        "Enter a length, then move the preview and right-click to place it. R rotates by 90°; Esc cancels.",
-        "Inserisci la lunghezza, poi muovi l'anteprima e posizionala col destro. R ruota di 90°; Esc annulla.",
-        "Saisissez une longueur, déplacez l'aperçu et placez-le par clic droit. R tourne de 90° ; Échap annule.",
-        "Introduce la longitud, mueve la vista previa y colócala con clic derecho. R gira 90°; Esc cancela."),
+        "Enter the useful length beyond an attached wall; its covered portion is added internally. Move the preview and right-click to place it. R rotates by 90°; Esc cancels. Alt uses literal coordinates without compensation.",
+        "Inserisci la lunghezza utile dopo la parete di aggancio: il tratto coperto viene aggiunto internamente. Muovi l'anteprima e posizionala col destro. R ruota di 90°; Esc annulla. Alt usa coordinate letterali senza compensazione.",
+        "Saisissez la longueur utile au-delà du mur d’appui ; la partie couverte est ajoutée en interne. Déplacez l’aperçu et placez-le par clic droit. R tourne de 90° ; Échap annule. Alt utilise les coordonnées littérales sans compensation.",
+        "Introduce la longitud útil a partir del muro de apoyo; la parte cubierta se añade internamente. Mueve la vista previa y colócala con clic derecho. R gira 90°; Esc cancela. Alt usa coordenadas literales sin compensación."),
     "design_rotate_hint": ("Tap R: 90° · Hold + mouse: 5°", "Tocco R: 90° · Tieni + mouse: 5°",
                            "R bref : 90° · Maintenir + souris : 5°", "Toque R: 90° · Mantén + ratón: 5°"),
     "design_rotation_outside": (
