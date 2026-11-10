@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (QApplication, QDialog, QDialogButtonBox, QDoubleS
     QGraphicsPathItem, QLabel, QLineEdit, QPlainTextEdit, QTextEdit, QVBoxLayout)
 
 from app_core.units import distance_unit_label, display_units_to_meters, meters_to_display_units
-from survey.plan_drawing import PLAN_DRAWING_KEY, drawing_segments, drawing_geometry, encode_drawing, rectangle_segments
+from survey.plan_drawing import PLAN_DRAWING_KEY, encode_drawing, rectangle_segments
 from survey.plan_curves import PLAN_CURVES_KEY, encode_curves, validate_curves, curves_geometry
 from survey.plan_curve_geometry import normalize_plan
 from survey.curved_regions import closed_drawing_regions
@@ -18,7 +18,7 @@ from survey.plan_snapping import PlanSnapper, SnapResult
 from survey.plan_regions import PlanRegions
 from survey.plan_geometry import rotate_degrees, segment_bounds, translate_segments
 from survey.plan_drawing import validate_segments
-from survey.plan_labels import PLAN_LABELS_KEY, drawing_labels, encode_labels, validate_labels, labels_geometry
+from survey.plan_labels import PLAN_LABELS_KEY, encode_labels, validate_labels, labels_geometry
 from qt_ui.qt_text_design import TextDesignController
 from qt_ui.scaling import widget_px
 from qt_ui.qt_plan_eraser import PlanEraserController
@@ -27,7 +27,7 @@ from qt_ui.qt_plan_selection import PlanSelectionController
 from qt_ui.qt_plan_rotation import PlanRotationController
 from qt_ui.qt_plan_annotations import AnnotationController, ANNOTATION_TOOLS
 from qt_ui.qt_plan_dimensions import SegmentDimensions
-from survey.plan_annotations import (PLAN_ANNOTATIONS_KEY, drawing_annotations, encode_annotations,
+from survey.plan_annotations import (PLAN_ANNOTATIONS_KEY, encode_annotations,
     validate_annotations, visible_wall_segments, follow_hosts, supported)
 from survey.plan_objects import FREE_ANNOTATIONS
 from survey.plan_clearances import ClearanceIndex
@@ -250,24 +250,16 @@ class RectangleDesignController(QObject):
         return active_layer(self.layer_document())["drawing"]
 
     def segments(self):
-        if self.owner.session and PLAN_LAYERS_KEY in self.owner.session.metadata:
-            return deepcopy(self.active_state()["segments"])
-        return drawing_segments(self.owner.session.metadata) if self.owner.session else None
+        return deepcopy(self.active_state()["segments"]) if self.owner.session else None
 
     def labels(self):
-        if self.owner.session and PLAN_LAYERS_KEY in self.owner.session.metadata:
-            return deepcopy(self.active_state()["labels"])
-        return drawing_labels(self.owner.session.metadata) or [] if self.owner.session else []
+        return deepcopy(self.active_state()["labels"]) if self.owner.session else []
 
     def curves(self):
-        if self.owner.session and PLAN_LAYERS_KEY in self.owner.session.metadata:
-            return deepcopy(self.active_state()["curves"])
-        return drawing_geometry(self.owner.session.metadata)[1] if self.owner.session else []
+        return deepcopy(self.active_state()["curves"]) if self.owner.session else []
 
     def annotations(self):
-        if self.owner.session and PLAN_LAYERS_KEY in self.owner.session.metadata:
-            return deepcopy(self.active_state()["annotations"])
-        return drawing_annotations(self.owner.session.metadata) if self.owner.session else []
+        return deepcopy(self.active_state()["annotations"]) if self.owner.session else []
 
     def redraw(self):
         self.dimensions.hide()

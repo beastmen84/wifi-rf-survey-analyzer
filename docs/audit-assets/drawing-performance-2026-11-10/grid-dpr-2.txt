@@ -1,0 +1,3 @@
+Effective DPR: 2.0
+......                                                                   [100%]
+6 passed, 6 deselected in 8.20s

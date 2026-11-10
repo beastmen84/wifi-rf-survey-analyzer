@@ -110,6 +110,7 @@ class WallSidesDialog(QDialog):
         self.fixed_state = deepcopy(fixed_state)
         self.converted = any(s.get('wall', {}).get('reference') for s in [*(state['segments'] or []), *state['curves']])
         self.result = self.candidate = None
+        self._preview_state = None
         self.error = None
         self.density, self.system = owner.get_px_per_meter(), owner.measurement_system
         self.values = {s.index:s.shape.get('wall', {}).get('width', 0.0) for s in sides}
@@ -261,8 +262,8 @@ class WallSidesDialog(QDialog):
         self.apply_button.clicked.connect(self.try_accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
-        self.table.itemSelectionChanged.connect(self.select_side)
         self.table.selectRow(0)
+        self.table.itemSelectionChanged.connect(self.select_side)
         self.refresh()
 
     def change_width(self, row):
@@ -424,16 +425,20 @@ class WallSidesDialog(QDialog):
         focus = QRectF()
         row = self.table.currentRow()
         display = self.result.state if self.result is not None else self.state
-        preview_lines, preview_curves = display['segments'] or [], display['curves']
-        try:
-            for path, pen, brush in wall_commands(preview_lines, preview_curves, display['annotations']):
-                scene.addItem(wall_item(path, pen, brush))
-        except ValueError:
-            pass  # Invalid geometry is reported by refresh and cannot be applied.
-        try:
-            ink = WallReferenceInk(preview_lines, preview_curves)
-        except ValueError:
-            ink = WallReferenceInk()
+        if display is not self._preview_state:
+            preview_lines, preview_curves = display['segments'] or [], display['curves']
+            try:
+                self._preview_commands = list(wall_commands(preview_lines, preview_curves, display['annotations']))
+            except ValueError:
+                self._preview_commands = []  # refresh reports invalid geometry.
+            try:
+                self._preview_ink = WallReferenceInk(preview_lines, preview_curves)
+            except ValueError:
+                self._preview_ink = WallReferenceInk()
+            self._preview_state = display
+        for path, pen, brush in self._preview_commands:
+            scene.addItem(wall_item(path, pen, brush))
+        ink = self._preview_ink
         for i, side in enumerate(self.sides):
             shape = self.preview_shape(side)
             path = side_path(shape)

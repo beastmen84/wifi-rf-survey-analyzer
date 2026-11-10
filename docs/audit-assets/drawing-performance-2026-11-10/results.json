@@ -1,0 +1,141 @@
+{
+  "baseline_commit": "217bf4d",
+  "comparison": "Previous grid paint, legacy getters and wall preview restored in memory only",
+  "before": {
+    "counts": {
+      "segments": 93,
+      "curves": 0,
+      "labels": 19,
+      "annotations": 6
+    },
+    "repeats": 3,
+    "dpr": 1.5,
+    "zoom": 2.5,
+    "gesture_count": 8,
+    "read_bundle_count": 5,
+    "samples_seconds": [
+      {
+        "open": 0.35729640000499785,
+        "reads": 0.18635490001179278,
+        "hover": 0.01694230001885444,
+        "pan": 3.6740081000025384,
+        "pending": 0.14997299999231473,
+        "placement_cancel": 0.34132349997526035,
+        "placement_apply": 1.3201505999895744
+      },
+      {
+        "open": 0.34048240003176033,
+        "reads": 0.18552560004172847,
+        "hover": 0.5412414000020362,
+        "pan": 3.774008500040509,
+        "pending": 0.14958219998516142,
+        "placement_cancel": 0.3310076000052504,
+        "placement_apply": 1.3684962000115775
+      },
+      {
+        "open": 0.3395904000499286,
+        "reads": 0.18860610004048795,
+        "hover": 0.5779596000211313,
+        "pan": 3.840326899953652,
+        "pending": 0.14560799999162555,
+        "placement_cancel": 0.33584819996031,
+        "placement_apply": 1.3087740000337362
+      }
+    ],
+    "median_seconds": {
+      "open": 0.34048240003176033,
+      "reads": 0.18635490001179278,
+      "hover": 0.5412414000020362,
+      "pan": 3.774008500040509,
+      "pending": 0.14958219998516142,
+      "placement_cancel": 0.33584819996031,
+      "placement_apply": 1.3201505999895744
+    },
+    "native_qt": true,
+    "original_files_unchanged": true,
+    "rf_scanning": false
+  },
+  "after": {
+    "counts": {
+      "segments": 93,
+      "curves": 0,
+      "labels": 19,
+      "annotations": 6
+    },
+    "repeats": 3,
+    "dpr": 1.5,
+    "zoom": 2.5,
+    "gesture_count": 8,
+    "read_bundle_count": 5,
+    "samples_seconds": [
+      {
+        "open": 0.27018749999115244,
+        "reads": 0.014550600026268512,
+        "hover": 0.0181082000490278,
+        "pan": 0.4381893000099808,
+        "pending": 0.10061640001367778,
+        "placement_cancel": 0.3213268000399694,
+        "placement_apply": 0.8367575000156648
+      },
+      {
+        "open": 0.22347020002780482,
+        "reads": 0.015725000004749745,
+        "hover": 0.0659515000297688,
+        "pan": 0.3882378999842331,
+        "pending": 0.0985021999804303,
+        "placement_cancel": 0.3142345999949612,
+        "placement_apply": 0.8330674000317231
+      },
+      {
+        "open": 0.22248759999638423,
+        "reads": 0.014972700038924813,
+        "hover": 0.0671483000041917,
+        "pan": 0.38860100001329556,
+        "pending": 0.09673940000357106,
+        "placement_cancel": 0.3165535000152886,
+        "placement_apply": 0.8203573999926448
+      }
+    ],
+    "median_seconds": {
+      "open": 0.22347020002780482,
+      "reads": 0.014972700038924813,
+      "hover": 0.0659515000297688,
+      "pan": 0.38860100001329556,
+      "pending": 0.0985021999804303,
+      "placement_cancel": 0.3165535000152886,
+      "placement_apply": 0.8330674000317231
+    },
+    "native_qt": true,
+    "original_files_unchanged": true,
+    "rf_scanning": false
+  },
+  "validation": {
+    "full_suite": {
+      "tests_passed": 2649,
+      "subtests_passed": 479,
+      "seconds": 327.8
+    },
+    "python_syntax": true,
+    "original_project_files_unchanged": 4,
+    "grid_density_checks": [
+      {
+        "effective_dpr": 1.25,
+        "cases_passed": 6,
+        "pixel_comparisons": 18,
+        "different_components": 0
+      },
+      {
+        "effective_dpr": 1.5,
+        "cases_passed": 6,
+        "pixel_comparisons": 18,
+        "different_components": 0
+      },
+      {
+        "effective_dpr": 2.0,
+        "cases_passed": 6,
+        "pixel_comparisons": 18,
+        "different_components": 0
+      }
+    ]
+  }
+}

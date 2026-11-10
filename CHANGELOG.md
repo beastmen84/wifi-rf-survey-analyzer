@@ -7,6 +7,11 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Drawing large plans is more responsive: room grid clipping is prepared when
+  geometry changes, with only visible grid strokes repainted during navigation.
+  Legacy single-layer plans reuse validated drawing data during interaction.
+  Selecting another side in Wall Edit reuses its preview geometry; changing a
+  wall property still rebuilds and validates the proposed result.
 - Panning no longer leaves displaced or broken material hatches at fractional
   display scaling. Wall material items repaint their precomputed vectors instead
   of reusing a stale device-coordinate cache.

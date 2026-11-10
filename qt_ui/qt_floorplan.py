@@ -55,17 +55,40 @@ class FloorplanGridItem(QGraphicsPathItem):
         self.setPen(pen)
         self.setZValue(4)
         self.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemUsesExtendedStyleOption)
+        self.rebuild_regions()
+
+    def rebuild_regions(self):
+        """Resolve room clipping once, rather than during every viewport paint."""
+        self.region_strokes = []
+        if not self.view.grid_interior_path.isEmpty():
+            stroker = QPainterPathStroker(self.pen())
+            source = self.path()
+            for i in range(1,source.elementCount()):
+                b = source.elementAt(i)
+                if not b.isLineTo():
+                    continue
+                a = source.elementAt(i-1)
+                line = QPainterPath(QPointF(a.x,a.y))
+                line.lineTo(b.x,b.y)
+                stroke = stroker.createStroke(line)
+                for region,opacity in ((self.view.grid_exterior_path,1.0),
+                                       (self.view.grid_interior_path,GRID_INTERIOR_OPACITY)):
+                    part = stroke.intersected(region)
+                    if not part.isEmpty():
+                        self.region_strokes.append((part,part.boundingRect(),opacity))
 
     def paint(self, painter, option, widget=None):
-        if self.view.grid_interior_path.isEmpty():
+        if not self.region_strokes:
             super().paint(painter, option, widget)
             return
-        for path, opacity in ((self.view.grid_exterior_path, 1.0),
-                              (self.view.grid_interior_path, GRID_INTERIOR_OPACITY)):
+        exposed = option.exposedRect.adjusted(-2,-2,2,2)
+        for path, bounds, opacity in self.region_strokes:
+            if not bounds.intersects(exposed):
+                continue
             painter.save()
-            painter.setClipPath(path, Qt.ClipOperation.IntersectClip)
             painter.setOpacity(painter.opacity() * opacity)
-            super().paint(painter, option, widget)
+            painter.fillPath(path, self.pen().brush())
             painter.restore()
 
 
@@ -894,6 +917,7 @@ class FloorplanView(QGraphicsView):
         sheet.addRect(self.scene.sceneRect())
         self.grid_exterior_path = sheet.subtracted(interior)
         for item in self.grid_items:
+            item.rebuild_regions()
             item.update()
         self.viewport().update()
 
