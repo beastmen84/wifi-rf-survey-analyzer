@@ -145,7 +145,7 @@ def solve_moves(count, constraints, anchor, *, supports=(), fixed=()):
              0 if abs(solution[2*i+1]) < EPS else float(solution[2*i+1])) for i in range(count)]
 
 
-def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, open_side=0, anchor=0, widths=None, open_sides=None, appearances=None, priorities=None, fixed_state=None):
+def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, open_side=0, anchor=0, widths=None, open_sides=None, appearances=None, priorities=None, fixed_state=None, fixed_rooms=()):
     if not math.isfinite(width) or not 0 <= width <= 10000 or open_side not in (-1, 0, 1):
         raise ValueError("wall_invalid_width")
     lines, curves = state["segments"] or [], state["curves"]
@@ -250,12 +250,14 @@ def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, o
     supports = [(owner, normal(lines[i], lines[i]['wall']['side']),
                  requested.get(i, lines[i]['wall']['width'])) for i,owner in inward.items()]
     supports.extend((owners[i][0],n,requested.get(i,gap)-gap) for i,_j,n,gap in ground_links)
-    fixed = set()
+    fixed = set(fixed_rooms)
+    if any(type(i) is not int or i not in range(len(rooms)) for i in fixed):
+        raise ValueError('wall_no_anchor')
     if fixed_state is not None:
         previous = RegionPicker(fixed_state['segments'] or [], fixed_state['curves']).records
-        fixed = {i for i,(path,_room) in enumerate(rooms)
+        fixed.update(i for i,(path,_room) in enumerate(rooms)
                  if any(path.boundingRect().intersects(old.boundingRect()) and path_area(path.intersected(old)) > EPS
-                        for old,_r in previous)}
+                        for old,_r in previous))
     moves = solve_moves(len(rooms), constraints, anchor, supports=supports, fixed=fixed) if rooms else []
     moved_paths = [QTransform.fromTranslate(*move).map(path) for (path, _room), move in zip(rooms, moves)]
     for i, path in enumerate(moved_paths):

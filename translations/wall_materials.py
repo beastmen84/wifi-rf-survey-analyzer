@@ -1,6 +1,16 @@
 """Wall material catalog and schematic rendering controls."""
 LANGUAGES = ('en','it','fr','es')
 TEXT = {
+    'wall_shared_fixed_changed': (
+        'Changes also update the shared wall. Other rooms stay fixed; the selected room must fit at its exact dimensions.',
+        'Le modifiche aggiornano anche la parete condivisa. Gli altri ambienti restano fermi: quello selezionato deve entrare mantenendo le sue misure esatte.',
+        'Les modifications concernent aussi le mur partagé. Les autres pièces restent fixes ; la pièce sélectionnée doit tenir en conservant ses dimensions exactes.',
+        'Los cambios también actualizan el muro compartido. Las otras habitaciones permanecen fijas; la seleccionada debe caber con sus medidas exactas.'),
+    'wall_fixed_fit': (
+        'The shape does not fit in the clear space between the fixed walls. Its dimensions and the existing rooms stay unchanged.',
+        'La forma non entra nello spazio netto fra i muri fissi. Le sue misure e gli ambienti esistenti restano invariati.',
+        'La forme ne tient pas dans l’espace libre entre les murs fixes. Ses dimensions et les pièces existantes restent inchangées.',
+        'La forma no cabe en el espacio libre entre los muros fijos. Sus dimensiones y las habitaciones existentes no cambian.'),
     'wall_priority': ('Priority', 'Priorità', 'Priorité', 'Prioridad'),
     'wall_sides_apply': ('Apply changes', 'Applica modifiche', 'Appliquer les modifications', 'Aplicar cambios'),
     'wall_sides_fixed': (

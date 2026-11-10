@@ -103,11 +103,12 @@ class SidePreview(QGraphicsView):
 
 
 class WallSidesDialog(QDialog):
-    def __init__(self, owner, state, sides, anchor=0, *, placing=False, form_indices=None, fixed_state=None):
+    def __init__(self, owner, state, sides, anchor=0, *, placing=False, form_indices=None, fixed_state=None, fixed_rooms=()):
         super().__init__(owner)
         self.owner, self.state, self.sides, self.anchor = owner, deepcopy(state), list(sides), anchor
         self.placing = placing
         self.fixed_state = deepcopy(fixed_state)
+        self.fixed_rooms = tuple(fixed_rooms)
         self.converted = any(s.get('wall', {}).get('reference') for s in [*(state['segments'] or []), *state['curves']])
         self.result = self.candidate = None
         self._preview_state = None
@@ -361,7 +362,7 @@ class WallSidesDialog(QDialog):
         self.result = self.candidate = None
         self.error = None
         try:
-            self.result = apply_side_widths(self.state, self.sides, self.values, self.owner.floorplan_view.scene.sceneRect(), anchor=self.anchor, appearances=self.appearances, priorities=self.priorities, fixed_state=self.fixed_state)
+            self.result = apply_side_widths(self.state, self.sides, self.values, self.owner.floorplan_view.scene.sceneRect(), anchor=self.anchor, appearances=self.appearances, priorities=self.priorities, fixed_state=self.fixed_state, fixed_rooms=self.fixed_rooms)
             validate_survey_layout(self.owner, self.result)
             document = deepcopy(self.owner.plan_tools.controller.layer_document())
             active_layer(document)['drawing'] = self.result.state
@@ -373,7 +374,9 @@ class WallSidesDialog(QDialog):
         except (ValueError, KeyError, TypeError, OverflowError) as error:
             self.error = str(error)
             self.candidate = None
-            self.status.setText(self.owner.tr(self.error if self.error.startswith('wall_') else 'rectangle_invalid_drawing'))
+            key = ('wall_fixed_fit' if (self.fixed_state is not None or self.fixed_rooms) and self.error in ('wall_constraints_conflict','wall_room_collision')
+                   else self.error if self.error.startswith('wall_') else 'rectangle_invalid_drawing')
+            self.status.setText(self.owner.tr(key))
             self.status.setStyleSheet('color:#ef4444')
         for i, side in enumerate(self.sides):
             check = self.priority_checks[i]
@@ -387,7 +390,9 @@ class WallSidesDialog(QDialog):
             self.confirm_shared.setChecked(False)
         self.shared_signature = signature
         self.confirm_shared.setVisible(bool(signature))
-        self.notice.setText(self.owner.tr('wall_shared_placement_changed' if self.placing and not self.converted else 'wall_shared_changed') if signature else '')
+        notice_key = ('wall_shared_fixed_changed' if self.fixed_rooms else
+                      'wall_shared_placement_changed' if self.placing and not self.converted else 'wall_shared_changed')
+        self.notice.setText(self.owner.tr(notice_key) if signature else '')
         self.notice.setVisible(bool(signature))
         self.select_side()
         self.update_apply()
@@ -473,7 +478,7 @@ class WallSidesDialog(QDialog):
         self.preview.fit()
 
 
-def _review(owner, state, sides, anchor=0, *, placing=False, form_indices=None, fixed_state=None):
+def _review(owner, state, sides, anchor=0, *, placing=False, form_indices=None, fixed_state=None, fixed_rooms=()):
     drawing = owner.plan_tools.controller
     if not sides or not drawing.tools.structure_available() or not drawing.editable() or owner.scan_in_progress or drawing.wall_dialog_open:
         return False
@@ -482,7 +487,7 @@ def _review(owner, state, sides, anchor=0, *, placing=False, form_indices=None, 
     dialog = None
     try:
         drawing.cancel()
-        dialog = WallSidesDialog(owner, state, sides, anchor, placing=placing, form_indices=form_indices, fixed_state=fixed_state)
+        dialog = WallSidesDialog(owner, state, sides, anchor, placing=placing, form_indices=form_indices, fixed_state=fixed_state, fixed_rooms=fixed_rooms)
         if dialog.exec() != QDialog.DialogCode.Accepted or not dialog.apply_button.isEnabled():
             return False
         if owner.session is not session or owner.floorplan_view.pixmap_item is not pixmap or owner.session.metadata != token or owner.scan_in_progress:
@@ -507,6 +512,8 @@ def place_structure(drawing, lines=(), curves=()):
         return _review(drawing.owner, staged, sides, anchor, placing=True, fixed_state=state)
     except (ValueError, KeyError, TypeError, OverflowError) as error:
         key = str(error)
+        if key in ('wall_constraints_conflict','wall_room_collision'):
+            key = 'wall_fixed_fit'
         drawing.owner.status.showMessage(drawing.owner.tr(key if key.startswith('wall_') else 'rectangle_invalid_drawing'))
         return False
 
@@ -520,6 +527,8 @@ def edit_wall_sides(owner, region=None):
     curves = region.curves if region else drawing.selection.selected_curves
     indices = [*lines, *(len(state['segments'] or [])+i for i in curves)]
     rooms = reference_regions(state).records
-    anchor = next((i for i,(_p,r) in enumerate(rooms) if set(r.lines) == set(lines) and set(r.curves) == set(curves)), 0)
+    selected_room = next((i for i,(_p,r) in enumerate(rooms) if set(r.lines) == set(lines) and set(r.curves) == set(curves)), None)
+    anchor = selected_room if selected_room is not None else 0
+    fixed_rooms = tuple(i for i in range(len(rooms)) if i != selected_room) if selected_room is not None else ()
     return _review(owner, state, wall_sides(state, indices), anchor,
-                   form_indices=indices if region is not None else None)
+                   form_indices=indices if region is not None else None, fixed_rooms=fixed_rooms)

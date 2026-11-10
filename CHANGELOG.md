@@ -7,6 +7,13 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Moving an independent closed room now uses the same physical wall-face
+  attachment and fixed-neighbor checks as new construction. Exact dimensions
+  are preserved; a form that cannot fit between parallel walls is rejected.
+  The move preview aligns to the wall faces and marks conflicting attachments
+  in red. Existing shared-wall depth/material are inherited even when the moved
+  room already has wall profiles. Editing one room's thickness keeps the other
+  rooms fixed, rejecting incompatible requests instead of pushing a neighbor.
 - Drawing large plans is more responsive: room grid clipping is prepared when
   geometry changes, with only visible grid strokes repainted during navigation.
   Legacy single-layer plans reuse validated drawing data during interaction.

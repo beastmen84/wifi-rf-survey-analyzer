@@ -45,6 +45,8 @@ class PlanSelectionController:
         self.move_snapper = PlanSnapper()
         self.region_picker = None
         self.selected_region_area = None
+        self.move_wall_state = None
+        self.move_wall_invalid = False
 
     def reset_scene(self):
         self.highlights, self.area = [], None
@@ -61,6 +63,8 @@ class PlanSelectionController:
         self.origin = self.press_position = self.last_pointer = None
         self.dragged = self.moving = self.consume_release = False
         self.move_preview, self.move_source = [], []
+        self.move_wall_state = None
+        self.move_wall_invalid = False
         self.selected = ()
         self.selected_labels = ()
         self.selected_curves = ()
@@ -112,7 +116,7 @@ class PlanSelectionController:
         if not lines and not labels and not curves and not annotations:
             return
         path = QPainterPath()
-        physical_valid = True
+        physical_valid = not (moving and self.move_wall_invalid)
         if any(s.get("wall") for s in [*lines, *curves]):
             from survey.wall_geometry import wall_solids, validate_wall_bounds
             try:
@@ -401,6 +405,8 @@ class PlanSelectionController:
             self.cancel()
             self.set_selected(previous, previous_labels, previous_curves, region_area=region_area,annotation_indices=previous_annotations)
             return False
+        if self.closed_wall_move():
+            return self.place_closed_move(transformed, transformed_labels, transformed_annotations)
         selected_indices = set(self.selected)
         others = [line for index, line in enumerate(self.lines) if index not in selected_indices]
         other_curves = [curve for index, curve in enumerate(self.drawing.curves()) if index not in self.selected_curves]
@@ -432,6 +438,60 @@ class PlanSelectionController:
             previous, previous_labels, previous_curves,previous_annotations = self.selected, self.selected_labels, self.selected_curves,self.selected_annotations
             self.cancel()
             self.set_selected(previous, previous_labels, previous_curves, region_area=region_area,annotation_indices=previous_annotations)
+        return changed
+
+    def closed_wall_move(self):
+        """Use fixed supports when relocating an independent, complete room."""
+        if self.selected_curves or not self.selected:
+            return False
+        selected = set(self.selected)
+        if not any(line.get('wall') for i,line in enumerate(self.lines) if i not in selected):
+            return False
+        room = self.regions().matching_region(self.selected, ())
+        if room is None:
+            return False
+        return not any(set(other.lines) & selected for _path,other in self.regions().records if other != room)
+
+    def place_closed_move(self, lines, labels, annotations):
+        """Relocation uses the same rigid face attachment and validation as drawing."""
+        from survey.wall_sides import place_at_wall_faces, stage_structure, apply_side_widths
+        from survey.plan_layers import active_layer
+        from copy import deepcopy
+        region_area = self.selected_region_area
+        stationary = deepcopy(active_layer(self.drawing.layer_document())['drawing'])
+        stationary['segments'] = [s for i,s in enumerate(self.lines) if i not in self.selected]
+        stationary['labels'] = [s for i,s in enumerate(self.drawing.labels()) if i not in self.selected_labels]
+        stationary['annotations'] = [s for i,s in enumerate(self.drawing.annotations()) if i not in self.selected_annotations]
+        try:
+            placed, _curves = place_at_wall_faces(stationary, lines, [])
+            dx,dy = placed[0]['x1']-lines[0]['x1'],placed[0]['y1']-lines[0]['y1']
+            labels = transform_labels(labels,dx=dx,dy=dy)
+            annotations = transform_annotations(annotations,dx=dx,dy=dy)
+            current = [self.lines[i] for i in self.selected]
+            remaining = follow_hosts(stationary['annotations'],current,placed)
+            staged,sides,anchor = stage_structure(stationary,placed)
+            staged['labels'] = stationary['labels']+list(labels)
+            replacements = {a['id']:a for a in remaining+list(annotations)}
+            staged['annotations'] = [replacements[a['id']] for a in self.drawing.annotations()]
+            result = apply_side_widths(staged,sides,{s.index:s.shape.get('wall',{}).get('width',0) for s in sides},
+                                       self.view.scene.sceneRect(),anchor=anchor,fixed_state=stationary)
+        except (ValueError, KeyError, TypeError, OverflowError) as error:
+            key = str(error)
+            if key in ('wall_constraints_conflict','wall_room_collision'):
+                key = 'wall_fixed_fit'
+            self.owner.status.showMessage(self.owner.tr(key if key.startswith('wall_') else 'design_edit_limit'))
+            return False
+        ids = {a['id'] for a in annotations}
+        def on_side(line, sides):
+            return any(all(math.dist(p,point_projection(p,(side['x1'],side['y1']),(side['x2'],side['y2']))) < 1e-6
+                           for p in ((line['x1'],line['y1']),(line['x2'],line['y2']))) for side in sides)
+        selected = tuple(i for i,line in enumerate(result.state['segments'])
+                         if on_side(line,placed) and not on_side(line,stationary['segments']))
+        changed = self.drawing.apply_edit(**result.state)
+        if changed:
+            self.set_selected(selected,range(len(stationary['labels']),len(result.state['labels'])),(),
+                              region_area=region_area,
+                              annotation_indices=[i for i,a in enumerate(self.drawing.annotations()) if a['id'] in ids])
         return changed
 
     def delete_selected(self):
@@ -493,6 +553,9 @@ class PlanSelectionController:
             return False
         if self.moving:
             return True
+        self.move_wall_state = (dict(segments=[s for i,s in enumerate(self.lines) if i not in self.selected],
+                                    curves=self.drawing.curves(),labels=[],annotations=[])
+                                if self.closed_wall_move() else None)
         self.moving = True
         self.move_source = [dict(self.lines[index]) for index in self.selected]
         self.move_label_source = transform_labels(self.selected_texts())
@@ -554,15 +617,38 @@ class PlanSelectionController:
             self.move_label_preview = transform_labels(self.move_label_preview, dx=dx, dy=dy)
             self.move_curve_preview = transform_curves(self.move_curve_preview, dx=dx, dy=dy)
             self.move_annotation_preview = transform_annotations(self.move_annotation_preview,dx=dx,dy=dy)
-            left, top, right, bottom = segment_bounds(snapped)
+            self.align_move_faces()
+            left, top, right, bottom = segment_bounds(self.geometry(self.move_preview,self.move_label_preview,
+                                                                   self.move_curve_preview,self.move_annotation_preview))
             x, y = left, top
             self.show_lines(self.move_preview, moving=True, labels=self.move_label_preview, curves=self.move_curve_preview,annotations=self.move_annotation_preview)
             self.drawing.show_snap_guides(QRectF(left, top, right - left, bottom - top))
             self.show_count(position)
             return
+        self.align_move_faces()
+        left,top,right,bottom = segment_bounds(self.geometry(self.move_preview,self.move_label_preview,
+                                                           self.move_curve_preview,self.move_annotation_preview))
+        x,y = left,top
         self.show_lines(self.move_preview, moving=True, labels=self.move_label_preview, curves=self.move_curve_preview,annotations=self.move_annotation_preview)
         self.drawing.show_snap_guides(QRectF(x, y, right - left, bottom - top))
         self.show_count(position)
+
+    def align_move_faces(self):
+        self.move_wall_invalid = False
+        if self.move_wall_state is None:
+            return
+        from survey.wall_sides import place_at_wall_faces
+        try:
+            placed,_curves = place_at_wall_faces(self.move_wall_state,self.move_preview,[])
+        except ValueError:
+            self.move_wall_invalid = True
+            return
+        dx,dy = placed[0]['x1']-self.move_preview[0]['x1'],placed[0]['y1']-self.move_preview[0]['y1']
+        self.move_preview = placed
+        self.move_label_preview = transform_labels(self.move_label_preview,dx=dx,dy=dy)
+        self.move_annotation_preview = transform_annotations(self.move_annotation_preview,dx=dx,dy=dy)
+        if dx or dy:
+            self.drawing.snap_guides = ()
 
     def refresh_snap(self):
         if self.moving and self.last_pointer is not None:

@@ -1,0 +1,128 @@
+{
+  "cases": [
+    {
+      "scale": 100,
+      "language": "en",
+      "theme": "light",
+      "apply_enabled": false,
+      "status_fits": true
+    },
+    {
+      "scale": 100,
+      "language": "en",
+      "theme": "dark",
+      "apply_enabled": false,
+      "status_fits": true
+    },
+    {
+      "scale": 100,
+      "language": "it",
+      "theme": "light",
+      "apply_enabled": false,
+      "status_fits": true
+    },
+    {
+      "scale": 100,
+      "language": "it",
+      "theme": "dark",
+      "apply_enabled": false,
+      "status_fits": true
+    },
+    {
+      "scale": 100,
+      "language": "fr",
+      "theme": "light",
+      "apply_enabled": false,
+      "status_fits": true
+    },
+    {
+      "scale": 100,
+      "language": "fr",
+      "theme": "dark",
+      "apply_enabled": false,
+      "status_fits": true
+    },
+    {
+      "scale": 100,
+      "language": "es",
+      "theme": "light",
+      "apply_enabled": false,
+      "status_fits": true
+    },
+    {
+      "scale": 100,
+      "language": "es",
+      "theme": "dark",
+      "apply_enabled": false,
+      "status_fits": true
+    },
+    {
+      "scale": 175,
+      "language": "en",
+      "theme": "light",
+      "apply_enabled": false,
+      "status_fits": true
+    },
+    {
+      "scale": 175,
+      "language": "en",
+      "theme": "dark",
+      "apply_enabled": false,
+      "status_fits": true
+    },
+    {
+      "scale": 175,
+      "language": "it",
+      "theme": "light",
+      "apply_enabled": false,
+      "status_fits": true
+    },
+    {
+      "scale": 175,
+      "language": "it",
+      "theme": "dark",
+      "apply_enabled": false,
+      "status_fits": true
+    },
+    {
+      "scale": 175,
+      "language": "fr",
+      "theme": "light",
+      "apply_enabled": false,
+      "status_fits": true
+    },
+    {
+      "scale": 175,
+      "language": "fr",
+      "theme": "dark",
+      "apply_enabled": false,
+      "status_fits": true
+    },
+    {
+      "scale": 175,
+      "language": "es",
+      "theme": "light",
+      "apply_enabled": false,
+      "status_fits": true
+    },
+    {
+      "scale": 175,
+      "language": "es",
+      "theme": "dark",
+      "apply_enabled": false,
+      "status_fits": true
+    }
+  ],
+  "native_qt": true,
+  "rf_scanning": false,
+  "full_suite": {
+    "tests_passed": 2669,
+    "subtests_passed": 479,
+    "seconds": 360.23
+  },
+  "final_targeted": {
+    "tests_passed": 66,
+    "seconds": 20.65
+  },
+  "original_project_files_unchanged": 4
+}

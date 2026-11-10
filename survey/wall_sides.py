@@ -100,7 +100,7 @@ def stage_structure(state, new_lines=(), new_curves=()):
     # physical wall rather than its internal reference line.
     rooms = reference_regions(staged).records
     for index in indices:
-        if index >= len(lines) or lines[index].get('wall'):
+        if index >= len(lines):
             continue
         line = lines[index]
         coincident = [old for old in old_lines if old.get('wall') and all(
@@ -207,7 +207,7 @@ def side_priorities(state, sides, requested):
     return {**requested, **propagated}
 
 
-def apply_side_widths(state, sides, values, bounds, *, anchor=0, appearances=None, priorities=None, fixed_state=None):
+def apply_side_widths(state, sides, values, bounds, *, anchor=0, appearances=None, priorities=None, fixed_state=None, fixed_rooms=()):
     count = len(state['segments'] or [])
     indices = [s.index for s in sides]
     if set(values) != set(indices):
@@ -241,4 +241,4 @@ def apply_side_widths(state, sides, values, bounds, *, anchor=0, appearances=Non
         validate_wall_bounds(result['segments'] or [], result['curves'], bounds)
         return WallLayout(result, (), (), False)
     return plan_wall_layout(state, [i for i in indices if i < count], [i-count for i in indices if i >= count],
-        0, bounds, anchor=anchor, widths=values, open_sides={s.index:s.side for s in sides}, appearances=decorations, priorities=priorities, fixed_state=fixed_state)
+        0, bounds, anchor=anchor, widths=values, open_sides={s.index:s.side for s in sides}, appearances=decorations, priorities=priorities, fixed_state=fixed_state, fixed_rooms=fixed_rooms)
