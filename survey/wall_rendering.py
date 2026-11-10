@@ -128,7 +128,8 @@ class MaterialItem(QGraphicsPathItem):
         super().__init__(path)
         self.material_path = path
         self.setPen(pen)
-        self.setCacheMode(self.CacheMode.DeviceCoordinateCache)
+        # A device-coordinate pixmap can retain stale strips while scrolling at
+        # fractional display scaling. Repaint the precomputed vectors directly.
 
     def paint(self, painter, option, widget=None):
         paint_material(painter, self.material_path, self.pen())

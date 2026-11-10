@@ -169,6 +169,13 @@ from these software checks.
   existing shared wall will also change; connected rooms may translate while
   preserving internal dimensions. Differently colored/partially overlapping
   supports also inherit the common wall. Incompatible layouts are rejected.
+  While placing a new form, existing walls and rooms stay fixed: the new form
+  moves to the outer physical face instead of flipping or relocating its support.
+  The review diagram shows the resulting positions before confirmation. If the
+  unchanged-size form cannot fit between fixed supports or inside the sheet,
+  placement is rejected. Ordinary editing of an existing layout retains its
+  separate room-anchor rules. Material hatches remain aligned while panning,
+  including at fractional display scaling.
   Cancel discards the proposed piece. Placement and thickness are one undo step.
   With **Select**, double-click in the empty interior of a closed area (left or
   right button) to reopen its sides. Annotation/text hits open their properties;

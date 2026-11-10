@@ -4,15 +4,15 @@ from dataclasses import dataclass
 import math
 
 import numpy as np
-from PySide6.QtCore import QPointF
+from PySide6.QtCore import QPointF, QRectF
 from PySide6.QtGui import QTransform, QPainterPathStroker
 
 from survey.plan_faces import RegionPicker
 from survey.plan_curve_geometry import normalize_plan
-from survey.plan_curves import curve_info, point_at, transform_curves
+from survey.plan_curves import curve_info, point_at, transform_curves, curve_bounds
 from survey.plan_geometry import translate_segments
 from survey.plan_labels import transform_labels
-from survey.plan_annotations import transform_annotations, supported, annotation_points
+from survey.plan_annotations import transform_annotations, supported, annotation_points, follow_hosts
 from survey.wall_geometry import normal, wall_solids, validate_wall_bounds, path_area
 
 EPS = 1e-5
@@ -53,8 +53,18 @@ def room_side(shape, path):
     raise ValueError("wall_side_ambiguous")
 
 
-def solve_moves(count, constraints, anchor):
-    if not constraints or all(abs(c[3]) < EPS for c in constraints):
+def same_room(a, b):
+    """Compare occupied geometry, independent of extra collinear boundary cuts."""
+    if a == b:
+        return True
+    if any(abs(x-y) > EPS for x,y in zip(a.boundingRect().getRect(), b.boundingRect().getRect())):
+        return False
+    tolerance = max(EPS, max(path_area(a), path_area(b))*1e-9)
+    return path_area(a.subtracted(b)) <= tolerance and path_area(b.subtracted(a)) <= tolerance
+
+
+def solve_moves(count, constraints, anchor, *, supports=(), fixed=()):
+    if not supports and (not constraints or all(abs(c[3]) < EPS for c in constraints)):
         return [(0.0, 0.0)]*count
     graph = [set() for _ in range(count)]
     matrix, target = [], []
@@ -66,6 +76,18 @@ def solve_moves(count, constraints, anchor):
         row[2*b:2*b+2] = n
         matrix.append(row)
         target.append(gap)
+    for owner, n, gap in supports:
+        row = np.zeros(count*2)
+        row[2*owner:2*owner+2] = n
+        matrix.append(row)
+        target.append(gap)
+    fixed = set(fixed)
+    for owner in fixed:
+        for axis in (0, 1):
+            row = np.zeros(count*2)
+            row[2*owner+axis] = 1
+            matrix.append(row)
+            target.append(0)
     seen = set()
     for start in [anchor, *range(count)]:
         if start in seen:
@@ -78,6 +100,8 @@ def solve_moves(count, constraints, anchor):
             component.add(current)
             pending.extend(graph[current]-component)
         seen.update(component)
+        if component & fixed or any(owner in component for owner, _n, _gap in supports):
+            continue  # Existing references already fix this component in space.
         for axis in (0, 1):
             row = np.zeros(count*2)
             row[2*start+axis] = 1
@@ -115,12 +139,13 @@ def solve_moves(count, constraints, anchor):
             row[2*b:2*b+2] = (-n[1], n[0])
             tangent.append(row)
         tangent = np.array(tangent)
-        solution += basis@np.linalg.lstsq(tangent@basis, -tangent@solution, rcond=1e-12)[0]
+        if len(tangent):
+            solution += basis@np.linalg.lstsq(tangent@basis, -tangent@solution, rcond=1e-12)[0]
     return [(0 if abs(solution[2*i]) < EPS else float(solution[2*i]),
              0 if abs(solution[2*i+1]) < EPS else float(solution[2*i+1])) for i in range(count)]
 
 
-def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, open_side=0, anchor=0, widths=None, open_sides=None, appearances=None, priorities=None):
+def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, open_side=0, anchor=0, widths=None, open_sides=None, appearances=None, priorities=None, fixed_state=None):
     if not math.isfinite(width) or not 0 <= width <= 10000 or open_side not in (-1, 0, 1):
         raise ValueError("wall_invalid_width")
     lines, curves = state["segments"] or [], state["curves"]
@@ -159,6 +184,10 @@ def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, o
     if any(i not in chosen or type(s) is not int or s not in (-1, 1) for i, s in open_sides.items()):
         raise ValueError("wall_open_side")
     sides = {(i, owner): room_side(shape, rooms[owner][0]) for i, shape in enumerate(shapes) for owner in owners[i]}
+    # A pre-existing open wall is a fixed physical support. Closing a room on
+    # its thickness side needs an opposite face, not a reversal of that wall.
+    inward = {i:own[0] for i,own in enumerate(owners[:len(lines)]) if len(own) == 1
+              and shapes[i].get('wall') and shapes[i]['wall']['side'] != sides[i,own[0]]}
     constraints, links = [], []
     for i, own in enumerate(owners):
         if len(own) > 2:
@@ -195,10 +224,20 @@ def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, o
             if min(length, span[1])-max(0, span[0]) <= EPS:
                 continue
             links.append((i, j, n, gap))
+    ground_links = []
+    if fixed_state is not None:
+        from survey.wall_editing import relation
+        for i in singles:
+            for j,own in enumerate(owners[:len(lines)]):
+                if own:
+                    continue
+                match = relation(lines[j], lines[i])
+                if match:
+                    ground_links.append((i,j,match[3],match[4]))
     changed = True
     while changed:
         changed = False
-        for i, j, _n, _gap in links:
+        for i, j, _n, _gap in [*links, *ground_links]:
             if i in requested or j in requested:
                 if i in requested and j in requested and abs(requested[i]-requested[j]) > EPS:
                     raise ValueError("wall_shared_width_conflict")
@@ -208,7 +247,16 @@ def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, o
                         changed = True
     for i, j, n, gap in links:
         constraints.append((owners[i][0], owners[j][0], n, requested.get(i, gap)-gap))
-    moves = solve_moves(len(rooms), constraints, anchor) if rooms else []
+    supports = [(owner, normal(lines[i], lines[i]['wall']['side']),
+                 requested.get(i, lines[i]['wall']['width'])) for i,owner in inward.items()]
+    supports.extend((owners[i][0],n,requested.get(i,gap)-gap) for i,_j,n,gap in ground_links)
+    fixed = set()
+    if fixed_state is not None:
+        previous = RegionPicker(fixed_state['segments'] or [], fixed_state['curves']).records
+        fixed = {i for i,(path,_room) in enumerate(rooms)
+                 if any(path.boundingRect().intersects(old.boundingRect()) and path_area(path.intersected(old)) > EPS
+                        for old,_r in previous)}
+    moves = solve_moves(len(rooms), constraints, anchor, supports=supports, fixed=fixed) if rooms else []
     moved_paths = [QTransform.fromTranslate(*move).map(path) for (path, _room), move in zip(rooms, moves)]
     for i, path in enumerate(moved_paths):
         for other_index, other in enumerate(moved_paths[i+1:], i+1):
@@ -229,6 +277,7 @@ def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, o
             raise WallLayoutError("wall_content_conflict", hits)
         return next(iter(values), (0.0, 0.0))
     output_lines, output_curves = [], []
+    host_moves = []
     closed_lines, closed_curves = [], []
     for i, shape in enumerate(shapes):
         own = owners[i]
@@ -238,7 +287,7 @@ def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, o
         for owner in own or [None]:
             if owner is None:
                 p = point_at(shape, .5) if "kind" in shape else ((shape["x1"]+shape["x2"])/2, (shape["y1"]+shape["y2"])/2)
-                move = displacement([p])
+                move = (0.0, 0.0) if fixed_state is not None else displacement([p])
             else:
                 move = moves[owner]
             item = (transform_curves([shape], dx=move[0], dy=move[1]) if "kind" in shape
@@ -251,9 +300,25 @@ def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, o
                 if priorities.get(i, shape.get('wall', {}).get('priority', False)):
                     item['wall']['priority'] = True
             (output_curves if "kind" in shape else output_lines).append(item)
+            if 'kind' not in shape:
+                host_moves.append((shape,item))
+            if i in inward:
+                # Retain the original face and its side; the translated room
+                # boundary is the opposite face of the same physical wall.
+                reference = dict(item, **{k:shape[k] for k in ('x1','y1','x2','y2')})
+                if w:
+                    reference['wall'] = dict(item['wall'], side=shape['wall']['side'])
+                output_lines.append(reference)
             if own:
                 (closed_curves if "kind" in shape else closed_lines).append(item)
     output_lines, output_curves = normalize_plan(output_lines, output_curves)
+    extent = bounds.adjusted(-EPS,-EPS,EPS,EPS)
+    if any(not extent.contains(QPointF(line['x'+s],line['y'+s])) for line in output_lines for s in ('1','2')):
+        raise ValueError('wall_outside')
+    for curve in output_curves:
+        left, top, right, bottom = curve_bounds(curve)
+        if not extent.contains(QRectF(left,top,right-left,bottom-top)):
+            raise ValueError('wall_outside')
     validate_wall_bounds(output_lines, output_curves, bounds)
     display_margin = QPainterPathStroker()
     display_margin.setWidth(.02)  # Derived cubic/polygon display tolerance only.
@@ -266,6 +331,17 @@ def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, o
     result.update(segments=output_lines, curves=output_curves)
     result["annotations"] = []
     for item in state["annotations"]:
+        if fixed_state is not None:
+            preserved = deepcopy(item)
+            if not supported(preserved, output_lines):
+                for before, after in host_moves:
+                    if supported(item, [before]):
+                        moved = follow_hosts([item], [before], [after])[0]
+                        if supported(moved, output_lines):
+                            preserved = moved
+                            break
+            result['annotations'].append(preserved)
+            continue
         points = annotation_points(item)
         if item["kind"] in ("door", "window"):
             dx, dy = item["x2"]-item["x1"], item["y2"]-item["y1"]
@@ -277,6 +353,9 @@ def plan_wall_layout(state, selected_lines, selected_curves, width, bounds, *, o
         result["annotations"].extend(transform_annotations([item], dx=move[0], dy=move[1]))
     result["labels"] = []
     for label in state["labels"]:
+        if fixed_state is not None:
+            result['labels'].append(deepcopy(label))
+            continue
         move = displacement([(label["x"], label["y"])])
         result["labels"].extend(transform_labels([label], dx=move[0], dy=move[1]))
     rebuilt = RegionPicker(output_lines, output_curves)

@@ -3,6 +3,16 @@ LANGUAGES = ('en','it','fr','es')
 TEXT = {
     'wall_priority': ('Priority', 'Priorità', 'Priorité', 'Prioridad'),
     'wall_sides_apply': ('Apply changes', 'Applica modifiche', 'Appliquer les modifications', 'Aplicar cambios'),
+    'wall_sides_fixed': (
+        'Existing walls stay fixed; the new shape moves to leave room for shared wall thickness.',
+        'Le pareti già posate restano ferme; si sposta la nuova forma per lasciare spazio allo spessore condiviso.',
+        'Les murs existants restent fixes ; la nouvelle forme se déplace pour laisser la place à l’épaisseur commune.',
+        'Los muros existentes permanecen fijos; la nueva forma se desplaza para dejar espacio al espesor compartido.'),
+    'wall_shared_placement_changed': (
+        'Changes also update the shared wall. Existing rooms stay fixed; the new shape must fit before you can place it.',
+        'Le modifiche aggiornano anche la parete condivisa. Gli ambienti già posati restano fermi: la nuova forma deve poter essere collocata.',
+        'Les modifications concernent aussi le mur partagé. Les pièces existantes restent fixes ; la nouvelle forme doit pouvoir être placée.',
+        'Los cambios también actualizan el muro compartido. Las habitaciones existentes permanecen fijas; la nueva forma debe poder colocarse.'),
     'wall_priority_hint': (
         'Priority walls keep their material at overlapping joints on the same layer. At equal priority, the thicker wall wins. This changes the drawing only.',
         'I muri con priorità mantengono il proprio materiale nelle giunzioni sullo stesso livello. A parità di priorità prevale il muro più spesso. Cambia solo il disegno.',

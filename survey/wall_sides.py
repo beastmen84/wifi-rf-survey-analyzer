@@ -6,8 +6,12 @@ import math
 from survey.plan_curve_geometry import normalize_plan
 from survey.wall_conversion import reference_regions
 from survey.wall_editing import relation
-from survey.wall_layout import plan_wall_layout, room_side, WallLayout
+from survey.wall_layout import plan_wall_layout, room_side, WallLayout, same_room, solve_moves
 from survey.wall_geometry import validate_wall_bounds
+from survey.wall_geometry import normal
+from survey.plan_faces import RegionPicker
+from survey.plan_geometry import translate_segments
+from survey.plan_curves import transform_curves
 from survey.planar_geometry import point_projection
 from survey.wall_properties import copy_wall
 from survey.wall_materials import appearance, validated_appearance
@@ -44,7 +48,44 @@ def wall_sides(state, indices, existing=()):
     return result
 
 
+def place_at_wall_faces(state, new_lines, new_curves):
+    """Place a complete proposed form beyond existing physical support faces."""
+    new_lines, new_curves = list(new_lines), list(new_curves)
+    hosts = [old for old in state['segments'] or [] if old.get('wall') and not old['wall'].get('reference')]
+    if not hosts:
+        return new_lines, new_curves
+    rooms = RegionPicker(new_lines, new_curves).records
+    if len(rooms) != 1:
+        return new_lines, new_curves
+    path, room = rooms[0]
+    constraints = []
+    for i in room.lines:
+        edge = new_lines[i]
+        inward = normal(edge, -room_side(edge, path))
+        for old in hosts:
+            wall = old['wall']
+            length = math.hypot(old['x2']-old['x1'], old['y2']-old['y1'])
+            ux, uy = (old['x2']-old['x1'])/length, (old['y2']-old['y1'])/length
+            nx, ny = -uy, ux
+            if abs((edge['x2']-edge['x1'])*uy-(edge['y2']-edge['y1'])*ux) > 1e-6*math.hypot(edge['x2']-edge['x1'],edge['y2']-edge['y1']):
+                continue
+            along = sorted((edge['x'+s]-old['x1'])*ux+(edge['y'+s]-old['y1'])*uy for s in ('1','2'))
+            if min(length,along[1])-max(0,along[0]) <= 1e-6:
+                continue
+            offset = (edge['x1']-old['x1'])*nx+(edge['y1']-old['y1'])*ny
+            low, high = sorted((0,wall['side']*wall['width']))
+            if not low-1e-6 <= offset <= high+1e-6:
+                continue
+            target = high if inward[0]*nx+inward[1]*ny > 0 else low
+            constraints.append((0,(nx,ny),target-offset))
+    if not constraints:
+        return new_lines, new_curves
+    dx,dy = solve_moves(1, (), 0, supports=constraints)[0]
+    return translate_segments(new_lines,dx,dy), transform_curves(new_curves,dx=dx,dy=dy)
+
+
 def stage_structure(state, new_lines=(), new_curves=()):
+    new_lines, new_curves = place_at_wall_faces(state, new_lines, new_curves)
     old_lines, old_curves = state['segments'] or [], state['curves']
     lines, curves, line_sources, curve_sources = normalize_plan([*old_lines, *new_lines], [*old_curves, *new_curves], with_sources=True)
     indices, inherited = [], set()
@@ -113,7 +154,7 @@ def stage_structure(state, new_lines=(), new_curves=()):
     # Keep an already placed room fixed when the new room shares its boundary.
     old_rooms = reference_regions(state).records
     anchor = next((i for i, (path, _r) in enumerate(rooms)
-                   if any(path == old_path for old_path, _old in old_rooms)), 0)
+                   if any(same_room(path, old_path) for old_path, _old in old_rooms)), 0)
     return staged, wall_sides(staged, indices, inherited), anchor
 
 
@@ -166,7 +207,7 @@ def side_priorities(state, sides, requested):
     return {**requested, **propagated}
 
 
-def apply_side_widths(state, sides, values, bounds, *, anchor=0, appearances=None, priorities=None):
+def apply_side_widths(state, sides, values, bounds, *, anchor=0, appearances=None, priorities=None, fixed_state=None):
     count = len(state['segments'] or [])
     indices = [s.index for s in sides]
     if set(values) != set(indices):
@@ -200,4 +241,4 @@ def apply_side_widths(state, sides, values, bounds, *, anchor=0, appearances=Non
         validate_wall_bounds(result['segments'] or [], result['curves'], bounds)
         return WallLayout(result, (), (), False)
     return plan_wall_layout(state, [i for i in indices if i < count], [i-count for i in indices if i >= count],
-        0, bounds, anchor=anchor, widths=values, open_sides={s.index:s.side for s in sides}, appearances=decorations, priorities=priorities)
+        0, bounds, anchor=anchor, widths=values, open_sides={s.index:s.side for s in sides}, appearances=decorations, priorities=priorities, fixed_state=fixed_state)

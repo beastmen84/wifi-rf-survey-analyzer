@@ -7,6 +7,16 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Panning no longer leaves displaced or broken material hatches at fractional
+  display scaling. Wall material items repaint their precomputed vectors instead
+  of reusing a stale device-coordinate cache.
+- Placing an adjacent form keeps existing walls in place and moves the new form
+  beyond the shared wall's physical depth. Closing three sides against an open
+  support no longer reverses its thickness. The review diagram now shows the
+  proposed final positions, including further depth changes. Existing rooms,
+  labels and free annotations stay fixed; incompatible fits and sheet overflow
+  are rejected without changing the plan.
+
 - Wall Edit adds a **Priority** checkbox for each side with positive thickness.
   A checked wall keeps its material at overlapping joints on the same layer;
   equal priority favors the thicker wall. Preview, contours, editor, Live/HTML,

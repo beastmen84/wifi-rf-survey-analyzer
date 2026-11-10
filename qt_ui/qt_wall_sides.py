@@ -10,7 +10,9 @@ from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog,
     QHeaderView, QLabel, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QFormLayout, QSizePolicy, QWidget,
     QStyle, QStyleOptionButton)
 from app_core.units import distance_unit_label, display_units_to_meters, meters_to_display_units, format_distance_meters
-from survey.plan_curves import curve_info, point_at
+from survey.plan_curves import curve_info, point_at, transform_curves
+from survey.plan_faces import RegionPicker
+from survey.plan_geometry import translate_segments
 from survey.plan_curve_rendering import curve_path
 from survey.plan_layers import active_layer, validate_document
 from survey.wall_sides import stage_structure, wall_sides, apply_side_widths, same_wall_faces
@@ -101,10 +103,11 @@ class SidePreview(QGraphicsView):
 
 
 class WallSidesDialog(QDialog):
-    def __init__(self, owner, state, sides, anchor=0, *, placing=False, form_indices=None):
+    def __init__(self, owner, state, sides, anchor=0, *, placing=False, form_indices=None, fixed_state=None):
         super().__init__(owner)
         self.owner, self.state, self.sides, self.anchor = owner, deepcopy(state), list(sides), anchor
         self.placing = placing
+        self.fixed_state = deepcopy(fixed_state)
         self.converted = any(s.get('wall', {}).get('reference') for s in [*(state['segments'] or []), *state['curves']])
         self.result = self.candidate = None
         self.error = None
@@ -117,6 +120,13 @@ class WallSidesDialog(QDialog):
         self.appearances = {s.index:validated_appearance({k:v for k,v in s.shape.get('wall',{}).items() if k in ('material','pattern')}) for s in sides}
         self.original_appearances = deepcopy(self.appearances)
         selected = {side.index for side in self.sides}
+        line_count = len(state['segments'] or [])
+        preview_rooms = RegionPicker(state['segments'] or [], state['curves']).records
+        boundaries = [set(room.lines) | {line_count+i for i in room.curves} for _path,room in preview_rooms]
+        def score(i):
+            return len(boundaries[i] & selected), -len(boundaries[i]-selected)
+        self.preview_owners = {side.index:max((i for i,boundary in enumerate(boundaries) if side.index in boundary),
+                                            key=score, default=None) for side in self.sides}
         if placing or form_indices is not None:
             self.material_forms = [selected if placing else set(form_indices) & selected]
         else:
@@ -134,7 +144,7 @@ class WallSidesDialog(QDialog):
         hint.setWordWrap(True)
         layout.addWidget(hint)
         if placing:
-            cancel_hint = QLabel(owner.tr('wall_sides_cancel'))
+            cancel_hint = QLabel(owner.tr('wall_sides_cancel')+(' '+owner.tr('wall_sides_fixed') if not self.converted else ''))
             cancel_hint.setWordWrap(True)
             layout.addWidget(cancel_hint)
         body = QHBoxLayout()
@@ -149,6 +159,7 @@ class WallSidesDialog(QDialog):
         self.table.setMinimumWidth(owner.spx(440))
         self.table.setHorizontalHeaderLabels([owner.tr('wall_side'), owner.tr('wall_side_length'), owner.tr('wall_side_depth'), owner.tr('wall_priority')])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
         self.table.horizontalHeaderItem(3).setToolTip(owner.tr('wall_priority_hint'))
         self.table.verticalHeader().hide()
@@ -349,7 +360,7 @@ class WallSidesDialog(QDialog):
         self.result = self.candidate = None
         self.error = None
         try:
-            self.result = apply_side_widths(self.state, self.sides, self.values, self.owner.floorplan_view.scene.sceneRect(), anchor=self.anchor, appearances=self.appearances, priorities=self.priorities)
+            self.result = apply_side_widths(self.state, self.sides, self.values, self.owner.floorplan_view.scene.sceneRect(), anchor=self.anchor, appearances=self.appearances, priorities=self.priorities, fixed_state=self.fixed_state)
             validate_survey_layout(self.owner, self.result)
             document = deepcopy(self.owner.plan_tools.controller.layer_document())
             active_layer(document)['drawing'] = self.result.state
@@ -375,7 +386,7 @@ class WallSidesDialog(QDialog):
             self.confirm_shared.setChecked(False)
         self.shared_signature = signature
         self.confirm_shared.setVisible(bool(signature))
-        self.notice.setText(self.owner.tr('wall_shared_changed') if signature else '')
+        self.notice.setText(self.owner.tr('wall_shared_placement_changed' if self.placing and not self.converted else 'wall_shared_changed') if signature else '')
         self.notice.setVisible(bool(signature))
         self.select_side()
         self.update_apply()
@@ -388,34 +399,34 @@ class WallSidesDialog(QDialog):
         if self.apply_button.isEnabled():
             self.accept()
 
+    def preview_shape(self, side):
+        owner = self.preview_owners[side.index]
+        move = self.result.moves[owner] if self.result is not None and owner is not None and owner < len(self.result.moves) else (0,0)
+        shape = (transform_curves([side.shape], dx=move[0], dy=move[1]) if 'kind' in side.shape
+                 else translate_segments([side.shape], *move))[0]
+        if not self.values[side.index]:
+            shape.pop('wall', None)
+            return shape
+        directed = shape['wall']['side'] if shape.get('wall', {}).get('reference') else side.side
+        profile = dict(shape.get('wall', {}), width=self.values[side.index], side=directed)
+        for key in ('material','pattern','priority'):
+            profile.pop(key, None)
+        profile.update(self.appearances[side.index])
+        if self.priorities[side.index]:
+            profile['priority'] = True
+        shape['wall'] = profile
+        return shape
+
     def draw_preview(self):
         scene = self.preview.scene()
         scene.clear()
         self.preview.paths = []
         focus = QRectF()
         row = self.table.currentRow()
-        preview_lines, preview_curves = deepcopy(self.state['segments'] or []), deepcopy(self.state['curves'])
-        shapes = [*preview_lines, *preview_curves]
-        originals = [*(self.state['segments'] or []), *self.state['curves']]
-        selected = {side.index for side in self.sides}
-        for side in self.sides:
-            targets = {side.index} | {i for i,other in enumerate(originals)
-                                     if i not in selected and same_wall_faces(side.shape, other)}
-            for index in targets:
-                shape = shapes[index]
-                if not self.values[side.index]:
-                    shape.pop('wall', None)
-                    continue
-                directed = shape['wall']['side'] if shape.get('wall', {}).get('reference') or index != side.index else side.side
-                profile = dict(shape.get('wall', {}), width=self.values[side.index], side=directed)
-                for key in ('material', 'pattern', 'priority'):
-                    profile.pop(key, None)
-                profile.update(self.appearances[side.index])
-                if self.priorities[side.index]:
-                    profile['priority'] = True
-                shape['wall'] = profile
+        display = self.result.state if self.result is not None else self.state
+        preview_lines, preview_curves = display['segments'] or [], display['curves']
         try:
-            for path, pen, brush in wall_commands(preview_lines, preview_curves, self.state['annotations']):
+            for path, pen, brush in wall_commands(preview_lines, preview_curves, display['annotations']):
                 scene.addItem(wall_item(path, pen, brush))
         except ValueError:
             pass  # Invalid geometry is reported by refresh and cannot be applied.
@@ -424,14 +435,13 @@ class WallSidesDialog(QDialog):
         except ValueError:
             ink = WallReferenceInk()
         for i, side in enumerate(self.sides):
-            path = side_path(side.shape)
+            shape = self.preview_shape(side)
+            path = side_path(shape)
             self.preview.paths.append(path)
             box = path.boundingRect()
             focus = focus.united(box.adjusted(-1,-1,1,1))
             width = self.values[side.index]
             if width:
-                directed = side.shape['wall']['side'] if side.shape.get('wall', {}).get('reference') else side.side
-                shape = dict(side.shape, wall=dict(side.shape.get('wall', {}), width=width, side=directed))
                 try:
                     body = solid(shape)
                     focus = focus.united(body.boundingRect())
@@ -443,11 +453,11 @@ class WallSidesDialog(QDialog):
             color = '#2563eb' if i == row else '#c07412' if side.shared else '#374151'
             pen = QPen(QColor(color), 4 if i == row else 2)
             pen.setCosmetic(True)
-            visible, line_pen, brush = (path, pen, None) if i == row else ink.command(shapes[side.index], path, pen)
+            visible, line_pen, brush = (path, pen, None) if i == row else ink.command(shape, path, pen)
             item = scene.addPath(visible, line_pen)
             if brush is not None:
                 item.setBrush(brush)
-            middle = point_at(side.shape, .5) if 'kind' in side.shape else ((side.shape['x1']+side.shape['x2'])/2, (side.shape['y1']+side.shape['y2'])/2)
+            middle = point_at(shape, .5) if 'kind' in shape else ((shape['x1']+shape['x2'])/2, (shape['y1']+shape['y2'])/2)
             text = scene.addSimpleText(str(i+1))
             text.setBrush(QColor(color))
             text.setFlag(text.GraphicsItemFlag.ItemIgnoresTransformations)
@@ -458,7 +468,7 @@ class WallSidesDialog(QDialog):
         self.preview.fit()
 
 
-def _review(owner, state, sides, anchor=0, *, placing=False, form_indices=None):
+def _review(owner, state, sides, anchor=0, *, placing=False, form_indices=None, fixed_state=None):
     drawing = owner.plan_tools.controller
     if not sides or not drawing.tools.structure_available() or not drawing.editable() or owner.scan_in_progress or drawing.wall_dialog_open:
         return False
@@ -467,7 +477,7 @@ def _review(owner, state, sides, anchor=0, *, placing=False, form_indices=None):
     dialog = None
     try:
         drawing.cancel()
-        dialog = WallSidesDialog(owner, state, sides, anchor, placing=placing, form_indices=form_indices)
+        dialog = WallSidesDialog(owner, state, sides, anchor, placing=placing, form_indices=form_indices, fixed_state=fixed_state)
         if dialog.exec() != QDialog.DialogCode.Accepted or not dialog.apply_button.isEnabled():
             return False
         if owner.session is not session or owner.floorplan_view.pixmap_item is not pixmap or owner.session.metadata != token or owner.scan_in_progress:
@@ -489,7 +499,7 @@ def place_structure(drawing, lines=(), curves=()):
     try:
         state = active_layer(drawing.layer_document())['drawing']
         staged, sides, anchor = stage_structure(state, lines, curves)
-        return _review(drawing.owner, staged, sides, anchor, placing=True)
+        return _review(drawing.owner, staged, sides, anchor, placing=True, fixed_state=state)
     except (ValueError, KeyError, TypeError, OverflowError) as error:
         key = str(error)
         drawing.owner.status.showMessage(drawing.owner.tr(key if key.startswith('wall_') else 'rectangle_invalid_drawing'))
