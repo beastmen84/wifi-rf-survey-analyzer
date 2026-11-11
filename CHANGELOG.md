@@ -7,6 +7,10 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Confirmed selection highlights and counts remain visible when leaving the
+  canvas for Layers or other controls. Placement/move ghosts still hide outside
+  the canvas. Activating another layer or explicitly cancelling still clears
+  the selection.
 - Moving a selection to another layer preserves it while the native destination
   dialog takes focus, including text-only selections. Cancel keeps the selection;
   transfer stays one undoable edit with the existing stale-context safeguards.

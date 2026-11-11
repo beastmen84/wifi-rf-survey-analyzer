@@ -426,16 +426,25 @@ class RectangleDesignController(QObject):
         self.dimensions.hide()
         if self.rotation.active:
             return
-        self.eraser.hide_preview()
+        # Leaving the canvas for Layers must not hide a confirmed selection.
+        # Cursor-following placement and move previews still disappear.
+        keep_selection = bool(
+            self.selection.has_selection() and not self.selection.moving and self.selection.origin is None
+            or (self.annotation.selected or self.annotation.selected_labels)
+            and not self.annotation.moving and self.annotation.origin is None)
+        if not keep_selection:
+            self.eraser.hide_preview()
         self.line.hide_preview()
         self.text.hide_preview()
         self.curve.hide_preview()
         self.selection.hide_preview()
-        self.annotation.hide_preview()
+        if not keep_selection:
+            self.annotation.hide_preview()
         self.last_pointer = None
         if self.preview is not None:
             self.preview.hide()
-        self.measurement.hide()
+        if not keep_selection:
+            self.measurement.hide()
         for item in self.snap_items:
             item.hide()
 
