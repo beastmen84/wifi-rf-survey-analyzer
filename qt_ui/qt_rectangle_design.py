@@ -121,6 +121,7 @@ class RectangleDesignController(QObject):
         self.measurement = QLabel(self.view.viewport())
         self.measurement.setProperty("fixedViewportOverlay", True)
         self.measurement.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self.measurement.setWordWrap(True)
         self.measurement.setStyleSheet("background:#182433;color:white;border:1px solid #8194aa;border-radius:4px;padding:6px 9px;")
         self.measurement.hide()
         self.eraser = PlanEraserController(self)
@@ -307,11 +308,12 @@ class RectangleDesignController(QObject):
         self.clearance_index = ClearanceIndex(lines or [], curves, annotations)
         self.snapper = PlanSnapper(lines or [], curves, region_centers=lambda: self.selection.regions().centers())
         self.regions = closed_drawing_regions(lines or [], curves)
-        self.view.set_grid_regions(self.regions.faces)
+        layered = self.owner.session and PLAN_LAYERS_KEY in self.owner.session.metadata
+        if not layered:
+            self.view.set_grid_regions(self.regions.faces)
         if self.regions.limited:
             self.owner.status.showMessage(self.owner.tr("design_regions_limited"))
         generated = self.owner.session and is_drawn_plan(self.owner.session.metadata)
-        layered = self.owner.session and PLAN_LAYERS_KEY in self.owner.session.metadata
         if (lines is not None or layered) and self.view.pixmap_item is not None and generated:
             white = QPixmap(self.view.pixmap_item.pixmap().size())
             white.fill(Qt.GlobalColor.white)
@@ -508,12 +510,17 @@ class RectangleDesignController(QObject):
             self.view.scene.removeItem(item)
         self.snap_items = []
         self.snap_guides = ()
+        self._snap_guide_key = None
 
     def show_snap_guides(self, rect):
         guides = self.snap_guides
+        zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
+        key = (guides,zoom,rect.getRect() if guides else ())
+        if key == getattr(self,'_snap_guide_key',None):
+            return
         self.clear_snap_guides()
         self.snap_guides = guides
-        zoom = max(1e-9, math.hypot(self.view.transform().m11(), self.view.transform().m12()))
+        self._snap_guide_key = key
         radius = widget_px(self.owner, 5) / zoom
         for guide in guides:
             x, y = guide.point
@@ -570,19 +577,25 @@ class RectangleDesignController(QObject):
             label = self.owner.tr("design_snap_" + kind)
             if any(g.kind == kind for g in self.snap_guides) and label not in text:
                 text += "\n" + label
-        self.measurement.setText(text)
+        if self.measurement.text() != text:
+            self.measurement.setText(text)
         self.position_measurement()
-        self.measurement.show()
-        self.measurement.raise_()
+        if not self.measurement.isVisible():
+            self.measurement.show()
+            self.measurement.raise_()
 
     def position_measurement(self):
         margin = widget_px(self.owner, 12)
         viewport = self.view.viewport()
-        self.measurement.setWordWrap(True)
         limit = min(widget_px(self.owner, 330), max(80, viewport.width() // 2 - margin))
+        key = (self.measurement.text(),self.measurement.font().key(),viewport.width(),viewport.height(),limit,margin)
+        if key == getattr(self,'_measurement_layout_key',None):
+            return
+        self._measurement_layout_key = key
         natural = max((self.measurement.fontMetrics().horizontalAdvance(row) for row in self.measurement.text().splitlines()), default=0)
-        self.measurement.setMinimumWidth(0)
-        self.measurement.setFixedWidth(min(limit, natural + 24))  # CSS padding is in unscaled logical pixels.
+        width = min(limit,natural+24)  # CSS padding is in unscaled logical pixels.
+        if self.measurement.minimumWidth() != width or self.measurement.maximumWidth() != width:
+            self.measurement.setFixedWidth(width)
         self.measurement.adjustSize()
         self.measurement.move(max(margin, viewport.width() - margin - self.measurement.width()), margin)
         self.dimensions.position()

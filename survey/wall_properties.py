@@ -46,6 +46,24 @@ def wall_rank(shape):
     return wall.get('priority', False), wall['width'], *appearance(wall), shape['color']
 
 
+def compatible_wall_style(a, b):
+    """Compare physical profiles without quantization-boundary false splits."""
+    first,second = a.get('wall'),b.get('wall')
+    if not first or not second:
+        return not first and not second
+    if 'kind' in a or 'kind' in b:
+        return wall_style(a) == wall_style(b)
+    def profile(wall):
+        return wall['width'],wall.get('reference'),appearance(wall),wall.get('priority',False)
+    if profile(first) != profile(second):
+        return False
+    def n(shape,wall):
+        dx,dy = shape['x2']-shape['x1'],shape['y2']-shape['y1']
+        length = math.hypot(dx,dy)
+        return -dy/length*wall['side'],dx/length*wall['side']
+    return math.dist(n(a,first),n(b,second)) <= 1e-9
+
+
 def copy_wall(source, target, reversed_direction=False):
     if source.get("wall"):
         target["wall"] = dict(source["wall"], side=source["wall"]["side"] * (-1 if reversed_direction else 1))

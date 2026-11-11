@@ -1,10 +1,50 @@
 """Aligned shared-face fragments and reversible physical-divider removal."""
 import math
+import heapq
 from collections import defaultdict
 
-from survey.wall_properties import copy_wall, wall_style
+from survey.wall_properties import copy_wall, compatible_wall_style
 
 EPS = 1e-6
+
+
+class WallFaceIndex:
+    """Exact directed matches after a conservative spatial/normal broad phase."""
+    def __init__(self, lines):
+        self.matches = defaultdict(dict)
+        boxes = []
+        for i,line in enumerate(lines):
+            if not line.get('wall'):
+                continue
+            dx,dy = line['x2']-line['x1'],line['y2']-line['y1']
+            length = math.hypot(dx,dy)
+            side,width = line['wall']['side'],line['wall']['width']
+            # relation allows a small normal-angle tolerance. Include its full
+            # possible drift too, even for unusually long imported segments.
+            margin = width/2+EPS+length*.00015
+            boxes.append((min(line['x1'],line['x2'])-margin,max(line['x1'],line['x2'])+margin,
+                          min(line['y1'],line['y2'])-margin,max(line['y1'],line['y2'])+margin,
+                          i,width,-dy/length*side,dx/length*side))
+        active,ends = {},[]
+        count = 0
+        for box in sorted(boxes):
+            left,right,top,bottom,i,width,nx,ny = box
+            while ends and ends[0][0] < left:
+                _end,j = heapq.heappop(ends)
+                active.pop(j,None)
+            for other in active.values():
+                _l,_r,t,b,j,w,mx,my = other
+                if b < top or bottom < t or abs(width-w) > EPS or nx*mx+ny*my > -1+1e-8:
+                    continue
+                for a,b in ((i,j),(j,i)):
+                    match = relation(lines[a],lines[b])
+                    if match is not None:
+                        self.matches[a][b] = match
+                        count += 1
+                        if count > 80000:
+                            raise ValueError('wall_complexity')
+            active[i] = box
+            heapq.heappush(ends,(right,i))
 
 
 def relation(a, b):
@@ -34,14 +74,10 @@ def split_faces(lines):
     if len(thick) > 2000:
         raise ValueError("wall_complexity")
     cuts, protected = {}, set()
+    faces = WallFaceIndex(lines)
     for i in thick:
         a = lines[i]
-        for j in thick:
-            if i == j:
-                continue
-            match = relation(a, lines[j])
-            if match is None:
-                continue
+        for j,match in sorted(faces.matches[i].items()):
             length, span, u, _n, _gap = match
             for distance in span:
                 if -EPS <= distance <= length+EPS:
@@ -66,12 +102,13 @@ def split_faces(lines):
     return result, sources, protected
 
 
-def paired_lines(lines, index, *, exact=False):
+def paired_lines(lines, index, *, exact=False, faces=None):
     result = {index}
-    for j, other in enumerate(lines):
+    matches = (faces.matches[index].items() if faces is not None else
+               ((j,relation(lines[index],other)) for j,other in enumerate(lines) if j != index))
+    for j, match in matches:
         if index == j:
             continue
-        match = relation(lines[index], other)
         if match and (not exact or (abs(match[1][0]) <= EPS and abs(match[1][1]-match[0]) <= EPS)):
             result.add(j)
     return tuple(sorted(result))
@@ -126,11 +163,12 @@ def face_join_protection(lines, protected, curves=()):
             if point in protected:
                 incidence[point].append(i)
     removable, covered = set(), {}
+    faces = WallFaceIndex(lines)
     for point, indices in incidence.items():
         if len(indices) != 2:
             continue
         a, b = (lines[i] for i in indices)
-        if not a.get('wall') or a['color'] != b['color'] or wall_style(a) != wall_style(b):
+        if not a.get('wall') or a['color'] != b['color'] or not compatible_wall_style(a,b):
             continue
         vectors = []
         for line in (a, b):
@@ -141,12 +179,12 @@ def face_join_protection(lines, protected, curves=()):
         if abs(u[0]*v[1]-u[1]*v[0]) > EPS*math.hypot(*u)*math.hypot(*v) or u[0]*v[0]+u[1]*v[1] >= 0:
             continue
         for i in indices:
-            if len(paired_lines(lines, i, exact=True)) > 1:
+            if len(paired_lines(lines, i, exact=True, faces=faces)) > 1:
                 continue
             # A covered bridge between two paired spans is a real T junction,
             # not an end cap: its two dividers must remain independently editable.
             continuations = sum(any(j != i and lines[j]['color'] == lines[i]['color']
-                                    and wall_style(lines[j]) == wall_style(lines[i])
+                                    and compatible_wall_style(lines[j],lines[i])
                                     for j in endpoints[(lines[i]['x'+s], lines[i]['y'+s])])
                                 for s in ('1', '2'))
             if continuations == 2:
@@ -161,7 +199,8 @@ def face_join_protection(lines, protected, curves=()):
 
 def unused_room_faces(before, after, curves=(), remaining_curves=None):
     """Discard a former room face only when its retained twin still bounds a room."""
-    pairs = {i: paired_lines(after, i) for i, line in enumerate(after) if line.get("wall")}
+    faces = WallFaceIndex(after)
+    pairs = {i: paired_lines(after, i, faces=faces) for i, line in enumerate(after) if line.get("wall")}
     pairs = {i: pair for i, pair in pairs.items() if len(pair) > 1}
     if not pairs:
         return after
@@ -214,21 +253,22 @@ def remove_wall_faces(lines, selected, *, curves=(), remaining_curves=None):
     if not any(line.get("wall") for line in lines):
         return [line for i, line in enumerate(lines) if i not in selected]
     pieces, sources, _protected = split_faces(lines)
+    faces = WallFaceIndex(pieces)
     targets = {i for i, source in enumerate(sources) if source in selected}
-    paired_sources = {sources[i] for i in targets if len(paired_lines(pieces, i, exact=True)) > 1}
+    paired_sources = {sources[i] for i in targets if len(paired_lines(pieces, i, exact=True, faces=faces)) > 1}
     # Normalized shared sides may include covered corner extensions. Preserve
     # those needed by a retained perimeter when removing only the divider.
-    caps_to_keep = {i for i in targets if sources[i] in paired_sources and len(paired_lines(pieces, i, exact=True)) == 1
+    caps_to_keep = {i for i in targets if sources[i] in paired_sources and len(paired_lines(pieces, i, exact=True, faces=faces)) == 1
                     and any(math.dist((pieces[i]['x'+s], pieces[i]['y'+s]),
                                       (other['x'+t], other['y'+t])) <= EPS
                             for j,other in enumerate(pieces) if j not in targets for s in ('1','2') for t in ('1','2'))}
     targets.difference_update(caps_to_keep)
     for i in tuple(targets):
-        targets.update(paired_lines(pieces, i, exact=True))
+        targets.update(paired_lines(pieces, i, exact=True, faces=faces))
     remaining = [line for i, line in enumerate(pieces) if i not in targets]
     caps = []
     for i in sorted(targets):
-        for j in paired_lines(pieces, i, exact=True):
+        for j in paired_lines(pieces, i, exact=True, faces=faces):
             if j <= i or j not in targets:
                 continue
             a, b = pieces[i], pieces[j]
@@ -247,7 +287,7 @@ def remove_wall_faces(lines, selected, *, curves=(), remaining_curves=None):
                     ends.append([line for line in remaining if min(math.dist(point, (line["x"+s], line["y"+s])) for s in ("1", "2")) < EPS
                         and abs((line["x2"]-line["x1"])*u[0]+(line["y2"]-line["y1"])*u[1]) < EPS])
                 templates = [left for left in ends[0] for right in ends[1]
-                             if left["color"] == right["color"] and wall_style(left) == wall_style(right)]
+                             if left["color"] == right["color"] and compatible_wall_style(left,right)]
                 if templates:
                     template = templates[0]
                     reverse = (template["x2"]-template["x1"])*(q[0]-p[0])+(template["y2"]-template["y1"])*(q[1]-p[1]) < 0

@@ -807,6 +807,12 @@ python main.py
 `main.py` opens the start screen and loads the Qt workspace in the background
 before enabling survey actions.
 
+The canvas automatically uses an OpenGL viewport when a working hardware
+context is available. Unsupported/headless systems and detected software GL
+emulators retain the software renderer. Saved geometry and vector exports are
+independent of the display backend. For driver troubleshooting, launch with
+`WIFI_HEATMAP_RENDERER=software`; `auto` is the default.
+
 ## Testing
 
 Run the full test suite:
@@ -822,6 +828,8 @@ python -m pytest tests/test_live_maps.py
 python -m pytest tests/test_survey_quality.py
 python -m pytest tests/test_scanner_services.py
 python -m pytest tests/test_workspace_ui.py
+python tools/check_wall_topology.py --cases 10000 --output .private/topology.json
+python tools/check_canvas_performance.py --backend auto --output .private/canvas.json
 ```
 
 ## Building

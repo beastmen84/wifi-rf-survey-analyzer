@@ -13,10 +13,19 @@ sys.path.insert(0,str(ROOT))
 
 
 def pan_worker(output, density):
+    # Qt/Windows treats a scale override of exactly 1 as the native scale.
+    # Explicitly disable high-DPI scaling for the actual DPR=1 control.
+    os.environ['QT_ENABLE_HIGHDPI_SCALING'] = '0' if density == '1' else '1'
     os.environ['QT_SCREEN_SCALE_FACTORS'] = density
     os.environ['QT_SCALE_FACTOR'] = '1'
     from PySide6.QtWidgets import QApplication, QGraphicsItem
-    from tests.test_wall_pan_rendering import material_view, fresh_difference
+    from PySide6.QtWidgets import QGraphicsView
+    from qt_ui.graphics_backend import graphics_viewport
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+    from tests.test_wall_pan_rendering import material_view, fresh_difference, pixels
+    from tools.canvas_probe import composed_canvas
+    import numpy as np
     app = QApplication([])
     cases = []
     baseline = None
@@ -24,28 +33,43 @@ def pan_worker(output, density):
         for pattern in ('cross','dots','brick'):
             for zoom in (1,1.25,2.75):
                 view, scene, items, center = material_view(pattern,geometry)
+                viewport,backend = graphics_viewport()
+                if viewport is not None:
+                    view.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen,False)
+                    view.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+                    view.setViewport(viewport)
+                    view.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.FullViewportUpdate)
                 view.show()
+                assert viewport is None or QTest.qWaitForWindowExposed(view,3000)
+                assert abs(view.devicePixelRatioF()-float(density)) < 1e-6, 'Requested display density was not applied'
                 view.scale(zoom,zoom)
                 view.centerOn(*center)
                 app.processEvents()
-                view.viewport().grab()
+                assert viewport is None or viewport.isValid(), 'OpenGL viewport initialization failed'
+                initial = composed_canvas(view)
+                image_pixels = pixels(initial).reshape(initial.height(),initial.width(),4)
+                colors = {(item.material_path.fill.blue(),item.material_path.fill.green(),item.material_path.fill.red()) for item in items}
+                filled_pixels = sum(int(np.count_nonzero(np.all(image_pixels[:,:,:3] == color,axis=2))) for color in colors)
+                assert filled_pixels > 10, 'Capture has no painted wall material'
                 for dx,dy in ((111,-83),(-57,139),(243,175),(-333,-241),(47,33)):
                     view.horizontalScrollBar().setValue(view.horizontalScrollBar().value()+dx)
                     view.verticalScrollBar().setValue(view.verticalScrollBar().value()+dy)
                     app.processEvents()
-                    view.viewport().grab()
+                    composed_canvas(view)
                 difference,before,after = fresh_difference(view,items,app)
                 assert difference == 0, (density,geometry,pattern,zoom,difference)
-                cases.append(dict(dpr=view.devicePixelRatioF(),geometry=geometry,pattern=pattern,zoom=zoom,different_components=difference))
+                cases.append(dict(dpr=view.devicePixelRatioF(),geometry=geometry,pattern=pattern,zoom=zoom,
+                                  gpu_valid=viewport.isValid() if viewport is not None else None,
+                                  initial_wall_pixels=filled_pixels,different_components=difference))
                 if geometry == 'rooms' and pattern == 'cross' and zoom == 1.25:
                     for item in items:
                         item.setCacheMode(QGraphicsItem.CacheMode.DeviceCoordinateCache)
-                    view.viewport().grab()
+                    composed_canvas(view)
                     for dx,dy in ((111,-83),(-57,139),(243,175)):
                         view.horizontalScrollBar().setValue(view.horizontalScrollBar().value()+dx)
                         view.verticalScrollBar().setValue(view.verticalScrollBar().value()+dy)
                         app.processEvents()
-                        view.viewport().grab()
+                        composed_canvas(view)
                     baseline,before,after = fresh_difference(view,items,app)
                     if density == '1.5':
                         before.save(str(output/'cached-pan.png'))
@@ -53,7 +77,7 @@ def pan_worker(output, density):
                 view.close()
                 view.deleteLater()
                 app.processEvents()
-    result = dict(requested_dpr=density,cases=cases,old_cache_different_components=baseline)
+    result = dict(requested_dpr=density,cases=cases,graphics_backend=backend,old_cache_different_components=baseline)
     (output/'pan-results.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
     return result
 
@@ -123,7 +147,9 @@ def main():
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--worker-dpr')
     parser.add_argument('--ui-only',action='store_true')
+    parser.add_argument('--backend',choices=('auto','software','opengl'),default='auto')
     args = parser.parse_args()
+    os.environ['WIFI_HEATMAP_RENDERER'] = args.backend
     output = args.output.resolve()
     output.mkdir(parents=True,exist_ok=True)
     logging.disable(logging.CRITICAL)
@@ -133,7 +159,7 @@ def main():
     workers = []
     for density in (() if args.ui_only else ('1','1.25','1.5','2')):
         folder = output/f'dpr-{density}'
-        subprocess.run([sys.executable,__file__,'--output',str(folder),'--worker-dpr',density],check=True)
+        subprocess.run([sys.executable,__file__,'--output',str(folder),'--worker-dpr',density,'--backend',args.backend],check=True)
         workers.append(json.loads((folder/'pan-results.json').read_text(encoding='utf-8')))
         print('PASS pan requested scale',density,'effective DPR',workers[-1]['cases'][0]['dpr'],flush=True)
     with tempfile.TemporaryDirectory(prefix='fixed-wall-ui-') as temp:

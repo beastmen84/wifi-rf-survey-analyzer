@@ -98,6 +98,46 @@ def test_imperial_review_preserves_exact_values_and_uses_inches_free_depth_input
     dialog.deleteLater()
 
 
+def test_accept_reuses_validated_candidate_without_rebuilding_layout(editor):
+    owner,_drawing = editor
+    staged,sides,anchor = stage_structure(state(),rectangle())
+    dialog = WallSidesDialog(owner,staged,sides,anchor)
+    candidate = dialog.candidate
+    with patch('qt_ui.qt_wall_sides.apply_side_widths',side_effect=AssertionError('layout already validated')):
+        dialog.try_accept()
+    assert dialog.candidate is candidate
+    assert QDialog.result(dialog) == QDialog.DialogCode.Accepted
+    dialog.deleteLater()
+
+
+def test_accept_commits_pending_keyboard_depth_and_revalidates_it(editor):
+    owner,_drawing = editor
+    staged,sides,anchor = stage_structure(state(),rectangle())
+    dialog = WallSidesDialog(owner,staged,sides,anchor)
+    spin = dialog.spins[0]
+    spin.lineEdit().setText(spin.locale().toString(.2,'f',2)+spin.suffix())
+    assert dialog.values[sides[0].index] == 0
+    dialog.try_accept()
+    assert dialog.values[sides[0].index] == pytest.approx(10)
+    assert QDialog.result(dialog) == QDialog.DialogCode.Accepted
+    assert dialog.candidate is not None
+    assert any(s.get('wall',{}).get('width') == 10 for s in dialog.result.state['segments'])
+    dialog.deleteLater()
+
+
+def test_accept_pending_depth_cannot_bypass_physical_bounds(editor):
+    owner,_drawing = editor
+    staged,sides,anchor = stage_structure(state(),rectangle(0,0))
+    dialog = WallSidesDialog(owner,staged,sides,anchor)
+    assert dialog.candidate is not None
+    spin = dialog.spins[0]
+    spin.lineEdit().setText(spin.locale().toString(.2,'f',2)+spin.suffix())
+    dialog.try_accept()
+    assert dialog.error == 'wall_outside' and dialog.candidate is None
+    assert QDialog.result(dialog) != QDialog.DialogCode.Accepted
+    dialog.deleteLater()
+
+
 @pytest.mark.parametrize('kind', ['line','circle','arc'])
 def test_open_or_round_structure_has_editable_side(qt_app, kind):
     line = dict(x1=100,y1=200,x2=400,y2=200,color='#263238')

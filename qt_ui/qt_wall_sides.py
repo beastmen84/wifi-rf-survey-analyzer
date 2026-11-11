@@ -401,7 +401,11 @@ class WallSidesDialog(QDialog):
         self.apply_button.setEnabled(self.candidate is not None and (not self.shared_signature or self.confirm_shared.isChecked()))
 
     def try_accept(self):
-        self.refresh()
+        # Keyboard tracking is off: commit any typed depth before using the
+        # candidate. Each changed field already refreshes and validates it.
+        for spin in self.spins:
+            spin.interpretText()
+        self.update_apply()
         if self.apply_button.isEnabled():
             self.accept()
 

@@ -1,0 +1,524 @@
+{
+  "source_baseline": "1e63e14",
+  "native_exposed_windows": true,
+  "rf_scanning": false,
+  "project_before": {
+    "counts": {
+      "segments": 93,
+      "curves": 0,
+      "labels": 19,
+      "annotations": 6
+    },
+    "repeats": 5,
+    "dpr": 1.5,
+    "zoom": 2.5,
+    "graphics_backend": {
+      "backend": "software",
+      "baseline": true
+    },
+    "gesture_count": 8,
+    "read_bundle_count": 5,
+    "samples_seconds": [
+      {
+        "open": 0.3650888000265695,
+        "reads": 0.019056099990848452,
+        "hover": 0.0247220000019297,
+        "pan": 0.6186666000285186,
+        "pan_paint_events": 8,
+        "pending": 0.15743409999413416,
+        "pending_paint_events": 8,
+        "placement_cancel": 0.4422990999883041,
+        "placement_apply": 1.2143633000086993
+      },
+      {
+        "open": 0.2949733000132255,
+        "reads": 0.020858399977441877,
+        "hover": 0.09547739999834448,
+        "pan": 0.6371638999553397,
+        "pan_paint_events": 8,
+        "pending": 0.1645898999995552,
+        "pending_paint_events": 8,
+        "placement_cancel": 0.47140049998415634,
+        "placement_apply": 1.2971415999927558
+      },
+      {
+        "open": 0.32561250001890585,
+        "reads": 0.023168300045654178,
+        "hover": 0.11216249997960404,
+        "pan": 0.6499782999744639,
+        "pan_paint_events": 8,
+        "pending": 0.1608358999947086,
+        "pending_paint_events": 8,
+        "placement_cancel": 0.5294974000426009,
+        "placement_apply": 1.2346295000170358
+      },
+      {
+        "open": 0.29432560002896935,
+        "reads": 0.022494600038044155,
+        "hover": 0.10891840001568198,
+        "pan": 0.608953399991151,
+        "pan_paint_events": 8,
+        "pending": 0.14665479998802766,
+        "pending_paint_events": 8,
+        "placement_cancel": 0.4525515000568703,
+        "placement_apply": 1.4531554999994114
+      },
+      {
+        "open": 0.30254110001260415,
+        "reads": 0.027304899995215237,
+        "hover": 0.11129999998956919,
+        "pan": 0.6781330999801867,
+        "pan_paint_events": 8,
+        "pending": 0.16514130000723526,
+        "pending_paint_events": 8,
+        "placement_cancel": 0.4702572000096552,
+        "placement_apply": 1.2738662000047043
+      }
+    ],
+    "median_seconds": {
+      "open": 0.30254110001260415,
+      "reads": 0.022494600038044155,
+      "hover": 0.10891840001568198,
+      "pan": 0.6371638999553397,
+      "pending": 0.1608358999947086,
+      "placement_cancel": 0.4702572000096552,
+      "placement_apply": 1.2738662000047043
+    },
+    "median_pan_paint_events": 8,
+    "median_pending_paint_events": 8,
+    "native_qt": true,
+    "original_files_unchanged": true,
+    "rf_scanning": false
+  },
+  "project_after": {
+    "counts": {
+      "segments": 93,
+      "curves": 0,
+      "labels": 19,
+      "annotations": 6
+    },
+    "repeats": 5,
+    "dpr": 1.5,
+    "zoom": 2.5,
+    "graphics_backend": {
+      "available": true,
+      "renderer": "AMD Radeon(TM) 610M",
+      "vendor": "ATI Technologies Inc.",
+      "version": "4.6.0 Compatibility Profile Context 26.10.1.261008",
+      "backend": "opengl"
+    },
+    "gesture_count": 8,
+    "read_bundle_count": 5,
+    "samples_seconds": [
+      {
+        "open": 0.3898523000534624,
+        "reads": 0.023338500002864748,
+        "hover": 0.03125470003578812,
+        "pan": 0.1873708000057377,
+        "pan_paint_events": 8,
+        "pending": 0.20680069999070838,
+        "pending_paint_events": 7,
+        "placement_cancel": 0.3196961000212468,
+        "placement_apply": 0.6236813999712467
+      },
+      {
+        "open": 0.33850029995664954,
+        "reads": 0.023728800006210804,
+        "hover": 0.04667299997527152,
+        "pan": 0.19682060001650825,
+        "pan_paint_events": 8,
+        "pending": 0.20604979997733608,
+        "pending_paint_events": 7,
+        "placement_cancel": 0.291500499995891,
+        "placement_apply": 0.6353670000098646
+      },
+      {
+        "open": 0.2693874000106007,
+        "reads": 0.05423609999706969,
+        "hover": 0.04442569997627288,
+        "pan": 0.22965469997143373,
+        "pan_paint_events": 8,
+        "pending": 0.19204649998573586,
+        "pending_paint_events": 7,
+        "placement_cancel": 0.29097060003550723,
+        "placement_apply": 0.6203241999610327
+      },
+      {
+        "open": 0.27492910000728443,
+        "reads": 0.023916999984066933,
+        "hover": 0.04714520002016798,
+        "pan": 0.19592440000269562,
+        "pan_paint_events": 8,
+        "pending": 0.20387259998824447,
+        "pending_paint_events": 7,
+        "placement_cancel": 0.2948431000113487,
+        "placement_apply": 0.6677383999922313
+      },
+      {
+        "open": 0.2939271000213921,
+        "reads": 0.022086600016336888,
+        "hover": 0.04607769998256117,
+        "pan": 0.18435080000199378,
+        "pan_paint_events": 8,
+        "pending": 0.20185190002666786,
+        "pending_paint_events": 7,
+        "placement_cancel": 0.28467229998204857,
+        "placement_apply": 0.6250144999939948
+      }
+    ],
+    "median_seconds": {
+      "open": 0.2939271000213921,
+      "reads": 0.023728800006210804,
+      "hover": 0.04607769998256117,
+      "pan": 0.19592440000269562,
+      "pending": 0.20387259998824447,
+      "placement_cancel": 0.291500499995891,
+      "placement_apply": 0.6250144999939948
+    },
+    "median_pan_paint_events": 8,
+    "median_pending_paint_events": 7,
+    "native_qt": true,
+    "original_files_unchanged": true,
+    "rf_scanning": false
+  },
+  "synthetic_rendering": {
+    "opengl_detail": {
+      "native_qt": true,
+      "cases": [
+        {
+          "rooms": 25,
+          "wall_segments": 100,
+          "objects": 50,
+          "sheet_units": 2300,
+          "zoom": 1.25,
+          "overview": false,
+          "source_ms": 34.30040000239387,
+          "paint_events": 45,
+          "dpr": 1.5,
+          "graphics_backend": {
+            "available": true,
+            "renderer": "AMD Radeon(TM) 610M",
+            "vendor": "ATI Technologies Inc.",
+            "version": "4.6.0 Compatibility Profile Context 26.10.1.261008",
+            "backend": "opengl"
+          },
+          "prepare_ms": 55.280800035689026,
+          "pan_median_ms": 17.919750011060387,
+          "pan_p95_ms": 21.988185003283434
+        },
+        {
+          "rooms": 100,
+          "wall_segments": 400,
+          "objects": 200,
+          "sheet_units": 4300,
+          "zoom": 1.25,
+          "overview": false,
+          "source_ms": 314.06230002176017,
+          "paint_events": 45,
+          "dpr": 1.5,
+          "graphics_backend": {
+            "available": true,
+            "renderer": "AMD Radeon(TM) 610M",
+            "vendor": "ATI Technologies Inc.",
+            "version": "4.6.0 Compatibility Profile Context 26.10.1.261008",
+            "backend": "opengl"
+          },
+          "prepare_ms": 538.9214000315405,
+          "pan_median_ms": 19.285300018964335,
+          "pan_p95_ms": 23.30604496819433
+        },
+        {
+          "rooms": 400,
+          "wall_segments": 1600,
+          "objects": 800,
+          "sheet_units": 8300,
+          "zoom": 1.25,
+          "overview": false,
+          "source_ms": 3689.348100044299,
+          "paint_events": 45,
+          "dpr": 1.5,
+          "graphics_backend": {
+            "available": true,
+            "renderer": "AMD Radeon(TM) 610M",
+            "vendor": "ATI Technologies Inc.",
+            "version": "4.6.0 Compatibility Profile Context 26.10.1.261008",
+            "backend": "opengl"
+          },
+          "prepare_ms": 5460.50510002533,
+          "pan_median_ms": 18.627799989189953,
+          "pan_p95_ms": 23.336165049113333
+        }
+      ]
+    },
+    "opengl_overview": {
+      "native_qt": true,
+      "cases": [
+        {
+          "rooms": 25,
+          "wall_segments": 100,
+          "objects": 50,
+          "sheet_units": 2300,
+          "zoom": 0.41739130434782606,
+          "overview": true,
+          "source_ms": 33.48909999476746,
+          "paint_events": 45,
+          "dpr": 1.5,
+          "graphics_backend": {
+            "available": true,
+            "renderer": "AMD Radeon(TM) 610M",
+            "vendor": "ATI Technologies Inc.",
+            "version": "4.6.0 Compatibility Profile Context 26.10.1.261008",
+            "backend": "opengl"
+          },
+          "prepare_ms": 53.25629998696968,
+          "pan_median_ms": 16.887350007891655,
+          "pan_p95_ms": 20.84338995628059
+        },
+        {
+          "rooms": 100,
+          "wall_segments": 400,
+          "objects": 200,
+          "sheet_units": 4300,
+          "zoom": 0.22325581395348837,
+          "overview": true,
+          "source_ms": 295.55290000280365,
+          "paint_events": 45,
+          "dpr": 1.5,
+          "graphics_backend": {
+            "available": true,
+            "renderer": "AMD Radeon(TM) 610M",
+            "vendor": "ATI Technologies Inc.",
+            "version": "4.6.0 Compatibility Profile Context 26.10.1.261008",
+            "backend": "opengl"
+          },
+          "prepare_ms": 501.2132999836467,
+          "pan_median_ms": 18.961750000016764,
+          "pan_p95_ms": 26.60383499751333
+        },
+        {
+          "rooms": 400,
+          "wall_segments": 1600,
+          "objects": 800,
+          "sheet_units": 8300,
+          "zoom": 0.11566265060240964,
+          "overview": true,
+          "source_ms": 3529.492700006813,
+          "paint_events": 45,
+          "dpr": 1.5,
+          "graphics_backend": {
+            "available": true,
+            "renderer": "AMD Radeon(TM) 610M",
+            "vendor": "ATI Technologies Inc.",
+            "version": "4.6.0 Compatibility Profile Context 26.10.1.261008",
+            "backend": "opengl"
+          },
+          "prepare_ms": 5357.593099994119,
+          "pan_median_ms": 29.37150001525879,
+          "pan_p95_ms": 38.70125498215202
+        }
+      ]
+    },
+    "software_detail": {
+      "native_qt": true,
+      "cases": [
+        {
+          "rooms": 25,
+          "wall_segments": 100,
+          "objects": 50,
+          "sheet_units": 2300,
+          "zoom": 1.25,
+          "overview": false,
+          "source_ms": 29.339900007471442,
+          "paint_events": 45,
+          "dpr": 1.5,
+          "graphics_backend": {
+            "backend": "software",
+            "reason": "requested_or_headless"
+          },
+          "prepare_ms": 50.37549999542534,
+          "pan_median_ms": 45.09615001734346,
+          "pan_p95_ms": 51.61564001173247
+        },
+        {
+          "rooms": 100,
+          "wall_segments": 400,
+          "objects": 200,
+          "sheet_units": 4300,
+          "zoom": 1.25,
+          "overview": false,
+          "source_ms": 285.3954000165686,
+          "paint_events": 45,
+          "dpr": 1.5,
+          "graphics_backend": {
+            "backend": "software",
+            "reason": "requested_or_headless"
+          },
+          "prepare_ms": 504.6239000512287,
+          "pan_median_ms": 52.917900000466034,
+          "pan_p95_ms": 60.632645050645806
+        },
+        {
+          "rooms": 400,
+          "wall_segments": 1600,
+          "objects": 800,
+          "sheet_units": 8300,
+          "zoom": 1.25,
+          "overview": false,
+          "source_ms": 3352.2354000015184,
+          "paint_events": 45,
+          "dpr": 1.5,
+          "graphics_backend": {
+            "backend": "software",
+            "reason": "requested_or_headless"
+          },
+          "prepare_ms": 5082.152499991935,
+          "pan_median_ms": 48.10205000103451,
+          "pan_p95_ms": 52.5945549889002
+        }
+      ]
+    },
+    "software_overview": {
+      "native_qt": true,
+      "cases": [
+        {
+          "rooms": 25,
+          "wall_segments": 100,
+          "objects": 50,
+          "sheet_units": 2300,
+          "zoom": 0.41739130434782606,
+          "overview": true,
+          "source_ms": 30.54750000592321,
+          "paint_events": 45,
+          "dpr": 1.5,
+          "graphics_backend": {
+            "backend": "software",
+            "reason": "requested_or_headless"
+          },
+          "prepare_ms": 52.274600020609796,
+          "pan_median_ms": 55.63550000078976,
+          "pan_p95_ms": 79.9835349956993
+        },
+        {
+          "rooms": 100,
+          "wall_segments": 400,
+          "objects": 200,
+          "sheet_units": 4300,
+          "zoom": 0.22325581395348837,
+          "overview": true,
+          "source_ms": 295.12560000875965,
+          "paint_events": 45,
+          "dpr": 1.5,
+          "graphics_backend": {
+            "backend": "software",
+            "reason": "requested_or_headless"
+          },
+          "prepare_ms": 518.8094000332057,
+          "pan_median_ms": 48.02665000897832,
+          "pan_p95_ms": 73.22260500804987
+        },
+        {
+          "rooms": 400,
+          "wall_segments": 1600,
+          "objects": 800,
+          "sheet_units": 8300,
+          "zoom": 0.11566265060240964,
+          "overview": true,
+          "source_ms": 3385.7875999528915,
+          "paint_events": 45,
+          "dpr": 1.5,
+          "graphics_backend": {
+            "backend": "software",
+            "reason": "requested_or_headless"
+          },
+          "prepare_ms": 5192.440099956002,
+          "pan_median_ms": 89.12180000334047,
+          "pan_p95_ms": 142.40196999162436
+        }
+      ]
+    }
+  },
+  "topology": {
+    "cases": 10000,
+    "seconds": 24.312706400000025,
+    "failures": 0,
+    "checks": [
+      "stable repeated normalization",
+      "no identical physical duplicates",
+      "source mapping",
+      "input order independence"
+    ]
+  },
+  "supplied_project_topology": {
+    "layers": [
+      {
+        "segments": 93,
+        "curves": 0,
+        "labels": 19,
+        "annotations": 6
+      }
+    ],
+    "repeated_normalizations": 20,
+    "stable": true,
+    "identical_physical_duplicates": 0,
+    "original_files_unchanged": true
+  },
+  "native_navigation": {
+    "cases": 108,
+    "all_exact_matches": true,
+    "effective_dpr": [
+      1.0,
+      1.25,
+      1.5,
+      2.0
+    ],
+    "minimum_wall_pixels": 12793,
+    "old_cache_different_components": {
+      "1.0": 59063,
+      "1.25": 85652,
+      "1.5": 115835,
+      "2.0": 133127
+    }
+  },
+  "native_dialog_configurations": 48,
+  "validation": {
+    "hardware_full_suite_before_final_confirmation_optimization": {
+      "passed": 2831,
+      "subtests": 479,
+      "seconds": 549.01
+    },
+    "hardware_final_dialog_tests": 157,
+    "software_final_full_suite": {
+      "passed": 2834,
+      "execution": "interrupted and resumed from file boundary",
+      "passed_before_interruption": 2428,
+      "repeated_tests": 90,
+      "final_batch": {
+        "passed": 496,
+        "subtests": 27,
+        "seconds": 63.15
+      }
+    },
+    "lint": "passed, repository conventions excluded",
+    "whitespace": "passed"
+  },
+  "packaging": {
+    "hook": "PySide6.QtOpenGLWidgets",
+    "hidden_imports": [
+      "PySide6.QtCore",
+      "PySide6.QtGui",
+      "PySide6.QtOpenGL",
+      "PySide6.QtWidgets"
+    ],
+    "installed_libraries": [
+      "Qt6OpenGLWidgets.dll",
+      "Qt6OpenGL.dll"
+    ],
+    "exe_built": false
+  },
+  "remaining_limits": [
+    "Rectangle preview is slower than the former software renderer",
+    "Full preparation of 400-room scene takes about 5 seconds",
+    "Synthetic rendering benchmark does not measure the 400-room editing solver",
+    "No new frozen executable built"
+  ]
+}

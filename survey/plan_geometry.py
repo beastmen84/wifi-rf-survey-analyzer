@@ -3,7 +3,7 @@ from bisect import bisect_left, bisect_right, insort
 from collections import defaultdict
 import math
 from survey.planar_geometry import cross, EPSILON, split_general_segments
-from survey.wall_properties import wall_style
+from survey.wall_properties import wall_style, compatible_wall_style
 
 
 def split_segments(segments, with_sources=False, limit=40000):
@@ -151,7 +151,7 @@ def join_segments(segments, with_sources=False, protected=()):
             continue
         first, second = incident
         a, b = segments[first], segments[second]
-        if a["color"] != b["color"] or wall_style(a) != wall_style(b):
+        if a["color"] != b["color"] or not compatible_wall_style(a,b):
             continue
         vectors = []
         for item in (a, b):
@@ -192,8 +192,12 @@ def normalize_segments(segments, with_sources=False, limit=40000):
         origins = [frozenset().union(*(origins[i] for i in group)) for group in groups]
     from survey.wall_editing import split_faces, face_join_protection
     pieces, parents, protected = split_faces(pieces)
-    protected = face_join_protection(pieces, protected)
     origins = [origins[i] for i in parents]
+    # Offset-face cuts must reach every coincident style, not only the paired
+    # wall that introduced them. Otherwise the next edit splits the plan again.
+    pieces, parents = split_segments(pieces, with_sources=True, limit=limit)
+    origins = [origins[i] for i in parents]
+    protected = face_join_protection(pieces, protected)
     if len(pieces) > limit:
         raise ValueError("wall_complexity")
     joined, groups = join_segments(pieces, with_sources=True, protected=protected)

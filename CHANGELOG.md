@@ -7,6 +7,18 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- The canvas automatically uses hardware OpenGL rendering when available,
+  with a software fallback. Unchanged measurement overlays and snap guides are
+  reused. Unreadable sub-pixel wall hatches are omitted in the live
+  overview; zoomed views and vector exports retain their detail.
+- Offset-face cuts propagate across all overlapping profiles in one pass,
+  preventing new fragments on subsequent edits/reloads. Collinear physical
+  walls join correctly across floating-point direction-key boundaries.
+- Spatial wall-face indexing replaces whole-plan pair scans during splitting,
+  joins and deletion. Immutable room topology is reused through a bounded cache;
+  unchanged grid masks and layered grid updates no longer rebuild twice.
+  Confirming the wall review reuses its validated candidate, while committing
+  and revalidating any depth still being typed before acceptance.
 - Moving an independent closed room now uses the same physical wall-face
   attachment and fixed-neighbor checks as new construction. Exact dimensions
   are preserved; a form that cannot fit between parallel walls is rejected.

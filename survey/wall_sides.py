@@ -13,7 +13,7 @@ from survey.plan_faces import RegionPicker
 from survey.plan_geometry import translate_segments
 from survey.plan_curves import transform_curves
 from survey.planar_geometry import point_projection
-from survey.wall_properties import copy_wall
+from survey.wall_properties import copy_wall, compatible_wall_style
 from survey.wall_materials import appearance, validated_appearance
 
 
@@ -164,10 +164,9 @@ def same_wall_faces(a, b):
         return False
     if relation(a,b):
         return True
-    from survey.wall_properties import wall_style
     def profile(shape):
         return dict(shape,wall={k:v for k,v in shape['wall'].items() if k not in ('material','pattern','priority')})
-    if wall_style(profile(a)) != wall_style(profile(b)):
+    if not compatible_wall_style(profile(a),profile(b)):
         return False
     return all(math.dist(p,point_projection(p,(b['x1'],b['y1']),(b['x2'],b['y2']))) < 1e-6
                for p in ((a['x1'],a['y1']),(a['x2'],a['y2'])))

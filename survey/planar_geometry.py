@@ -15,6 +15,8 @@ def point_projection(point, a, b):
     length2 = dx * dx + dy * dy
     if length2 == 0:
         length = math.hypot(dx, dy)
+        if length == 0:
+            return a
         ux, uy = dx / length, dy / length
         distance = min(length, max(0, (point[0] - a[0]) * ux + (point[1] - a[1]) * uy))
         return a[0] + distance * ux, a[1] + distance * uy

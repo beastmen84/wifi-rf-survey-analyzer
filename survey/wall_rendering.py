@@ -3,7 +3,7 @@ import math
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QBrush, QColor, QPainterPath, QPainterPathStroker, QPen
-from PySide6.QtWidgets import QGraphicsPathItem
+from PySide6.QtWidgets import QGraphicsPathItem, QStyleOptionGraphicsItem
 from survey.wall_materials import MATERIALS
 from survey.wall_properties import wall_rank
 
@@ -71,11 +71,11 @@ class MaterialPath(QPainterPath):
                     line(col*p,top,col*p,bottom)
 
 
-def paint_material(painter, path, outline):
+def paint_material(painter, path, outline, *, detail=True):
     painter.save()
     try:
         painter.fillPath(path, path.fill)
-        if not path.hatch.isEmpty():
+        if detail and not path.hatch.isEmpty():
             painter.setClipPath(path, Qt.ClipOperation.IntersectClip)
             pen = QPen(path.ink, .7)
             if path.pattern == 'dots':
@@ -132,7 +132,10 @@ class MaterialItem(QGraphicsPathItem):
         # fractional display scaling. Repaint the precomputed vectors directly.
 
     def paint(self, painter, option, widget=None):
-        paint_material(painter, self.material_path, self.pen())
+        # Sub-pixel patterns add draw calls and moire without readable detail.
+        # Keep the model/exports fully vector; only the live overview omits ink.
+        lod = QStyleOptionGraphicsItem.levelOfDetailFromTransform(painter.worldTransform())
+        paint_material(painter, self.material_path, self.pen(), detail=self.material_path.pitch*lod >= 4)
 
 
 def wall_item(path, pen, brush):

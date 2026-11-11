@@ -58,17 +58,21 @@ def benchmark(project, folder, repeats, rectangle=None):
     from qt_ui.qt_wall_sides import WallSidesDialog
     from tests.test_floorplan_pan import hand_drag
     from tests.test_rectangle_design import move
+    from tools.canvas_probe import PaintCounter
+    from PySide6.QtTest import QTest
 
     os.environ['WIFI_HEATMAP_SETTINGS_FILE'] = str(folder / 'settings.json')
     os.environ['WIFI_HEATMAP_AP_MEMORY_FILE'] = str(folder / 'ap-memory.json')
     app = QApplication.instance() or QApplication([])
     app.setQuitOnLastWindowClosed(False)
     owner = WifiHeatmapQtApp()
-    owner.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen)
+    owner.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
     owner.resize(1440, 980)
     owner.show()
+    assert QTest.qWaitForWindowExposed(owner,3000)
     samples = []
     counts = None
+    counter = None
     try:
         for _ in range(repeats):
             if owner.session:
@@ -84,6 +88,8 @@ def benchmark(project, folder, repeats, rectangle=None):
             sheet = view.scene.sceneRect()
             view.centerOn(sheet.center())
             app.processEvents()
+            if counter is None:
+                counter = PaintCounter(view)
             counts = dict(segments=len(drawing.segments() or []), curves=len(drawing.curves()),
                           labels=len(drawing.labels()), annotations=len(drawing.annotations()))
             if rectangle is None:
@@ -96,6 +102,7 @@ def benchmark(project, folder, repeats, rectangle=None):
                     drawing.begin_placement(200, 150)
                 app.processEvents()
                 start = perf_counter()
+                frames_before = counter.frames
                 if name == 'reads':
                     for _i in range(5):
                         drawing.segments(), drawing.curves(), drawing.labels(), drawing.annotations()
@@ -121,12 +128,21 @@ def benchmark(project, folder, repeats, rectangle=None):
                         app.processEvents()
                 app.processEvents()
                 result[name] = perf_counter()-start
+                if name == 'pan':
+                    result['pan_paint_events'] = counter.frames-frames_before
+                    assert result['pan_paint_events'] >= 8, 'Benchmark did not paint the requested pan frames'
+                elif name == 'pending':
+                    result['pending_paint_events'] = counter.frames-frames_before
+                    assert result['pending_paint_events'] > 0, 'Benchmark did not paint the moving preview'
                 drawing.cancel()
             drawing.undo()
             samples.append(result)
         return dict(counts=counts, repeats=repeats, dpr=owner.devicePixelRatioF(), zoom=2.5,
+                    graphics_backend=owner.floorplan_view.graphics_backend,
                     gesture_count=8, read_bundle_count=5, samples_seconds=samples,
-                    median_seconds={key: median(s[key] for s in samples) for key in samples[0]})
+                    median_seconds={key: median(s[key] for s in samples) for key in samples[0] if not key.endswith('_paint_events')},
+                    median_pan_paint_events=median(s['pan_paint_events'] for s in samples),
+                    median_pending_paint_events=median(s['pending_paint_events'] for s in samples))
     finally:
         if owner.session:
             owner.session.dirty = False

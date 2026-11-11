@@ -272,8 +272,11 @@ def normalize_plan(lines, curves, with_sources=False):
         split_lines, groups = join_segments(split_lines, with_sources=True, protected=protected)
         split_origins = [frozenset().union(*(split_origins[i] for i in group)) for group in groups]
     split_lines, parents, wall_protected = split_faces(split_lines)
-    wall_protected = face_join_protection(split_lines, wall_protected, pieces)
     split_origins = [split_origins[i] for i in parents]
+    from survey.plan_geometry import split_segments
+    split_lines, parents = split_segments(split_lines, with_sources=True)
+    split_origins = [split_origins[i] for i in parents]
+    wall_protected = face_join_protection(split_lines, wall_protected, pieces)
     protected.update(wall_protected)
     result_lines, joins = join_segments(split_lines, with_sources=True, protected=protected)
     line_sources = [frozenset().union(*(split_origins[index] for index in group)) for group in joins]

@@ -76,20 +76,21 @@ class FloorplanGridItem(QGraphicsPathItem):
                                        (self.view.grid_interior_path,GRID_INTERIOR_OPACITY)):
                     part = stroke.intersected(region)
                     if not part.isEmpty():
-                        self.region_strokes.append((part,part.boundingRect(),opacity))
+                        ink = QColor(self.pen().color())
+                        ink.setAlphaF(ink.alphaF()*opacity)
+                        self.region_strokes.append((part,part.boundingRect(),ink))
 
     def paint(self, painter, option, widget=None):
         if not self.region_strokes:
             super().paint(painter, option, widget)
             return
         exposed = option.exposedRect.adjusted(-2,-2,2,2)
-        for path, bounds, opacity in self.region_strokes:
+        for path, bounds, ink in self.region_strokes:
             if not bounds.intersects(exposed):
                 continue
-            painter.save()
-            painter.setOpacity(painter.opacity() * opacity)
-            painter.fillPath(path, self.pen().brush())
-            painter.restore()
+            # Explicit inks avoid state churn and keep each stroke independent
+            # of the GL painter's alternating opacity state.
+            painter.fillPath(path, ink)
 
 
 class BoundariesMaskItem(QGraphicsItem):
@@ -132,6 +133,7 @@ class FloorplanView(QGraphicsView):
         self.grid_items = []
         self.grid_interior_path = QPainterPath()
         self.grid_exterior_path = QPainterPath()
+        self.grid_region_bounds = None
         self.scale_calibration_items = []
         self.scale_calibration_points = []
         self.selected_point_key = None
@@ -165,6 +167,11 @@ class FloorplanView(QGraphicsView):
         self.boundaries_stroke_dirty_rect = QRectF()
         self.boundaries_mask_dirty_rect = QRectF()
         self.boundaries_brush_preview_pos = None
+        from qt_ui.graphics_backend import graphics_viewport
+        viewport,self.graphics_backend = graphics_viewport()
+        if viewport is not None:
+            self.setViewport(viewport)
+            self.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.FullViewportUpdate)
         self.default_viewport_update_mode = self.viewportUpdateMode()
 
         self.setObjectName("floorplanView")
@@ -191,6 +198,7 @@ class FloorplanView(QGraphicsView):
         self.grid_items = []
         self.grid_interior_path = QPainterPath()
         self.grid_exterior_path = QPainterPath()
+        self.grid_region_bounds = None
         self.scale_calibration_items = []
         self.scale_calibration_points = []
         self.selected_point_key = None
@@ -220,6 +228,7 @@ class FloorplanView(QGraphicsView):
         self.grid_interior_path = QPainterPath()
         self.grid_exterior_path = QPainterPath()
         self.grid_visible = False
+        self.grid_region_bounds = None
         self.scale_calibration_items = []
         self.scale_calibration_points = []
         self.boundaries_edit_active = False
@@ -912,6 +921,10 @@ class FloorplanView(QGraphicsView):
             for point in face[1:]:
                 interior.lineTo(*point)
             interior.closeSubpath()
+        bounds = self.scene.sceneRect()
+        if interior == self.grid_interior_path and bounds == self.grid_region_bounds:
+            return
+        self.grid_region_bounds = QRectF(bounds)
         self.grid_interior_path = interior
         sheet = QPainterPath()
         sheet.addRect(self.scene.sceneRect())

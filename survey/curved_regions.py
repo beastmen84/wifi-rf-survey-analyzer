@@ -1,14 +1,59 @@
 """Closed faces from analytic junctions and tangents; sampling is display only."""
-from collections import defaultdict, Counter
+from collections import defaultdict, Counter, OrderedDict
 import math
+from threading import RLock
 
 from survey.plan_curve_geometry import normalize_plan
 from survey.plan_curves import curve_info, point_at, sample_curve
 from survey.plan_regions import PlanRegions, RegionBoundary, closed_plan_regions
 from survey.planar_geometry import PointRegistry
 
+_REGION_CACHE = OrderedDict()
+_REGION_CACHE_WEIGHT = 0
+_REGION_CACHE_LIMIT = 100000  # Points plus input primitives; never cache images.
+_REGION_CACHE_LOCK = RLock()
+
+
+def clear_region_cache():
+    global _REGION_CACHE_WEIGHT
+    with _REGION_CACHE_LOCK:
+        _REGION_CACHE.clear()
+        _REGION_CACHE_WEIGHT = 0
+
+
+def _geometry_key(shapes):
+    return tuple(tuple(sorted((k,tuple(sorted(v.items())) if k == 'wall' and isinstance(v,dict) else v)
+                              for k,v in shape.items())) for shape in shapes)
+
 
 def closed_drawing_regions(lines, curves=(), *, with_boundaries=False):
+    """Reuse immutable topology until its exact input geometry changes."""
+    global _REGION_CACHE_WEIGHT
+    curves = tuple(curves or ())
+    key = None
+    if len(lines)+len(curves) <= 2000:
+        try:
+            key = (_geometry_key(lines),_geometry_key(curves),with_boundaries)
+            hash(key)
+        except TypeError:
+            key = None
+    with _REGION_CACHE_LOCK:
+        if key is not None and key in _REGION_CACHE:
+            _REGION_CACHE.move_to_end(key)
+            return _REGION_CACHE[key][0]
+    result = _closed_drawing_regions(lines,curves,with_boundaries=with_boundaries)
+    weight = sum(len(face) for face in result.faces)+4*len(lines)+8*len(curves)
+    with _REGION_CACHE_LOCK:
+        if key is not None and key not in _REGION_CACHE and weight <= _REGION_CACHE_LIMIT:
+            while _REGION_CACHE and (len(_REGION_CACHE) >= 8 or _REGION_CACHE_WEIGHT+weight > _REGION_CACHE_LIMIT):
+                _old,(_result,old_weight) = _REGION_CACHE.popitem(last=False)
+                _REGION_CACHE_WEIGHT -= old_weight
+            _REGION_CACHE[key] = (result,weight)
+            _REGION_CACHE_WEIGHT += weight
+    return result
+
+
+def _closed_drawing_regions(lines, curves=(), *, with_boundaries=False):
     if not curves and not with_boundaries:
         return closed_plan_regions(lines)
     try:
