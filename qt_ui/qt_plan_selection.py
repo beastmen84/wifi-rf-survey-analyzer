@@ -22,7 +22,7 @@ from survey.plan_curves import project_curve, curve_info
 from app_core.units import meters_to_display_units, distance_unit_label
 from qt_ui.qt_plan_region_selection import RegionPicker
 from survey.plan_annotations import transform_annotations, follow_hosts, HOSTED_ANNOTATIONS, supported
-from survey.selection_geometry import annotation_geometry, region_contents, annotation_intersects
+from survey.selection_geometry import annotation_geometry, region_contents, annotation_intersects, merge_selection
 from survey.plan_objects import object_is_round
 
 
@@ -45,6 +45,8 @@ class PlanSelectionController:
         self.move_snapper = PlanSnapper()
         self.region_picker = None
         self.selected_region_area = None
+        self.selection_start = None
+        self.selection_modifiers = Qt.KeyboardModifier.NoModifier
         self.move_wall_state = None
         self.move_wall_invalid = False
 
@@ -71,6 +73,8 @@ class PlanSelectionController:
         self.selected_annotations = ()
         self.move_annotation_source, self.move_annotation_preview = [], []
         self.selected_region_area = None
+        self.selection_start = None
+        self.selection_modifiers = Qt.KeyboardModifier.NoModifier
         self.move_label_source, self.move_label_preview = [], []
         self.move_curve_source, self.move_curve_preview = [], []
         self.clear_items()
@@ -299,6 +303,8 @@ class PlanSelectionController:
         if self.view.scene.sceneRect().contains(self.view.mapToScene(event.position().toPoint())):
             self.origin, self.press_position = self.point(event.position()), event.position()
             self.dragged = False
+            self.selection_start = (self.selected,self.selected_labels,self.selected_curves,self.selected_annotations)
+            self.selection_modifiers = event.modifiers()
         return True
 
     def move(self, event):
@@ -324,10 +330,13 @@ class PlanSelectionController:
         self.area_annotations = tuple(i for i,a in enumerate(self.drawing.annotations()) if self.shared() and
             annotation_intersects(a,rect,self.lines))
         self.area_curves = intersecting_curves(self.drawing.curves(), rect.left(), rect.top(), rect.right(), rect.bottom())
-        self.show_lines([self.lines[index] for index in indices],
-                        labels=[self.drawing.text.labels[index] for index in self.area_labels],
-                        curves=[self.drawing.curves()[index] for index in self.area_curves],
-                        annotations=[self.drawing.annotation.model[i] for i in self.area_annotations])
+        shown = (indices,self.area_labels,self.area_curves,self.area_annotations)
+        if self.selection_start is not None and self.selection_modifiers & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier):
+            shown = merge_selection(self.selection_start,shown)
+        self.show_lines([self.lines[index] for index in shown[0]],
+                        labels=[self.drawing.text.labels[index] for index in shown[1]],
+                        curves=[self.drawing.curves()[index] for index in shown[2]],
+                        annotations=[self.drawing.annotation.model[i] for i in shown[3]])
         if self.area is None:
             self.area = QGraphicsRectItem()
             pen = QPen(QColor("#0284c7"), 1, Qt.PenStyle.DashLine)
@@ -338,7 +347,7 @@ class PlanSelectionController:
             self.area.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
             self.view.scene.addItem(self.area)
         self.area.setRect(rect)
-        text = self.owner.tr("selection_items_count").format(count=len(indices) + len(self.area_labels) + len(self.area_curves)+len(self.area_annotations))
+        text = self.owner.tr("selection_items_count").format(count=sum(len(group) for group in shown))
         self.drawing.show_measurement(text, position)
         return indices
 
@@ -350,7 +359,8 @@ class PlanSelectionController:
             return True
         region_area = None
         annotation_indices = ()
-        if self.dragged or (event.position() - self.press_position).manhattanLength() >= QApplication.startDragDistance():
+        dragged = self.dragged or (event.position() - self.press_position).manhattanLength() >= QApplication.startDragDistance()
+        if dragged:
             indices = self.show_area(event.position())
             label_indices = self.area_labels
             curve_indices = self.area_curves
@@ -363,14 +373,26 @@ class PlanSelectionController:
                 if region is None:
                     self.origin = self.press_position = None
                     self.dragged = False
+                    self.selection_start = None
                     self.show_count(event.position())
                     return True  # Open space does not change the current selection.
                 indices, curve_indices, region_area = region.lines, region.curves, region.area
                 if self.shared():
                     path = next(path for path,r in self.regions().records if r == region)
                     annotation_indices,label_indices = region_contents(path,self.drawing.annotations(),self.drawing.labels(),[self.lines[i] for i in indices])
+        if self.selection_start is not None and self.selection_modifiers & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier):
+            if self.shared():
+                hosts = [self.lines[i] for i in indices]
+                annotation_indices = set(annotation_indices) | {i for i,a in enumerate(self.drawing.annotations())
+                    if a['kind'] in HOSTED_ANNOTATIONS and supported(a,hosts)}
+            toggle = bool(self.selection_modifiers & Qt.KeyboardModifier.ControlModifier) and not (
+                dragged or self.selection_modifiers & Qt.KeyboardModifier.ShiftModifier)
+            indices,label_indices,curve_indices,annotation_indices = merge_selection(self.selection_start,
+                (indices,label_indices,curve_indices,annotation_indices),toggle=toggle)
+            region_area = None
         self.origin = self.press_position = None
         self.dragged = False
+        self.selection_start = None
         self.clear_items()
         self.set_selected(indices, label_indices, curve_indices, region_area=region_area,annotation_indices=annotation_indices)
         self.show_count(event.position())

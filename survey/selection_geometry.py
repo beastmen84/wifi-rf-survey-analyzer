@@ -5,6 +5,12 @@ from survey.plan_annotation_rendering import annotation_path
 from survey.plan_annotations import annotation_points, HOSTED_ANNOTATIONS, supported
 
 
+def merge_selection(previous, picked, *, toggle=False):
+    """Merge independent index groups without duplicates, in stable index order."""
+    return tuple(tuple(sorted(set(a)^set(b) if toggle else set(a)|set(b)))
+                 for a,b in zip(previous,picked,strict=True))
+
+
 def annotation_geometry(items, lines=()):
     result = []
     for item in items:

@@ -345,7 +345,9 @@ class PlanToolsOverlay(QFrame):
         caption = self.owner.tr("design_caption_" + self.active_tool) if self.active_tool else self.owner.tr("design_no_tool")
         self.active_label.setText(self.owner.tr("design_active_tool", tool=caption))
         self.note.setText(self.owner.tr(key) + (" " + self.owner.tr("axis_lock_hint")
-                                              if self.active_tool in ("line", "arc") else ""))
+                                              if self.active_tool in ("line", "arc") else "")
+                          + (" " + self.owner.tr("selection_multi_hint")
+                             if self.active_tool in ("select", "annotation_select") else ""))
         self.update_tool_icons()
         if self.open:
             self.owner.floorplan_view.viewport().setCursor(Qt.CursorShape.CrossCursor if self.active_tool is not None else Qt.CursorShape.ArrowCursor)

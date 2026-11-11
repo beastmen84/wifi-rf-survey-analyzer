@@ -31,6 +31,7 @@ class LayersPanel(QFrame):
         super().__init__()
         self.owner, self.last = owner, object()
         self.in_tree_signal = False
+        self.dialog_open = False
         self.refresh_timer = QTimer(self)
         self.refresh_timer.setSingleShot(True)
         self.refresh_timer.timeout.connect(self.sync)
@@ -312,8 +313,12 @@ class LayersPanel(QFrame):
             self.owner.status.showMessage(self.owner.tr("layer_select_first"))
             return
         context = self.modal_context()
-        name, accepted = QInputDialog.getItem(self.owner, self.owner.tr("layer_move_selection"),
-            self.owner.tr("layer_name"), [layer["name"] for layer in targets], 0, False)
+        self.dialog_open = True
+        try:
+            name, accepted = QInputDialog.getItem(self.owner, self.owner.tr("layer_move_selection"),
+                self.owner.tr("layer_name"), [layer["name"] for layer in targets], 0, False)
+        finally:
+            self.dialog_open = False
         current = dict(segments=self.drawing.selection.selected, curves=self.drawing.selection.selected_curves,
                        labels=tuple(sorted(set(self.drawing.annotation.selected_labels) | set(self.drawing.selection.selected_labels))),
                        annotations=tuple(sorted(set(self.drawing.annotation.selected) | set(self.drawing.selection.selected_annotations))))

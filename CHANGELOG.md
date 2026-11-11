@@ -7,6 +7,14 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Moving a selection to another layer preserves it while the native destination
+  dialog takes focus, including text-only selections. Cancel keeps the selection;
+  transfer stays one undoable edit with the existing stale-context safeguards.
+- Main and annotation-only selection support Ctrl-right-click to toggle items,
+  Shift-right-click to add, and Ctrl/Shift-right-drag to extend a selection. Mixed
+  structure/text/annotation groups stay on the active layer; normal gestures
+  retain replacement selection. The shortcuts are shown in all four languages.
+
 ## v1.5.0 - 2026-11-11
 
 - Grid fading also recognizes floor enclosed by wall thickness, including

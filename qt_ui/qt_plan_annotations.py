@@ -26,6 +26,7 @@ from survey.plan_objects import (FREE_ANNOTATIONS, HOSTED_ANNOTATIONS, object_de
                                  object_geometry, object_is_round)
 from survey.plan_symbols import prepare_symbol
 from survey.plan_symbol_rendering import SymbolNumberItem
+from survey.selection_geometry import merge_selection
 
 ANNOTATION_TOOLS = ("marker", *HOSTED_ANNOTATIONS, *FREE_ANNOTATIONS, "annotation_select", "annotation_eraser")
 DOOR_CHOICES = (("single", 0, 1), ("single", 1, 1), ("single", 0, -1), ("single", 1, -1),
@@ -160,6 +161,8 @@ class AnnotationController:
         self.items, self.preview = [], []
         self.model = []
         self.selected, self.selected_labels = (), ()
+        self.selection_start = None
+        self.selection_modifiers = Qt.KeyboardModifier.NoModifier
         self.origin = self.last_pointer = None
         self.moving = self.dialog_open = self.consume_release = False
         self.pending, self.path, self.draft, self.draft_labels = None, [], [], []
@@ -175,6 +178,8 @@ class AnnotationController:
         existed = bool(self.selected or self.selected_labels or self.origin is not None or self.moving or self.path or self.pending)
         self.clear_preview()
         self.selected, self.selected_labels = (), ()
+        self.selection_start = None
+        self.selection_modifiers = Qt.KeyboardModifier.NoModifier
         self.origin = self.last_pointer = None
         self.moving = self.consume_release = False
         self.pending, self.path, self.draft, self.draft_labels = None, [], [], []
@@ -337,6 +342,8 @@ class AnnotationController:
             else:
                 text = self.owner.tr("object_selection_note" if any(a["kind"] in FREE_ANNOTATIONS for a in items) else "annotation_selection_note")
             self.drawing.show_measurement(text, self.last_pointer or QPointF())
+        else:
+            self.drawing.measurement.hide()
 
     def press(self, event):
         self.last_pointer = event.position()
@@ -367,6 +374,8 @@ class AnnotationController:
             self.consume_release = True
         else:
             self.origin = self.point(event.position(), tool == "marker" and self.marker_grid, tool == "marker")
+            self.selection_start = (self.selected,self.selected_labels) if tool == 'annotation_select' else None
+            self.selection_modifiers = event.modifiers()
             self.path = [self.origin] if tool == "marker" else []
             if tool == "marker":
                 self.drawing.show_snap_guides(QRectF(QPointF(*self.origin), QPointF(*self.origin)))
@@ -509,6 +518,8 @@ class AnnotationController:
                                   if (a["kind"] in FREE_ANNOTATIONS and annotation_path(a).intersects(area))
                                   or stroker.createStroke(annotation_path(a, self.drawing.selection.lines)).intersects(area))
             self.selected_labels = self.drawing.text.intersecting(rect)
+            if self.selection_start is not None and self.selection_modifiers & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier):
+                self.selected,self.selected_labels = merge_selection(self.selection_start,(self.selected,self.selected_labels))
             self.show(self.selected_items(), self.selected_texts(), valid=tool != "annotation_eraser", rectangle=rect)
         return True
 
@@ -531,9 +542,16 @@ class AnnotationController:
                     self.drawing.apply_edit(self.drawing.segments() or [], annotations=self.drawing.annotations() + [item])
             self.cancel()
         else:
-            if math.dist(self.origin, self.point(event.position())) <= self.tolerance() / 2:
+            dragged = math.dist(self.origin, self.point(event.position())) > self.tolerance() / 2
+            if not dragged:
                 self.selected, self.selected_labels = self.pick(self.origin)
+            if self.selection_start is not None and self.selection_modifiers & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier):
+                toggle = bool(self.selection_modifiers & Qt.KeyboardModifier.ControlModifier) and not (
+                    dragged or self.selection_modifiers & Qt.KeyboardModifier.ShiftModifier)
+                self.selected,self.selected_labels = merge_selection(self.selection_start,
+                    (self.selected,self.selected_labels),toggle=toggle)
             self.origin = None
+            self.selection_start = None
             if self.drawing.tools.active_tool == "annotation_eraser":
                 self.delete()
             else:

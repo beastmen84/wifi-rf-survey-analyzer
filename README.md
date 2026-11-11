@@ -276,7 +276,10 @@ from these software checks.
   A click within about six screen pixels of a stroke picks the single fragment
   first; a click farther inside a closed region selects all its boundary pieces
   and shows its area in **m²/ft²**, including nested holes. Open-space clicks keep
-  the selection. Single lines show length, circles radius, and arcs length,
+  the selection. Ctrl + right-click toggles items; Shift + right-click adds items.
+  With Ctrl or Shift, a right-drag box extends the current selection. These
+  shortcuts also work in annotation-only selection, within the active editable
+  layer. Single lines show length, circles radius, and arcs length,
   radius, chord and sagitta. Circular areas use analytic geometry. Selection
   commands are listed one per line in the palette and measurement panel.
   If a move, rotation or erase removes a junction, contiguous straight fragments
