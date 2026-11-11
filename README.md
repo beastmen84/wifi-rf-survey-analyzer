@@ -134,6 +134,10 @@ from these software checks.
   The survey grid fades inside perimeters closed by the current segments,
   including joined, concave and overlapping shapes. Opening a perimeter with
   the eraser restores its normal grid; undo restores the closed appearance.
+  Fading also recognizes enclosures formed by the physical wall thickness,
+  including curved joins with disconnected reference endpoints. It preserves
+  real gaps and evaluates each visible layer independently. This decorative
+  mask does not join reference lines, change dimensions or define editable rooms.
   This grid styling stays in the survey view and is not baked into exported maps.
   The shapes are visual plan geometry; RF findings still use measured data.
 - **Layers** is a collapsible column at the right of a Draw Plan or Load Plan Survey, available even with

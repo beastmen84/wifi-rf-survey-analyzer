@@ -134,6 +134,8 @@ class FloorplanView(QGraphicsView):
         self.grid_interior_path = QPainterPath()
         self.grid_exterior_path = QPainterPath()
         self.grid_region_bounds = None
+        self.grid_reference_path = QPainterPath()
+        self.grid_wall_groups = ()
         self.scale_calibration_items = []
         self.scale_calibration_points = []
         self.selected_point_key = None
@@ -199,6 +201,8 @@ class FloorplanView(QGraphicsView):
         self.grid_interior_path = QPainterPath()
         self.grid_exterior_path = QPainterPath()
         self.grid_region_bounds = None
+        self.grid_reference_path = QPainterPath()
+        self.grid_wall_groups = ()
         self.scale_calibration_items = []
         self.scale_calibration_points = []
         self.selected_point_key = None
@@ -229,6 +233,8 @@ class FloorplanView(QGraphicsView):
         self.grid_exterior_path = QPainterPath()
         self.grid_visible = False
         self.grid_region_bounds = None
+        self.grid_reference_path = QPainterPath()
+        self.grid_wall_groups = ()
         self.scale_calibration_items = []
         self.scale_calibration_points = []
         self.boundaries_edit_active = False
@@ -911,7 +917,7 @@ class FloorplanView(QGraphicsView):
             self.scene.addItem(item)
             self.grid_items.append(item)
 
-    def set_grid_regions(self, faces):
+    def set_grid_regions(self, faces, *, wall_groups=()):
         interior = QPainterPath()
         interior.setFillRule(Qt.FillRule.WindingFill)
         for face in faces:
@@ -922,8 +928,18 @@ class FloorplanView(QGraphicsView):
                 interior.lineTo(*point)
             interior.closeSubpath()
         bounds = self.scene.sceneRect()
-        if interior == self.grid_interior_path and bounds == self.grid_region_bounds:
+        groups = tuple(tuple(QPainterPath(body) for body in group) for group in wall_groups)
+        if interior == self.grid_reference_path and groups == self.grid_wall_groups and bounds == self.grid_region_bounds:
             return
+        reference = QPainterPath(interior)
+        from survey.wall_geometry import enclosed_floor
+        for group in groups:
+            if group:
+                # Overlay positive winding contours. Qt boolean union of
+                # coincident reference/physical paths can punch false holes.
+                interior.addPath(enclosed_floor(group))
+        self.grid_reference_path = reference
+        self.grid_wall_groups = groups
         self.grid_region_bounds = QRectF(bounds)
         self.grid_interior_path = interior
         sheet = QPainterPath()

@@ -309,8 +309,6 @@ class RectangleDesignController(QObject):
         self.snapper = PlanSnapper(lines or [], curves, region_centers=lambda: self.selection.regions().centers())
         self.regions = closed_drawing_regions(lines or [], curves)
         layered = self.owner.session and PLAN_LAYERS_KEY in self.owner.session.metadata
-        if not layered:
-            self.view.set_grid_regions(self.regions.faces)
         if self.regions.limited:
             self.owner.status.showMessage(self.owner.tr("design_regions_limited"))
         generated = self.owner.session and is_drawn_plan(self.owner.session.metadata)
@@ -321,6 +319,9 @@ class RectangleDesignController(QObject):
         paths = [QPainterPath() for line in lines or []]
         from survey.wall_rendering import WallReferenceInk
         ink = WallReferenceInk(lines or [], curves)
+        if not layered:
+            groups = ([body for _rank,body in ink.bodies],) if not self.regions.limited else ()
+            self.view.set_grid_regions(self.regions.faces, wall_groups=groups)
         visible, sources = visible_wall_segments(lines or [], annotations, with_sources=True)
         for part, index in zip(visible, sources):
             if (lines or [])[index].get("wall", {}).get("side") == 0:
@@ -349,6 +350,7 @@ class RectangleDesignController(QObject):
             reference_curves = [curve for layer in visible for curve in layer["drawing"]["curves"]]
             faces = []
             centers = []
+            wall_groups = []
             for rank, layer in enumerate(document["layers"]):
                 state = layer["drawing"]
                 z = 7 + rank * .02
@@ -375,11 +377,13 @@ class RectangleDesignController(QObject):
                 if layer["visible"]:
                     regions = closed_drawing_regions(state["segments"] or [], state["curves"])
                     faces.extend(regions.faces)
-                    centers.extend(RegionPicker(state["segments"] or [], state["curves"]).centers())
+                    picker = RegionPicker(state["segments"] or [], state["curves"])
+                    centers.extend(picker.centers())
+                    wall_groups.append((picker.wall_material,) if picker.wall_material is not None else ())
             self.clearance_index = ClearanceIndex(reference_lines, reference_curves,
                 [a for layer in visible for a in layer["drawing"]["annotations"]])
             self.reference_snapper = PlanSnapper(reference_lines, reference_curves, region_centers=lambda: centers)
-            self.view.set_grid_regions(faces)
+            self.view.set_grid_regions(faces, wall_groups=wall_groups)
         self.update_symbol_numbers()
 
     def update_symbol_numbers(self, _zoom=None, items=None):

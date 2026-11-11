@@ -7,6 +7,10 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Grid fading also recognizes floor enclosed by wall thickness, including
+  curved junctions whose reference lines do not form a closed room. Real gaps
+  remain open. Unchanged physical masks are reused; visible layers are evaluated
+  independently. This display change does not move walls or infer edit dimensions.
 - The canvas automatically uses hardware OpenGL rendering when available,
   with a software fallback. Unchanged measurement overlays and snap guides are
   reused. Unreadable sub-pixel wall hatches are omitted in the live

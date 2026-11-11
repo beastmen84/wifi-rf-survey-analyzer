@@ -22,6 +22,7 @@ class RegionPicker:
         regions = closed_drawing_regions(lines, curves, with_boundaries=True)
         self.limited = regions.limited or len(regions.faces) > 2000
         self.records = []
+        self.wall_material = None
         if self.limited:
             return
         material = None
@@ -30,6 +31,7 @@ class RegionPicker:
         if any(s.get("wall") for s in [*lines, *curves]):
             from survey.wall_geometry import wall_solids, united
             material = united(p for _c, p in wall_solids(lines, curves))
+        self.wall_material = material
         paths = []
         for face in regions.faces:
             path = QPainterPath()

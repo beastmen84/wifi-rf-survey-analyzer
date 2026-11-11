@@ -205,6 +205,30 @@ def wall_solids(lines, curves=(), annotations=(), *, styled=False):
     return [(key, united(paths).subtracted(cuts)) for key, paths in groups.items()]
 
 
+def enclosed_floor(bodies):
+    """Bounded interiors of uncut wall bodies, for decorative grid fading.
+
+    Filling original contours removes holes from the material's envelope;
+    subtracting the actual material recovers enclosed floor. Open chains
+    retain their concave outside contour and cannot close a real gap. Do not
+    use this display mask to infer reference dimensions or editable rooms.
+    """
+    from survey.wall_rendering import split_contours
+    material = united(bodies)
+    floor = united(split_contours(material)).subtracted(material)
+    result = QPainterPath()
+    result.setFillRule(Qt.FillRule.WindingFill)
+    for contour in split_contours(floor):
+        points = list(contour.toSubpathPolygons()[0])
+        ox,oy = points[0].x(),points[0].y()
+        area = math.fsum((a.x()-ox)*(b.y()-oy)-(a.y()-oy)*(b.x()-ox)
+                         for a,b in zip(points,points[1:]+points[:1]))
+        # All bounded interiors contribute positively, including nested ones.
+        # Keep the original curves; flattening only determines orientation.
+        result.addPath(contour.toReversed() if area < 0 else contour)
+    return result
+
+
 def wall_commands(lines, curves=(), annotations=()):
     from survey.wall_rendering import MaterialPath, split_contours
     result = []
