@@ -7,6 +7,8 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+## v1.5.0 - 2026-11-11
+
 - Grid fading also recognizes floor enclosed by wall thickness, including
   curved junctions whose reference lines do not form a closed room. Real gaps
   remain open. Unchanged physical masks are reused; visible layers are evaluated

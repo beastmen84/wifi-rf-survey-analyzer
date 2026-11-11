@@ -31,6 +31,7 @@ release_docs = [
     ('THIRD_PARTY_LICENSES', str(project_root / 'THIRD_PARTY_LICENSES'), 'DATA'),
     ('README.md', str(project_root / 'README.md'), 'DATA'),
     ('CHANGELOG.md', str(project_root / 'CHANGELOG.md'), 'DATA'),
+    ('docs/AUDIT_1_5_0.md', str(project_root / 'docs' / 'AUDIT_1_5_0.md'), 'DATA'),
     ('docs/AUDIT_1_4_0.md', str(project_root / 'docs' / 'AUDIT_1_4_0.md'), 'DATA'),
     ('docs/AUDIT_1_3_0.md', str(project_root / 'docs' / 'AUDIT_1_3_0.md'), 'DATA'),
     ('docs/AUDIT_1_1_0.md', str(project_root / 'docs' / 'AUDIT_1_1_0.md'), 'DATA'),

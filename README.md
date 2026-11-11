@@ -21,7 +21,7 @@ physical APs, review survey quality, and export explainable RF maps.
 
 ## Release Status
 
-- Current source version: `v1.4.0`
+- Current source version: `v1.5.0`
 - Release type: stable public source release
 - Active UI: PySide6
 - Main entry point: `main.py`
@@ -30,7 +30,15 @@ physical APs, review survey quality, and export explainable RF maps.
   tag. Public builds use `WiFiRFSurveyAnalyzer-v<version>-win64.zip`.
 - Project license: MPL 2.0 (`MPL-2.0`)
 
-`v1.4.0` adds annotation layers, symbols and legends to imported plans, with the
+`v1.5.0` improves drawing responsiveness with hardware OpenGL and a software
+fallback, stable wall splits/joins and physical wall-face attachments that keep
+neighboring rooms fixed. It adds per-wall material priorities, material Apply
+to all sides, thickness-aware openings and useful placement dimensions. Grid
+fading also recognizes enclosures formed by physical thickness. Exact shape
+dimensions are preserved; incompatible fits are rejected. See the
+[1.5.0 release audit](docs/AUDIT_1_5_0.md) for validation and remaining limits.
+
+`v1.4.0` added annotation layers, symbols and legends to imported plans, with the
 original image/PDF fixed underneath. Doors, windows and structural editing stay
 exclusive to Draw Plan. It also adds rack/switch/port inventory, a clearer Design
 Mode palette, responsive controls, centered JPEG exports and a Recommendations
@@ -873,11 +881,11 @@ between official release builds.
 
 Current source release:
 
-- `v1.4.0`
+- `v1.5.0`
 
 Expected Windows ZIP name:
 
-- `WiFiRFSurveyAnalyzer-v1.4.0-win64.zip`
+- `WiFiRFSurveyAnalyzer-v1.5.0-win64.zip`
 
 Historical beta ZIPs may still use the older artifact stem:
 
