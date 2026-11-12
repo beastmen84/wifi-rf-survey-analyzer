@@ -7,6 +7,11 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+- Layer commands retain unchanged scene items, wall/opening vectors, text glyphs
+  and snapping/clearance indexes. Activation, visibility, locking and renaming
+  no longer reconstruct the entire plan; text transfers reuse wall geometry.
+  Validation snapshots use bounded in-memory caches, with fresh mutable results
+  and the existing document-wide limits and imported-plan restrictions.
 - Confirmed selection highlights and counts remain visible when leaving the
   canvas for Layers or other controls. Placement/move ghosts still hide outside
   the canvas. Activating another layer or explicitly cancelling still clears

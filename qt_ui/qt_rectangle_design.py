@@ -34,11 +34,10 @@ from survey.plan_clearances import ClearanceIndex
 from survey.plan_layers import (PLAN_LAYERS_KEY, STATE_KEYS, read_layers, active_layer, editable_layer,
     validate_plan_document, write_layers)
 from qt_ui.qt_clean_plan import VectorPlanSource
-from qt_ui.qt_plan_region_selection import RegionPicker
 from survey.plan_mode import is_drawn_plan, is_loaded_plan, supports_plan_annotations
 from survey.plan_symbols import retain_sequences, reconcile_ap_positions, symbols, sequences
 from ap.groups import AP_GROUPS_METADATA_KEY, invalidate_ap_group_confirmation
-from survey.plan_symbol_rendering import SymbolNumber, SymbolNumberItem
+from survey.plan_symbol_rendering import SymbolNumberItem
 
 
 class RectanglePreview(QGraphicsPathItem):
@@ -104,6 +103,8 @@ class RectangleDesignController(QObject):
         self.wall_items = []
         self.passive_items = []
         self._layer_cache_key, self._layer_cache = None, None
+        self._layer_scene = None
+        self._layer_background_key = None
         self.snapper = PlanSnapper()
         self.regions = PlanRegions()
         self.snap_items = []
@@ -199,6 +200,8 @@ class RectangleDesignController(QObject):
             if self.tools.active_tool in ("marker", "door", "window", *FREE_ANNOTATIONS):
                 self.tools.active_tool = "annotation_select"
             if self.view.pixmap_item is not self.pixmap:
+                self._layer_scene = None  # scene.clear already destroyed its C++ items.
+                self._layer_background_key = None
                 # scene.clear() has already destroyed these C++ graphics items.
                 self.preview = None
                 self.items = []
@@ -265,6 +268,16 @@ class RectangleDesignController(QObject):
         return deepcopy(self.active_state()["annotations"]) if self.owner.session else []
 
     def redraw(self):
+        if self.owner.session and PLAN_LAYERS_KEY in self.owner.session.metadata:
+            self.redraw_layers()
+            return
+        if self._layer_scene is not None:
+            self.cancel()
+            for entry in self._layer_scene.layers.values():
+                entry.remove(self.view.scene)
+            self._layer_scene = None
+            self.items,self.wall_items,self.passive_items = [],[],[]
+            self.text.items,self.curve.items,self.annotation.items = [],[],[]
         self.dimensions.hide()
         self.rotation.cancel()
         self.eraser.cancel()
@@ -343,49 +356,47 @@ class RectangleDesignController(QObject):
         self.curve.redraw(curves, ink=ink)
         self.annotation.redraw(annotations)
         self.reference_snapper = self.snapper
-        if self.owner.session and PLAN_LAYERS_KEY in self.owner.session.metadata:
-            document = self.layer_document()
-            visible = [layer for layer in document["layers"] if layer["visible"]]
-            # Validate even hidden geometry against the current sheet dimensions.
-            VectorPlanSource.from_layers(self.view.pixmap_item.pixmap().size(), document["layers"])
-            reference_lines = [line for layer in visible for line in layer["drawing"]["segments"] or []]
-            reference_curves = [curve for layer in visible for curve in layer["drawing"]["curves"]]
-            faces = []
-            centers = []
-            wall_groups = []
-            for rank, layer in enumerate(document["layers"]):
-                state = layer["drawing"]
-                z = 7 + rank * .02
-                if layer["id"] == document["active"]:
-                    for group, offset in ((self.wall_items, .0005), (self.items, .001), (self.curve.items, .002),
-                                          (self.annotation.items, .006), (self.text.items, .009)):
-                        for item in group:
-                            item.setZValue(z + offset)
-                            item.setVisible(layer["visible"])
-                elif layer["visible"]:
-                    source = VectorPlanSource(self.view.pixmap_item.pixmap().size(), state["segments"] or [],
-                                              state["curves"], state["labels"], state["annotations"])
-                    for index, (path, pen, brush) in enumerate(source._commands):
-                        if isinstance(path, SymbolNumber):
-                            item = SymbolNumberItem(path.item)
-                        else:
-                            item = QGraphicsPathItem(path)
-                            item.setPen(pen)
-                            item.setBrush(brush)
-                        item.setZValue(z + .01 * index / max(1, len(source._commands)))
-                        item.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
-                        self.view.scene.addItem(item)
-                        self.passive_items.append(item)
-                if layer["visible"]:
-                    regions = closed_drawing_regions(state["segments"] or [], state["curves"])
-                    faces.extend(regions.faces)
-                    picker = RegionPicker(state["segments"] or [], state["curves"])
-                    centers.extend(picker.centers())
-                    wall_groups.append((picker.wall_material,) if picker.wall_material is not None else ())
-            self.clearance_index = ClearanceIndex(reference_lines, reference_curves,
-                [a for layer in visible for a in layer["drawing"]["annotations"]])
-            self.reference_snapper = PlanSnapper(reference_lines, reference_curves, region_centers=lambda: centers)
-            self.view.set_grid_regions(faces, wall_groups=wall_groups)
+        self.update_symbol_numbers()
+
+    def redraw_layers(self):
+        from qt_ui.qt_layer_scene import LayerScene
+        document = self.layer_document()
+        size = self.view.pixmap_item.pixmap().size()
+        self.cancel()
+        if self._layer_scene is None or self._layer_scene.size != size:
+            if self._layer_scene is not None:
+                for entry in self._layer_scene.layers.values():
+                    entry.remove(self.view.scene)
+            # Clean up the previous legacy (single-layer) graphics once.
+            for item in [*self.items,*self.wall_items,*self.text.items,*self.curve.items,*self.annotation.items,*self.passive_items]:
+                if item.scene() is self.view.scene:
+                    self.view.scene.removeItem(item)
+            self._layer_scene = LayerScene(self.view.scene,size)
+        self._layer_scene.prepare(document)
+        active = self._layer_scene.layers[document['active']]
+        state = active.state
+        self.wall_items,self.items,self.curve.items,self.annotation.items,self.text.items = active.groups
+        self.annotation.model = deepcopy(state['annotations'])
+        self.annotation.refresh_tooltips()
+        self.text.labels = deepcopy(state['labels'])
+        self.line.wall_index = None
+        self.eraser.set_segments(state['segments'] or [])
+        self.selection.set_segments(state['segments'] or [])
+        self.selection.region_picker = active.picker
+        self.regions,self.snapper = active.regions,active.snapper
+        self.clearance_index,self.reference_snapper = self._layer_scene.composite(document)
+        self.passive_items = [item for layer in document['layers'] if layer['id'] != document['active'] and layer['visible']
+                              for group in self._layer_scene.layers[layer['id']].groups for item in group]
+        visible = [self._layer_scene.layers[layer['id']] for layer in document['layers'] if layer['visible']]
+        self.view.set_grid_regions([face for entry in visible for face in entry.regions.faces],
+                                  wall_groups=[entry.source._wall_bodies if not entry.regions.limited else () for entry in visible])
+        if is_drawn_plan(self.owner.session.metadata) and self._layer_background_key != self.view.pixmap_item.pixmap().cacheKey():
+            white = QPixmap(size)
+            white.fill(Qt.GlobalColor.white)
+            self.view.pixmap_item.setPixmap(white)
+            self._layer_background_key = self.view.pixmap_item.pixmap().cacheKey()
+        if self.regions.limited:
+            self.owner.status.showMessage(self.owner.tr('design_regions_limited'))
         self.update_symbol_numbers()
 
     def update_symbol_numbers(self, _zoom=None, items=None):
@@ -905,6 +916,9 @@ class RectangleDesignController(QObject):
         if before != self.owner.session.metadata.get("plan_symbol_sequences"):
             self.owner.session.dirty = True
         previous = self.owner.session.get_ap_groups()
+        if not any(item['variant'] == 'wifi_ap' for _layer,item in symbols(document)) and not any(
+                (group.get('position') or {}).get('symbol_id') for group in previous):
+            return
         updated, groups = reconcile_ap_positions(document, previous)
         if updated != document:
             write_layers(self.owner.session.metadata, updated)
@@ -927,9 +941,9 @@ class RectangleDesignController(QObject):
         document = validate_plan_document(self.owner.session.metadata, document)
         sequences(self.owner.session.metadata, document)
         VectorPlanSource.from_layers(self.view.pixmap_item.pixmap().size(), document["layers"])
-        previous = self.snapshot()
         if document == self.layer_document() and PLAN_LAYERS_KEY in self.owner.session.metadata:
             return False
+        previous = self.snapshot() if history else None
         self.cancel()
         if history:
             self.undo_stack.append(previous)

@@ -96,8 +96,8 @@ def selection_contrast(color):
     return "#000000" if luminance > .179 else "#ffffff"
 
 
-def label_item(label, selected=False):
-    item = GlyphItem(glyph_path(label))
+def label_item(label, selected=False, *, path=None):
+    item = GlyphItem(glyph_path(label) if path is None else path)
     item.setPen(label_pen(label))
     item.setBrush(QColor(label["color"]))
     item.setZValue(7)  # Text stays legible above filled furniture annotations.

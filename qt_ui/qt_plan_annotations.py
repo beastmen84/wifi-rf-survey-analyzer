@@ -17,7 +17,6 @@ from qt_ui.qt_theme import QT_THEMES
 from survey.plan_labels import transform_labels, labels_geometry
 from survey.plan_label_rendering import label_item
 from survey.plan_geometry import segment_bounds
-from survey.planar_geometry import point_projection
 from app_core.plan_preferences import tool_colors, save_tool_colors
 from qt_ui.qt_plan_colors import choose_plan_color
 from qt_ui.scaling import widget_px
@@ -202,15 +201,19 @@ class AnnotationController:
         self.model = items
         for annotation in items:
             item = annotation_item(annotation, lines=self.drawing.segments() or [])
-            if annotation.get("ap_group"):
-                item.setToolTip(escape(self.owner.get_ap_group_display_name(annotation["ap_group"]))
-                                + "<br>" + escape(annotation.get("description", "")))
-            elif annotation.get("number"):
-                item.setToolTip(str(annotation["number"]) + "<br>" + escape(annotation.get("description", "")))
-            elif annotation.get('rack'):
-                item.setToolTip(escape(annotation['rack'].get('name',''))+'<br>'+escape(annotation.get('description','')))
             self.view.scene.addItem(item)
             self.items.append(item)
+        self.refresh_tooltips()
+
+    def refresh_tooltips(self):
+        for annotation,item in zip(self.model,self.items):
+            if annotation.get('ap_group'):
+                item.setToolTip(escape(self.owner.get_ap_group_display_name(annotation['ap_group']))
+                                +'<br>'+escape(annotation.get('description','')))
+            elif annotation.get('number'):
+                item.setToolTip(str(annotation['number'])+'<br>'+escape(annotation.get('description','')))
+            elif annotation.get('rack'):
+                item.setToolTip(escape(annotation['rack'].get('name',''))+'<br>'+escape(annotation.get('description','')))
 
     def configure(self, kind):
         if not self.drawing.tools.tool_allowed(kind) or not self.owner.get_px_per_meter():

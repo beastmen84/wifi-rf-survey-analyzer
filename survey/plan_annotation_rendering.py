@@ -91,9 +91,9 @@ def annotation_parts(item, lines=()):
     return parts
 
 
-def annotation_path(item, lines=()):
+def annotation_path(item, lines=(), *, parts=None):
     path = QPainterPath()
-    parts = annotation_parts(item, lines)
+    parts = annotation_parts(item, lines) if parts is None else parts
     if parts:
         path.setFillRule(parts[0][0].fillRule())
     for part, _dashed in parts:
@@ -111,18 +111,19 @@ def annotation_pen(item, color=None, dashed=None):
     return pen
 
 
-def annotation_fits(item, bounds, lines=()):
+def annotation_fits(item, bounds, lines=(), *, parts=None):
     # Horizontal/vertical marker paths have a zero-height/width bounding rect.
     # QRectF.contains(rect) rejects these even when all points are on the sheet.
-    rect = annotation_path(item, lines).boundingRect()
+    rect = annotation_path(item, lines, parts=parts).boundingRect()
     return (rect.left() >= bounds.left() - 1e-7 and rect.top() >= bounds.top() - 1e-7
             and rect.right() <= bounds.right() + 1e-7 and rect.bottom() <= bounds.bottom() + 1e-7)
 
 
-def annotation_item(annotation, color=None, lines=()):
-    item = QGraphicsPathItem(annotation_path(annotation, lines))
+def annotation_item(annotation, color=None, lines=(), *, parts=None):
+    parts = annotation_parts(annotation, lines) if parts is None else parts
+    item = QGraphicsPathItem(annotation_path(annotation, lines, parts=parts))
     item.setPen(QPen(Qt.PenStyle.NoPen))
-    for path, dashed in annotation_parts(annotation, lines):
+    for path, dashed in parts:
         child = QGraphicsPathItem(path, item)
         child.setPen(annotation_pen(annotation, color, dashed))
         child.setBrush(annotation_brush(annotation))

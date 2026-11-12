@@ -1,6 +1,6 @@
 # Wi-Fi RF Survey Analyzer - Architecture Notes
 
-Last updated: 2026-11-08
+Last updated: 2026-11-12
 
 This document is the forward-looking product roadmap. Completed items are kept
 only as context; the actionable backlog is in the "Remaining Work" section.
@@ -22,6 +22,21 @@ interpolated colors.
 
 Current status:
 
+- Layer rendering retains QGraphicsItems per layer in qt_ui/qt_layer_scene.py.
+  Flag/active/order changes reconfigure existing items; changed drawing states
+  replace only their own layer. Geometry indexes and wall vectors survive
+  label-only edits. Composite snapping/clearance indexes are cached for up to
+  eight visible-layer combinations and invalidated on structural changes.
+  VectorPlanSource.for_layer caches validated paths by canvas size and exact
+  drawing values (32 entries / 8 MiB estimated payload budget); its consumers
+  copy Qt paths into items and never mutate the cached source. State validation
+  caches only its own serialized snapshots (64 entries / 4 MiB bytes). Marshal
+  version 2 is an internal value key, preserving invalid tuple/list distinctions
+  without alias identities; no external marshal payload is read or saved.
+  Document-wide limits, symbol/rack checks, hidden-layer bounds, loaded-plan
+  rules and legacy Layer 0 serialization still run. Scene replacement drops
+  cached wrappers before touching scene.clear()-destroyed C++ objects.
+  See LAYER_PERFORMANCE_2026_11_12.md for timings and verification limits.
 - Post-1.3.0 source: JPEG uses an export-only vector viewport around visible ink
   (paths, physical walls, text and symbol badges); imported backgrounds retain
   full extents. Symmetric footer reservations center the plan on both axes.

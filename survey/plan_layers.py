@@ -1,7 +1,10 @@
 """Versioned independent drawing layers; legacy drawings are the permanent base."""
 from copy import deepcopy
 import json
+import marshal
 from uuid import uuid4
+from collections import OrderedDict
+from threading import RLock
 
 from survey.plan_drawing import PLAN_DRAWING_KEY, drawing_geometry, encode_drawing, validate_segments
 from survey.plan_curves import PLAN_CURVES_KEY, validate_curves, encode_curves
@@ -14,6 +17,10 @@ from survey.plan_mode import is_drawn_plan, is_loaded_plan
 PLAN_LAYERS_KEY = "plan_layers"
 STATE_KEYS = ("segments", "labels", "curves", "annotations")
 MAX_LAYERS = 32
+_STATE_CACHE = OrderedDict()
+_STATE_CACHE_BYTES = 0
+_STATE_CACHE_LOCK = RLock()
+_STATE_CACHE_LIMIT = 4*1024*1024
 
 
 def legacy_state(metadata):
@@ -27,6 +34,35 @@ def empty_state():
 
 
 def validate_state(state):
+    """Reuse exact immutable validation snapshots; callers always get fresh data."""
+    global _STATE_CACHE_BYTES
+    try:
+        # In-memory keys preserve Python types (e.g. invalid tuples vs lists).
+        # Only bytes produced here from our own validated results are decoded.
+        key = marshal.dumps(state,2)
+    except (TypeError,ValueError,RecursionError,OverflowError):
+        return _validate_state(state)
+    if len(key) > 512000:
+        return _validate_state(state)
+    with _STATE_CACHE_LOCK:
+        cached = _STATE_CACHE.get(key)
+        if cached is not None:
+            _STATE_CACHE.move_to_end(key)
+            return marshal.loads(cached)
+    result = _validate_state(state)
+    encoded = marshal.dumps(result,2)
+    weight = len(key)+len(encoded)
+    with _STATE_CACHE_LOCK:
+        if key not in _STATE_CACHE and weight <= _STATE_CACHE_LIMIT:
+            while _STATE_CACHE and (len(_STATE_CACHE) >= 64 or _STATE_CACHE_BYTES+weight > _STATE_CACHE_LIMIT):
+                old,value = _STATE_CACHE.popitem(last=False)
+                _STATE_CACHE_BYTES -= len(old)+len(value)
+            _STATE_CACHE[key] = encoded
+            _STATE_CACHE_BYTES += weight
+    return result
+
+
+def _validate_state(state):
     if not isinstance(state, dict):
         raise ValueError("Invalid layer drawing")
     curves = validate_curves(state.get("curves", []))

@@ -229,7 +229,10 @@ class LayersPanel(QFrame):
 
     def activate_item(self, item, _previous):
         if item is not None and self.owner.session:
-            document = deepcopy(self.drawing.layer_document())
+            current = self.drawing.layer_document()
+            if current['active'] == item.data(2,Qt.ItemDataRole.UserRole):
+                return
+            document = deepcopy(current)
             document["active"] = item.data(2, Qt.ItemDataRole.UserRole)
             self.commit(document, history=False, defer=True)
 
