@@ -129,7 +129,7 @@ def test_multi_text_selection_transfers_together_with_unchanged_ids_and_position
 
 
 @pytest.mark.parametrize('restriction',['locked','hidden'])
-def test_transfer_excludes_locked_and_hidden_destinations_without_losing_selection(editor,restriction):
+def test_transfer_excludes_locked_layers_and_cancel_keeps_selection(editor,restriction):
     owner,drawing,selection = text_setup(editor,'select')
     doc = add_layer(drawing.layer_document(),'Target')
     doc['layers'][1]['locked' if restriction == 'locked' else 'visible'] = restriction == 'locked'
@@ -139,8 +139,13 @@ def test_transfer_excludes_locked_and_hidden_destinations_without_losing_selecti
     click(drawing,text_point(drawing,0))
     click(drawing,text_point(drawing,1),CTRL)
     before = deepcopy(drawing.snapshot())
-    with patch('qt_ui.qt_layers.QInputDialog.getItem',side_effect=AssertionError('no editable target')):
+    with patch('qt_ui.qt_layers.QInputDialog.getItem',return_value=('',False)) as dialog:
         owner.layers_panel.move_selected()
+    if restriction == 'locked':
+        dialog.assert_not_called()
+        assert not owner.layers_panel.move_button.isEnabled()
+    else:
+        assert dialog.call_args.args[3] == ['Target']
     assert selection.selected_labels == (0,1) and drawing.snapshot() == before
 
 

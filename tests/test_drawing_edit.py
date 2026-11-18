@@ -109,11 +109,12 @@ def test_line_click_prompts_only_for_length_and_r_rotates_all_four_preview_direc
           patch("qt_ui.qt_line_design.LineSizeDialog.length", return_value=150)):
         QTest.mouseClick(app.floorplan_view.viewport(), Qt.MouseButton.RightButton, pos=first)
         initial = drawing.line.preview.line()
-        assert initial.dx() == 150 and initial.dy() == 0
+        assert (initial.dx(), initial.dy()) == pytest.approx((150, 0), rel=0, abs=1e-9)
         for expected in ((0, 150), (-150, 0), (0, -150), (150, 0)):
             QTest.keyClick(app, Qt.Key.Key_R)
             preview = drawing.line.preview.line()
-            assert (preview.dx(), preview.dy()) == expected and preview.length() == 150
+            assert (preview.dx(), preview.dy()) == pytest.approx(expected, rel=0, abs=1e-9)
+            assert preview.length() == pytest.approx(150, rel=0, abs=1e-9)
             assert not app.session.dirty and drawing.segments() is None
         QTest.mouseClick(app.floorplan_view.viewport(), Qt.MouseButton.RightButton, pos=point(app, 400, 300))
         assert prompt.call_count == 1

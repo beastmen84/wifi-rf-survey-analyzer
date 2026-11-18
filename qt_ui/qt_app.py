@@ -1503,10 +1503,10 @@ class WifiHeatmapQtApp(
                 border: 1px solid {palette["metric_info"]};
             }}
             QToolButton#designToolButton:focus, QToolButton#designClose:focus {{
-                border: 1px dashed {palette["metric_info"]};
+                border: 1px solid {palette["metric_info"]};
             }}
             QToolButton#designToolButton:checked:focus {{
-                border: 1px dashed #FFFFFF;
+                border: 1px solid {palette["title"]};
             }}
             QToolButton#designClose {{
                 padding: 0;
@@ -1881,6 +1881,9 @@ class WifiHeatmapQtApp(
             }}
             QPushButton#appBarSettingsButton:hover {{
                 background: {palette["button_hover"]};
+            }}
+            QPushButton#appBarSettingsButton:focus {{
+                border-color: {palette["metric_info"]};
             }}
             QPushButton#appBarIconButton {{
                 min-width: {s(30)}px;

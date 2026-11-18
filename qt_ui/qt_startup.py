@@ -287,10 +287,10 @@ class StartWindow(QMainWindow):
                 padding: {s(10)}px {s(14)}px;
             }}
             QPushButton:focus {{
-                border: 1px dashed {palette["metric_info"]};
+                border: 1px solid {palette["metric_info"]};
             }}
             QPushButton#primaryStartButton:focus, QPushButton#startSettingsButton:focus {{
-                border: 1px dashed #FFFFFF;
+                border: 1px solid {palette["title"]};
             }}
             QPushButton#primaryStartButton:hover {{
                 background: {palette["action_bg"]};
@@ -311,6 +311,9 @@ class StartWindow(QMainWindow):
             }}
             QPushButton#secondaryStartButton:hover {{
                 background: {palette["button_hover"]};
+            }}
+            QPushButton#secondaryStartButton:focus {{
+                border-color: {palette["metric_info"]};
             }}
             QPushButton#secondaryStartButton:disabled {{
                 color: {palette["muted"]};

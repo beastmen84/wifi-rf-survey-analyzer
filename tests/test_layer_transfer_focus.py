@@ -3,7 +3,7 @@ from copy import deepcopy
 from unittest.mock import patch
 
 import pytest
-from PySide6.QtCore import QEvent,QTimer
+from PySide6.QtCore import QEvent,QObject,QTimer
 from PySide6.QtWidgets import QApplication,QInputDialog
 
 from survey.plan_layers import add_layer
@@ -72,14 +72,26 @@ def test_real_destination_dialog_keeps_selected_text_and_closes_guard(editor):
     owner.layers_panel.set_open(True,save=False)
     assert owner.layers_panel.move_button.isEnabled()
     observed = []
-    def answer():
-        dialog = QApplication.activeModalWidget()
-        observed.append(isinstance(dialog,QInputDialog) and owner.layers_panel.dialog_open)
-        if dialog is not None:
-            QApplication.sendEvent(owner,QEvent(QEvent.Type.WindowDeactivate))
-            dialog.accept()
-    QTimer.singleShot(0,answer)
-    owner.layers_panel.move_button.click()
+
+    class AnswerOnShow(QObject):
+        def eventFilter(self, dialog, event):
+            if (event.type() == QEvent.Type.Show and isinstance(dialog,QInputDialog)
+                    and dialog.parentWidget() is owner):
+                def answer():
+                    observed.append(owner.layers_panel.dialog_open)
+                    QApplication.sendEvent(owner,QEvent(QEvent.Type.WindowDeactivate))
+                    dialog.accept()
+
+                QTimer.singleShot(0,dialog,answer)
+            return False
+
+    app = QApplication.instance()
+    responder = AnswerOnShow()
+    app.installEventFilter(responder)
+    try:
+        owner.layers_panel.move_button.click()
+    finally:
+        app.removeEventFilter(responder)
     assert observed == [True] and not owner.layers_panel.dialog_open
     assert drawing.layer_document()['layers'][0]['drawing']['labels'] == []
     assert len(drawing.labels()) == 1

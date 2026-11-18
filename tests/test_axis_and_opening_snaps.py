@@ -50,7 +50,7 @@ def test_shift_drag_and_release_keep_the_same_axis_and_origin(editor, tool, end,
         assert not d.snap_guides
     QTest.mouseRelease(d.view.viewport(), Qt.MouseButton.RightButton, modifiers, pos=finish)
     result = d.segments()[0] if tool == "line" else d.curve.chord
-    assert tuple(result[key] for key in ("x1", "y1", "x2", "y2")) == draft
+    assert tuple(result[key] for key in ("x1", "y1", "x2", "y2")) == pytest.approx(draft, rel=0, abs=1e-9)
     assert not app.session.rows
     if tool == "line":
         d.undo()

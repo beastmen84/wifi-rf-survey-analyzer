@@ -21,7 +21,7 @@ physical APs, review survey quality, and export explainable RF maps.
 
 ## Release Status
 
-- Current source version: `v1.5.1`
+- Current source version: `v1.5.2`
 - Release type: stable public source release
 - Active UI: PySide6
 - Main entry point: `main.py`
@@ -29,6 +29,11 @@ physical APs, review survey quality, and export explainable RF maps.
 - Windows package: generated in a separate release step from the same source
   tag. Public builds use `WiFiRFSurveyAnalyzer-v<version>-win64.zip`.
 - Project license: MPL 2.0 (`MPL-2.0`)
+
+`v1.5.2` allows transfers to hidden, unlocked layers, gives focused buttons a
+continuous outline and preserves undo history when a selection stays in place.
+The full test suite can run in two isolated Qt processes. See the
+[1.5.2 release audit](docs/AUDIT_1_5_2.md) for the verification record.
 
 `v1.5.1` makes layer commands more responsive by retaining unchanged graphics
 and reusing validated geometry. Confirmed selections stay visible when moving
@@ -161,8 +166,9 @@ from these software checks.
   and use **Up/Down** or drag the rows to change their order: the top row is painted
   above the others. Click a row to choose the active layer. Drawing, selection and
   erasing work only on that layer; hidden or locked layers cannot be edited.
-  **Move selection to layer…** transfers selected pieces to another visible,
-  unlocked layer. Doors/windows follow a transferred supporting wall; unsupported
+  **Move selection to layer…** transfers selected pieces to another unlocked
+  layer. A hidden destination stays hidden, and the current layer stays active.
+  Doors/windows follow a transferred supporting wall; unsupported
   openings cannot be transferred on their own. The header's undo/redo controls
   also work with Design Mode closed. Layer changes support undo/redo,
   and all layers, including hidden content, survive save/reopen.
@@ -836,11 +842,14 @@ independent of the display backend. For driver troubleshooting, launch with
 
 ## Testing
 
-Run the full test suite:
+Run the full suite in two isolated processes using Qt's offscreen backend:
 
 ```bash
-python -m pytest tests
+python tools/run_test_suite.py
 ```
+
+Use `--workers 1` for a smaller memory footprint, or `python -m pytest tests`
+to exercise the native desktop backend.
 
 Useful focused groups:
 
@@ -890,11 +899,11 @@ between official release builds.
 
 Current source release:
 
-- `v1.5.1`
+- `v1.5.2`
 
 Expected Windows ZIP name:
 
-- `WiFiRFSurveyAnalyzer-v1.5.1-win64.zip`
+- `WiFiRFSurveyAnalyzer-v1.5.2-win64.zip`
 
 Historical beta ZIPs may still use the older artifact stem:
 

@@ -186,7 +186,7 @@ def move_selection(document, target_id, selected):
     result = deepcopy(document)
     source = active_layer(result)
     target = next(layer for layer in result["layers"] if layer["id"] == target_id)
-    if source is target or not editable_layer(result) or target["locked"] or not target["visible"]:
+    if source is target or not editable_layer(result) or target["locked"]:
         raise ValueError("Layer is not editable")
     state, destination = source["drawing"], target["drawing"]
     indexes = {key: set(selected.get(key, ())) for key in STATE_KEYS}
@@ -200,5 +200,6 @@ def move_selection(document, target_id, selected):
             raise ValueError("Invalid layer selection")
         destination[key] = list(destination[key] or []) + [item for i, item in enumerate(items) if i in indexes[key]]
         state[key] = [item for i, item in enumerate(items) if i not in indexes[key]]
-    result["active"] = target_id
+    if target["visible"]:
+        result["active"] = target_id
     return validate_document(result)

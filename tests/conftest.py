@@ -1,18 +1,22 @@
-"""Unrelated UI tests keep zero-depth placement; side-editor tests override it."""
+"""Shared Qt test setup and teardown."""
+import gc
+
 import pytest
+from PySide6.QtCore import QCoreApplication, QEvent
 
 
-@pytest.fixture(autouse=True)
-def release_deferred_qt_objects():
+@pytest.hookimpl(wrapper=True, tryfirst=True)
+def pytest_runtest_teardown(item, nextitem):
     """Honor deleteLater between tests without an app.exec() event loop."""
-    yield
-    import gc
-    from PySide6.QtCore import QCoreApplication, QEvent
-
-    gc.collect()
-    if QCoreApplication.instance() is not None:
-        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
-        gc.collect()
+    try:
+        return (yield)
+    finally:
+        # A full collection scans the growing test session, so run it at module
+        # boundaries. Qt still destroys queued widgets after each test.
+        if nextitem is None or nextitem.path != item.path:
+            gc.collect()
+        if QCoreApplication.instance() is not None:
+            QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 @pytest.fixture(autouse=True)

@@ -202,7 +202,11 @@ class LayersPanel(QFrame):
         d = self.drawing
         has_selection = d.selection.has_selection() or bool(d.annotation.selected or d.annotation.selected_labels)
         self.move_button.setEnabled(self.owner.session is not None and supports_plan_annotations(self.owner.session.metadata) and not self.owner.scan_in_progress
-            and has_selection and d.editable() and len(d.layer_document()["layers"]) > 1)
+            and has_selection and d.editable() and bool(self.move_targets(d.layer_document())))
+
+    @staticmethod
+    def move_targets(document):
+        return [layer for layer in document["layers"] if layer["id"] != document["active"] and not layer["locked"]]
 
     def commit(self, document, history=True, defer=False):
         if self.owner.session is None or not supports_plan_annotations(self.owner.session.metadata) or self.owner.scan_in_progress:
@@ -307,8 +311,7 @@ class LayersPanel(QFrame):
 
     def move_selected(self):
         document = self.drawing.layer_document()
-        targets = [layer for layer in document["layers"] if layer["id"] != document["active"]
-                   and layer["visible"] and not layer["locked"]]
+        targets = self.move_targets(document)
         selected = deepcopy(dict(segments=self.drawing.selection.selected, curves=self.drawing.selection.selected_curves,
                         labels=tuple(sorted(set(self.drawing.annotation.selected_labels) | set(self.drawing.selection.selected_labels))),
                         annotations=tuple(sorted(set(self.drawing.annotation.selected) | set(self.drawing.selection.selected_annotations)))))
@@ -319,7 +322,7 @@ class LayersPanel(QFrame):
         self.dialog_open = True
         try:
             name, accepted = QInputDialog.getItem(self.owner, self.owner.tr("layer_move_selection"),
-                self.owner.tr("layer_name"), [layer["name"] for layer in targets], 0, False)
+                self.owner.tr("layer_move_destination"), [layer["name"] for layer in targets], 0, False)
         finally:
             self.dialog_open = False
         current = dict(segments=self.drawing.selection.selected, curves=self.drawing.selection.selected_curves,

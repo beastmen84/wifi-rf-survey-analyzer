@@ -235,22 +235,33 @@ def test_real_tree_activation_checkboxes_rename_and_order_are_safe(editor, qt_ap
     assert d.layer_document()["layers"][-1]["id"] == other
 
 
-def test_move_selection_button_transfers_free_objects_in_one_undoable_edit(editor):
+@pytest.mark.parametrize("visible", [True, False])
+def test_move_selection_button_transfers_free_objects_in_one_undoable_edit(editor, visible):
     app, d = editor
     d.store([], annotations=[obj()])
     doc = add_layer(d.layer_document(), "Furniture")
     destination = doc["active"]
+    active_layer(doc)["visible"] = visible
+    doc = add_layer(doc, "Locked")
+    active_layer(doc)["locked"] = True
     doc["active"] = "0"
     d.change_layers(doc)
     choose(app, "annotation_select")
     d.annotation.select((0,))
     assert app.layers_panel.move_button.isEnabled()
-    with patch("qt_ui.qt_layers.QInputDialog.getItem", return_value=("Furniture", True)):
-        app.layers_panel.move_selected()
-    assert d.layer_document()["active"] == destination and len(d.annotations()) == 1
-    assert not d.layer_document()["layers"][0]["drawing"]["annotations"]
-    d.undo()
+    history = len(d.undo_stack)
+    with patch("qt_ui.qt_layers.QInputDialog.getItem", return_value=("Furniture", True)) as dialog:
+        app.layers_panel.move_button.click()
+    assert dialog.call_args.args[3] == ["Furniture"]
+    moved = d.layer_document()
+    assert moved["active"] == (destination if visible else "0")
+    assert not moved["layers"][0]["drawing"]["annotations"]
+    assert moved["layers"][1]["visible"] is visible
+    assert len(moved["layers"][1]["drawing"]["annotations"]) == 1
+    assert len(d.undo_stack) == history + 1
+    assert d.undo()
     assert d.layer_document()["active"] == "0" and len(d.annotations()) == 1
+    assert d.redo() and d.layer_document() == moved
 
 
 def test_imported_bitmap_survives_layer_changes_save_and_reopen(editor, tmp_path):

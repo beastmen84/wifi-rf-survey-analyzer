@@ -7,6 +7,17 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+## v1.5.2 - 2026-11-18
+
+- Move selection can transfer elements to hidden, unlocked layers. The target
+  stays hidden and the current layer stays active.
+- Focused startup and drawing buttons use a continuous outline at fractional
+  display scales.
+- Confirming a selection move at the original pointer position preserves undo
+  history, including at zoom levels with fractional coordinates.
+- The complete test suite can run in two isolated Qt processes with
+  `python tools/run_test_suite.py`.
+
 ## v1.5.1 - 2026-11-18
 
 - Layer commands retain unchanged scene items, wall/opening vectors, text glyphs
