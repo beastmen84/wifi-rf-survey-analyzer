@@ -21,7 +21,7 @@ physical APs, review survey quality, and export explainable RF maps.
 
 ## Release Status
 
-- Current source version: `v1.5.0`
+- Current source version: `v1.5.1`
 - Release type: stable public source release
 - Active UI: PySide6
 - Main entry point: `main.py`
@@ -29,6 +29,12 @@ physical APs, review survey quality, and export explainable RF maps.
 - Windows package: generated in a separate release step from the same source
   tag. Public builds use `WiFiRFSurveyAnalyzer-v<version>-win64.zip`.
 - Project license: MPL 2.0 (`MPL-2.0`)
+
+`v1.5.1` makes layer commands more responsive by retaining unchanged graphics
+and reusing validated geometry. Confirmed selections stay visible when moving
+to the Layers panel or opening the transfer dialog. Ctrl/Shift gestures extend
+or toggle selections, including mixed drawing, text and annotation selections.
+See the [1.5.1 release audit](docs/AUDIT_1_5_1.md) for validation and its limits.
 
 `v1.5.0` improves drawing responsiveness with hardware OpenGL and a software
 fallback, stable wall splits/joins and physical wall-face attachments that keep
@@ -884,11 +890,11 @@ between official release builds.
 
 Current source release:
 
-- `v1.5.0`
+- `v1.5.1`
 
 Expected Windows ZIP name:
 
-- `WiFiRFSurveyAnalyzer-v1.5.0-win64.zip`
+- `WiFiRFSurveyAnalyzer-v1.5.1-win64.zip`
 
 Historical beta ZIPs may still use the older artifact stem:
 

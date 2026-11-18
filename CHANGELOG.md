@@ -7,6 +7,8 @@ The project uses semantic public release tags such as `v0.9.0-beta.1`,
 
 ## Unreleased
 
+## v1.5.1 - 2026-11-18
+
 - Layer commands retain unchanged scene items, wall/opening vectors, text glyphs
   and snapping/clearance indexes. Activation, visibility, locking and renaming
   no longer reconstruct the entire plan; text transfers reuse wall geometry.
